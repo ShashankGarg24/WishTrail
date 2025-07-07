@@ -1,0 +1,507 @@
+## 🚀 WishTrail - Dreams. Goals. Progress.
+**Complete Project Requirements Document (PRD)**
+
+---
+
+## 📋 Project Overview
+
+**WishTrail** is a comprehensive personal goal-tracking and social motivation web application that combines personal achievement tracking with community inspiration. The app allows users to set year-wise goals, track progress, connect with like-minded individuals, and get inspired through curated content.
+
+**Mission**: Transform dreams into achievable goals through personal tracking, community support, and continuous inspiration.
+
+---
+
+## ✨ Core Features Implemented
+
+### 🏠 **Homepage**
+- **Hero Section**: Engaging landing page with WishTrail branding
+- **YouTube/Instagram Carousel**: Interactive content carousel with:
+  - Multi-item display (3 videos/posts at once)
+  - Manual navigation (arrows, dots, keyboard, touch/swipe)
+  - Smooth transitions with Framer Motion
+  - Support for 2 YouTube channels and 2 Instagram accounts
+- **Call-to-Action**: Dynamic CTA based on authentication status
+- **Responsive Design**: Mobile-first approach with Tailwind CSS
+
+### 🔐 **Authentication System**
+- **Dual Mode Interface**: Toggle between Sign In and Sign Up
+- **Form Validation**: Email, password, and confirmation fields
+- **Mock Authentication**: Simulates real auth flow
+- **User Session Management**: Persistent login state with Zustand
+- **Avatar Generation**: Automatic avatar creation using DiceBear API
+- **Protected Routes**: Authentication guards for sensitive pages
+- **Smart Post-Authentication Redirection**:
+  - **Sign In (Existing Users)**: Redirects to Dashboard to view goals and progress
+  - **Sign Up (New Users)**: Redirects to Profile page to set up profile information
+  - **Context-Aware Navigation**: Appropriate landing page based on user status
+- **Enhanced Access Control**:
+  - Explore page accessible to unauthenticated users
+  - Following and Activity tabs hidden for unauthenticated users
+  - Follow buttons redirect unauthenticated users to sign-in page
+  - Dashboard tab only shows when user is logged in
+  - **Hamburger menu hidden for unauthenticated users**: Clean interface with only essential elements
+
+### 📊 **Dashboard**
+- **Year-wise Goal Management**: Create and manage goals for multiple years (2023-2026)
+- **Goal Categories**: Health & Fitness, Career & Business, Personal Development, Relationships, Education & Learning, Travel & Adventure, Financial Goals, Creative Projects, Family & Friends, Other
+- **Priority Levels**: High, Medium, Low priority assignment with multipliers
+- **Duration Types**: Short-term, Medium-term, Long-term with different point values
+- **Progress Tracking**: Visual progress bars and completion percentages
+- **Goal Operations**: Create, edit, delete, and toggle completion status
+- **Statistics Display**: Total goals, completed goals, in progress, today's completions, total points, and user level
+- **Achievement System**: Unlock badges based on goal completion
+
+### 🎮 **Advanced Goal Features**
+
+#### **Minimum Goal Duration Enforcement**
+- **Duration-based Completion Delays**:
+  - Short-term goals: 1 day minimum
+  - Medium-term goals: 3 days minimum
+  - Long-term goals: 7 days minimum
+- **Target Date Validation**: Requires dates at least 1 day from today
+- **Visual Lock Indicators**: Goals show lock icon with countdown timers when locked
+- **Tooltip Explanations**: Detailed tooltips explain why goals are locked
+- **Backwards Compatibility**: Existing goals without duration settings are not affected
+
+#### **Daily Completion Limit System**
+- **3 Goals Per Day Limit**: Users can only complete maximum 3 goals per day
+- **Daily Completion Tracking**: Tracks completions with localStorage persistence
+- **Visual Feedback**: Orange badges when daily limit is reached
+- **Dashboard Notification**: Banner notification when daily limit is hit
+- **Today Stat Display**: Shows current progress (e.g., "2/3" completed today)
+- **Lock Override**: Previously completed goals can be uncompleted without limit restrictions
+
+#### **Completion Notes System**
+- **Mandatory Completion Notes**: 10+ word requirement when completing goals
+- **Real-time Word Count Validation**: Live word counter with "Good to go!" indicator
+- **Completion Notes Display**: Notes displayed in goal cards with "What I did:" format
+- **Completion Timestamps**: Achievement tracking with completion date/time
+- **Rich Text Support**: Supports detailed descriptions of accomplishments
+
+### 🏆 **Points & Gamification System**
+
+#### **Comprehensive Points Calculation**
+- **Base Points by Duration**:
+  - Short-term: 10 points
+  - Medium-term: 25 points  
+  - Long-term: 50 points
+- **Priority Multipliers**:
+  - High priority: 1.5x multiplier
+  - Medium priority: 1.0x multiplier
+  - Low priority: 0.7x multiplier
+- **Category Bonuses**:
+  - Education & Learning: +8 points
+  - Career & Business: +7 points
+  - Financial Goals: +7 points
+  - Personal Development: +6 points
+  - Health & Fitness: +5 points
+  - Creative Projects: +5 points
+  - Relationships: +5 points
+  - Family & Friends: +4 points
+  - Travel & Adventure: +4 points
+  - Other: +3 points
+- **Early Completion Bonus**: +20% if completed before target date
+- **Note Quality Bonuses**:
+  - 50+ words: +10 points
+  - 25+ words: +5 points
+
+#### **User Level System**
+- **🎯 Novice**: 0-49 points
+- **🌱 Beginner**: 50-99 points
+- **🚀 Intermediate**: 100-199 points
+- **💎 Advanced**: 200-499 points
+- **⭐ Expert**: 500-999 points
+- **🏆 Master**: 1000+ points
+
+#### **UI Integration**
+- **Points Badges**: Goal cards show calculated points with breakdown
+- **CompletionModal**: Real-time points breakdown preview before completion
+- **Dashboard Stats**: Total points and current level prominently displayed
+- **Dynamic Calculations**: Points update based on duration, priority, category, timing, and note quality
+
+### 🎉 **Celebration System**
+
+#### **Goal Completion Celebration Modal**
+- **Confetti Animation**: 50 colorful confetti pieces falling with physics
+- **Goal Achievement Display**: Clean "Goal Achieved!" with goal name
+- **Points Celebration**: Highlighted points earned with star icons
+- **Motivational Quotes**: Random inspirational quotes from famous personalities including:
+  - Tony Robbins, Winston Churchill, Walt Disney, Eleanor Roosevelt
+  - 25+ curated motivational quotes
+- **Dual Action Buttons**:
+  - "Continue Your Journey! 🚀" - Primary action to continue
+  - "Share Achievement" - Smart sharing with native API or clipboard fallback
+- **Share Functionality**:
+  - Native sharing API for mobile devices
+  - Clipboard fallback for desktop
+  - Format: "🎉 Just achieved my goal: "[Goal Name]"! [Random Quote]"
+
+### 🏅 **Leaderboard System**
+- **Olympic-style Podium**: Top 3 users with crown/trophy/medal icons
+- **Complete Rankings Table**: All community members ranked by goal completions
+- **Visual Hierarchy**: Dynamic ranking badges and icons
+- **Detailed Statistics**: Goals completed, streaks, total goals for each user
+- **Interactive Elements**: Clickable profiles to navigate to user pages
+- **Real-time Updates**: Leaderboard updates as users complete goals
+
+### 📝 **Goal Editing Functionality**
+- **EditWishModal Component**: Full featured goal editing interface
+- **Form Pre-population**: Automatically loads existing goal data
+- **Validation System**: Proper form validation with category fallbacks
+- **Target Date Handling**: Smart date formatting for HTML date inputs
+- **Category Validation**: Ensures valid categories with fallback to 'Other'
+- **Update Functionality**: `editWish` function in store for goal updates
+- **Edit Button Integration**: Edit buttons on goal cards with proper functionality
+
+### 🎯 **Modal System Enhancements**
+- **React Portal Integration**: All modals render at document body level for perfect positioning
+- **Consistent Positioning**: All modals (Create, Edit, Complete, Celebration) use identical positioning
+- **High Z-Index**: Ensures modals appear above footer and all page elements
+- **Proper Centering**: Perfect viewport centering for all modal types
+- **Click-Outside Handling**: Modals close when clicking outside content area
+
+### 👤 **Profile Management**
+- **Comprehensive Profile Editing**:
+  - Basic information (name, email, bio, location)
+  - Profile picture upload with camera interface
+  - Social links (website, YouTube, Instagram)
+  - Real-time updates and form validation
+- **Enhanced Profile Display**:
+  - **User Level & Points**: Prominent display of current level (🎯 Novice to 🏆 Master) and total points
+  - **Level Badge System**: Color-coded level badges with emoji icons
+  - **Achievement Statistics**: Yearly progress and completion rates
+  - **Visual Progress Tracking**: Animated charts and progress bars
+  - **Achievement Badges**: Streak counters and milestone rewards
+  - **Recent Activity Timeline**: User's recent goal completions and activities
+  - **Social Integration**: Links to YouTube, Instagram, and personal websites
+
+### 🌟 **Explore & Social Features**
+- **User Discovery**:
+  - Advanced search functionality (name, bio, location)
+  - User cards with detailed information
+  - Filter and browse community members
+- **Follow System**:
+  - Follow/unfollow functionality with persistent relationships
+  - Following count and management
+  - Smart authentication redirects for unauthenticated users
+- **Three-Tab Interface** (authenticated users):
+  - **Discover**: Browse and search users (available to all)
+  - **Following**: Manage followed users (authenticated only)
+  - **Activity**: Real-time activity feed from followed users (authenticated only)
+- **User Profiles**: Detailed individual user profile pages with:
+  - Complete statistics and achievement overview
+  - Recent activities and goal completions
+  - Dynamic achievement badges
+  - Follow/unfollow capabilities
+  - Points and level display
+
+### 🎬 **Community Inspiration (VideoPage)**
+- **Real User Activities**: 15 actual activities from all users instead of mock data
+- **Top 10 Achievers**: Real leaderboard sorted by goals completed with dynamic badges
+- **Enhanced Navigation**: 
+  - "View All Activities" links to `/explore?tab=activity`
+  - "View Full Leaderboard" links to `/leaderboard`
+- **Interactive Elements**: All activities and top achievers clickable to navigate to user profiles
+- **Real Data Display**: User avatars, names, goals, categories, and completion times
+- **Social Channels Integration**:
+  - YouTube channel promotion
+  - Instagram account linking
+  - External blog integration (blooggerr.netlify.app)
+- **Motivational Content**: Curated inspiration quotes and content
+
+### 🎨 **UI/UX Features**
+- **Theme System**: Complete dark/light mode toggle with:
+  - Smooth transitions and animations
+  - Persistent theme preferences
+  - Theme-aware components throughout
+- **Clean Design Philosophy**: 
+  - Solid modal backgrounds for better visibility and readability
+  - Removed all pulse animations and subtle background effects
+  - Eliminated gradient backgrounds in favor of solid colors
+  - No backdrop blur effects for cleaner interface
+- **Responsive Layout**: Mobile-first design with breakpoint optimization
+- **Animation System**: Framer Motion animations for:
+  - Page transitions and component mounting
+  - Smooth hover effects and micro-interactions
+  - Loading states and form submissions
+  - Celebration confetti and modal animations
+  - Hamburger menu slide-in animations
+- **Navigation System**:
+  - Fixed header with glass effect
+  - Active tab highlighting with underline animation
+  - Organized navigation order: Home, Inspiration, Explore, Leaderboard, Blog
+  - **Conditional Hamburger Menu**: Professional dropdown menu with:
+    - **Authentication-based visibility**: Only shown to logged-in users
+    - Right-aligned positioning near hamburger button
+    - Solid white/dark background for better contrast
+    - Smooth scale and fade animations
+    - Organized sections: Navigation (mobile) and Account
+    - User menu options: Profile, Dashboard, Logout
+    - Icons for all menu items
+  - **Clean Logged-Out Interface**: Unauthenticated users see only theme toggle and "Get Started" button
+  - Dynamic navigation based on authentication status
+
+### 📱 **Technical Implementation**
+- **State Management**: Zustand for global state with persistence
+- **Routing**: React Router v6 with protected routes
+- **Data Persistence**: LocalStorage integration for:
+  - User data and preferences
+  - Daily completion tracking
+  - Follow relationships
+  - Theme preferences
+- **Component Architecture**: Reusable, modular component design
+- **Performance Optimization**: Lazy loading and efficient re-rendering
+- **Error Handling**: Comprehensive error boundaries and user feedback
+- **Portal Rendering**: React Portal for modal positioning and z-index management
+
+---
+
+## 🛠 **Technology Stack**
+
+### **Frontend Core**
+- **React 18**: Modern hooks and concurrent features
+- **Vite**: Fast build tool and development server
+- **React Router v6**: Client-side routing and navigation
+- **Framer Motion**: Advanced animations and transitions
+
+### **Styling & UI**
+- **Tailwind CSS**: Utility-first CSS framework
+- **PostCSS**: CSS processing and optimization
+- **Custom Design System**: Solid modal backgrounds and glassmorphism cards
+- **Responsive Design**: Mobile-first approach
+
+### **State & Data**
+- **Zustand**: Lightweight state management
+- **LocalStorage**: Client-side data persistence
+- **React Portal**: Modal rendering and positioning
+
+### **Icons & Assets**
+- **Lucide React**: Modern icon library (CheckCircle, Share2, Star, etc.)
+- **DiceBear API**: Avatar generation
+- **Custom CSS**: Gradient and animation systems
+
+---
+
+## 📁 **Project Structure**
+
+```
+wishtrail/
+├── src/
+│   ├── components/           # Reusable UI components
+│   │   ├── Header.jsx       # Navigation header with hamburger menu
+│   │   ├── Footer.jsx       # Footer with links
+│   │   ├── VideoEmbedGrid.jsx # Carousel component
+│   │   ├── WishCard.jsx     # Goal display cards with edit/complete
+│   │   ├── CreateWishModal.jsx # Goal creation modal
+│   │   ├── EditWishModal.jsx # Goal editing modal
+│   │   ├── CompletionModal.jsx # Goal completion with notes
+│   │   ├── CelebrationModal.jsx # Celebration with confetti and quotes
+│   │   ├── ProfileEditModal.jsx # Profile editing modal
+│   │   ├── ActivityFeed.jsx # Activity feed component
+│   │   └── BlogBanner.jsx   # Blog promotion banner
+│   ├── pages/               # Main page components
+│   │   ├── HomePage.jsx     # Landing page
+│   │   ├── AuthPage.jsx     # Authentication
+│   │   ├── DashboardPage.jsx # Goal management with advanced features
+│   │   ├── ProfilePage.jsx  # User profile with points/level
+│   │   ├── ExplorePage.jsx  # User discovery with auth controls
+│   │   ├── VideoPage.jsx    # Community inspiration with real data
+│   │   ├── UserProfile.jsx  # Individual user profiles
+│   │   └── LeaderboardPage.jsx # Complete leaderboard with podium
+│   ├── store/               # State management
+│   │   └── useStore.js      # Zustand store with advanced features
+│   ├── App.jsx              # Main app component
+│   ├── main.jsx            # React entry point
+│   └── index.css           # Global styles with custom classes
+├── public/                  # Static assets
+├── package.json            # Dependencies
+├── tailwind.config.js      # Tailwind configuration
+├── vite.config.js          # Vite configuration
+└── postcss.config.js       # PostCSS configuration
+```
+
+---
+
+## 🎯 **Key Differentiators**
+
+### **Gamification Excellence**
+- **Comprehensive Points System**: Multi-factor point calculation with bonuses
+- **User Progression**: Clear level system with meaningful milestones
+- **Achievement Celebration**: Confetti animations and motivational quotes
+- **Social Recognition**: Leaderboards and achievement sharing
+
+### **Smart Goal Management**
+- **Behavioral Psychology**: Minimum duration enforcement prevents instant gratification
+- **Sustainable Habits**: Daily completion limits encourage consistent progress
+- **Quality Tracking**: Mandatory completion notes ensure meaningful reflection
+- **Progress Intelligence**: Early completion bonuses and category-based rewards
+
+### **Community Focus**
+- **Real User Data**: Authentic achievements and activities from actual users
+- **Social Discovery**: Advanced search and following system
+- **Inspiration Engine**: Curated content and peer motivation
+- **Accessibility**: Open exploration for unauthenticated users
+
+### **Technical Excellence**
+- **Modern React Patterns**: Hooks, portals, and performance optimization
+- **Responsive Design**: Perfect mobile and desktop experience
+- **State Management**: Persistent data with efficient updates
+- **Animation System**: Smooth, meaningful micro-interactions
+- **Clean UI Philosophy**: Minimal, distraction-free interface with solid backgrounds and no unnecessary visual effects
+
+### **User Experience Focus**
+- **Context-Aware Navigation**: Smart redirection based on user authentication status
+- **Professional Navigation**: Well-organized hamburger menu with clear sections (authenticated users only)
+- **Clean Interface Design**: Conditional UI elements that appear only when relevant
+- **Accessibility**: High contrast solid backgrounds for better readability
+- **Intuitive Design**: Logical navigation flow and user-friendly interface
+- **Performance**: Smooth animations without visual clutter
+
+---
+
+## 🚀 **Future Enhancements & Considerations**
+
+### **Backend Integration**
+- **Database Design**:
+  - User authentication and profiles with points/levels
+  - Goal and wishlist storage with completion notes
+  - Social connections and activity feeds
+  - Achievement and badge systems with timestamps
+- **API Development**:
+  - RESTful API endpoints for all CRUD operations
+  - Real-time updates with WebSockets for activity feeds
+  - File upload for profile pictures
+  - Social media API integrations
+- **Authentication**:
+  - JWT token-based authentication
+  - OAuth integration (Google, Facebook)
+  - Password reset and email verification
+  - Session management and security
+
+### **Advanced Social Features**
+- **Real-time Notifications**:
+  - Goal completion celebrations
+  - Follow notifications
+  - Achievement unlocks
+  - Community activity updates
+- **Enhanced Discovery**:
+  - Algorithm-based user recommendations
+  - Goal-based matching
+  - Location-based connections
+  - Interest-based communities
+- **Social Interactions**:
+  - Goal comments and reactions
+  - Mentorship connections
+  - Goal collaboration features
+  - Community challenges
+
+### **Gamification Enhancements**
+- **Advanced Achievement System**:
+  - Streak tracking and rewards
+  - Seasonal challenges and events
+  - Team goals and competitions
+  - Milestone celebrations
+- **Enhanced Points System**:
+  - Weekly/monthly point multipliers
+  - Collaboration bonuses
+  - Consistency rewards
+  - Special event bonuses
+
+### **Content & Inspiration**
+- **Dynamic Content Integration**:
+  - Automated YouTube video fetching
+  - Instagram Reels API integration
+  - Blog RSS feed integration
+  - Curated content recommendations
+- **AI-Powered Features**:
+  - Personalized goal suggestions
+  - Progress prediction and insights
+  - Content recommendation engine
+  - Smart reminder systems
+
+### **Mobile & Platform Expansion**
+- **Progressive Web App (PWA)**:
+  - Offline functionality
+  - Push notifications for goal reminders
+  - Mobile app-like experience
+  - Installation prompts
+- **Native Mobile Apps**:
+  - React Native development
+  - Platform-specific features
+  - Deep linking integration
+  - Cross-platform synchronization
+
+---
+
+## 📈 **Success Metrics**
+
+### **User Engagement**
+- Daily/Monthly Active Users (DAU/MAU)
+- Goal completion rates and streaks
+- Social interaction frequency
+- Session duration and celebration engagement
+
+### **Gamification Effectiveness**
+- Points earned per user session
+- Level progression rates
+- Daily completion limit utilization
+- Celebration modal interaction rates
+
+### **Community Growth**
+- User registration and retention rates
+- Follow/connection network growth
+- Content sharing and achievement posts
+- Leaderboard participation and competition
+
+### **Product Performance**
+- Modal positioning and portal rendering performance
+- Page load times and animation smoothness
+- Mobile responsiveness and touch interactions
+- Cross-browser compatibility
+
+---
+
+## 🎯 **Current Status**
+
+**✅ Completed Features:**
+- Complete frontend application with all core features
+- Advanced goal management with duration enforcement and daily limits
+- Comprehensive points and gamification system
+- Celebration system with confetti and motivational quotes
+- Full leaderboard and social features
+- Enhanced modal system with React Portal
+- Responsive design and theme system
+- Goal editing and completion notes functionality
+
+**🔄 Recently Added:**
+- **Authentication & Navigation Improvements**:
+  - **Smart Post-Authentication Redirection**: Sign In → Dashboard, Sign Up → Profile
+  - **Conditional Hamburger Menu**: Hidden for unauthenticated users for cleaner interface
+  - **Context-Aware User Experience**: Appropriate landing pages based on user status
+- **UI/UX Improvements**:
+  - Removed all pulse animations and subtle background effects for cleaner interface
+  - Eliminated gradient backgrounds in favor of solid colors
+  - Professional hamburger menu with solid background and smooth animations
+  - Updated navigation order: Home, Inspiration, Explore, Leaderboard, Blog
+- **Enhanced User Experience**:
+  - User level and points display prominently featured on profile page
+  - Hamburger menu with organized user options (Profile, Dashboard, Logout)
+  - Right-aligned dropdown menu with proper positioning and animations
+  - Clean, readable interface with improved contrast and visibility
+- **Previous Features**:
+  - Celebration modal with confetti animation
+  - Points calculation and user level system
+  - Daily completion limit enforcement
+  - Goal editing functionality
+- Enhanced modal positioning with React Portal
+- Leaderboard with Olympic-style podium
+
+**📋 Next Phase:**
+- Backend development and API integration
+- Real-time features implementation
+- Advanced analytics and insights
+- Mobile app development planning
+
+---
+
+This comprehensive WishTrail application represents a fully functional personal goal-tracking and social motivation platform with advanced gamification, celebration systems, and community features. The application is ready for backend integration and demonstrates modern React development patterns with sophisticated user experience design.
