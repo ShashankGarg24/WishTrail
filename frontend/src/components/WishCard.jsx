@@ -30,8 +30,7 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
   }
 
   const handleComplete = (completionNote) => {
-    onComplete?.(wish._id, completionNote)
-    setIsCompletionModalOpen(false)
+    return onComplete?.(wish._id, completionNote)
   }
 
   const handleDelete = () => {

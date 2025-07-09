@@ -254,10 +254,8 @@ const InspirationPage = () => {
             </div>
 
             <div className="space-y-4">
-              {console.log(displayLeaderboard)}
               {displayLeaderboard && displayLeaderboard.length > 0 ? (
                 displayLeaderboard.slice(0, 4).map((user, index) => {
-                  console.log(user)
                   const badge = getAchievementBadge(user);
                   const rank = index + 1;
                   

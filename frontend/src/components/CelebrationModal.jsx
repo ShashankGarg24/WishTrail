@@ -7,12 +7,12 @@ const CelebrationModal = ({ isOpen, onClose, goalTitle, pointsEarned }) => {
   const [currentQuote, setCurrentQuote] = useState('')
 
   const motivationalQuotes = [
-    "The only impossible journey is the one you never begin. - Tony Robbins",
-    "Success is not final, failure is not fatal: it is the courage to continue that counts. - Winston Churchill",
-    "Don't watch the clock; do what it does. Keep going. - Sam Levenson",
-    "The future belongs to those who believe in the beauty of their dreams. - Eleanor Roosevelt",
-    "It is during our darkest moments that we must focus to see the light. - Aristotle",
-    "The way to get started is to quit talking and begin doing. - Walt Disney",
+    "The only impossible journey is the one you never begin.\n- Tony Robbins",
+    "Success is not final, failure is not fatal: it is the courage to continue that counts.\n- Winston Churchill",
+    "Don't watch the clock; do what it does. Keep going.\n- Sam Levenson",
+    "The future belongs to those who believe in the beauty of their dreams.\n- Eleanor Roosevelt",
+    "It is during our darkest moments that we must focus to see the light.\n- Aristotle",
+    "The way to get started is to quit talking and begin doing.\n- Walt Disney",
     "Your limitation—it's only your imagination.",
     "Push yourself, because no one else is going to do it for you.",
     "Great things never come from comfort zones.",
@@ -29,9 +29,9 @@ const CelebrationModal = ({ isOpen, onClose, goalTitle, pointsEarned }) => {
     "Sometimes we're tested not to show our weaknesses, but to discover our strengths.",
     "The key to success is to focus on goals, not obstacles.",
     "If you want to achieve greatness, stop asking for permission.",
-    "Champions keep playing until they get it right. - Billie Jean King",
-    "The only person you are destined to become is the person you decide to be. - Ralph Waldo Emerson",
-    "A goal is a dream with a deadline. - Napoleon Hill"
+    "Champions keep playing until they get it right.\n- Billie Jean King",
+    "The only person you are destined to become is the person you decide to be.\n- Ralph Waldo Emerson",
+    "A goal is a dream with a deadline.\n- Napoleon Hill"
   ]
 
   useEffect(() => {
@@ -61,7 +61,7 @@ const CelebrationModal = ({ isOpen, onClose, goalTitle, pointsEarned }) => {
   }))
 
   const handleShare = () => {
-    const shareText = `🎉 Just achieved my goal: "${goalTitle}"! ${currentQuote}`
+    const shareText = `🎉 Just achieved my goal: "${goalTitle}"!`
     
     if (navigator.share) {
       navigator.share({

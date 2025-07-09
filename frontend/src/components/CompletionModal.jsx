@@ -27,9 +27,9 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal }) => {
       await onComplete(completionNote.trim())
       setCompletionNote('')
       setError('')
-      
       // Show celebration instead of closing immediately
-      setShowCelebration(true)
+      setTimeout(() => {
+        setShowCelebration(true)}, 500)
     } catch (err) {
       setError('Failed to complete goal. Please try again.')
     }
@@ -58,7 +58,7 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal }) => {
         isOpen={showCelebration}
         onClose={handleCelebrationClose}
         goalTitle={goalTitle}
-        pointsEarned={goal?.points || 0}
+        pointsEarned={goal?.pointsEarned || 0}
       />
     )
   }
