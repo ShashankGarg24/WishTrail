@@ -108,6 +108,7 @@ const getMe = async (req, res, next) => {
 const updateProfile = async (req, res, next) => {
   try {
     // Check for validation errors
+    console.log(req)
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({

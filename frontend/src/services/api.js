@@ -116,6 +116,12 @@ export const exploreAPI = {
   searchExplore: (params) => api.get('/explore/search', { params }),
 };
 
+// Location API
+export const locationAPI = {
+  getCitySuggestions: (query) =>
+    api.get(`/location/search-city?q=${encodeURIComponent(query)}`)
+};
+
 // Utility functions
 export const handleApiError = (error) => {
   if (error.response?.data?.message) {

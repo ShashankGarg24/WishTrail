@@ -50,7 +50,7 @@ const getGoals = async (req, res, next) => {
 // @access  Private
 const getGoal = async (req, res, next) => {
   try {
-    const goal = await Goal.findById(req.params.id);
+    const goal = await Goal.findById(req.params.id).populate('name');
     
     if (!goal) {
       return res.status(404).json({

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+
 import { 
   authAPI, 
   goalsAPI, 
@@ -9,7 +10,8 @@ import {
   leaderboardAPI,
   exploreAPI,
   handleApiError,
-  setAuthToken
+  setAuthToken,
+  locationAPI
 } from '../services/api';
 
 const useApiStore = create(
@@ -180,6 +182,23 @@ const useApiStore = create(
           const errorMessage = handleApiError(error);
           set({ loading: false, error: errorMessage });
           return { success: false, error: errorMessage };
+        }
+      },
+
+
+      locationSuggestions: [],
+      searchCitySuggestions: async (query) => {
+        if (!query || query.trim().length < 2) {
+          set({ locationSuggestions: [] });
+          return;
+        }
+
+        try {
+          const results = await locationAPI.getCitySuggestions(query);
+          set({ locationSuggestions: results.data });
+        } catch (err) {
+          console.error('Failed to fetch location suggestions', err);
+          set({ locationSuggestions: [] });
         }
       },
       

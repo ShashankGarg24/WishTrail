@@ -20,6 +20,7 @@ const activityRoutes = require('./routes/activityRoutes');
 const leaderboardRoutes = require('./routes/leaderboardRoutes');
 const exploreRoutes = require('./routes/exploreRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
+const locationRoutes = require('./routes/locationRoutes');
 
 const app = express();
 
@@ -176,6 +177,7 @@ app.use(`/api/${apiVersion}/activities`, activityRoutes);
 app.use(`/api/${apiVersion}/leaderboard`, leaderboardRoutes);
 app.use(`/api/${apiVersion}/explore`, exploreRoutes);
 app.use(`/api/${apiVersion}/upload`, uploadRoutes);
+app.use(`/api/${apiVersion}/location`, locationRoutes);
 
 // 404 handler for undefined routes
 app.use(notFoundHandler);
