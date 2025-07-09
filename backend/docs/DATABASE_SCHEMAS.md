@@ -187,7 +187,8 @@ Complete documentation of all database schemas for the WishTrail application.
 **Activity Types**:
 - `goal_completed`, `goal_created`, `user_followed`
 - `level_up`, `streak_milestone`, `achievement_earned`
-- `goal_liked`, `profile_updated`
+- `goal_liked`
+<!-- `profile_updated` -->
 
 **Key Methods**:
 - `createActivity()` - Static activity creation

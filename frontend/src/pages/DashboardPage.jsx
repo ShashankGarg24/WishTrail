@@ -18,9 +18,8 @@ const DashboardPage = () => {
     getDashboardStats,
     getGoals,
     createGoal,
-    toggleGoal,
+    toggleGoalCompletion,
     deleteGoal,
-    completeGoal
   } = useApiStore()
 
   // Load dashboard data on mount
@@ -54,7 +53,7 @@ const DashboardPage = () => {
   }
 
   const handleToggleGoal = async (goalId) => {
-    const result = await toggleGoal(goalId)
+    const result = await toggleGoalCompletion(goalId)
     if (result.success) {
       // Refresh dashboard stats
       getDashboardStats()
@@ -72,7 +71,7 @@ const DashboardPage = () => {
   }
 
   const handleCompleteGoal = async (goalId, completionNote) => {
-    const result = await completeGoal(goalId, completionNote)
+    const result = await toggleGoalCompletion(goalId, completionNote)
     if (result.success) {
       // Refresh dashboard stats
       getDashboardStats()
@@ -153,9 +152,9 @@ const DashboardPage = () => {
     },
     {
       label: 'Today',
-      value: `${dashboardStats.todayCompletions}/${dashboardStats.dailyLimit}`,
+      value: `${dashboardStats.todayCompletions || 0}/${dashboardStats.dailyLimit || 3}`,
       icon: Calendar,
-      color: dashboardStats.todayCompletions >= dashboardStats.dailyLimit ? 'text-orange-500' : 'text-purple-500'
+      color: (dashboardStats.todayCompletions || 0) >= (dashboardStats.dailyLimit || 3) ? 'text-orange-500' : 'text-purple-500'
     },
     {
       label: 'Total Points',
@@ -220,7 +219,7 @@ const DashboardPage = () => {
         </motion.div>
 
         {/* Daily Limit Notification */}
-        {dashboardStats && dashboardStats.todayCompletions >= dashboardStats.dailyLimit && (
+        {dashboardStats && (dashboardStats.todayCompletions || 0) >= (dashboardStats.dailyLimit || 3) && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -234,7 +233,7 @@ const DashboardPage = () => {
                   Daily completion limit reached!
                 </p>
                 <p className="text-xs text-orange-600 dark:text-orange-300">
-                  You've completed {dashboardStats.todayCompletions} goals today. Come back tomorrow to complete more!
+                You've completed {dashboardStats.todayCompletions || 0} goals today. Come back tomorrow to complete more!
                 </p>
               </div>
             </div>

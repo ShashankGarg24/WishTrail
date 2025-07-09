@@ -1,17 +1,16 @@
 const express = require('express');
 const leaderboardController = require('../controllers/leaderboardController');
-const { protect } = require('../middleware/auth');
+const { protect, optionalAuth } = require('../middleware/auth');
 
 const router = express.Router();
 
-// All routes are protected
-router.use(protect);
+// Routes with optional authentication
+router.get('/', optionalAuth, leaderboardController.getGlobalLeaderboard);
 
-// Leaderboard routes
-router.get('/', leaderboardController.getGlobalLeaderboard);
-router.get('/category/:category', leaderboardController.getCategoryLeaderboard);
-router.get('/achievements', leaderboardController.getAchievementLeaderboard);
-router.get('/friends', leaderboardController.getFriendsLeaderboard);
-router.get('/stats', leaderboardController.getLeaderboardStats);
+// Routes that require login
+router.get('/category/:category', protect, leaderboardController.getCategoryLeaderboard);
+router.get('/achievements', protect, leaderboardController.getAchievementLeaderboard);
+router.get('/friends',  protect,leaderboardController.getFriendsLeaderboard);
+router.get('/stats', protect, leaderboardController.getLeaderboardStats);
 
 module.exports = router; 

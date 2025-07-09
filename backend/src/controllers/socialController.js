@@ -2,6 +2,7 @@ const User = require('../models/User');
 const Follow = require('../models/Follow');
 const Activity = require('../models/Activity');
 const Notification = require('../models/Notification');
+const activityService = require('../services/activityService');
 
 // @desc    Follow a user
 // @route   POST /api/v1/social/follow/:userId
@@ -39,26 +40,40 @@ const followUser = async (req, res, next) => {
     
     // Follow the user
     await Follow.followUser(followerId, userId);
+    userToFollow.increaseFollowingCount();
     
     // Create notification for the followed user
-    await Notification.createNotification({
-      userId: userId,
-      type: 'new_follower',
-      data: {
-        followerId: followerId,
-        followerName: req.user.name
-      }
-    });
+    // await Notification.createNotification({
+    //   userId: userId,
+    //   type: 'new_follower',
+    //   data: {
+    //     followerId: followerId,
+    //     followerName: req.user.name
+    //   }
+    // });
     
-    // Create activity for the follower
-    await Activity.createActivity(
-      followerId,
-      'user_followed',
-      {
-        followedUserId: userId,
-        followedUserName: userToFollow.name
-      }
-    );
+    // Check if activity already exists
+    const existingActivity = await Activity.findOne({
+      userId: followerId,
+      type: 'user_followed',
+      'data.targetUserId': userId
+    });
+
+    const currentUser = (await User.findById(followerId).select('name avatar').lean());
+    currentUser.increaseFollowerCount();
+
+    if (!existingActivity) {
+      await Activity.createActivity(
+        followerId,
+        currentUser.name,
+        currentUser.avatar,
+        'user_followed',
+        {
+          targetUserId: userId,
+          targetUserName: userToFollow.name
+        }
+      );
+    }
     
     res.status(200).json({
       success: true,
@@ -251,8 +266,8 @@ const getFollowStats = async (req, res, next) => {
 const getActivityFeed = async (req, res, next) => {
   try {
     const { page = 1, limit = 10 } = req.query;
-    
-    const activities = await Activity.getFollowingActivities(req.user.id, {
+
+    const activities = await activityService.getActivityFeed(req.user.id, {
       page: parseInt(page),
       limit: parseInt(limit)
     });

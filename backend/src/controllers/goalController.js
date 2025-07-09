@@ -22,8 +22,7 @@ const getGoals = async (req, res, next) => {
     const rawGoals = await Goal.find(query)
       .sort({ createdAt: -1 })
       .limit(limit * 1)
-      .skip((page - 1) * limit)
-      .populate('likes', 'name');
+      .skip((page - 1) * limit);
 
     //add virtual fields to the goals (isLocked)
     const goals = rawGoals.map(goal => goal.toJSON()); 
@@ -51,7 +50,7 @@ const getGoals = async (req, res, next) => {
 // @access  Private
 const getGoal = async (req, res, next) => {
   try {
-    const goal = await Goal.findById(req.params.id).populate('likes', 'name');
+    const goal = await Goal.findById(req.params.id);
     
     if (!goal) {
       return res.status(404).json({
@@ -140,9 +139,13 @@ const createGoal = async (req, res, next) => {
       year: currentYear
     });
     
+    const currentUser = (await User.findById(req.user.id).select('name avatar').lean());
+
     // Create activity
     await Activity.createActivity(
       req.user.id,
+      currentUser.name,
+      currentUser.avatar,
       'goal_created',
       {
         goalId: goal._id,
@@ -257,174 +260,121 @@ const deleteGoal = async (req, res, next) => {
   }
 };
 
-// @desc    Complete goal
-// @route   PATCH /api/v1/goals/:id/complete
-// @access  Private
-const completeGoal = async (req, res, next) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array()
-      });
-    }
-    
-    const { completionNote } = req.body;
-    
-    const goal = await Goal.findById(req.params.id);
-    
-    if (!goal) {
-      return res.status(404).json({
-        success: false,
-        message: 'Goal not found'
-      });
-    }
-    
-    // Check ownership
-    if (goal.userId.toString() !== req.user.id.toString()) {
-      return res.status(403).json({
-        success: false,
-        message: 'Access denied'
-      });
-    }
-    
-    // Check if already completed
-    if (goal.completed) {
-      return res.status(400).json({
-        success: false,
-        message: 'Goal already completed'
-      });
-    }
-    
-    // Check daily completion limit
-    const user = await User.findById(req.user.id);
-    const todayCompletionCount = user.getTodayCompletionCount();
-    
-    if (todayCompletionCount >= 3) {
-      return res.status(400).json({
-        success: false,
-        message: 'Daily completion limit reached (3 goals per day)'
-      });
-    }
-    
-    // Check if goal is locked (duration enforcement)
-    if (goal.isLocked) {
-      return res.status(400).json({
-        success: false,
-        message: 'Goal is currently locked and cannot be completed yet. Please wait for the minimum duration period.'
-      });
-    }
-    
-    // Complete the goal
-    const completedGoal = await goal.completeGoal(completionNote);
-    
-    // Update user's daily completions
-    await user.addDailyCompletion(goal._id);
-    
-    // Create activity
-    await Activity.createActivity(
-      req.user.id,
-      'goal_completed',
-      {
-        goalId: goal._id,
-        goalTitle: goal.title,
-        goalCategory: goal.category,
-        pointsEarned: completedGoal.pointsEarned
-      }
-    );
-    
-    res.status(200).json({
-      success: true,
-      data: { goal: completedGoal }
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
 // @desc    Toggle goal completion
 // @route   PATCH /api/v1/goals/:id/toggle
 // @access  Private
 const toggleGoalCompletion = async (req, res, next) => {
   try {
-    const goal = await Goal.findById(req.params.id);
-    
+    const errors = validationResult(req)
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array(),
+      })
+    }
+
+    const { completionNote } = req.body
+    const goal = await Goal.findById(req.params.id)
     if (!goal) {
       return res.status(404).json({
         success: false,
-        message: 'Goal not found'
-      });
+        message: 'Goal not found',
+      })
     }
-    
-    // Check ownership
+
     if (goal.userId.toString() !== req.user.id.toString()) {
       return res.status(403).json({
         success: false,
-        message: 'Access denied'
-      });
+        message: 'Access denied',
+      })
     }
-    
+
+    const user = await User.findById(req.user.id)
+    const today = new Date().toISOString().split('T')[0]
+
+    let updatedGoal = null
+
     if (goal.completed) {
-      // Uncomplete the goal
-      goal.completed = false;
-      goal.completedAt = null;
-      goal.completionNote = null;
-      goal.pointsEarned = 0;
-      await goal.save();
-      
-      // Update user's daily completions
-      const user = await User.findById(req.user.id);
-      const today = new Date().toISOString().split('T')[0];
-      const todayCompletions = user.dailyCompletions.get(today) || [];
-      
-      // Remove the completion for this goal
-      const updatedCompletions = todayCompletions.filter(comp => 
-        comp.goalId.toString() !== goal._id.toString()
-      );
-      
-      if (updatedCompletions.length !== todayCompletions.length) {
-        user.dailyCompletions.set(today, updatedCompletions);
-        await user.save();
+      // UNCOMPLETE GOAL
+
+      // Subtract earned points from user's total
+      if (goal.pointsEarned) {
+        user.totalPoints = Math.max(0, user.totalPoints - goal.pointsEarned)
       }
+
+      // Remove from user's daily completions
+      const todayCompletions = user.dailyCompletions.get(today) || []
+      const updatedCompletions = todayCompletions.filter(
+        comp => comp.goalId.toString() !== goal._id.toString()
+      )
+      user.dailyCompletions.set(today, updatedCompletions)
+
+      await user.save()
+
+      // Delete activity log for this goal (if exists)
+      await Activity.deleteOne({
+        userId: user._id,
+        type: 'goal_completed',
+        'data.goalId': goal._id
+      })
+
+      // Reset goal
+      goal.completed = false
+      goal.completedAt = null
+      goal.completionNote = null
+      goal.pointsEarned = 0
+      await goal.save()
+
+      updatedGoal = goal
     } else {
-      // Check if goal is locked before completing
+      // COMPLETE GOAL
+
+      if (user.getTodayCompletionCount() >= 3) {
+        return res.status(400).json({
+          success: false,
+          message: 'Daily completion limit reached (3 goals per day)',
+        })
+      }
+
       if (goal.isLocked) {
         return res.status(400).json({
           success: false,
-          message: 'Goal is currently locked and cannot be completed yet. Please wait for the minimum duration period.'
-        });
+          message:
+            'Goal is currently locked and cannot be completed yet. Please wait for the minimum duration period.',
+        })
       }
-      
-      // Complete the goal without note requirement for toggle
-      const completedGoal = await goal.completeGoal('');
-      
-      // Update user's daily completions
-      const user = await User.findById(req.user.id);
-      await user.addDailyCompletion(goal._id);
-      
-      // Create activity
+
+      updatedGoal = await goal.completeGoal(completionNote)
+
+      user.addToTotalPoints(updatedGoal.pointsEarned)
+      user.addDailyCompletion(goal._id)
+      await user.save()
+
       await Activity.createActivity(
-        req.user.id,
+        user._id,
+        user.name,
+        user.avatar,
         'goal_completed',
         {
           goalId: goal._id,
           goalTitle: goal.title,
           goalCategory: goal.category,
-          pointsEarned: completedGoal.pointsEarned
+          pointsEarned: updatedGoal.pointsEarned,
         }
-      );
+      )
     }
-    
-    res.status(200).json({
+
+    return res.status(200).json({
       success: true,
-      data: { goal }
-    });
+      data: { goal: updatedGoal },
+    })
   } catch (error) {
-    next(error);
+    next(error)
   }
-};
+}
+
+
 
 // @desc    Like/unlike goal
 // @route   PATCH /api/v1/goals/:id/like
@@ -526,7 +476,6 @@ module.exports = {
   createGoal,
   updateGoal,
   deleteGoal,
-  completeGoal,
   toggleGoalCompletion,
   toggleGoalLike,
   getYearlyGoalsSummary

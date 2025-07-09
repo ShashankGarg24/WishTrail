@@ -7,7 +7,7 @@ import HomePage from './pages/HomePage'
 import AuthPage from './pages/AuthPage'
 import DashboardPage from './pages/DashboardPage'
 import ProfilePage from './pages/ProfilePage'
-import VideoPage from './pages/VideoPage'
+import InspirationPage from './pages/InspirationPage'
 import ExplorePage from './pages/ExplorePage'
 import UserProfile from './pages/UserProfile'
 import LeaderboardPage from './pages/LeaderboardPage'
@@ -42,9 +42,9 @@ function App() {
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/explore" element={<ExplorePage />} />
-            <Route path="/user/:userId" element={<UserProfile />} />
+            <Route path="/profile/:userId" element={<UserProfile />} />
             <Route path="/profile" element={<ProfilePage />} />
-            <Route path="/inspiration" element={<VideoPage />} />
+            <Route path="/inspiration" element={<InspirationPage />} />
             <Route path="/leaderboard" element={<LeaderboardPage />} />
           </Routes>
         </main>

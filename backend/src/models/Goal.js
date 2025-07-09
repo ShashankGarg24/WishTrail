@@ -99,17 +99,6 @@ const goalSchema = new mongoose.Schema({
     required: [true, 'User ID is required']
   },
   
-  // Social Features
-  likes: [{
-    userId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User'
-    },
-    likedAt: {
-      type: Date,
-      default: Date.now
-    }
-  }],
   likeCount: {
     type: Number,
     default: 0

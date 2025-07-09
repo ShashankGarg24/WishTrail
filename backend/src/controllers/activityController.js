@@ -1,27 +1,7 @@
 const Activity = require('../models/Activity');
 const Like = require('../models/Like');
 const Follow = require('../models/Follow');
-
-// @desc    Get activity feed (from followed users)
-// @route   GET /api/v1/activities/feed
-// @access  Private
-const getActivityFeed = async (req, res, next) => {
-  try {
-    const { page = 1, limit = 10 } = req.query;
-    
-    const activities = await Activity.getFollowingActivities(req.user.id, {
-      page: parseInt(page),
-      limit: parseInt(limit)
-    });
-    
-    res.status(200).json({
-      success: true,
-      data: activities
-    });
-  } catch (error) {
-    next(error);
-  }
-};
+const activityService = require('../services/activityService');
 
 // @desc    Get recent activities (global or personal)
 // @route   GET /api/v1/activities/recent
@@ -97,14 +77,6 @@ const toggleActivityLike = async (req, res, next) => {
       return res.status(404).json({
         success: false,
         message: 'Activity not found'
-      });
-    }
-    
-    // Don't allow liking own activities
-    if (activity.userId.toString() === req.user.id.toString()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Cannot like your own activity'
       });
     }
     
@@ -332,7 +304,6 @@ const getActivityStats = async (req, res, next) => {
 };
 
 module.exports = {
-  getActivityFeed,
   getRecentActivities,
   getUserActivities,
   toggleActivityLike,

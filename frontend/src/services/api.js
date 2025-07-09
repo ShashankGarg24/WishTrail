@@ -56,8 +56,7 @@ export const goalsAPI = {
   createGoal: (goalData) => api.post('/goals', goalData),
   updateGoal: (id, goalData) => api.put(`/goals/${id}`, goalData),
   deleteGoal: (id) => api.delete(`/goals/${id}`),
-  completeGoal: (id, completionNote) => api.patch(`/goals/${id}/complete`, { completionNote }),
-  toggleGoal: (id) => api.patch(`/goals/${id}/toggle`),
+  toggleGoalCompletion: (id, completionNote) => api.patch(`/goals/${id}/toggle`, { completionNote }),
   likeGoal: (id) => api.patch(`/goals/${id}/like`),
   getYearlyGoals: (year, userId) => api.get(`/goals/yearly/${year}`, { params: { userId } }),
 };
@@ -102,11 +101,19 @@ export const activitiesAPI = {
 
 // Leaderboard API
 export const leaderboardAPI = {
-  getGlobalLeaderboard: (params) => api.get('/leaderboard', { params }),
+  getGlobalLeaderboard: (params) => api.get('/leaderboard/', { params }),
   getCategoryLeaderboard: (category, params) => api.get(`/leaderboard/category/${category}`, { params }),
   getAchievementLeaderboard: (params) => api.get('/leaderboard/achievements', { params }),
   getFriendsLeaderboard: (params) => api.get('/leaderboard/friends', { params }),
   getLeaderboardStats: () => api.get('/leaderboard/stats'),
+};
+
+// Explore API
+export const exploreAPI = {
+  getExploreFeed: (params) => api.get('/explore', { params }),
+  getSuggestedUsers: (params) => api.get('/explore/users', { params }),
+  getTrendingCategories: (params) => api.get('/explore/categories', { params }),
+  searchExplore: (params) => api.get('/explore/search', { params }),
 };
 
 // Utility functions

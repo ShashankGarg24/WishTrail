@@ -7,6 +7,7 @@ import {
   socialAPI, 
   activitiesAPI, 
   leaderboardAPI,
+  exploreAPI,
   handleApiError,
   setAuthToken
 } from '../services/api';
@@ -49,6 +50,12 @@ const useApiStore = create(
       
       // Leaderboard
       leaderboard: [],
+      
+      // Explore
+      exploreFeed: null,
+      suggestedUsers: [],
+      trendingCategories: [],
+      exploreSearchResults: null,
       
       // =====================
       // AUTH ACTIONS
@@ -271,29 +278,9 @@ const useApiStore = create(
         }
       },
       
-      completeGoal: async (id, completionNote) => {
+      toggleGoalCompletion: async (id) => {
         try {
-          set({ loading: true, error: null });
-          const response = await goalsAPI.completeGoal(id, completionNote);
-          const { goal } = response.data.data;
-          
-          // Update in current goals list
-          set(state => ({
-            goals: state.goals.map(g => g._id === id ? goal : g),
-            loading: false
-          }));
-          
-          return { success: true, goal };
-        } catch (error) {
-          const errorMessage = handleApiError(error);
-          set({ loading: false, error: errorMessage });
-          return { success: false, error: errorMessage };
-        }
-      },
-      
-      toggleGoal: async (id) => {
-        try {
-          const response = await goalsAPI.toggleGoal(id);
+          const response = await goalsAPI.toggleGoalCompletion(id);
           const { goal } = response.data.data;
           
           // Update in current goals list
@@ -362,6 +349,17 @@ const useApiStore = create(
         }
       },
       
+      searchUsers: async (searchTerm) => {
+        try {
+          const response = await usersAPI.searchUsers({ search: searchTerm });
+          const { users } = response.data.data;
+          return users;
+        } catch (error) {
+          console.error('Error searching users:', error);
+          return [];
+        }
+      },
+      
       getUser: async (id) => {
         try {
           set({ loading: true, error: null });
@@ -375,14 +373,28 @@ const useApiStore = create(
           return { success: false, error: errorMessage };
         }
       },
-      
-      searchUsers: async (query, params = {}) => {
+
+      getUserActivities: async (userId, params = {}) => {
         try {
           set({ loading: true, error: null });
-          const response = await usersAPI.searchUsers({ q: query, ...params });
-          const { users, pagination } = response.data.data;
-          set({ users, usersPagination: pagination, loading: false });
-          return { success: true, users, pagination };
+          const response = await usersAPI.getUserActivities(userId, params);
+          const activities = response.data.data;
+          set({ loading: false });
+          return { success: true, activities };
+        } catch (error) {
+          const errorMessage = handleApiError(error);
+          set({ loading: false, error: errorMessage });
+          return { success: false, error: errorMessage };
+        }
+      },
+
+      getUserGoals: async (userId, params = {}) => {
+        try {
+          set({ loading: true, error: null });
+          const response = await usersAPI.getUserGoals(userId, params);
+          const { goals, pagination } = response.data.data;
+          set({ loading: false });
+          return { success: true, goals, pagination };
         } catch (error) {
           const errorMessage = handleApiError(error);
           set({ loading: false, error: errorMessage });
@@ -405,6 +417,16 @@ const useApiStore = create(
               user._id === userId 
                 ? { ...user, isFollowing: true }
                 : user
+            ),
+            leaderboard: state.leaderboard.map(user => 
+              user._id === userId 
+                ? { ...user, isFollowing: true }
+                : user
+            ),
+            suggestedUsers: state.suggestedUsers.map(user => 
+              user._id === userId 
+                ? { ...user, isFollowing: true }
+                : user
             )
           }));
           
@@ -423,6 +445,16 @@ const useApiStore = create(
           set(state => ({
             followedUsers: state.followedUsers.filter(id => id !== userId),
             users: state.users.map(user => 
+              user._id === userId 
+                ? { ...user, isFollowing: false }
+                : user
+            ),
+            leaderboard: state.leaderboard.map(user => 
+              user._id === userId 
+                ? { ...user, isFollowing: false }
+                : user
+            ),
+            suggestedUsers: state.suggestedUsers.map(user => 
               user._id === userId 
                 ? { ...user, isFollowing: false }
                 : user
@@ -459,6 +491,23 @@ const useApiStore = create(
           return { success: false, error: errorMessage };
         }
       },
+
+      // Initialize following status for current user
+      initializeFollowingStatus: async () => {
+        try {
+          const { user } = get();
+          if (user) {
+            const response = await socialAPI.getFollowing();
+            const { following } = response.data.data;
+            const followedUserIds = following.map(f => f._id);
+            set({ followedUsers: followedUserIds, following });
+            return followedUserIds;
+          }
+        } catch (error) {
+          console.error('Error initializing following status:', error);
+          return [];
+        }
+      },
       
       // =====================
       // ACTIVITIES ACTIONS
@@ -467,14 +516,14 @@ const useApiStore = create(
       getActivityFeed: async (params = {}) => {
         try {
           set({ loading: true, error: null });
-          const response = await activitiesAPI.getActivityFeed(params);
-          const { activities } = response.data.data;
+          const response = await socialAPI.getActivityFeed(params);
+          const activities = response.data.data;
           set({ activityFeed: activities, loading: false });
-          return { success: true, activities };
+          return activities;
         } catch (error) {
           const errorMessage = handleApiError(error);
           set({ loading: false, error: errorMessage });
-          return { success: false, error: errorMessage };
+          return [];
         }
       },
       
@@ -482,17 +531,43 @@ const useApiStore = create(
         try {
           set({ loading: true, error: null });
           const response = await activitiesAPI.getRecentActivities(params);
-          const { activities } = response.data.data;
+          const activities = response.data.data;
           set({ recentActivities: activities, loading: false });
-          return { success: true, activities };
+          return activities;
         } catch (error) {
           const errorMessage = handleApiError(error);
           set({ loading: false, error: errorMessage });
-          return { success: false, error: errorMessage };
+          return [];
         }
       },
       
       likeActivity: async (activityId) => {
+        try {
+          const response = await activitiesAPI.likeActivity(activityId);
+          const { isLiked, likeCount } = response.data.data;
+          
+          // Update in activity feed
+          set(state => ({
+            activityFeed: state.activityFeed.map(activity =>
+              activity._id === activityId
+                ? { ...activity, likeCount, isLiked }
+                : activity
+            ),
+            recentActivities: state.recentActivities.map(activity =>
+              activity._id === activityId
+                ? { ...activity, likeCount, isLiked }
+                : activity
+            )
+          }));
+          
+          return { success: true, isLiked, likeCount };
+        } catch (error) {
+          const errorMessage = handleApiError(error);
+          return { success: false, error: errorMessage };
+        }
+      },
+
+      unlikeActivity: async (activityId) => {
         try {
           const response = await activitiesAPI.likeActivity(activityId);
           const { isLiked, likeCount } = response.data.data;
@@ -522,13 +597,124 @@ const useApiStore = create(
       // LEADERBOARD ACTIONS
       // =====================
       
-      getLeaderboard: async (params = {}) => {
+      getGlobalLeaderboard: async (params = {}) => {
         try {
           set({ loading: true, error: null });
           const response = await leaderboardAPI.getGlobalLeaderboard(params);
           const { leaderboard } = response.data.data;
           set({ leaderboard, loading: false });
+          return leaderboard;
+        } catch (error) {
+          const errorMessage = handleApiError(error);
+          set({ loading: false, error: errorMessage });
+          return [];
+        }
+      },
+      
+      getCategoryLeaderboard: async (category, params = {}) => {
+        try {
+          set({ loading: true, error: null });
+          const response = await leaderboardAPI.getCategoryLeaderboard(category, params);
+          const { leaderboard } = response.data.data;
+          set({ leaderboard, loading: false });
           return { success: true, leaderboard };
+        } catch (error) {
+          const errorMessage = handleApiError(error);
+          set({ loading: false, error: errorMessage });
+          return { success: false, error: errorMessage };
+        }
+      },
+      
+      getAchievementLeaderboard: async (params = {}) => {
+        try {
+          set({ loading: true, error: null });
+          const response = await leaderboardAPI.getAchievementLeaderboard(params);
+          const { leaderboard } = response.data.data;
+          set({ leaderboard, loading: false });
+          return { success: true, leaderboard };
+        } catch (error) {
+          const errorMessage = handleApiError(error);
+          set({ loading: false, error: errorMessage });
+          return { success: false, error: errorMessage };
+        }
+      },
+      
+      getFriendsLeaderboard: async (params = {}) => {
+        try {
+          set({ loading: true, error: null });
+          const response = await leaderboardAPI.getFriendsLeaderboard(params);
+          const { leaderboard } = response.data.data;
+          set({ leaderboard, loading: false });
+          return { success: true, leaderboard };
+        } catch (error) {
+          const errorMessage = handleApiError(error);
+          set({ loading: false, error: errorMessage });
+          return { success: false, error: errorMessage };
+        }
+      },
+      
+      getLeaderboardStats: async () => {
+        try {
+          const response = await leaderboardAPI.getLeaderboardStats();
+          const { stats } = response.data.data;
+          return { success: true, stats };
+        } catch (error) {
+          const errorMessage = handleApiError(error);
+          return { success: false, error: errorMessage };
+        }
+      },
+      
+      // =====================
+      // EXPLORE ACTIONS
+      // =====================
+      
+      getExploreFeed: async (params = {}) => {
+        try {
+          set({ loading: true, error: null });
+          const response = await exploreAPI.getExploreFeed(params);
+          const exploreFeed = response.data.data;
+          set({ exploreFeed, loading: false });
+          return { success: true, exploreFeed };
+        } catch (error) {
+          const errorMessage = handleApiError(error);
+          set({ loading: false, error: errorMessage });
+          return { success: false, error: errorMessage };
+        }
+      },
+      
+      getSuggestedUsers: async (params = {}) => {
+        try {
+          set({ loading: true, error: null });
+          const response = await exploreAPI.getSuggestedUsers(params);
+          const { users } = response.data.data;
+          set({ suggestedUsers: users, loading: false });
+          return { success: true, users };
+        } catch (error) {
+          const errorMessage = handleApiError(error);
+          set({ loading: false, error: errorMessage });
+          return { success: false, error: errorMessage };
+        }
+      },
+      
+      getTrendingCategories: async (params = {}) => {
+        try {
+          const response = await exploreAPI.getTrendingCategories(params);
+          const { categories } = response.data.data;
+          set({ trendingCategories: categories });
+          return { success: true, categories };
+        } catch (error) {
+          const errorMessage = handleApiError(error);
+          return { success: false, error: errorMessage };
+        }
+      },
+      
+      searchExplore: async (params = {}) => {
+        try {
+          set({ loading: true, error: null });
+          const response = await exploreAPI.searchExplore(params);
+          const results = response.data.data;
+          set({ exploreSearchResults: results, loading: false });
+          return { success: true, results };
         } catch (error) {
           const errorMessage = handleApiError(error);
           set({ loading: false, error: errorMessage });

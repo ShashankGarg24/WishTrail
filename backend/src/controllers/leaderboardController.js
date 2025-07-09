@@ -5,47 +5,34 @@ const Follow = require('../models/Follow');
 
 // @desc    Get global leaderboard
 // @route   GET /api/v1/leaderboard
-// @access  Private
+// @access  Public
 const getGlobalLeaderboard = async (req, res, next) => {
   try {
     const { type = 'points', page = 1, limit = 50, timeframe = 'all' } = req.query;
-    
-    let sortField = 'totalPoints';
+    const parsedPage = parseInt(page);
+    const parsedLimit = parseInt(limit);
+
+    const sortFields = {
+      points: 'totalPoints',
+      goals: 'completedGoals',
+      streak: 'currentStreak',
+      level: 'level'
+    };
+
+    let sortField = sortFields[type] || 'totalPoints';
     let sortOrder = -1;
-    
-    // Determine sort field based on type
-    switch (type) {
-      case 'points':
-        sortField = 'totalPoints';
-        break;
-      case 'goals':
-        sortField = 'completedGoals';
-        break;
-      case 'streak':
-        sortField = 'currentStreak';
-        break;
-      case 'level':
-        sortField = 'level';
-        break;
-      default:
-        sortField = 'totalPoints';
-    }
-    
-    // Build aggregation pipeline
-    const pipeline = [
-      {
-        $match: {
-          isActive: true,
-          totalPoints: { $gt: 0 }
-        }
-      }
-    ];
-    
-    // Add timeframe filter for goals/points if needed
-    if (timeframe !== 'all' && (type === 'points' || type === 'goals')) {
-      const now = new Date();
-      let startDate;
-      
+
+    const matchStage = {
+      isActive: true,
+      totalPoints: { $gt: 0 }
+    };
+
+    const pipeline = [{ $match: matchStage }];
+
+    const now = new Date();
+    let startDate = null;
+
+    if (timeframe !== 'all' && ['points', 'goals'].includes(type)) {
       switch (timeframe) {
         case 'week':
           startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -56,109 +43,108 @@ const getGlobalLeaderboard = async (req, res, next) => {
         case 'year':
           startDate = new Date(now.getFullYear(), 0, 1);
           break;
-        default:
-          startDate = null;
       }
-      
+
       if (startDate) {
-        pipeline.push({
-          $lookup: {
-            from: 'goals',
-            let: { userId: '$_id' },
-            pipeline: [
-              {
-                $match: {
-                  $expr: { $eq: ['$userId', '$$userId'] },
-                  completed: true,
-                  completedAt: { $gte: startDate }
+        pipeline.push(
+          {
+            $lookup: {
+              from: 'goals',
+              let: { userId: '$_id' },
+              pipeline: [
+                {
+                  $match: {
+                    $expr: { $eq: ['$userId', '$$userId'] },
+                    completed: true,
+                    completedAt: { $gte: startDate }
+                  }
                 }
-              }
-            ],
-            as: 'recentGoals'
+              ],
+              as: 'recentGoals'
+            }
+          },
+          {
+            $addFields: {
+              recentPoints: { $sum: '$recentGoals.pointsEarned' },
+              recentGoalsCount: { $size: '$recentGoals' }
+            }
           }
-        });
-        
-        pipeline.push({
-          $addFields: {
-            recentPoints: { $sum: '$recentGoals.pointsEarned' },
-            recentGoalsCount: { $size: '$recentGoals' }
-          }
-        });
-        
-        // Override sort field for timeframe-based queries
-        if (type === 'points') {
-          sortField = 'recentPoints';
-        } else if (type === 'goals') {
-          sortField = 'recentGoalsCount';
-        }
+        );
+
+        sortField = type === 'points' ? 'recentPoints' : 'recentGoalsCount';
       }
     }
-    
-    // Add sorting
-    const sortObj = {};
-    sortObj[sortField] = sortOrder;
-    pipeline.push({ $sort: sortObj });
-    
-    // Add pagination
-    pipeline.push({ $skip: (page - 1) * limit });
-    pipeline.push({ $limit: parseInt(limit) });
-    
-    // Add follower count lookup
-    pipeline.push({
-      $lookup: {
-        from: 'follows',
-        localField: '_id',
-        foreignField: 'followingId',
-        as: 'followers'
+
+    pipeline.push(
+      { $sort: { [sortField]: sortOrder } },
+      { $skip: (parsedPage - 1) * parsedLimit },
+      { $limit: parsedLimit },
+      {
+        $lookup: {
+          from: 'follows',
+          localField: '_id',
+          foreignField: 'followingId',
+          as: 'followers'
+        }
+      },
+      {
+        $addFields: {
+          followerCount: { $size: '$followers' }
+        }
+      },
+      {
+        $project: {
+          name: 1,
+          avatar: 1,
+          level: 1,
+          totalPoints: 1,
+          completedGoals: 1,
+          currentStreak: 1,
+          followerCount: 1,
+          recentPoints: 1,
+          recentGoalsCount: 1,
+          createdAt: 1
+        }
       }
-    });
-    
-    pipeline.push({
-      $addFields: {
-        followerCount: { $size: '$followers' }
-      }
-    });
-    
-    // Project fields
-    pipeline.push({
-      $project: {
-        name: 1,
-        avatar: 1,
-        level: 1,
-        totalPoints: 1,
-        completedGoals: 1,
-        currentStreak: 1,
-        followerCount: 1,
-        recentPoints: 1,
-        recentGoalsCount: 1,
-        createdAt: 1
-      }
-    });
-    
-    const leaderboard = await User.aggregate(pipeline);
-    
-    // Add rank to each user
-    const rankedLeaderboard = leaderboard.map((user, index) => ({
-      ...user,
-      rank: (page - 1) * limit + index + 1
-    }));
-    
-    // Get total count for pagination
-    const totalQuery = { isActive: true, totalPoints: { $gt: 0 } };
-    const total = await User.countDocuments(totalQuery);
-    
-    // Check if current user is in leaderboard
-    const currentUserRank = await getUserRank(req.user.id, type, timeframe);
-    
+    );
+
+    let leaderboard = await User.aggregate(pipeline);
+
+    // Only compute isFollowing if user is logged in
+    if (req.user) {
+      leaderboard = await Promise.all(
+        leaderboard.map(async (user, index) => {
+          const isFollowing = await Follow.isFollowing(req.user.id, user._id);
+          return {
+            ...user,
+            rank: (parsedPage - 1) * parsedLimit + index + 1,
+            isFollowing: user._id.toString() !== req.user.id ? isFollowing : null
+          };
+        })
+      );
+    } else {
+      leaderboard = leaderboard.map((user, index) => ({
+        ...user,
+        rank: (parsedPage - 1) * parsedLimit + index + 1
+      }));
+    }
+
+    const total = await User.countDocuments(matchStage);
+
+    let currentUserRank = null;
+    if (req.user) {
+      currentUserRank = await getUserRank(req.user.id, type, timeframe);
+    }
+
     res.status(200).json({
       success: true,
       data: {
-        leaderboard: rankedLeaderboard,
+        leaderboard,
         pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
+          page: parsedPage,
+          limit: parsedLimit,
           total,
-          pages: Math.ceil(total / limit)
+          pages: Math.ceil(total / parsedLimit)
         },
         currentUserRank,
         type,
@@ -169,6 +155,7 @@ const getGlobalLeaderboard = async (req, res, next) => {
     next(error);
   }
 };
+
 
 // Helper function to get user's rank
 const getUserRank = async (userId, type = 'points', timeframe = 'all') => {
@@ -297,16 +284,43 @@ const getCategoryLeaderboard = async (req, res, next) => {
       }
     ]);
     
-    // Add rank to each user
-    const rankedLeaderboard = leaderboard.map((user, index) => ({
-      ...user,
-      rank: (page - 1) * limit + index + 1
-    }));
+    // Add rank and following status to each user
+    const rankedLeaderboard = await Promise.all(
+      leaderboard.map(async (user, index) => {
+        const isFollowing = await Follow.isFollowing(req.user.id, user._id);
+        return {
+          ...user,
+          rank: (page - 1) * limit + index + 1,
+          isFollowing: user._id.toString() !== req.user.id ? isFollowing : null
+        };
+      })
+    );
+    
+    // Get total count for pagination
+    const totalQuery = {
+      category,
+      completed: true,
+      ...(startDate && { completedAt: { $gte: startDate } })
+    };
+    
+    const totalResults = await Goal.aggregate([
+      { $match: totalQuery },
+      { $group: { _id: '$userId' } },
+      { $count: 'total' }
+    ]);
+    
+    const total = totalResults.length > 0 ? totalResults[0].total : 0;
     
     res.status(200).json({
       success: true,
       data: {
         leaderboard: rankedLeaderboard,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages: Math.ceil(total / limit)
+        },
         category,
         timeframe
       }
@@ -393,11 +407,17 @@ const getAchievementLeaderboard = async (req, res, next) => {
     
     const leaderboard = await User.aggregate(pipeline);
     
-    // Add rank to each user
-    const rankedLeaderboard = leaderboard.map((user, index) => ({
-      ...user,
-      rank: (page - 1) * limit + index + 1
-    }));
+    // Add rank and following status to each user
+    const rankedLeaderboard = await Promise.all(
+      leaderboard.map(async (user, index) => {
+        const isFollowing = await Follow.isFollowing(req.user.id, user._id);
+        return {
+          ...user,
+          rank: (page - 1) * limit + index + 1,
+          isFollowing: user._id.toString() !== req.user.id ? isFollowing : null
+        };
+      })
+    );
     
     res.status(200).json({
       success: true,
@@ -455,7 +475,8 @@ const getFriendsLeaderboard = async (req, res, next) => {
     const rankedLeaderboard = leaderboard.map((user, index) => ({
       ...user.toObject(),
       rank: (page - 1) * limit + index + 1,
-      isCurrentUser: user._id.toString() === req.user.id.toString()
+      isCurrentUser: user._id.toString() === req.user.id.toString(),
+      isFollowing: user._id.toString() !== req.user.id.toString() ? true : null // All users in friends leaderboard are followed
     }));
     
     res.status(200).json({

@@ -106,16 +106,17 @@ const userSchema = new mongoose.Schema({
     default: 0,
     min: 0
   },
-  
-  // Social Features
-  followers: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
-  }],
-  following: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
-  }],
+
+  followersCount: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  followingCount: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
   
   // Daily Activity Tracking
   dailyCompletions: {
@@ -244,6 +245,16 @@ userSchema.methods.getTodayCompletionCount = function() {
   return todayCompletions ? todayCompletions.length : 0;
 };
 
+userSchema.methods.increaseFollowerCount = async function() {
+  this.followersCount++;
+  this.save();
+};
+
+userSchema.methods.increaseFollowingCount = async function() {
+  this.followingCount++;
+  this.save();
+};
+
 // Instance method to add daily completion
 userSchema.methods.addDailyCompletion = function(goalId) {
   const today = new Date().toISOString().split('T')[0];
@@ -255,7 +266,15 @@ userSchema.methods.addDailyCompletion = function(goalId) {
   });
   
   this.dailyCompletions.set(today, todayCompletions);
-  return this.save();
+};
+
+//Add to total Points
+userSchema.methods.addToTotalPoints = async function(points) {
+  // Ensure points is a number
+  const validPoints = typeof points === 'number' && !isNaN(points) ? points : 0;
+  const existingPoints = typeof this.totalPoints === 'number' && !isNaN(this.totalPoints) ? this.totalPoints : 0;
+
+  this.totalPoints = existingPoints + validPoints;
 };
 
 // Static method to get leaderboard

@@ -52,7 +52,6 @@ router.get('/yearly/:year', goalController.getYearlyGoalsSummary);
 router.get('/:id', goalController.getGoal);
 router.put('/:id', goalValidation, goalController.updateGoal);
 router.delete('/:id', goalController.deleteGoal);
-router.patch('/:id/complete', completeGoalValidation, goalController.completeGoal);
 router.patch('/:id/toggle', goalController.toggleGoalCompletion);
 router.patch('/:id/like', goalController.toggleGoalLike);
 

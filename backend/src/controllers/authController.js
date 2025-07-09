@@ -1,34 +1,5 @@
+const authService = require('../services/authService');
 const { validationResult } = require('express-validator');
-const User = require('../models/User');
-
-// Helper function to send token response
-const sendTokenResponse = (user, statusCode, res) => {
-  // Create token
-  const token = user.generateAuthToken();
-
-  const options = {
-    expires: new Date(
-      Date.now() + (parseInt(process.env.JWT_COOKIE_EXPIRES_IN) || 7) * 24 * 60 * 60 * 1000
-    ),
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict'
-  };
-
-  // Remove password from output
-  user.password = undefined;
-
-  res
-    .status(statusCode)
-    .cookie('token', token, options)
-    .json({
-      success: true,
-      data: {
-        user,
-        token
-      }
-    });
-};
 
 // @desc    Register user
 // @route   POST /api/v1/auth/signup
@@ -45,25 +16,13 @@ const signup = async (req, res, next) => {
       });
     }
 
-    const { name, email, password } = req.body;
+    const result = await authService.register(req.body);
 
-    // Check if user already exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({
-        success: false,
-        message: 'User already exists with this email'
-      });
-    }
-
-    // Create user
-    const user = await User.create({
-      name,
-      email,
-      password
+    res.status(201).json({
+      success: true,
+      message: 'User registered successfully',
+      data: result
     });
-
-    sendTokenResponse(user, 201, res);
   } catch (error) {
     next(error);
   }
@@ -85,40 +44,38 @@ const login = async (req, res, next) => {
     }
 
     const { email, password } = req.body;
+    const result = await authService.login(email, password);
 
-    // Check for user (include password for comparison)
-    const user = await User.findOne({ email }).select('+password');
+    // Set refresh token as httpOnly cookie
+    res.cookie('refreshToken', result.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    });
 
-    if (!user || !(await user.comparePassword(password))) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid credentials'
-      });
-    }
-
-    // Check if account is active
-    if (!user.isActive) {
-      return res.status(401).json({
-        success: false,
-        message: 'Account is deactivated'
-      });
-    }
-
-    sendTokenResponse(user, 200, res);
+    res.status(200).json({
+      success: true,
+      message: 'Login successful',
+      data: {
+        user: result.user,
+        token: result.token
+      }
+    });
   } catch (error) {
     next(error);
   }
 };
 
-// @desc    Logout user / clear cookie
+// @desc    Logout user
 // @route   POST /api/v1/auth/logout
-// @access  Public
+// @access  Private
 const logout = async (req, res, next) => {
   try {
-    res.cookie('token', 'none', {
-      expires: new Date(Date.now() + 10 * 1000),
-      httpOnly: true
-    });
+    await authService.logout(req.user.id);
+
+    // Clear refresh token cookie
+    res.clearCookie('refreshToken');
 
     res.status(200).json({
       success: true,
@@ -129,18 +86,16 @@ const logout = async (req, res, next) => {
   }
 };
 
-// @desc    Get current logged in user
+// @desc    Get current user
 // @route   GET /api/v1/auth/me
 // @access  Private
 const getMe = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user.id);
+    const user = await authService.getCurrentUser(req.user.id);
 
     res.status(200).json({
       success: true,
-      data: {
-        user
-      }
+      data: { user }
     });
   } catch (error) {
     next(error);
@@ -148,40 +103,26 @@ const getMe = async (req, res, next) => {
 };
 
 // @desc    Update user profile
-// @route   PUT /api/v1/auth/me
+// @route   PUT /api/v1/auth/profile
 // @access  Private
 const updateProfile = async (req, res, next) => {
   try {
-    const fieldsToUpdate = {
-      name: req.body.name,
-      bio: req.body.bio,
-      location: req.body.location,
-      website: req.body.website,
-      youtube: req.body.youtube,
-      instagram: req.body.instagram
-    };
+    // Check for validation errors
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
 
-    // Remove undefined fields
-    Object.keys(fieldsToUpdate).forEach(key => {
-      if (fieldsToUpdate[key] === undefined) {
-        delete fieldsToUpdate[key];
-      }
-    });
-
-    const user = await User.findByIdAndUpdate(
-      req.user.id,
-      fieldsToUpdate,
-      {
-        new: true,
-        runValidators: true
-      }
-    );
+    const user = await authService.updateProfile(req.user.id, req.body);
 
     res.status(200).json({
       success: true,
-      data: {
-        user
-      }
+      message: 'Profile updated successfully',
+      data: { user }
     });
   } catch (error) {
     next(error);
@@ -189,42 +130,100 @@ const updateProfile = async (req, res, next) => {
 };
 
 // @desc    Change password
-// @route   PUT /api/v1/auth/change-password
+// @route   PUT /api/v1/auth/password
 // @access  Private
 const changePassword = async (req, res, next) => {
   try {
+    // Check for validation errors
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+
     const { currentPassword, newPassword } = req.body;
+    const result = await authService.changePassword(req.user.id, currentPassword, newPassword);
 
-    if (!currentPassword || !newPassword) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please provide current and new password'
-      });
-    }
+    res.status(200).json({
+      success: true,
+      message: result.message
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
-    if (newPassword.length < 6) {
-      return res.status(400).json({
-        success: false,
-        message: 'New password must be at least 6 characters long'
-      });
-    }
+// @desc    Refresh access token
+// @route   POST /api/v1/auth/refresh
+// @access  Public
+const refreshToken = async (req, res, next) => {
+  try {
+    const { refreshToken: token } = req.cookies;
 
-    // Get user with password
-    const user = await User.findById(req.user.id).select('+password');
-
-    // Check current password
-    if (!(await user.comparePassword(currentPassword))) {
+    if (!token) {
       return res.status(401).json({
         success: false,
-        message: 'Current password is incorrect'
+        message: 'Refresh token not found'
       });
     }
 
-    // Update password
-    user.password = newPassword;
-    await user.save();
+    const result = await authService.refreshToken(token);
 
-    sendTokenResponse(user, 200, res);
+    // Set new refresh token as httpOnly cookie
+    res.cookie('refreshToken', result.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Token refreshed successfully',
+      data: {
+        token: result.accessToken
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Request password reset
+// @route   POST /api/v1/auth/forgot-password
+// @access  Public
+const forgotPassword = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    const resetToken = await authService.generatePasswordResetToken(email);
+
+    // In a real application, you would send this token via email
+    // For now, we'll just return it in the response (NOT recommended for production)
+    res.status(200).json({
+      success: true,
+      message: 'Password reset token generated',
+      data: { resetToken } // Remove this in production
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Reset password
+// @route   POST /api/v1/auth/reset-password
+// @access  Public
+const resetPassword = async (req, res, next) => {
+  try {
+    const { token, newPassword } = req.body;
+    const result = await authService.resetPassword(token, newPassword);
+
+    res.status(200).json({
+      success: true,
+      message: result.message
+    });
   } catch (error) {
     next(error);
   }
@@ -236,5 +235,8 @@ module.exports = {
   logout,
   getMe,
   updateProfile,
-  changePassword
+  changePassword,
+  refreshToken,
+  forgotPassword,
+  resetPassword
 }; 

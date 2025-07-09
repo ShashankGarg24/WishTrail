@@ -18,6 +18,7 @@ const goalRoutes = require('./routes/goalRoutes');
 const socialRoutes = require('./routes/socialRoutes');
 const activityRoutes = require('./routes/activityRoutes');
 const leaderboardRoutes = require('./routes/leaderboardRoutes');
+const exploreRoutes = require('./routes/exploreRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
 
 const app = express();
@@ -28,34 +29,100 @@ connectDB();
 // Trust proxy for deployment platforms like Heroku
 app.set('trust proxy', 1);
 
-// Security middleware
-app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" }
-}));
-
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
-  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100, // limit each IP to 100 requests per windowMs
-  message: {
-    error: 'Too many requests from this IP, please try again later.',
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-app.use('/api', limiter);
-
-// CORS configuration
+// CORS configuration - Must be before other middleware
 const corsOptions = {
-  origin: true, // Allow all origins for development
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'http://localhost:5173',
+      'http://localhost:5174',
+      'http://127.0.0.1:3000',
+      'http://127.0.0.1:5173',
+      'http://127.0.0.1:5174',
+      process.env.FRONTEND_URL
+    ].filter(Boolean);
+    
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(null, true); // Allow all origins in development
+    }
+  },
   credentials: true,
   optionsSuccessStatus: 200,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD'],
+  allowedHeaders: [
+    'Content-Type', 
+    'Authorization', 
+    'X-Requested-With',
+    'Accept',
+    'Origin',
+    'Access-Control-Request-Method',
+    'Access-Control-Request-Headers'
+  ],
+  exposedHeaders: ['X-Total-Count', 'X-Page-Count']
 };
 
 app.use(cors(corsOptions));
+
+// Handle preflight requests
+app.options('*', cors(corsOptions));
+
+// Security middleware
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  crossOriginEmbedderPolicy: false
+}));
+
+// Rate limiting - More lenient for development
+const createRateLimiter = (windowMs, max, message) => rateLimit({
+  windowMs,
+  max,
+  message: {
+    success: false,
+    error: message,
+    retryAfter: Math.ceil(windowMs / 1000)
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => {
+    // Skip rate limiting for health check
+    return req.path === '/health';
+  },
+  keyGenerator: (req) => {
+    // Use IP address for rate limiting
+    return req.ip || req.connection.remoteAddress;
+  }
+});
+
+// Different rate limits for different endpoints
+const generalLimiter = createRateLimiter(
+  15 * 60 * 1000, // 15 minutes
+  process.env.NODE_ENV === 'production' ? 100 : 1000, // 100 requests in prod, 1000 in dev
+  'Too many requests from this IP, please try again later.'
+);
+
+const authLimiter = createRateLimiter(
+  15 * 60 * 1000, // 15 minutes
+  process.env.NODE_ENV === 'production' ? 5 : 50, // 5 requests in prod, 50 in dev
+  'Too many authentication attempts, please try again later.'
+);
+
+const searchLimiter = createRateLimiter(
+  1 * 60 * 1000, // 1 minute
+  process.env.NODE_ENV === 'production' ? 30 : 100, // 30 requests in prod, 100 in dev
+  'Too many search requests, please slow down.'
+);
+
+// Apply rate limiting
+app.use('/api', generalLimiter);
+app.use('/api/*/auth/login', authLimiter);
+app.use('/api/*/auth/signup', authLimiter);
+app.use('/api/*/users', searchLimiter);
+app.use('/api/*/explore/search', searchLimiter);
 
 // Compression middleware
 app.use(compression());
@@ -68,7 +135,20 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 // Body parsing middleware
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ 
+  limit: '10mb',
+  verify: (req, res, buf) => {
+    try {
+      JSON.parse(buf);
+    } catch (e) {
+      res.status(400).json({
+        success: false,
+        error: 'Invalid JSON format'
+      });
+      return;
+    }
+  }
+}));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 
@@ -94,6 +174,7 @@ app.use(`/api/${apiVersion}/goals`, goalRoutes);
 app.use(`/api/${apiVersion}/social`, socialRoutes);
 app.use(`/api/${apiVersion}/activities`, activityRoutes);
 app.use(`/api/${apiVersion}/leaderboard`, leaderboardRoutes);
+app.use(`/api/${apiVersion}/explore`, exploreRoutes);
 app.use(`/api/${apiVersion}/upload`, uploadRoutes);
 
 // 404 handler for undefined routes
@@ -120,6 +201,12 @@ process.on('unhandledRejection', (err, promise) => {
   server.close(() => {
     process.exit(1);
   });
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (err) => {
+  console.log('Uncaught Exception:', err.message);
+  process.exit(1);
 });
 
 module.exports = app; 

@@ -6,7 +6,7 @@ import useApiStore from '../store/apiStore'
 import CompletionModal from './CompletionModal'
 import EditWishModal from './EditWishModal'
 
-const WishCard = ({ wish, year, index, goalOwnerUserId = null, isViewingOwnGoals = true }) => {
+const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewingOwnGoals = true }) => {
   const { 
     completeGoal, 
     deleteGoal, 
@@ -21,19 +21,16 @@ const WishCard = ({ wish, year, index, goalOwnerUserId = null, isViewingOwnGoals
 
   const handleToggle = () => {
     if (wish.completed) {
-      // If completed, uncompletion is handled by the backend
-      completeGoal(wish._id)
+      onToggle?.(wish._id)
     } else if (wish.isLocked) {
-      // If locked, don't allow completion
-      return
+      return;
     } else {
-      // If not completed and not locked, show completion modal
-      setIsCompletionModalOpen(true)
+      setIsCompletionModalOpen(true);
     }
   }
 
   const handleComplete = (completionNote) => {
-    completeGoal(wish._id, completionNote)
+    onComplete?.(wish._id, completionNote)
     setIsCompletionModalOpen(false)
   }
 

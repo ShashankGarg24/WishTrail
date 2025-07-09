@@ -180,9 +180,13 @@ userAchievementSchema.statics.awardAchievement = async function(userId, achievem
       });
     }
     
+    const currentUser = (await User.findById(userId).select('name avatar').lean());
+
     // Create activity record
     await Activity.createActivity(
       userId,
+      currentUser.name,
+      currentUser.avatar,
       'achievement_earned',
       {
         achievementId,

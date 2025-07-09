@@ -8,6 +8,14 @@ const activitySchema = new mongoose.Schema({
     required: [true, 'User ID is required'],
     index: true
   },
+
+  name: {
+    type: String,
+  },
+
+  avatar: {
+    type: String,
+  },
   
   // Type of activity
   type: {
@@ -20,8 +28,7 @@ const activitySchema = new mongoose.Schema({
       'level_up',
       'streak_milestone',
       'achievement_earned',
-      'goal_liked',
-      'profile_updated'
+      'goal_liked'
     ],
     index: true
   },
@@ -108,11 +115,14 @@ activitySchema.virtual('message').get(function() {
   return messages[this.type] || 'performed an activity';
 });
 
+
 // Static method to create activity
-activitySchema.statics.createActivity = async function(userId, type, data) {
+activitySchema.statics.createActivity = async function(userId, name, avatar, type, data) {
   try {
     const activity = new this({
       userId,
+      name,
+      avatar,
       type,
       data
     });

@@ -13,7 +13,7 @@ const likeSchema = new mongoose.Schema({
   targetType: {
     type: String,
     required: [true, 'Target type is required'],
-    enum: ['goal', 'activity', 'user'], // Extensible for future content types
+    enum: ['goal', 'activity'], // Extensible for future content types
     index: true
   },
   
@@ -21,13 +21,6 @@ const likeSchema = new mongoose.Schema({
   targetId: {
     type: mongoose.Schema.Types.ObjectId,
     required: [true, 'Target ID is required'],
-    index: true
-  },
-  
-  // Like status
-  isActive: {
-    type: Boolean,
-    default: true,
     index: true
   },
   
@@ -48,8 +41,8 @@ const likeSchema = new mongoose.Schema({
 likeSchema.index({ userId: 1, targetType: 1, targetId: 1 }, { unique: true });
 
 // Additional indexes for performance
-likeSchema.index({ targetType: 1, targetId: 1, isActive: 1 });
-likeSchema.index({ userId: 1, isActive: 1, createdAt: -1 });
+likeSchema.index({ targetType: 1, targetId: 1});
+likeSchema.index({ userId: 1, createdAt: -1 });
 likeSchema.index({ createdAt: -1 });
 
 // Static method to like an item
