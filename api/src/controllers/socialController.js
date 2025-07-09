@@ -40,7 +40,6 @@ const followUser = async (req, res, next) => {
     
     // Follow the user
     await Follow.followUser(followerId, userId);
-    userToFollow.increaseFollowingCount();
     
     // Create notification for the followed user
     // await Notification.createNotification({
@@ -59,8 +58,9 @@ const followUser = async (req, res, next) => {
       'data.targetUserId': userId
     });
 
-    const currentUser = (await User.findById(followerId).select('name avatar').lean());
-    currentUser.increaseFollowerCount();
+    const currentUser = (await User.findById(followerId).select('name avatar'));
+    userToFollow.increaseFollowerCount();
+    currentUser.increaseFollowingCount();
 
     if (!existingActivity) {
       await Activity.createActivity(
@@ -113,6 +113,10 @@ const unfollowUser = async (req, res, next) => {
     // Unfollow the user
     await Follow.unfollowUser(followerId, userId);
     
+    const currentUser = await User.findById(followerId);
+    userToUnfollow.decreaseFollowerCount();
+    currentUser.decreaseFollowingCount();
+
     res.status(200).json({
       success: true,
       message: 'User unfollowed successfully'

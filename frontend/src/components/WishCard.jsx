@@ -35,7 +35,13 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
 
   const handleDelete = () => {
     if (window.confirm('Are you sure you want to delete this goal?')) {
-      deleteGoal(wish._id)
+      // Use the onDelete prop which properly handles dashboard stats refresh
+      if (onDelete) {
+        onDelete(wish._id)
+      } else {
+        // Fallback to direct call if no onDelete prop provided
+        deleteGoal(wish._id)
+      }
     }
   }
 

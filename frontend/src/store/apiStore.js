@@ -383,9 +383,9 @@ const useApiStore = create(
         try {
           set({ loading: true, error: null });
           const response = await usersAPI.getUser(id);
-          const { user, stats, isFollowing } = response.data.data;
+          const {user, stats, isFollowing} = response.data.data;
           set({ loading: false });
-          return { success: true, user, stats, isFollowing };
+          return { success: true, user, stats, isFollowing};
         } catch (error) {
           const errorMessage = handleApiError(error);
           set({ loading: false, error: errorMessage });

@@ -278,11 +278,11 @@ const UserProfile = () => {
                   <div className="text-gray-400 text-sm">Points</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-purple-400">{userStats?.followerCount || 0}</div>
+                  <div className="text-2xl font-bold text-purple-400">{userStats?.followers || 0}</div>
                   <div className="text-gray-400 text-sm">Followers</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-indigo-400">{userStats?.followingCount || 0}</div>
+                  <div className="text-2xl font-bold text-indigo-400">{userStats?.followings || 0}</div>
                   <div className="text-gray-400 text-sm">Following</div>
                 </div>
               </div>

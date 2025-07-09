@@ -82,10 +82,9 @@ class UserService {
       isFollowing = await Follow.isFollowing(requestingUserId, userId);
     }
     
-    const userResponse = user.toObject();
-    userResponse.isFollowing = isFollowing;
-    
-    return userResponse;
+    const userResponse = user.toObject();   
+    const userStats = await this.getUserStats(user);
+    return { user: userResponse, stats: userStats, isFollowing };
   }
   
   /**
@@ -98,24 +97,11 @@ class UserService {
     }
     
     // Get goal statistics
-    const goalStats = await Goal.aggregate([
-      { $match: { userId: user._id } },
-      {
-        $group: {
-          _id: null,
-          totalGoals: { $sum: 1 },
-          completedGoals: { $sum: { $cond: ['$completed', 1, 0] } },
-          activeGoals: { $sum: { $cond: ['$completed', 0, 1] } },
-          totalPoints: { $sum: '$pointsEarned' }
-        }
-      }
-    ]);
-    
-    const stats = goalStats[0] || {
-      totalGoals: 0,
-      completedGoals: 0,
-      activeGoals: 0,
-      totalPoints: 0
+    const stats = {
+      totalGoals: user.totalGoals,
+      completedGoals: user.completedGoals,
+      activeGoals: user.activeGoals,
+      totalPoints: user.totalPoints
     };
     
     // Get recent activities
@@ -169,6 +155,19 @@ class UserService {
     };
   }
   
+  async getUserStats(user) {
+    const stats = {
+      totalGoals: user.totalGoals,
+      completedGoals: user.completedGoals,
+      activeGoals: user.activeGoals,
+      totalPoints: user.totalPoints,
+      followers: user.followerCount,
+      followings: user.followingCount
+    };
+
+    return stats;
+  }
+
   /**
    * Get user's profile summary
    */
@@ -181,10 +180,10 @@ class UserService {
     }
     
     // Get follower/following counts
-    const [followerCount, followingCount] = await Promise.all([
-      Follow.getFollowerCount(userId),
-      Follow.getFollowingCount(userId)
-    ]);
+    const [followerCount, followingCount] = [
+      user.followerCount,
+      user.followingCount
+    ];
     
     // Get recent goals
     const recentGoals = await Goal.find({ userId })

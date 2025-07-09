@@ -139,7 +139,8 @@ const createGoal = async (req, res, next) => {
       year: currentYear
     });
     
-    const currentUser = (await User.findById(req.user.id).select('name avatar').lean());
+    const currentUser = (await User.findById(req.user.id).select('name avatar'));
+    currentUser.increaseTotalGoals()
 
     // Create activity
     await Activity.createActivity(
@@ -250,7 +251,9 @@ const deleteGoal = async (req, res, next) => {
     }
     
     await Goal.findByIdAndDelete(req.params.id);
-    
+    const currentUser = (await User.findById(req.user.id));
+    currentUser.decreaseTotalGoals();
+
     res.status(200).json({
       success: true,
       message: 'Goal deleted successfully'
@@ -309,7 +312,7 @@ const toggleGoalCompletion = async (req, res, next) => {
         comp => comp.goalId.toString() !== goal._id.toString()
       )
       user.dailyCompletions.set(today, updatedCompletions)
-
+      user.decreaseCompletedGoals();
       await user.save()
 
       // Delete activity log for this goal (if exists)
@@ -345,11 +348,12 @@ const toggleGoalCompletion = async (req, res, next) => {
         })
       }
 
-      updatedGoal = await goal.completeGoal(completionNote)
+      updatedGoal = await goal.completeGoal(completionNote);
 
       user.addToTotalPoints(updatedGoal.pointsEarned)
-      user.addDailyCompletion(goal._id)
-      await user.save()
+      user.addDailyCompletion(goal._id);
+      user.increaseCompletedGoals();
+      await user.save();
 
       await Activity.createActivity(
         user._id,

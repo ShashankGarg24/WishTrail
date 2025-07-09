@@ -45,9 +45,9 @@ const DashboardPage = () => {
   const handleCreateGoal = async (goalData) => {
     const result = await createGoal({ ...goalData, year: selectedYear })
     if (result.success) {
-      setIsCreateModalOpen(false)
       // Refresh dashboard stats
-      getDashboardStats()
+      await getDashboardStats()
+      setIsCreateModalOpen(false)
     }
     return result
   }
@@ -61,12 +61,10 @@ const DashboardPage = () => {
   }
 
   const handleDeleteGoal = async (goalId) => {
-    if (window.confirm('Are you sure you want to delete this goal?')) {
-      const result = await deleteGoal(goalId)
-      if (result.success) {
-        // Refresh dashboard stats
-        getDashboardStats()
-      }
+    const result = await deleteGoal(goalId)
+    if (result.success) {
+      // Refresh dashboard stats
+      await getDashboardStats()
     }
   }
 
@@ -146,7 +144,7 @@ const DashboardPage = () => {
     },
     {
       label: 'In Progress',
-      value: dashboardStats.pendingGoals,
+      value: dashboardStats.totalGoals - dashboardStats.completedGoals,
       icon: Circle,
       color: 'text-yellow-500'
     },

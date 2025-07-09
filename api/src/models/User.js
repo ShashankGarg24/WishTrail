@@ -107,7 +107,7 @@ const userSchema = new mongoose.Schema({
     min: 0
   },
 
-  followersCount: {
+  followerCount: {
     type: Number,
     default: 0,
     min: 0
@@ -245,14 +245,42 @@ userSchema.methods.getTodayCompletionCount = function() {
   return todayCompletions ? todayCompletions.length : 0;
 };
 
-userSchema.methods.increaseFollowerCount = async function() {
-  this.followersCount++;
-  this.save();
+userSchema.methods.increaseCompletedGoals = function () {
+  this.completedGoals = (this.completedGoals || 0) + 1;
 };
 
-userSchema.methods.increaseFollowingCount = async function() {
-  this.followingCount++;
-  this.save();
+userSchema.methods.decreaseCompletedGoals = function () {
+  this.completedGoals = Math.max((this.completedGoals || 0) - 1, 0);
+};
+
+userSchema.methods.increaseTotalGoals = function () {
+  this.totalGoals = (this.totalGoals || 0) + 1;
+  return this.save();
+};
+
+userSchema.methods.decreaseTotalGoals = function () {
+  this.totalGoals = Math.max((this.totalGoals || 0) - 1, 0);
+  return this.save();
+};
+
+userSchema.methods.increaseFollowerCount = function () {
+  this.followerCount = (this.followerCount || 0) + 1;
+  return this.save();
+};
+
+userSchema.methods.increaseFollowingCount = function () {
+  this.followingCount = (this.followingCount || 0) + 1;
+  return this.save();
+};
+
+userSchema.methods.decreaseFollowerCount = function () {
+  this.followerCount = Math.max((this.followerCount || 0) - 1, 0);
+  return this.save();
+};
+
+userSchema.methods.decreaseFollowingCount = function () {
+  this.followingCount = Math.max((this.followingCount || 0) - 1, 0);
+  return this.save();
 };
 
 // Instance method to add daily completion

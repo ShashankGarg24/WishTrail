@@ -26,11 +26,10 @@ const getUsers = async (req, res, next) => {
 const getUser = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const user = await userService.getUserById(id, req.user.id);
-    console.log(user);
+    const {user, stats, isFollowing} = await userService.getUserById(id, req.user.id);
     res.status(200).json({
       success: true,
-      data: { user }
+      data: {user: user, stats: stats, isFollowing: isFollowing}
     });
   } catch (error) {
     next(error);

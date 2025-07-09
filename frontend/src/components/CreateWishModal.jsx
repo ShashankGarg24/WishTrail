@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import { X, Plus, Target, Calendar, Tag, AlertCircle } from 'lucide-react'
 import useApiStore from '../store/apiStore'
 
-const CreateWishModal = ({ isOpen, onClose, year }) => {
+const CreateWishModal = ({ isOpen, onClose, onSave, year }) => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -102,8 +102,18 @@ const CreateWishModal = ({ isOpen, onClose, year }) => {
     }
 
     try {
-      await createGoal(goalData)
-      handleClose()
+      let result
+      if (onSave) {
+        // Use the onSave prop which properly handles dashboard stats refresh
+        result = await onSave(goalData)
+      } else {
+        // Fallback to direct call if no onSave prop provided
+        result = await createGoal(goalData)
+      }
+      
+      if(result.success) {
+        handleClose()
+      }
     } catch (error) {
       console.error('Failed to create goal:', error)
     }
