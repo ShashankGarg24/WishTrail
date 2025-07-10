@@ -93,9 +93,33 @@ const completeProfileValidation = [
     .withMessage('Location cannot exceed 100 characters')
 ];
 
+const forgotPasswordValidation = [
+  body('email')
+    .isEmail()
+    .normalizeEmail()
+    .withMessage('Please provide a valid email')
+];
+
+const resetPasswordValidation = [
+  body('token')
+    .notEmpty()
+    .withMessage('Reset token is required')
+    .isLength({ min: 64, max: 64 })
+    .withMessage('Invalid reset token format'),
+  body('newPassword')
+    .isLength({ min: 6 })
+    .withMessage('New password must be at least 6 characters long')
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
+    .withMessage('New password must contain at least one uppercase letter, one lowercase letter, and one number')
+];
+
 // Public routes
 router.post('/register', signupValidation, authController.register);
 router.post('/login', loginValidation, authController.login);
+
+// Password reset routes
+router.post('/forgot-password', forgotPasswordValidation, authController.forgotPassword);
+router.post('/reset-password', resetPasswordValidation, authController.resetPassword);
 
 // Multi-step signup routes
 router.post('/check-existing', checkExistingUserValidation, authController.checkExistingUser);

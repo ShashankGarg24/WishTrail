@@ -2,7 +2,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const User = require('../models/User');
-const Activity = require('../models/Activity');
+const PasswordReset = require('../models/PasswordReset');
 const OTP = require('../models/Otp');
 const emailService = require('./emailService');
 const BloomFilterService = require('../utility/BloomFilterService');
@@ -98,7 +98,7 @@ class AuthService {
     const user = await User.findOne({ email, isActive: true }).select('+password');
     
     if (!user) {
-      throw new Error('Invalid credentials');
+      throw new Error('No user is registered with the given email.');
     }
     
     // Check password
@@ -259,61 +259,6 @@ class AuthService {
       throw new Error('Invalid refresh token');
     }
   }
-  
-  /**
-   * Generate password reset token
-   */
-  async generatePasswordResetToken(email) {
-    const user = await User.findOne({ email, isActive: true });
-    
-    if (!user) {
-      throw new Error('User not found');
-    }
-    
-    // Generate reset token
-    const resetToken = crypto.randomBytes(32).toString('hex');
-    const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
-    
-    // Set token and expiration
-    user.passwordResetToken = hashedToken;
-    user.passwordResetExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
-    await user.save();
-    
-    return resetToken;
-  }
-  
-  /**
-   * Reset password with token
-   */
-  async resetPassword(token, newPassword) {
-    // Hash the token
-    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
-    
-    // Find user with valid token
-    const user = await User.findOne({
-      passwordResetToken: hashedToken,
-      passwordResetExpires: { $gt: Date.now() },
-      isActive: true
-    });
-    
-    if (!user) {
-      throw new Error('Token is invalid or has expired');
-    }
-    
-    // Hash new password
-    const salt = await bcrypt.genSalt(12);
-    const hashedPassword = await bcrypt.hash(newPassword, salt);
-    
-    // Update password and clear reset token
-    user.password = hashedPassword;
-    user.passwordChangedAt = new Date();
-    user.passwordResetToken = undefined;
-    user.passwordResetExpires = undefined;
-    await user.save();
-    
-    return { message: 'Password reset successful' };
-  }
-
 
   /**
    * Check if email or username already exists
@@ -437,6 +382,84 @@ class AuthService {
       email,
       expiresAt: otpRecord.expiresAt,
       nextResendTime: Date.now() + (canRequest.waitTime || 30) * 1000
+    };
+  }
+
+
+  /**
+   * Request password reset
+   */
+  async forgotPassword(email) {
+    // Check if user exists
+    const user = await User.findOne({ email, isActive: true });
+    if (!user) {
+      // Don't reveal if user exists or not for security
+      return {
+        message: 'If an account with this email exists, you will receive a password reset link.',
+        email
+      };
+    }
+
+    // Check rate limiting
+    const canRequest = await PasswordReset.canRequestReset(email);
+    if (!canRequest.canRequest) {
+      throw new Error(`Too many password reset requests. Please wait ${canRequest.waitTime} minutes before requesting again.`);
+    }
+
+    // Generate reset token
+    const resetData = await PasswordReset.createResetToken(email, 15); // 15 mins expiry
+
+    // Send reset email
+    try {
+      await emailService.sendPasswordResetEmail(email, resetData.token, user.name);
+    } catch (error) {
+      console.error('Failed to send password reset email:', error);
+      // Don't throw error - we still want to return success even if email fails
+    }
+
+    return {
+      message: 'If an account with this email exists, you will receive a password reset link.',
+      email,
+      expiresAt: resetData.expiresAt
+    };
+  }
+
+  /**
+   * Reset password using token
+   */
+  async resetPassword(token, newPassword) {
+    // Verify the reset token
+    const passwordReset = await PasswordReset.verifyResetToken(token);
+    
+    // Get the user
+    const user = await User.findOne({ email: passwordReset.email, isActive: true });
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    // Update user password
+    user.password = newPassword;
+    user.passwordChangedAt = new Date();
+    
+    // Invalidate all existing refresh tokens for security
+    user.refreshToken = null;
+    
+    await user.save();
+
+    // Mark token as used
+    await PasswordReset.markTokenAsUsed(token);
+
+    // Send confirmation email
+    try {
+      await emailService.sendPasswordChangeConfirmation(user.email, user.name);
+    } catch (error) {
+      console.error('Failed to send password change confirmation:', error);
+      // Don't throw error - password was successfully changed
+    }
+
+    return {
+      message: 'Password has been reset successfully. Please log in with your new password.',
+      email: user.email
     };
   }
 }

@@ -208,15 +208,26 @@ const refreshToken = async (req, res, next) => {
 // @access  Public
 const forgotPassword = async (req, res, next) => {
   try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
     const { email } = req.body;
-    const resetToken = await authService.generatePasswordResetToken(email);
+    const result = await authService.forgotPassword(email);
+
 
     // In a real application, you would send this token via email
     // For now, we'll just return it in the response (NOT recommended for production)
     res.status(200).json({
       success: true,
-      message: 'Password reset token generated',
-      data: { resetToken } // Remove this in production
+      message: result.message,
+      data: {
+        email: result.email
+      }
     });
   } catch (error) {
     next(error);
@@ -228,12 +239,23 @@ const forgotPassword = async (req, res, next) => {
 // @access  Public
 const resetPassword = async (req, res, next) => {
   try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
     const { token, newPassword } = req.body;
     const result = await authService.resetPassword(token, newPassword);
 
     res.status(200).json({
       success: true,
-      message: result.message
+      message: result.message,
+      data: {
+        email: result.email
+      }
     });
   } catch (error) {
     next(error);
