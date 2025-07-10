@@ -10,6 +10,21 @@ const userSchema = new mongoose.Schema({
     trim: true,
     maxlength: [100, 'Name cannot exceed 100 characters']
   },
+
+  username: {
+    type: String,
+    unique: true,
+    trim: true,
+    lowercase: true,
+    minlength: [3, 'Username must be at least 3 characters'],
+    maxlength: [20, 'Username cannot exceed 20 characters'],
+    match: [
+      /^[a-zA-Z0-9._-]+$/,
+      'Username can only contain letters, numbers, dots, hyphens, and underscores'
+    ],
+    sparse: true // Allow null/undefined values for partial creation
+  },
+  
   email: {
     type: String,
     required: [true, 'Email is required'],
@@ -44,6 +59,58 @@ const userSchema = new mongoose.Schema({
     type: String,
     maxlength: [100, 'Location cannot exceed 100 characters'],
     default: ''
+  },
+
+  dateOfBirth: {
+    type: Date,
+    validate: {
+      validator: function(v) {
+        // Must be at least 13 years old
+        if (!v) return true; // Optional field
+        const today = new Date();
+        const age = today.getFullYear() - v.getFullYear();
+        return age >= 13;
+      },
+      message: 'You must be at least 13 years old to use this service'
+    }
+  },
+  interests: [{
+    type: String,
+    enum: [
+      'fitness', 'health', 'travel', 'education', 'career', 'finance', 
+      'hobbies', 'relationships', 'personal_growth', 'creativity', 
+      'technology', 'business', 'lifestyle', 'spirituality', 'sports',
+      'music', 'art', 'reading', 'cooking', 'gaming', 'nature', 'volunteering'
+    ]
+  }],
+  profileCompleted: {
+    type: Boolean,
+    default: false
+  },
+  onboardingCompleted: {
+    type: Boolean,
+    default: false
+  },
+  preferences: {
+    privacy: {
+      type: String,
+      enum: ['public', 'friends', 'private'],
+      default: 'public'
+    },
+    notifications: {
+      email: {
+        type: Boolean,
+        default: true
+      },
+      achievements: {
+        type: Boolean,
+        default: true
+      },
+      reminders: {
+        type: Boolean,
+        default: true
+      }
+    }
   },
   
   // Social Links
@@ -164,6 +231,7 @@ const userSchema = new mongoose.Schema({
 
 // Indexes for performance
 userSchema.index({ email: 1 });
+userSchema.index({ username: 1 });
 userSchema.index({ totalPoints: -1 });
 userSchema.index({ completedGoals: -1 });
 userSchema.index({ createdAt: -1 });

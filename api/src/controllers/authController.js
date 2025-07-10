@@ -1,12 +1,11 @@
 const authService = require('../services/authService');
 const { validationResult } = require('express-validator');
 
-// @desc    Register user
-// @route   POST /api/v1/auth/signup
+// @desc    Complete user profile and register after OTP verification
+// @route   POST /api/v1/auth/complete-profile
 // @access  Public
-const signup = async (req, res, next) => {
+const register = async (req, res, next) => {
   try {
-    // Check for validation errors
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({
@@ -18,10 +17,21 @@ const signup = async (req, res, next) => {
 
     const result = await authService.register(req.body);
 
+    // Set refresh token as httpOnly cookie
+    res.cookie('refreshToken', result.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    });
+
     res.status(201).json({
       success: true,
-      message: 'User registered successfully',
-      data: result
+      message: 'Registration completed successfully',
+      data: {
+        user: result.user,
+        token: result.token
+      }
     });
   } catch (error) {
     next(error);
@@ -230,8 +240,114 @@ const resetPassword = async (req, res, next) => {
   }
 };
 
+
+// @desc    Check if email or username already exists
+// @route   POST /api/v1/auth/check-existing
+// @access  Public
+const checkExistingUser = async (req, res, next) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+
+    const result = await authService.checkExistingUser(req.body);
+
+    res.status(200).json({
+      success: true,
+      message: 'User availability checked',
+      data: result
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Request OTP for signup
+// @route   POST /api/v1/auth/request-otp
+// @access  Public
+const requestOTP = async (req, res, next) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+
+    const result = await authService.requestOTP(req.body);
+
+    res.status(200).json({
+      success: true,
+      message: 'OTP sent successfully',
+      data: result
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Verify OTP
+// @route   POST /api/v1/auth/verify-otp
+// @access  Public
+const verifyOTP = async (req, res, next) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+
+    const result = await authService.verifyOTP(req.body);
+
+    res.status(200).json({
+      success: true,
+      message: 'OTP verified successfully',
+      data: result
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Resend OTP
+// @route   POST /api/v1/auth/resend-otp
+// @access  Public
+const resendOTP = async (req, res, next) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+
+    const result = await authService.resendOTP(req.body);
+
+    res.status(200).json({
+      success: true,
+      message: 'OTP resent successfully',
+      data: result
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+
 module.exports = {
-  signup,
+  register,
   login,
   logout,
   getMe,
@@ -239,5 +355,9 @@ module.exports = {
   changePassword,
   refreshToken,
   forgotPassword,
-  resetPassword
+  resetPassword,
+  checkExistingUser,
+  requestOTP,
+  verifyOTP,
+  resendOTP
 }; 
