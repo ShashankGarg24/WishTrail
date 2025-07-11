@@ -49,7 +49,7 @@ module.exports = app;
           'http://127.0.0.1:3000',
           'http://127.0.0.1:5173',
           'http://127.0.0.1:5174',
-          process.env.FRONTEND_URL
+          'https://wishtrail.vercel.app/',
         ].filter(Boolean);
         if (allowedOrigins.includes(origin)) {
           callback(null, true);
