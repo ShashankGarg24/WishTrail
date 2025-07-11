@@ -11,10 +11,14 @@ const Header = () => {
 
   // Main navigation tabs in specified order
   const mainNavigation = [
-    { name: 'Home', href: '/' },
-    { name: 'Inspiration', href: '/inspiration' },
-    { name: 'Explore', href: '/explore' },
-    { name: 'Leaderboard', href: '/leaderboard' },
+  { name: 'Home', href: '/' },
+  { name: 'Inspiration', href: '/inspiration' },
+  ...(isAuthenticated
+    ? [
+        { name: 'Explore', href: '/explore' },
+        { name: 'Leaderboard', href: '/leaderboard' },
+      ]
+    : []),
   ]
 
   const blogUrl = 'https://blooggerr.netlify.app/'
