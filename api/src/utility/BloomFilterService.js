@@ -17,7 +17,8 @@ const BloomFilterService = {
   async init(expectedItems = 10000, errorRate = 0.01) {
     const saved = await redisClient.get(BLOOM_KEY);
     if (saved) {
-      bloom = BloomFilter.fromJSON(JSON.parse(saved));
+      const parsed = typeof saved === 'string' ? JSON.parse(saved) : saved;
+      bloom = BloomFilter.fromJSON(parsed);
       console.log('Bloom Filter loaded from Redis');
     } else {
       let expectedUsers = Number(await redisClient.get("bloom:expected_users")) || expectedItems;

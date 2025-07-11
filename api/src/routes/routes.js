@@ -5,6 +5,8 @@ const { protect } = require('../middleware/auth');
 
 const router = express.Router();
 
+//AUTH ROUTES
+
 // Validation rules
 const signupValidation = [
   body('name')
@@ -114,23 +116,37 @@ const resetPasswordValidation = [
 ];
 
 // Public routes
-router.post('/register', signupValidation, authController.register);
-router.post('/login', loginValidation, authController.login);
+router.post('/auth/register', signupValidation, authController.register);
+router.post('/auth/login', loginValidation, authController.login);
 
 // Password reset routes
-router.post('/forgot-password', forgotPasswordValidation, authController.forgotPassword);
-router.post('/reset-password', resetPasswordValidation, authController.resetPassword);
+router.post('/auth/forgot-password', forgotPasswordValidation, authController.forgotPassword);
+router.post('/auth/reset-password', resetPasswordValidation, authController.resetPassword);
 
 // Multi-step signup routes
-router.post('/check-existing', checkExistingUserValidation, authController.checkExistingUser);
-router.post('/request-otp', requestOTPValidation, authController.requestOTP);
-router.post('/verify-otp', verifyOTPValidation, authController.verifyOTP);
-router.post('/resend-otp', [body('email').isEmail().normalizeEmail()], authController.resendOTP);
+router.post('/auth/check-existing', checkExistingUserValidation, authController.checkExistingUser);
+router.post('/auth/request-otp', requestOTPValidation, authController.requestOTP);
+router.post('/auth/verify-otp', verifyOTPValidation, authController.verifyOTP);
+router.post('/auth/resend-otp', [body('email').isEmail().normalizeEmail()], authController.resendOTP);
 
 // Protected routes
-router.post('/logout', protect, authController.logout);
-router.get('/me', protect, authController.getMe);
-router.put('/profile', protect, authController.updateProfile);
-router.put('/change-password', protect, authController.changePassword);
+router.post('/auth/logout', protect, authController.logout);
+router.get('/auth/me', protect, authController.getMe);
+router.put('/auth/profile', protect, authController.updateProfile);
+router.put('/auth/change-password', protect, authController.changePassword);
 
-module.exports = router;
+
+//ACTIVITY ROUTES
+
+// Routes with optional authentication
+router.get('/activities/recent', optionalAuth, activityController.getRecentActivities);
+
+// Routes that require login
+router.get('/activities/trending', protect, activityController.getTrendingActivities);
+router.get('/activities/stats', protect, activityController.getActivityStats);
+router.get('/activities/user/:userId', protect, activityController.getUserActivities);
+router.get('/activities/:id', protect, activityController.getActivity);
+router.patch('/activities/:id/like', protect, activityController.toggleActivityLike);
+
+
+module.exports = router; 

@@ -61,37 +61,72 @@ The API will be available at `http://localhost:5000`
 ## 📁 Project Structure
 
 ```
-backend/
+api/
 ├── src/
 │   ├── config/             # Configuration files
-│   │   └── database.js     # Database connection
-│   ├── controllers/        # Route controllers
-│   │   └── authController.js
+│   │   └── database.js     # Database connection setup
+│   ├── controllers/        # Route controllers (business logic)
+│   │   ├── authController.js         # Authentication & authorization
+│   │   ├── userController.js         # User management
+│   │   ├── goalController.js         # Goal CRUD operations
+│   │   ├── socialController.js       # Social features (follow/unfollow)
+│   │   ├── activityController.js     # Activity feed management
+│   │   ├── leaderboardController.js  # Leaderboard & rankings
+│   │   ├── exploreController.js      # Explore & discovery features
+│   │   └── locationController.js     # Location-based services
 │   ├── middleware/         # Custom middleware
-│   │   ├── auth.js         # Authentication middleware
-│   │   ├── errorHandler.js # Global error handler
-│   │   └── notFoundHandler.js
-│   ├── models/             # Mongoose models
+│   │   ├── auth.js         # JWT authentication middleware
+│   │   ├── errorHandler.js # Global error handling
+│   │   └── notFoundHandler.js # 404 error handling
+│   ├── models/             # Mongoose database models
 │   │   ├── User.js         # User model with gamification
-│   │   └── Goal.js         # Goal model with points system
-│   ├── routes/             # API routes
+│   │   ├── Goal.js         # Goal model with points system
+│   │   ├── Activity.js     # Activity feed model
+│   │   ├── Follow.js       # User following relationships
+│   │   ├── Like.js         # Goal likes/reactions
+│   │   ├── Notification.js # User notifications
+│   │   ├── Achievement.js  # User achievements & badges
+│   │   ├── UserAchievement.js # User-achievement relationships
+│   │   ├── PasswordReset.js   # Password reset tokens
+│   │   └── Otp.js          # OTP verification codes
+│   ├── routes/             # API route definitions
+│   │   ├── routes.js       # Main routes aggregator
 │   │   ├── authRoutes.js   # Authentication routes
 │   │   ├── userRoutes.js   # User management routes
 │   │   ├── goalRoutes.js   # Goal CRUD routes
 │   │   ├── socialRoutes.js # Social features routes
 │   │   ├── activityRoutes.js # Activity feed routes
 │   │   ├── leaderboardRoutes.js # Leaderboard routes
-│   │   └── uploadRoutes.js # File upload routes
+│   │   ├── exploreRoutes.js    # Explore & discovery routes
+│   │   ├── locationRoutes.js   # Location services routes
+│   │   └── uploadRoutes.js     # File upload routes
 │   ├── services/           # Business logic services
-│   ├── utils/              # Utility functions
+│   │   ├── authService.js      # Authentication business logic
+│   │   ├── userService.js      # User management services
+│   │   ├── goalService.js      # Goal management services
+│   │   ├── activityService.js  # Activity feed services
+│   │   ├── locationService.js  # Location-based services
+│   │   └── emailService.js     # Email notification services
+│   ├── utility/            # Utility functions & helpers
+│   │   └── BloomFilterService.js # Bloom filter for data optimization
 │   ├── validation/         # Input validation schemas
-│   └── server.js           # Express app setup
-├── tests/                  # Test files
-│   ├── unit/              # Unit tests
-│   └── integration/       # Integration tests
-├── docs/                  # API documentation
-├── package.json
-└── README.md
+│   │   └── (validation files)
+│   ├── cron/              # Scheduled tasks & jobs
+│   │   └── bloomFilterJob.js # Bloom filter maintenance
+│   ├── uploads/           # File storage directories
+│   │   ├── avatars/       # User avatar uploads
+│   │   └── temp/          # Temporary file storage
+│   └── server.js          # Express app setup & configuration
+├── tests/                 # Test files
+│   ├── unit/             # Unit tests
+│   └── integration/      # Integration tests
+├── docs/                 # API documentation
+│   └── DATABASE_SCHEMAS.md # Database schema documentation
+├── package.json          # Dependencies & scripts
+├── package-lock.json     # Locked dependency versions
+├── .env.example          # Environment variables template
+├── .gitignore            # Git ignore patterns
+└── README.md             # This file
 ```
 
 ## 🔧 Technology Stack
@@ -135,6 +170,8 @@ backend/
 - `GET /me` - Get current user profile
 - `PUT /me` - Update user profile
 - `PUT /change-password` - Change password
+- `POST /forgot-password` - Request password reset
+- `POST /reset-password` - Reset password with token
 
 ### Users (`/api/v1/users`)
 - `GET /` - Get all users (with search/pagination)
@@ -245,6 +282,35 @@ backend/
 }
 ```
 
+### PasswordReset Model
+```javascript
+{
+  email: String,
+  token: String (hashed),
+  expiresAt: Date,
+  used: Boolean,
+  usedAt: Date,
+  ipAddress: String,
+  userAgent: String,
+  requestCount: Number,
+  timestamps: true
+}
+```
+
+### OTP Model
+```javascript
+{
+  email: String,
+  code: String (hashed),
+  type: String (enum: login, password_reset),
+  expiresAt: Date,
+  verified: Boolean,
+  verifiedAt: Date,
+  attempts: Number,
+  timestamps: true
+}
+```
+
 ## 🔒 Security Features
 
 - **JWT Authentication** with secure HTTP-only cookies
@@ -254,6 +320,15 @@ backend/
 - **Security Headers** using Helmet
 - **CORS Configuration** for cross-origin requests
 - **MongoDB Injection Prevention** through Mongoose
+- **Password Reset Security**:
+  - Secure token generation using crypto.randomBytes(32)
+  - Token hashing with SHA-256
+  - Time-based expiration (15 minutes)
+  - Rate limiting (max 3 requests/hour per email)
+  - Single-use tokens with automatic cleanup
+  - No user enumeration protection
+- **Bloom Filter** for data optimization and duplicate prevention
+- **Email Security** with HTML template sanitization
 
 ## 🧪 Testing
 
@@ -280,6 +355,12 @@ npm test -- authController.test.js
 | `FRONTEND_URL` | Frontend application URL | Required |
 | `BCRYPT_SALT_ROUNDS` | Password hashing salt rounds | `12` |
 | `DAILY_COMPLETION_LIMIT` | Daily goal completion limit | `3` |
+| `EMAIL_HOST` | SMTP server hostname | Required for email |
+| `EMAIL_PORT` | SMTP server port | `587` |
+| `EMAIL_USER` | SMTP username | Required for email |
+| `EMAIL_PASSWORD` | SMTP password | Required for email |
+| `EMAIL_FROM` | Default sender email | Required for email |
+| `EMAIL_SECURE` | Use SSL/TLS for email | `false` |
 
 ## 🚀 Deployment
 
@@ -328,6 +409,7 @@ This project is licensed under the MIT License.
 ## 🔮 Future Enhancements
 
 - [ ] Real-time notifications using Socket.io
+- [x] Email notifications for password reset
 - [ ] Email notifications for goal reminders
 - [ ] Advanced analytics and insights
 - [ ] Goal templates and suggestions
@@ -337,6 +419,11 @@ This project is licensed under the MIT License.
 - [ ] Advanced search and filtering
 - [ ] Data export functionality
 - [ ] Admin dashboard
+- [ ] Two-factor authentication (2FA)
+- [ ] OAuth integration (Google, GitHub, etc.)
+- [ ] Email verification for new accounts
+- [ ] Advanced password policies
+- [ ] Session management dashboard
 
 ## 📞 Support
 

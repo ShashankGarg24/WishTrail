@@ -22,6 +22,9 @@ const uploadRoutes = require('./routes/uploadRoutes');
 const locationRoutes = require('./routes/locationRoutes');
 const bloomFilter = require('./utility/BloomFilterService');
 
+const app = express();
+module.exports = app;
+
 (async () => {
   try {
     // Connect to DB
@@ -176,3 +179,4 @@ const bloomFilter = require('./utility/BloomFilterService');
     process.exit(1);
   }
 })();
+
