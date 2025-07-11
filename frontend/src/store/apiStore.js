@@ -85,10 +85,10 @@ const useApiStore = create(
         }
       },
       
-      register: async (name, email, password) => {
+      register: async (profileData) => {
         try {
           set({ loading: true, error: null });
-          const response = await authAPI.signup({ name, email, password });
+          const response = await authAPI.register(profileData);
           const { user, token } = response.data.data;
           
           setAuthToken(token);
@@ -103,7 +103,7 @@ const useApiStore = create(
         } catch (error) {
           const errorMessage = handleApiError(error);
           set({ loading: false, error: errorMessage });
-          throw error;
+          return { success: false, error: errorMessage };
         }
       },
       
@@ -126,6 +126,98 @@ const useApiStore = create(
           const errorMessage = handleApiError(error);
           set({ loading: false, error: errorMessage });
           throw error;
+        }
+      },
+
+      // =====================
+      // PASSWORD RESET ACTIONS
+      // =====================
+      
+      forgotPassword: async (email) => {
+        try {
+          set({ loading: true, error: null });
+          const response = await authAPI.forgotPassword(email);
+          const result = response.data.data;
+          set({ loading: false });
+          return { success: true, data: result };
+        } catch (error) {
+          const errorMessage = handleApiError(error);
+          set({ loading: false, error: errorMessage });
+          return { success: false, error: errorMessage };
+        }
+      },
+      
+      resetPassword: async (token, newPassword) => {
+        try {
+          set({ loading: true, error: null });
+          const response = await authAPI.resetPassword(token, newPassword);
+          const result = response.data.data;
+          set({ loading: false });
+          return { success: true, data: result };
+        } catch (error) {
+          const errorMessage = handleApiError(error);
+          set({ loading: false, error: errorMessage });
+          return { success: false, error: errorMessage };
+        }
+      },
+
+      // =====================
+      // MULTI-STEP SIGNUP ACTIONS
+      // =====================
+      
+      checkExistingUser: async (data) => {
+        try {
+          set({ loading: true, error: null });
+          const response = await authAPI.checkExistingUser(data);
+          const result = response.data.data;
+          set({ loading: false });
+          return { success: true, data: result };
+        } catch (error) {
+          const errorMessage = handleApiError(error);
+          set({ loading: false, error: errorMessage });
+          return { success: false, error: errorMessage };
+        }
+      },
+
+      requestOTP: async (userData) => {
+        try {
+          set({ loading: true, error: null });
+          const response = await authAPI.requestOTP(userData);
+          const result = response.data.data;
+          set({ loading: false });
+          return { success: true, data: result };
+        } catch (error) {
+          const errorMessage = handleApiError(error);
+          set({ loading: false, error: errorMessage });
+          return { success: false, error: errorMessage };
+        }
+      },
+
+      verifyOTP: async (otpData) => {
+        try {
+          set({ loading: true, error: null });
+          const response = await authAPI.verifyOTP(otpData);
+          const result = response.data.data;
+          set({ loading: false });
+          return { success: true, data: result };
+        } catch (error) {
+          const errorMessage = handleApiError(error);
+          set({ loading: false, error: errorMessage });
+          return { success: false, error: errorMessage };
+        }
+      },
+
+      resendOTP: async (data) => {
+        try {
+          set({ loading: true, error: null });
+          const response = await authAPI.resendOTP(data);
+          const result = response.data.data;
+          set({ loading: false });
+          return { success: true, data: result };
+        } catch (error) {
+          const errorMessage = handleApiError(error);
+          set({ loading: false, error: errorMessage });
+          return { success: false, error: errorMessage };
         }
       },
       

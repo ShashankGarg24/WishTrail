@@ -3,6 +3,8 @@ import { motion } from "framer-motion";
 import { Mail, Lock, User, Eye, EyeOff, Star } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import useApiStore from "../store/apiStore";
+import MultiStepSignup from "../components/MultiStepSignup";
+import ForgotPasswordModal from "../components/ForgotPasswordModal";
 
 const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -13,10 +15,10 @@ const AuthPage = () => {
     confirmPassword: ""
   });
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState({});
-  
-  const { login, register, loading, error } = useApiStore();
+  const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
+
+  const { login, loading, error } = useApiStore();
   const navigate = useNavigate();
 
   const handleInputChange = (e) => {
@@ -75,8 +77,6 @@ const AuthPage = () => {
     try {
       if (isLogin) {
         await login(formData.email, formData.password);
-      } else {
-        await register(formData.name, formData.email, formData.password);
       }
       navigate("/dashboard");
     } catch (err) {
@@ -95,6 +95,62 @@ const AuthPage = () => {
     setErrors({});
   };
 
+  const handleMultiStepSignupSuccess = (user, token) => {
+    navigate("/dashboard");
+  };
+
+  if (!isLogin) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="w-full max-w-4xl"
+        >
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 border border-gray-200 dark:border-gray-700">
+            {/* Header */}
+            <div className="text-center mb-8">
+              <div className="flex items-center justify-center space-x-2 mb-4">
+                <Star className="h-8 w-8 text-primary-500" />
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                  WishTrail
+                </h1>
+              </div>
+            </div>
+
+            <MultiStepSignup
+              onSuccess={handleMultiStepSignupSuccess}
+              onBack={toggleAuthMode}
+            />
+
+            {/* Toggle Auth Mode */}
+            <div className="text-center mt-6">
+              <p className="text-gray-600 dark:text-gray-400">
+                {isLogin ? "Don't have an account?" : "Already have an account?"}
+                <button
+                  onClick={toggleAuthMode}
+                  className="ml-1 text-primary-500 hover:text-primary-600 font-medium"
+                >
+                  {isLogin ? "Sign Up" : "Sign In"}
+                </button>
+              </p>
+            </div>
+
+            {/* Back to Home */}
+            <div className="text-center mt-8">
+              <Link
+                to="/"
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-sm"
+              >
+                ← Back to Home
+              </Link>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
       <motion.div
@@ -119,32 +175,6 @@ const AuthPage = () => {
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Name Field (Register only) */}
-            {!isLogin && (
-              <div>
-                <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Full Name
-                </label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                  <input
-                    id="name"
-                    name="name"
-                    type="text"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 ${
-                      errors.name ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-                    }`}
-                    placeholder="Enter your full name"
-                  />
-                </div>
-                {errors.name && (
-                  <p className="text-red-500 text-sm mt-1">{errors.name}</p>
-                )}
-              </div>
-            )}
-
             {/* Email Field */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -198,40 +228,19 @@ const AuthPage = () => {
               {errors.password && (
                 <p className="text-red-500 text-sm mt-1">{errors.password}</p>
               )}
-            </div>
-
-            {/* Confirm Password Field (Register only) */}
-            {!isLogin && (
-              <div>
-                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Confirm Password
-                </label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                  <input
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    type={showConfirmPassword ? "text" : "password"}
-                    value={formData.confirmPassword}
-                    onChange={handleInputChange}
-                    className={`w-full pl-10 pr-10 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 ${
-                      errors.confirmPassword ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-                    }`}
-                    placeholder="Confirm your password"
-                  />
+              {/* Forgot Password Link - only show in login mode */}
+              {isLogin && (
+                <div className="text-right mt-2">
                   <button
                     type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                    onClick={() => setShowForgotPasswordModal(true)}
+                    className="text-primary-500 hover:text-primary-600 text-sm font-medium"
                   >
-                    {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    Forgot Password?
                   </button>
                 </div>
-                {errors.confirmPassword && (
-                  <p className="text-red-500 text-sm mt-1">{errors.confirmPassword}</p>
-                )}
-              </div>
-            )}
+              )}
+            </div>
 
             {/* Global Error */}
             {error && (
@@ -274,6 +283,11 @@ const AuthPage = () => {
           </div>
         </div>
       </motion.div>
+      {/* Forgot Password Modal */}
+      <ForgotPasswordModal 
+        isOpen={showForgotPasswordModal}
+        onClose={() => setShowForgotPasswordModal(false)}
+      />
     </div>
   );
 };

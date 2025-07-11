@@ -41,12 +41,22 @@ api.interceptors.response.use(
 
 // Auth API
 export const authAPI = {
-  signup: (userData) => api.post('/auth/signup', userData),
+  register: (userData) => api.post('/auth/register', userData),
   login: (credentials) => api.post('/auth/login', credentials),
   logout: () => api.post('/auth/logout'),
   getMe: () => api.get('/auth/me'),
   updateProfile: (userData) => api.put('/auth/profile', userData),
   changePassword: (passwordData) => api.put('/auth/password', passwordData),
+  
+  // Password reset API
+  forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
+  resetPassword: (token, newPassword) => api.post('/auth/reset-password', { token, newPassword }),
+  
+  // Multi-step signup API
+  checkExistingUser: (data) => api.post('/auth/check-existing', data),
+  requestOTP: (userData) => api.post('/auth/request-otp', userData),
+  verifyOTP: (otpData) => api.post('/auth/verify-otp', otpData),
+  resendOTP: (data) => api.post('/auth/resend-otp', data),
 };
 
 // Goals API

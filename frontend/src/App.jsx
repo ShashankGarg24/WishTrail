@@ -11,6 +11,7 @@ import InspirationPage from './pages/InspirationPage'
 import ExplorePage from './pages/ExplorePage'
 import UserProfile from './pages/UserProfile'
 import LeaderboardPage from './pages/LeaderboardPage'
+import ResetPasswordPage from './pages/ResetPasswordPage'
 
 function App() {
   const { isDarkMode, initializeAuth } = useApiStore()
@@ -40,6 +41,7 @@ function App() {
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/auth" element={<AuthPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/explore" element={<ExplorePage />} />
             <Route path="/profile/:userId" element={<UserProfile />} />
