@@ -8,10 +8,14 @@ export default defineConfig({
     open: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:5000', // your backend URL
+        target: 'http://localhost:5000', // backend URL
         changeOrigin: true,
         secure: false,
       },
     },
   },
+  build: {
+    outDir: 'dist', // required by Vercel to match distDir
+  },
+  base: '/',
 })
