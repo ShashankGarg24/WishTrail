@@ -12,6 +12,7 @@ import ExplorePage from './pages/ExplorePage'
 import UserProfile from './pages/UserProfile'
 import LeaderboardPage from './pages/LeaderboardPage'
 import ResetPasswordPage from './pages/ResetPasswordPage'
+import { SpeedInsights } from '@vercel/speed-insights/react';
 
 function App() {
   const { isDarkMode, initializeAuth } = useApiStore()
@@ -52,6 +53,7 @@ function App() {
         </main>
         <Footer />
       </div>
+      <SpeedInsights />
     </div>
   )
 }
