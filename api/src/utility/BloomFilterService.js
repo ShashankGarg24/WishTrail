@@ -1,6 +1,10 @@
 const { BloomFilter } = require('bloom-filters');
-const Redis = require('ioredis');
-const redis = new Redis();
+const { Redis } = require('@upstash/redis');
+
+const redisClient = new Redis({
+  url: process.env.REDIS_URL,
+  token: process.env.REDIS_TOKEN,
+});
 
 const BLOOM_KEY = 'wishtrail:bloom:user-identifiers';
 
@@ -11,7 +15,7 @@ const BloomFilterService = {
    * Initialize Bloom Filter: load from Redis or create new
    */
   async init(expectedItems = 10000, errorRate = 0.01) {
-    const saved = await redis.get(BLOOM_KEY);
+    const saved = await redisClient.get(BLOOM_KEY);
     if (saved) {
       bloom = BloomFilter.fromJSON(JSON.parse(saved));
       console.log('Bloom Filter loaded from Redis');
@@ -36,7 +40,7 @@ const BloomFilterService = {
   async add(value) {
     if (!bloom) throw new Error('Bloom Filter not initialized');
     bloom.add(value.toLowerCase());
-    await redis.set(BLOOM_KEY, JSON.stringify(bloom.saveAsJSON()));
+    await redisClient.set(BLOOM_KEY, JSON.stringify(bloom.saveAsJSON()));
   } ,
 
   /**
@@ -53,7 +57,7 @@ const BloomFilterService = {
       if (user.username) bloom.add(user.username.toLowerCase());
     }
 
-    await redis.set(BLOOM_KEY, JSON.stringify(bloom.saveAsJSON()));
+    await redisClient.set(BLOOM_KEY, JSON.stringify(bloom.saveAsJSON()));
     console.log(`Bloom Filter rebuilt with ${users.length} entries`);
   },
 
