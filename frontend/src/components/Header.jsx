@@ -1,13 +1,14 @@
 import { Link, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Moon, Sun, Menu, X, Star, User, BarChart3, LogOut } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import useApiStore from '../store/apiStore'
 
 const Header = () => {
   const { isDarkMode, toggleTheme, isAuthenticated, logout } = useApiStore()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const location = useLocation()
+  const menuRef = useRef(null)
 
   // Main navigation tabs in specified order
   const mainNavigation = [
@@ -22,6 +23,22 @@ const Header = () => {
   ]
 
   const blogUrl = 'https://blooggerr.netlify.app/'
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setTimeout(() => {
+          setIsMenuOpen(false);
+        }, 200);
+      }
+    }
+    if (isMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isMenuOpen])
 
   const isActive = (path) => {
     if (path === '/' && location.pathname === '/') return true
@@ -138,6 +155,7 @@ const Header = () => {
         {/* Mobile/Hamburger Menu */}
         {isMenuOpen && (
           <motion.div
+            ref={menuRef}
             initial={{ opacity: 0, y: -10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.95 }}
