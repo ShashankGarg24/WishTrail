@@ -18,7 +18,8 @@ import {
   CheckCircle,
   Clock,
   ArrowLeft,
-  Star
+  Star,
+  Lock
 } from 'lucide-react';
 import useApiStore from '../store/apiStore';
 
@@ -46,6 +47,14 @@ const UserProfile = () => {
     unlikeActivity
   } = useApiStore();
 
+  const isProfileAccessible = () => {
+    if (!profileUser) return false;
+    if (!profileUser.isPrivate) return true;
+    if (currentUser && currentUser._id === userId) return true;
+    if (isFollowing) return true;
+    return false;
+  };
+
   useEffect(() => {
     if (userId) {
       fetchUserProfile();
@@ -64,17 +73,19 @@ const UserProfile = () => {
         setIsFollowing(userResult.isFollowing);
       }
 
-      // Fetch user activities
-      const activitiesResult = await getUserActivities(userId, { limit: 20 });
-      if (activitiesResult.success) {
-        const activities = activitiesResult.activities;
-        setUserActivities(Array.isArray(activities) ? activities : []);
-      }
+      if (isProfileAccessible()) {
+        // Fetch user activities
+        const activitiesResult = await getUserActivities(userId, { limit: 20 });
+        if (activitiesResult.success) {
+          const activities = activitiesResult.activities;
+          setUserActivities(Array.isArray(activities) ? activities : []);
+        }
 
-      // Fetch user goals
-      const goalsResult = await getUserGoals(userId, { limit: 10 });
-      if (goalsResult.success) {
-        setUserGoals(goalsResult.goals);
+        // Fetch user goals
+        const goalsResult = await getUserGoals(userId, { limit: 10 });
+        if (goalsResult.success) {
+          setUserGoals(goalsResult.goals);
+        }
       }
     } catch (error) {
       console.error('Error fetching user profile:', error);
@@ -89,6 +100,7 @@ const UserProfile = () => {
       const result = await followUser(userId);
       if (result.success) {
         setIsFollowing(true);
+        fetchUserProfile();
       }
     } catch (error) {
       console.error('Error following user:', error);
@@ -100,6 +112,11 @@ const UserProfile = () => {
       const result = await unfollowUser(userId);
       if (result.success) {
         setIsFollowing(false);
+        userStats.followers--;
+        if (profileUser?.isPrivate) {
+          setUserActivities([]);
+          setUserGoals([]);
+        }
       }
     } catch (error) {
       console.error('Error unfollowing user:', error);
@@ -186,7 +203,7 @@ const UserProfile = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-zinc-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-slate-900 dark:via-gray-900 dark:to-zinc-900 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
       </div>
     );
@@ -194,10 +211,10 @@ const UserProfile = () => {
 
   if (error || !profileUser) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-zinc-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-slate-900 dark:via-gray-900 dark:to-zinc-900 flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-4xl font-bold text-white mb-4">User Not Found</h1>
-          <p className="text-gray-400 mb-8">{error || 'The user you are looking for does not exist.'}</p>
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">User Not Found</h1>
+          <p className="text-gray-600 dark:text-gray-400 mb-8">{error || 'The user you are looking for does not exist.'}</p>
           <button
             onClick={() => navigate('/explore')}
             className="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl transition-colors duration-200 font-medium"
@@ -210,7 +227,7 @@ const UserProfile = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-zinc-900">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-slate-900 dark:via-gray-900 dark:to-zinc-900">
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Back Button */}
         <motion.button
@@ -218,7 +235,7 @@ const UserProfile = () => {
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5 }}
           onClick={() => navigate(-1)}
-          className="flex items-center space-x-2 text-gray-400 hover:text-white transition-colors duration-200 mb-6"
+          className="flex items-center space-x-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors duration-200 mb-6"
         >
           <ArrowLeft className="h-5 w-5" />
           <span>Back</span>
@@ -229,14 +246,14 @@ const UserProfile = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="bg-gray-800/50 backdrop-blur-lg rounded-2xl p-8 border border-gray-700/50 mb-8"
+          className="bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-8 border border-gray-200 dark:border-gray-700/50 mb-8"
         >
           <div className="flex flex-col md:flex-row items-start md:items-center space-y-6 md:space-y-0 md:space-x-8">
             <div className="relative">
               <img
                 src={profileUser.avatar || '/api/placeholder/128/128'}
                 alt={profileUser.name}
-                className="w-32 h-32 rounded-full border-4 border-gray-600"
+                className="w-32 h-32 rounded-full border-4 border-gray-300 dark:border-gray-600"
               />
               {profileUser.level && (
                 <div className="absolute -bottom-2 -right-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-3 py-1 rounded-full text-sm font-bold">
@@ -246,44 +263,50 @@ const UserProfile = () => {
             </div>
 
             <div className="flex-1">
-              <h1 className="text-4xl font-bold text-white mb-2">
-                {profileUser.name}
-              </h1>
+              <div className="flex items-center space-x-3 mb-2">
+                <h1 className="text-4xl font-bold text-gray-900 dark:text-white">
+                  {profileUser.name}
+                </h1>
+              </div>
               {profileUser.bio && (
-                <p className="text-gray-300 text-lg mb-4">{profileUser.bio}</p>
+                <p className="text-gray-700 dark:text-gray-300 text-lg mb-4">{profileUser.bio}</p>
               )}
               {profileUser.location && (
-                <div className="flex items-center text-gray-400 mb-4">
+                <div className="flex items-center text-gray-600 dark:text-gray-400 mb-4">
                   <MapPin className="h-5 w-5 mr-2" />
                   <span>{profileUser.location}</span>
                 </div>
               )}
 
-              {/* Stats */}
+              {/* Stats - Always show followers/following even for private profiles */}
               <div className="flex flex-wrap gap-6 mb-6">
+                {isProfileAccessible() && (
+                  <>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-gray-900 dark:text-white">{userStats?.totalGoals || 0}</div>
+                      <div className="text-gray-600 dark:text-gray-400 text-sm">Goals</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-green-600 dark:text-green-400">{userStats?.completedGoals || 0}</div>
+                      <div className="text-gray-600 dark:text-gray-400 text-sm">Completed</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">{userStats?.currentStreak || 0}</div>
+                      <div className="text-gray-600 dark:text-gray-400 text-sm">Day Streak</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{userStats?.totalPoints || 0}</div>
+                      <div className="text-gray-600 dark:text-gray-400 text-sm">Points</div>
+                    </div>
+                  </>
+                )}
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-white">{userStats?.totalGoals || 0}</div>
-                  <div className="text-gray-400 text-sm">Goals</div>
+                  <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">{userStats?.followers || 0}</div>
+                  <div className="text-gray-600 dark:text-gray-400 text-sm">Followers</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-green-400">{userStats?.completedGoals || 0}</div>
-                  <div className="text-gray-400 text-sm">Completed</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-orange-400">{userStats?.currentStreak || 0}</div>
-                  <div className="text-gray-400 text-sm">Day Streak</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-400">{userStats?.totalPoints || 0}</div>
-                  <div className="text-gray-400 text-sm">Points</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-purple-400">{userStats?.followers || 0}</div>
-                  <div className="text-gray-400 text-sm">Followers</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-indigo-400">{userStats?.followings || 0}</div>
-                  <div className="text-gray-400 text-sm">Following</div>
+                  <div className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{userStats?.followings || 0}</div>
+                  <div className="text-gray-600 dark:text-gray-400 text-sm">Following</div>
                 </div>
               </div>
 
@@ -293,7 +316,7 @@ const UserProfile = () => {
                   {isFollowing ? (
                     <button
                       onClick={handleUnfollow}
-                      className="flex items-center space-x-2 px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-xl transition-colors duration-200 font-medium"
+                      className="flex items-center space-x-2 px-6 py-3 bg-gray-500 hover:bg-gray-600 text-white rounded-xl transition-colors duration-200 font-medium"
                     >
                       <UserCheck className="h-5 w-5" />
                       <span>Following</span>
@@ -317,237 +340,270 @@ const UserProfile = () => {
           </div>
         </motion.div>
 
-        {/* Tabs */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="flex justify-center mb-8"
-        >
-          <div className="bg-gray-800/50 backdrop-blur-lg rounded-2xl p-2 border border-gray-700/50 flex">
-            <button
-              onClick={() => setActiveTab('overview')}
-              className={`flex items-center space-x-2 px-6 py-3 rounded-xl transition-all duration-200 ${
-                activeTab === 'overview'
-                  ? 'bg-blue-500 text-white shadow-lg'
-                  : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
-              }`}
+        {/* Content Area */}
+          {!isProfileAccessible() ? (
+            /* Private Profile Message */
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+              className="bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-12 border border-gray-200 dark:border-gray-700/50 text-center"
             >
-              <User className="h-5 w-5" />
-              <span className="font-medium">Overview</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('activities')}
-              className={`flex items-center space-x-2 px-6 py-3 rounded-xl transition-all duration-200 ${
-                activeTab === 'activities'
-                  ? 'bg-blue-500 text-white shadow-lg'
-                  : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
-              }`}
-            >
-              <Activity className="h-5 w-5" />
-              <span className="font-medium">Activities</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('goals')}
-              className={`flex items-center space-x-2 px-6 py-3 rounded-xl transition-all duration-200 ${
-                activeTab === 'goals'
-                  ? 'bg-blue-500 text-white shadow-lg'
-                  : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
-              }`}
-            >
-              <Target className="h-5 w-5" />
-              <span className="font-medium">Goals</span>
-            </button>
-          </div>
-        </motion.div>
-
-        {/* Tab Content */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-        >
-          {activeTab === 'overview' && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Recent Activities */}
-              <div className="bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-700/50">
-                <h3 className="text-xl font-bold text-white mb-6 flex items-center">
-                  <Activity className="h-6 w-6 mr-2 text-green-400" />
-                  Recent Activities
-                </h3>
-                <div className="space-y-4">
-                  {userActivities.slice(0, 5).map((activity, index) => (
-                    <div key={activity._id} className="flex items-start space-x-3 p-3 bg-gray-700/30 rounded-xl">
-                      <div className="w-2 h-2 bg-blue-400 rounded-full mt-2"></div>
-                      <div className="flex-1">
-                        <p className="text-gray-300 text-sm">
-                          {getActivityText(activity)}
-                        </p>
-                        <p className="text-gray-500 text-xs mt-1">
-                          {formatTimeAgo(activity.createdAt)}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                  {userActivities.length === 0 && (
-                    <p className="text-gray-400 text-center py-8">No recent activities</p>
-                  )}
+              <div className="max-w-md mx-auto">
+                <div className="bg-gray-100 dark:bg-gray-700/50 rounded-full p-6 w-24 h-24 mx-auto mb-6 flex items-center justify-center">
+                  <Lock className="h-12 w-12 text-gray-600 dark:text-gray-400" />
                 </div>
-              </div>
-
-              {/* Recent Goals */}
-              <div className="bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-700/50">
-                <h3 className="text-xl font-bold text-white mb-6 flex items-center">
-                  <Target className="h-6 w-6 mr-2 text-blue-400" />
-                  Recent Goals
-                </h3>
-                <div className="space-y-4">
-                  {userGoals.slice(0, 5).map((goal, index) => (
-                    <div key={goal._id} className="p-4 bg-gray-700/30 rounded-xl">
-                      <div className="flex items-center justify-between mb-2">
-                        <h4 className="font-medium text-white">{goal.title}</h4>
-                        {goal.completed && <CheckCircle className="h-5 w-5 text-green-400" />}
-                      </div>
-                      <div className="flex items-center space-x-4 text-sm text-gray-400">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium text-white ${getCategoryColor(goal.category)}`}>
-                          {goal.category}
-                        </span>
-                        <span>{formatTimeAgo(goal.createdAt)}</span>
-                      </div>
-                    </div>
-                  ))}
-                  {userGoals.length === 0 && (
-                    <p className="text-gray-400 text-center py-8">No goals yet</p>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'activities' && (
-            <div className="bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-700/50">
-              <h3 className="text-2xl font-bold text-white mb-6 flex items-center">
-                <Activity className="h-6 w-6 mr-2 text-green-400" />
-                All Activities
-              </h3>
-              <div className="space-y-4">
-                {userActivities.map((activity, index) => (
-                  <motion.div
-                    key={activity._id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: 0.1 * index }}
-                    className="bg-gray-700/30 rounded-xl p-6 border border-gray-600/30 hover:bg-gray-700/50 transition-all duration-200"
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+                  This Profile is Private
+                </h2>
+                <p className="text-gray-600 dark:text-gray-400 mb-6">
+                  {profileUser.name} has chosen to keep their profile private. 
+                  {isAuthenticated 
+                    ? " Follow them to see their activities and goals." 
+                    : " Sign in and follow them to see their activities and goals."
+                  }
+                </p>
+                {!isAuthenticated && (
+                  <button
+                    onClick={() => navigate('/auth')}
+                    className="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl transition-colors duration-200 font-medium"
                   >
-                    <div className="flex items-start space-x-4">
-                      <div className="relative">
-                        <img
-                          src={profileUser.avatar || '/api/placeholder/48/48'}
-                          alt={profileUser.name}
-                          className="w-12 h-12 rounded-full border-2 border-gray-500"
-                        />
-                      </div>
-                      
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <span className="font-semibold text-white">
-                            {profileUser.name}
-                          </span>
-                          <span className="text-gray-400 text-sm">
-                            {getActivityText(activity)}
-                          </span>
-                          <span className="text-gray-500 text-sm">
-                            {formatTimeAgo(activity.createdAt)}
-                          </span>
-                        </div>
-                        
-                        {(activity.type === 'goal_completed' || activity.type === 'goal_created') && (
-                          <div className="bg-gray-600/30 rounded-xl p-4 mb-3">
-                            <h4 className="font-medium text-white mb-2">
-                              {activity.data?.goalTitle || 'Goal Achievement'}
-                            </h4>
-                            {activity.data?.category && (
-                              <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium text-white ${getCategoryColor(activity.data.category)}`}>
-                                {activity.data.category}
-                              </span>
-                            )}
-                          </div>
-                        )}
-                        
-                        {isAuthenticated && (
-                          <div className="flex items-center space-x-6">
-                            <button
-                              onClick={() => activity.isLiked ? handleUnlike(activity._id) : handleLike(activity._id)}
-                              className={`flex items-center space-x-2 px-3 py-1 rounded-lg transition-colors duration-200 ${
-                                activity.isLiked 
-                                  ? 'bg-red-500/20 text-red-400' 
-                                  : 'bg-gray-700/50 text-gray-400 hover:bg-gray-600/50 hover:text-red-400'
-                              }`}
-                            >
-                              <Heart className={`h-4 w-4 ${activity.isLiked ? 'fill-current' : ''}`} />
-                              <span className="text-sm">{activity.likesCount || 0}</span>
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
-                {userActivities.length === 0 && (
-                  <div className="text-center py-12">
-                    <Activity className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-400 text-lg">No activities yet</p>
-                  </div>
+                    Sign In to Follow
+                  </button>
                 )}
               </div>
-            </div>
-          )}
-
-          {activeTab === 'goals' && (
-            <div className="bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-700/50">
-              <h3 className="text-2xl font-bold text-white mb-6 flex items-center">
-                <Target className="h-6 w-6 mr-2 text-blue-400" />
-                Goals
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {userGoals.map((goal, index) => (
-                  <motion.div
-                    key={goal._id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: 0.1 * index }}
-                    className="bg-gray-700/30 rounded-xl p-6 border border-gray-600/30 hover:bg-gray-700/50 transition-all duration-200"
+            </motion.div>
+          ) : (
+            /* Full Profile Content */
+            <>
+              {/* Tabs */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.1 }}
+                className="flex justify-center mb-8"
+              >
+                <div className="bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-2 border border-gray-200 dark:border-gray-700/50 flex">
+                  <button
+                    onClick={() => setActiveTab('overview')}
+                    className={`flex items-center space-x-2 px-6 py-3 rounded-xl transition-all duration-200 ${
+                      activeTab === 'overview'
+                        ? 'bg-blue-500 text-white shadow-lg'
+                        : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700/50'
+                    }`}
                   >
-                    <div className="flex items-center justify-between mb-4">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium text-white ${getCategoryColor(goal.category)}`}>
-                        {goal.category}
-                      </span>
-                      {goal.completed && <CheckCircle className="h-6 w-6 text-green-400" />}
-                    </div>
-                    
-                    <h4 className="font-semibold text-white text-lg mb-2">{goal.title}</h4>
-                    {goal.description && (
-                      <p className="text-gray-300 text-sm mb-4">{goal.description}</p>
-                    )}
-                    
-                    <div className="flex items-center justify-between text-sm text-gray-400">
-                      <span>Created {formatTimeAgo(goal.createdAt)}</span>
-                      {goal.completed && (
-                        <span className="text-green-400">✓ Completed</span>
+                    <User className="h-5 w-5" />
+                    <span className="font-medium">Overview</span>
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('activities')}
+                    className={`flex items-center space-x-2 px-6 py-3 rounded-xl transition-all duration-200 ${
+                      activeTab === 'activities'
+                        ? 'bg-blue-500 text-white shadow-lg'
+                        : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700/50'
+                    }`}
+                  >
+                    <Activity className="h-5 w-5" />
+                    <span className="font-medium">Activities</span>
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('goals')}
+                    className={`flex items-center space-x-2 px-6 py-3 rounded-xl transition-all duration-200 ${
+                      activeTab === 'goals'
+                        ? 'bg-blue-500 text-white shadow-lg'
+                        : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700/50'
+                    }`}
+                  >
+                    <Target className="h-5 w-5" />
+                    <span className="font-medium">Goals</span>
+                  </button>
+                </div>
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+            >
+              {activeTab === 'overview' && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  {/* Recent Activities */}
+                  <div className="bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50">
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6 flex items-center">
+                      <Activity className="h-6 w-6 mr-2 text-green-600 dark:text-green-400" />
+                      Recent Activities
+                    </h3>
+                    <div className="space-y-4">
+                      {userActivities.slice(0, 5).map((activity, index) => (
+                        <div key={activity._id} className="flex items-start space-x-3 p-3 bg-gray-50 dark:bg-gray-700/30 rounded-xl">
+                          <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
+                          <div className="flex-1">
+                            <p className="text-gray-700 dark:text-gray-300 text-sm">
+                              {getActivityText(activity)}
+                            </p>
+                            <p className="text-gray-500 dark:text-gray-500 text-xs mt-1">
+                              {formatTimeAgo(activity.createdAt)}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                      {userActivities.length === 0 && (
+                        <p className="text-gray-500 dark:text-gray-400 text-center py-8">No recent activities</p>
                       )}
                     </div>
-                  </motion.div>
-                ))}
-                {userGoals.length === 0 && (
-                  <div className="col-span-full text-center py-12">
-                    <Target className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-400 text-lg">No goals yet</p>
                   </div>
-                )}
-              </div>
-            </div>
-          )}
-        </motion.div>
+                {/* Recent Goals */}
+                  <div className="bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50">
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6 flex items-center">
+                      <Target className="h-6 w-6 mr-2 text-blue-600 dark:text-blue-400" />
+                      Recent Goals
+                    </h3>
+                    <div className="space-y-4">
+                      {userGoals.slice(0, 5).map((goal, index) => (
+                        <div key={goal._id} className="p-4 bg-gray-50 dark:bg-gray-700/30 rounded-xl">
+                          <div className="flex items-center justify-between mb-2">
+                            <h4 className="font-medium text-gray-900 dark:text-white">{goal.title}</h4>
+                            {goal.completed && <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />}
+                          </div>
+                          <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-400">
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium text-white ${getCategoryColor(goal.category)}`}>
+                              {goal.category}
+                            </span>
+                            <span>{formatTimeAgo(goal.createdAt)}</span>
+                          </div>
+                        </div>
+                      ))}
+                      {userGoals.length === 0 && (
+                        <p className="text-gray-500 dark:text-gray-400 text-center py-8">No goals yet</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            {activeTab === 'activities' && (
+                <div className="bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50">
+                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center">
+                    <Activity className="h-6 w-6 mr-2 text-green-600 dark:text-green-400" />
+                    All Activities
+                  </h3>
+                  <div className="space-y-4">
+                    {userActivities.map((activity, index) => (
+                      <motion.div
+                        key={activity._id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5, delay: 0.1 * index }}
+                        className="bg-gray-50 dark:bg-gray-700/30 rounded-xl p-6 border border-gray-200 dark:border-gray-600/30 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-all duration-200"
+                      >
+                        <div className="flex items-start space-x-4">
+                          <div className="relative">
+                            <img
+                              src={profileUser.avatar || '/api/placeholder/48/48'}
+                              alt={profileUser.name}
+                              className="w-12 h-12 rounded-full border-2 border-gray-300 dark:border-gray-500"
+                            />
+                          </div>
+                          
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-2 mb-2">
+                              <span className="font-semibold text-gray-900 dark:text-white">
+                                {profileUser.name}
+                              </span>
+                              <span className="text-gray-600 dark:text-gray-400 text-sm">
+                                {getActivityText(activity)}
+                              </span>
+                              <span className="text-gray-500 dark:text-gray-500 text-sm">
+                                {formatTimeAgo(activity.createdAt)}
+                              </span>
+                            </div>
+                            
+                            {(activity.type === 'goal_completed' || activity.type === 'goal_created') && (
+                              <div className="bg-gray-100 dark:bg-gray-600/30 rounded-xl p-4 mb-3">
+                                <h4 className="font-medium text-gray-900 dark:text-white mb-2">
+                                  {activity.data?.goalTitle || 'Goal Achievement'}
+                                </h4>
+                                {activity.data?.category && (
+                                  <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium text-white ${getCategoryColor(activity.data.category)}`}>
+                                    {activity.data.category}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                            
+                            {isAuthenticated && (
+                              <div className="flex items-center space-x-6">
+                                <button
+                                  onClick={() => activity.isLiked ? handleUnlike(activity._id) : handleLike(activity._id)}
+                                  className={`flex items-center space-x-2 px-3 py-1 rounded-lg transition-colors duration-200 ${
+                                    activity.isLiked 
+                                      ? 'bg-red-500/20 text-red-500' 
+                                      : 'bg-gray-200 dark:bg-gray-700/50 text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600/50 hover:text-red-500'
+                                  }`}
+                                >
+                                  <Heart className={`h-4 w-4 ${activity.isLiked ? 'fill-current' : ''}`} />
+                                  <span className="text-sm">{activity.likesCount || 0}</span>
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
+                    {userActivities.length === 0 && (
+                      <div className="text-center py-12">
+                        <Activity className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                        <p className="text-gray-500 dark:text-gray-400 text-lg">No activities yet</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            {activeTab === 'goals' && (
+                <div className="bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50">
+                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center">
+                    <Target className="h-6 w-6 mr-2 text-blue-600 dark:text-blue-400" />
+                    Goals
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {userGoals.map((goal, index) => (
+                      <motion.div
+                        key={goal._id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5, delay: 0.1 * index }}
+                        className="bg-gray-50 dark:bg-gray-700/30 rounded-xl p-6 border border-gray-200 dark:border-gray-600/30 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-all duration-200"
+                      >
+                        <div className="flex items-center justify-between mb-4">
+                          <span className={`px-3 py-1 rounded-full text-xs font-medium text-white ${getCategoryColor(goal.category)}`}>
+                            {goal.category}
+                          </span>
+                          {goal.completed && <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />}
+                        </div>
+                        
+                        <h4 className="font-semibold text-gray-900 dark:text-white text-lg mb-2">{goal.title}</h4>
+                        {goal.description && (
+                          <p className="text-gray-600 dark:text-gray-300 text-sm mb-4">{goal.description}</p>
+                        )}
+                        
+                        <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
+                          <span>Created {formatTimeAgo(goal.createdAt)}</span>
+                          {goal.completed && (
+                            <span className="text-green-600 dark:text-green-400">✓ Completed</span>
+                          )}
+                        </div>
+                      </motion.div>
+                    ))}
+                    {userGoals.length === 0 && (
+                      <div className="col-span-full text-center py-12">
+                        <Target className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                        <p className="text-gray-500 dark:text-gray-400 text-lg">No goals yet</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          </>
+        )}
       </div>
     </div>
   );

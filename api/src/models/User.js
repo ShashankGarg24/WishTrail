@@ -112,6 +112,10 @@ const userSchema = new mongoose.Schema({
       }
     }
   },
+  isPrivate: {
+    type: Boolean,
+    default: true
+  },
   
   // Social Links
   website: {
