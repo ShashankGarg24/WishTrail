@@ -6,5 +6,5 @@ export default defineConfig({
   build: {
     outDir: 'dist',
   },
-  base: '/', // required for Vercel SPA routing
+  base: process.env.VITE_BASE_URL, // required for Vercel SPA routing
 })
