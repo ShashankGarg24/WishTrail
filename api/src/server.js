@@ -32,8 +32,8 @@ const apiBasePath = `/api/${apiVersion}`;
 
 const createApp = async () => {
   // --- INIT SECTION ---
-  // await connectDB();            // Uncomment when deploying with DB
-  // await bloomFilter.init();     // Uncomment when Redis is stable
+  await connectDB();            // Uncomment when deploying with DB
+  await bloomFilter.init();     // Uncomment when Redis is stable
   require('./cron/bloomFilterJob'); // If this doesn't block
   console.log('✅ Initialization complete');
 
