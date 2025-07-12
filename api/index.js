@@ -9,6 +9,5 @@ module.exports = async (req, res) => {
     console.log("✅ Express app ready");
   }
 
-  // Trick to pass req/res manually
   cachedApp.handle(req, res);
 };

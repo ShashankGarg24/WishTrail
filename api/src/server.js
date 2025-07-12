@@ -22,19 +22,17 @@ const exploreRoutes = require('./routes/exploreRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
 const locationRoutes = require('./routes/locationRoutes');
 
-// Services
 const bloomFilter = require('./utility/BloomFilterService');
-// const connectDB = require('./config/database'); // Enable when needed
+const connectDB = require('./config/database');
 
-// Constants
 const apiVersion = process.env.API_VERSION || 'v1';
 const apiBasePath = `/api/${apiVersion}`;
 
 const createApp = async () => {
-  // --- INIT SECTION ---
-  await connectDB();            // Uncomment when deploying with DB
-  await bloomFilter.init();     // Uncomment when Redis is stable
-  require('./cron/bloomFilterJob'); // If this doesn't block
+
+  await connectDB();       
+  await bloomFilter.init();
+  require('./cron/bloomFilterJob');
   console.log('✅ Initialization complete');
 
   const app = express();
@@ -88,10 +86,8 @@ const createApp = async () => {
   app.use(cookieParser());
   app.use('/uploads', express.static('src/uploads'));
 
-  // --- ROUTES ---
   const apiRouter = express.Router();
 
-  // Health check
   apiRouter.get('/health', (req, res) => {
     console.log("✅ /health hit");
     res.status(200).json({
@@ -115,7 +111,6 @@ const createApp = async () => {
 
   app.use(apiBasePath, apiRouter);
 
-  // --- ERROR HANDLING ---
   app.use(notFoundHandler);
   app.use(globalErrorHandler);
 
