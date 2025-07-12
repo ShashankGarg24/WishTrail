@@ -22,103 +22,94 @@ const uploadRoutes = require('./routes/uploadRoutes');
 const locationRoutes = require('./routes/locationRoutes');
 const bloomFilter = require('./utility/BloomFilterService');
 
-const app = express();
+const createApp = async () => {
+  await connectDB();
+  await bloomFilter.init();
+  require('./cron/bloomFilterJob');
+  console.log("✅ Initialization complete");
 
-const startApp = async () => {
-  try {
-    await connectDB();
-    await bloomFilter.init();
-    require('./cron/bloomFilterJob');
-    console.log("✅ Initialization complete");
-  } catch (err) {
-    console.error('❌ Init failed:', err.message);
-    process.exit(1);
-  }
-};
+  const app = express();
 
-startApp();
+  app.set('trust proxy', 1);
 
+  const corsOptions = {
+    origin: true,
+    credentials: true,
+    optionsSuccessStatus: 200,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD'],
+    allowedHeaders: [
+      'Content-Type', 'Authorization', 'X-Requested-With', 'Accept',
+      'Origin', 'Access-Control-Request-Method', 'Access-Control-Request-Headers'
+    ],
+    exposedHeaders: ['X-Total-Count', 'X-Page-Count']
+  };
+  app.use(cors(corsOptions));
+  app.options('*', cors(corsOptions));
 
-app.set('trust proxy', 1);
+  app.use(helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+    crossOriginEmbedderPolicy: false
+  }));
 
-// ---- Middleware ----
-const corsOptions = {
-  origin: true,
-  credentials: true,
-  optionsSuccessStatus: 200,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD'],
-  allowedHeaders: [
-    'Content-Type', 'Authorization', 'X-Requested-With', 'Accept',
-    'Origin', 'Access-Control-Request-Method', 'Access-Control-Request-Headers'
-  ],
-  exposedHeaders: ['X-Total-Count', 'X-Page-Count']
-};
-app.use(cors(corsOptions));
-app.options('*', cors(corsOptions));
-
-app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" },
-  crossOriginEmbedderPolicy: false
-}));
-
-const createRateLimiter = (windowMs, max, message) => rateLimit({
-  windowMs,
-  max,
-  message: {
-    success: false,
-    error: message,
-    retryAfter: Math.ceil(windowMs / 1000)
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-  skip: (req) => req.path === '/health',
-  keyGenerator: (req) => req.ip || req.connection.remoteAddress
-});
-
-const generalLimiter = createRateLimiter(15 * 60 * 1000, 100, 'Too many requests');
-const authLimiter = createRateLimiter(15 * 60 * 1000, 5, 'Too many auth attempts');
-const searchLimiter = createRateLimiter(60 * 1000, 30, 'Too many search requests');
-
-app.use('/api', generalLimiter);
-app.use('/api/*/auth/login', authLimiter);
-app.use('/api/*/auth/signup', authLimiter);
-app.use('/api/*/users', searchLimiter);
-app.use('/api/*/explore/search', searchLimiter);
-
-app.use(compression());
-app.use(morgan(process.env.NODE_ENV === 'development' ? 'dev' : 'combined'));
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-app.use(cookieParser());
-app.use('/uploads', express.static('src/uploads'));
-
-// ---- Routes ----
-const apiVersion = process.env.API_VERSION || 'v1';
-
-console.log("API Version:", apiVersion);
-
-app.get('/health', (req, res) => {
-  console.log("✅ /health hit");
-  res.status(200).json({
-    status: 'success',
-    message: 'WishTrail API is running!',
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV,
-    version: apiVersion
+  const createRateLimiter = (windowMs, max, message) => rateLimit({
+    windowMs,
+    max,
+    message: {
+      success: false,
+      error: message,
+      retryAfter: Math.ceil(windowMs / 1000)
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
+    skip: (req) => req.path === '/health',
+    keyGenerator: (req) => req.ip || req.connection.remoteAddress
   });
-});
 
-app.use(`/api/${apiVersion}/auth`, authRoutes);
-app.use(`/api/${apiVersion}/users`, userRoutes);
-app.use(`/api/${apiVersion}/goals`, goalRoutes);
-app.use(`/api/${apiVersion}/social`, socialRoutes);
-app.use(`/api/${apiVersion}/activities`, activityRoutes);
-app.use(`/api/${apiVersion}/leaderboard`, leaderboardRoutes);
-app.use(`/api/${apiVersion}/explore`, exploreRoutes);
-app.use(`/api/${apiVersion}/upload`, uploadRoutes);
-app.use(`/api/${apiVersion}/location`, locationRoutes);
+  const generalLimiter = createRateLimiter(15 * 60 * 1000, 100, 'Too many requests');
+  const authLimiter = createRateLimiter(15 * 60 * 1000, 5, 'Too many auth attempts');
+  const searchLimiter = createRateLimiter(60 * 1000, 30, 'Too many search requests');
 
-app.use(notFoundHandler);
-app.use(globalErrorHandler);
+  app.use('/api', generalLimiter);
+  app.use('/api/*/auth/login', authLimiter);
+  app.use('/api/*/auth/signup', authLimiter);
+  app.use('/api/*/users', searchLimiter);
+  app.use('/api/*/explore/search', searchLimiter);
 
-module.exports = app;
+  app.use(compression());
+  app.use(morgan(process.env.NODE_ENV === 'development' ? 'dev' : 'combined'));
+  app.use(express.json({ limit: '10mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+  app.use(cookieParser());
+  app.use('/uploads', express.static('src/uploads'));
+
+  const apiVersion = process.env.API_VERSION || 'v1';
+  console.log("API Version:", apiVersion);
+
+  app.get('/health', (req, res) => {
+    console.log("✅ /health hit");
+    res.status(200).json({
+      status: 'success',
+      message: 'WishTrail API is running!',
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV,
+      version: apiVersion
+    });
+  });
+
+  app.use(`/api/${apiVersion}/auth`, authRoutes);
+  app.use(`/api/${apiVersion}/users`, userRoutes);
+  app.use(`/api/${apiVersion}/goals`, goalRoutes);
+  app.use(`/api/${apiVersion}/social`, socialRoutes);
+  app.use(`/api/${apiVersion}/activities`, activityRoutes);
+  app.use(`/api/${apiVersion}/leaderboard`, leaderboardRoutes);
+  app.use(`/api/${apiVersion}/explore`, exploreRoutes);
+  app.use(`/api/${apiVersion}/upload`, uploadRoutes);
+  app.use(`/api/${apiVersion}/location`, locationRoutes);
+
+  app.use(notFoundHandler);
+  app.use(globalErrorHandler);
+
+  return app;
+};
+
+module.exports = createApp;

@@ -1,4 +1,13 @@
 const serverless = require('serverless-http');
-const app = require('./src/server');
+const createApp = require('./src/server');
 
-module.exports = serverless(app);
+let cachedServer;
+
+module.exports = async (req, res) => {
+  if (!cachedServer) {
+    const app = await createApp();
+    cachedServer = serverless(app);
+  }
+
+  return cachedServer(req, res);
+};
