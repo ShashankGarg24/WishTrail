@@ -33,7 +33,7 @@ const LeaderboardPage = () => {
     loading,
     error,
     leaderboard,
-    getLeaderboard,
+    getGlobalLeaderboard,
     getCategoryLeaderboard,
     getAchievementLeaderboard,
     getFriendsLeaderboard,
@@ -59,7 +59,7 @@ const LeaderboardPage = () => {
   const loadLeaderboard = async () => {
     switch (activeTab) {
       case 'global':
-        await getLeaderboard({ type: leaderboardType, timeframe });
+        await getGlobalLeaderboard({ type: leaderboardType, timeframe });
         break;
       case 'category':
         await getCategoryLeaderboard(selectedCategory, { timeframe });
@@ -71,7 +71,7 @@ const LeaderboardPage = () => {
         await getFriendsLeaderboard({ type: leaderboardType });
         break;
       default:
-        await getLeaderboard({ type: leaderboardType, timeframe });
+        await getGlobalLeaderboard({ type: leaderboardType, timeframe });
     }
   };
 
