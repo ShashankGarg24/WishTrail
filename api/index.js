@@ -1,5 +1,5 @@
 const serverless = require('serverless-http');
-const createApp = require('./src/server');
+const createApp = require('./src/server'); // or correct path
 
 let cachedServer;
 

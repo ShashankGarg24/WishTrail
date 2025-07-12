@@ -6,6 +6,7 @@ wishtrail/
 ├── backend/                    # Node.js/Express API server
 ├── frontend/                   # React/Vite frontend application
 ├── README.md                   # Project overview and setup instructions
+├── vercel.json                 # vercel config for project 
 └── .gitignore                  # Git ignore patterns
 ```
 
