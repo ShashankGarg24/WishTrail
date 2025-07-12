@@ -6,5 +6,10 @@ export default defineConfig({
   build: {
     outDir: 'dist',
   },
-  base: '/', // required for Vercel SPA routing
-})
+  base: '/',
+  server: {
+    fs: {
+      allow: ['.']
+    }
+  }
+});
