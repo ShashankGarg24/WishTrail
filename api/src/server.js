@@ -23,8 +23,8 @@ const locationRoutes = require('./routes/locationRoutes');
 const bloomFilter = require('./utility/BloomFilterService');
 
 const createApp = async () => {
-  await connectDB();
-  await bloomFilter.init();
+  // await connectDB();
+  // await bloomFilter.init();
   require('./cron/bloomFilterJob');
   console.log("✅ Initialization complete");
 
