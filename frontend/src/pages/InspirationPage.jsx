@@ -127,7 +127,7 @@ const InspirationPage = () => {
   const displayLeaderboard = (leaderboard || []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-zinc-900">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-slate-900 dark:via-gray-900 dark:to-zinc-900">
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Header */}
         <motion.div
@@ -136,10 +136,10 @@ const InspirationPage = () => {
           transition={{ duration: 0.5 }}
           className="text-center mb-12"
         >
-          <h1 className="text-5xl font-bold text-white mb-4">
+          <h1 className="text-5xl font-bold text-gray-900 dark:text-white mb-4">
             Inspiration
           </h1>
-          <p className="text-gray-300 text-xl max-w-3xl mx-auto">
+          <p className="text-gray-600 dark:text-gray-300 text-xl max-w-3xl mx-auto">
             Be inspired by the incredible progress happening in our community right now
           </p>
         </motion.div>
@@ -158,13 +158,13 @@ const InspirationPage = () => {
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-700/50"
+            className="bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg"
           >
             <div className="flex items-center mb-6">
               <div className="bg-green-500 rounded-full p-2 mr-3">
                 <CheckCircle className="h-6 w-6 text-white" />
               </div>
-              <h2 className="text-2xl font-bold text-white">Recent Achievements</h2>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Recent Achievements</h2>
             </div>
 
             <div className="space-y-4">
@@ -175,13 +175,13 @@ const InspirationPage = () => {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: 0.1 * index }}
-                    className="flex items-start space-x-4 p-4 bg-gray-700/30 rounded-xl border border-gray-600/30 hover:bg-gray-700/50 transition-all duration-200"
+                    className="flex items-start space-x-4 p-4 bg-gray-100 dark:bg-gray-700/30 rounded-xl border border-gray-200 dark:border-gray-600/30 hover:bg-gray-200 dark:hover:bg-gray-700/50 transition-all duration-200"
                   >
                     <div className="relative">
                       <img
                         src={activity?.avatar || '/api/placeholder/48/48'}
                         alt={activity?.name || 'User'}
-                        className="w-12 h-12 rounded-full border-2 border-gray-500"
+                        className="w-12 h-12 rounded-full border-2 border-gray-300 dark:border-gray-500"
                       />
                       <div className={`absolute -top-1 -right-1 w-6 h-6 rounded-full ${getCategoryColor(activity.data?.goalCategory)} flex items-center justify-center text-xs`}>
                         {getActivityIcon(activity)}
@@ -190,7 +190,7 @@ const InspirationPage = () => {
                     
                     <div className="flex-1">
                       <div className="flex items-center space-x-2 mb-1">
-                        <span className="font-semibold text-white">
+                        <span className="font-semibold text-gray-900 dark:text-white">
                           {activity?.name || 'Unknown User'}
                         </span>
                         <span className={`px-2 py-1 rounded-full text-xs font-medium text-white ${getCategoryColor(activity.data?.goalCategory)}`}>
@@ -198,17 +198,17 @@ const InspirationPage = () => {
                         </span>
                       </div>
                       
-                      <p className="text-gray-300 text-sm mb-2">
+                      <p className="text-gray-600 dark:text-gray-300 text-sm mb-2">
                         {activity.type === 'goal_completed' || activity.type === 'goal_created' 
                           ? `${getActivityText(activity)} ${activity.data?.goalTitle || 'Goal Achievement'}`
                           : getActivityText(activity)
                         }
                       </p>
                       
-                      <div className="flex items-center space-x-4 text-xs text-gray-400">
+                      <div className="flex items-center space-x-4 text-xs text-gray-500 dark:text-gray-400">
                         <span>{formatTimeAgo(activity.createdAt)}</span>
                         <div className="flex items-center space-x-1">
-                          <Flame className="h-3 w-3 text-orange-400" />
+                          <Flame className="h-3 w-3 text-orange-500" />
                           <span>{calculateStreak(activity.user || {})} day streak</span>
                         </div>
                       </div>
@@ -218,8 +218,8 @@ const InspirationPage = () => {
               ) : !loading && (
                 <div className="text-center py-8">
                   <CheckCircle className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-400">No recent achievements to show.</p>
-                  <p className="text-gray-500 text-sm mt-2">Follow some users to see their progress!</p>
+                  <p className="text-gray-600 dark:text-gray-400">No recent achievements to show.</p>
+                  <p className="text-gray-500 dark:text-gray-500 text-sm mt-2">Follow some users to see their progress!</p>
                 </div>
               )}
             </div>
@@ -232,7 +232,7 @@ const InspirationPage = () => {
             >
               <a
                 href={isAuthenticated ? "/explore" : "/auth"}
-                className="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-xl transition-colors duration-200 font-medium"
+                className="px-6 py-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-xl transition-colors duration-200 font-medium"
               >
                 {isAuthenticated ? "View All Activities" : "Join to See More"}
               </a>
@@ -244,13 +244,13 @@ const InspirationPage = () => {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6, delay: 0.4 }}
-            className="bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-700/50"
+            className="bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg"
           >
             <div className="flex items-center mb-6">
               <div className="bg-yellow-500 rounded-full p-2 mr-3">
                 <Trophy className="h-6 w-6 text-white" />
               </div>
-              <h2 className="text-2xl font-bold text-white">Top Goal Achievers</h2>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Top Goal Achievers</h2>
             </div>
 
             <div className="space-y-4">
@@ -265,7 +265,7 @@ const InspirationPage = () => {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.5, delay: 0.1 * index }}
-                      className="flex items-center space-x-4 p-4 bg-gray-700/30 rounded-xl border border-gray-600/30 hover:bg-gray-700/50 transition-all duration-200"
+                      className="flex items-center space-x-4 p-4 bg-gray-100 dark:bg-gray-700/30 rounded-xl border border-gray-200 dark:border-gray-600/30 hover:bg-gray-200 dark:hover:bg-gray-700/50 transition-all duration-200"
                     >
                       <div className="relative">
                         <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-lg ${
@@ -283,12 +283,12 @@ const InspirationPage = () => {
                       <img
                         src={user.avatar || '/api/placeholder/48/48'}
                         alt={user.name}
-                        className="w-12 h-12 rounded-full border-2 border-gray-500"
+                        className="w-12 h-12 rounded-full border-2 border-gray-300 dark:border-gray-500"
                       />
                       
                       <div className="flex-1">
                         <div className="flex items-center space-x-2 mb-1">
-                          <span className="font-semibold text-white">
+                          <span className="font-semibold text-gray-900 dark:text-white">
                             {user.name}
                           </span>
                           <span className={`px-2 py-1 rounded-full text-xs font-medium text-white ${badge.color}`}>
@@ -296,7 +296,7 @@ const InspirationPage = () => {
                           </span>
                         </div>
                         
-                        <div className="flex items-center space-x-4 text-sm text-gray-400">
+                        <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
                           <div className="flex items-center space-x-1">
                             <Target className="h-4 w-4" />
                             <span>{user.completedGoals || 0} goals</span>
@@ -313,8 +313,8 @@ const InspirationPage = () => {
               ) : !loading && (
                 <div className="text-center py-8">
                   <Trophy className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-400">No achievers to show yet.</p>
-                  <p className="text-gray-500 text-sm mt-2">Complete some goals to appear here!</p>
+                  <p className="text-gray-600 dark:text-gray-400">No achievers to show yet.</p>
+                  <p className="text-gray-500 dark:text-gray-500 text-sm mt-2">Complete some goals to appear here!</p>
                 </div>
               )}
             </div>
@@ -327,9 +327,9 @@ const InspirationPage = () => {
             >
               <a
                 href={isAuthenticated ? "/leaderboard" : "/auth"}
-                className="px-6 py-3 bg-yellow-500 hover:bg-yellow-400 text-gray-900 rounded-xl transition-colors duration-200 font-medium"
+                className="px-6 py-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-xl transition-colors duration-200 font-medium"
               >
-                {isAuthenticated ? "View Leaderboard" : "Join to Compete"}
+                {isAuthenticated ? "View Full Leaderboard" : "Join to See More"}
               </a>
             </motion.div>
           </motion.div>
@@ -339,25 +339,24 @@ const InspirationPage = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 1 }}
-          className="mt-16 text-center bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/20"
+          transition={{ duration: 0.5, delay: 0.6 }}
+          className="mt-12 text-center"
         >
-          <h2 className="text-3xl font-bold text-white mb-4">
-            Ready to Turn Inspiration into Action?
-          </h2>
-          <p className="text-gray-300 mb-6 max-w-2xl mx-auto text-lg">
-            {isAuthenticated 
-              ? "These achievements are just the beginning. Start setting your goals and tracking your progress with WishTrail."
-              : "Join thousands of goal achievers who are turning their dreams into reality. Start your journey today!"
-            }
-          </p>
-          <a
-            href={isAuthenticated ? "/dashboard" : "/auth"}
-            className="inline-flex items-center space-x-2 px-8 py-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 font-bold text-lg shadow-lg"
-          >
-            <TrendingUp className="h-6 w-6" />
-            <span>{isAuthenticated ? "Go to Dashboard" : "Start Your Journey"}</span>
-          </a>
+          <div className="bg-gradient-to-r from-primary-500 to-purple-600 rounded-2xl p-8 text-white shadow-2xl">
+            <h3 className="text-3xl font-bold mb-4">
+              🚀 Ready to Join the Action?
+            </h3>
+            <p className="text-primary-100 mb-6 text-lg">
+              Start setting and achieving your goals today. Be part of this amazing community!
+            </p>
+            <a
+              href={isAuthenticated ? "/dashboard" : "/auth"}
+              className="inline-flex items-center px-8 py-4 bg-white text-primary-600 rounded-xl hover:bg-gray-100 transition-colors font-bold text-lg shadow-lg"
+            >
+              <Star className="h-6 w-6 mr-2" />
+              {isAuthenticated ? "Go to Dashboard" : "Get Started"}
+            </a>
+          </div>
         </motion.div>
       </div>
     </div>
