@@ -23,7 +23,6 @@ const locationRoutes = require('./routes/locationRoutes');
 const bloomFilter = require('./utility/BloomFilterService');
 
 const app = express();
-module.exports = app;
 
 (async () => {
   try {
@@ -40,34 +39,13 @@ module.exports = app;
     app.set('trust proxy', 1);
 
     const corsOptions = {
-      origin: function (origin, callback) {
-        if (!origin) return callback(null, true);
-        const allowedOrigins = [
-          'http://localhost:3000',
-          'http://localhost:5173',
-          'http://localhost:5174',
-          'http://127.0.0.1:3000',
-          'http://127.0.0.1:5173',
-          'http://127.0.0.1:5174',
-          'https://wishtrail.vercel.app/',
-        ].filter(Boolean);
-        if (allowedOrigins.includes(origin)) {
-          callback(null, true);
-        } else {
-          callback(null, true); // allow all in dev
-        }
-      },
+      origin: true, // Reflects request origin
       credentials: true,
       optionsSuccessStatus: 200,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD'],
       allowedHeaders: [
-        'Content-Type', 
-        'Authorization', 
-        'X-Requested-With',
-        'Accept',
-        'Origin',
-        'Access-Control-Request-Method',
-        'Access-Control-Request-Headers'
+        'Content-Type', 'Authorization', 'X-Requested-With', 'Accept',
+        'Origin', 'Access-Control-Request-Method', 'Access-Control-Request-Headers'
       ],
       exposedHeaders: ['X-Total-Count', 'X-Page-Count']
     };
@@ -180,3 +158,4 @@ module.exports = app;
   }
 })();
 
+module.exports = app;
