@@ -11,7 +11,6 @@ const connectDB = require('./config/database');
 const globalErrorHandler = require('./middleware/errorHandler');
 const notFoundHandler = require('./middleware/notFoundHandler');
 
-// Routes
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
 const goalRoutes = require('./routes/goalRoutes');
@@ -21,9 +20,7 @@ const leaderboardRoutes = require('./routes/leaderboardRoutes');
 const exploreRoutes = require('./routes/exploreRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
 const locationRoutes = require('./routes/locationRoutes');
-
 const bloomFilter = require('./utility/BloomFilterService');
-const connectDB = require('./config/database');
 
 const apiVersion = process.env.API_VERSION || 'v1';
 const apiBasePath = `/api/${apiVersion}`;
