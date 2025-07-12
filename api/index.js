@@ -1,13 +1,14 @@
-const serverless = require('serverless-http');
-const createApp = require('./src/server'); // or correct path
+const createApp = require('./src/server');
 
-let cachedServer;
+let cachedApp;
 
 module.exports = async (req, res) => {
-  if (!cachedServer) {
-    const app = await createApp();
-    cachedServer = serverless(app);
+  if (!cachedApp) {
+    console.log("⏳ Initializing Express app...");
+    cachedApp = await createApp();
+    console.log("✅ Express app ready");
   }
 
-  return cachedServer(req, res);
+  // Trick to pass req/res manually
+  cachedApp.handle(req, res);
 };
