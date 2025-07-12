@@ -24,16 +24,20 @@ const bloomFilter = require('./utility/BloomFilterService');
 
 const app = express();
 
-(async () => {
+const startApp = async () => {
   try {
-    // Connect DB & Bloom Filter
     await connectDB();
     await bloomFilter.init();
     require('./cron/bloomFilterJob');
+    console.log("✅ Initialization complete");
   } catch (err) {
-    console.error('DB or Bloom Init Failed:', err.message);
+    console.error('❌ Init failed:', err.message);
+    process.exit(1);
   }
-})();
+};
+
+startApp();
+
 
 app.set('trust proxy', 1);
 
@@ -91,7 +95,10 @@ app.use('/uploads', express.static('src/uploads'));
 // ---- Routes ----
 const apiVersion = process.env.API_VERSION || 'v1';
 
+console.log("API Version:", apiVersion);
+
 app.get('/health', (req, res) => {
+  console.log("✅ /health hit");
   res.status(200).json({
     status: 'success',
     message: 'WishTrail API is running!',
@@ -114,4 +121,4 @@ app.use(`/api/${apiVersion}/location`, locationRoutes);
 app.use(notFoundHandler);
 app.use(globalErrorHandler);
 
-module.exports = app; // 🚀 Export Express app (NO listen)
+module.exports = app;
