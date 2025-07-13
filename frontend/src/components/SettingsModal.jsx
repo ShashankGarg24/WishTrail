@@ -67,17 +67,19 @@ const SettingsModal = ({ isOpen, onClose }) => {
       });
 
       if (result.success) {
-        setSuccess('Password updated successfully');
+        setSuccess(result.message || 'Password updated successfully');
         setCurrentPassword('');
         setNewPassword('');
         setConfirmPassword('');
 
-        // Redirect to login after 3 seconds
         setTimeout(() => {
-          logout();
-        }, 3000);
+            onClose();
 
-        onClose();
+            setTimeout(() => {
+            logout(); // Clear token, redirect, etc.
+            });
+        }, 2000);
+
       } else {
         setError(result.error || 'Failed to update password');
         setTimeout(() => setError(''), 3000);

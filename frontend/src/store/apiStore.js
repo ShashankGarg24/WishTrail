@@ -332,7 +332,9 @@ const useApiStore = create(
           
           if (response.data.success) {
             set({ loading: false });
-            return { success: true };
+            return { 
+              message: response.data.message, 
+              success: true };
           }
           
           throw new Error(response.data.message || 'Failed to update password');
