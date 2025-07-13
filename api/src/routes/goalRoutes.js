@@ -26,7 +26,7 @@ const goalValidation = [
     .isIn(['short-term', 'medium-term', 'long-term'])
     .withMessage('Duration must be short-term, medium-term, or long-term'),
   body('targetDate')
-    .optional()
+    .optional({ checkFalsy: true , nullable: true})
     .isISO8601()
     .withMessage('Target date must be a valid date'),
   body('year')

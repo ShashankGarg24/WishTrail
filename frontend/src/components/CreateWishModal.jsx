@@ -72,11 +72,12 @@ const CreateWishModal = ({ isOpen, onClose, onSave, year }) => {
     
     if (formData.targetDate) {
       const targetDate = new Date(formData.targetDate)
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      targetDate.setHours(0, 0, 0, 0);
       
-      if (targetDate < today) {
-        newErrors.targetDate = 'Target date cannot be in the past'
+      if (targetDate <= today) {
+        newErrors.targetDate = 'Target date must be from tomorrow onwards';
       }
     }
     

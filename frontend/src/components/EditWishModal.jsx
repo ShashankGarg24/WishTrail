@@ -105,9 +105,19 @@ const EditWishModal = ({ isOpen, onClose, goal }) => {
       const today = new Date()
       today.setHours(0, 0, 0, 0) // Reset time to start of day
       
+      const creationDate = new Date(goal.createdAt);
+      creationDate.setHours(0, 0, 0, 0);
+
+      const minAllowedDate = new Date(creationDate);
+      minAllowedDate.setDate(minAllowedDate.getDate() + 1);
+
+      const existingTargetDate = goal.targetDate
+      ? new Date(goal.targetDate).toISOString().split('T')[0]
+      : '';
+      
       // Only validate if setting a new future date
-      if (targetDate < today && formData.targetDate !== (goal.targetDate ? new Date(goal.targetDate).toISOString().split('T')[0] : '')) {
-        newErrors.targetDate = 'Target date cannot be in the past'
+      if (targetDate < minAllowedDate && formData.targetDate !== existingTargetDate) {
+        newErrors.targetDate = 'Target date must be at least 1 day after creation date';
       }
     }
     
