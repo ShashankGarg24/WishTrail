@@ -590,6 +590,7 @@ const generateOGImage = async (req, res, next) => {
     const canvas = createCanvas(width, height)
     const ctx = canvas.getContext('2d')
 
+
     // Custom roundRect function
     const roundRect = (x, y, width, height, radius) => {
       ctx.beginPath()
@@ -626,15 +627,15 @@ const generateOGImage = async (req, res, next) => {
     roundRect(60, 60, width - 120, height - 120, 20)
     ctx.fill()
 
-    // Header section - Remove emoji and use text
+    // Header section
     ctx.fillStyle = '#2d3748'
-    ctx.font = 'bold 48px Arial, sans-serif'
+    ctx.font = 'bold 48px Arial'
     ctx.textAlign = 'center'
-    ctx.fillText('GOAL ACHIEVED!', width / 2, 150)
+    ctx.fillText('🎉 Goal Achieved!', width / 2, 150)
 
     // Goal title
     ctx.fillStyle = '#1a202c'
-    ctx.font = 'bold 36px Arial, sans-serif'
+    ctx.font = 'bold 36px Arial'
     ctx.textAlign = 'center'
     
     // Word wrap for long titles
@@ -647,68 +648,50 @@ const generateOGImage = async (req, res, next) => {
       const testLine = line + words[n] + ' '
       const testWidth = ctx.measureText(testLine).width
       if (testWidth > maxWidth && n > 0) {
-        ctx.fillText(`"${line.trim()}"`, width / 2, y)
+        ctx.fillText(`"${line}"`, width / 2, y)
         line = words[n] + ' '
         y += 45
       } else {
         line = testLine
       }
     }
-    ctx.fillText(`"${line.trim()}"`, width / 2, y)
+    ctx.fillText(`"${line}"`, width / 2, y)
 
     // Category and completion info
     ctx.fillStyle = '#4a5568'
-    ctx.font = '28px Arial, sans-serif'
+    ctx.font = '28px Arial'
     ctx.textAlign = 'center'
     
-    const completionDate = new Date(goal.completedAt).toLocaleDateString('en-US', {
-      month: 'long',
-      day: 'numeric',
-      year: 'numeric'
-    })
-    const categoryText = `${goal.category} • Completed ${completionDate}`
+    const categoryText = `${goal.category} • Completed ${new Date(goal.completedAt).toLocaleDateString()}`
     ctx.fillText(categoryText, width / 2, y + 60)
 
     // User info
     ctx.fillStyle = '#2d3748'
-    ctx.font = 'bold 32px Arial, sans-serif'
+    ctx.font = 'bold 32px Arial'
     ctx.textAlign = 'center'
     ctx.fillText(`by ${goal.userId.name}`, width / 2, y + 120)
 
     // Footer branding
     ctx.fillStyle = '#667eea'
-    ctx.font = 'bold 24px Arial, sans-serif'
+    ctx.font = 'bold 24px Arial'
     ctx.textAlign = 'center'
     ctx.fillText('WishTrail - Transform your dreams into achievable goals', width / 2, height - 80)
 
-    // Trophy icon (simple geometric shape instead of emoji)
-    const trophyX = width / 2
-    const trophyY = y + 180
-    
-    // Trophy cup
+    // Trophy icon (simple drawing)
     ctx.fillStyle = '#f6e05e'
     ctx.beginPath()
-    ctx.arc(trophyX, trophyY, 30, 0, 2 * Math.PI)
+    ctx.arc(width / 2, y + 180, 30, 0, 2 * Math.PI)
     ctx.fill()
     
-    // Trophy base
     ctx.fillStyle = '#d69e2e'
-    ctx.fillRect(trophyX - 15, trophyY + 10, 30, 20)
+    ctx.fillRect(width / 2 - 15, y + 190, 30, 20)
     
-    // Trophy handle (left)
-    ctx.beginPath()
-    ctx.arc(trophyX - 35, trophyY - 5, 10, 0, Math.PI * 2)
-    ctx.fill()
-    
-    // Trophy handle (right)
-    ctx.beginPath()
-    ctx.arc(trophyX + 35, trophyY - 5, 10, 0, Math.PI * 2)
-    ctx.fill()
+    ctx.fillStyle = '#f6e05e'
+    ctx.fillRect(width / 2 - 10, y + 200, 20, 10)
 
     // Set response headers
     res.setHeader('Content-Type', 'image/png')
     res.setHeader('Cache-Control', 'public, max-age=86400') // Cache for 1 day
-    res.setHeader('Access-Control-Allow-Origin', '*')
     
     // Send image
     const buffer = canvas.toBuffer('image/png')
