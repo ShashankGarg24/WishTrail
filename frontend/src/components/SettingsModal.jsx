@@ -5,7 +5,7 @@ import useApiStore from '../store/apiStore';
 import { useNavigate } from 'react-router-dom';
 
 const SettingsModal = ({ isOpen, onClose }) => {
-  const { user, updateUserPrivacy, updatePassword } = useApiStore();
+  const { user, updateUserPrivacy, updatePassword, logout } = useApiStore();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('privacy');
   const [isPrivate, setIsPrivate] = useState(user?.isPrivate || false);
@@ -74,7 +74,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
 
         // Redirect to login after 3 seconds
         setTimeout(() => {
-          navigate('/auth');
+          logout();
         }, 3000);
 
         onClose();
