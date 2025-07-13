@@ -200,13 +200,28 @@ class AuthService {
     if (!isCurrentPasswordValid) {
       throw new Error('Current password is incorrect');
     }
+
+    if (currentPassword == newPassword) {
+      throw new Error('New password cannot be same as the current password');
+    }
     
     // Update password (will be hashed by pre-save middleware)
     user.password = newPassword;
-    user.passwordChangedAt = new Date();
+    user.passwordChangedAt = new Date();        
+    // Invalidate all existing refresh tokens for security
+    user.refreshToken = null;
     await user.save();
-    
-    return { message: 'Password changed successfully' };
+
+    // Send confirmation email
+    try {
+      await emailService.sendPasswordChangeConfirmation(user.email, user.name);
+    } catch (error) {
+      console.error('Failed to send password change confirmation:', error);
+    }
+
+    return {
+      message: 'Password has been reset successfully. Please log in with your new password.',
+    };
   }
   
   /**

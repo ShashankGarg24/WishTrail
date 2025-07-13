@@ -1,6 +1,7 @@
 const userService = require('../services/userService');
 const { validationResult } = require('express-validator');
-const authService = require('../services/authService')
+const authService = require('../services/authService');
+const User = require('../models/User');
 
 // @desc    Get all users with pagination and search
 // @route   GET /api/v1/users
@@ -295,5 +296,6 @@ module.exports = {
   getUserYearlyGoals,
   getUserActivities,
   updateUser,
+  updatePrivacy,
   deleteUser
 }; 

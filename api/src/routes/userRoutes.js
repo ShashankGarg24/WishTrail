@@ -17,5 +17,6 @@ router.get('/:id', userController.getUser);
 router.get('/:id/goals', userController.getUserGoals);
 router.get('/:id/goals/yearly/:year', userController.getUserYearlyGoals);
 router.get('/:id/activities', userController.getUserActivities);
+router.get('/privacy', userController.updatePrivacy);
 
 module.exports = router; 

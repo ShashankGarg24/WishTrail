@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { X, Lock, Eye, EyeOff, Shield, Settings } from 'lucide-react';
 import useApiStore from '../store/apiStore';
+import { useNavigate } from 'react-router-dom';
 
 const SettingsModal = ({ isOpen, onClose }) => {
   const { user, updateUserPrivacy, updatePassword } = useApiStore();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('privacy');
   const [isPrivate, setIsPrivate] = useState(user?.isPrivate || false);
   const [currentPassword, setCurrentPassword] = useState('');
@@ -69,7 +71,13 @@ const SettingsModal = ({ isOpen, onClose }) => {
         setCurrentPassword('');
         setNewPassword('');
         setConfirmPassword('');
-        setTimeout(() => setSuccess(''), 3000);
+
+        // Redirect to login after 3 seconds
+        setTimeout(() => {
+          navigate('/auth');
+        }, 3000);
+
+        onClose();
       } else {
         setError(result.error || 'Failed to update password');
         setTimeout(() => setError(''), 3000);
