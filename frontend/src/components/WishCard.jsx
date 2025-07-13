@@ -24,7 +24,7 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
       onToggle?.(wish._id)
     } else if (wish.isLocked) {
       return;
-    } else {
+      } else {
       setIsCompletionModalOpen(true);
     }
   }
@@ -135,7 +135,7 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
             disabled={loading || (wish.isLocked && !wish.completed)}
             title={
               wish.completed 
-                ? 'Mark as incomplete' 
+                  ? 'Mark as incomplete' 
                 : wish.isLocked 
                   ? 'Goal is locked - wait for minimum duration'
                   : 'Mark as complete'
@@ -162,22 +162,22 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
         
         {/* Only show edit/delete for own goals */}
         {isViewingOwnGoals && (
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={handleEdit}
-              className="p-1 rounded-full hover:bg-white/10 transition-colors"
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={handleEdit}
+            className="p-1 rounded-full hover:bg-white/10 transition-colors"
               disabled={loading}
-            >
-              <Edit2 className="h-4 w-4 text-gray-400 hover:text-primary-500" />
-            </button>
-            <button
-              onClick={handleDelete}
-              className="p-1 rounded-full hover:bg-white/10 transition-colors"
+          >
+            <Edit2 className="h-4 w-4 text-gray-400 hover:text-primary-500" />
+          </button>
+          <button
+            onClick={handleDelete}
+            className="p-1 rounded-full hover:bg-white/10 transition-colors"
               disabled={loading}
-            >
-              <Trash2 className="h-4 w-4 text-gray-400 hover:text-red-500" />
-            </button>
-          </div>
+          >
+            <Trash2 className="h-4 w-4 text-gray-400 hover:text-red-500" />
+          </button>
+        </div>
         )}
       </div>
 
@@ -213,14 +213,14 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
 
         {/* Points */}
         {wish.points && (
-          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-            wish.completed 
-              ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
-              : 'bg-gray-100 text-gray-600 dark:bg-gray-800/50 dark:text-gray-400'
-          }`}>
-            <Star className="h-3 w-3 mr-1" />
+        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+          wish.completed 
+            ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
+            : 'bg-gray-100 text-gray-600 dark:bg-gray-800/50 dark:text-gray-400'
+        }`}>
+          <Star className="h-3 w-3 mr-1" />
             {wish.points} pts
-          </span>
+        </span>
         )}
 
         {/* Locked indicator */}

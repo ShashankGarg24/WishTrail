@@ -263,6 +263,10 @@ const useApiStore = create(
         }
       },
       
+      // =====================
+      // PASSWORD RESET ACTIONS
+      // =====================
+      
       updateProfile: async (userData) => {
         try {
           set({ loading: true, error: null });
@@ -277,6 +281,67 @@ const useApiStore = create(
         }
       },
 
+            updateProfile: async (userData) => {
+        try {
+          set({ loading: true, error: null });
+          const response = await authAPI.updateProfile(userData);
+          const { user } = response.data.data;
+          set({ user, loading: false });
+          return { success: true, user };
+        } catch (error) {
+          const errorMessage = handleApiError(error);
+          set({ loading: false, error: errorMessage });
+          return { success: false, error: errorMessage };
+        }
+      },
+
+
+      // Update user privacy setting
+      updateUserPrivacy: async (isPrivate) => {
+        try {
+          set({ loading: true, error: null });
+          const response = await usersAPI.updatePrivacy({ isPrivate });
+          
+          if (response.data.success) {
+            set((state) => ({
+              user: {
+                ...state.user,
+                isPrivate: isPrivate
+              },
+              loading: false
+            }));
+            return { success: true };
+          }
+                
+          throw new Error(response.data.message || 'Failed to update privacy settings');
+        } catch (error) {
+          const errorMessage = handleApiError(error);
+          set({ loading: false, error: errorMessage });
+          return { success: false, error: errorMessage };
+        }
+      },
+
+      // Update user password
+      updatePassword: async ({ currentPassword, newPassword }) => {
+        try {
+          set({ loading: true, error: null });
+          const response = await authAPI.updatePassword({
+            currentPassword,
+            newPassword
+          });
+          
+          if (response.data.success) {
+            set({ loading: false });
+            return { success: true };
+          }
+          
+          throw new Error(response.data.message || 'Failed to update password');
+        } catch (error) {
+          const errorMessage = handleApiError(error);
+          set({ loading: false, error: errorMessage });
+          return { success: false, error: errorMessage };
+        }
+      },
 
       locationSuggestions: [],
       searchCitySuggestions: async (query) => {

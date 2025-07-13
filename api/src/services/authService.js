@@ -186,9 +186,9 @@ class AuthService {
   }
   
   /**
-   * Change password
+   * Update password
    */
-  async changePassword(userId, currentPassword, newPassword) {
+  async updatePassword(userId, currentPassword, newPassword) {
     const user = await User.findById(userId).select('+password');
     
     if (!user) {

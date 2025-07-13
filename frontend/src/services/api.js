@@ -46,8 +46,8 @@ export const authAPI = {
   logout: () => api.post('/auth/logout'),
   getMe: () => api.get('/auth/me'),
   updateProfile: (userData) => api.put('/auth/profile', userData),
-  changePassword: (passwordData) => api.put('/auth/password', passwordData),
-  
+  updatePassword: (passwordData) => api.put('/auth/password', passwordData),
+
   // Password reset API
   forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
   resetPassword: (token, newPassword) => api.post('/auth/reset-password', { token, newPassword }),
@@ -82,6 +82,7 @@ export const usersAPI = {
   getUserGoals: (id, params) => api.get(`/users/${id}/goals`, { params }),
   getUserYearlyGoals: (id, year, params) => api.get(`/users/${id}/goals/yearly/${year}`, { params }),
   getUserActivities: (id, params) => api.get(`/users/${id}/activities`, { params }),
+  updatePrivacy: (data) => api.put('/users/privacy', data),
 };
 
 // Social API

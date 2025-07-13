@@ -33,10 +33,10 @@ const ExplorePage = () => {
   const { 
     isAuthenticated, 
     user,
-    followUser,
-    unfollowUser,
+    followUser, 
+    unfollowUser, 
     getActivityFeed,
-    searchUsers,
+    searchUsers, 
     likeActivity,
     unlikeActivity,
     getFollowing,
@@ -298,20 +298,20 @@ const ExplorePage = () => {
       transition={{ duration: 0.5 }}
       className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-200 border border-gray-200 dark:border-gray-700"
     >
-      <div className="flex items-center space-x-4">
-        <img
+        <div className="flex items-center space-x-4">
+          <img
           src={user.avatar || `/api/placeholder/64/64`}
-          alt={user.name}
+            alt={user.name}
           className="w-16 h-16 rounded-full border-2 border-gray-200 dark:border-gray-600 cursor-pointer"
           onClick={() => navigate(`/profile/${user._id}`)}
-        />
+          />
         <div className="flex-1">
           <h3 
             className="text-lg font-semibold text-gray-900 dark:text-white cursor-pointer hover:text-blue-500"
             onClick={() => navigate(`/profile/${user._id}`)}
           >
-            {user.name}
-          </h3>
+              {user.name}
+            </h3>
           <p className="text-gray-600 dark:text-gray-400 text-sm">
             {user.bio || 'No bio available'}
           </p>
@@ -350,9 +350,9 @@ const ExplorePage = () => {
       </div>
     </motion.div>
   );
-
+      
   const displayUsers = searchTerm.trim() && searchTerm.trim().length >= 2 ? searchResults : users;
-
+      
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50 dark:from-slate-900 dark:via-gray-900 dark:to-zinc-900">
@@ -451,7 +451,7 @@ const ExplorePage = () => {
               {(isSearching || loading) && (
                 <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
                   <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
-                </div>
+                  </div>
               )}
             </div>
           </motion.div>)
@@ -459,18 +459,18 @@ const ExplorePage = () => {
 
         {/* Content */}
         <div className="w-full">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.3 }}
-          >
+        >
             {activeTab === 'discover' && (
               <div className="w-full">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
                     <Users className="h-6 w-6 mr-2 text-blue-500" />
                     {searchTerm.trim() ? 'Search Results' : 'Discover Users'}
-                  </h2>
+              </h2>
                   <span className="text-gray-500 dark:text-gray-400">
                     {displayUsers.length} {displayUsers.length === 1 ? 'user' : 'users'} found
                   </span>
@@ -562,18 +562,18 @@ const ExplorePage = () => {
                     ))}
                   </div>
                 ) : !loading && !isSearching && (
-                  <div className="text-center py-12">
-                    <Users className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                <div className="text-center py-12">
+                  <Users className="h-16 w-16 text-gray-400 mx-auto mb-4" />
                     <p className="text-gray-600 dark:text-gray-400 text-lg">
                       {searchTerm.trim() ? 'No users found matching your search.' : 'No users to discover yet.'}
                     </p>
                     <p className="text-gray-500 dark:text-gray-500 text-sm mt-2">
                       {searchTerm.trim() ? 'Try a different search term.' : 'Check back later for new members!'}
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
 
             {activeTab === 'Activities' && (
               <div className="w-full">
@@ -581,39 +581,39 @@ const ExplorePage = () => {
                   <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
                     <Activity className="h-6 w-6 mr-2 text-green-500" />
                     Activities
-                  </h2>
+              </h2>
                   <span className="text-gray-500 dark:text-gray-400">
                     {activities.length} recent {activities.length === 1 ? 'activity' : 'activities'}
                   </span>
                 </div>
 
                 {activities.length > 0 ? (
-                  <div className="space-y-4">
+                <div className="space-y-4">
                     {activities.map((activity, index) => (
-                      <motion.div
+                    <motion.div
                         key={activity._id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, delay: 0.1 * index }}
                         className="bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 hover:border-gray-300 dark:hover:border-gray-600/50 transition-all duration-200 shadow-lg hover:shadow-xl"
-                      >
+                    >
                         <div className="flex items-start space-x-4">
                           <div className="relative">
-                            <img
+                        <img
                               src={activity?.avatar || '/api/placeholder/48/48'}
                               alt={activity?.name || 'User'}
                               className="w-12 h-12 rounded-full border-2 border-gray-200 dark:border-gray-600 cursor-pointer hover:border-blue-500 transition-colors"
                               onClick={() => activity.user?._id && navigate(`/profile/${activity.user._id}`)}
-                            />
+                        />
                             {activity.data?.category && (
                               <div className={`absolute -top-1 -right-1 w-6 h-6 rounded-full ${getCategoryColor(activity.data.category)} flex items-center justify-center text-xs`}>
                                 {activity.type === 'goal_completed' || activity.type === 'goal_created' 
                                   ? getCategoryIcon(activity.data.category)
                                   : getActivityIcon(activity)
                                 }
-                              </div>
+                        </div>
                             )}
-                          </div>
+                      </div>
                           
                           <div className="flex-1">
                             <div className="flex items-center space-x-2 mb-2">
@@ -672,57 +672,57 @@ const ExplorePage = () => {
                                     Earned "{activity.data?.achievementName || 'achievement'}" badge
                                   </span>
                                   <span className="text-2xl">🏆</span>
-                                </div>
+                          </div>
                               ) : (
                                 <h4 className="font-medium text-gray-900 dark:text-white mb-2">
                                   Activity Update
                                 </h4>
                               )}
-                            </div>
-                            
+                        </div>
+                        
                             <div className="flex items-center space-x-6">
-                              <button
+                                                         <button
                                 onClick={() => activity.isLiked ? handleUnlike(activity._id) : handleLike(activity._id)}
                                 className={`flex items-center space-x-2 px-3 py-1 rounded-lg transition-colors duration-200 ${
                                   activity.isLiked 
                                     ? 'bg-red-500/20 text-red-500' 
                                     : 'bg-gray-200 dark:bg-gray-700/50 text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600/50 hover:text-red-500 dark:hover:text-red-400'
-                                }`}
-                              >
+                               }`}
+                             >
                                 <Heart className={`h-4 w-4 ${activity.isLiked ? 'fill-current' : ''}`} />
                                 <span className="text-sm">{activity.likeCount || 0}</span>
-                              </button>
+                             </button>
                               
                               {/* <button className="flex items-center space-x-2 px-3 py-1 rounded-lg bg-gray-200 dark:bg-gray-700/50 text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600/50 hover:text-blue-500 dark:hover:text-blue-400 transition-colors duration-200">
                                 <MessageCircle className="h-4 w-4" />
                                 <span className="text-sm">Comment</span>
                               </button> */}
-                            </div>
                           </div>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </div>
+                          </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
                 ) : !loading && (
-                  <div className="text-center py-12">
-                    <Activity className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                <div className="text-center py-12">
+                  <Activity className="h-16 w-16 text-gray-400 mx-auto mb-4" />
                     <p className="text-gray-600 dark:text-gray-400 text-lg">No recent activity from friends.</p>
                     <p className="text-gray-500 dark:text-gray-500 text-sm mt-2">
                       Follow some users to see their goal completions here!
-                    </p>
-                    <button
-                      onClick={() => setActiveTab('discover')}
+                  </p>
+                  <button
+                    onClick={() => setActiveTab('discover')}
                       className="mt-4 px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-xl transition-colors duration-200 font-medium"
-                    >
-                      Discover Users
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-          </motion.div>
-        </div>
+                  >
+                    Discover Users
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </motion.div>
       </div>
+    </div>
     </div>
   );
 };

@@ -140,10 +140,10 @@ const updateProfile = async (req, res, next) => {
   }
 };
 
-// @desc    Change password
+// @desc    Update password
 // @route   PUT /api/v1/auth/password
 // @access  Private
-const changePassword = async (req, res, next) => {
+const updatePassword = async (req, res, next) => {
   try {
     // Check for validation errors
     const errors = validationResult(req);
@@ -156,7 +156,7 @@ const changePassword = async (req, res, next) => {
     }
 
     const { currentPassword, newPassword } = req.body;
-    const result = await authService.changePassword(req.user.id, currentPassword, newPassword);
+    const result = await authService.updatePassword(req.user.id, currentPassword, newPassword);
 
     res.status(200).json({
       success: true,
@@ -374,7 +374,7 @@ module.exports = {
   logout,
   getMe,
   updateProfile,
-  changePassword,
+  updatePassword,
   refreshToken,
   forgotPassword,
   resetPassword,

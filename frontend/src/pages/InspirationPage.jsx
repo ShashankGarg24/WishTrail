@@ -348,14 +348,14 @@ const InspirationPage = () => {
             </h3>
             <p className="text-primary-100 mb-6 text-lg">
               Start setting and achieving your goals today. Be part of this amazing community!
-            </p>
-            <a
-              href={isAuthenticated ? "/dashboard" : "/auth"}
+          </p>
+          <a
+            href={isAuthenticated ? "/dashboard" : "/auth"}
               className="inline-flex items-center px-8 py-4 bg-white text-primary-600 rounded-xl hover:bg-gray-100 transition-colors font-bold text-lg shadow-lg"
-            >
+          >
               <Star className="h-6 w-6 mr-2" />
               {isAuthenticated ? "Go to Dashboard" : "Get Started"}
-            </a>
+          </a>
           </div>
         </motion.div>
       </div>

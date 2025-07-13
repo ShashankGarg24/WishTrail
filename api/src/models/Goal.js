@@ -10,6 +10,7 @@ const goalSchema = new mongoose.Schema({
   },
   description: {
     type: String,
+    required: [true, 'Goal Description is required'],
     trim: true,
     maxlength: [1000, 'Goal description cannot exceed 1000 characters'],
     default: ''
