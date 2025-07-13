@@ -21,10 +21,13 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
 
   const handleToggle = () => {
     if (wish.completed) {
-      onToggle?.(wish._id)
+      // Show confirmation before uncompleting
+      if (window.confirm('Are you sure you want to mark this goal as incomplete? This will remove your completion note and achievements.')) {
+        onToggle?.(wish._id)
+      }
     } else if (wish.isLocked) {
       return;
-      } else {
+    } else {
       setIsCompletionModalOpen(true);
     }
   }
@@ -163,13 +166,16 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
         {/* Only show edit/delete for own goals */}
         {isViewingOwnGoals && (
         <div className="flex items-center space-x-2">
-          <button
-            onClick={handleEdit}
-            className="p-1 rounded-full hover:bg-white/10 transition-colors"
-              disabled={loading}
-          >
-            <Edit2 className="h-4 w-4 text-gray-400 hover:text-primary-500" />
-          </button>
+          {/* Only show edit button for uncompleted goals */}
+          {!wish.completed && (
+            <button
+              onClick={handleEdit}
+              className="p-1 rounded-full hover:bg-white/10 transition-colors"
+                disabled={loading}
+            >
+              <Edit2 className="h-4 w-4 text-gray-400 hover:text-primary-500" />
+            </button>
+          )}
           <button
             onClick={handleDelete}
             className="p-1 rounded-full hover:bg-white/10 transition-colors"

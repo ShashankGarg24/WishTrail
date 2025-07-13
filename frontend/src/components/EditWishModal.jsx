@@ -44,6 +44,15 @@ const EditWishModal = ({ isOpen, onClose, goal }) => {
     }
   }, [isOpen, goal])
 
+  // Calculate minimum allowed date (creation date + 1 day)
+  const getMinDate = () => {
+    if (!goal?.createdAt) return ''
+    const creationDate = new Date(goal.createdAt)
+    const minDate = new Date(creationDate)
+    minDate.setDate(minDate.getDate() + 1)
+    return minDate.toISOString().split('T')[0]
+  }
+
   const categories = [
     'Health & Fitness',
     'Career & Business',
@@ -102,22 +111,12 @@ const EditWishModal = ({ isOpen, onClose, goal }) => {
     // Target date validation - for editing, allow keeping existing dates
     if (formData.targetDate) {
       const targetDate = new Date(formData.targetDate)
-      const today = new Date()
-      today.setHours(0, 0, 0, 0) // Reset time to start of day
+      const creationDate = new Date(goal.createdAt)
+      const minAllowedDate = new Date(creationDate)
+      minAllowedDate.setDate(minAllowedDate.getDate() + 1)
       
-      const creationDate = new Date(goal.createdAt);
-      creationDate.setHours(0, 0, 0, 0);
-
-      const minAllowedDate = new Date(creationDate);
-      minAllowedDate.setDate(minAllowedDate.getDate() + 1);
-
-      const existingTargetDate = goal.targetDate
-      ? new Date(goal.targetDate).toISOString().split('T')[0]
-      : '';
-      
-      // Only validate if setting a new future date
-      if (targetDate < minAllowedDate && formData.targetDate !== existingTargetDate) {
-        newErrors.targetDate = 'Target date must be at least 1 day after creation date';
+      if (targetDate < minAllowedDate) {
+        newErrors.targetDate = 'Target date must be at least 1 day after creation date'
       }
     }
     
@@ -328,6 +327,7 @@ const EditWishModal = ({ isOpen, onClose, goal }) => {
               name="targetDate"
               value={formData.targetDate}
               onChange={handleInputChange}
+              min={getMinDate()}
               className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${
                 errors.targetDate ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
               }`}

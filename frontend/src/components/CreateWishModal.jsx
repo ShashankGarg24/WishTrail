@@ -4,6 +4,7 @@ import { X, Plus, Target, Calendar, Tag, AlertCircle } from 'lucide-react'
 import useApiStore from '../store/apiStore'
 
 const CreateWishModal = ({ isOpen, onClose, onSave, year }) => {
+
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -40,6 +41,14 @@ const CreateWishModal = ({ isOpen, onClose, onSave, year }) => {
     { value: 'long-term', label: 'Long-term (6+ months)', color: 'text-orange-500' }
   ]
 
+  // Calculate minimum allowed date (current date + 1 day)
+  const getMinDate = () => {
+    const today = new Date(Date.now())
+    const minDate = new Date(today)
+    minDate.setDate(minDate.getDate() + 1)
+    return minDate.toISOString().split('T')[0]
+  }
+
   const handleInputChange = (e) => {
     const { name, value } = e.target
     setFormData(prev => ({
@@ -70,14 +79,15 @@ const CreateWishModal = ({ isOpen, onClose, onSave, year }) => {
       newErrors.category = 'Category is required'
     }
     
+    // Target date validation - only allow dates +1 from current day (tomorrow onwards)
     if (formData.targetDate) {
       const targetDate = new Date(formData.targetDate)
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      targetDate.setHours(0, 0, 0, 0);
+      const today = new Date()
+      const minAllowedDate = new Date(today)
+      minAllowedDate.setDate(minAllowedDate.getDate() + 1)
       
-      if (targetDate <= today) {
-        newErrors.targetDate = 'Target date must be from tomorrow onwards';
+      if (targetDate < minAllowedDate) {
+        newErrors.targetDate = 'Target date must be at least 1 day from today'
       }
     }
     
@@ -299,6 +309,7 @@ const CreateWishModal = ({ isOpen, onClose, onSave, year }) => {
               name="targetDate"
               value={formData.targetDate}
               onChange={handleInputChange}
+              min={getMinDate()}
               className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${
                 errors.targetDate ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
               }`}
