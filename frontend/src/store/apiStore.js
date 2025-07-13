@@ -456,9 +456,9 @@ const useApiStore = create(
         }
       },
       
-      toggleGoalCompletion: async (id) => {
+      toggleGoalCompletion: async (id, completionNote, shareCompletionNote = true) => {
         try {
-          const response = await goalsAPI.toggleGoalCompletion(id);
+          const response = await goalsAPI.toggleGoalCompletion(id, completionNote, shareCompletionNote);
           const { goal } = response.data.data;
           
           // Update in current goals list
@@ -507,6 +507,21 @@ const useApiStore = create(
           set({ loading: false, error: errorMessage });
           return { success: false, error: errorMessage };
         }
+      },
+      
+         
+      getShareableGoal: async (id) => {
+        try {
+          const response = await goalsAPI.getShareableGoal(id);
+          return { success: true, data: response.data.data };
+        } catch (error) {
+          const errorMessage = handleApiError(error);
+          return { success: false, error: errorMessage };
+        }
+      },
+      
+      getOGImageUrl: (id) => {
+        return goalsAPI.getOGImageUrl(id);
       },
       
       // =====================

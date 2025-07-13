@@ -1,10 +1,15 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, CheckCircle, Share2, Star } from 'lucide-react'
+import { createPortal } from 'react-dom'
+import ShareModal from './ShareModal'
+import useApiStore from '../store/apiStore'
 
-const CelebrationModal = ({ isOpen, onClose, goalTitle, pointsEarned }) => {
+const CelebrationModal = ({ wish, isOpen, onClose, goalTitle, pointsEarned }) => {
+  const {user} = useApiStore()
   const [showQuote, setShowQuote] = useState(false)
   const [currentQuote, setCurrentQuote] = useState('')
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false)
 
   const motivationalQuotes = [
     "The only impossible journey is the one you never begin.\n- Tony Robbins",
@@ -61,20 +66,7 @@ const CelebrationModal = ({ isOpen, onClose, goalTitle, pointsEarned }) => {
   }))
 
   const handleShare = () => {
-    const shareText = `🎉 Just achieved my goal: "${goalTitle}"!`
-    
-    if (navigator.share) {
-      navigator.share({
-        title: 'Goal Achievement - WishTrail',
-        text: shareText,
-        url: window.location.origin
-      })
-    } else {
-      // Fallback to copying to clipboard
-      navigator.clipboard.writeText(shareText).then(() => {
-        alert('Achievement copied to clipboard!')
-      })
-    }
+    setIsShareModalOpen(true)
   }
 
   if (!isOpen) return null
@@ -229,6 +221,16 @@ const CelebrationModal = ({ isOpen, onClose, goalTitle, pointsEarned }) => {
                <span>Share Achievement</span>
              </motion.button>
           </div>
+        {/* Share Modal - Rendered at document body level */}
+        {isShareModalOpen && createPortal(
+          <ShareModal
+            isOpen={isShareModalOpen}
+            onClose={() => setIsShareModalOpen(false)}
+            goal={wish}
+            user={user}
+          />,
+          document.body
+        )}
         </motion.div>
       </motion.div>
     </AnimatePresence>

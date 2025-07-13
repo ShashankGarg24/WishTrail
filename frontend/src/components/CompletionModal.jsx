@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { X, CheckCircle, AlertCircle, FileText } from 'lucide-react'
+import { X, CheckCircle, AlertCircle, FileText, Share2, Lock, Globe } from 'lucide-react'
 import useApiStore from '../store/apiStore'
 import CelebrationModal from './CelebrationModal'
 
 const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal }) => {
   const [completionNote, setCompletionNote] = useState('')
+  const [shareCompletionNote, setShareCompletionNote] = useState(true)
   const [error, setError] = useState('')
   const [showCelebration, setShowCelebration] = useState(false)
   const { loading } = useApiStore()
@@ -24,8 +25,9 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal }) => {
     }
 
     try {
-      await onComplete(completionNote.trim())
+      await onComplete(completionNote.trim(), shareCompletionNote)
       setCompletionNote('')
+      setShareCompletionNote(true)
       setError('')
       // Show celebration instead of closing immediately
       setTimeout(() => {
@@ -37,6 +39,7 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal }) => {
 
   const handleClose = () => {
     setCompletionNote('')
+    setShareCompletionNote(true)
     setError('')
     setShowCelebration(false)
     onClose()
@@ -55,6 +58,7 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal }) => {
   if (showCelebration) {
     return (
       <CelebrationModal
+        wish={goal}
         isOpen={showCelebration}
         onClose={handleCelebrationClose}
         goalTitle={goalTitle}
@@ -141,6 +145,45 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal }) => {
               <span className="text-gray-500 dark:text-gray-400">
                 {wordCount} words
               </span>
+            </div>
+          </div>
+          {/* Sharing Toggle */}
+          <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-2">
+                  {shareCompletionNote ? (
+                    <Globe className="h-5 w-5 text-green-500" />
+                  ) : (
+                    <Lock className="h-5 w-5 text-gray-500" />
+                  )}
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Share completion note
+                    </label>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {shareCompletionNote ? 'Your note will be visible when sharing this goal' : 'Your note will be kept private'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShareCompletionNote(!shareCompletionNote)}
+                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 ${
+                  shareCompletionNote ? 'bg-green-500' : 'bg-gray-200 dark:bg-gray-600'
+                }`}
+              >
+                <span className="sr-only">
+                  {shareCompletionNote ? 'Disable sharing' : 'Enable sharing'}
+                </span>
+                <span
+                  aria-hidden="true"
+                  className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition ease-in-out duration-200 ${
+                    shareCompletionNote ? 'translate-x-5' : 'translate-x-0'
+                  }`}
+                />
+              </button>
             </div>
           </div>
 

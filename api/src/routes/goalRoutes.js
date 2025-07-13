@@ -42,6 +42,10 @@ const completeGoalValidation = [
     .withMessage('Completion note must be between 10 and 1000 characters')
 ];
 
+// Public routes (no authentication required)
+router.get('/:id/share', goalController.getShareableGoal);
+router.get('/:id/og-image', goalController.generateOGImage);
+
 // All routes are protected
 router.use(protect);
 

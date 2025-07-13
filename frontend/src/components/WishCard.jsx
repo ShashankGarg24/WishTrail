@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { motion } from 'framer-motion'
-import { CheckCircle, Circle, Edit2, Trash2, Calendar, Tag, Clock, Star, Heart, Lock } from 'lucide-react'
+import { CheckCircle, Circle, Edit2, Trash2, Calendar, Tag, Clock, Star, Heart, Lock, Share2 } from 'lucide-react'
 import useApiStore from '../store/apiStore'
 import CompletionModal from './CompletionModal'
 import EditWishModal from './EditWishModal'
+import ShareModal from './ShareModal'
 
 const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewingOwnGoals = true }) => {
   const { 
@@ -18,6 +19,7 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
   
   const [isCompletionModalOpen, setIsCompletionModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false)
 
   const handleToggle = () => {
     if (wish.completed) {
@@ -32,8 +34,8 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
     }
   }
 
-  const handleComplete = (completionNote) => {
-    return onComplete?.(wish._id, completionNote)
+  const handleComplete = (completionNote, shareCompletionNote = true) => {
+    return onComplete?.(wish._id, completionNote, shareCompletionNote)
   }
 
   const handleDelete = () => {
@@ -55,6 +57,10 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
   const handleLike = () => {
     if (!isAuthenticated) return
     likeGoal(wish._id)
+  }
+
+  const handleShare = () => {
+    setIsShareModalOpen(true)
   }
 
   const formatDate = (dateString) => {
@@ -174,6 +180,15 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
                 disabled={loading}
             >
               <Edit2 className="h-4 w-4 text-gray-400 hover:text-primary-500" />
+            </button>
+          )}
+          {isViewingOwnGoals && wish.completed && (
+            <button
+              onClick={handleShare}
+              className="p-1 rounded-full hover:bg-white/10 transition-colors"
+                disabled={loading}
+            >
+              <Share2 className="h-4 w-4 text-gray-400 hover:text-primary-500" />
             </button>
           )}
           <button
@@ -320,7 +335,6 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
           )}
         </div>
       )}
-
       {/* Completion Modal - Rendered at document body level */}
       {isCompletionModalOpen && createPortal(
         <CompletionModal
@@ -340,6 +354,16 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
           onClose={() => setIsEditModalOpen(false)}
           goal={wish}
           year={year}
+        />,
+        document.body
+      )}
+      {/* Share Modal - Rendered at document body level */}
+      {isShareModalOpen && createPortal(
+        <ShareModal
+          isOpen={isShareModalOpen}
+          onClose={() => setIsShareModalOpen(false)}
+          goal={wish}
+          user={user}
         />,
         document.body
       )}

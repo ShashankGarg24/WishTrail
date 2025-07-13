@@ -116,6 +116,20 @@ const goalSchema = new mongoose.Schema({
   isActive: {
     type: Boolean,
     default: true
+  },
+  
+  // Sharing Settings
+  shareCompletionNote: {
+    type: Boolean,
+    default: true
+  },
+  isShareable: {
+    type: Boolean,
+    default: true
+  },
+  shareUrl: {
+    type: String,
+    trim: true
   }
   
 }, {
@@ -334,7 +348,7 @@ goalSchema.methods.getPointsBreakdown = function() {
 };
 
 // Method to complete a goal
-goalSchema.methods.completeGoal = function(completionNote = '') {
+goalSchema.methods.completeGoal = function(completionNote = '', shareCompletionNote = true) {
   if (this.completed) {
     throw new Error('Goal is already completed');
   }
@@ -346,6 +360,7 @@ goalSchema.methods.completeGoal = function(completionNote = '') {
   this.completed = true;
   this.completedAt = new Date();
   this.completionNote = completionNote;
+  this.shareCompletionNote = shareCompletionNote;
   this.pointsEarned = this.calculatePoints();
   
   return this.save();

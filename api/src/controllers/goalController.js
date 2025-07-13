@@ -3,6 +3,9 @@ const Goal = require('../models/Goal');
 const User = require('../models/User');
 const Activity = require('../models/Activity');
 const Like = require('../models/Like');
+const { createCanvas, loadImage, registerFont } = require('canvas');
+const path = require('path');
+const fs = require('fs');
 
 // @desc    Get user's goals
 // @route   GET /api/v1/goals
@@ -277,7 +280,7 @@ const toggleGoalCompletion = async (req, res, next) => {
       })
     }
 
-    const { completionNote } = req.body
+    const { completionNote, shareCompletionNote } = req.body
     const goal = await Goal.findById(req.params.id)
     if (!goal) {
       return res.status(404).json({
@@ -327,6 +330,7 @@ const toggleGoalCompletion = async (req, res, next) => {
       goal.completedAt = null
       goal.completionNote = null
       goal.pointsEarned = 0
+      goal.shareCompletionNote = true
       await goal.save()
 
       updatedGoal = goal
@@ -348,7 +352,7 @@ const toggleGoalCompletion = async (req, res, next) => {
         })
       }
 
-      updatedGoal = await goal.completeGoal(completionNote);
+      updatedGoal = await goal.completeGoal(completionNote, shareCompletionNote);
 
       user.addToTotalPoints(updatedGoal.pointsEarned)
       user.addDailyCompletion(goal._id);
@@ -474,6 +478,231 @@ const getYearlyGoalsSummary = async (req, res, next) => {
   }
 };
 
+
+// @desc    Get shareable goal data for social media
+// @route   GET /api/v1/goals/:id/share
+// @access  Public
+const getShareableGoal = async (req, res, next) => {
+  try {
+    const goal = await Goal.findById(req.params.id)
+      .populate('userId', 'name avatar')
+      .select('title description category priority duration completed completedAt completionNote shareCompletionNote isShareable pointsEarned userId')
+
+    if (!goal) {
+      return res.status(404).json({
+        success: false,
+        message: 'Goal not found'
+      })
+    }
+
+    // Check if goal is shareable
+    if (!goal.isShareable) {
+      return res.status(403).json({
+        success: false,
+        message: 'This goal is not shareable'
+      })
+    }
+
+    // Only share completed goals
+    if (!goal.completed) {
+      return res.status(403).json({
+        success: false,
+        message: 'Only completed goals can be shared'
+      })
+    }
+
+    // Prepare shareable data
+    const shareableData = {
+      goal: {
+        _id: goal._id,
+        title: goal.title,
+        description: goal.description,
+        category: goal.category,
+        priority: goal.priority,
+        duration: goal.duration,
+        completed: goal.completed,
+        completedAt: goal.completedAt,
+        completionNote: goal.shareCompletionNote ? goal.completionNote : null,
+        pointsEarned: goal.pointsEarned
+      },
+      user: {
+        _id: goal.userId._id,
+        name: goal.userId.name,
+        avatar: goal.userId.avatar
+      },
+      shareUrl: `${req.protocol}://${req.get('host')}/goal/${goal._id}`,
+      openGraph: {
+        title: `${goal.userId.name} achieved their goal: ${goal.title}`,
+        description: goal.shareCompletionNote && goal.completionNote 
+          ? `${goal.completionNote.substring(0, 150)}...`
+          : `${goal.category} goal completed successfully on ${new Date(goal.completedAt).toLocaleDateString()}`,
+        image: `${req.protocol}://${req.get('host')}/api/v1/goals/${goal._id}/og-image`,
+        url: `${req.protocol}://${req.get('host')}/goal/${goal._id}`,
+        type: 'article',
+        site_name: 'WishTrail',
+        locale: 'en_US'
+      }
+    }
+
+    // Update goal with share URL if not already set
+    if (!goal.shareUrl) {
+      goal.shareUrl = shareableData.shareUrl
+      await goal.save()
+    }
+
+    res.status(200).json({
+      success: true,
+      data: shareableData
+    })
+  } catch (error) {
+    next(error)
+  }
+};
+
+
+// @desc    Generate Open Graph image for goal sharing
+// @route   GET /api/v1/goals/:id/og-image
+// @access  Public
+const generateOGImage = async (req, res, next) => {
+  try {
+    const goal = await Goal.findById(req.params.id)
+      .populate('userId', 'name avatar')
+      .select('title category completed completedAt isShareable userId')
+
+    if (!goal) {
+      return res.status(404).json({
+        success: false,
+        message: 'Goal not found'
+      })
+    }
+
+    // Check if goal is shareable
+    if (!goal.isShareable || !goal.completed) {
+      return res.status(403).json({
+        success: false,
+        message: 'This goal is not shareable'
+      })
+    }
+
+    // Create canvas
+    const width = 1200
+    const height = 630
+    const canvas = createCanvas(width, height)
+    const ctx = canvas.getContext('2d')
+
+
+    // Custom roundRect function
+    const roundRect = (x, y, width, height, radius) => {
+      ctx.beginPath()
+      ctx.moveTo(x + radius, y)
+      ctx.lineTo(x + width - radius, y)
+      ctx.quadraticCurveTo(x + width, y, x + width, y + radius)
+      ctx.lineTo(x + width, y + height - radius)
+      ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height)
+      ctx.lineTo(x + radius, y + height)
+      ctx.quadraticCurveTo(x, y + height, x, y + height - radius)
+      ctx.lineTo(x, y + radius)
+      ctx.quadraticCurveTo(x, y, x + radius, y)
+      ctx.closePath()
+    }
+
+    // Background gradient
+    const gradient = ctx.createLinearGradient(0, 0, width, height)
+    gradient.addColorStop(0, '#667eea')
+    gradient.addColorStop(0.5, '#764ba2')
+    gradient.addColorStop(1, '#f093fb')
+    ctx.fillStyle = gradient
+    ctx.fillRect(0, 0, width, height)
+
+    // Add subtle pattern overlay
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.1)'
+    for (let i = 0; i < width; i += 40) {
+      for (let j = 0; j < height; j += 40) {
+        ctx.fillRect(i, j, 20, 20)
+      }
+    }
+
+    // Main content background
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.95)'
+    roundRect(60, 60, width - 120, height - 120, 20)
+    ctx.fill()
+
+    // Header section
+    ctx.fillStyle = '#2d3748'
+    ctx.font = 'bold 48px Arial'
+    ctx.textAlign = 'center'
+    ctx.fillText('🎉 Goal Achieved!', width / 2, 150)
+
+    // Goal title
+    ctx.fillStyle = '#1a202c'
+    ctx.font = 'bold 36px Arial'
+    ctx.textAlign = 'center'
+    
+    // Word wrap for long titles
+    const maxWidth = width - 200
+    const words = goal.title.split(' ')
+    let line = ''
+    let y = 220
+    
+    for (let n = 0; n < words.length; n++) {
+      const testLine = line + words[n] + ' '
+      const testWidth = ctx.measureText(testLine).width
+      if (testWidth > maxWidth && n > 0) {
+        ctx.fillText(`"${line}"`, width / 2, y)
+        line = words[n] + ' '
+        y += 45
+      } else {
+        line = testLine
+      }
+    }
+    ctx.fillText(`"${line}"`, width / 2, y)
+
+    // Category and completion info
+    ctx.fillStyle = '#4a5568'
+    ctx.font = '28px Arial'
+    ctx.textAlign = 'center'
+    
+    const categoryText = `${goal.category} • Completed ${new Date(goal.completedAt).toLocaleDateString()}`
+    ctx.fillText(categoryText, width / 2, y + 60)
+
+    // User info
+    ctx.fillStyle = '#2d3748'
+    ctx.font = 'bold 32px Arial'
+    ctx.textAlign = 'center'
+    ctx.fillText(`by ${goal.userId.name}`, width / 2, y + 120)
+
+    // Footer branding
+    ctx.fillStyle = '#667eea'
+    ctx.font = 'bold 24px Arial'
+    ctx.textAlign = 'center'
+    ctx.fillText('WishTrail - Transform your dreams into achievable goals', width / 2, height - 80)
+
+    // Trophy icon (simple drawing)
+    ctx.fillStyle = '#f6e05e'
+    ctx.beginPath()
+    ctx.arc(width / 2, y + 180, 30, 0, 2 * Math.PI)
+    ctx.fill()
+    
+    ctx.fillStyle = '#d69e2e'
+    ctx.fillRect(width / 2 - 15, y + 190, 30, 20)
+    
+    ctx.fillStyle = '#f6e05e'
+    ctx.fillRect(width / 2 - 10, y + 200, 20, 10)
+
+    // Set response headers
+    res.setHeader('Content-Type', 'image/png')
+    res.setHeader('Cache-Control', 'public, max-age=86400') // Cache for 1 day
+    
+    // Send image
+    const buffer = canvas.toBuffer('image/png')
+    res.send(buffer)
+  } catch (error) {
+    console.error('Error generating OG image:', error)
+    next(error)
+  }
+};
+
+
 module.exports = {
   getGoals,
   getGoal,
@@ -482,5 +711,7 @@ module.exports = {
   deleteGoal,
   toggleGoalCompletion,
   toggleGoalLike,
-  getYearlyGoalsSummary
+  getYearlyGoalsSummary,
+  getShareableGoal,
+  generateOGImage
 }; 

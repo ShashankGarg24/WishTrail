@@ -66,9 +66,12 @@ export const goalsAPI = {
   createGoal: (goalData) => api.post('/goals', goalData),
   updateGoal: (id, goalData) => api.put(`/goals/${id}`, goalData),
   deleteGoal: (id) => api.delete(`/goals/${id}`),
-  toggleGoalCompletion: (id, completionNote) => api.patch(`/goals/${id}/toggle`, { completionNote }),
+  toggleGoalCompletion: (id, completionNote, shareCompletionNote = true) => 
+    api.patch(`/goals/${id}/toggle`, { completionNote, shareCompletionNote }),
   likeGoal: (id) => api.patch(`/goals/${id}/like`),
   getYearlyGoals: (year, userId) => api.get(`/goals/yearly/${year}`, { params: { userId } }),
+  getShareableGoal: (id) => api.get(`/goals/${id}/share`),
+  getOGImageUrl: (id) => `${api.defaults.baseURL}/goals/${id}/og-image`,
 };
 
 // Users API

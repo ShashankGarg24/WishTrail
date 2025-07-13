@@ -68,8 +68,8 @@ const DashboardPage = () => {
     }
   }
 
-  const handleCompleteGoal = async (goalId, completionNote) => {
-    const result = await toggleGoalCompletion(goalId, completionNote)
+  const handleCompleteGoal = async (goalId, completionNote, shareCompletionNote = true) => {
+    const result = await toggleGoalCompletion(goalId, completionNote, shareCompletionNote)
     if (result.success) {
       // Refresh dashboard stats
       getDashboardStats()
