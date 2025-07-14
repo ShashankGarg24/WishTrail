@@ -16,12 +16,14 @@ const getRecentActivities = async (req, res, next) => {
     let activities;
     let fromCache = false;
 
+    console.log(type)
     if (type === 'personal') {
       activities = await cacheService.getPersonalActivities(req.user.id, cacheParams);
     } else {
+      console.log("fetch from redis")
       activities = await cacheService.getGlobalActivities(cacheParams);
     }
-    
+    console.log(activities)
     if (activities) {
       fromCache = true;
     } else {

@@ -168,8 +168,8 @@ const InspirationPage = () => {
             </div>
 
             <div className="space-y-4">
-              {displayActivities && displayActivities.length > 0 ? (
-                displayActivities.slice(0, 5).map((activity, index) => (
+              {displayActivities && displayActivities.activities && displayActivities.activities.length > 0 ? (
+                displayActivities.activities.slice(0, 5).map((activity, index) => (
                   <motion.div
                     key={activity._id}
                     initial={{ opacity: 0, y: 20 }}

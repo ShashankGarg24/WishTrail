@@ -88,6 +88,7 @@ class CacheService {
   // Global activities cache methods
   async getGlobalActivities(params = {}) {
     const key = this.generateKey(this.CACHE_KEYS.GLOBAL_ACTIVITIES, params);
+    console.log(key)
     return await this.get(key);
   }
 
