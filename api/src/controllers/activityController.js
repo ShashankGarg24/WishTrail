@@ -41,7 +41,7 @@ const getRecentActivities = async (req, res, next) => {
       });
     }
     
-    await redisClient.setEx(cacheKey, CACHE_TTL, JSON.stringify(activities));
+    await redisClient.setex(cacheKey, CACHE_TTL, JSON.stringify(activities));
 
     res.status(200).json({
       success: true,
