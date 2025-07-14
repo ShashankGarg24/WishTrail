@@ -41,7 +41,7 @@ class CacheService {
   async get(key) {
     try {
       const cached = await redisClient.get(key);
-      return cached ? JSON.parse(cached) : null;
+      return cached || null;
     } catch (error) {
       console.error('Cache get error:', error);
       return null;
@@ -52,7 +52,8 @@ class CacheService {
   async set(key, data, ttl = this.CACHE_TTL.DEFAULT) {
     try {
       const safeData = JSON.parse(JSON.stringify(data));
-      await redisClient.setex(key, ttl, JSON.stringify(safeData));
+      // Upstash Redis handles JSON serialization automatically
+      await redisClient.setex(key, ttl, data);
       return true;
     } catch (error) {
       console.error('Cache set error:', error);
