@@ -64,22 +64,23 @@ const getRecentActivities = async (req, res, next) => {
         await cacheService.setPersonalActivities(req.user.id, activities, cacheParams);
       } else {
         // Global activities
-        const totalActivities = await Activity.countDocuments({
-          isActive: true,
-          isPublic: true
-        });
+        const filter = {
+        isActive: true,
+        isPublic: true,
+        type: { $in: ['goal_completed', 'goal_created', 'level_up', 'streak_milestone', 'achievement_earned'] }
+      };
 
-        const activityList = await Activity.find({
-          isActive: true,
-          isPublic: true
-        })
-        .sort({ createdAt: -1 })
-        .limit(parsedLimit)
-        .skip((parsedPage - 1) * parsedLimit)
-        .populate('userId', 'name avatar level')
-        .populate('data.goalId', 'title category')
-        .populate('data.targetUserId', 'name avatar')
-        .lean();
+      const [totalActivities, activityList] = await Promise.all([
+        Activity.countDocuments(filter),
+        Activity.find(filter)
+          .sort({ createdAt: -1 })
+          .limit(parsedLimit)
+          .skip((parsedPage - 1) * parsedLimit)
+          .populate('userId', 'name avatar level')
+          .populate('data.goalId', 'title category')
+          .populate('data.targetUserId', 'name avatar')
+          .lean()
+      ]);
 
         activities = {
           activities: activityList,
