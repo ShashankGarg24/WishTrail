@@ -8,17 +8,20 @@ class CacheService {
       TRENDING_ACTIVITIES: 'wishtrail:activities:trending',
       USER_ACTIVITIES: 'wishtrail:activities:user',
       ACTIVITY_FEED: 'wishtrail:activities:feed',
-      ACTIVITY_STATS: 'wishtrail:activities:stats'
+      ACTIVITY_STATS: 'wishtrail:activities:stats',
+      GLOBAL_LEADERBOARD: 'wishtrail:leaderboard:global',
+      CATEGORY_LEADERBOARD: 'wishtrail:leaderboard:category',
+      ACHIEVEMENT_LEADERBOARD: 'wishtrail:leaderboard:achievement',
+      FRIENDS_LEADERBOARD: 'wishtrail:leaderboard:friends',
+      LEADERBOARD_STATS: 'wishtrail:leaderboard:stats'
     };
     
     this.CACHE_TTL = {
       DEFAULT: 600,
-      GLOBAL_ACTIVITIES: 300, // 5 minutes
-      PERSONAL_ACTIVITIES: 180, // 3 minutes
-      TRENDING_ACTIVITIES: 600, // 10 minutes
-      USER_ACTIVITIES: 300, // 5 minutes
-      ACTIVITY_FEED: 180, // 3 minutes
-      ACTIVITY_STATS: 1800 // 30 minutes
+      THREE_MINUTES: 180, // 3 minutes
+      FIVE_MINUTES: 300, // 5 minutes
+      TEN_MINUTES: 600, // 10 minutes
+      THIRTY_MINUTES: 1800 // 30 minutes
     };
   }
 
@@ -33,7 +36,8 @@ class CacheService {
     if (params.type) keyParts.push(`type:${params.type}`);
     if (params.timeframe) keyParts.push(`timeframe:${params.timeframe}`);
     if (params.category) keyParts.push(`category:${params.category}`);
-    
+    if (params.rarity) keyParts.push(`rarity:${params.rarity}`);
+
     return keyParts.join(':');
   }
 
@@ -51,7 +55,6 @@ class CacheService {
   // Set data in cache
   async set(key, data, ttl = this.CACHE_TTL.DEFAULT) {
     try {
-      const safeData = JSON.parse(JSON.stringify(data));
       // Upstash Redis handles JSON serialization automatically
       await redisClient.setex(key, ttl, data);
       return true;
@@ -89,13 +92,12 @@ class CacheService {
   // Global activities cache methods
   async getGlobalActivities(params = {}) {
     const key = this.generateKey(this.CACHE_KEYS.GLOBAL_ACTIVITIES, params);
-    console.log(key)
     return await this.get(key);
   }
 
   async setGlobalActivities(data, params = {}) {
     const key = this.generateKey(this.CACHE_KEYS.GLOBAL_ACTIVITIES, params);
-    return await this.set(key, data, this.CACHE_TTL.GLOBAL_ACTIVITIES);
+    return await this.set(key, data, this.CACHE_TTL.TEN_MINUTES);
   }
 
   // Personal activities cache methods
@@ -106,7 +108,7 @@ class CacheService {
 
   async setPersonalActivities(userId, data, params = {}) {
     const key = this.generateKey(this.CACHE_KEYS.PERSONAL_ACTIVITIES, { userId, ...params });
-    return await this.set(key, data, this.CACHE_TTL.PERSONAL_ACTIVITIES);
+    return await this.set(key, data, this.CACHE_TTL.TEN_MINUTES);
   }
 
   // Trending activities cache methods
@@ -117,7 +119,7 @@ class CacheService {
 
   async setTrendingActivities(data, params = {}) {
     const key = this.generateKey(this.CACHE_KEYS.TRENDING_ACTIVITIES, params);
-    return await this.set(key, data, this.CACHE_TTL.TRENDING_ACTIVITIES);
+    return await this.set(key, data, this.CACHE_TTL.TEN_MINUTES);
   }
 
   // User activities cache methods
@@ -128,7 +130,7 @@ class CacheService {
 
   async setUserActivities(userId, data, params = {}) {
     const key = this.generateKey(this.CACHE_KEYS.USER_ACTIVITIES, { userId, ...params });
-    return await this.set(key, data, this.CACHE_TTL.USER_ACTIVITIES);
+    return await this.set(key, data, this.CACHE_TTL.TEN_MINUTES);
   }
 
   // Activity feed cache methods
@@ -139,7 +141,7 @@ class CacheService {
 
   async setActivityFeed(userId, data, params = {}) {
     const key = this.generateKey(this.CACHE_KEYS.ACTIVITY_FEED, { userId, ...params });
-    return await this.set(key, data, this.CACHE_TTL.ACTIVITY_FEED);
+    return await this.set(key, data, this.CACHE_TTL.TEN_MINUTES);
   }
 
   // Activity stats cache methods
@@ -154,7 +156,7 @@ class CacheService {
     const key = userId 
       ? this.generateKey(this.CACHE_KEYS.ACTIVITY_STATS, { userId })
       : this.CACHE_KEYS.ACTIVITY_STATS;
-    return await this.set(key, data, this.CACHE_TTL.ACTIVITY_STATS);
+    return await this.set(key, data, this.CACHE_TTL.TEN_MINUTES);
   }
 
   // Invalidate all activity caches
@@ -184,6 +186,72 @@ class CacheService {
       await this.deletePattern(pattern);
     }
   }
+
+
+  // Leaderboard cache methods
+  async getGlobalLeaderboard(params = {}) {
+    const key = this.generateKey(this.CACHE_KEYS.GLOBAL_LEADERBOARD, params);
+    return await this.get(key);
+  }
+
+  async setGlobalLeaderboard(data, params = {}) {
+    const key = this.generateKey(this.CACHE_KEYS.GLOBAL_LEADERBOARD, params);
+    return await this.set(key, data, this.CACHE_TTL.TEN_MINUTES);
+  }
+
+  async getCategoryLeaderboard(params = {}) {
+    const key = this.generateKey(this.CACHE_KEYS.CATEGORY_LEADERBOARD, params);
+    return await this.get(key);
+  }
+
+  async setCategoryLeaderboard(data, params = {}) {
+    const key = this.generateKey(this.CACHE_KEYS.CATEGORY_LEADERBOARD, params);
+    return await this.set(key, data, this.CACHE_TTL.TEN_MINUTES);
+  }
+
+  async getAchievementLeaderboard(params = {}) {
+    const key = this.generateKey(this.CACHE_KEYS.ACHIEVEMENT_LEADERBOARD, params);
+    return await this.get(key);
+  }
+
+  async setAchievementLeaderboard(data, params = {}) {
+    const key = this.generateKey(this.CACHE_KEYS.ACHIEVEMENT_LEADERBOARD, params);
+    return await this.set(key, data, this.CACHE_TTL.TEN_MINUTES);
+  }
+
+  async getFriendsLeaderboard(params = {}) {
+    const key = this.generateKey(this.CACHE_KEYS.FRIENDS_LEADERBOARD, params);
+    return await this.get(key);
+  }
+
+  async setFriendsLeaderboard(data, params = {}) {
+    const key = this.generateKey(this.CACHE_KEYS.FRIENDS_LEADERBOARD, params);
+    return await this.set(key, data, this.CACHE_TTL.FIVE_MINUTES);
+  }
+
+  async getLeaderboardStats() {
+    return await this.get(this.CACHE_KEYS.LEADERBOARD_STATS);
+  }
+
+  async setLeaderboardStats(data) {
+    return await this.set(this.CACHE_KEYS.LEADERBOARD_STATS, data, this.CACHE_TTL.THIRTY_MINUTES);
+  }
+
+  // Invalidate leaderboard caches
+  async invalidateAllLeaderboards() {
+    const patterns = [
+      `${this.CACHE_KEYS.GLOBAL_LEADERBOARD}*`,
+      `${this.CACHE_KEYS.CATEGORY_LEADERBOARD}*`,
+      `${this.CACHE_KEYS.ACHIEVEMENT_LEADERBOARD}*`,
+      `${this.CACHE_KEYS.FRIENDS_LEADERBOARD}*`,
+      `${this.CACHE_KEYS.LEADERBOARD_STATS}*`
+    ];
+
+    for (const pattern of patterns) {
+      await this.deletePattern(pattern);
+    }
+  }
+
 
   // Invalidate global caches (when new activity is created)
   async invalidateGlobalCaches() {

@@ -1,6 +1,6 @@
 const User = require('../models/User');
 const Goal = require('../models/Goal');
-const Achievement = require('../models/Achievement');
+const cacheService = require('../services/cacheService');
 const Follow = require('../models/Follow');
 
 // @desc    Get global leaderboard
@@ -12,6 +12,56 @@ const getGlobalLeaderboard = async (req, res, next) => {
     const parsedPage = parseInt(page);
     const parsedLimit = parseInt(limit);
 
+    // Create cache parameters (exclude user-specific data)
+    const cacheParams = {
+      type,
+      page: parsedPage,
+      limit: parsedLimit,
+      timeframe
+    };
+
+    // Try to get from cache first
+    let cachedData = await cacheService.getGlobalLeaderboard(cacheParams);
+    let fromCache = false;
+
+    if (cachedData) {
+      // We have cached data, but we need to add user-specific data
+      let leaderboard = cachedData.leaderboard;
+      
+      // Only compute isFollowing if user is logged in
+      if (req.user) {
+        leaderboard = await Promise.all(
+          leaderboard.map(async (user, index) => {
+            const isFollowing = await Follow.isFollowing(req.user.id, user._id);
+            return {
+              ...user,
+              isFollowing: user._id.toString() !== req.user.id ? isFollowing : null
+            };
+          })
+        );
+      }
+
+      let currentUserRank = null;
+      if (req.user) {
+        currentUserRank = await getUserRank(req.user.id, type, timeframe);
+      }
+
+      fromCache = true;
+      
+      return res.status(200).json({
+        success: true,
+        data: {
+          leaderboard,
+          pagination: cachedData.pagination,
+          currentUserRank,
+          type,
+          timeframe
+        },
+        fromCache
+      });
+    }
+
+    // Cache miss - fetch from database
     const sortFields = {
       points: 'totalPoints',
       goals: 'completedGoals',
@@ -110,26 +160,43 @@ const getGlobalLeaderboard = async (req, res, next) => {
 
     let leaderboard = await User.aggregate(pipeline);
 
-    // Only compute isFollowing if user is logged in
+        // Add rank to leaderboard (without user-specific data for caching)
+        const leaderboardWithRank = leaderboard.map((user, index) => ({
+          ...user,
+          rank: (parsedPage - 1) * parsedLimit + index + 1
+        }));
+    
+        const total = await User.countDocuments(matchStage);
+    
+        const pagination = {
+          page: parsedPage,
+          limit: parsedLimit,
+          total,
+          pages: Math.ceil(total / parsedLimit)
+        };
+    
+        // Cache the base data (without user-specific isFollowing)
+        const cacheableData = {
+          leaderboard: leaderboardWithRank,
+          pagination
+        };
+        
+        await cacheService.setGlobalLeaderboard(cacheableData, cacheParams);
+    
+    // Now add user-specific data for the response    
     if (req.user) {
       leaderboard = await Promise.all(
-        leaderboard.map(async (user, index) => {
+        leaderboardWithRank.map(async (user, index) => {
           const isFollowing = await Follow.isFollowing(req.user.id, user._id);
           return {
             ...user,
-            rank: (parsedPage - 1) * parsedLimit + index + 1,
             isFollowing: user._id.toString() !== req.user.id ? isFollowing : null
           };
         })
       );
     } else {
-      leaderboard = leaderboard.map((user, index) => ({
-        ...user,
-        rank: (parsedPage - 1) * parsedLimit + index + 1
-      }));
+      leaderboard = leaderboardWithRank;
     }
-
-    const total = await User.countDocuments(matchStage);
 
     let currentUserRank = null;
     if (req.user) {
@@ -140,16 +207,12 @@ const getGlobalLeaderboard = async (req, res, next) => {
       success: true,
       data: {
         leaderboard,
-        pagination: {
-          page: parsedPage,
-          limit: parsedLimit,
-          total,
-          pages: Math.ceil(total / parsedLimit)
-        },
+        pagination,
         currentUserRank,
         type,
         timeframe
-      }
+      },
+      fromCache
     });
   } catch (error) {
     next(error);
