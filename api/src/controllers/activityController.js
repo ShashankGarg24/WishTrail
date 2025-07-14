@@ -1,6 +1,7 @@
 const Activity = require('../models/Activity');
 const Like = require('../models/Like');
 const Follow = require('../models/Follow');
+const redisClient = require('../config/redis');
 
 const GLOBAL_ACTIVITY_KEY = "wishtrail:activity:global";
 const CACHE_TTL = 60; // in seconds
