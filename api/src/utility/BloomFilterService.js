@@ -1,10 +1,5 @@
 const { BloomFilter } = require('bloom-filters');
-const { Redis } = require('@upstash/redis');
-
-const redisClient = new Redis({
-  url: process.env.REDIS_URL,
-  token: process.env.REDIS_TOKEN,
-});
+const redisClient = require('../config/redis');
 
 const BLOOM_KEY = 'wishtrail:bloom:user-identifiers';
 

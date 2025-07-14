@@ -1,7 +1,9 @@
 const Activity = require('../models/Activity');
 const Like = require('../models/Like');
 const Follow = require('../models/Follow');
-const activityService = require('../services/activityService');
+
+const GLOBAL_ACTIVITY_KEY = "wishtrail:activity:global";
+const CACHE_TTL = 60; // in seconds
 
 // @desc    Get recent activities (global or personal)
 // @route   GET /api/v1/activities/recent
@@ -9,24 +11,41 @@ const activityService = require('../services/activityService');
 const getRecentActivities = async (req, res, next) => {
   try {
     const { page = 1, limit = 10, type = 'global' } = req.query;
-    
+    const parsedPage = parseInt(page);
+    const parsedLimit = parseInt(limit);
+
+    const cacheKey = type === 'personal'
+      ? `${PERSONAL_ACTIVITY_KEY_PREFIX}:${req.user.id}:page:${parsedPage}:limit:${parsedLimit}`
+      : `${GLOBAL_ACTIVITY_KEY}:page:${parsedPage}:limit:${parsedLimit}`;
+
+    const cached = await redisClient.get(cacheKey);
+    if (cached) {
+      return res.status(200).json({
+        success: true,
+        data: JSON.parse(cached),
+        fromCache: true
+      });
+    }
+
     let activities;
-    
     if (type === 'personal') {
       activities = await Activity.getUserActivities(req.user.id, {
-        page: parseInt(page),
-        limit: parseInt(limit)
+        page: parsedPage,
+        limit: parsedLimit
       });
     } else {
       activities = await Activity.getRecentActivities(null, {
-        page: parseInt(page),
-        limit: parseInt(limit)
+        page: parsedPage,
+        limit: parsedLimit
       });
     }
     
+    await redisClient.setEx(cacheKey, CACHE_TTL, JSON.stringify(activities));
+
     res.status(200).json({
       success: true,
-      data: activities
+      data: activities,
+      fromCache: false
     });
   } catch (error) {
     next(error);
