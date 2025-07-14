@@ -1,7 +1,9 @@
 import { motion } from 'framer-motion'
 import { Star, Youtube, Instagram, ExternalLink } from 'lucide-react'
+import useApiStore from '../store/apiStore'
 
 const Footer = () => {
+  const { isAuthenticated } = useApiStore()
   const currentYear = new Date().getFullYear()
   
   const socialLinks = [
@@ -48,18 +50,42 @@ const Footer = () => {
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
               Quick Links
             </h3>
-            <ul className="space-y-2">
-              {['Home', 'Dashboard', 'Inspiration', 'Profile'].map((link) => (
-                <li key={link}>
-                  <a
-                    href={`/${link.toLowerCase() === 'home' ? '' : link.toLowerCase()}`}
-                    className="text-gray-600 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors"
-                  >
-                    {link}
-                  </a>
-                </li>
-              ))}
-            </ul>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div>
+              <ul className="space-y-2">
+                {['Home', 'Inspiration', 'Explore', 'Leaderboard', 'Blog'].map((link) => {
+                  const lowerLink = link.toLowerCase();
+                  const isHiddenForAuth = !isAuthenticated && ['Explore', 'Leaderboard'].includes(link);
+                  if (isHiddenForAuth) return null;
+
+                  return (
+                    <li key={link}>
+                      <a
+                        href={`/${lowerLink === 'home' ? '' : lowerLink}`}
+                        className="text-gray-600 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors"
+                      >
+                        {link}
+                      </a>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+              {isAuthenticated && <div>
+                <ul className="space-y-2">
+                  {['Profile', 'Dashboard', 'Settings'].map((link) => (
+                    <li key={link}>
+                      <a
+                        href={`/${link.toLowerCase()}`}
+                        className="text-gray-600 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors"
+                      >
+                        {link}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>}
+            </div>
           </div>
 
           {/* Social Links */}
