@@ -1,10 +1,7 @@
 const Activity = require('../models/Activity');
 const Like = require('../models/Like');
 const Follow = require('../models/Follow');
-const redisClient = require('../config/redis');
-
-const GLOBAL_ACTIVITY_KEY = "wishtrail:activity:global";
-const CACHE_TTL = 60; // in seconds
+const cacheService = require('../services/cacheService');
 
 // @desc    Get recent activities (global or personal)
 // @route   GET /api/v1/activities/recent
@@ -14,40 +11,95 @@ const getRecentActivities = async (req, res, next) => {
     const { page = 1, limit = 10, type = 'global' } = req.query;
     const parsedPage = parseInt(page);
     const parsedLimit = parseInt(limit);
-
-    const cacheKey = type === 'personal'
-      ? `${PERSONAL_ACTIVITY_KEY_PREFIX}:${req.user.id}:page:${parsedPage}:limit:${parsedLimit}`
-      : `${GLOBAL_ACTIVITY_KEY}:page:${parsedPage}:limit:${parsedLimit}`;
-
-    const cached = await redisClient.get(cacheKey);
-    if (cached) {
-      return res.status(200).json({
-        success: true,
-        data: JSON.parse(cached),
-        fromCache: true
-      });
-    }
+    const cacheParams = { page: parsedPage, limit: parsedLimit, type };
 
     let activities;
+    let fromCache = false;
+
     if (type === 'personal') {
-      activities = await Activity.getUserActivities(req.user.id, {
-        page: parsedPage,
-        limit: parsedLimit
-      });
+      activities = await cacheService.getPersonalActivities(req.user.id, cacheParams);
     } else {
-      activities = await Activity.getRecentActivities(null, {
-        page: parsedPage,
-        limit: parsedLimit
-      });
+      activities = await cacheService.getGlobalActivities(cacheParams);
     }
     
-    const safeActivities = JSON.parse(JSON.stringify(activities));
-    await redisClient.setex(cacheKey, CACHE_TTL, JSON.stringify(safeActivities));
+    if (activities) {
+      fromCache = true;
+    } else {
+      // Fetch from database
+      if (type === 'personal') {
+        // Get activities from users the current user follows
+        const followingIds = await Follow.getFollowingIds(req.user.id);
+        followingIds.push(req.user.id); // Include own activities
+        
+        const totalActivities = await Activity.countDocuments({
+          userId: { $in: followingIds },
+          isActive: true,
+          isPublic: true
+        });
+
+        const activityList = await Activity.find({
+          userId: { $in: followingIds },
+          isActive: true,
+          isPublic: true
+        })
+        .sort({ createdAt: -1 })
+        .limit(parsedLimit)
+        .skip((parsedPage - 1) * parsedLimit)
+        .populate('userId', 'name avatar level')
+        .populate('data.goalId', 'title category')
+        .populate('data.targetUserId', 'name avatar')
+        .lean();
+
+        activities = {
+          activities: activityList,
+          pagination: {
+            page: parsedPage,
+            limit: parsedLimit,
+            total: totalActivities,
+            pages: Math.ceil(totalActivities / parsedLimit)
+          }
+        };
+
+        // Cache the result
+        await cacheService.setPersonalActivities(req.user.id, activities, cacheParams);
+      } else {
+        // Global activities
+        const totalActivities = await Activity.countDocuments({
+          isActive: true,
+          isPublic: true
+        });
+
+        const activityList = await Activity.find({
+          isActive: true,
+          isPublic: true
+        })
+        .sort({ createdAt: -1 })
+        .limit(parsedLimit)
+        .skip((parsedPage - 1) * parsedLimit)
+        .populate('userId', 'name avatar level')
+        .populate('data.goalId', 'title category')
+        .populate('data.targetUserId', 'name avatar')
+        .lean();
+
+        activities = {
+          activities: activityList,
+          pagination: {
+            page: parsedPage,
+            limit: parsedLimit,
+            total: totalActivities,
+            pages: Math.ceil(totalActivities / parsedLimit)
+          }
+        };
+
+        // Cache the result
+        await cacheService.setGlobalActivities(activities, cacheParams);
+      }
+    }
 
     res.status(200).json({
       success: true,
       data: activities,
-      fromCache: false
+      fromCache
     });
   } catch (error) {
     next(error);
