@@ -49,12 +49,14 @@ const goalSchema = new mongoose.Schema({
   // Time Management
   targetDate: {
     type: Date,
-    required: [true, 'Target date is required'],
     validate: {
       validator: function(v) {
-        return v > new Date();
+        // If targetDate is provided, it must be in the future
+        if (v) {
+          return v > new Date();
+        }
+        return true; // Allow null/undefined values
       },
-      message: 'Target date must be in the future'
     }
   },
   year: {
