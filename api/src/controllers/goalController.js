@@ -143,7 +143,7 @@ const createGoal = async (req, res, next) => {
     });
     
     const currentUser = (await User.findById(req.user.id).select('name avatar'));
-    currentUser.increaseTotalGoals()
+    await currentUser.increaseTotalGoals();
 
     // Create activity
     await Activity.createActivity(
@@ -255,7 +255,7 @@ const deleteGoal = async (req, res, next) => {
     
     await Goal.findByIdAndDelete(req.params.id);
     const currentUser = (await User.findById(req.user.id));
-    currentUser.decreaseTotalGoals();
+    await currentUser.decreaseTotalGoals();
 
     res.status(200).json({
       success: true,
