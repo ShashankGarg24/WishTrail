@@ -5,7 +5,6 @@ import {
   TrendingUp, 
   Star, 
   Trophy, 
-  Target, 
   CheckCircle,
   Flame,
   Calendar,
@@ -92,10 +91,9 @@ const InspirationPage = () => {
   };
 
   const getRankIcon = (rank) => {
-    if (rank === 1) return '🏆';
-    if (rank === 2) return '⭐';
-    if (rank === 3) return '🔥';
-    return '⚡';
+    if (rank === 1) return '🥇';
+    if (rank === 2) return '🥈';
+    if (rank === 3) return '🥉';
   };
 
   const calculateStreak = (user) => {
@@ -316,8 +314,12 @@ const InspirationPage = () => {
                         
                         <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
                           <div className="flex items-center space-x-1">
-                            <Target className="h-4 w-4" />
+                            <CheckCircle className="h-4 w-4" />
                             <span>{user.completedGoals || 0} goals</span>
+                          </div>
+                          <div className="flex items-center space-x-1">
+                            <Star className="h-4 w-4" />
+                            <span>{user.totalPoints || 0} points</span>
                           </div>
                           <div className="flex items-center space-x-1">
                             <Calendar className="h-4 w-4" />

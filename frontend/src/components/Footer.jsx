@@ -73,7 +73,7 @@ const Footer = () => {
             </div>
               {isAuthenticated && <div>
                 <ul className="space-y-2">
-                  {['Profile', 'Dashboard', 'Settings'].map((link) => (
+                  {['Profile', 'Dashboard'].map((link) => (
                     <li key={link}>
                       <a
                         href={`/${link.toLowerCase()}`}
