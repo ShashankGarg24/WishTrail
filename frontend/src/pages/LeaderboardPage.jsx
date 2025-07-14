@@ -16,7 +16,8 @@ import {
   ChevronUp,
   ChevronDown,
   UserPlus,
-  UserCheck
+  UserCheck,
+  Clock
 } from 'lucide-react';
 import useApiStore from '../store/apiStore';
 
@@ -192,7 +193,7 @@ const LeaderboardPage = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="text-center mb-12"
+          className="text-center mb-8"
         >
           <div className="flex items-center justify-center mb-4">
             <div className="bg-gradient-to-r from-yellow-400 to-orange-500 p-3 rounded-full mr-4">
@@ -206,7 +207,24 @@ const LeaderboardPage = () => {
             Compete with others and climb to the top
           </p>
         </motion.div>
-
+        {/* Data Refresh Notice */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="mb-8"
+        >
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 max-w-4xl mx-auto">
+            <div className="flex items-center justify-center space-x-2 text-blue-700 dark:text-blue-300">
+              <div className="flex items-center space-x-1 text-blue-600 dark:text-blue-400">
+                <Clock className="h-4 w-4" />
+                <span className="text-xs">
+                  Updated every 10 minutes. You may be viewing slightly outdated information.
+                </span>
+              </div>
+            </div>
+          </div>
+        </motion.div>
         {/* Tabs */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
