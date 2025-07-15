@@ -223,10 +223,10 @@ const InspirationPage = () => {
                       
                       <div className="flex items-center space-x-4 text-xs text-gray-500 dark:text-gray-400">
                         <span>{formatTimeAgo(activity.createdAt)}</span>
-                        <div className="flex items-center space-x-1">
+                        {/* <div className="flex items-center space-x-1">
                           <Flame className="h-3 w-3 text-orange-500" />
                           <span>{calculateStreak(activity.user || {})} day streak</span>
-                        </div>
+                        </div> */}
                       </div>
                     </div>
                   </motion.div>
@@ -321,10 +321,10 @@ const InspirationPage = () => {
                             <Star className="h-4 w-4" />
                             <span>{user.totalPoints || 0} points</span>
                           </div>
-                          <div className="flex items-center space-x-1">
+                          {/* <div className="flex items-center space-x-1">
                             <Calendar className="h-4 w-4" />
                             <span>{calculateStreak(user || {})} days</span>
-                          </div>
+                          </div> */}
                         </div>
                       </div>
                     </motion.div>

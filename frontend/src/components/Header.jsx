@@ -24,8 +24,6 @@ const Header = () => {
     : []),
   ]
 
-  const blogUrl = 'https://blooggerr.netlify.app/'
-
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
@@ -92,16 +90,6 @@ const Header = () => {
                   )}
                 </Link>
               ))}
-              
-              {/* Blog Link */}
-              <a
-                href={blogUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-primary-600 dark:text-gray-300 dark:hover:text-primary-400 transition-colors"
-              >
-                Blog
-              </a>
             </nav>
           {/* Right side */}
             <div className="flex items-center space-x-4">
@@ -181,15 +169,6 @@ const Header = () => {
                         {item.name}
                       </Link>
                     ))}
-                    
-                    <a
-                      href={blogUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center px-3 py-2 text-base font-medium text-gray-700 hover:text-primary-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:text-primary-400 dark:hover:bg-gray-800 rounded-lg transition-colors"
-                    >
-                      Blog
-                    </a>
                   </div>
                  {/* User Menu */}
                   {isAuthenticated ? (
