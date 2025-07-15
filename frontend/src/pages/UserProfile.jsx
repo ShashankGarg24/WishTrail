@@ -13,7 +13,6 @@ import {
   MessageCircle, 
   UserPlus, 
   UserCheck,
-  Activity,
   Trophy,
   CheckCircle,
   Clock,
@@ -30,7 +29,6 @@ const UserProfile = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [profileUser, setProfileUser] = useState(null);
   const [userStats, setUserStats] = useState(null);
-  const [userActivities, setUserActivities] = useState([]);
   const [userGoals, setUserGoals] = useState([]);
   const [isFollowing, setIsFollowing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -40,12 +38,9 @@ const UserProfile = () => {
     user: currentUser, 
     isAuthenticated,
     getUser,
-    getUserActivities,
     getUserGoals,
     followUser,
     unfollowUser,
-    likeActivity,
-    unlikeActivity
   } = useApiStore();
 
   const isProfileAccessible = () => {
@@ -75,13 +70,6 @@ const UserProfile = () => {
       }
 
       if (isProfileAccessible()) {
-        // Fetch user activities
-        const activitiesResult = await getUserActivities(userId, { limit: 20 });
-        if (activitiesResult.success) {
-          const activities = activitiesResult.activities;
-          setUserActivities(Array.isArray(activities) ? activities : []);
-        }
-
         // Fetch user goals
         const goalsResult = await getUserGoals(userId, { limit: 10 });
         if (goalsResult.success) {
@@ -121,32 +109,6 @@ const UserProfile = () => {
       }
     } catch (error) {
       console.error('Error unfollowing user:', error);
-    }
-  };
-
-  const handleLike = async (activityId) => {
-    try {
-      await likeActivity(activityId);
-      setUserActivities(userActivities.map(activity => 
-        activity._id === activityId 
-          ? { ...activity, isLiked: true, likesCount: (activity.likesCount || 0) + 1 }
-          : activity
-      ));
-    } catch (error) {
-      console.error('Error liking activity:', error);
-    }
-  };
-
-  const handleUnlike = async (activityId) => {
-    try {
-      await unlikeActivity(activityId);
-      setUserActivities(userActivities.map(activity => 
-        activity._id === activityId 
-          ? { ...activity, isLiked: false, likesCount: Math.max((activity.likesCount || 0) - 1, 0) }
-          : activity
-      ));
-    } catch (error) {
-      console.error('Error unliking activity:', error);
     }
   };
 
@@ -377,15 +339,15 @@ const UserProfile = () => {
                     <span className="font-medium">Overview</span>
                   </button>
                   <button
-                    onClick={() => setActiveTab('activities')}
+                    onClick={() => setActiveTab('goals')}
                     className={`flex items-center space-x-2 px-6 py-3 rounded-xl transition-all duration-200 ${
-                      activeTab === 'activities'
+                      activeTab === 'goals'
                         ? 'bg-blue-500 text-white shadow-lg'
                         : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700/50'
                     }`}
                   >
-                    <Activity className="h-5 w-5" />
-                    <span className="font-medium">Activities</span>
+                    <Target className="h-5 w-5" />
+                    <span className="font-medium">Goals</span>
                   </button>
                 </div>
             </motion.div>

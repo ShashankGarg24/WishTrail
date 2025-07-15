@@ -27,7 +27,7 @@ const ProfilePage = () => {
     try {
       const result = await getGoals({});
       if (result.success) {
-        setUserGoals(result.data.goals || []);
+        setUserGoals(result.goals || []);
       }
     } catch (error) {
       console.error('Error fetching goals:', error);
@@ -400,11 +400,6 @@ const ProfilePage = () => {
                     
                     <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
                       <span>Created {formatTimeAgo(goal.createdAt)}</span>
-                      {goal.completed ? (
-                        <span className="text-green-600 dark:text-green-400 font-medium">✓ Completed</span>
-                      ) : (
-                        <span className="text-blue-600 dark:text-blue-400 font-medium">In Progress</span>
-                      )}
                     </div>
 
                     {goal.completed && goal.completedAt && (
