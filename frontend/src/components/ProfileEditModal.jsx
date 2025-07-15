@@ -1,7 +1,32 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, User, Mail, MapPin, Globe, Youtube, Instagram, Camera, Save, ExternalLink } from 'lucide-react'
+import { X, User, Mail, MapPin, Globe, Youtube, Instagram, Camera, Save, ExternalLink, Heart } from 'lucide-react'
 import useApiStore from '../store/apiStore'
+
+const INTERESTS_OPTIONS = [
+  { id: 'fitness', label: 'Fitness', icon: '💪' },
+  { id: 'health', label: 'Health', icon: '🏥' },
+  { id: 'travel', label: 'Travel', icon: '✈️' },
+  { id: 'education', label: 'Education', icon: '📚' },
+  { id: 'career', label: 'Career', icon: '💼' },
+  { id: 'finance', label: 'Finance', icon: '💰' },
+  { id: 'hobbies', label: 'Hobbies', icon: '🎨' },
+  { id: 'relationships', label: 'Relationships', icon: '❤️' },
+  { id: 'personal_growth', label: 'Personal Growth', icon: '🌱' },
+  { id: 'creativity', label: 'Creativity', icon: '🎭' },
+  { id: 'technology', label: 'Technology', icon: '💻' },
+  { id: 'business', label: 'Business', icon: '📈' },
+  { id: 'lifestyle', label: 'Lifestyle', icon: '🏡' },
+  { id: 'spirituality', label: 'Spirituality', icon: '🕯️' },
+  { id: 'sports', label: 'Sports', icon: '⚽' },
+  { id: 'music', label: 'Music', icon: '🎵' },
+  { id: 'art', label: 'Art', icon: '🎨' },
+  { id: 'reading', label: 'Reading', icon: '📖' },
+  { id: 'cooking', label: 'Cooking', icon: '👨‍🍳' },
+  { id: 'gaming', label: 'Gaming', icon: '🎮' },
+  { id: 'nature', label: 'Nature', icon: '🌿' },
+  { id: 'volunteering', label: 'Volunteering', icon: '🤝' }
+];
 
 const ProfileEditModal = ({ isOpen, onClose }) => {
   const { user, updateProfile, loading, locationSuggestions, searchCitySuggestions} = useApiStore()
@@ -13,7 +38,8 @@ const ProfileEditModal = ({ isOpen, onClose }) => {
     website: user?.website || '',
     youtube: user?.youtube || '',
     instagram: user?.instagram || '',
-    avatar: user?.avatar || ''
+    avatar: user?.avatar || '',
+    interests: user?.interests || []
   })
 
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -30,7 +56,8 @@ const ProfileEditModal = ({ isOpen, onClose }) => {
         website: user.website || '',
         youtube: user.youtube || '',
         instagram: user.instagram || '',
-        avatar: user.avatar || ''
+        avatar: user.avatar || '',
+        interests: user.interests || []
       })
     }
   }, [isOpen, user])
@@ -68,6 +95,15 @@ const ProfileEditModal = ({ isOpen, onClose }) => {
     }
   }
 
+  const handleInterestToggle = (interestId) => {
+    setFormData(prev => ({
+      ...prev,
+      interests: prev.interests.includes(interestId)
+        ? prev.interests.filter(id => id !== interestId)
+        : [...prev.interests, interestId]
+    }));
+  };
+
   const handleCancel = () => {
     // Reset form data to original values
     setFormData({
@@ -78,7 +114,8 @@ const ProfileEditModal = ({ isOpen, onClose }) => {
       website: user?.website || '',
       youtube: user?.youtube || '',
       instagram: user?.instagram || '',
-      avatar: user?.avatar || ''
+      avatar: user?.avatar || '',
+      interests: user?.interests || []
     })
     onClose()
   }
@@ -129,7 +166,7 @@ const ProfileEditModal = ({ isOpen, onClose }) => {
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-2xl border border-gray-200 dark:border-gray-700"
+          className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-2xl border border-gray-200 dark:border-gray-700"
         >
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
@@ -226,45 +263,82 @@ const ProfileEditModal = ({ isOpen, onClose }) => {
                 placeholder="Tell us about yourself..."
               />
             </div>
+            {/* Location */}
+            <div>
+              <label htmlFor="location" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Location
+              </label>
+              <div className="relative">
+                <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <input
+                  id="location"
+                  name="location"
+                  type="text"
+                  value={formData.location}
+                  onChange={handleLocationInputChange}
+                  autoComplete="off"
+                  onFocus={() => setShowSuggestions(true)}
+                  onBlur={() => setTimeout(() => setShowSuggestions(false), 100)} // delay for click
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+                  placeholder="Enter your city"
+                />
+                {/* Autocomplete dropdown */}
+                {showSuggestions && Array.isArray(locationSuggestions) && locationSuggestions.length > 0 && (
+                  
+                <ul className="absolute z-10 mt-1 w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-60 overflow-y-auto text-sm text-gray-900 dark:text-white">
+                  {locationSuggestions.map((place) => (
+                    <li
+                      key={place.place_id}
+                      onClick={() => {
+                        const formatted = formatLocation(place);
+                        setFormData((prev) => ({
+                          ...prev,
+                          location: formatted
+                        }));
+                        setLocationQuery(formatted);
+                        setShowSuggestions(false);
+                      }}
+                      className="px-4 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                    >
+                      {formatLocation(place)}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              </div>
+            </div>
 
-            <div className="relative">
-              <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-              <input
-                id="location"
-                name="location"
-                type="text"
-                value={formData.location}
-                onChange={handleLocationInputChange}
-                autoComplete="off"
-                onFocus={() => setShowSuggestions(true)}
-                onBlur={() => setTimeout(() => setShowSuggestions(false), 100)} // delay for click
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
-                placeholder="Enter your city"
-              />
-
-              {/* Autocomplete dropdown */}
-              {showSuggestions && Array.isArray(locationSuggestions) && locationSuggestions.length > 0 && (
-                
-              <ul className="absolute z-10 mt-1 w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-60 overflow-y-auto text-sm text-gray-900 dark:text-white">
-                {locationSuggestions.map((place) => (
-                  <li
-                    key={place.place_id}
-                    onClick={() => {
-                      const formatted = formatLocation(place);
-                      setFormData((prev) => ({
-                        ...prev,
-                        location: formatted
-                      }));
-                      setLocationQuery(formatted);
-                      setShowSuggestions(false);
-                    }}
-                    className="px-4 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+            {/* Interests */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
+                <Heart className="inline-block h-4 w-4 mr-2 text-pink-600 dark:text-pink-400" />
+                Your Interests
+              </label>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                Choose interests that represent you. Others can see these on your profile.
+              </p>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 max-h-64 overflow-y-auto p-4 border border-gray-200 dark:border-gray-600 rounded-lg">
+                {INTERESTS_OPTIONS.map(interest => (
+                  <button
+                    key={interest.id}
+                    type="button"
+                    onClick={() => handleInterestToggle(interest.id)}
+                    className={`p-3 rounded-lg border-2 transition-all hover:scale-105 ${
+                      formData.interests.includes(interest.id)
+                        ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300'
+                        : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 text-gray-700 dark:text-gray-300'
+                    }`}
                   >
-                    {formatLocation(place)}
-                  </li>
+                    <div className="text-center">
+                      <div className="text-xl mb-1">{interest.icon}</div>
+                      <div className="text-xs font-medium">{interest.label}</div>
+                    </div>
+                  </button>
                 ))}
-              </ul>
-            )}
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                Selected: {formData.interests.length} interests
+              </p>
             </div>
 
             {/* Social Links */}
@@ -342,13 +416,13 @@ const ProfileEditModal = ({ isOpen, onClose }) => {
               </button>
               <button
                 type="submit"
-                className="flex-1 py-3 px-4 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="flex-1 py-3 px-4 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
                 disabled={loading}
               >
                 {loading ? (
                   <>
                     <div className="inline-block animate-spin mr-2">
-                      <Save className="h-4 w-4" />
+                      <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
                     </div>
                     Saving...
                   </>

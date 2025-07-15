@@ -19,7 +19,8 @@ import {
   Clock,
   ArrowLeft,
   Star,
-  Lock
+  Lock,
+  Circle
 } from 'lucide-react';
 import useApiStore from '../store/apiStore';
 
@@ -278,28 +279,8 @@ const UserProfile = () => {
                 </div>
               )}
 
-              {/* Stats - Always show followers/following even for private profiles */}
+              {/* Only show followers/following for all profiles */}
               <div className="flex flex-wrap gap-6 mb-6">
-                {isProfileAccessible() && (
-                  <>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-gray-900 dark:text-white">{userStats?.totalGoals || 0}</div>
-                      <div className="text-gray-600 dark:text-gray-400 text-sm">Goals</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-green-600 dark:text-green-400">{userStats?.completedGoals || 0}</div>
-                      <div className="text-gray-600 dark:text-gray-400 text-sm">Completed</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">{userStats?.currentStreak || 0}</div>
-                      <div className="text-gray-600 dark:text-gray-400 text-sm">Day Streak</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{userStats?.totalPoints || 0}</div>
-                      <div className="text-gray-600 dark:text-gray-400 text-sm">Points</div>
-                    </div>
-                  </>
-                )}
                 <div className="text-center">
                   <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">{userStats?.followers || 0}</div>
                   <div className="text-gray-600 dark:text-gray-400 text-sm">Followers</div>
@@ -406,17 +387,6 @@ const UserProfile = () => {
                     <Activity className="h-5 w-5" />
                     <span className="font-medium">Activities</span>
                   </button>
-                  <button
-                    onClick={() => setActiveTab('goals')}
-                    className={`flex items-center space-x-2 px-6 py-3 rounded-xl transition-all duration-200 ${
-                      activeTab === 'goals'
-                        ? 'bg-blue-500 text-white shadow-lg'
-                        : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700/50'
-                    }`}
-                  >
-                    <Target className="h-5 w-5" />
-                    <span className="font-medium">Goals</span>
-                  </button>
                 </div>
             </motion.div>
             <motion.div
@@ -426,134 +396,111 @@ const UserProfile = () => {
             >
               {activeTab === 'overview' && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  {/* Recent Activities */}
+                  {/* User Stats */}
                   <div className="bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50">
                     <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6 flex items-center">
-                      <Activity className="h-6 w-6 mr-2 text-green-600 dark:text-green-400" />
-                      Recent Activities
+                      <Trophy className="h-6 w-6 mr-2 text-yellow-600 dark:text-yellow-400" />
+                      Statistics
                     </h3>
-                    <div className="space-y-4">
-                      {userActivities.slice(0, 5).map((activity, index) => (
-                        <div key={activity._id} className="flex items-start space-x-3 p-3 bg-gray-50 dark:bg-gray-700/30 rounded-xl">
-                          <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
-                          <div className="flex-1">
-                            <p className="text-gray-700 dark:text-gray-300 text-sm">
-                              {getActivityText(activity)}
-                            </p>
-                            <p className="text-gray-500 dark:text-gray-500 text-xs mt-1">
-                              {formatTimeAgo(activity.createdAt)}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                      {userActivities.length === 0 && (
-                        <p className="text-gray-500 dark:text-gray-400 text-center py-8">No recent activities</p>
-                      )}
+{isProfileAccessible() ? (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="text-center p-4 bg-gray-50 dark:bg-gray-700/30 rounded-xl">
+                        <div className="text-2xl font-bold text-gray-900 dark:text-white">{userStats?.totalGoals || 0}</div>
+                        <div className="text-gray-600 dark:text-gray-400 text-sm">Total Goals</div>
+                      </div>
+                      <div className="text-center p-4 bg-gray-50 dark:bg-gray-700/30 rounded-xl">
+                        <div className="text-2xl font-bold text-green-600 dark:text-green-400">{userStats?.completedGoals || 0}</div>
+                        <div className="text-gray-600 dark:text-gray-400 text-sm">Completed</div>
+                      </div>
+                      <div className="text-center p-4 bg-gray-50 dark:bg-gray-700/30 rounded-xl">
+                        <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">{userStats?.currentStreak || 0}</div>
+                        <div className="text-gray-600 dark:text-gray-400 text-sm">Day Streak</div>
+                      </div>
+                      <div className="text-center p-4 bg-gray-50 dark:bg-gray-700/30 rounded-xl">
+                        <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{userStats?.totalPoints || 0}</div>
+                        <div className="text-gray-600 dark:text-gray-400 text-sm">Points</div>
+                      </div>
                     </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <div className="bg-gray-100 dark:bg-gray-700/50 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                        <Lock className="h-8 w-8 text-gray-600 dark:text-gray-400" />
+                      </div>
+                      <p className="text-gray-500 dark:text-gray-400">Statistics are private</p>
+                    </div>
+                  )}
                   </div>
-                {/* Recent Goals */}
+                  {/* User Interests */}
                   <div className="bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50">
                     <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6 flex items-center">
-                      <Target className="h-6 w-6 mr-2 text-blue-600 dark:text-blue-400" />
-                      Recent Goals
+                      <Heart className="h-6 w-6 mr-2 text-pink-600 dark:text-pink-400" />
+                      Interests
                     </h3>
-                    <div className="space-y-4">
-                      {userGoals.slice(0, 5).map((goal, index) => (
-                        <div key={goal._id} className="p-4 bg-gray-50 dark:bg-gray-700/30 rounded-xl">
-                          <div className="flex items-center justify-between mb-2">
-                            <h4 className="font-medium text-gray-900 dark:text-white">{goal.title}</h4>
-                            {goal.completed && <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />}
-                          </div>
-                          <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-400">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium text-white ${getCategoryColor(goal.category)}`}>
-                              {goal.category}
+                    {isProfileAccessible() ? (
+                      profileUser.interests && profileUser.interests.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {profileUser.interests.map((interest, index) => (
+                            <span 
+                              key={index}
+                              className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded-full text-sm font-medium"
+                            >
+                              {interest.charAt(0).toUpperCase() + interest.slice(1).replace('_', ' ')}
                             </span>
-                            <span>{formatTimeAgo(goal.createdAt)}</span>
-                          </div>
+                          ))}
                         </div>
-                      ))}
-                      {userGoals.length === 0 && (
-                        <p className="text-gray-500 dark:text-gray-400 text-center py-8">No goals yet</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-            {activeTab === 'activities' && (
-                <div className="bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50">
-                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center">
-                    <Activity className="h-6 w-6 mr-2 text-green-600 dark:text-green-400" />
-                    All Activities
-                  </h3>
-                  <div className="space-y-4">
-                    {userActivities.map((activity, index) => (
-                      <motion.div
-                        key={activity._id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.5, delay: 0.1 * index }}
-                        className="bg-gray-50 dark:bg-gray-700/30 rounded-xl p-6 border border-gray-200 dark:border-gray-600/30 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-all duration-200"
-                      >
-                        <div className="flex items-start space-x-4">
-                          <div className="relative">
-                            <img
-                              src={profileUser.avatar || '/api/placeholder/48/48'}
-                              alt={profileUser.name}
-                              className="w-12 h-12 rounded-full border-2 border-gray-300 dark:border-gray-500"
-                            />
-                          </div>
-                          
-                          <div className="flex-1">
-                            <div className="flex items-center space-x-2 mb-2">
-                              <span className="font-semibold text-gray-900 dark:text-white">
-                                {profileUser.name}
-                              </span>
-                              <span className="text-gray-600 dark:text-gray-400 text-sm">
-                                {getActivityText(activity)}
-                              </span>
-                              <span className="text-gray-500 dark:text-gray-500 text-sm">
-                                {formatTimeAgo(activity.createdAt)}
-                              </span>
-                            </div>
-                            
-                            {(activity.type === 'goal_completed' || activity.type === 'goal_created') && (
-                              <div className="bg-gray-100 dark:bg-gray-600/30 rounded-xl p-4 mb-3">
-                                <h4 className="font-medium text-gray-900 dark:text-white mb-2">
-                                  {activity.data?.goalTitle || 'Goal Achievement'}
-                                </h4>
-                                {activity.data?.category && (
-                                  <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium text-white ${getCategoryColor(activity.data.category)}`}>
-                                    {activity.data.category}
-                                  </span>
-                                )}
-                              </div>
-                            )}
-                            
-                            {isAuthenticated && (
-                              <div className="flex items-center space-x-6">
-                                <button
-                                  onClick={() => activity.isLiked ? handleUnlike(activity._id) : handleLike(activity._id)}
-                                  className={`flex items-center space-x-2 px-3 py-1 rounded-lg transition-colors duration-200 ${
-                                    activity.isLiked 
-                                      ? 'bg-red-500/20 text-red-500' 
-                                      : 'bg-gray-200 dark:bg-gray-700/50 text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600/50 hover:text-red-500'
-                                  }`}
-                                >
-                                  <Heart className={`h-4 w-4 ${activity.isLiked ? 'fill-current' : ''}`} />
-                                  <span className="text-sm">{activity.likesCount || 0}</span>
-                                </button>
-                              </div>
-                            )}
-                          </div>
+                      ) : (
+                        <p className="text-gray-500 dark:text-gray-400 text-center py-8">No interests shared</p>
+                      )
+                    ) : (
+                      <div className="text-center py-8">
+                        <div className="bg-gray-100 dark:bg-gray-700/50 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                          <Lock className="h-8 w-8 text-gray-600 dark:text-gray-400" />
                         </div>
-                      </motion.div>
-                    ))}
-                    {userActivities.length === 0 && (
-                      <div className="text-center py-12">
-                        <Activity className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                        <p className="text-gray-500 dark:text-gray-400 text-lg">No activities yet</p>
+                        <p className="text-gray-500 dark:text-gray-400">Interests are private</p>
                       </div>
                     )}
+                  </div>
+
+                  {/* Current Goals */}
+                  <div className="lg:col-span-2">
+                    <div className="bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50">
+                      <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6 flex items-center">
+                        <Clock className="h-6 w-6 mr-2 text-blue-600 dark:text-blue-400" />
+                        Current Goals in Progress
+                      </h3>
+                      {isProfileAccessible() ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {userGoals.filter(goal => !goal.completed).slice(0, 6).map((goal, index) => (
+                            <div key={goal._id} className="p-4 bg-gray-50 dark:bg-gray-700/30 rounded-xl">
+                              <div className="flex items-center justify-between mb-2">
+                                <h4 className="font-medium text-gray-900 dark:text-white">{goal.title}</h4>
+                                <Circle className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                              </div>
+                              <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-400">
+                                <span className={`px-2 py-1 rounded-full text-xs font-medium text-white ${getCategoryColor(goal.category)}`}>
+                                  {goal.category}
+                                </span>
+                                <span>Started {formatTimeAgo(goal.createdAt)}</span>
+                              </div>
+                            </div>
+                          ))}
+                          {userGoals.filter(goal => !goal.completed).length === 0 && (
+                            <div className="col-span-full text-center py-8">
+                              <Target className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                              <p className="text-gray-500 dark:text-gray-400">No goals in progress</p>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8">
+                          <div className="bg-gray-100 dark:bg-gray-700/50 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                            <Lock className="h-8 w-8 text-gray-600 dark:text-gray-400" />
+                          </div>
+                          <p className="text-gray-500 dark:text-gray-400">Goals are private</p>
+                        </div>
+
+                      )}
+                    </div>
                   </div>
                 </div>
               )}
