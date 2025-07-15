@@ -530,14 +530,14 @@ const getShareableGoal = async (req, res, next) => {
         name: goal.userId.name,
         avatar: goal.userId.avatar
       },
-      shareUrl: `${req.protocol}://${req.get('host')}/goal/${goal._id}`,
+      shareUrl: `${req.protocol}://${req.get('host')}/users/${goal.userId._id}`,
       openGraph: {
         title: `${goal.userId.name} achieved their goal: ${goal.title}`,
         description: goal.shareCompletionNote && goal.completionNote 
           ? `${goal.completionNote.substring(0, 150)}...`
           : `${goal.category} goal completed successfully on ${new Date(goal.completedAt).toLocaleDateString()}`,
         image: `${req.protocol}://${req.get('host')}/api/v1/goals/${goal._id}/og-image`,
-        url: `${req.protocol}://${req.get('host')}/goal/${goal._id}`,
+        url: `${req.protocol}://${req.get('host')}/users/${goal.userId._id}`,
         type: 'article',
         site_name: 'WishTrail',
         locale: 'en_US'
