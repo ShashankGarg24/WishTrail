@@ -9,7 +9,6 @@ import DashboardPage from './pages/DashboardPage'
 import ProfilePage from './pages/ProfilePage'
 import InspirationPage from './pages/InspirationPage'
 import ExplorePage from './pages/ExplorePage'
-import UserProfile from './pages/UserProfile'
 import LeaderboardPage from './pages/LeaderboardPage'
 import ResetPasswordPage from './pages/ResetPasswordPage'
 import { SpeedInsights } from '@vercel/speed-insights/react';
@@ -45,7 +44,7 @@ function App() {
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/explore" element={<ExplorePage />} />
-            <Route path="/profile/:userId" element={<UserProfile />} />
+            <Route path="/profile/:userId" element={<ProfilePage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/inspiration" element={<InspirationPage />} />
             <Route path="/leaderboard" element={<LeaderboardPage />} />
