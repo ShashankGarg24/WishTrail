@@ -51,18 +51,31 @@ const goalSchema = new mongoose.Schema({
     type: Date,
     validate: {
       validator: function(v) {
-        // If targetDate is provided, it must be today or in the future
-        if (v) {
-          const today = new Date();
-          const targetDate = new Date(v);
-          
-          // Compare dates without time components
-          today.setHours(0, 0, 0, 0);
-          targetDate.setHours(0, 0, 0, 0);
-          
-          return targetDate >= today;
+        // Skip validation if:
+        // 1. No targetDate provided
+        // 2. Goal is being completed
+        // 3. Existing goal and targetDate is not being modified
+        if (!v) return true;
+        
+        // Skip validation when completing a goal
+        if (this.completed || this.isModified('completed')) {
+          return true;
         }
-        return true; // Allow null/undefined values
+        
+        // Skip validation for existing goals when targetDate is not being modified
+        if (!this.isNew && !this.isModified('targetDate')) {
+          return true;
+        }
+        
+        // Validate targetDate for new goals or when targetDate is being updated
+        const today = new Date();
+        const targetDate = new Date(v);
+        
+        // Compare dates without time components
+        today.setHours(0, 0, 0, 0);
+        targetDate.setHours(0, 0, 0, 0);
+        
+        return targetDate >= today;
       },
       message: 'Target date must be today or in the future'
     }
