@@ -503,6 +503,7 @@ const getFriendsLeaderboard = async (req, res, next) => {
     
     // Get user's following list
     const following = await Follow.getFollowing(req.user.id);
+    console.log(following)
     const followingIds = following.map(f => f._id);
     
     // Include current user in the leaderboard
