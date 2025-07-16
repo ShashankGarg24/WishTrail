@@ -271,7 +271,48 @@ const getCategoryLeaderboard = async (req, res, next) => {
   try {
     const { category } = req.params;
     const { page = 1, limit = 50, timeframe = 'all' } = req.query;
-    
+    const parsedPage = parseInt(page);
+    const parsedLimit = parseInt(limit);
+
+    // Create cache parameters (exclude user-specific data)
+    const cacheParams = {
+      category,
+      page: parsedPage,
+      limit: parsedLimit,
+      timeframe
+    };
+
+    // Try to get from cache first
+    let cachedData = await cacheService.getCategoryLeaderboard(cacheParams);
+    let fromCache = false;
+
+    if (cachedData) {
+      // We have cached data, but we need to add user-specific data
+      let leaderboard = await Promise.all(
+        cachedData.leaderboard.map(async (user, index) => {
+          const isFollowing = await Follow.isFollowing(req.user.id, user._id);
+          return {
+            ...user,
+            isFollowing: user._id.toString() !== req.user.id ? isFollowing : null
+          };
+        })
+      );
+
+      fromCache = true;
+      
+      return res.status(200).json({
+        success: true,
+        data: {
+          leaderboard,
+          pagination: cachedData.pagination,
+          category,
+          timeframe
+        },
+        fromCache
+      });
+    }
+
+    // Cache miss - fetch from database
     // Calculate date range
     const now = new Date();
     let startDate;
@@ -330,10 +371,10 @@ const getCategoryLeaderboard = async (req, res, next) => {
         $sort: { totalPoints: -1, goalCount: -1 }
       },
       {
-        $skip: (page - 1) * limit
+        $skip: (parsedPage - 1) * parsedLimit
       },
       {
-        $limit: parseInt(limit)
+        $limit: parsedLimit
       },
       {
         $project: {
@@ -346,18 +387,6 @@ const getCategoryLeaderboard = async (req, res, next) => {
         }
       }
     ]);
-    
-    // Add rank and following status to each user
-    const rankedLeaderboard = await Promise.all(
-      leaderboard.map(async (user, index) => {
-        const isFollowing = await Follow.isFollowing(req.user.id, user._id);
-        return {
-          ...user,
-          rank: (page - 1) * limit + index + 1,
-          isFollowing: user._id.toString() !== req.user.id ? isFollowing : null
-        };
-      })
-    );
     
     // Get total count for pagination
     const totalQuery = {
@@ -373,20 +402,47 @@ const getCategoryLeaderboard = async (req, res, next) => {
     ]);
     
     const total = totalResults.length > 0 ? totalResults[0].total : 0;
+
+    // Add rank to leaderboard (without following status for caching)
+    const leaderboardWithRank = leaderboard.map((user, index) => ({
+      ...user,
+      rank: (parsedPage - 1) * parsedLimit + index + 1
+    }));
+
+    // Prepare data for caching (without user-specific data)
+    const dataToCache = {
+      leaderboard: leaderboardWithRank,
+      pagination: {
+        page: parsedPage,
+        limit: parsedLimit,
+        total,
+        pages: Math.ceil(total / parsedLimit)
+      }
+    };
+
+    // Cache the result
+    await cacheService.setCategoryLeaderboard(dataToCache, cacheParams);
+
+    // Add following status to each user for response
+    const rankedLeaderboard = await Promise.all(
+      leaderboardWithRank.map(async (user) => {
+        const isFollowing = await Follow.isFollowing(req.user.id, user._id);
+        return {
+          ...user,
+          isFollowing: user._id.toString() !== req.user.id ? isFollowing : null
+        };
+      })
+    );
     
     res.status(200).json({
       success: true,
       data: {
         leaderboard: rankedLeaderboard,
-        pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
-          total,
-          pages: Math.ceil(total / limit)
-        },
+        pagination: dataToCache.pagination,
         category,
         timeframe
-      }
+      },
+      fromCache: false
     });
   } catch (error) {
     next(error);
@@ -399,7 +455,45 @@ const getCategoryLeaderboard = async (req, res, next) => {
 const getAchievementLeaderboard = async (req, res, next) => {
   try {
     const { page = 1, limit = 50, rarity } = req.query;
-    
+    const parsedPage = parseInt(page);
+    const parsedLimit = parseInt(limit);
+
+    // Create cache parameters (exclude user-specific data)
+    const cacheParams = {
+      page: parsedPage,
+      limit: parsedLimit,
+      ...(rarity && { rarity })
+    };
+
+    // Try to get from cache first
+    let cachedData = await cacheService.getAchievementLeaderboard(cacheParams);
+    let fromCache = false;
+
+    if (cachedData) {
+      // We have cached data, but we need to add user-specific data
+      let leaderboard = await Promise.all(
+        cachedData.leaderboard.map(async (user) => {
+          const isFollowing = await Follow.isFollowing(req.user.id, user._id);
+          return {
+            ...user,
+            isFollowing: user._id.toString() !== req.user.id ? isFollowing : null
+          };
+        })
+      );
+
+      fromCache = true;
+      
+      return res.status(200).json({
+        success: true,
+        data: {
+          leaderboard,
+          rarity: rarity || 'all'
+        },
+        fromCache
+      });
+    }
+
+    // Cache miss - fetch from database
     const pipeline = [
       {
         $lookup: {
@@ -455,8 +549,8 @@ const getAchievementLeaderboard = async (req, res, next) => {
     
     pipeline.push(
       { $sort: { achievementCount: -1, totalPoints: -1 } },
-      { $skip: (page - 1) * limit },
-      { $limit: parseInt(limit) },
+      { $skip: (parsedPage - 1) * parsedLimit },
+      { $limit: parsedLimit },
       {
         $project: {
           name: 1,
@@ -470,13 +564,26 @@ const getAchievementLeaderboard = async (req, res, next) => {
     
     const leaderboard = await User.aggregate(pipeline);
     
-    // Add rank and following status to each user
+    // Add rank to leaderboard (without following status for caching)
+    const leaderboardWithRank = leaderboard.map((user, index) => ({
+      ...user,
+      rank: (parsedPage - 1) * parsedLimit + index + 1
+    }));
+
+    // Prepare data for caching (without user-specific data)
+    const dataToCache = {
+      leaderboard: leaderboardWithRank
+    };
+
+    // Cache the result
+    await cacheService.setAchievementLeaderboard(dataToCache, cacheParams);
+
+    // Add following status to each user for response
     const rankedLeaderboard = await Promise.all(
-      leaderboard.map(async (user, index) => {
+      leaderboardWithRank.map(async (user) => {
         const isFollowing = await Follow.isFollowing(req.user.id, user._id);
         return {
           ...user,
-          rank: (page - 1) * limit + index + 1,
           isFollowing: user._id.toString() !== req.user.id ? isFollowing : null
         };
       })
@@ -487,7 +594,8 @@ const getAchievementLeaderboard = async (req, res, next) => {
       data: {
         leaderboard: rankedLeaderboard,
         rarity: rarity || 'all'
-      }
+      },
+      fromCache: false
     });
   } catch (error) {
     next(error);
@@ -500,7 +608,35 @@ const getAchievementLeaderboard = async (req, res, next) => {
 const getFriendsLeaderboard = async (req, res, next) => {
   try {
     const { type = 'points', page = 1, limit = 50 } = req.query;
-    
+    const parsedPage = parseInt(page);
+    const parsedLimit = parseInt(limit);
+
+    // Create cache parameters (include userId since friends list is user-specific)
+    const cacheParams = {
+      userId: req.user.id,
+      type,
+      page: parsedPage,
+      limit: parsedLimit
+    };
+
+    // Try to get from cache first
+    let cachedData = await cacheService.getFriendsLeaderboard(cacheParams);
+    let fromCache = false;
+
+    if (cachedData) {
+      fromCache = true;
+      
+      return res.status(200).json({
+        success: true,
+        data: {
+          leaderboard: cachedData.leaderboard,
+          type
+        },
+        fromCache
+      });
+    }
+
+    // Cache miss - fetch from database
     // Get user's following list
     const following = await Follow.getFollowing(req.user.id);
     const followingIds = following.map(f => f.followingId);
@@ -531,23 +667,32 @@ const getFriendsLeaderboard = async (req, res, next) => {
     })
     .select('name avatar level totalPoints completedGoals currentStreak')
     .sort({ [sortField]: -1 })
-    .skip((page - 1) * limit)
-    .limit(parseInt(limit));
+    .skip((parsedPage - 1) * parsedLimit)
+    .limit(parsedLimit);
     
-    // Add rank to each user and highlight current user
+    // Add rank to each user and highlight current user (with all data for friends leaderboard)
     const rankedLeaderboard = leaderboard.map((user, index) => ({
       ...user.toObject(),
-      rank: (page - 1) * limit + index + 1,
+      rank: (parsedPage - 1) * parsedLimit + index + 1,
       isCurrentUser: user._id.toString() === req.user.id.toString(),
       isFollowing: user._id.toString() !== req.user.id.toString() ? true : null // All users in friends leaderboard are followed
     }));
+
+    // Prepare data for caching (friends leaderboard can be fully cached since it's user-specific)
+    const dataToCache = {
+      leaderboard: rankedLeaderboard
+    };
+
+    // Cache the result
+    await cacheService.setFriendsLeaderboard(dataToCache, cacheParams);
     
     res.status(200).json({
       success: true,
       data: {
         leaderboard: rankedLeaderboard,
         type
-      }
+      },
+      fromCache: false
     });
   } catch (error) {
     next(error);

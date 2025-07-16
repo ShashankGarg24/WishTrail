@@ -51,12 +51,20 @@ const goalSchema = new mongoose.Schema({
     type: Date,
     validate: {
       validator: function(v) {
-        // If targetDate is provided, it must be in the future
+        // If targetDate is provided, it must be today or in the future
         if (v) {
-          return v > new Date();
+          const today = new Date();
+          const targetDate = new Date(v);
+          
+          // Compare dates without time components
+          today.setHours(0, 0, 0, 0);
+          targetDate.setHours(0, 0, 0, 0);
+          
+          return targetDate >= today;
         }
         return true; // Allow null/undefined values
       },
+      message: 'Target date must be today or in the future'
     }
   },
   year: {
