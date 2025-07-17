@@ -192,18 +192,6 @@ const HomePage = () => {
           >
             <VideoEmbedGrid />
           </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.4 }}
-            className="text-center mt-12"
-          >
-            <Link to="/inspiration" className="btn-secondary">
-              View All Content
-              <Play className="ml-2 h-5 w-5" />
-            </Link>
-          </motion.div>
         </div>
       </section>
 

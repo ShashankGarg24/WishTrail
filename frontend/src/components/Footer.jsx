@@ -9,13 +9,13 @@ const Footer = () => {
   const socialLinks = [
     {
       name: 'YouTube',
-      href: 'https://youtube.com/@yourhandle',
+      href: 'https://youtube.com/@thewishtrail',
       icon: Youtube,
       color: 'hover:text-red-500'
     },
     {
       name: 'Instagram',
-      href: 'https://instagram.com/yourhandle',
+      href: 'https://instagram.com/thewishtrail',
       icon: Instagram,
       color: 'hover:text-pink-500'
     },

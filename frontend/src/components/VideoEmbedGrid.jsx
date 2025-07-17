@@ -6,6 +6,8 @@ const VideoEmbedGrid = () => {
   const [activeTab, setActiveTab] = useState('youtube')
   const [youtubeCurrentIndex, setYoutubeCurrentIndex] = useState(0)
   const [instagramCurrentIndex, setInstagramCurrentIndex] = useState(0)
+  const [activeVideoId, setActiveVideoId] = useState(null);
+  const [activeInstagramUrl, setActiveInstagramUrl] = useState(null);
 
   // 🎬 YOUTUBE CHANNELS - Replace with your actual video IDs
   const youtubeChannels = {
@@ -16,27 +18,30 @@ const VideoEmbedGrid = () => {
       videos: [
         {
           id: 'QQw8UbqTDSY',
-          title: 'Goal Setting Masterclass',
-          description: 'Learn how to set and achieve your biggest goals',
+          title: 'Find some time in your life....to live',
+          description: 'Dive deep—not to escape the pain, but to rescue the part of you...',
+          url: 'https://www.youtube.com/shorts/QQw8UbqTDSY?feature=share',
           thumbnail: `https://img.youtube.com/vi/QQw8UbqTDSY/maxresdefault.jpg`,
-          duration: '15:30',
-          views: '12K'
+          duration: '00:14',
+          views: '1.4k'
         },
         {
-          id: 'c2kvKe-p55E',
-          title: 'Morning Motivation',
-          description: 'Start your day with the right mindset',
-          thumbnail: `https://img.youtube.com/vi/c2kvKe-p55E/maxresdefault.jpg`,
-          duration: '8:45',
-          views: '8.2K'
+          id: 'CJBdn4p6C78',
+          title: 'Prepare Muesli at home',
+          description: 'This muesli is a powerhouse of essential nutrients packed with fiber...',
+          url: 'https://www.youtube.com/shorts/CJBdn4p6C78?feature=share',
+          thumbnail: `https://img.youtube.com/vi/CJBdn4p6C78/maxresdefault.jpg`,
+          duration: '00:59',
+          views: '328'
         },
         {
-          id: '4fjEWlwReYs',
-          title: 'Productivity Hacks',
-          description: 'Get more done in less time',
-          thumbnail: `https://img.youtube.com/vi/4fjEWlwReYs/maxresdefault.jpg`,
-          duration: '12:15',
-          views: '15.7K'
+          id: '_mylA6lTL44',
+          title: 'Let\'s prepare my meals for the day in 45 min',
+          description: 'Missing home-cooked food while living away or busy with office life? ...',
+          url: 'https://www.youtube.com/shorts/_mylA6lTL44?feature=share',
+          thumbnail: `https://img.youtube.com/vi/_mylA6lTL44/maxresdefault.jpg`,
+          duration: '00:59',
+          views: '347'
         }
       ]
     },
@@ -46,28 +51,31 @@ const VideoEmbedGrid = () => {
       description: 'Daily vlogs & behind the scenes',
       videos: [
         {
+          id: 'UB-swAR5oYc',
+          title: 'WHAT YOU CAN DO AS A PASSENGER TO ENSURE AIR TRAVEL SAFETY?',
+          description: 'You don’t need to be an aviation expert to fly smart...',
+          url: 'https://www.youtube.com/shorts/UB-swAR5oYc?feature=share',
+          thumbnail: `https://img.youtube.com/vi/UB-swAR5oYc/maxresdefault.jpg`,
+          duration: '00:57',
+          views: '20.8K'
+        },
+        {
+          id: 'mpOzrZhOGy8',
+          title: 'Jagannath Yatra gave birth to an English word now used worldwide',
+          description: 'Ever heard the word "Juggernaut"? It means something huge...',
+          url: 'https://www.youtube.com/shorts/mpOzrZhOGy8?feature=share',
+          thumbnail: `https://img.youtube.com/vi/mpOzrZhOGy8/maxresdefault.jpg`,
+          duration: '00:22',
+          views: '4K'
+        },
+        {
           id: '4fjEWlwReYs',
-          title: 'Success Stories',
-          description: 'Real people, real achievements',
+          title: 'Do you know why we call him Hanumanji or Bajrang Bali',
+          description: 'Vajra\'s blow landed on Hanumanji\'s jaw, permanently disfiguring...',
+          url: 'https://www.youtube.com/shorts/4fjEWlwReYs?feature=share',
           thumbnail: `https://img.youtube.com/vi/4fjEWlwReYs/maxresdefault.jpg`,
-          duration: '20:10',
-          views: '25.3K'
-        },
-        {
-          id: 'QQw8UbqTDSY',
-          title: 'Daily Vlog #1',
-          description: 'A day in my life pursuing goals',
-          thumbnail: `https://img.youtube.com/vi/QQw8UbqTDSY/maxresdefault.jpg`,
-          duration: '18:22',
-          views: '9.1K'
-        },
-        {
-          id: 'c2kvKe-p55E',
-          title: 'Behind the Scenes',
-          description: 'How I create content',
-          thumbnail: `https://img.youtube.com/vi/c2kvKe-p55E/maxresdefault.jpg`,
-          duration: '14:55',
-          views: '6.8K'
+          duration: '00:24',
+          views: '2.5K'
         }
       ]
     }
@@ -81,65 +89,65 @@ const VideoEmbedGrid = () => {
       description: 'Inspiration & motivation',
       posts: [
         {
-          id: 'DIod1ltTzaN',
-          url: 'https://www.instagram.com/p/DIod1ltTzaN/',
-          title: 'Daily Inspiration',
-          description: 'Quick tips for staying motivated',
-          thumbnail: 'https://via.placeholder.com/400x400/ff6b6b/ffffff?text=Daily+Inspiration',
-          likes: '2.4K',
-          comments: '128'
+          id: 'DLmmAMRPBp0',
+          url: 'https://www.instagram.com/p/DLmmAMRPBp0/',
+          title: 'Mid day of the year 2025',
+          description: 'We officially become closer to 2050 than to 2000...',
+          thumbnail: 'https://scontent.cdninstagram.com/v/t51.82787-15/514501443_17872805043383866_230659346301218475_n.jpg?stp=dst-jpg_e15_tt6&_nc_cat=100&ig_cache_key=MzY2Nzc4NjA4NTQ4MTMyMzEyNA%3D%3D.3-ccb1-7&ccb=1-7&_nc_sid=58cdad&efg=eyJ2ZW5jb2RlX3RhZyI6InhwaWRzLjYyMHgxMTAyLnNkciJ9&_nc_ohc=6isXBjZg44gQ7kNvwGxJTTM&_nc_oc=AdlOqNMdQe3u65IsjGQzpHo0TG2pSgywrBSRZNVyjkQoP0ZsoO_GUloPdKsO4oI4C8s&_nc_ad=z-m&_nc_cid=0&_nc_zt=23&_nc_ht=scontent.cdninstagram.com&_nc_gid=ejjcZkcy6JWXzl2aWm28mg&oh=00_AfSlvICn7RM_hCZsIB_i-AIOqZUwOID5z_yqCqYlDhQmlw&oe=687EF266',
+          likes: '85',
+          views: '13.5k'
         },
         {
           id: 'DF63xRcvB3k',
           url: 'https://www.instagram.com/p/DF63xRcvB3k/',
-          title: 'Goal Achievement',
-          description: 'Celebrate your wins, big and small',
-          thumbnail: 'https://via.placeholder.com/400x400/4ecdc4/ffffff?text=Goal+Achievement',
-          likes: '1.8K',
-          comments: '94'
+          title: 'DIY',
+          description: 'Your 9 to 5 pays the bills, but your 5 to 9 fuels the soul!...',
+          thumbnail: 'https://scontent.cdninstagram.com/v/t51.75761-15/476874249_17854301571383866_8810334197561497387_n.jpg?stp=dst-jpg_e15_tt6&_nc_cat=105&ig_cache_key=MzU2NTQwNzMzMzU2NTM0MTE1Ng%3D%3D.3-ccb1-7&ccb=1-7&_nc_sid=58cdad&efg=eyJ2ZW5jb2RlX3RhZyI6InhwaWRzLjYyMHgxMTAyLnNkciJ9&_nc_ohc=9J1yo_cCBO4Q7kNvwFK60HN&_nc_oc=Adn1hASmiZqs9lu3SyJUQPfTvq2oIzGLyCws6g_3oKQomX9C9xEfsBMGAW-2BUttQ1E&_nc_ad=z-m&_nc_cid=0&_nc_zt=23&_nc_ht=scontent.cdninstagram.com&_nc_gid=ui8N9YosQZP_sDdOfoFAdQ&oh=00_AfQL7qZ0f62tdt8JogixeIOlpAC9YqH_n9tvJJA6_CEpkQ&oe=687F21BF',
+          likes: '98',
+          views: '2.3k'
         },
         {
-          id: 'DLmmAMRPBp0',
-          url: 'https://www.instagram.com/p/DLmmAMRPBp0/',
-          title: 'Mindset Monday',
-          description: 'Start your week right',
-          thumbnail: 'https://via.placeholder.com/400x400/45b7d1/ffffff?text=Mindset+Monday',
-          likes: '3.1K',
-          comments: '167'
+          id: 'DEgfD8avaG7',
+          url: 'https://www.instagram.com/p/DEgfD8avaG7/',
+          title: 'Start you day with this video',
+          description: 'You Can Heal Your Life by Louise Hay is a transformative guide...',
+          thumbnail: 'https://scontent.cdninstagram.com/v/t51.75761-15/472833457_17848396026383866_6513472307850544818_n.jpg?stp=dst-jpg_e15_tt6&_nc_cat=111&ig_cache_key=MzUzOTk2NTkxNzU4NjYyOTA1MTE3ODQ4Mzk2MDIwMzgzODY2.3-ccb1-7&ccb=1-7&_nc_sid=58cdad&efg=eyJ2ZW5jb2RlX3RhZyI6InhwaWRzLjYyMHgxMTAyLnNkciJ9&_nc_ohc=8PLOXtrW0FcQ7kNvwFiALk8&_nc_oc=Adm9VEo_B-J5n5w_l72mdulSAOVvuR8AbWyN59X-WVzvxTJruonGxfiydFejC-6h_xQ&_nc_ad=z-m&_nc_cid=0&_nc_zt=23&_nc_ht=scontent.cdninstagram.com&_nc_gid=-V6FkxD8qfVp3BdeodeCEg&oh=00_AfQ-uG3s5pv0bpw3aoHz7qc_CHsAw3ZNbkVksvi1_R6ZQA&oe=687F092C',
+          likes: '22',
+          views: '514'
         }
       ]
     },
     personal: {
       name: 'Personal Account',
-      handle: '@Shrasti.S.Shukla',
+      handle: '@shrasti.s.shukla',
       description: 'Life & personal journey',
       posts: [
         {
-          id: 'DLbrB1NvxyQ',
-          url: 'https://www.instagram.com/p/DLbrB1NvxyQ/',
-          title: 'Mindset Shift',
-          description: 'Transform your thinking',
-          thumbnail: 'https://via.placeholder.com/400x400/96ceb4/ffffff?text=Mindset+Shift',
-          likes: '1.2K',
-          comments: '72'
+          id: 'DKWFcLKPDfZ',
+          url: 'https://www.instagram.com/p/DKWFcLKPDfZ/',
+          title: 'Can blind people play cricket?',
+          description: 'Blind cricket differs from traditional cricket in several ways...',
+          thumbnail: 'https://scontent.cdninstagram.com/v/t51.75761-15/502949627_17868749469383866_7394763994359054585_n.jpg?stp=dst-jpg_e15_tt6&_nc_cat=108&ig_cache_key=MzY0NTEyNDg3NDc2Mzc3ODAwOQ%3D%3D.3-ccb1-7&ccb=1-7&_nc_sid=58cdad&efg=eyJ2ZW5jb2RlX3RhZyI6InhwaWRzLjYyMHgxMTAyLnNkciJ9&_nc_ohc=GCY3eOOF-aMQ7kNvwED-fj8&_nc_oc=AdmghAmbC_jmPfIYQuH2BMtC1Og-zmq-xXKnYRE1IWVK86PnSgzVe-h2ShBKXEn5gl0&_nc_ad=z-m&_nc_cid=0&_nc_zt=23&_nc_ht=scontent.cdninstagram.com&_nc_gid=1gEdA7AG_Ixd-a6qAMseqg&oh=00_AfSKFfVDsEMi2Mj4GvA1z_Pyc1OTpbeKa4KlltKHhWrYtg&oe=687EEB92',
+          likes: '95',
+          views: '10.6K'
         },
         {
-          id: 'DK7E18qzXe8',
-          url: 'https://www.instagram.com/p/DK7E18qzXe8/',
-          title: 'Personal Growth',
-          description: 'My journey to becoming better',
-          thumbnail: 'https://via.placeholder.com/400x400/feca57/ffffff?text=Personal+Growth',
-          likes: '2.7K',
-          comments: '189'
+          id: 'DJy8KbcvnFD',
+          url: 'https://www.instagram.com/p/DJy8KbcvnFD/',
+          title: 'Shaheed Jaswant Singh Rawat',
+          description: 'In the last phase of the 1962 India-China war, Indian troops...',
+          thumbnail: 'https://scontent.cdninstagram.com/v/t51.71878-15/498691852_1724004664871276_4697924769208548780_n.jpg?stp=dst-jpg_e15_tt6&_nc_cat=107&ig_cache_key=MzYzNTIzMjQ0ODcwMDExNzMxNQ%3D%3D.3-ccb1-7&ccb=1-7&_nc_sid=58cdad&efg=eyJ2ZW5jb2RlX3RhZyI6InhwaWRzLjY0MHgxMTM2LnNkciJ9&_nc_ohc=TifeKBP5AmUQ7kNvwEZ8Apx&_nc_oc=Adl4PjSVeNsk2kdpwgiK1_f70Zo6WwGEo9vLBUJ1mWtqkNO5Hy4Xn1V1lPKHyKHV2cs&_nc_ad=z-m&_nc_cid=0&_nc_zt=23&_nc_ht=scontent.cdninstagram.com&_nc_gid=vVVtGAj4T_ICEoMKkQsXfg&oh=00_AfSRGkodBLZkx79bhh5xsRKRVSDXABdJrPPsHC8vtMNNRA&oe=687EFF99',
+          likes: '631',
+          views: '9k'
         },
         {
-          id: 'DK7E18qzXe8',
-          url: 'https://www.instagram.com/p/DK7E18qzXe8/',
-          title: 'Life Updates',
-          description: 'What I have been up to lately',
-          thumbnail: 'https://via.placeholder.com/400x400/ff9ff3/ffffff?text=Life+Updates',
-          likes: '1.9K',
-          comments: '156'
+          id: 'DHSrsiuvLcV',
+          url: 'https://www.instagram.com/p/DHSrsiuvLcV/',
+          title: 'RAW Agent R.N. Rao',
+          description: 'Bangladesh wasn’t created in 13 days—it was crafted in...',
+          thumbnail: 'https://scontent.cdninstagram.com/v/t51.71878-15/485135446_620352030842554_8993688310655608969_n.jpg?stp=dst-jpg_e15_tt6&_nc_cat=104&ig_cache_key=MzU5MDEyNDAyOTkxNjAwMjA2OQ%3D%3D.3-ccb1-7&ccb=1-7&_nc_sid=58cdad&efg=eyJ2ZW5jb2RlX3RhZyI6InhwaWRzLjY0MHgxMTM2LnNkciJ9&_nc_ohc=lt5g0KxP2GwQ7kNvwEsWCI-&_nc_oc=Adl6JuriAoX60q-AvAfu3J3nxOwXVd3VBaLV10FsCAsdwuNR9wciYUUa7u1_HsYPFeo&_nc_ad=z-m&_nc_cid=0&_nc_zt=23&_nc_ht=scontent.cdninstagram.com&_nc_gid=EQonKQ4gMarVysNDg4zalA&oh=00_AfRsmVwIOXos8bibnLVPlDp61JW1Eg7oQOSqsHAhg0cDpA&oe=687EF026',
+          likes: '123',
+          views: '5.8k'
         }
       ]
     }
@@ -211,14 +219,17 @@ const VideoEmbedGrid = () => {
     }
   }
 
-  const CarouselItem = ({ item, type, index }) => (
+  const CarouselItem = ({ item, type, index, setActiveVideoId }) => (
     <motion.div
       className="flex-shrink-0 w-full md:w-1/3 px-3"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: index * 0.1 }}
     >
-      <div className="glass-card-hover rounded-xl overflow-hidden group cursor-pointer">
+       <div
+          className="glass-card-hover rounded-xl overflow-hidden group cursor-pointer"
+          onClick={() => type === 'instagram' && setActiveInstagramUrl(item.url)}
+        >
         {type === 'youtube' ? (
           <>
             <div className="aspect-video relative overflow-hidden">
@@ -235,6 +246,7 @@ const VideoEmbedGrid = () => {
                   className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center opacity-80 group-hover:opacity-100 transition-opacity"
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
+                  onClick={() => setActiveVideoId(item.id)}
                 >
                   <Play className="h-8 w-8 text-white ml-1" />
                 </motion.div>
@@ -285,7 +297,7 @@ const VideoEmbedGrid = () => {
                 <div className="absolute bottom-4 left-4 right-4">
                   <div className="flex items-center space-x-3 text-white text-sm">
                     <span>❤️ {item.likes}</span>
-                    <span>💬 {item.comments}</span>
+                    <span>👀 {item.views}</span>
                   </div>
                 </div>
               </div>
@@ -316,10 +328,6 @@ const VideoEmbedGrid = () => {
                   <span>View on Instagram</span>
                   <ExternalLink className="h-3 w-3" />
                 </a>
-                <div className="flex items-center space-x-2 text-xs text-gray-500">
-                  <span>❤️ {item.likes}</span>
-                  <span>💬 {item.comments}</span>
-                </div>
               </div>
             </div>
           </>
@@ -404,6 +412,7 @@ const VideoEmbedGrid = () => {
                 item={item}
                 type={activeTab}
                 index={index}
+                setActiveVideoId={setActiveVideoId}
               />
             ))}
           </motion.div>
@@ -522,6 +531,49 @@ const VideoEmbedGrid = () => {
           </div>
         </motion.div>
       </div>
+      {activeVideoId && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+          <div className="relative bg-white dark:bg-gray-900 rounded-xl overflow-hidden w-[90%] max-w-3xl shadow-2xl">
+            <button
+              className="absolute top-3 right-3 text-white bg-black/50 hover:bg-black/70 rounded-full p-2 z-10"
+              onClick={() => setActiveVideoId(null)}
+            >
+              ✕
+            </button>
+            <iframe
+              width="100%"
+              height="400"
+              src={`https://www.youtube.com/embed/${activeVideoId}?autoplay=1`}
+              title="YouTube video player"
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          </div>
+        </div>
+      )}
+      {activeInstagramUrl && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+          <div className="relative bg-white dark:bg-gray-900 rounded-xl overflow-hidden w-[90%] max-w-2xl shadow-2xl p-6">
+            <button
+              className="absolute top-3 right-3 text-white bg-black/50 hover:bg-black/70 rounded-full p-2 z-10"
+              onClick={() => setActiveInstagramUrl(null)}
+            >
+              ✕
+            </button>
+            <iframe
+              src={`${activeInstagramUrl}embed`}
+              width="100%"
+              height="600"
+              frameBorder="0"
+              scrolling="no"
+              allowTransparency
+              allow="encrypted-media"
+              className="w-full"
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
 }
