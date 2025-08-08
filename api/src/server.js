@@ -59,7 +59,8 @@ const createApp = async () => {
       const isAllowedExact = allowedOrigins.includes(origin);
       const isAllowedRegex = allowedRegexes.some((re) => re.test(origin));
       if (isAllowedExact || isAllowedRegex) return callback(null, true);
-      return callback(new Error(`Not allowed by CORS: ${origin}`));
+      // Do not throw; respond without CORS headers (browser will block)
+      return callback(null, false);
     },
     credentials: true,
     optionsSuccessStatus: 200,
