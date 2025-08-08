@@ -45,11 +45,20 @@ const createApp = async () => {
     .filter(Boolean);
   const allowedOrigins = Array.from(new Set([...defaultAllowed, ...fromEnv]));
 
+  const regexEnv = (process.env.ALLOWED_ORIGIN_REGEX || '')
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean);
+  const allowedRegexes = regexEnv.map((pattern) => {
+    try { return new RegExp(pattern); } catch { return null; }
+  }).filter(Boolean);
+
   const corsOptions = {
     origin: function(origin, callback) {
       if (!origin) return callback(null, true); // mobile apps / curl
-      const isAllowed = allowedOrigins.includes(origin);
-      if (isAllowed) return callback(null, true);
+      const isAllowedExact = allowedOrigins.includes(origin);
+      const isAllowedRegex = allowedRegexes.some((re) => re.test(origin));
+      if (isAllowedExact || isAllowedRegex) return callback(null, true);
       return callback(new Error(`Not allowed by CORS: ${origin}`));
     },
     credentials: true,
