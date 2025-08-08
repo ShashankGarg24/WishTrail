@@ -1,9 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { X, Plus, Target, Calendar, Tag, AlertCircle } from 'lucide-react'
 import useApiStore from '../store/apiStore'
 
-const CreateWishModal = ({ isOpen, onClose, onSave, year }) => {
+const CreateWishModal = ({ isOpen, onClose, onSave, year, initialData }) => {
 
   const [formData, setFormData] = useState({
     title: '',
@@ -15,6 +15,21 @@ const CreateWishModal = ({ isOpen, onClose, onSave, year }) => {
   })
   const [errors, setErrors] = useState({})
   const { createGoal, loading } = useApiStore()
+
+  // Prefill form when modal opens with provided initialData
+  useEffect(() => {
+    if (isOpen) {
+      setFormData(prev => ({
+        title: initialData?.title || '',
+        description: initialData?.description || '',
+        category: initialData?.category || '',
+        priority: initialData?.priority || 'medium',
+        duration: initialData?.duration || 'medium-term',
+        targetDate: initialData?.targetDate || ''
+      }))
+      setErrors({})
+    }
+  }, [isOpen, initialData])
 
   const categories = [
     'Health & Fitness',

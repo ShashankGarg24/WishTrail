@@ -1,19 +1,24 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Plus, Calendar, Target, CheckCircle, Circle, Star, Award } from 'lucide-react'
+import { Plus, Calendar, Target, CheckCircle, Circle, Star, Award, Lightbulb } from 'lucide-react'
 import useApiStore from '../store/apiStore'
 import CreateWishModal from '../components/CreateWishModal'
 import WishCard from '../components/WishCard'
+import GoalSuggestions from '../components/GoalSuggestions'
+import GoalSuggestionsModal from '../components/GoalSuggestionsModal'
 
 const DashboardPage = () => {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [initialGoalData, setInitialGoalData] = useState(null)
+  const [isSuggestionsOpen, setIsSuggestionsOpen] = useState(false)
   
   const { 
     isAuthenticated, 
     loading, 
     error,
     goals,
+    user,
     dashboardStats,
     getDashboardStats,
     getGoals,
@@ -29,6 +34,20 @@ const DashboardPage = () => {
       getGoals({ year: selectedYear })
     }
   }, [isAuthenticated, selectedYear])
+
+  const userInterests = Array.isArray(user?.interests) ? user.interests : []
+
+  const openPrefilledCreateModal = (goalTemplate) => {
+    setInitialGoalData({
+      title: goalTemplate.title,
+      description: goalTemplate.description,
+      category: goalTemplate.category,
+      priority: goalTemplate.priority || 'medium',
+      duration: goalTemplate.duration || 'medium-term',
+      targetDate: ''
+    })
+    setIsCreateModalOpen(true)
+  }
 
   const availableYears = [
     new Date().getFullYear() - 1,
@@ -48,6 +67,7 @@ const DashboardPage = () => {
       // Refresh dashboard stats
       await getDashboardStats()
       setIsCreateModalOpen(false)
+      setInitialGoalData(null)
     }
     return result
   }
@@ -305,57 +325,94 @@ const DashboardPage = () => {
             <Plus className="h-5 w-5 mr-2" />
             Add New Goal
           </button>
-        </motion.div>
-
-        {/* Goals List */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.5 }}
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-        >
-          {currentYearGoals.length === 0 ? (
-            <div className="col-span-full text-center py-12">
-              <Target className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                No goals yet for {selectedYear}
-              </h3>
-              <p className="text-gray-600 dark:text-gray-400 mb-6">
-                Start your journey by creating your first goal
-              </p>
-              <button
-                onClick={() => setIsCreateModalOpen(true)}
-                className="btn-primary"
-              >
-                <Plus className="h-5 w-5 mr-2" />
-                Create Your First Goal
-              </button>
-            </div>
-          ) : (
-            currentYearGoals.map((goal, index) => (
-              <WishCard
-                key={goal._id}
-                wish={goal}
-                year={selectedYear}
-                index={index}
-                onToggle={() => handleToggleGoal(goal._id)}
-                onDelete={() => handleDeleteGoal(goal._id)}
-                onComplete={handleCompleteGoal}
-                isViewingOwnGoals={true}
-              />
-            ))
+          {currentYearGoals.length !== 0 && (
+            <button
+              onClick={() => setIsSuggestionsOpen(true)}
+              className="btn-primary flex items-center"
+            >
+              <Lightbulb className="h-5 w-5 mr-2" />
+              Discover Goal Ideas
+            </button>
           )}
         </motion.div>
+
+        {/* Goals + Suggestions Layout */}
+        {currentYearGoals.length === 0 ? (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.5 }}
+            className="max-w-3xl mx-auto text-center py-12"
+          >
+            <Target className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+              No goals yet for {selectedYear}
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              Start your journey by creating your first goal
+            </p>
+            <button
+              onClick={() => setIsCreateModalOpen(true)}
+              className="btn-primary"
+            >
+              <Plus className="h-5 w-5 mr-2" />
+              Create Your First Goal
+            </button>
+            {/* Interest-based suggestions when no goals yet */}
+            <GoalSuggestions
+              interests={userInterests}
+              onSelect={openPrefilledCreateModal}
+              variant="empty"
+              limit={6}
+            />
+          </motion.div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Goals Column */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.5 }}
+              className="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6"
+            >
+              {currentYearGoals.map((goal, index) => (
+                <WishCard
+                  key={goal._id}
+                  wish={goal}
+                  year={selectedYear}
+                  index={index}
+                  onToggle={() => handleToggleGoal(goal._id)}
+                  onDelete={() => handleDeleteGoal(goal._id)}
+                  onComplete={handleCompleteGoal}
+                  isViewingOwnGoals={true}
+                />
+              ))}
+            </motion.div>
+          </div>
+        )}
       </div>
 
       {/* Create Goal Modal */}
       {isCreateModalOpen && (
         <CreateWishModal
           isOpen={isCreateModalOpen}
-          onClose={() => setIsCreateModalOpen(false)}
+          onClose={() => { setIsCreateModalOpen(false); setInitialGoalData(null) }}
           onSave={handleCreateGoal}
           year={selectedYear}
+          initialData={initialGoalData}
         />
+      )}
+
+      {/* Suggestions Modal */}
+      {isSuggestionsOpen && (
+      <GoalSuggestionsModal
+        isOpen={isSuggestionsOpen}
+        onClose={() => setIsSuggestionsOpen(false)}
+        interests={userInterests}
+        onSelect={openPrefilledCreateModal}
+        limit={6}
+        title="Goal Suggestions"
+      />
       )}
     </div>
   )
