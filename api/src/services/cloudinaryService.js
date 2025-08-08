@@ -5,6 +5,7 @@ const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || '';
 const CLOUDINARY_API_KEY = process.env.CLOUDINARY_API_KEY || '';
 const CLOUDINARY_API_SECRET = process.env.CLOUDINARY_API_SECRET || '';
 const CLOUDINARY_UPLOAD_FOLDER = process.env.CLOUDINARY_UPLOAD_FOLDER || 'wishtrail/feedback';
+const CLOUDINARY_UPLOAD_PRESET = process.env.CLOUDINARY_UPLOAD_PRESET || '';
 
 function isConfigured() {
   return Boolean(CLOUDINARY_CLOUD_NAME && CLOUDINARY_API_KEY && CLOUDINARY_API_SECRET);
@@ -27,6 +28,7 @@ async function upload(localFilePath, options = {}) {
     overwrite: false,
     unique_filename: true,
     use_filename: false,
+    ...(CLOUDINARY_UPLOAD_PRESET ? { upload_preset: CLOUDINARY_UPLOAD_PRESET } : {}),
     ...options,
   };
   const result = await cloudinary.uploader.upload(localFilePath, uploadOptions);
@@ -42,6 +44,7 @@ function uploadBuffer(buffer, options = {}) {
       overwrite: false,
       unique_filename: true,
       use_filename: false,
+      ...(CLOUDINARY_UPLOAD_PRESET ? { upload_preset: CLOUDINARY_UPLOAD_PRESET } : {}),
       ...options,
     };
     const stream = cloudinary.uploader.upload_stream(uploadOptions, (err, result) => {

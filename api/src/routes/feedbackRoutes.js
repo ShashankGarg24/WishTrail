@@ -9,21 +9,21 @@ const { protect } = require('../middleware/auth');
 const storage = multer.memoryStorage();
 
 const fileFilter = (req, file, cb) => {
-  const allowed = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
-  if (allowed.includes(file.mimetype)) cb(null, true);
-  else cb(new Error('Only image files are allowed'));
-};
+  const allowed = ['image/png', 'image/jpeg', 'image/jpg']
+  if (allowed.includes(file.mimetype)) cb(null, true)
+  else cb(new Error('Only JPG/JPEG/PNG images are allowed'))
+}
 
-// Industry-standard 5MB image size limit
-const upload = multer({ storage, fileFilter, limits: { fileSize: 5 * 1024 * 1024 } });
+// Enforce 1 MB image size limit
+const upload = multer({ storage, fileFilter, limits: { fileSize: 1 * 1024 * 1024 } });
 
 // POST /api/v1/feedback
 router.post('/', protect, upload.single('screenshot'), async (req, res, next) => {
   try {
     const { title, description, status: statusRaw } = req.body;
 
-    if (!title || !description) {
-      return res.status(400).json({ success: false, message: 'Title and description are required' });
+    if (!title) {
+      return res.status(400).json({ success: false, message: 'Title is required' });
     }
 
     let screenshotUrl = '';
@@ -38,8 +38,8 @@ router.post('/', protect, upload.single('screenshot'), async (req, res, next) =>
 
     const feedbackPayload = {
       title,
-      description,
-      status: (statusRaw || 'Open'),
+      description: description || '',
+      status: (statusRaw || 'To Do'),
       screenshotUrl,
       userEmail: req.user?.email || '',
       createdAt: new Date().toISOString(),
@@ -62,7 +62,7 @@ router.post('/', protect, upload.single('screenshot'), async (req, res, next) =>
     return res.status(201).json({ success: true, message: 'Feedback submitted', data: feedbackPayload });
   } catch (error) {
     if (error && error.code === 'LIMIT_FILE_SIZE') {
-      return res.status(413).json({ success: false, message: 'Image must be under 5 MB' });
+      return res.status(413).json({ success: false, message: 'Image must be under 1 MB' });
     }
     next(error);
   }

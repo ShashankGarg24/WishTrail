@@ -8,17 +8,24 @@ const FeedbackButton = () => {
   const { isAuthenticated } = useApiStore()
   const [isOpen, setIsOpen] = useState(false)
   const [title, setTitle] = useState('')
-  const [description, setDescription] = useState('')
+  const [description, setDescription] = useState('') // optional
   const [screenshotFile, setScreenshotFile] = useState(null)
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState('')
   const [error, setError] = useState('')
+  const [sizeWarning, setSizeWarning] = useState('')
 
   if (!isAuthenticated) return null
 
   const handleFileChange = (e) => {
     const file = e.target.files?.[0]
-    setScreenshotFile(file || null)
+    if (file && file.size > 1024 * 1024) {
+      setSizeWarning('Max image size is 1 MB')
+      setScreenshotFile(null)
+    } else {
+      setSizeWarning('')
+      setScreenshotFile(file || null)
+    }
   }
 
   const handleSubmit = async (e) => {
@@ -26,12 +33,18 @@ const FeedbackButton = () => {
     setSubmitting(true)
     setError('')
     setSuccess('')
+
+    if (!title.trim()) {
+      setSubmitting(false)
+      setError('Title is required')
+      return
+    }
+
     try {
       const formData = new FormData()
       formData.append('title', title)
-      formData.append('description', description)
-      formData.append('type', 'Improvement')
-      formData.append('status', 'Open')
+      if (description) formData.append('description', description)
+      formData.append('status', 'To Do')
       if (screenshotFile) formData.append('screenshot', screenshotFile)
 
       const res = await feedbackAPI.submit(formData)
@@ -89,7 +102,7 @@ const FeedbackButton = () => {
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Bug/Improvement</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Bug/Improvement <span className="text-red-500">*</span></label>
                   <input
                     type="text"
                     value={title}
@@ -100,23 +113,23 @@ const FeedbackButton = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description (optional)</label>
                   <textarea
                     rows={4}
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    required
                     className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                    placeholder="Details of the bug or improvement"
+                    placeholder="Details of the bug or improvement (optional)"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Attach Screenshot (optional)</label>
                   <label className="flex items-center gap-2 px-3 py-2 border rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800">
                     <Image className="h-4 w-4" />
-                    <span className="text-sm">{screenshotFile ? screenshotFile.name : 'Choose image'}</span>
-                    <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
+                    <span className="text-sm">{screenshotFile ? screenshotFile.name : 'Choose image (max 1 MB)'}</span>
+                    <input type="file" accept="image/png, image/jpeg, image/jpg" onChange={handleFileChange} className="hidden" />
                   </label>
+                  {sizeWarning && <div className="text-xs text-amber-600 mt-1">{sizeWarning}</div>}
                 </div>
 
                 {error && <div className="text-sm text-red-500">{error}</div>}
