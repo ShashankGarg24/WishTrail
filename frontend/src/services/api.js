@@ -7,9 +7,6 @@ const API_BASE_URL = API_CONFIG.BASE_URL;
 const api = axios.create({
   baseURL: API_BASE_URL,
   withCredentials: true,
-  headers: {
-    'Content-Type': 'application/json',
-  },
 });
 
 // Request interceptor to add auth token
@@ -138,7 +135,7 @@ export const locationAPI = {
 
 // Feedback API (helper)
 export const feedbackAPI = {
-  submit: (formData) => api.post('/feedback', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+  submit: (formData) => api.post('/feedback', formData)
 }
 
 // Utility functions

@@ -38,8 +38,20 @@ const createApp = async () => {
   app.set('trust proxy', 1);
 
   // --- MIDDLEWARE ---
-  app.use(cors({
-    origin: true,
+  const defaultAllowed = ['http://localhost:5173', 'http://127.0.0.1:5173'];
+  const fromEnv = (process.env.ALLOWED_ORIGINS || process.env.CLIENT_URL || '')
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean);
+  const allowedOrigins = Array.from(new Set([...defaultAllowed, ...fromEnv]));
+
+  const corsOptions = {
+    origin: function(origin, callback) {
+      if (!origin) return callback(null, true); // mobile apps / curl
+      const isAllowed = allowedOrigins.includes(origin);
+      if (isAllowed) return callback(null, true);
+      return callback(new Error(`Not allowed by CORS: ${origin}`));
+    },
     credentials: true,
     optionsSuccessStatus: 200,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD'],
@@ -48,8 +60,10 @@ const createApp = async () => {
       'Origin', 'Access-Control-Request-Method', 'Access-Control-Request-Headers'
     ],
     exposedHeaders: ['X-Total-Count', 'X-Page-Count']
-  }));
-  app.options('*', cors());
+  };
+
+  app.use(cors(corsOptions));
+  app.options('*', cors(corsOptions));
 
   app.use(helmet({
     crossOriginResourcePolicy: { policy: "cross-origin" },
