@@ -9,6 +9,9 @@ const User = require('../models/User');
 const storage = multer.memoryStorage();
 const upload = multer({ storage, limits: { fileSize: 1 * 1024 * 1024 } });
 
+const CLOUDINARY_PROFILE_UPLOAD_FOLDER = process.env.CLOUDINARY_PROFILE_UPLOAD_FOLDER || 'wishtrail/user/profile';
+
+
 // POST /api/v1/upload/avatar - upload profile picture
 router.post('/avatar', protect, upload.single('avatar'), async (req, res, next) => {
   try {
@@ -20,7 +23,7 @@ router.post('/avatar', protect, upload.single('avatar'), async (req, res, next) 
       return res.status(500).json({ success: false, message: 'Image service is not configured' });
     }
 
-    const { url } = await cloudinaryService.uploadBuffer(req.file.buffer, { folder: 'wishtrail/user/profile' });
+    const { url } = await cloudinaryService.uploadBuffer(req.file.buffer, { folder: CLOUDINARY_PROFILE_UPLOAD_FOLDER });
     if (!url) {
       return res.status(500).json({ success: false, message: 'Failed to upload image' });
     }
