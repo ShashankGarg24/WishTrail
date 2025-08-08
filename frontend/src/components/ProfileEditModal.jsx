@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, User, Mail, MapPin, Globe, Youtube, Instagram, Camera, Save, ExternalLink, Heart } from 'lucide-react'
 import useApiStore from '../store/apiStore'
+import { uploadAPI } from '../services/api'
 
 const INTERESTS_OPTIONS = [
   { id: 'fitness', label: 'Fitness', icon: '💪' },
@@ -120,17 +121,22 @@ const ProfileEditModal = ({ isOpen, onClose }) => {
     onClose()
   }
 
-  const handleAvatarChange = (e) => {
+  const handleAvatarChange = async (e) => {
     const file = e.target.files[0]
-    if (file) {
-      const reader = new FileReader()
-      reader.onload = (e) => {
+    if (!file) return
+    try {
+      const form = new FormData()
+      form.append('avatar', file)
+      const res = await uploadAPI.uploadAvatar(form)
+      const url = res.data?.data?.url || res.data?.url
+      if (url) {
         setFormData(prev => ({
           ...prev,
-          avatar: e.target.result
+          avatar: url
         }))
       }
-      reader.readAsDataURL(file)
+    } catch (err) {
+      console.error('Avatar upload failed', err)
     }
   }
 
@@ -199,7 +205,7 @@ const ProfileEditModal = ({ isOpen, onClose }) => {
                 <input
                   id="avatar-upload"
                   type="file"
-                  accept="image/*"
+                  accept="image/png, image/jpeg, image/jpg"
                   onChange={handleAvatarChange}
                   className="hidden"
                 />

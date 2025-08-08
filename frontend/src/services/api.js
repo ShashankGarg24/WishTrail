@@ -133,6 +133,11 @@ export const locationAPI = {
     api.get(`/location/search-city?q=${encodeURIComponent(query)}`)
 };
 
+// Upload API
+export const uploadAPI = {
+  uploadAvatar: (formData) => api.post('/upload/avatar', formData)
+}
+
 // Feedback API (helper)
 export const feedbackAPI = {
   submit: (formData) => api.post('/feedback', formData)
