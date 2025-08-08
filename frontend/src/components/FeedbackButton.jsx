@@ -44,7 +44,7 @@ const FeedbackButton = () => {
       const formData = new FormData()
       formData.append('title', title)
       if (description) formData.append('description', description)
-      formData.append('status', 'To Do')
+      formData.append('status', 'Open')
       if (screenshotFile) formData.append('screenshot', screenshotFile)
 
       const res = await feedbackAPI.submit(formData)
