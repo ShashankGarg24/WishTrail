@@ -12,7 +12,7 @@ class AuthService {
   /**
    * Create user
    */
-  async register({ email, name, password, username, dateOfBirth, interests, location }) {
+  async register({ email, name, password, username, dateOfBirth, interests, location, gender }) {
     // Check if OTP was verified (you might want to implement a temporary verification token)
     const recentVerifiedOTP = await OTP.findOne({
       email,
@@ -44,7 +44,8 @@ class AuthService {
       password,
       isActive: true,
       isVerified: true, // Since they verified via OTP
-      profileCompleted: true
+      profileCompleted: true,
+      gender
     };
 
     // Add optional fields
@@ -312,7 +313,7 @@ class AuthService {
   /**
    * Request OTP for signup
    */
-  async requestOTP({ email, name, password }) {
+     async requestOTP({ email, name, password, gender }) {
     // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {

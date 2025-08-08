@@ -42,7 +42,8 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
     email: "",
     password: "",
     confirmPassword: "",
-
+    gender: "",
+    
     // Step 2: OTP Verification
     otp: "",
     
@@ -162,6 +163,10 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
     } else if (formData.password.length < 6) {
       newErrors.password = "Password must be at least 6 characters";
     }
+
+    if (!formData.gender) {
+      newErrors.gender = "Gender is required";
+    }
     
     if (!formData.confirmPassword) {
       newErrors.confirmPassword = "Please confirm your password";
@@ -237,7 +242,8 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
       const otpResult = await requestOTP({
         email: formData.email,
         name: formData.name,
-        password: formData.password
+        password: formData.password,
+        gender: formData.gender,
       });
 
       if (!otpResult.success) {
@@ -289,6 +295,7 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
         name: formData.name,
         password: formData.password,
         username: formData.username,
+        gender: formData.gender,
         ...(formData.dateOfBirth && { dateOfBirth: formData.dateOfBirth }),
         ...(formData.location && { location: formData.location }),
         ...(formData.interests.length > 0 && { interests: formData.interests })
@@ -434,6 +441,26 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
           />
         </div>
         {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          Gender *
+        </label>
+        <select
+          name="gender"
+          value={formData.gender}
+          onChange={handleInputChange}
+          className={`w-full px-3 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
+            errors.gender ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+          } bg-white dark:bg-gray-700 text-gray-900 dark:text-white`}
+        >
+          <option value="">Select gender</option>
+          <option value="male">Male</option>
+          <option value="female">Female</option>
+          <option value="other">Other</option>
+        </select>
+        {errors.gender && <p className="text-red-500 text-sm mt-1">{errors.gender}</p>}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

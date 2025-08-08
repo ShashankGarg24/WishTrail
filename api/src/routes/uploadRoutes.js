@@ -1,44 +1,37 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
 const { protect } = require('../middleware/auth');
+const cloudinaryService = require('../services/cloudinaryService');
+const User = require('../models/User');
 
-// Ensure upload directory exists
-const avatarDir = path.join(__dirname, '../uploads/avatars');
-if (!fs.existsSync(avatarDir)) {
-  fs.mkdirSync(avatarDir, { recursive: true });
-}
+// Memory storage for serverless
+const storage = multer.memoryStorage();
+const upload = multer({ storage, limits: { fileSize: 1 * 1024 * 1024 } });
 
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, avatarDir);
-  },
-  filename: function (req, file, cb) {
-    const ext = path.extname(file.originalname) || '.png';
-    const name = `avatar_${req.user?._id || 'anon'}_${Date.now()}${ext}`;
-    cb(null, name);
-  },
-});
-
-const fileFilter = (req, file, cb) => {
-  const allowed = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
-  if (allowed.includes(file.mimetype)) cb(null, true);
-  else cb(new Error('Only image files are allowed'));
-};
-
-const upload = multer({ storage, fileFilter, limits: { fileSize: 5 * 1024 * 1024 } });
-
-// POST /api/v1/upload/avatar
+// POST /api/v1/upload/avatar - upload profile picture
 router.post('/avatar', protect, upload.single('avatar'), async (req, res, next) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ success: false, message: 'No file uploaded' });
+    if (!req.file || !req.file.buffer) {
+      return res.status(400).json({ success: false, message: 'No image uploaded' });
     }
-    const url = `/uploads/avatars/${req.file.filename}`;
-    return res.status(201).json({ success: true, url });
+
+    if (!cloudinaryService.isConfigured()) {
+      return res.status(500).json({ success: false, message: 'Image service is not configured' });
+    }
+
+    const { url } = await cloudinaryService.uploadBuffer(req.file.buffer, { folder: process.env.CLOUDINARY_UPLOAD_FOLDER || 'wishtrail/avatars' });
+    if (!url) {
+      return res.status(500).json({ success: false, message: 'Failed to upload image' });
+    }
+
+    const user = await User.findByIdAndUpdate(req.user.id, { avatar: url }, { new: true }).select('-password -refreshToken');
+
+    return res.status(200).json({ success: true, message: 'Avatar updated', data: { url, user } });
   } catch (err) {
+    if (err && err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(413).json({ success: false, message: 'Image must be under 1 MB' });
+    }
     next(err);
   }
 });

@@ -2,6 +2,10 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
+const DEFAULT_AVATAR_MALE = process.env.DEFAULT_AVATAR_MALE_URL || '';
+const DEFAULT_AVATAR_FEMALE = process.env.DEFAULT_AVATAR_FEMALE_URL || '';
+const DEFAULT_AVATAR_OTHER = process.env.DEFAULT_AVATAR_OTHER_URL || '';
+
 const userSchema = new mongoose.Schema({
   // Basic Information
   name: {
@@ -47,9 +51,18 @@ const userSchema = new mongoose.Schema({
   },
 
   // Profile Information
+  gender: {
+    type: String,
+    enum: ['male', 'female', 'other'],
+    required: [true, 'Gender is required']
+  },
   avatar: {
     type: String,
     default: function() {
+      if (this.gender === 'male' && DEFAULT_AVATAR_MALE) return DEFAULT_AVATAR_MALE;
+      if (this.gender === 'female' && DEFAULT_AVATAR_FEMALE) return DEFAULT_AVATAR_FEMALE;
+      if (DEFAULT_AVATAR_OTHER) return DEFAULT_AVATAR_OTHER;
+      // Fallback to dicebear
       return `https://api.dicebear.com/7.x/avataaars/svg?seed=${this.email}`;
     }
   },
