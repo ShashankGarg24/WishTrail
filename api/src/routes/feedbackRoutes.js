@@ -39,7 +39,7 @@ router.post('/', protect, upload.single('screenshot'), async (req, res, next) =>
     const feedbackPayload = {
       title,
       description,
-      status: (statusRaw || 'To Do'),
+      status: (statusRaw || 'Open'),
       screenshotUrl,
       userEmail: req.user?.email || '',
       createdAt: new Date().toISOString(),
