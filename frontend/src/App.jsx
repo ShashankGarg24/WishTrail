@@ -12,6 +12,7 @@ import ExplorePage from './pages/ExplorePage'
 import LeaderboardPage from './pages/LeaderboardPage'
 import ResetPasswordPage from './pages/ResetPasswordPage'
 import { SpeedInsights } from '@vercel/speed-insights/react';
+import FeedbackButton from './components/FeedbackButton'
 
 function App() {
   const { isDarkMode, initializeAuth } = useApiStore()
@@ -51,6 +52,7 @@ function App() {
           </Routes>
         </main>
         <Footer />
+        <FeedbackButton />
       </div>
       <SpeedInsights />
     </div>

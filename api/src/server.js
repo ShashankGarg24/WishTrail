@@ -105,6 +105,7 @@ const createApp = async () => {
   apiRouter.use('/explore', exploreRoutes);
   apiRouter.use('/upload', uploadRoutes);
   apiRouter.use('/location', locationRoutes);
+  apiRouter.use('/feedback', require('./routes/feedbackRoutes'));
 
   app.use(apiBasePath, apiRouter);
 

@@ -136,6 +136,11 @@ export const locationAPI = {
     api.get(`/location/search-city?q=${encodeURIComponent(query)}`)
 };
 
+// Feedback API (helper)
+export const feedbackAPI = {
+  submit: (formData) => api.post('/feedback', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+}
+
 // Utility functions
 export const handleApiError = (error) => {
   if (error.response?.data?.message) {
