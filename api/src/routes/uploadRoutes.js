@@ -20,7 +20,7 @@ router.post('/avatar', protect, upload.single('avatar'), async (req, res, next) 
       return res.status(500).json({ success: false, message: 'Image service is not configured' });
     }
 
-    const { url } = await cloudinaryService.uploadBuffer(req.file.buffer, { folder: process.env.CLOUDINARY_UPLOAD_FOLDER || 'wishtrail/avatars' });
+    const { url } = await cloudinaryService.uploadBuffer(req.file.buffer, { folder: 'wishtrail/user/profile' });
     if (!url) {
       return res.status(500).json({ success: false, message: 'Failed to upload image' });
     }

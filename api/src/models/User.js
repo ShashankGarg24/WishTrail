@@ -62,8 +62,10 @@ const userSchema = new mongoose.Schema({
       if (this.gender === 'male' && DEFAULT_AVATAR_MALE) return DEFAULT_AVATAR_MALE;
       if (this.gender === 'female' && DEFAULT_AVATAR_FEMALE) return DEFAULT_AVATAR_FEMALE;
       if (DEFAULT_AVATAR_OTHER) return DEFAULT_AVATAR_OTHER;
-      // Fallback to dicebear
-      return `https://api.dicebear.com/7.x/avataaars/svg?seed=${this.email}`;
+      // Fallback to dicebear with gender-based style and unique seed
+      const seed = encodeURIComponent(this.email || this.username || this.name || String(this._id));
+      const style = this.gender === 'female' ? 'princess' : this.gender === 'male' ? 'adventurer' : 'fun-emoji';
+      return `https://api.dicebear.com/7.x/${style}/svg?seed=${seed}`;
     }
   },
   bio: {
