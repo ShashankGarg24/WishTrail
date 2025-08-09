@@ -14,8 +14,12 @@ const FeedbackButton = () => {
   const [success, setSuccess] = useState('')
   const [error, setError] = useState('')
   const [sizeWarning, setSizeWarning] = useState('')
+  const MAX_WORDS = 200
+  const MAX_TITLE_WORDS = 20
 
   if (!isAuthenticated) return null
+
+  const countWords = (text) => (text || '').trim().split(/\s+/).filter(Boolean).length
 
   const handleFileChange = (e) => {
     const file = e.target.files?.[0]
@@ -40,11 +44,23 @@ const FeedbackButton = () => {
       return
     }
 
+    if (countWords(title) > MAX_TITLE_WORDS) {
+      setSubmitting(false)
+      setError(`Title must be at most ${MAX_TITLE_WORDS} words`)
+      return
+    }
+
+    if (description && countWords(description) > MAX_WORDS) {
+      setSubmitting(false)
+      setError(`Description must be at most ${MAX_WORDS} words`)
+      return
+    }
+
     try {
       const formData = new FormData()
       formData.append('title', title)
       if (description) formData.append('description', description)
-      formData.append('status', 'Open')
+      formData.append('status', 'To Do')
       if (screenshotFile) formData.append('screenshot', screenshotFile)
 
       const res = await feedbackAPI.submit(formData)
@@ -93,11 +109,14 @@ const FeedbackButton = () => {
               className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-lg p-6 border border-gray-200 dark:border-gray-700 shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-1">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Send Feedback</h3>
                 <button onClick={() => setIsOpen(false)} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800">
                   <X className="h-5 w-5 text-gray-500" />
                 </button>
+              </div>
+              <div className="text-sm text-gray-500 mb-6">
+                You're part of WishTrail's journey — share your ideas and help make it better.
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-4">
@@ -111,6 +130,7 @@ const FeedbackButton = () => {
                     className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                     placeholder="Brief summary"
                   />
+                  <div className="text-xs text-gray-500 mt-1">{countWords(title)} / {MAX_TITLE_WORDS} words</div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description (optional)</label>
@@ -119,11 +139,12 @@ const FeedbackButton = () => {
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                    placeholder="Details of the bug or improvement (optional)"
+                    placeholder="Details of the bug or improvement"
                   />
+                  <div className="text-xs text-gray-500 mt-1">{countWords(description)} / {MAX_WORDS} words</div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Attach Screenshot (optional)</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Attachment (optional)</label>
                   <label className="flex items-center gap-2 px-3 py-2 border rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800">
                     <Image className="h-4 w-4" />
                     <span className="text-sm">{screenshotFile ? screenshotFile.name : 'Choose image (max 1 MB)'}</span>

@@ -17,6 +17,9 @@ const fileFilter = (req, file, cb) => {
 // Enforce 1 MB image size limit
 const upload = multer({ storage, fileFilter, limits: { fileSize: 1 * 1024 * 1024 } });
 
+const MAX_DESCRIPTION_WORDS = 200
+const MAX_TITLE_WORDS = 20
+
 // POST /api/v1/feedback
 router.post('/', protect, upload.single('screenshot'), async (req, res, next) => {
   try {
@@ -24,6 +27,18 @@ router.post('/', protect, upload.single('screenshot'), async (req, res, next) =>
 
     if (!title) {
       return res.status(400).json({ success: false, message: 'Title is required' });
+    }
+
+    const titleWords = title.trim().split(/\s+/).filter(Boolean)
+    if (titleWords.length > MAX_TITLE_WORDS) {
+      return res.status(400).json({ success: false, message: `Title must be at most ${MAX_TITLE_WORDS} words` })
+    }
+
+    if (description) {
+      const words = description.trim().split(/\s+/).filter(Boolean)
+      if (words.length > MAX_DESCRIPTION_WORDS) {
+        return res.status(400).json({ success: false, message: `Description must be at most ${MAX_DESCRIPTION_WORDS} words` })
+      }
     }
 
     let screenshotUrl = '';
@@ -39,7 +54,7 @@ router.post('/', protect, upload.single('screenshot'), async (req, res, next) =>
     const feedbackPayload = {
       title,
       description: description || '',
-      status: (statusRaw || 'Open'),
+      status: (statusRaw || 'To Do'),
       screenshotUrl,
       userEmail: req.user?.email || '',
       createdAt: new Date().toISOString(),
