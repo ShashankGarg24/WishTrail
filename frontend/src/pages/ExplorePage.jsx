@@ -19,6 +19,7 @@ import {
   UserCheck
 } from 'lucide-react';
 import useApiStore from '../store/apiStore';
+import SkeletonList from '../components/loader/SkeletonList'
 
 const ExplorePage = () => {
   const navigate = useNavigate();
@@ -477,13 +478,15 @@ const ExplorePage = () => {
                   <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
                     <Users className="h-6 w-6 mr-2 text-blue-500" />
                     {searchTerm.trim() ? 'Search Results' : 'Discover Users'}
-              </h2>
-                  <span className="text-gray-500 dark:text-gray-400">
+                  </h2>
+                  <span className="text-gray-500 dark:text-gray-400 flex items-center gap-2">
                     {displayUsers.length} {displayUsers.length === 1 ? 'user' : 'users'} found
                   </span>
                 </div>
 
-                {displayUsers.length > 0 ? (
+                {(loading || isSearching) ? (
+                  <SkeletonList count={9} grid avatar lines={3} />
+                ) : displayUsers.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {displayUsers.map((userItem, index) => (
                       <motion.div
@@ -568,7 +571,7 @@ const ExplorePage = () => {
                       </motion.div>
                     ))}
                   </div>
-                ) : !loading && !isSearching && (
+                ) : (
                 <div className="text-center py-12">
                   <Users className="h-16 w-16 text-gray-400 mx-auto mb-4" />
                     <p className="text-gray-600 dark:text-gray-400 text-lg">
@@ -588,20 +591,15 @@ const ExplorePage = () => {
                   <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
                     <Activity className="h-6 w-6 mr-2 text-green-500" />
                     Activities
-              </h2>
-                  <span className="text-gray-500 dark:text-gray-400">
+                  </h2>
+                  <span className="text-gray-500 dark:text-gray-400 flex items-center gap-2">
                     {activities.length} recent {activities.length === 1 ? 'activity' : 'activities'}
                   </span>
                 </div>
 
-                {/* Inline loader for Activities */}
-                {loading && (
-                  <div className="flex items-center justify-center py-12">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-                  </div>
-                )}
-
-                {activities.length > 0 ? (
+                {loading ? (
+                  <SkeletonList count={6} grid={false} avatar lines={4} />
+                ) : activities.length > 0 ? (
                 <div className="space-y-4">
                     {activities.map((activity, index) => (
                     <motion.div
@@ -717,7 +715,7 @@ const ExplorePage = () => {
                     </motion.div>
                   ))}
                 </div>
-                ) : !loading && (
+                ) : (
                 <div className="text-center py-12">
                   <Activity className="h-16 w-16 text-gray-400 mx-auto mb-4" />
                     <p className="text-gray-600 dark:text-gray-400 text-lg">No recent activity from friends.</p>
