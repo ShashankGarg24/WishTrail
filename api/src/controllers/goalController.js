@@ -280,7 +280,7 @@ const toggleGoalCompletion = async (req, res, next) => {
       })
     }
 
-    const { completionNote, shareCompletionNote } = req.body
+    const { completionNote, shareCompletionNote, attachmentUrl } = req.body
     const goal = await Goal.findById(req.params.id)
     if (!goal) {
       return res.status(404).json({
@@ -353,6 +353,10 @@ const toggleGoalCompletion = async (req, res, next) => {
       }
 
       updatedGoal = await goal.completeGoal(completionNote, shareCompletionNote);
+      if (attachmentUrl) {
+        updatedGoal.completionAttachmentUrl = attachmentUrl
+        await updatedGoal.save()
+      }
 
       user.addToTotalPoints(updatedGoal.pointsEarned)
       user.addDailyCompletion(goal._id);

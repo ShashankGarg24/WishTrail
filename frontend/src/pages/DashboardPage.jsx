@@ -6,6 +6,7 @@ import CreateWishModal from '../components/CreateWishModal'
 import WishCard from '../components/WishCard'
 import GoalSuggestions from '../components/GoalSuggestions'
 import GoalSuggestionsModal from '../components/GoalSuggestionsModal'
+import { API_CONFIG } from '../config/api'
 
 const DashboardPage = () => {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
@@ -88,8 +89,28 @@ const DashboardPage = () => {
     }
   }
 
-  const handleCompleteGoal = async (goalId, completionNote, shareCompletionNote = true) => {
-    const result = await toggleGoalCompletion(goalId, completionNote, shareCompletionNote)
+  const handleCompleteGoal = async (goalId, completionPayload /* FormData or note */, shareCompletionNote = true) => {
+    let result
+    if (completionPayload instanceof FormData) {
+      // Send multipart directly
+      // toggleGoalCompletion expects (id, note, share) in store; add a new path for FormData
+      try {
+        const res = await fetch(`${API_CONFIG.BASE_URL}/goals/${goalId}/toggle`, {
+          method: 'PATCH',
+          credentials: 'include',
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token') || ''}`
+          },
+          body: completionPayload
+        })
+        const data = await res.json()
+        result = { success: res.ok && data.success, data }
+      } catch (e) {
+        result = { success: false, error: e.message }
+      }
+    } else {
+      result = await toggleGoalCompletion(goalId, completionPayload, shareCompletionNote)
+    }
     if (result.success) {
       // Refresh dashboard stats
       getDashboardStats()

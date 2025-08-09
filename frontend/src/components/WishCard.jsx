@@ -34,8 +34,15 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
     }
   }
 
-  const handleComplete = (completionNote, shareCompletionNote = true) => {
-    return onComplete?.(wish._id, completionNote, shareCompletionNote)
+  const handleComplete = (formDataOrNote, shareCompletionNoteParam = true) => {
+    // Backward compatibility: if first arg is FormData, pass as-is. Else build FormData
+    if (formDataOrNote instanceof FormData) {
+      return onComplete?.(wish._id, formDataOrNote)
+    }
+    const form = new FormData()
+    form.append('completionNote', String(formDataOrNote || ''))
+    form.append('shareCompletionNote', String(shareCompletionNoteParam))
+    return onComplete?.(wish._id, form)
   }
 
   const handleDelete = () => {

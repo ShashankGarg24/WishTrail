@@ -110,6 +110,11 @@ const goalSchema = new mongoose.Schema({
       message: 'Completion note must be at least 10 words'
     }
   },
+  completionAttachmentUrl: {
+    type: String,
+    trim: true,
+    default: ''
+  },
   
   // Duration Enforcement
   canCompleteAfter: {

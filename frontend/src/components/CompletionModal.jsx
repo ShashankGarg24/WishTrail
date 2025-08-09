@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { X, CheckCircle, AlertCircle, FileText, Share2, Lock, Globe } from 'lucide-react'
+import { X, CheckCircle, AlertCircle, FileText, Share2, Lock, Globe, Image as ImageIcon } from 'lucide-react'
 import useApiStore from '../store/apiStore'
 import CelebrationModal from './CelebrationModal'
 
@@ -9,6 +9,9 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal }) => {
   const [shareCompletionNote, setShareCompletionNote] = useState(true)
   const [error, setError] = useState('')
   const [showCelebration, setShowCelebration] = useState(false)
+  const [attachmentFile, setAttachmentFile] = useState(null)
+  const [attachmentError, setAttachmentError] = useState('')
+  const [attachmentPreview, setAttachmentPreview] = useState('')
   const { loading } = useApiStore()
 
   const validateNote = (note) => {
@@ -16,30 +19,85 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal }) => {
     return wordCount >= 10
   }
 
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0]
+    setAttachmentError('')
+    if (!file) {
+      if (attachmentPreview) URL.revokeObjectURL(attachmentPreview)
+      setAttachmentPreview('')
+      setAttachmentFile(null)
+      return
+    }
+    const allowed = ['image/png', 'image/jpeg', 'image/jpg']
+    if (!allowed.includes(file.type)) {
+      setAttachmentError('Only JPG/JPEG/PNG images are allowed')
+      if (attachmentPreview) URL.revokeObjectURL(attachmentPreview)
+      setAttachmentPreview('')
+      setAttachmentFile(null)
+      return
+    }
+    if (file.size > 1024 * 1024) {
+      setAttachmentError('Max image size is 1 MB')
+      if (attachmentPreview) URL.revokeObjectURL(attachmentPreview)
+      setAttachmentPreview('')
+      setAttachmentFile(null)
+      return
+    }
+    if (attachmentPreview) URL.revokeObjectURL(attachmentPreview)
+    setAttachmentPreview(URL.createObjectURL(file))
+    setAttachmentFile(file)
+  }
+
+  const removeAttachment = () => {
+    if (attachmentPreview) URL.revokeObjectURL(attachmentPreview)
+    setAttachmentPreview('')
+    setAttachmentFile(null)
+    setAttachmentError('')
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
-    
+    setError('')
+
     if (!validateNote(completionNote)) {
       setError('Please add at least 10 words describing what you actually did')
       return
     }
 
+    if (attachmentError) {
+      setError('Please resolve the attachment issue before completing the goal')
+      return
+    }
+
     try {
-      await onComplete(completionNote.trim(), shareCompletionNote)
+      // Build FormData for multipart
+      const form = new FormData()
+      form.append('completionNote', completionNote.trim())
+      form.append('shareCompletionNote', String(shareCompletionNote))
+      if (attachmentFile) form.append('attachment', attachmentFile)
+
+      await onComplete(form)
       setCompletionNote('')
       setShareCompletionNote(true)
+      setAttachmentFile(null)
+      setAttachmentError('')
+      if (attachmentPreview) URL.revokeObjectURL(attachmentPreview)
+      setAttachmentPreview('')
       setError('')
-      // Show celebration instead of closing immediately
       setTimeout(() => {
         setShowCelebration(true)}, 500)
     } catch (err) {
-      setError('Failed to complete goal. Please try again.')
+      setError(err?.response?.data?.message || 'Failed to complete goal. Please try again.')
     }
   }
 
   const handleClose = () => {
     setCompletionNote('')
     setShareCompletionNote(true)
+    setAttachmentFile(null)
+    setAttachmentError('')
+    if (attachmentPreview) URL.revokeObjectURL(attachmentPreview)
+    setAttachmentPreview('')
     setError('')
     setShowCelebration(false)
     onClose()
@@ -147,6 +205,33 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal }) => {
               </span>
             </div>
           </div>
+
+          {/* Attachment */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Attach an image (optional)
+            </label>
+            <label className="flex items-center gap-2 px-3 py-2 border rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 border-gray-300 dark:border-gray-600">
+              <ImageIcon className="h-4 w-4" />
+              <span className="text-sm">{attachmentFile ? attachmentFile.name : 'Choose JPG/PNG (max 1 MB)'}</span>
+              <input type="file" accept="image/png, image/jpeg, image/jpg" onChange={handleFileChange} className="hidden" />
+            </label>
+            {attachmentPreview && (
+              <div className="relative inline-block mt-3">
+                <img src={attachmentPreview} alt="Attachment preview" className="w-24 h-24 object-cover rounded border border-gray-200 dark:border-gray-700" />
+                <button type="button" onClick={removeAttachment} className="absolute -top-2 -right-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-full p-1 shadow hover:bg-gray-50">
+                  <X className="h-3 w-3 text-gray-600" />
+                </button>
+              </div>
+            )}
+            {attachmentError && (
+              <div className="text-xs text-red-500 mt-1 flex items-center gap-1">
+                <AlertCircle className="h-3 w-3" />
+                <span>{attachmentError}</span>
+              </div>
+            )}
+          </div>
+
           {/* Sharing Toggle */}
           <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
             <div className="flex items-center justify-between">

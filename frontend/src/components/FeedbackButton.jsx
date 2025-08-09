@@ -14,6 +14,7 @@ const FeedbackButton = () => {
   const [success, setSuccess] = useState('')
   const [error, setError] = useState('')
   const [sizeWarning, setSizeWarning] = useState('')
+  const [previewUrl, setPreviewUrl] = useState('')
   const MAX_WORDS = 200
   const MAX_TITLE_WORDS = 20
 
@@ -25,11 +26,22 @@ const FeedbackButton = () => {
     const file = e.target.files?.[0]
     if (file && file.size > 1024 * 1024) {
       setSizeWarning('Max image size is 1 MB')
+      if (previewUrl) URL.revokeObjectURL(previewUrl)
+      setPreviewUrl('')
       setScreenshotFile(null)
     } else {
       setSizeWarning('')
+      if (previewUrl) URL.revokeObjectURL(previewUrl)
+      if (file) setPreviewUrl(URL.createObjectURL(file))
       setScreenshotFile(file || null)
     }
+  }
+
+  const removeImage = () => {
+    if (previewUrl) URL.revokeObjectURL(previewUrl)
+    setPreviewUrl('')
+    setScreenshotFile(null)
+    setSizeWarning('')
   }
 
   const handleSubmit = async (e) => {
@@ -69,6 +81,8 @@ const FeedbackButton = () => {
         setSuccess('Thanks for your feedback!')
         setTitle('')
         setDescription('')
+        if (previewUrl) URL.revokeObjectURL(previewUrl)
+        setPreviewUrl('')
         setScreenshotFile(null)
         setTimeout(() => setIsOpen(false), 800)
       } else {
@@ -147,9 +161,17 @@ const FeedbackButton = () => {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Attachment (optional)</label>
                   <label className="flex items-center gap-2 px-3 py-2 border rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800">
                     <Image className="h-4 w-4" />
-                    <span className="text-sm">{screenshotFile ? screenshotFile.name : 'Choose image (max 1 MB)'}</span>
+                    <span className="text-sm">{screenshotFile ? screenshotFile.name : 'Choose image (max 1 MB)'} </span>
                     <input type="file" accept="image/png, image/jpeg, image/jpg" onChange={handleFileChange} className="hidden" />
                   </label>
+                  {previewUrl && (
+                    <div className="relative inline-block mt-3">
+                      <img src={previewUrl} alt="Attachment preview" className="w-24 h-24 object-cover rounded border border-gray-200 dark:border-gray-700" />
+                      <button type="button" onClick={removeImage} className="absolute -top-2 -right-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-full p-1 shadow hover:bg-gray-50">
+                        <X className="h-3 w-3 text-gray-600" />
+                      </button>
+                    </div>
+                  )}
                   {sizeWarning && <div className="text-xs text-amber-600 mt-1">{sizeWarning}</div>}
                 </div>
 
