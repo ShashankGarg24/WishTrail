@@ -1,4 +1,4 @@
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Moon, Sun, Menu, X, Star, User, BarChart3, LogOut, Settings } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
@@ -11,6 +11,7 @@ const Header = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const location = useLocation()
   const menuRef = useRef(null)
+  const navigate = useNavigate();
 
   // Main navigation tabs in specified order
   const mainNavigation = [
@@ -49,6 +50,7 @@ const Header = () => {
   const handleLogout = async () => {
     await logout()
     setIsMenuOpen(false)
+    navigate('/')
   }
 
   return (
