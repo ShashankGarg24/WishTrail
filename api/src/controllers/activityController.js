@@ -2,6 +2,7 @@ const Activity = require('../models/Activity');
 const Like = require('../models/Like');
 const Follow = require('../models/Follow');
 const cacheService = require('../services/cacheService');
+const ActivityComment = require('../models/ActivityComment');
 
 // @desc    Get recent activities (global or personal)
 // @route   GET /api/v1/activities/recent
@@ -377,11 +378,101 @@ const getActivityStats = async (req, res, next) => {
   }
 };
 
+// @desc    Get comments for an activity (with single-level replies)
+// @route   GET /api/v1/activities/:id/comments
+// @access  Private
+const getActivityComments = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const page = parseInt(req.query.page || '1');
+    const limit = parseInt(req.query.limit || '20');
+
+    const [roots, count] = await Promise.all([
+      ActivityComment.find({ activityId: id, parentCommentId: null, isActive: true })
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .populate('userId', 'name avatar')
+        .lean(),
+      ActivityComment.countDocuments({ activityId: id, parentCommentId: null, isActive: true })
+    ]);
+
+    const rootIds = roots.map(r => r._id);
+    const replies = await ActivityComment.find({ parentCommentId: { $in: rootIds }, isActive: true })
+      .sort({ createdAt: 1 })
+      .populate('userId', 'name avatar')
+      .lean();
+
+    const rootIdToReplies = replies.reduce((acc, r) => {
+      const key = String(r.parentCommentId);
+      (acc[key] = acc[key] || []).push(r); 
+      return acc;
+    }, {});
+
+    const data = roots.map(r => ({ ...r, replies: rootIdToReplies[String(r._id)] || [] }));
+
+    res.status(200).json({ success: true, data: { comments: data, pagination: { page, limit, total: count, pages: Math.ceil(count / limit) } } });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Create a comment on an activity
+// @route   POST /api/v1/activities/:id/comments
+// @access  Private
+const addActivityComment = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { text } = req.body;
+    if (!text || !text.trim()) {
+      return res.status(400).json({ success: false, message: 'Comment text is required' });
+    }
+    const activity = await Activity.findById(id);
+    if (!activity || !activity.isPublic) {
+      return res.status(404).json({ success: false, message: 'Activity not found' });
+    }
+    const comment = await ActivityComment.create({ activityId: id, userId: req.user.id, text: text.trim() });
+    const populated = await ActivityComment.findById(comment._id).populate('userId', 'name avatar').lean();
+    res.status(201).json({ success: true, data: { comment: populated } });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Reply to a comment (single-level)
+// @route   POST /api/v1/activities/:id/comments/:commentId/replies
+// @access  Private
+const replyToActivityComment = async (req, res, next) => {
+  try {
+    const { id, commentId } = req.params;
+    const { text, mentionUserId } = req.body;
+    if (!text || !text.trim()) {
+      return res.status(400).json({ success: false, message: 'Reply text is required' });
+    }
+    const [activity, parent] = await Promise.all([
+      Activity.findById(id),
+      ActivityComment.findById(commentId)
+    ]);
+    if (!activity || !activity.isPublic) return res.status(404).json({ success: false, message: 'Activity not found' });
+    if (!parent || !parent.isActive || String(parent.activityId) !== String(id)) {
+      return res.status(404).json({ success: false, message: 'Parent comment not found' });
+    }
+    const reply = await ActivityComment.create({ activityId: id, userId: req.user.id, text: text.trim(), parentCommentId: commentId, mentionUserId: mentionUserId || null });
+    const populated = await ActivityComment.findById(reply._id).populate('userId', 'name avatar').lean();
+    res.status(201).json({ success: true, data: { reply: populated } });
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   getRecentActivities,
   getUserActivities,
   toggleActivityLike,
   getActivity,
   getTrendingActivities,
-  getActivityStats
+  getActivityStats,
+  getActivityComments,
+  addActivityComment,
+  replyToActivityComment
 }; 

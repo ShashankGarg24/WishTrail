@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { 
   Search, 
@@ -16,10 +16,12 @@ import {
   ThumbsUp,
   Calendar,
   Flame,
-  UserCheck
+  UserCheck,
+  X
 } from 'lucide-react';
 import useApiStore from '../store/apiStore';
 import SkeletonList from '../components/loader/SkeletonList'
+import ActivityDetailModal from '../components/ActivityDetailModal'
 
 const ExplorePage = () => {
   const navigate = useNavigate();
@@ -30,6 +32,14 @@ const ExplorePage = () => {
   const [activities, setActivities] = useState([]);
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxUrl, setLightboxUrl] = useState('');
+  const openLightbox = (url) => { if (!url) return; setLightboxUrl(url); setLightboxOpen(true); };
+  const closeLightbox = () => { setLightboxOpen(false); setLightboxUrl(''); };
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [detailActivity, setDetailActivity] = useState(null);
+  const openDetail = (act) => { setDetailActivity(act); setDetailOpen(true); };
+  const closeDetail = () => { setDetailOpen(false); setDetailActivity(null); };
 
   const { 
     isAuthenticated, 
@@ -607,71 +617,65 @@ const ExplorePage = () => {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, delay: 0.1 * index }}
-                        className="bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 hover:border-gray-300 dark:hover:border-gray-600/50 transition-all duration-200 shadow-lg hover:shadow-xl"
+                        className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden"
                     >
-                        <div className="flex items-start space-x-4">
-                          <div className="relative">
-                        <img
-                              src={activity?.avatar || '/api/placeholder/48/48'}
-                              alt={activity?.name || 'User'}
-                              className="w-12 h-12 rounded-full border-2 border-gray-200 dark:border-gray-600 cursor-pointer hover:border-blue-500 transition-colors"
-                              onClick={() => activity.user?._id && navigate(`/profile/${activity.user._id}`)}
-                        />
-                            {activity.data?.goalCategory && (
-                              <div className={`absolute -top-1 -right-1 w-6 h-6 rounded-full ${getCategoryColor(activity.data.goalCategory)} flex items-center justify-center text-xs`}>
-                                {activity.type === 'goal_completed' || activity.type === 'goal_created' 
-                                  ? getCategoryIcon(activity.data.goalCategory)
-                                  : getActivityIcon(activity)
-                                }
-                        </div>
-                              )}
-                      </div>
-                          
-                          <div className="flex-1">
-                            <div className="flex items-center space-x-2 mb-2">
-                              <span 
-                                className="font-semibold text-gray-900 dark:text-white cursor-pointer hover:text-blue-500 transition-colors"
+                        {/* Header */}
+                        <div className="flex items-center gap-3 px-4 pt-4 pb-3">
+                          <img
+                            src={activity?.avatar || '/api/placeholder/48/48'}
+                            alt={activity?.name || 'User'}
+                            className="w-10 h-10 rounded-full object-cover cursor-pointer"
+                            onClick={() => activity.user?._id && navigate(`/profile/${activity.user._id}`)}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <button
+                                className="font-semibold text-gray-900 dark:text-white hover:text-blue-500 truncate"
                                 onClick={() => activity.user?._id && navigate(`/profile/${activity.user._id}`)}
                               >
                                 {activity?.name || 'Unknown User'}
-                              </span>
-                              <span className="text-gray-500 dark:text-gray-400 text-sm">
-                                {getActivityText(activity)}
-                              </span>
-                              <span className="text-gray-400 dark:text-gray-500 text-sm">
-                                {formatTimeAgo(activity.createdAt)}
-                              </span>
+                              </button>
+                              <span className="text-xs text-gray-400">•</span>
+                              <span className="text-xs text-gray-500 dark:text-gray-400">{formatTimeAgo(activity.createdAt)}</span>
                             </div>
-                            
-                            <div className="bg-gray-50 dark:bg-gray-700/40 rounded-2xl p-4 mb-3 border border-gray-100 dark:border-gray-700/60">
-                              {(activity.type === 'goal_completed' || activity.type === 'goal_created') ? (
-                                <>
-                                  <h4 className="font-semibold text-gray-900 dark:text-white mb-2">
-                                    {activity.data?.goalTitle || 'Goal Achievement'}
-                                  </h4>
-                                  {activity.data?.goalCategory && (
-                                    <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium text-white ${getCategoryColor(activity.data.goalCategory)}`}>
-                                      {activity.data.goalCategory}
-                                    </span>
-                                  )}
-                                  {/* Shared note/image when public */}
-                                  {activity.isPublic && (() => {
-                                    const sharedNote = activity?.data?.metadata?.completionNote || activity?.data?.completionNote || ''
-                                    const sharedImage = activity?.data?.metadata?.completionAttachmentUrl || activity?.data?.completionAttachmentUrl || ''
-                                    if (!sharedNote && !sharedImage) return null
-                                    return (
-                                      <div className="mt-3 space-y-3">
-                                        {sharedImage && (
-                                          <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700">
+                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                              {getActivityText(activity)}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Media/Content */}
+                        <div className="px-4 pb-4">
+                          <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-4 border border-gray-100 dark:border-gray-800">
+                             {(activity.type === 'goal_completed' || activity.type === 'goal_created') ? (
+                               <>
+                                 <h4 className="font-semibold text-gray-900 dark:text-white mb-2">
+                                   {activity.data?.goalTitle || 'Goal Achievement'}
+                                 </h4>
+                                 {activity.data?.goalCategory && (
+                                   <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium text-white ${getCategoryColor(activity.data.goalCategory)}`}>
+                                     {activity.data.goalCategory}
+                                   </span>
+                                 )}
+                                 {/* Shared note/image when public */}
+                                 {activity.isPublic && (() => {
+                                   const sharedNote = activity?.data?.metadata?.completionNote || activity?.data?.completionNote || ''
+                                   const sharedImage = activity?.data?.metadata?.completionAttachmentUrl || activity?.data?.completionAttachmentUrl || ''
+                                   if (!sharedNote && !sharedImage) return null
+                                   return (
+                                     <div className="mt-3 space-y-3 cursor-pointer" onClick={() => openDetail(activity)}>
+                                       {sharedImage && (
+                                         <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700">
                                             <img
                                               src={sharedImage}
                                               alt="Completion attachment"
-                                              className="w-full max-h-80 object-cover hover:scale-[1.01] transition-transform duration-200"
+                                              className="w-full max-h-96 object-cover hover:scale-[1.01] transition-transform duration-200 cursor-zoom-in"
+                                              onClick={() => openLightbox(sharedImage)}
                                             />
                                           </div>
                                         )}
                                         {sharedNote && (
-                                          <div className="bg-white/80 dark:bg-gray-800/50 rounded-xl p-3 border border-gray-200 dark:border-gray-700">
+                                          <div className="bg-white/80 dark:bg-gray-900/40 rounded-xl p-3 border border-gray-200 dark:border-gray-700">
                                             <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line">
                                               {sharedNote}
                                             </p>
@@ -682,14 +686,6 @@ const ExplorePage = () => {
                                   })()}
                                 </>
                               ) 
-                              // : activity.type === 'user_followed' ? (
-                              //   <div className="flex items-center space-x-2">
-                              //     <span className="text-gray-900 dark:text-white font-medium">
-                              //     {activity?.userName || 'someone'} Started following you.
-                              //     </span>
-                              //     <span className="text-2xl">👥</span>
-                              //   </div>
-                              // ) 
                               : activity.type === 'streak_milestone' ? (
                                 <div className="flex items-center space-x-2">
                                   <span className="text-gray-900 dark:text-white font-medium">
@@ -716,31 +712,23 @@ const ExplorePage = () => {
                                   Activity Update
                                 </h4>
                               )}
-                            </div>
-                        
-                            <div className="flex items-center space-x-6">
-                                                         <button
-                                onClick={() => activity.isLiked ? handleUnlike(activity._id) : handleLike(activity._id)}
-                                className={`flex items-center space-x-2 px-3 py-1 rounded-lg transition-colors duration-200 ${
-                                  activity.isLiked 
-                                    ? 'bg-red-500/20 text-red-500' 
-                                    : 'bg-gray-200 dark:bg-gray-700/50 text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600/50 hover:text-red-500 dark:hover:text-red-400'
-                               }`}
-                             >
-                                <Heart className={`h-4 w-4 ${activity.isLiked ? 'fill-current' : ''}`} />
-                                <span className="text-sm">{activity.likeCount || 0}</span>
-                             </button>
-                              
-                              {/* <button className="flex items-center space-x-2 px-3 py-1 rounded-lg bg-gray-200 dark:bg-gray-700/50 text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600/50 hover:text-blue-500 dark:hover:text-blue-400 transition-colors duration-200">
-                                <MessageCircle className="h-4 w-4" />
-                                <span className="text-sm">Comment</span>
-                              </button> */}
                           </div>
-                          </div>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
+
+                          {/* Action bar */}
+                          <div className="flex items-center gap-4 pt-2 px-1">
+                            <button
+                              onClick={() => activity.isLiked ? handleUnlike(activity._id) : handleLike(activity._id)}
+                              className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm transition-colors ${activity.isLiked ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-300' : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
+                            >
+                              <Heart className={`h-4 w-4 ${activity.isLiked ? 'fill-current' : ''}`} />
+                              <span>{activity.likeCount || 0}</span>
+                            </button>
+                                                        {/* Future: comments/share */}
+                           </div>
+                         </div>
+                       </motion.div>
+                    ))}
+                  </div>
                 ) : (
                 <div className="text-center py-12">
                   <Activity className="h-16 w-16 text-gray-400 mx-auto mb-4" />
@@ -758,9 +746,40 @@ const ExplorePage = () => {
               )}
             </div>
           )}
-        </motion.div>
+                </motion.div>
+        </div>
+ 
+         {/* Lightbox Modal */}
+         <AnimatePresence>
+          {lightboxOpen && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4"
+              onClick={closeLightbox}
+            >
+              <motion.img
+                initial={{ scale: 0.98 }}
+                animate={{ scale: 1 }}
+                exit={{ scale: 0.98 }}
+                src={lightboxUrl}
+                alt="Attachment"
+                className="max-w-[90vw] max-h-[85vh] object-contain rounded-lg shadow-2xl"
+                onClick={(e) => e.stopPropagation()}
+              />
+              <button
+                onClick={closeLightbox}
+                className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <ActivityDetailModal isOpen={detailOpen} onClose={closeDetail} activity={detailActivity} />
       </div>
-    </div>
     </div>
   );
 };

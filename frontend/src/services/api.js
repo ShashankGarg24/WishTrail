@@ -108,6 +108,9 @@ export const activitiesAPI = {
   getUserActivities: (userId, params) => api.get(`/activities/user/${userId}`, { params }),
   getActivity: (id) => api.get(`/activities/${id}`),
   likeActivity: (id) => api.patch(`/activities/${id}/like`),
+  getComments: (activityId, params) => api.get(`/activities/${activityId}/comments`, { params }),
+  addComment: (activityId, body) => api.post(`/activities/${activityId}/comments`, body),
+  replyComment: (activityId, commentId, body) => api.post(`/activities/${activityId}/comments/${commentId}/replies`, body),
 };
 
 // Leaderboard API
