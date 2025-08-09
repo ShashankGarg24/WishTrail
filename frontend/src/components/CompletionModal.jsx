@@ -244,10 +244,14 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal }) => {
                   )}
                   <div>
                     <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Share completion note
+                      {attachmentFile ? 'Share note and image with followers' : 'Share note with followers'}
                     </label>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {shareCompletionNote ? 'Your note will be visible when sharing this goal' : 'Your note will be kept private'}
+                      {shareCompletionNote
+                        ? attachmentFile
+                          ? 'Your followers will see your note and image in their feed'
+                          : 'Your followers will see your note in their feed'
+                        : 'Keep it private; nothing will be posted to your followers'}
                     </p>
                   </div>
                 </div>

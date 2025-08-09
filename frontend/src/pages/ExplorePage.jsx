@@ -654,6 +654,23 @@ const ExplorePage = () => {
                                       {activity.data.category}
                                     </span>
                                   )}
+                                  {/* Shared note/image when public */}
+                                  {activity.isPublic && (
+                                    <div className="mt-3 space-y-3">
+                                      {activity.data?.metadata?.completionNote && (
+                                        <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line">
+                                          {activity.data.metadata.completionNote}
+                                        </p>
+                                      )}
+                                      {activity.data?.metadata?.completionAttachmentUrl && (
+                                        <img
+                                          src={activity.data.metadata.completionAttachmentUrl}
+                                          alt="Completion attachment"
+                                          className="w-full max-h-72 object-cover rounded-lg border border-gray-200 dark:border-gray-700"
+                                        />
+                                      )}
+                                    </div>
+                                  )}
                                 </>
                               ) 
                               // : activity.type === 'user_followed' ? (
@@ -684,13 +701,13 @@ const ExplorePage = () => {
                                     Earned "{activity.data?.achievementName || 'achievement'}" badge
                                   </span>
                                   <span className="text-2xl">🏆</span>
-                          </div>
+                                </div>
                               ) : (
                                 <h4 className="font-medium text-gray-900 dark:text-white mb-2">
                                   Activity Update
                                 </h4>
                               )}
-                        </div>
+                            </div>
                         
                             <div className="flex items-center space-x-6">
                                                          <button

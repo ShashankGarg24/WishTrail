@@ -280,7 +280,7 @@ const toggleGoalCompletion = async (req, res, next) => {
       })
     }
 
-    const { completionNote, shareCompletionNote, attachmentUrl } = req.body
+    const { completionNote, shareCompletionNote: shareCompletionNoteRaw, attachmentUrl } = req.body
     const goal = await Goal.findById(req.params.id)
     if (!goal) {
       return res.status(404).json({
@@ -352,6 +352,7 @@ const toggleGoalCompletion = async (req, res, next) => {
         })
       }
 
+      const shareCompletionNote = String(shareCompletionNoteRaw) === 'true' || shareCompletionNoteRaw === true
       updatedGoal = await goal.completeGoal(completionNote, shareCompletionNote);
       if (attachmentUrl) {
         updatedGoal.completionAttachmentUrl = attachmentUrl
@@ -363,18 +364,25 @@ const toggleGoalCompletion = async (req, res, next) => {
       user.increaseCompletedGoals();
       await user.save();
 
-      await Activity.createActivity(
-        user._id,
-        user.name,
-        user.avatar,
-        'goal_completed',
-        {
+      const metadata = {}
+      if (shareCompletionNote && completionNote) metadata.completionNote = completionNote
+      if (attachmentUrl) metadata.completionAttachmentUrl = attachmentUrl
+
+      const activity = new Activity({
+        userId: user._id,
+        name: user.name,
+        avatar: user.avatar,
+        type: 'goal_completed',
+        isPublic: !!shareCompletionNote,
+        data: {
           goalId: goal._id,
           goalTitle: goal.title,
           goalCategory: goal.category,
           pointsEarned: updatedGoal.pointsEarned,
+          metadata
         }
-      )
+      })
+      await activity.save()
     }
 
     return res.status(200).json({
