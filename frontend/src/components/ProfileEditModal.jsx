@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, User, Mail, MapPin, Globe, Youtube, Instagram, Camera, Save, ExternalLink, Heart } from 'lucide-react'
+import { X, User, Mail, MapPin, Globe, Youtube, Instagram, Camera, Save, ExternalLink, Heart, AlertCircle } from 'lucide-react'
 import useApiStore from '../store/apiStore'
 import { uploadAPI } from '../services/api'
 
@@ -45,6 +45,8 @@ const ProfileEditModal = ({ isOpen, onClose }) => {
 
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [locationQuery, setLocationQuery] = useState('');
+  const [avatarError, setAvatarError] = useState('')
+  const [avatarUploading, setAvatarUploading] = useState(false)
 
   // Sync form data when modal opens or user data changes
   useEffect(() => {
@@ -123,8 +125,19 @@ const ProfileEditModal = ({ isOpen, onClose }) => {
 
   const handleAvatarChange = async (e) => {
     const file = e.target.files[0]
+    setAvatarError('')
     if (!file) return
+    const allowed = ['image/png', 'image/jpeg', 'image/jpg']
+    if (!allowed.includes(file.type)) {
+      setAvatarError('Only JPG/JPEG/PNG images are allowed')
+      return
+    }
+    if (file.size > 1024 * 1024) {
+      setAvatarError('Max image size is 1 MB')
+      return
+    }
     try {
+      setAvatarUploading(true)
       const form = new FormData()
       form.append('avatar', file)
       const res = await uploadAPI.uploadAvatar(form)
@@ -137,6 +150,9 @@ const ProfileEditModal = ({ isOpen, onClose }) => {
       }
     } catch (err) {
       console.error('Avatar upload failed', err)
+      setAvatarError(err?.response?.data?.message || 'Failed to upload image')
+    } finally {
+      setAvatarUploading(false)
     }
   }
 
@@ -196,6 +212,11 @@ const ProfileEditModal = ({ isOpen, onClose }) => {
                   alt="Profile"
                   className="w-24 h-24 rounded-full border-4 border-primary-500 object-cover"
                 />
+                {avatarUploading && (
+                  <div className="absolute inset-0 bg-black/30 rounded-full flex items-center justify-center">
+                    <div className="h-6 w-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  </div>
+                )}
                 <label
                   htmlFor="avatar-upload"
                   className="absolute -bottom-2 -right-2 p-2 bg-primary-500 text-white rounded-full hover:bg-primary-600 transition-colors cursor-pointer"
@@ -213,6 +234,13 @@ const ProfileEditModal = ({ isOpen, onClose }) => {
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
                 Click the camera icon to change your profile picture
               </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">JPG/JPEG/PNG, max 1 MB</p>
+              {avatarError && (
+                <div className="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center justify-center gap-1">
+                  <AlertCircle className="h-4 w-4" />
+                  <span>{avatarError}</span>
+                </div>
+              )}
             </div>
 
             {/* Basic Information */}
