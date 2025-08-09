@@ -617,14 +617,14 @@ const ExplorePage = () => {
                               className="w-12 h-12 rounded-full border-2 border-gray-200 dark:border-gray-600 cursor-pointer hover:border-blue-500 transition-colors"
                               onClick={() => activity.user?._id && navigate(`/profile/${activity.user._id}`)}
                         />
-                            {activity.data?.category && (
-                              <div className={`absolute -top-1 -right-1 w-6 h-6 rounded-full ${getCategoryColor(activity.data.category)} flex items-center justify-center text-xs`}>
+                            {activity.data?.goalCategory && (
+                              <div className={`absolute -top-1 -right-1 w-6 h-6 rounded-full ${getCategoryColor(activity.data.goalCategory)} flex items-center justify-center text-xs`}>
                                 {activity.type === 'goal_completed' || activity.type === 'goal_created' 
-                                  ? getCategoryIcon(activity.data.category)
+                                  ? getCategoryIcon(activity.data.goalCategory)
                                   : getActivityIcon(activity)
                                 }
                         </div>
-                            )}
+                              )}
                       </div>
                           
                           <div className="flex-1">
@@ -643,34 +643,43 @@ const ExplorePage = () => {
                               </span>
                             </div>
                             
-                            <div className="bg-gray-100 dark:bg-gray-700/30 rounded-xl p-4 mb-3">
+                            <div className="bg-gray-50 dark:bg-gray-700/40 rounded-2xl p-4 mb-3 border border-gray-100 dark:border-gray-700/60">
                               {(activity.type === 'goal_completed' || activity.type === 'goal_created') ? (
                                 <>
-                                  <h4 className="font-medium text-gray-900 dark:text-white mb-2">
+                                  <h4 className="font-semibold text-gray-900 dark:text-white mb-2">
                                     {activity.data?.goalTitle || 'Goal Achievement'}
                                   </h4>
-                                  {activity.data?.category && (
-                                    <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium text-white ${getCategoryColor(activity.data.category)}`}>
-                                      {activity.data.category}
+                                  {activity.data?.goalCategory && (
+                                    <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium text-white ${getCategoryColor(activity.data.goalCategory)}`}>
+                                      {activity.data.goalCategory}
                                     </span>
                                   )}
                                   {/* Shared note/image when public */}
-                                  {activity.isPublic && (
-                                    <div className="mt-3 space-y-3">
-                                      {activity.data?.metadata?.completionNote && (
-                                        <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line">
-                                          {activity.data.metadata.completionNote}
-                                        </p>
-                                      )}
-                                      {activity.data?.metadata?.completionAttachmentUrl && (
-                                        <img
-                                          src={activity.data.metadata.completionAttachmentUrl}
-                                          alt="Completion attachment"
-                                          className="w-full max-h-72 object-cover rounded-lg border border-gray-200 dark:border-gray-700"
-                                        />
-                                      )}
-                                    </div>
-                                  )}
+                                  {activity.isPublic && (() => {
+                                    const sharedNote = activity?.data?.metadata?.completionNote || activity?.data?.completionNote || ''
+                                    const sharedImage = activity?.data?.metadata?.completionAttachmentUrl || activity?.data?.completionAttachmentUrl || ''
+                                    if (!sharedNote && !sharedImage) return null
+                                    return (
+                                      <div className="mt-3 space-y-3">
+                                        {sharedImage && (
+                                          <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700">
+                                            <img
+                                              src={sharedImage}
+                                              alt="Completion attachment"
+                                              className="w-full max-h-80 object-cover hover:scale-[1.01] transition-transform duration-200"
+                                            />
+                                          </div>
+                                        )}
+                                        {sharedNote && (
+                                          <div className="bg-white/80 dark:bg-gray-800/50 rounded-xl p-3 border border-gray-200 dark:border-gray-700">
+                                            <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line">
+                                              {sharedNote}
+                                            </p>
+                                          </div>
+                                        )}
+                                      </div>
+                                    )
+                                  })()}
                                 </>
                               ) 
                               // : activity.type === 'user_followed' ? (

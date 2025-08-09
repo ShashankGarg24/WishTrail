@@ -379,6 +379,9 @@ const toggleGoalCompletion = async (req, res, next) => {
           goalTitle: goal.title,
           goalCategory: goal.category,
           pointsEarned: updatedGoal.pointsEarned,
+          // duplicate fields for easier client rendering
+          completionNote: shareCompletionNote ? (completionNote || '') : '',
+          completionAttachmentUrl: attachmentUrl || '',
           metadata
         }
       })

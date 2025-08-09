@@ -25,7 +25,8 @@ class ActivityService {
       .skip((page - 1) * limit)
       .populate('userId', 'name avatar level')
       .populate('data.goalId', 'title category')
-      .populate('data.targetUserId', 'name avatar');
+      .populate('data.targetUserId', 'name avatar')
+      .lean();
   
       const total = await Activity.countDocuments({
         isActive: true,
@@ -69,7 +70,8 @@ class ActivityService {
       .skip((page - 1) * limit)
       .populate('userId', 'name avatar level')
       .populate('data.goalId', 'title category')
-      .populate('data.targetUserId', 'name avatar');
+      .populate('data.targetUserId', 'name avatar')
+      .lean();
   
     const total = await Activity.countDocuments(query);
   
@@ -91,9 +93,10 @@ class ActivityService {
       activities.map(async (activity) => {
         const isLiked = await Like.hasUserLiked(userId, 'activity', activity._id);
         const likeCount = await Like.getLikeCount('activity', activity._id);
-  
+
+        const base = typeof activity.toObject === 'function' ? activity.toObject() : activity;
         return {
-          ...activity.toObject(),
+          ...base,
           isLiked,
           likeCount
         };
