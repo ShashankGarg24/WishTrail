@@ -22,7 +22,7 @@ import useApiStore from '../store/apiStore';
 
 const ExplorePage = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('discover');
+  const [activeTab, setActiveTab] = useState('Activities');
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
   const [users, setUsers] = useState([]);
@@ -407,17 +407,6 @@ const ExplorePage = () => {
         >
           <div className="bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-2 border border-gray-200 dark:border-gray-700/50 flex shadow-lg">
             <button
-              onClick={() => setActiveTab('discover')}
-              className={`flex items-center space-x-2 px-6 py-3 rounded-xl transition-all duration-200 ${
-                activeTab === 'discover'
-                  ? 'bg-blue-500 text-white shadow-lg'
-                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700/50'
-              }`}
-            >
-              <Users className="h-5 w-5" />
-              <span className="font-medium">Discover</span>
-            </button>
-            <button
               onClick={() => setActiveTab('Activities')}
               className={`flex items-center space-x-2 px-6 py-3 rounded-xl transition-all duration-200 ${
                 activeTab === 'Activities'
@@ -427,6 +416,17 @@ const ExplorePage = () => {
             >
               <Activity className="h-5 w-5" />
               <span className="font-medium">Activities</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('discover')}
+              className={`flex items-center space-x-2 px-6 py-3 rounded-xl transition-all duration-200 ${
+                activeTab === 'discover'
+                  ? 'bg-blue-500 text-white shadow-lg'
+                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700/50'
+              }`}
+            >
+              <Users className="h-5 w-5" />
+              <span className="font-medium">Discover</span>
             </button>
           </div>
         </motion.div>
@@ -448,14 +448,21 @@ const ExplorePage = () => {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-12 pr-4 py-4 bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg border border-gray-200 dark:border-gray-700/50 rounded-2xl text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-lg"
               />
-              {(isSearching || loading) && (
+              {/* {(isSearching || loading) && (
                 <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
                   <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
                   </div>
-              )}
+              )} */}
             </div>
           </motion.div>)
         }
+
+        {/* Global inline loader for Discover */}
+        {activeTab === 'discover' && (loading || isSearching) && (
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+          </div>
+        )}
 
         {/* Content */}
         <div className="w-full">
@@ -586,6 +593,13 @@ const ExplorePage = () => {
                     {activities.length} recent {activities.length === 1 ? 'activity' : 'activities'}
                   </span>
                 </div>
+
+                {/* Inline loader for Activities */}
+                {loading && (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+                  </div>
+                )}
 
                 {activities.length > 0 ? (
                 <div className="space-y-4">
