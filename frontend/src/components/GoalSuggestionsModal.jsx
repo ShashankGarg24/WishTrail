@@ -40,10 +40,10 @@ const GoalSuggestionsModal = ({ isOpen, onClose, interests = [], onSelect, limit
               <button onClick={handleShuffle} className="text-sm text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 inline-flex items-center gap-1">
                 <RefreshCw className="h-4 w-4" /> Shuffle
               </button>
-              <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800">
-                <X className="h-5 w-5 text-gray-500" />
-              </button>
-            </div>
+            <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800">
+              <X className="h-5 w-5 text-gray-500" />
+            </button>
+          </div>
           </div>
           <div className="mt-2 text-sm text-gray-600 dark:text-gray-400 mb-4">
             Not sure where to start? Pick any idea and customize it. You can always edit or add more goals later.

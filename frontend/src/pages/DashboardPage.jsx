@@ -51,7 +51,6 @@ const DashboardPage = () => {
   }
 
   const availableYears = [
-    new Date().getFullYear() - 1,
     new Date().getFullYear(),
     new Date().getFullYear() + 1,
     new Date().getFullYear() + 2

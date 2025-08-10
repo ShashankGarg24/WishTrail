@@ -43,7 +43,7 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
     password: "",
     confirmPassword: "",
     gender: "",
-    
+
     // Step 2: OTP Verification
     otp: "",
     

@@ -153,7 +153,17 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
               wish.completed 
                   ? 'Mark as incomplete' 
                 : wish.isLocked 
-                  ? 'Goal is locked - wait for minimum duration'
+                  ? (() => {
+                      const ms = typeof wish.timeUntilCanComplete === 'number' ? wish.timeUntilCanComplete : (wish.canCompleteAfter ? (new Date(wish.canCompleteAfter) - new Date()) : 0)
+                      const s = Math.max(0, Math.floor(ms / 1000))
+                      const days = Math.floor(s / 86400)
+                      const hours = Math.floor((s % 86400) / 3600)
+                      const mins = Math.floor((s % 3600) / 60)
+                      if (days > 0) return `Locked • unlocks in ${days}d ${hours}h`
+                      if (hours > 0) return `Locked • unlocks in ${hours}h ${mins}m`
+                      if (mins > 0) return `Locked • unlocks in ${mins}m`
+                      return 'Locked • unlocks soon'
+                    })()
                   : 'Mark as complete'
             }
           >
@@ -253,9 +263,32 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
 
         {/* Locked indicator */}
         {wish.isLocked && !wish.completed && (
-          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300">
+          <span
+            className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300"
+            title={(function() {
+              const ms = typeof wish.timeUntilCanComplete === 'number' ? wish.timeUntilCanComplete : (wish.canCompleteAfter ? (new Date(wish.canCompleteAfter) - new Date()) : 0);
+              const s = Math.max(0, Math.floor(ms / 1000));
+              const days = Math.floor(s / 86400);
+              const hours = Math.floor((s % 86400) / 3600);
+              const mins = Math.floor((s % 3600) / 60);
+              if (days > 0) return `Unlocks in ${days}d ${hours}h`;
+              if (hours > 0) return `Unlocks in ${hours}h ${mins}m`;
+              if (mins > 0) return `Unlocks in ${mins}m`;
+              return 'Unlocks soon';
+            })()}
+          >
             <Lock className="h-3 w-3 mr-1" />
-            Locked
+            {(function() {
+              const ms = typeof wish.timeUntilCanComplete === 'number' ? wish.timeUntilCanComplete : (wish.canCompleteAfter ? (new Date(wish.canCompleteAfter) - new Date()) : 0);
+              const s = Math.max(0, Math.floor(ms / 1000));
+              const days = Math.floor(s / 86400);
+              const hours = Math.floor((s % 86400) / 3600);
+              const mins = Math.floor((s % 3600) / 60);
+              if (days > 0) return `Locked • ${days}d ${hours}h`;
+              if (hours > 0) return `Locked • ${hours}h ${mins}m`;
+              if (mins > 0) return `Locked • ${mins}m`;
+              return 'Locked • soon';
+            })()}
           </span>
         )}
 
