@@ -723,7 +723,13 @@ const ExplorePage = () => {
                               <Heart className={`h-4 w-4 ${activity.isLiked ? 'fill-current' : ''}`} />
                               <span>{activity.likeCount || 0}</span>
                             </button>
-                                                        {/* Future: comments/share */}
+                            <button
+                              onClick={() => openDetail(activity)}
+                              className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm transition-colors bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700`}
+                            >
+                              <MessageCircle className="h-4 w-4" />
+                              <span>{(activity.commentCount || 0)}</span>
+                            </button>
                            </div>
                          </div>
                        </motion.div>
@@ -748,35 +754,6 @@ const ExplorePage = () => {
           )}
                 </motion.div>
         </div>
- 
-         {/* Lightbox Modal */}
-         <AnimatePresence>
-          {lightboxOpen && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4"
-              onClick={closeLightbox}
-            >
-              <motion.img
-                initial={{ scale: 0.98 }}
-                animate={{ scale: 1 }}
-                exit={{ scale: 0.98 }}
-                src={lightboxUrl}
-                alt="Attachment"
-                className="max-w-[90vw] max-h-[85vh] object-contain rounded-lg shadow-2xl"
-                onClick={(e) => e.stopPropagation()}
-              />
-              <button
-                onClick={closeLightbox}
-                className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white"
-              >
-                <X className="h-6 w-6" />
-              </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
 
         <ActivityDetailModal isOpen={detailOpen} onClose={closeDetail} activity={detailActivity} />
       </div>

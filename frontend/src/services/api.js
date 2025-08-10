@@ -111,6 +111,7 @@ export const activitiesAPI = {
   getComments: (activityId, params) => api.get(`/activities/${activityId}/comments`, { params }),
   addComment: (activityId, body) => api.post(`/activities/${activityId}/comments`, body),
   replyComment: (activityId, commentId, body) => api.post(`/activities/${activityId}/comments/${commentId}/replies`, body),
+  toggleCommentLike: (activityId, commentId) => api.patch(`/activities/${activityId}/comments/${commentId}/like`),
 };
 
 // Leaderboard API

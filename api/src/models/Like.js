@@ -13,7 +13,7 @@ const likeSchema = new mongoose.Schema({
   targetType: {
     type: String,
     required: [true, 'Target type is required'],
-    enum: ['goal', 'activity'], // Extensible for future content types
+    enum: ['goal', 'activity', 'activity_comment'],
     index: true
   },
   

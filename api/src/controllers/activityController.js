@@ -403,13 +403,26 @@ const getActivityComments = async (req, res, next) => {
       .populate('userId', 'name avatar')
       .lean();
 
-    const rootIdToReplies = replies.reduce((acc, r) => {
+    // Enrich with like counts and isLiked
+    const allComments = [...roots, ...replies];
+    const enrichedMap = new Map();
+    await Promise.all(allComments.map(async (c) => {
+      const [likeCount, isLiked] = await Promise.all([
+        Like.getLikeCount('activity_comment', c._id),
+        Like.hasUserLiked(req.user.id, 'activity_comment', c._id)
+      ]);
+      enrichedMap.set(String(c._id), { likeCount, isLiked });
+    }));
+
+    const repliesWithLikes = replies.map(r => ({ ...r, ...enrichedMap.get(String(r._id)) }));
+    const rootIdToReplies = repliesWithLikes.reduce((acc, r) => {
       const key = String(r.parentCommentId);
       (acc[key] = acc[key] || []).push(r); 
       return acc;
     }, {});
 
-    const data = roots.map(r => ({ ...r, replies: rootIdToReplies[String(r._id)] || [] }));
+    const rootsWithLikes = roots.map(r => ({ ...r, ...enrichedMap.get(String(r._id)) }));
+    const data = rootsWithLikes.map(r => ({ ...r, replies: rootIdToReplies[String(r._id)] || [] }));
 
     res.status(200).json({ success: true, data: { comments: data, pagination: { page, limit, total: count, pages: Math.ceil(count / limit) } } });
   } catch (err) {
@@ -465,6 +478,24 @@ const replyToActivityComment = async (req, res, next) => {
   }
 };
 
+// @desc    Toggle like on a comment
+// @route   PATCH /api/v1/activities/:id/comments/:commentId/like
+// @access  Private
+const toggleCommentLike = async (req, res, next) => {
+  try {
+    const { commentId } = req.params;
+    const comment = await ActivityComment.findById(commentId);
+    if (!comment || !comment.isActive) return res.status(404).json({ success: false, message: 'Comment not found' });
+
+    await Like.toggleLike(req.user.id, 'activity_comment', commentId);
+    const likeCount = await Like.getLikeCount('activity_comment', commentId);
+    const isLiked = await Like.hasUserLiked(req.user.id, 'activity_comment', commentId);
+    res.status(200).json({ success: true, data: { likeCount, isLiked } });
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   getRecentActivities,
   getUserActivities,
@@ -474,5 +505,6 @@ module.exports = {
   getActivityStats,
   getActivityComments,
   addActivityComment,
-  replyToActivityComment
+  replyToActivityComment,
+  toggleCommentLike
 }; 

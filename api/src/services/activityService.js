@@ -2,6 +2,7 @@ const Activity = require('../models/Activity');
 const Follow = require('../models/Follow');
 const Like = require('../models/Like');
 const User = require('../models/User');
+const ActivityComment = require('../models/ActivityComment');
 
 class ActivityService {
   /**
@@ -93,12 +94,14 @@ class ActivityService {
       activities.map(async (activity) => {
         const isLiked = await Like.hasUserLiked(userId, 'activity', activity._id);
         const likeCount = await Like.getLikeCount('activity', activity._id);
+        const commentCount = await ActivityComment.countDocuments({ activityId: activity._id, isActive: true });
 
         const base = typeof activity.toObject === 'function' ? activity.toObject() : activity;
         return {
           ...base,
           isLiked,
-          likeCount
+          likeCount,
+          commentCount
         };
       })
     );
@@ -132,11 +135,13 @@ class ActivityService {
         activities.map(async (activity) => {
           const isLiked = await Like.hasUserLiked(userId, 'activity', activity._id);
           const likeCount = await Like.getLikeCount('activity', activity._id);
+          const commentCount = await ActivityComment.countDocuments({ activityId: activity._id, isActive: true });
           
           return {
             ...activity.toObject(),
             isLiked,
-            likeCount
+            likeCount,
+            commentCount
           };
         })
       );
@@ -276,8 +281,20 @@ class ActivityService {
       createdAt: { $gte: startDate }
     });
     
+    // Attach batched comment counts
+    const ids = activities.map(a => a._id);
+    let idToCount = new Map();
+    if (ids.length) {
+      const counts = await ActivityComment.aggregate([
+        { $match: { activityId: { $in: ids }, isActive: true } },
+        { $group: { _id: '$activityId', count: { $sum: 1 } } }
+      ]);
+      idToCount = new Map(counts.map(c => [String(c._id), c.count]));
+    }
+    const activitiesWithCounts = activities.map(a => ({ ...a, commentCount: idToCount.get(String(a._id)) || 0 }));
+
     return {
-      activities,
+      activities: activitiesWithCounts,
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
@@ -311,11 +328,13 @@ class ActivityService {
     // Add like status
     const isLiked = await Like.isLiked(requestingUserId, 'activity', activityId);
     const likeCount = await Like.getLikeCount('activity', activityId);
+    const commentCount = await ActivityComment.countDocuments({ activityId, isActive: true });
     
     return {
       ...activity.toObject(),
       isLiked,
-      likeCount
+      likeCount,
+      commentCount
     };
   }
   

@@ -16,5 +16,6 @@ router.patch('/:id/like', protect, activityController.toggleActivityLike);
 router.get('/:id/comments', protect, activityController.getActivityComments);
 router.post('/:id/comments', protect, activityController.addActivityComment);
 router.post('/:id/comments/:commentId/replies', protect, activityController.replyToActivityComment);
+router.patch('/:id/comments/:commentId/like', protect, activityController.toggleCommentLike);
 
 module.exports = router;
