@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -56,7 +56,30 @@ const ExplorePage = () => {
     initializeFollowingStatus,
     getUsers
   } = useApiStore();
-
+  // Infinite scroll state
+  const ACTIVITIES_PAGE_SIZE = 10;
+  const DISCOVER_PAGE_SIZE = 9;
+  const [activitiesPage, setActivitiesPage] = useState(1);
+  const [activitiesHasMore, setActivitiesHasMore] = useState(true);
+  const [loadingMoreActivities, setLoadingMoreActivities] = useState(false);
+  const [discoverPage, setDiscoverPage] = useState(1);
+  const [discoverHasMore, setDiscoverHasMore] = useState(true);
+  const [loadingMoreDiscover, setLoadingMoreDiscover] = useState(false);
+  const activitiesSentinelRef = useRef(null);
+  const discoverSentinelRef = useRef(null);
+  const mergeUniqueById = (prev, next) => {
+    const seen = new Set((prev || []).map((i) => i?._id).filter(Boolean));
+    const merged = [...(prev || [])];
+    for (const item of (next || [])) {
+      if (!item || !item._id) continue;
+      if (!seen.has(item._id)) {
+        merged.push(item);
+        seen.add(item._id);
+      }
+    }
+    return merged;
+  };
+  
   useEffect(() => {
     if (isAuthenticated) {
       fetchInitialData();
@@ -68,9 +91,13 @@ const ExplorePage = () => {
     setLoading(true);
     try {
       if (activeTab === 'Activities') {
-        // Fetch activities from followed users for Activities tab
-        const activitiesData = await getActivityFeed();
+        // First page for activities
+        setActivitiesPage(1);
+        setActivitiesHasMore(true);
+        const activitiesData = await getActivityFeed({ page: 1, limit: ACTIVITIES_PAGE_SIZE });
         setActivities(activitiesData.activities || []);
+        const totalPages = activitiesData.pagination?.pages || 1;
+        setActivitiesHasMore(1 < totalPages);
         
         // Fetch following list to show in Activities tab
         const followingData = await getFollowing();
@@ -78,12 +105,15 @@ const ExplorePage = () => {
           setUsers(followingData.following || []);
         }
       } else {
-        // Fetch all users for the discover tab using getUsers instead of searchUsers
-        const usersData = await getUsers();
+        // First page for discover users
+        setDiscoverPage(1);
+        setDiscoverHasMore(true);
+        const usersData = await getUsers({ page: 1, limit: DISCOVER_PAGE_SIZE });
         if (usersData.success) {
-          // Filter out the current user from the discover list
-          const filteredUsers = (usersData.users || []).filter(u => u._id !== user?._id);
+          const filteredUsers = (usersData.users || []).filter(u => u && u._id !== user?._id);
           setUsers(filteredUsers);
+          const totalPages = usersData.pagination?.pages || 1;
+          setDiscoverHasMore(1 < totalPages);
         }
       }
     } catch (error) {
@@ -95,9 +125,17 @@ const ExplorePage = () => {
 
   // Refetch data when tab changes
   useEffect(() => {
-    if (isAuthenticated) {
-      fetchInitialData();
+    if (!isAuthenticated) return;
+    if (activeTab === 'Activities') {
+      setActivities([]);
+      setActivitiesPage(1);
+      setActivitiesHasMore(true);
+    } else {
+      setUsers([]);
+      setDiscoverPage(1);
+      setDiscoverHasMore(true);
     }
+    fetchInitialData();
   }, [activeTab]);
 
   const handleSearch = async (term) => {
@@ -110,8 +148,7 @@ const ExplorePage = () => {
     setIsSearching(true);
     try {
       const results = await searchUsers(term);
-      // Filter out the current user from search results
-      const filteredResults = (results || []).filter(u => u._id !== user?._id);
+      const filteredResults = (results || []).filter(u => u && u._id !== user?._id);
       setSearchResults(filteredResults);
     } catch (error) {
       console.error('Error searching:', error);
@@ -127,14 +164,68 @@ const ExplorePage = () => {
       const debounceTimer = setTimeout(() => {
         handleSearch(searchTerm);
       }, 300);
-
       return () => clearTimeout(debounceTimer);
     } else {
-      // Clear search results if search term is empty or too short
       setSearchResults([]);
       setIsSearching(false);
     }
   }, [searchTerm]);
+
+  // Load more handlers
+  const loadMoreActivities = useCallback(async () => {
+    if (loadingMoreActivities || !activitiesHasMore) return;
+    setLoadingMoreActivities(true);
+    try {
+      const next = activitiesPage + 1;
+      const resp = await getActivityFeed({ page: next, limit: ACTIVITIES_PAGE_SIZE });
+      setActivities(prev => mergeUniqueById(prev, resp.activities || []));
+      setActivitiesPage(next);
+      const totalPages = resp.pagination?.pages || next;
+      setActivitiesHasMore(next < totalPages);
+    } catch (e) {
+      setActivitiesHasMore(false);
+    } finally {
+      setLoadingMoreActivities(false);
+    }
+  }, [activitiesPage, activitiesHasMore, loadingMoreActivities, getActivityFeed]);
+
+  const loadMoreDiscover = useCallback(async () => {
+    if (loadingMoreDiscover || !discoverHasMore) return;
+    if (searchTerm.trim().length >= 2) return; // pause during search
+    setLoadingMoreDiscover(true);
+    try {
+      const next = discoverPage + 1;
+      const resp = await getUsers({ page: next, limit: DISCOVER_PAGE_SIZE });
+      if (resp.success) {
+        const filtered = (resp.users || []).filter(u => u && u._id !== user?._id);
+        setUsers(prev => mergeUniqueById(prev, filtered));
+        setDiscoverPage(next);
+        const totalPages = resp.pagination?.pages || next;
+        setDiscoverHasMore(next < totalPages);
+      } else {
+        setDiscoverHasMore(false);
+      }
+    } catch (e) {
+      setDiscoverHasMore(false);
+    } finally {
+      setLoadingMoreDiscover(false);
+    }
+  }, [discoverPage, discoverHasMore, loadingMoreDiscover, getUsers, searchTerm]);
+
+  // Observer
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const observer = new IntersectionObserver((entries) => {
+      const entry = entries[0];
+      if (entry.isIntersecting) {
+        if (activeTab === 'Activities') loadMoreActivities();
+        if (activeTab === 'discover') loadMoreDiscover();
+      }
+    }, { root: null, rootMargin: '300px', threshold: 0.1 });
+    const target = activeTab === 'Activities' ? activitiesSentinelRef.current : discoverSentinelRef.current;
+    if (target) observer.observe(target);
+    return () => observer.disconnect();
+  }, [activeTab, isAuthenticated, loadMoreActivities, loadMoreDiscover, activities.length, users.length, activitiesHasMore, discoverHasMore, searchTerm]);
 
   const handleFollow = async (userId) => {
     try {
@@ -497,90 +588,101 @@ const ExplorePage = () => {
                 {(loading || isSearching) ? (
                   <SkeletonList count={9} grid avatar lines={3} />
                 ) : displayUsers.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {displayUsers.map((userItem, index) => (
-                      <motion.div
-                        key={userItem._id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.5, delay: 0.1 * index }}
-                        className="bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 hover:border-gray-300 dark:hover:border-gray-600/50 transition-all duration-200 shadow-lg hover:shadow-xl"
-                      >
-                        <div className="flex items-center space-x-4 mb-4">
-                          <img
-                            src={userItem.avatar || '/api/placeholder/64/64'}
-                            alt={userItem.name}
-                            className="w-16 h-16 rounded-full border-2 border-gray-200 dark:border-gray-600 cursor-pointer hover:border-blue-500 transition-colors"
-                            onClick={() => navigate(`/profile/${userItem._id}`)}
-                          />
-                          <div className="flex-1">
-                            <h3 
-                              className="font-semibold text-gray-900 dark:text-white text-lg cursor-pointer hover:text-blue-500 transition-colors"
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {displayUsers.map((userItem, index) => (
+                        <motion.div
+                          key={userItem._id}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.5, delay: 0.1 * index }}
+                          className="bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 hover:border-gray-300 dark:hover:border-gray-600/50 transition-all duration-200 shadow-lg hover:shadow-xl"
+                        >
+                          <div className="flex items-center space-x-4 mb-4">
+                            <img
+                              src={userItem.avatar || '/api/placeholder/64/64'}
+                              alt={userItem.name}
+                              className="w-16 h-16 rounded-full border-2 border-gray-200 dark:border-gray-600 cursor-pointer hover:border-blue-500 transition-colors"
                               onClick={() => navigate(`/profile/${userItem._id}`)}
-                            >
-                              {userItem.name}
-                            </h3>
-                            <p className="text-gray-500 dark:text-gray-400 text-sm">
-                              @{userItem.username || userItem.email?.split('@')[0]}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="space-y-2 mb-4">
-                          <div className="flex items-center text-gray-600 dark:text-gray-300 text-sm">
-                            <Target className="h-4 w-4 mr-2 text-blue-500" />
-                            <span>{userItem.totalGoals || 0} goals</span>
-                          </div>
-                          <div className="flex items-center text-gray-600 dark:text-gray-300 text-sm">
-                            <TrendingUp className="h-4 w-4 mr-2 text-green-500" />
-                            <span>{userItem.completedGoals || 0} completed</span>
-                          </div>
-                          <div className="flex items-center text-gray-600 dark:text-gray-300 text-sm">
-                            <Flame className="h-4 w-4 mr-2 text-orange-500" />
-                            <span>{userItem.currentStreak || 0} day streak</span>
-                          </div>
-                        </div>
-
-                        {userItem.recentGoals && userItem.recentGoals.length > 0 && (
-                          <div className="mb-4">
-                            <p className="text-gray-500 dark:text-gray-400 text-xs mb-2">Recent Goals:</p>
-                            <div className="space-y-1">
-                              {userItem.recentGoals.slice(0, 2).map((goal, idx) => (
-                                <div key={idx} className="flex items-center space-x-2">
-                                  <div className={`w-2 h-2 rounded-full ${getCategoryColor(goal.category)}`}></div>
-                                  <span className="text-gray-600 dark:text-gray-300 text-sm truncate">{goal.title}</span>
-                                </div>
-                              ))}
+                            />
+                            <div className="flex-1">
+                              <h3 
+                                className="font-semibold text-gray-900 dark:text-white text-lg cursor-pointer hover:text-blue-500 transition-colors"
+                                onClick={() => navigate(`/profile/${userItem._id}`)}
+                              >
+                                {userItem.name}
+                              </h3>
+                              <p className="text-gray-500 dark:text-gray-400 text-sm">
+                                @{userItem.username || userItem.email?.split('@')[0]}
+                              </p>
                             </div>
                           </div>
-                        )}
 
-                        <div className="flex space-x-2">
-                          {userItem._id !== user?._id && (
-                            <>
-                              {userItem.isFollowing ? (
-                                <button
-                                  onClick={() => handleUnfollow(userItem._id)}
-                                  className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-700 dark:text-white rounded-xl transition-colors duration-200 text-sm font-medium flex items-center justify-center space-x-1"
-                                >
-                                  <UserCheck className="h-4 w-4" />
-                                  <span>Following</span>
-                                </button>
-                              ) : (
-                                <button
-                                  onClick={() => handleFollow(userItem._id)}
-                                  className="flex-1 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-xl transition-colors duration-200 text-sm font-medium flex items-center justify-center space-x-1"
-                                >
-                                  <UserPlus className="h-4 w-4" />
-                                  <span>Follow</span>
-                                </button>
-                              )}
-                            </>
+                          <div className="space-y-2 mb-4">
+                            <div className="flex items-center text-gray-600 dark:text-gray-300 text-sm">
+                              <Target className="h-4 w-4 mr-2 text-blue-500" />
+                              <span>{userItem.totalGoals || 0} goals</span>
+                            </div>
+                            <div className="flex items-center text-gray-600 dark:text-gray-300 text-sm">
+                              <TrendingUp className="h-4 w-4 mr-2 text-green-500" />
+                              <span>{userItem.completedGoals || 0} completed</span>
+                            </div>
+                            <div className="flex items-center text-gray-600 dark:text-gray-300 text-sm">
+                              <Flame className="h-4 w-4 mr-2 text-orange-500" />
+                              <span>{userItem.currentStreak || 0} day streak</span>
+                            </div>
+                          </div>
+
+                          {userItem.recentGoals && userItem.recentGoals.length > 0 && (
+                            <div className="mb-4">
+                              <p className="text-gray-500 dark:text-gray-400 text-xs mb-2">Recent Goals:</p>
+                              <div className="space-y-1">
+                                {userItem.recentGoals.slice(0, 2).map((goal, idx) => (
+                                  <div key={idx} className="flex items-center space-x-2">
+                                    <div className={`w-2 h-2 rounded-full ${getCategoryColor(goal.category)}`}></div>
+                                    <span className="text-gray-600 dark:text-gray-300 text-sm truncate">{goal.title}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
                           )}
-                        </div>
-                      </motion.div>
-                    ))}
-                  </div>
+
+                          <div className="flex space-x-2">
+                            {userItem._id !== user?._id && (
+                              <>
+                                {userItem.isFollowing ? (
+                                  <button
+                                    onClick={() => handleUnfollow(userItem._id)}
+                                    className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-700 dark:text-white rounded-xl transition-colors duration-200 text-sm font-medium flex items-center justify-center space-x-1"
+                                  >
+                                    <UserCheck className="h-4 w-4" />
+                                    <span>Following</span>
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={() => handleFollow(userItem._id)}
+                                    className="flex-1 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-xl transition-colors duration-200 text-sm font-medium flex items-center justify-center space-x-1"
+                                  >
+                                    <UserPlus className="h-4 w-4" />
+                                    <span>Follow</span>
+                                  </button>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                    <div ref={discoverSentinelRef} className="h-10"></div>
+                    {loadingMoreDiscover && (
+                      <div className="flex items-center justify-center py-4">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
+                      </div>
+                    )}
+                    {!discoverHasMore && users.length > 0 && (
+                      <div className="text-center text-xs text-gray-400 py-4">No more users</div>
+                    )}
+                  </>
                 ) : (
                 <div className="text-center py-12">
                   <Users className="h-16 w-16 text-gray-400 mx-auto mb-4" />
@@ -610,15 +712,16 @@ const ExplorePage = () => {
                 {loading ? (
                   <SkeletonList count={6} grid={false} avatar lines={4} />
                 ) : activities.length > 0 ? (
-                <div className="space-y-4">
+                <>
+                  <div className="space-y-4">
                     {activities.map((activity, index) => (
-                    <motion.div
+                      <motion.div
                         key={activity._id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, delay: 0.1 * index }}
                         className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden"
-                    >
+                      >
                         {/* Header */}
                         <div className="flex items-center gap-3 px-4 pt-4 pb-3">
                           <img
@@ -735,6 +838,16 @@ const ExplorePage = () => {
                        </motion.div>
                     ))}
                   </div>
+                  <div ref={activitiesSentinelRef} className="h-10"></div>
+                  {loadingMoreActivities && (
+                    <div className="flex items-center justify-center py-4">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
+                    </div>
+                  )}
+                  {!activitiesHasMore && activities.length > 0 && (
+                    <div className="text-center text-xs text-gray-400 py-4">No more activities</div>
+                  )}
+                </>
                 ) : (
                 <div className="text-center py-12">
                   <Activity className="h-16 w-16 text-gray-400 mx-auto mb-4" />
