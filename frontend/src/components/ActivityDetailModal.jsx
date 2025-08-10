@@ -14,6 +14,8 @@ const ActivityDetailModal = ({ isOpen, onClose, activity }) => {
 
   const sharedNote = activity?.data?.metadata?.completionNote || activity?.data?.completionNote || ''
   const sharedImage = activity?.data?.metadata?.completionAttachmentUrl || activity?.data?.completionAttachmentUrl || ''
+  const hasImage = Boolean(sharedImage)
+  const hasNote = Boolean(sharedNote)
 
   const fetchComments = async () => {
     if (!activity?._id) return
@@ -113,15 +115,13 @@ const ActivityDetailModal = ({ isOpen, onClose, activity }) => {
           className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-5xl overflow-hidden shadow-2xl"
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="grid grid-cols-1 md:grid-cols-2">
-            {/* Left: Image */}
-            <div className="bg-black/5 dark:bg-black flex items-center justify-center p-2 min-h-[50vh]">
-              {sharedImage ? (
+          <div className={`grid grid-cols-1 ${hasImage ? 'md:grid-cols-2' : 'md:grid-cols-1'}`}>
+            {/* Left: Image (only if present) */}
+            {hasImage && (
+              <div className="bg-black/5 dark:bg-black flex items-center justify-center p-2 min-h-[50vh]">
                 <img src={sharedImage} alt="Attachment" className="max-h-[80vh] w-full object-contain rounded-lg" />
-              ) : (
-                <div className="text-gray-400">No image</div>
-              )}
-            </div>
+              </div>
+            )}
 
             {/* Right: Note + Comments */}
             <div className="flex flex-col min-h-[50vh]">
@@ -141,19 +141,18 @@ const ActivityDetailModal = ({ isOpen, onClose, activity }) => {
               </div>
 
               {/* Note + Completion time combined (no break between) */}
-              {sharedNote ? (
+              {hasNote && (
                 <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-800">
                   <div className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-line">{sharedNote}</div>
                   {activity?.type === 'goal_completed' && activityTime && (
                     <div className="mt-2 text-xs text-gray-500">Completed {formatTimeAgo(activityTime)}</div>
                   )}
                 </div>
-              ) : (
-                activity?.type === 'goal_completed' && activityTime && (
-                  <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-800 text-xs text-gray-500">
-                    Completed {formatTimeAgo(activityTime)}
-                  </div>
-                )
+              )}
+              {!hasNote && activity?.type === 'goal_completed' && activityTime && (
+                <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-800 text-xs text-gray-500">
+                  Completed {formatTimeAgo(activityTime)}
+                </div>
               )}
 
               {/* Comments */}
