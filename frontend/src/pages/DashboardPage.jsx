@@ -113,6 +113,8 @@ const DashboardPage = () => {
     if (result.success) {
       // Refresh dashboard stats
       getDashboardStats()
+      // Refresh goals to get updated pointsEarned and other computed fields
+      getGoals({ year: selectedYear })
     }
     return result
   }

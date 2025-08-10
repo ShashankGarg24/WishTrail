@@ -112,19 +112,19 @@ const ActivityDetailModal = ({ isOpen, onClose, activity }) => {
           initial={{ scale: 0.98, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.98, opacity: 0 }}
-          className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-5xl overflow-hidden shadow-2xl"
+          className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-5xl max-h-[85vh] flex flex-col overflow-hidden shadow-2xl"
           onClick={(e) => e.stopPropagation()}
         >
-          <div className={`grid grid-cols-1 ${hasImage ? 'md:grid-cols-2' : 'md:grid-cols-1'}`}>
+          <div className={`grid grid-cols-1 ${hasImage ? 'md:grid-cols-2' : 'md:grid-cols-1'} flex-1 overflow-hidden`}>
             {/* Left: Image (only if present) */}
             {hasImage && (
-              <div className="bg-black/5 dark:bg-black flex items-center justify-center p-2 min-h-[50vh]">
-                <img src={sharedImage} alt="Attachment" className="max-h-[80vh] w-full object-contain rounded-lg" />
+              <div className="bg-black/5 dark:bg-black flex items-center justify-center p-2 h-full overflow-auto">
+                <img src={sharedImage} alt="Attachment" className="max-h-full w-full object-contain rounded-lg" />
               </div>
             )}
 
             {/* Right: Note + Comments */}
-            <div className="flex flex-col min-h-[50vh]">
+            <div className="flex flex-col h-full min-h-0 overflow-hidden">
               {/* Header */}
               <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-800">
                 <div className="flex items-center gap-2 min-w-0">
@@ -156,7 +156,7 @@ const ActivityDetailModal = ({ isOpen, onClose, activity }) => {
               )}
 
               {/* Comments */}
-              <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4">
+              <div className="flex-1 min-h-0 overflow-y-auto px-4 py-3 space-y-4">
                 {loading ? (
                   <div className="text-sm text-gray-500">Loading comments...</div>
                 ) : comments.length === 0 ? (

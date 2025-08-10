@@ -250,14 +250,14 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
         )}
 
         {/* Points */}
-        {wish.points && (
+        {(() => { const pts = (typeof wish.pointsEarned === 'number' ? wish.pointsEarned : wish.points) || 0; return pts > 0; })() && (
         <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
           wish.completed 
             ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
             : 'bg-gray-100 text-gray-600 dark:bg-gray-800/50 dark:text-gray-400'
         }`}>
           <Star className="h-3 w-3 mr-1" />
-            {wish.points} pts
+            {((typeof wish.pointsEarned === 'number' ? wish.pointsEarned : wish.points) || 0)} pts
         </span>
         )}
 

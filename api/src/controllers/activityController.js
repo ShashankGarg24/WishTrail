@@ -143,31 +143,32 @@ const getUserActivities = async (req, res, next) => {
 // @desc    Like/unlike an activity
 // @route   PATCH /api/v1/activities/:id/like
 // @access  Private
-const toggleActivityLike = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    
-    const activity = await Activity.findById(id);
-    if (!activity) {
-      return res.status(404).json({
-        success: false,
-        message: 'Activity not found'
-      });
-    }
-    
-    const result = await Like.toggleLike(req.user.id, 'activity', activity._id);
-    
-    res.status(200).json({
-      success: true,
-      data: {
-        isLiked: result.isLiked,
-        likeCount: result.likeCount
+  const toggleActivityLike = async (req, res, next) => {
+    try {
+      const { id } = req.params;
+      
+      const activity = await Activity.findById(id);
+      if (!activity) {
+        return res.status(404).json({
+          success: false,
+          message: 'Activity not found'
+        });
       }
-    });
-  } catch (error) {
-    next(error);
-  }
-};
+      
+      await Like.toggleLike(req.user.id, 'activity', activity._id);
+      const [likeCount, isLiked] = await Promise.all([
+        Like.getLikeCount('activity', activity._id),
+        Like.hasUserLiked(req.user.id, 'activity', activity._id)
+      ]);
+      
+      res.status(200).json({
+        success: true,
+        data: { likeCount, isLiked }
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
 
 // @desc    Get activity by ID
 // @route   GET /api/v1/activities/:id
@@ -488,8 +489,10 @@ const toggleCommentLike = async (req, res, next) => {
     if (!comment || !comment.isActive) return res.status(404).json({ success: false, message: 'Comment not found' });
 
     await Like.toggleLike(req.user.id, 'activity_comment', commentId);
-    const likeCount = await Like.getLikeCount('activity_comment', commentId);
-    const isLiked = await Like.hasUserLiked(req.user.id, 'activity_comment', commentId);
+    const [likeCount, isLiked] = await Promise.all([
+      Like.getLikeCount('activity_comment', commentId),
+      Like.hasUserLiked(req.user.id, 'activity_comment', commentId)
+    ]);
     res.status(200).json({ success: true, data: { likeCount, isLiked } });
   } catch (err) {
     next(err);
