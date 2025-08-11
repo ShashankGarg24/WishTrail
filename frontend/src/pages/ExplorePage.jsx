@@ -98,22 +98,20 @@ const ExplorePage = () => {
         setActivities(activitiesData.activities || []);
         const totalPages = activitiesData.pagination?.pages || 1;
         setActivitiesHasMore(1 < totalPages);
-        
-        // Fetch following list to show in Activities tab
-        const followingData = await getFollowing();
-        if (followingData.success) {
-          setUsers(followingData.following || []);
-        }
+        // Do not mutate users list here; keep Discover users separate
       } else {
         // First page for discover users
         setDiscoverPage(1);
         setDiscoverHasMore(true);
         const usersData = await getUsers({ page: 1, limit: DISCOVER_PAGE_SIZE });
         if (usersData.success) {
-          const filteredUsers = (usersData.users || []).filter(u => u && u._id !== user?._id);
-          setUsers(filteredUsers);
+          const filteredUsers = (usersData.users || []).filter(u => u && u._id && u._id !== user?._id);
+          // Replace the entire list for page 1 to avoid stale entries
+          setUsers(filteredUsers.slice(0, DISCOVER_PAGE_SIZE));
           const totalPages = usersData.pagination?.pages || 1;
           setDiscoverHasMore(1 < totalPages);
+        } else {
+          setUsers([]);
         }
       }
     } catch (error) {
@@ -197,7 +195,7 @@ const ExplorePage = () => {
       const next = discoverPage + 1;
       const resp = await getUsers({ page: next, limit: DISCOVER_PAGE_SIZE });
       if (resp.success) {
-        const filtered = (resp.users || []).filter(u => u && u._id !== user?._id);
+        const filtered = (resp.users || []).filter(u => u && u._id && u._id !== user?._id);
         setUsers(prev => mergeUniqueById(prev, filtered));
         setDiscoverPage(next);
         const totalPages = resp.pagination?.pages || next;
@@ -590,9 +588,9 @@ const ExplorePage = () => {
                 ) : displayUsers.length > 0 ? (
                   <>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {displayUsers.map((userItem, index) => (
+                      {displayUsers.filter(u => u && u._id).map((userItem, index) => (
                         <motion.div
-                          key={userItem._id}
+                          key={`${userItem._id}-${index}`}
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ duration: 0.5, delay: 0.1 * index }}
