@@ -78,13 +78,14 @@ const FeedbackButton = () => {
       const res = await feedbackAPI.submit(formData)
 
       if (res.data?.success) {
-        setSuccess('Thanks for your feedback!')
+        setSuccess("Thanks for your feedback — we appreciate you!\nWe'll review it and keep improving WishTrail. You’ll see the results in upcoming updates.")
         setTitle('')
         setDescription('')
         if (previewUrl) URL.revokeObjectURL(previewUrl)
         setPreviewUrl('')
         setScreenshotFile(null)
-        setTimeout(() => setIsOpen(false), 800)
+        // Show thank-you state for a moment before closing
+        setTimeout(() => setIsOpen(false), 1400)
       } else {
         setError(res.data?.message || 'Failed to submit feedback')
       }
@@ -133,9 +134,10 @@ const FeedbackButton = () => {
                 You're part of WishTrail's journey — share your ideas and help make it better.
               </div>
 
+              {!success && (
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Subject git <span className="text-red-500">*</span></label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Subject <span className="text-red-500">*</span></label>
                   <input
                     type="text"
                     value={title}
@@ -185,6 +187,19 @@ const FeedbackButton = () => {
                   </button>
                 </div>
               </form>
+              )}
+
+              {success && (
+                <div className="py-6 text-center">
+                  <div className="text-3xl mb-2">🎉</div>
+                  <div className="text-green-700 dark:text-green-300 whitespace-pre-line text-sm">
+                    {success}
+                  </div>
+                  <div className="mt-4">
+                    <button onClick={() => setIsOpen(false)} className="btn-primary">Close</button>
+                  </div>
+                </div>
+              )}
             </motion.div>
           </motion.div>
         )}
