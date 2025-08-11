@@ -23,8 +23,7 @@ class UserService {
     if (search && search.trim()) {
       query.$or = [
         { name: { $regex: search, $options: 'i' } },
-        { bio: { $regex: search, $options: 'i' } },
-        { location: { $regex: search, $options: 'i' } }
+        { username: { $regex: search, $options: 'i' } }
       ];
     }
     
@@ -32,11 +31,15 @@ class UserService {
     const sortOptions = {};
     sortOptions[sortBy] = sortOrder === 'desc' ? -1 : 1;
     
+    // Select only fields needed for Discover UI
+    const projection = 'name username avatar bio totalGoals completedGoals currentStreak';
+    
     const users = await User.find(query)
-      .select('-password -refreshToken -passwordResetToken -passwordResetExpires')
+      .select(projection)
       .sort(sortOptions)
       .limit(limit * 1)
-      .skip((page - 1) * limit);
+      .skip((page - 1) * limit)
+      .lean();
     
     const total = await User.countDocuments(query);
     
@@ -47,8 +50,8 @@ class UserService {
         users.map(async (user) => {
           const isFollowing = await Follow.isFollowing(requestingUserId, user._id);
           return {
-            ...user.toObject(),
-            isFollowing: user._id.toString() !== requestingUserId ? isFollowing : null
+            ...user,
+            isFollowing
           };
         })
       );

@@ -135,7 +135,7 @@ const FeedbackButton = () => {
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Subject <span className="text-red-500">*</span></label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Subject git <span className="text-red-500">*</span></label>
                   <input
                     type="text"
                     value={title}
