@@ -260,29 +260,39 @@ const ExplorePage = () => {
     }
   };
 
-  const handleLike = async (activityId) => {
+  const [likePending, setLikePending] = useState({});
+  const toggleActivityLikeOptimistic = async (activityId) => {
+    if (likePending[activityId]) return;
+    setLikePending((p) => ({ ...p, [activityId]: true }));
+    // Optimistic update
+    setActivities((prev) => prev.map((a) => {
+      if (a._id !== activityId) return a;
+      const current = a.likeCount || 0;
+      if (a.isLiked) {
+        return { ...a, isLiked: false, likeCount: Math.max(current - 1, 0) };
+      }
+      return { ...a, isLiked: true, likeCount: current + 1 };
+    }));
     try {
-      await likeActivity(activityId);
-      setActivities(activities.map(activity => 
-        activity._id === activityId 
-          ? { ...activity, isLiked: true, likesCount: (activity.likesCount || 0) + 1 }
-          : activity
-      ));
-    } catch (error) {
-      console.error('Error liking activity:', error);
-    }
-  };
-
-  const handleUnlike = async (activityId) => {
-    try {
-      await unlikeActivity(activityId);
-      setActivities(activities.map(activity => 
-        activity._id === activityId 
-          ? { ...activity, isLiked: false, likesCount: Math.max((activity.likesCount || 0) - 1, 0) }
-          : activity
-      ));
-    } catch (error) {
-      console.error('Error unliking activity:', error);
+      const resp = await likeActivity(activityId); // toggles on backend
+      const { likeCount, isLiked } = resp?.data?.data || {};
+      if (typeof likeCount === 'number') {
+        setActivities((prev) => prev.map((a) => a._id === activityId ? { ...a, likeCount, isLiked: !!isLiked } : a));
+      }
+    } catch (err) {
+      // Revert on failure
+      setActivities((prev) => prev.map((a) => {
+        if (a._id !== activityId) return a;
+        const current = a.likeCount || 0;
+        // We flipped it optimistically; flip back
+        if (a.isLiked) {
+          return { ...a, isLiked: false, likeCount: Math.max(current - 1, 0) };
+        }
+        return { ...a, isLiked: true, likeCount: current + 1 };
+      }));
+      console.error('Activity like toggle failed', err);
+    } finally {
+      setLikePending((p) => ({ ...p, [activityId]: false }));
     }
   };
 
@@ -818,8 +828,9 @@ const ExplorePage = () => {
                           {/* Action bar */}
                           <div className="flex items-center gap-4 pt-2 px-1">
                             <button
-                              onClick={() => activity.isLiked ? handleUnlike(activity._id) : handleLike(activity._id)}
+                              onClick={() => toggleActivityLikeOptimistic(activity._id)}
                               className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm transition-colors ${activity.isLiked ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-300' : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
+                              disabled={!!likePending[activity._id]}
                             >
                               <Heart className={`h-4 w-4 ${activity.isLiked ? 'fill-current' : ''}`} />
                               <span>{activity.likeCount || 0}</span>
