@@ -269,17 +269,19 @@ const ExplorePage = () => {
   const toggleActivityLikeOptimistic = async (activityId) => {
     if (likePending[activityId]) return;
     setLikePending((p) => ({ ...p, [activityId]: true }));
+    // Determine intended action from current state before optimistic flip
+    const current = activities.find(a => a._id === activityId);
+    const intendLike = !(current?.isLiked);
     // Optimistic update
     setActivities((prev) => prev.map((a) => {
       if (a._id !== activityId) return a;
-      const current = a.likeCount || 0;
-      if (a.isLiked) {
-        return { ...a, isLiked: false, likeCount: Math.max(current - 1, 0) };
-      }
-      return { ...a, isLiked: true, likeCount: current + 1 };
+      const currentCount = a.likeCount || 0;
+      return intendLike
+        ? { ...a, isLiked: true, likeCount: currentCount + 1 }
+        : { ...a, isLiked: false, likeCount: Math.max(currentCount - 1, 0) };
     }));
     try {
-      const resp = await likeActivity(activityId); // toggles on backend
+      const resp = await likeActivity(activityId, intendLike);
       const { likeCount, isLiked } = resp?.data?.data || {};
       if (typeof likeCount === 'number') {
         setActivities((prev) => prev.map((a) => a._id === activityId ? { ...a, likeCount, isLiked: !!isLiked } : a));
@@ -288,12 +290,10 @@ const ExplorePage = () => {
       // Revert on failure
       setActivities((prev) => prev.map((a) => {
         if (a._id !== activityId) return a;
-        const current = a.likeCount || 0;
-        // We flipped it optimistically; flip back
-        if (a.isLiked) {
-          return { ...a, isLiked: false, likeCount: Math.max(current - 1, 0) };
-        }
-        return { ...a, isLiked: true, likeCount: current + 1 };
+        const currentCount = a.likeCount || 0;
+        return intendLike
+          ? { ...a, isLiked: false, likeCount: Math.max(currentCount - 1, 0) }
+          : { ...a, isLiked: true, likeCount: currentCount + 1 };
       }));
       console.error('Activity like toggle failed', err);
     } finally {

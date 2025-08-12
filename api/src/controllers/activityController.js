@@ -154,8 +154,20 @@ const getUserActivities = async (req, res, next) => {
           message: 'Activity not found'
         });
       }
-      
-      await Like.toggleLike(req.user.id, 'activity', activity._id);
+
+      const likeFlag = typeof req.body?.like === 'boolean' ? req.body.like : null;
+      try {
+        if (likeFlag === true) {
+          await Like.likeItem(req.user.id, 'activity', activity._id);
+        } else if (likeFlag === false) {
+          // Attempt to unlike; ignore if not liked
+          try { await Like.unlikeItem(req.user.id, 'activity', activity._id); } catch (_) {}
+        } else {
+          await Like.toggleLike(req.user.id, 'activity', activity._id);
+        }
+      } catch (_) {
+        // Swallow duplicate key or not-found errors to still return latest state
+      }
       const [likeCount, isLiked] = await Promise.all([
         Like.getLikeCount('activity', activity._id),
         Like.hasUserLiked(req.user.id, 'activity', activity._id)
@@ -488,7 +500,17 @@ const toggleCommentLike = async (req, res, next) => {
     const comment = await ActivityComment.findById(commentId);
     if (!comment || !comment.isActive) return res.status(404).json({ success: false, message: 'Comment not found' });
 
-    await Like.toggleLike(req.user.id, 'activity_comment', commentId);
+    const likeFlag = typeof req.body?.like === 'boolean' ? req.body.like : null;
+    try {
+      if (likeFlag === true) {
+        await Like.likeItem(req.user.id, 'activity_comment', commentId);
+      } else if (likeFlag === false) {
+        try { await Like.unlikeItem(req.user.id, 'activity_comment', commentId); } catch (_) {}
+      } else {
+        await Like.toggleLike(req.user.id, 'activity_comment', commentId);
+      }
+    } catch (_) {}
+
     const [likeCount, isLiked] = await Promise.all([
       Like.getLikeCount('activity_comment', commentId),
       Like.hasUserLiked(req.user.id, 'activity_comment', commentId)

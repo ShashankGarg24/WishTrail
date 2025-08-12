@@ -107,11 +107,11 @@ export const activitiesAPI = {
   getActivityStats: (params) => api.get('/activities/stats', { params }),
   getUserActivities: (userId, params) => api.get(`/activities/user/${userId}`, { params }),
   getActivity: (id) => api.get(`/activities/${id}`),
-  likeActivity: (id) => api.patch(`/activities/${id}/like`),
+  likeActivity: (id, like) => api.patch(`/activities/${id}/like`, typeof like === 'boolean' ? { like } : {}),
   getComments: (activityId, params) => api.get(`/activities/${activityId}/comments`, { params }),
   addComment: (activityId, body) => api.post(`/activities/${activityId}/comments`, body),
   replyComment: (activityId, commentId, body) => api.post(`/activities/${activityId}/comments/${commentId}/replies`, body),
-  toggleCommentLike: (activityId, commentId) => api.patch(`/activities/${activityId}/comments/${commentId}/like`),
+  toggleCommentLike: (activityId, commentId, like) => api.patch(`/activities/${activityId}/comments/${commentId}/like`, typeof like === 'boolean' ? { like } : {}),
 };
 
 // Leaderboard API
