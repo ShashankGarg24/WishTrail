@@ -46,6 +46,7 @@ function App() {
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/explore" element={<ExplorePage />} />
             <Route path="/profile/:userId" element={<ProfilePage />} />
+            <Route path="/profile/@:username" element={<ProfilePage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/inspiration" element={<InspirationPage />} />
             <Route path="/leaderboard" element={<LeaderboardPage />} />

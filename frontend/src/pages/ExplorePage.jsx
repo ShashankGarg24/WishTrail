@@ -616,12 +616,12 @@ const ExplorePage = () => {
                               src={userItem.avatar || '/api/placeholder/64/64'}
                               alt={userItem.name}
                               className="w-16 h-16 rounded-full border-2 border-gray-200 dark:border-gray-600 cursor-pointer hover:border-blue-500 transition-colors"
-                              onClick={() => navigate(`/profile/${userItem._id}`)}
+                              onClick={() => userItem.username && navigate(`/profile/@${userItem.username}`)}
                             />
                             <div className="flex-1">
                               <h3 
                                 className="font-semibold text-gray-900 dark:text-white text-lg cursor-pointer hover:text-blue-500 transition-colors"
-                                onClick={() => navigate(`/profile/${userItem._id}`)}
+                                onClick={() => userItem.username && navigate(`/profile/@${userItem.username}`)}
                               >
                                 {userItem.name}
                               </h3>
@@ -738,18 +738,18 @@ const ExplorePage = () => {
                         {/* Header */}
                         <div className="flex items-center gap-3 px-4 pt-4 pb-3">
                           <img
-                            src={activity?.avatar || '/api/placeholder/48/48'}
-                            alt={activity?.name || 'User'}
+                            src={activity?.user?.avatar || activity?.avatar || '/api/placeholder/48/48'}
+                            alt={activity?.user?.name || activity?.name || 'User'}
                             className="w-10 h-10 rounded-full object-cover cursor-pointer"
-                            onClick={() => activity.user?._id && navigate(`/profile/${activity.user._id}`)}
+                            onClick={() => activity.user?.username && navigate(`/profile/@${activity.user.username}`)}
                           />
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
                               <button
                                 className="font-semibold text-gray-900 dark:text-white hover:text-blue-500 truncate"
-                                onClick={() => activity.user?._id && navigate(`/profile/${activity.user._id}`)}
+                                onClick={() => activity.user?.username && navigate(`/profile/@${activity.user.username}`)}
                               >
-                                {activity?.name || 'Unknown User'}
+                                {activity?.user?.name || activity?.name || 'Unknown User'}
                               </button>
                               <span className="text-xs text-gray-400">•</span>
                               <span className="text-xs text-gray-500 dark:text-gray-400">{formatTimeAgo(activity.createdAt)}</span>

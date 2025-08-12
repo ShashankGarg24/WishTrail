@@ -275,11 +275,9 @@ const getActivityFeed = async (req, res, next) => {
       page: parseInt(page),
       limit: parseInt(limit)
     });
-    
-    res.status(200).json({
-      success: true,
-      data: activities
-    });
+
+    // Service already normalizes to { user, ... }. Return as-is.
+    res.status(200).json({ success: true, data: activities });
   } catch (error) {
     next(error);
   }

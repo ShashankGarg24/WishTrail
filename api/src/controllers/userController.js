@@ -22,13 +22,13 @@ const getUsers = async (req, res, next) => {
   }
 };
 
-// @desc    Get user by ID
-// @route   GET /api/v1/users/:id
+// @desc    Get user by ID or username
+// @route   GET /api/v1/users/:idOrUsername
 // @access  Private
 const getUser = async (req, res, next) => {
   try {
-    const { id } = req.params;
-    const {user, stats, isFollowing} = await userService.getUserById(id, req.user.id);
+    const { id: idOrUsername } = req.params;
+    const {user, stats, isFollowing} = await userService.getUserByIdOrUsername(idOrUsername, req.user.id);
     res.status(200).json({
       success: true,
       data: {user: user, stats: stats, isFollowing: isFollowing}
@@ -124,7 +124,7 @@ const getUserGoals = async (req, res, next) => {
     
     // Check if user can view these goals
     if (id !== req.user.id) {
-      const user = await userService.getUserById(id, req.user.id);
+      const user = await userService.getUserByIdOrUsername(id, req.user.id);
       if (!user) {
         return res.status(404).json({
           success: false,

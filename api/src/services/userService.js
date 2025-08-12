@@ -91,6 +91,30 @@ class UserService {
   }
   
   /**
+   * Get user by ID or username
+   */
+  async getUserByIdOrUsername(idOrUsername, requestingUserId = null) {
+    const isObjectId = idOrUsername && idOrUsername.match(/^[0-9a-fA-F]{24}$/);
+    const user = await (isObjectId
+      ? User.findById(idOrUsername)
+      : User.findOne({ username: idOrUsername.replace(/^@/, '') }))
+      .select('-password -refreshToken -passwordResetToken -passwordResetExpires');
+
+    if (!user || !user.isActive) {
+      throw new Error('User not found');
+    }
+
+    let isFollowing = false;
+    if (requestingUserId && user._id.toString() !== requestingUserId.toString()) {
+      isFollowing = await Follow.isFollowing(requestingUserId, user._id);
+    }
+
+    const userResponse = user.toObject();
+    const userStats = await this.getUserStats(user);
+    return { user: userResponse, stats: userStats, isFollowing };
+  }
+  
+  /**
    * Get dashboard statistics for user
    */
   async getDashboardStats(userId) {
@@ -308,14 +332,13 @@ class UserService {
       isActive: true,
       $or: [
         { name: searchRegex },
-        { bio: searchRegex }
+        { username: searchRegex }
       ]
     })
-    .select('name avatar bio level totalPoints completedGoals currentStreak')
+    .select('name username avatar bio level totalPoints completedGoals currentStreak')
     .limit(parseInt(limit))
     .sort({ totalPoints: -1 });
     
-    // Add following status if requesting user is provided
     if (requestingUserId) {
       const usersWithFollowingStatus = await Promise.all(
         users.map(async (user) => {

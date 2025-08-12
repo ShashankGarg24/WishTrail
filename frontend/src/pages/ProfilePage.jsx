@@ -6,7 +6,9 @@ import useApiStore from "../store/apiStore";
 import ProfileEditModal from "../components/ProfileEditModal";
 
 const ProfilePage = () => {
-  const { userId } = useParams(); // If userId exists, viewing another user's profile
+  const params = useParams();
+  const userIdParam = params.userId;
+  const usernameParam = params.username;
   const navigate = useNavigate();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
@@ -28,7 +30,7 @@ const ProfilePage = () => {
   } = useApiStore();
 
   // Determine if viewing own profile or another user's profile
-  const isOwnProfile = !userId || (currentUser && currentUser._id === userId);
+  const isOwnProfile = !userIdParam && !usernameParam || (currentUser && (currentUser.username === usernameParam || currentUser._id === userIdParam));
   const displayUser = isOwnProfile ? currentUser : profileUser;
 
   const isProfileAccessible = () => {
@@ -49,7 +51,7 @@ const ProfilePage = () => {
     } else {
       fetchUserProfile();
     }
-  }, [isAuthenticated, userId]);
+  }, [isAuthenticated, userIdParam, usernameParam]);
 
   const fetchOwnProfile = async () => {
     setLoading(true);
@@ -69,8 +71,9 @@ const ProfilePage = () => {
     setLoading(true);
     setError(null);
     try {
-      // Fetch user profile
-      const userResult = await getUser(userId);
+      // Fetch user profile by id or username
+      const idOrUsername = usernameParam || userIdParam;
+      const userResult = await getUser(idOrUsername);
       if (userResult.success) {
         setProfileUser(userResult.user);
         setUserStats(userResult.stats);
@@ -78,7 +81,7 @@ const ProfilePage = () => {
 
         // Fetch user goals if profile is accessible
         if (userResult.user && (!userResult.user.isPrivate || userResult.isFollowing)) {
-          const goalsResult = await getUserGoals(userId, { limit: 10 });
+          const goalsResult = await getUserGoals(userResult.user._id, { limit: 10 });
           if (goalsResult.success) {
             setUserGoals(goalsResult.goals);
           }
@@ -94,7 +97,7 @@ const ProfilePage = () => {
 
   const handleFollow = async () => {
     try {
-      const result = await followUser(userId);
+      const result = await followUser(profileUser?._id);
       if (result.success) {
         setIsFollowing(true);
         fetchUserProfile();
@@ -106,7 +109,7 @@ const ProfilePage = () => {
 
   const handleUnfollow = async () => {
     try {
-      const result = await unfollowUser(userId);
+      const result = await unfollowUser(profileUser?._id);
       if (result.success) {
         setIsFollowing(false);
         if (profileUser?.isPrivate) {

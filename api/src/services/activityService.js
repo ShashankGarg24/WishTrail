@@ -13,79 +13,78 @@ class ActivityService {
   
     const followingIds = await Follow.getFollowingIds(userId);
   
+    const baseProjectUser = 'name username avatar level';
+
+    const shape = (act) => {
+      // Normalize to { user: {...}, ... }
+      const base = typeof act.toObject === 'function' ? act.toObject() : act;
+      const { userId: author, ...rest } = base;
+      const user = author && typeof author === 'object' ? {
+        _id: author._id, // keep internally but frontend should prefer username route
+        name: author.name,
+        username: author.username,
+        avatar: author.avatar,
+        level: author.level,
+      } : undefined;
+      return { ...rest, user };
+    };
+
     if (followingIds.length === 0) {
-      // Still check for target-based activities (user_followed, goal_liked)
-      const targetBasedActivities = await Activity.find({
+      const filter = {
         isActive: true,
         isPublic: true,
         'data.targetUserId': userId,
         type: { $in: ['user_followed', 'goal_liked'] }
-      })
-      .sort({ createdAt: -1 })
-      .limit(limit)
-      .skip((page - 1) * limit)
-      .populate('userId', 'name avatar level')
-      .populate('data.goalId', 'title category')
-      .populate('data.targetUserId', 'name avatar')
-      .lean();
-  
-      const total = await Activity.countDocuments({
-        isActive: true,
-        isPublic: true,
-        'data.targetUserId': userId,
-        type: { $in: ['user_followed', 'goal_liked'] }
-      });
-  
-      const enriched = await this.enrichWithLikes(targetBasedActivities, userId);
-  
+      };
+
+      const [total, list] = await Promise.all([
+        Activity.countDocuments(filter),
+        Activity.find(filter)
+          .sort({ createdAt: -1 })
+          .limit(limit)
+          .skip((page - 1) * limit)
+          .populate('userId', baseProjectUser)
+          .populate('data.goalId', 'title category')
+          .populate('data.targetUserId', 'name username avatar')
+          .lean()
+      ]);
+
+      const enriched = await this.enrichWithLikes(list, userId);
+      const normalized = enriched.map(shape);
+
       return {
-        activities: enriched,
-        pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
-          total,
-          pages: Math.ceil(total / limit)
-        }
+        activities: normalized,
+        pagination: { page: parseInt(page), limit: parseInt(limit), total, pages: Math.ceil(total / limit) }
       };
     }
   
-    // Combined feed
     const query = {
       isActive: true,
       isPublic: true,
       $or: [
-        {
-          userId: { $in: followingIds },
-          type: { $in: ['goal_completed', 'goal_created', 'level_up', 'streak_milestone', 'achievement_earned'] }
-        },
-        {
-          'data.targetUserId': userId,
-          type: { $in: ['user_followed', 'goal_liked'] }
-        }
+        { userId: { $in: followingIds }, type: { $in: ['goal_completed', 'goal_created', 'level_up', 'streak_milestone', 'achievement_earned'] } },
+        { 'data.targetUserId': userId, type: { $in: ['user_followed', 'goal_liked'] } }
       ]
     };
   
-    const activities = await Activity.find(query)
-      .sort({ createdAt: -1 })
-      .limit(limit * 1)
-      .skip((page - 1) * limit)
-      .populate('userId', 'name avatar level')
-      .populate('data.goalId', 'title category')
-      .populate('data.targetUserId', 'name avatar')
-      .lean();
+    const [list, total] = await Promise.all([
+      Activity.find(query)
+        .sort({ createdAt: -1 })
+        .limit(limit)
+        .skip((page - 1) * limit)
+        .populate('userId', baseProjectUser)
+        .populate('data.goalId', 'title category')
+        .populate('data.targetUserId', 'name username avatar')
+        .lean(),
+      Activity.countDocuments(query)
+    ]);
   
-    const total = await Activity.countDocuments(query);
-  
-    const enriched = await this.enrichWithLikes(activities, userId);
+    const enriched = await this.enrichWithLikes(list, userId);
+    const normalized = enriched.map(shape);
   
     return {
-      activities: enriched,
-      pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total,
-        pages: Math.ceil(total / limit)
-      }
+      activities: normalized,
+      pagination: { page: parseInt(page), limit: parseInt(limit), total, pages: Math.ceil(total / limit) }
     };
   }
   
@@ -97,12 +96,7 @@ class ActivityService {
         const commentCount = await ActivityComment.countDocuments({ activityId: activity._id, isActive: true });
 
         const base = typeof activity.toObject === 'function' ? activity.toObject() : activity;
-        return {
-          ...base,
-          isLiked,
-          likeCount,
-          commentCount
-        };
+        return { ...base, isLiked, likeCount, commentCount };
       })
     );
   }
@@ -114,49 +108,49 @@ class ActivityService {
     const { page = 1, limit = 10, type = 'global' } = params;
     
     let query = { isActive: true, isPublic: true };
-    
     if (type === 'personal') {
       query.userId = userId;
       query.isPublic = undefined; // Include both public and private for personal
     }
     
-    const activities = await Activity.find(query)
-      .sort({ createdAt: -1 })
-      .limit(limit * 1)
-      .skip((page - 1) * limit)
-      .populate('userId', 'name avatar level')
-      .populate('data.goalId', 'title category')
-      .populate('data.targetUserId', 'name avatar');
+    const baseProjectUser = 'name username avatar level';
+
+    const [list, total] = await Promise.all([
+      Activity.find(query)
+        .sort({ createdAt: -1 })
+        .limit(limit)
+        .skip((page - 1) * limit)
+        .populate('userId', baseProjectUser)
+        .populate('data.goalId', 'title category')
+        .populate('data.targetUserId', 'name username avatar')
+        .lean(),
+      Activity.countDocuments(query)
+    ]);
     
-    // Add like status for each activity if user is provided
-    let activitiesWithLikes = activities;
-    if (userId) {
-      activitiesWithLikes = await Promise.all(
-        activities.map(async (activity) => {
-          const isLiked = await Like.hasUserLiked(userId, 'activity', activity._id);
-          const likeCount = await Like.getLikeCount('activity', activity._id);
-          const commentCount = await ActivityComment.countDocuments({ activityId: activity._id, isActive: true });
-          
-          return {
-            ...activity.toObject(),
-            isLiked,
-            likeCount,
-            commentCount
-          };
-        })
-      );
-    }
-    
-    const total = await Activity.countDocuments(query);
+    const enriched = await Promise.all(
+      list.map(async (activity) => {
+        const isLiked = userId ? await Like.hasUserLiked(userId, 'activity', activity._id) : false;
+        const likeCount = await Like.getLikeCount('activity', activity._id);
+        const commentCount = await ActivityComment.countDocuments({ activityId: activity._id, isActive: true });
+        return { ...activity, isLiked, likeCount, commentCount };
+      })
+    );
+
+    const normalized = enriched.map((act) => {
+      const { userId: author, ...rest } = act;
+      const user = author && typeof author === 'object' ? {
+        _id: author._id,
+        name: author.name,
+        username: author.username,
+        avatar: author.avatar,
+        level: author.level,
+      } : undefined;
+      return { ...rest, user };
+    });
     
     return {
-      activities: activitiesWithLikes,
-      pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total,
-        pages: Math.ceil(total / limit)
-      }
+      activities: normalized,
+      pagination: { page: parseInt(page), limit: parseInt(limit), total, pages: Math.ceil(total / limit) }
     };
   }
   
