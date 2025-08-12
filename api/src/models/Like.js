@@ -29,6 +29,13 @@ const likeSchema = new mongoose.Schema({
     type: String,
     enum: ['like', 'love', 'celebrate', 'support', 'inspire'],
     default: 'like'
+  },
+
+  // Soft-delete flag for toggling likes
+  isActive: {
+    type: Boolean,
+    default: true,
+    index: true
   }
   
 }, {
@@ -57,11 +64,14 @@ likeSchema.statics.likeItem = async function(userId, targetType, targetId) {
     
     if (existingLike) {
       if (existingLike.isActive) {
-        throw new Error('Item already liked');
+        // Already liked
+        return existingLike;
       } else {
         // Re-activate the like
         existingLike.isActive = true;
-        return await existingLike.save();
+        const saved = await existingLike.save();
+        await this.updateTargetLikeCount(targetType, targetId);
+        return saved;
       }
     }
     
@@ -69,7 +79,8 @@ likeSchema.statics.likeItem = async function(userId, targetType, targetId) {
     const like = new this({
       userId,
       targetType,
-      targetId
+      targetId,
+      isActive: true
     });
     
     const savedLike = await like.save();

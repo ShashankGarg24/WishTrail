@@ -734,9 +734,9 @@ const useApiStore = create(
         }
       },
       
-      likeActivity: async (activityId) => {
+      likeActivity: async (activityId, like) => {
         try {
-          const response = await activitiesAPI.likeActivity(activityId);
+          const response = await activitiesAPI.likeActivity(activityId, like);
           const { isLiked, likeCount } = response.data.data;
           
           // Update in activity feed
@@ -759,10 +759,10 @@ const useApiStore = create(
           return { success: false, error: errorMessage };
         }
       },
-
+      
       unlikeActivity: async (activityId) => {
         try {
-          const response = await activitiesAPI.likeActivity(activityId);
+          const response = await activitiesAPI.likeActivity(activityId, false);
           const { isLiked, likeCount } = response.data.data;
           
           // Update in activity feed
