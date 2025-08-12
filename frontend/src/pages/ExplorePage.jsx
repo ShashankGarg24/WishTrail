@@ -22,6 +22,7 @@ import {
 import useApiStore from '../store/apiStore';
 import SkeletonList from '../components/loader/SkeletonList'
 import ActivityDetailModal from '../components/ActivityDetailModal'
+import ActivityCommentsModal from '../components/ActivityCommentsModal'
 
 const ExplorePage = () => {
   const navigate = useNavigate();
@@ -40,6 +41,10 @@ const ExplorePage = () => {
   const [detailActivity, setDetailActivity] = useState(null);
   const openDetail = (act) => { setDetailActivity(act); setDetailOpen(true); };
   const closeDetail = () => { setDetailOpen(false); setDetailActivity(null); };
+  const [commentsOpen, setCommentsOpen] = useState(false);
+  const [commentsActivity, setCommentsActivity] = useState(null);
+  const openComments = (act) => { setCommentsActivity(act); setCommentsOpen(true); };
+  const closeComments = () => { setCommentsOpen(false); setCommentsActivity(null); };
 
   const { 
     isAuthenticated, 
@@ -836,7 +841,7 @@ const ExplorePage = () => {
                               <span>{activity.likeCount || 0}</span>
                             </button>
                             <button
-                              onClick={() => openDetail(activity)}
+                              onClick={() => openComments(activity)}
                               className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm transition-colors bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700`}
                             >
                               <MessageCircle className="h-4 w-4" />
@@ -877,7 +882,8 @@ const ExplorePage = () => {
                 </motion.div>
         </div>
 
-        <ActivityDetailModal isOpen={detailOpen} onClose={closeDetail} activity={detailActivity} />
+        <ActivityDetailModal isOpen={detailOpen} onClose={closeDetail} activity={detailActivity} onOpenComments={openComments} />
+        <ActivityCommentsModal isOpen={commentsOpen} onClose={closeComments} activity={commentsActivity} />
       </div>
     </div>
   );
