@@ -149,34 +149,35 @@ const getUserActivities = async (req, res, next) => {
       
       const activity = await Activity.findById(id);
       if (!activity) {
-        return res.status(404).json({
-          success: false,
-          message: 'Activity not found'
-        });
+        return res.status(404).json({ success: false, message: 'Activity not found' });
       }
 
       const likeFlag = typeof req.body?.like === 'boolean' ? req.body.like : null;
+      const query = { userId: req.user.id, targetType: 'activity', targetId: activity._id };
       try {
         if (likeFlag === true) {
-          await Like.likeItem(req.user.id, 'activity', activity._id);
+          await Like.updateOne(query, { $set: { isActive: true, reactionType: 'like' } }, { upsert: true });
         } else if (likeFlag === false) {
-          // Attempt to unlike; ignore if not liked
-          try { await Like.unlikeItem(req.user.id, 'activity', activity._id); } catch (_) {}
+          await Like.updateOne(query, { $set: { isActive: false } }, { upsert: false });
         } else {
-          await Like.toggleLike(req.user.id, 'activity', activity._id);
+          // Toggle behaviour: flip isActive
+          const existing = await Like.findOne(query);
+          if (existing && existing.isActive) {
+            await Like.updateOne(query, { $set: { isActive: false } });
+          } else if (existing && !existing.isActive) {
+            await Like.updateOne(query, { $set: { isActive: true } });
+          } else {
+            await Like.updateOne(query, { $setOnInsert: { isActive: true, reactionType: 'like' } }, { upsert: true });
+          }
         }
-      } catch (_) {
-        // Swallow duplicate key or not-found errors to still return latest state
-      }
+      } catch (_) {}
+
       const [likeCount, isLiked] = await Promise.all([
         Like.getLikeCount('activity', activity._id),
         Like.hasUserLiked(req.user.id, 'activity', activity._id)
       ]);
       
-      res.status(200).json({
-        success: true,
-        data: { likeCount, isLiked }
-      });
+      res.status(200).json({ success: true, data: { likeCount, isLiked } });
     } catch (error) {
       next(error);
     }
@@ -501,13 +502,21 @@ const toggleCommentLike = async (req, res, next) => {
     if (!comment || !comment.isActive) return res.status(404).json({ success: false, message: 'Comment not found' });
 
     const likeFlag = typeof req.body?.like === 'boolean' ? req.body.like : null;
+    const query = { userId: req.user.id, targetType: 'activity_comment', targetId: commentId };
     try {
       if (likeFlag === true) {
-        await Like.likeItem(req.user.id, 'activity_comment', commentId);
+        await Like.updateOne(query, { $set: { isActive: true, reactionType: 'like' } }, { upsert: true });
       } else if (likeFlag === false) {
-        try { await Like.unlikeItem(req.user.id, 'activity_comment', commentId); } catch (_) {}
+        await Like.updateOne(query, { $set: { isActive: false } }, { upsert: false });
       } else {
-        await Like.toggleLike(req.user.id, 'activity_comment', commentId);
+        const existing = await Like.findOne(query);
+        if (existing && existing.isActive) {
+          await Like.updateOne(query, { $set: { isActive: false } });
+        } else if (existing && !existing.isActive) {
+          await Like.updateOne(query, { $set: { isActive: true } });
+        } else {
+          await Like.updateOne(query, { $setOnInsert: { isActive: true, reactionType: 'like' } }, { upsert: true });
+        }
       }
     } catch (_) {}
 
