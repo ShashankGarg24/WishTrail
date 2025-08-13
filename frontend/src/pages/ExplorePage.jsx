@@ -593,9 +593,6 @@ const ExplorePage = () => {
                     <Users className="h-6 w-6 mr-2 text-blue-500" />
                     {searchTerm.trim() ? 'Search Results' : 'Discover Users'}
                   </h2>
-                  <span className="text-gray-500 dark:text-gray-400 flex items-center gap-2">
-                    {displayUsers.length} {displayUsers.length === 1 ? 'user' : 'users'} found
-                  </span>
                 </div>
 
                 {(loading || isSearching) ? (
@@ -717,9 +714,6 @@ const ExplorePage = () => {
                     <Activity className="h-6 w-6 mr-2 text-green-500" />
                     Activities
                   </h2>
-                  <span className="text-gray-500 dark:text-gray-400 flex items-center gap-2">
-                    {activities.length} recent {activities.length === 1 ? 'activity' : 'activities'}
-                  </span>
                 </div>
 
                 {loading ? (
