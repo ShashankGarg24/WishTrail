@@ -18,6 +18,12 @@ const followSchema = new mongoose.Schema({
   },
   
   // Relationship status
+  status: {
+    type: String,
+    enum: ['pending', 'accepted', 'rejected', 'blocked'],
+    default: 'accepted',
+    index: true
+  },
   isActive: {
     type: Boolean,
     default: true,
@@ -48,6 +54,8 @@ followSchema.index({ followerId: 1, followingId: 1 }, { unique: true });
 // Additional indexes for performance
 followSchema.index({ followingId: 1, isActive: 1, createdAt: -1 });
 followSchema.index({ followerId: 1, isActive: 1, createdAt: -1 });
+followSchema.index({ followingId: 1, status: 1, createdAt: -1 });
+followSchema.index({ followerId: 1, status: 1, createdAt: -1 });
 
 // Validation to prevent self-following
 followSchema.pre('save', function(next) {
@@ -69,11 +77,12 @@ followSchema.statics.followUser = async function(followerId, followingId) {
     });
     
     if (existingFollow) {
-      if (existingFollow.isActive) {
+      if (existingFollow.isActive && existingFollow.status === 'accepted') {
         throw new Error('Already following this user');
       } else {
         // Re-activate the follow relationship
         existingFollow.isActive = true;
+        existingFollow.status = 'accepted';
         existingFollow.followedAt = new Date();
         return await existingFollow.save();
       }
@@ -82,7 +91,9 @@ followSchema.statics.followUser = async function(followerId, followingId) {
     // Create new follow relationship
     const follow = new this({
       followerId,
-      followingId
+      followingId,
+      status: 'accepted',
+      isActive: true
     });
     
     return await follow.save();
@@ -117,17 +128,63 @@ followSchema.statics.isFollowing = async function(followerId, followingId) {
   const follow = await this.findOne({
     followerId,
     followingId,
-    isActive: true
+    isActive: true,
+    status: 'accepted'
   });
   
   return !!follow;
 };
 
+// Static method to create a pending follow request (for private profiles)
+followSchema.statics.requestFollow = async function(followerId, followingId) {
+  try {
+    const existing = await this.findOne({ followerId, followingId });
+    if (existing) {
+      if (existing.status === 'pending') return existing; // already requested
+      if (existing.status === 'accepted' && existing.isActive) throw new Error('Already following this user');
+      // recycle existing doc
+      existing.status = 'pending';
+      existing.isActive = false;
+      existing.followedAt = undefined;
+      return await existing.save();
+    }
+    const reqDoc = new this({ followerId, followingId, status: 'pending', isActive: false });
+    return await reqDoc.save();
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Static method to accept a follow request
+followSchema.statics.acceptFollowRequest = async function(followerId, followingId) {
+  const request = await this.findOne({ followerId, followingId, status: 'pending', isActive: false });
+  if (!request) {
+    throw new Error('Follow request not found');
+  }
+  request.status = 'accepted';
+  request.isActive = true;
+  request.followedAt = new Date();
+  return await request.save();
+};
+
+// Static method to reject a follow request
+followSchema.statics.rejectFollowRequest = async function(followerId, followingId) {
+  const request = await this.findOne({ followerId, followingId, status: 'pending', isActive: false });
+  if (!request) {
+    throw new Error('Follow request not found');
+  }
+  // mark rejected
+  request.status = 'rejected';
+  request.isActive = false;
+  request.followedAt = undefined;
+  return await request.save();
+};
 // Static method to get user's followers
 followSchema.statics.getFollowers = function(userId, limit = 50) {
   return this.find({
     followingId: userId,
-    isActive: true
+    isActive: true,
+    status: 'accepted'
   })
   .sort({ createdAt: -1 })
   .limit(limit)
@@ -138,7 +195,8 @@ followSchema.statics.getFollowers = function(userId, limit = 50) {
 followSchema.statics.getFollowing = function(userId, limit = 50) {
   return this.find({
     followerId: userId,
-    isActive: true
+    isActive: true,
+    status: 'accepted'
   })
   .sort({ createdAt: -1 })
   .limit(limit)
@@ -149,7 +207,8 @@ followSchema.statics.getFollowing = function(userId, limit = 50) {
 followSchema.statics.getFollowerCount = function(userId) {
   return this.countDocuments({
     followingId: userId,
-    isActive: true
+    isActive: true,
+    status: 'accepted'
   });
 };
 
@@ -157,7 +216,8 @@ followSchema.statics.getFollowerCount = function(userId) {
 followSchema.statics.getFollowingCount = function(userId) {
   return this.countDocuments({
     followerId: userId,
-    isActive: true
+    isActive: true,
+    status: 'accepted'
   });
 };
 
@@ -187,7 +247,8 @@ followSchema.statics.getMutualFollowers = async function(userId1, userId2) {
 followSchema.statics.getFollowingIds = async function(userId) {
   const following = await this.find({
     followerId: userId,
-    isActive: true
+    isActive: true,
+    status: 'accepted'
   }).select('followingId');
   
   return following.map(f => f.followingId);

@@ -130,6 +130,7 @@ const createApp = async () => {
   apiRouter.use('/upload', uploadRoutes);
   apiRouter.use('/location', locationRoutes);
   apiRouter.use('/feedback', require('./routes/feedbackRoutes'));
+  apiRouter.use('/notifications', require('./routes/notificationRoutes'));
 
   app.use(apiBasePath, apiRouter);
 

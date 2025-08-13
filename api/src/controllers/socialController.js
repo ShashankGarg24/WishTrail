@@ -38,18 +38,16 @@ const followUser = async (req, res, next) => {
       });
     }
     
-    // Follow the user
+    // If target user is private, create follow request and notification
+    if (userToFollow.isPrivate) {
+      await Follow.requestFollow(followerId, userId);
+      await Notification.createFollowRequestNotification(followerId, userId);
+      return res.status(200).json({ success: true, message: 'Follow request sent' });
+    }
+
+    // Follow the user directly for public profile
     await Follow.followUser(followerId, userId);
-    
-    // Create notification for the followed user
-    // await Notification.createNotification({
-    //   userId: userId,
-    //   type: 'new_follower',
-    //   data: {
-    //     followerId: followerId,
-    //     followerName: req.user.name
-    //   }
-    // });
+    await Notification.createFollowNotification(followerId, userId);
     
     // Check if activity already exists
     const existingActivity = await Activity.findOne({
@@ -81,6 +79,67 @@ const followUser = async (req, res, next) => {
     });
   } catch (error) {
     next(error);
+  }
+};
+
+// @desc    List pending follow requests for current user
+// @route   GET /api/v1/social/follow/requests
+// @access  Private
+const getFollowRequests = async (req, res, next) => {
+  try {
+    const { page = 1, limit = 10 } = req.query;
+    const parsedPage = parseInt(page);
+    const parsedLimit = parseInt(limit);
+
+    const Follow = require('../models/Follow');
+    const requests = await Follow.find({ followingId: req.user.id, status: 'pending', isActive: false })
+      .sort({ createdAt: -1 })
+      .skip((parsedPage - 1) * parsedLimit)
+      .limit(parsedLimit)
+      .populate('followerId', 'name avatar username');
+    const total = await Follow.countDocuments({ followingId: req.user.id, status: 'pending', isActive: false });
+    res.status(200).json({ success: true, data: { requests, pagination: { page: parsedPage, limit: parsedLimit, total, pages: Math.ceil(total / parsedLimit) } } });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Accept a follow request
+// @route   POST /api/v1/social/follow/requests/:followerId/accept
+// @access  Private
+const acceptFollowRequest = async (req, res, next) => {
+  try {
+    const { followerId } = req.params;
+    const followingId = req.user.id;
+    const updated = await Follow.acceptFollowRequest(followerId, followingId);
+    const User = require('../models/User');
+    const Notification = require('../models/Notification');
+    const [currentUser, follower] = await Promise.all([
+      User.findById(followingId),
+      User.findById(followerId)
+    ]);
+    await Promise.all([
+      currentUser.increaseFollowerCount(),
+      follower.increaseFollowingCount(),
+      Notification.createFollowAcceptedNotification(followingId, followerId)
+    ]);
+    return res.status(200).json({ success: true, message: 'Follow request accepted', data: { follow: updated } });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Reject a follow request
+// @route   POST /api/v1/social/follow/requests/:followerId/reject
+// @access  Private
+const rejectFollowRequest = async (req, res, next) => {
+  try {
+    const { followerId } = req.params;
+    const followingId = req.user.id;
+    await Follow.rejectFollowRequest(followerId, followingId);
+    return res.status(200).json({ success: true, message: 'Follow request rejected' });
+  } catch (err) {
+    next(err);
   }
 };
 
@@ -383,5 +442,8 @@ module.exports = {
   getFollowStats,
   getActivityFeed,
   checkFollowingStatus,
-  getPopularUsers
-}; 
+  getPopularUsers,
+  getFollowRequests,
+  acceptFollowRequest,
+  rejectFollowRequest
+};

@@ -11,7 +11,8 @@ import {
   exploreAPI,
   handleApiError,
   setAuthToken,
-  locationAPI
+  locationAPI,
+  notificationsAPI
 } from '../services/api';
 
 const useApiStore = create(
@@ -45,10 +46,16 @@ const useApiStore = create(
       followedUsers: [],
       followers: [],
       following: [],
+      followRequests: [],
       
       // Activities
       activityFeed: [],
       recentActivities: [],
+
+      // Notifications
+      notifications: [],
+      notificationsPagination: null,
+      unreadNotifications: 0,
       
       // Leaderboard
       leaderboard: [],
@@ -685,6 +692,38 @@ const useApiStore = create(
         }
       },
 
+      getFollowRequests: async (params = {}) => {
+        try {
+          const response = await socialAPI.getFollowRequests(params);
+          const { requests } = response.data.data;
+          set({ followRequests: requests });
+          return { success: true, requests };
+        } catch (error) {
+          const errorMessage = handleApiError(error);
+          return { success: false, error: errorMessage };
+        }
+      },
+      acceptFollowRequest: async (followerId) => {
+        try {
+          await socialAPI.acceptFollowRequest(followerId);
+          set(state => ({ followRequests: state.followRequests.filter(r => r.followerId._id !== followerId) }));
+          return { success: true };
+        } catch (error) {
+          const errorMessage = handleApiError(error);
+          return { success: false, error: errorMessage };
+        }
+      },
+      rejectFollowRequest: async (followerId) => {
+        try {
+          await socialAPI.rejectFollowRequest(followerId);
+          set(state => ({ followRequests: state.followRequests.filter(r => r.followerId._id !== followerId) }));
+          return { success: true };
+        } catch (error) {
+          const errorMessage = handleApiError(error);
+          return { success: false, error: errorMessage };
+        }
+      },
+
       // Initialize following status for current user
       initializeFollowingStatus: async () => {
         try {
@@ -718,6 +757,48 @@ const useApiStore = create(
           set({ loading: false, error: errorMessage });
           return [];
         }
+      },
+
+      // =====================
+      // NOTIFICATIONS ACTIONS
+      // =====================
+      getNotifications: async (params = {}) => {
+        try {
+          set({ loading: true, error: null });
+          const response = await notificationsAPI.getNotifications(params);
+          const { notifications, pagination, unread } = response.data.data;
+          set({ notifications, notificationsPagination: pagination, unreadNotifications: unread, loading: false });
+          return { success: true, notifications, pagination, unread };
+        } catch (error) {
+          const errorMessage = handleApiError(error);
+          set({ loading: false, error: errorMessage });
+          return { success: false, error: errorMessage };
+        }
+      },
+      loadMoreNotifications: async () => {
+        try {
+          const { notificationsPagination } = get();
+          if (!notificationsPagination) return;
+          const nextPage = notificationsPagination.page + 1;
+          const response = await notificationsAPI.getNotifications({ page: nextPage, limit: notificationsPagination.limit });
+          const { notifications: more, pagination } = response.data.data;
+          set(state => ({ notifications: [...state.notifications, ...more], notificationsPagination: pagination }));
+        } catch {}
+      },
+      markNotificationRead: async (id) => {
+        try {
+          await notificationsAPI.markAsRead(id);
+          set(state => ({ 
+            notifications: state.notifications.map(n => n._id === id ? { ...n, isRead: true, readAt: new Date().toISOString() } : n),
+            unreadNotifications: Math.max((state.unreadNotifications || 0) - 1, 0)
+          }));
+        } catch {}
+      },
+      markAllNotificationsRead: async () => {
+        try {
+          await notificationsAPI.markAllAsRead();
+          set(state => ({ notifications: state.notifications.map(n => ({ ...n, isRead: true, readAt: new Date().toISOString() })), unreadNotifications: 0 }));
+        } catch {}
       },
       
       getRecentActivities: async (params = {}) => {

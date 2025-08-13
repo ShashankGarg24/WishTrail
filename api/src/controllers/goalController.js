@@ -4,6 +4,7 @@ const User = require('../models/User');
 const Activity = require('../models/Activity');
 const Like = require('../models/Like');
 const { createCanvas, loadImage, registerFont } = require('canvas');
+const Notification = require('../models/Notification');
 const path = require('path');
 const fs = require('fs');
 
@@ -386,6 +387,22 @@ const toggleGoalCompletion = async (req, res, next) => {
         }
       })
       await activity.save()
+
+      // Mention detection in completion note (if public)
+      try {
+        if (shareCompletionNote && completionNote) {
+          const mentionMatches = (completionNote.match(/@([a-zA-Z0-9._-]{3,20})/g) || []).map(m => m.slice(1).toLowerCase());
+          if (mentionMatches.length > 0) {
+            const User = require('../models/User');
+            const users = await User.find({ username: { $in: mentionMatches } }).select('_id').lean();
+            const mentionedIds = Array.from(new Set(users.map(u => String(u._id))));
+            await Promise.all(mentionedIds
+              .filter(uid => uid !== String(user._id))
+              .map(uid => Notification.createMentionNotification(user._id, uid, { activityId: activity._id }))
+            );
+          }
+        }
+      } catch (_) {}
     }
 
     return res.status(200).json({

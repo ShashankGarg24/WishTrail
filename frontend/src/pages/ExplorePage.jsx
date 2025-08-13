@@ -17,7 +17,9 @@ import {
   Calendar,
   Flame,
   UserCheck,
-  X
+  X,
+  Bell,
+  Check
 } from 'lucide-react';
 import useApiStore from '../store/apiStore';
 import SkeletonList from '../components/loader/SkeletonList'
@@ -59,7 +61,17 @@ const ExplorePage = () => {
     following,
     followedUsers,
     initializeFollowingStatus,
-    getUsers
+    getUsers,
+    // notifications store
+    getNotifications,
+    loadMoreNotifications,
+    notifications,
+    notificationsPagination,
+    unreadNotifications,
+    markNotificationRead,
+    markAllNotificationsRead,
+    acceptFollowRequest,
+    rejectFollowRequest
   } = useApiStore();
   // Infinite scroll state
   const ACTIVITIES_PAGE_SIZE = 10;
@@ -72,6 +84,7 @@ const ExplorePage = () => {
   const [loadingMoreDiscover, setLoadingMoreDiscover] = useState(false);
   const activitiesSentinelRef = useRef(null);
   const discoverSentinelRef = useRef(null);
+  const notificationsSentinelRef = useRef(null);
   const mergeUniqueById = (prev, next) => {
     const seen = new Set((prev || []).map((i) => i?._id).filter(Boolean));
     const merged = [...(prev || [])];
@@ -104,7 +117,7 @@ const ExplorePage = () => {
         const totalPages = activitiesData.pagination?.pages || 1;
         setActivitiesHasMore(1 < totalPages);
         // Do not mutate users list here; keep Discover users separate
-      } else {
+      } else if (activeTab === 'discover') {
         // First page for discover users
         setDiscoverPage(1);
         setDiscoverHasMore(true);
@@ -118,6 +131,8 @@ const ExplorePage = () => {
         } else {
           setUsers([]);
         }
+      } else if (activeTab === 'notifications') {
+        await getNotifications({ page: 1, limit: 20 });
       }
     } catch (error) {
       console.error('Error fetching initial data:', error);
@@ -133,10 +148,12 @@ const ExplorePage = () => {
       setActivities([]);
       setActivitiesPage(1);
       setActivitiesHasMore(true);
-    } else {
+    } else if (activeTab === 'discover') {
       setUsers([]);
       setDiscoverPage(1);
       setDiscoverHasMore(true);
+    } else if (activeTab === 'notifications') {
+      // nothing special
     }
     fetchInitialData();
   }, [activeTab]);
@@ -223,12 +240,18 @@ const ExplorePage = () => {
       if (entry.isIntersecting) {
         if (activeTab === 'Activities') loadMoreActivities();
         if (activeTab === 'discover') loadMoreDiscover();
+        if (activeTab === 'notifications') {
+          const hasMore = (notificationsPagination?.page || 1) < (notificationsPagination?.pages || 1);
+          if (hasMore) {
+            loadMoreNotifications();
+          }
+        }
       }
     }, { root: null, rootMargin: '300px', threshold: 0.1 });
-    const target = activeTab === 'Activities' ? activitiesSentinelRef.current : discoverSentinelRef.current;
+    const target = activeTab === 'Activities' ? activitiesSentinelRef.current : activeTab === 'discover' ? discoverSentinelRef.current : notificationsSentinelRef.current;
     if (target) observer.observe(target);
     return () => observer.disconnect();
-  }, [activeTab, isAuthenticated, loadMoreActivities, loadMoreDiscover, activities.length, users.length, activitiesHasMore, discoverHasMore, searchTerm]);
+  }, [activeTab, isAuthenticated, loadMoreActivities, loadMoreDiscover, activities.length, users.length, activitiesHasMore, discoverHasMore, searchTerm, notifications?.length, notificationsPagination?.page, notificationsPagination?.pages]);
 
   const handleFollow = async (userId) => {
     try {
@@ -543,6 +566,20 @@ const ExplorePage = () => {
               <Users className="h-5 w-5" />
               <span className="font-medium">Discover</span>
             </button>
+            <button
+              onClick={() => setActiveTab('notifications')}
+              className={`flex items-center space-x-2 px-6 py-3 rounded-xl transition-all duration-200 ${
+                activeTab === 'notifications'
+                  ? 'bg-blue-500 text-white shadow-lg'
+                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700/50'
+              }`}
+            >
+              <Bell className="h-5 w-5" />
+              <span className="font-medium">Notifications</span>
+              {unreadNotifications > 0 && (
+                <span className="ml-2 inline-flex items-center justify-center min-w-[1.25rem] h-5 text-xs px-1 rounded-full bg-red-500 text-white">{unreadNotifications}</span>
+              )}
+            </button>
           </div>
         </motion.div>
 
@@ -707,6 +744,93 @@ const ExplorePage = () => {
             </div>
           )}
 
+            {activeTab === 'notifications' && (
+              <div className="w-full">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
+                    <Bell className="h-6 w-6 mr-2 text-purple-500" />
+                    Notifications
+                  </h2>
+                  {unreadNotifications > 0 && (
+                    <button onClick={markAllNotificationsRead} className="text-sm text-blue-600 hover:underline">Mark all as read</button>
+                  )}
+                </div>
+
+                {loading ? (
+                  <SkeletonList count={6} grid={false} avatar lines={3} />
+                ) : (notifications || []).length > 0 ? (
+                  <>
+                    <div className="space-y-3">
+                      {(() => {
+                        const now = new Date();
+                        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                        const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                        const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+                        const groups = { today: [], week: [], month: [], older: [] };
+                        (notifications || []).forEach((n) => {
+                          const created = new Date(n.createdAt);
+                          if (created >= startOfToday) groups.today.push(n);
+                          else if (created >= sevenDaysAgo) groups.week.push(n);
+                          else if (created >= thirtyDaysAgo) groups.month.push(n);
+                          else groups.older.push(n);
+                        });
+
+                        const renderGroup = (title, items) => items.length > 0 && (
+                          <div className="space-y-2" key={title}>
+                            <div className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 px-1">{title}</div>
+                            {items.map((n) => {
+                              const actorName = n.data?.actorName || n.data?.followerName || n.data?.likerName || 'Someone';
+                              const actorAvatar = n.data?.actorAvatar || n.data?.followerAvatar || n.data?.likerAvatar;
+                              const isUnread = !n.isRead;
+                              const baseClass = isUnread ? 'bg-blue-50 dark:bg-gray-800/60 border-blue-200 dark:border-gray-700' : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800';
+                              return (
+                                <div key={n._id} className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${baseClass}`}>
+                                  <img src={actorAvatar || '/api/placeholder/40/40'} alt={actorName} className="w-10 h-10 rounded-full" />
+                                  <div className="flex-1 min-w-0">
+                                    <div className="text-sm text-gray-800 dark:text-gray-200">
+                                      <span className="font-medium">{actorName}</span> <span className="text-gray-600 dark:text-gray-400">{n.message}</span>
+                                    </div>
+                                    <div className="text-xs text-gray-500 dark:text-gray-400">{formatTimeAgo(n.createdAt)}</div>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    {n.type === 'follow_request' && n.data?.followerId && (
+                                      <>
+                                        <button onClick={async () => { await acceptFollowRequest(n.data.followerId); await markNotificationRead(n._id); }} className="px-3 py-1.5 rounded-lg bg-green-500 hover:bg-green-600 text-white text-xs inline-flex items-center gap-1"><Check className="w-4 h-4" />Accept</button>
+                                        <button onClick={async () => { await rejectFollowRequest(n.data.followerId); await markNotificationRead(n._id); }} className="px-3 py-1.5 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-xs inline-flex items-center gap-1"><X className="w-4 h-4" />Reject</button>
+                                      </>
+                                    )}
+                                    {isUnread && (
+                                      <button onClick={() => markNotificationRead(n._id)} className="text-xs text-blue-600 hover:underline">Mark read</button>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+
+                        return (
+                          <>
+                            {renderGroup('Today', groups.today)}
+                            {renderGroup('Last 7 days', groups.week)}
+                            {renderGroup('Last 30 days', groups.month)}
+                            {renderGroup('Older', groups.older)}
+                          </>
+                        );
+                      })()}
+                    </div>
+                    <div ref={notificationsSentinelRef} className="h-10"></div>
+                  </>
+                ) : (
+                  <div className="text-center py-12">
+                    <Bell className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-600 dark:text-gray-400 text-lg">No notifications yet.</p>
+                    <p className="text-gray-500 dark:text-gray-500 text-sm mt-2">When people interact with you, you'll see updates here.</p>
+                  </div>
+                )}
+              </div>
+            )}
             {activeTab === 'Activities' && (
               <div className="w-full">
                 <div className="flex items-center justify-between mb-6">

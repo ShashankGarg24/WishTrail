@@ -97,6 +97,9 @@ export const socialAPI = {
   getFollowStats: (params) => api.get('/social/stats', { params }),
   getActivityFeed: (params) => api.get('/social/feed', { params }),
   getPopularUsers: (params) => api.get('/social/popular', { params }),
+  getFollowRequests: (params) => api.get('/social/follow/requests', { params }),
+  acceptFollowRequest: (followerId) => api.post(`/social/follow/requests/${followerId}/accept`),
+  rejectFollowRequest: (followerId) => api.post(`/social/follow/requests/${followerId}/reject`),
 };
 
 // Activities API
@@ -129,6 +132,14 @@ export const exploreAPI = {
   getSuggestedUsers: (params) => api.get('/explore/users', { params }),
   getTrendingCategories: (params) => api.get('/explore/categories', { params }),
   searchExplore: (params) => api.get('/explore/search', { params }),
+};
+
+// Notifications API
+export const notificationsAPI = {
+  getNotifications: (params) => api.get('/notifications', { params }),
+  markAsRead: (id) => api.patch(`/notifications/${id}/read`),
+  markAllAsRead: () => api.patch('/notifications/read-all'),
+  deleteNotification: (id) => api.delete(`/notifications/${id}`)
 };
 
 // Location API

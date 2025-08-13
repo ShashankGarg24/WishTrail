@@ -24,7 +24,15 @@ const notificationSchema = new mongoose.Schema({
       'friend_created_goal',
       'goal_due_soon',
       'weekly_summary',
-      'monthly_summary'
+      'monthly_summary',
+      // Extended types for social interactions
+      'follow_request',
+      'follow_request_accepted',
+      'activity_comment',
+      'comment_reply',
+      'mention',
+      'activity_liked',
+      'comment_liked'
     ],
     index: true
   },
@@ -85,10 +93,23 @@ const notificationSchema = new mongoose.Schema({
     likerName: String,
     likerAvatar: String,
     
+    // Generic actor
+    actorId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    actorName: String,
+    actorAvatar: String,
+    
     // For activity notifications
     activityId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Activity'
+    },
+    // For comment notifications
+    commentId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'ActivityComment'
     },
     
     // Additional metadata
@@ -219,7 +240,10 @@ notificationSchema.statics.getUserNotifications = function(userId, options = {})
     .skip(skip)
     .populate('data.followerId', 'name avatar')
     .populate('data.goalId', 'title category')
-    .populate('data.likerId', 'name avatar');
+    .populate('data.likerId', 'name avatar')
+    .populate('data.actorId', 'name avatar')
+    .populate('data.activityId', 'type')
+    .populate('data.commentId');
 };
 
 // Static method to get unread notification count
@@ -299,6 +323,172 @@ notificationSchema.statics.createFollowNotification = async function(followerId,
       followerAvatar: follower.avatar
     }
   });
+};
+
+// Static method to create follow request notification
+notificationSchema.statics.createFollowRequestNotification = async function(followerId, followingId) {
+  const User = mongoose.model('User');
+  const follower = await User.findById(followerId).select('name avatar');
+  if (!follower) return;
+  return this.createNotification({
+    userId: followingId,
+    type: 'follow_request',
+    title: 'Follow Request',
+    message: `${follower.name} requested to follow you`,
+    data: {
+      followerId,
+      followerName: follower.name,
+      followerAvatar: follower.avatar,
+      actorId: followerId,
+      actorName: follower.name,
+      actorAvatar: follower.avatar
+    },
+    priority: 'high'
+  });
+};
+
+// Static method to notify follower that request accepted
+notificationSchema.statics.createFollowAcceptedNotification = async function(followingId, followerId) {
+  const User = mongoose.model('User');
+  const following = await User.findById(followingId).select('name avatar');
+  if (!following) return;
+  return this.createNotification({
+    userId: followerId,
+    type: 'follow_request_accepted',
+    title: 'Request Accepted',
+    message: `${following.name} accepted your follow request`,
+    data: {
+      actorId: followingId,
+      actorName: following.name,
+      actorAvatar: following.avatar
+    }
+  });
+};
+
+// Activity comment notification
+notificationSchema.statics.createActivityCommentNotification = async function(commenterId, activity) {
+  try {
+    if (!activity) return;
+    const User = mongoose.model('User');
+    const commenter = await User.findById(commenterId).select('name avatar');
+    if (!commenter) return;
+    if (String(activity.userId) === String(commenterId)) return; // no self notif
+    return this.createNotification({
+      userId: activity.userId,
+      type: 'activity_comment',
+      title: 'New comment',
+      message: `${commenter.name} commented on your activity`,
+      data: {
+        actorId: commenterId,
+        actorName: commenter.name,
+        actorAvatar: commenter.avatar,
+        activityId: activity._id
+      }
+    });
+  } catch (e) {
+    return null;
+  }
+};
+
+// Comment reply notification
+notificationSchema.statics.createCommentReplyNotification = async function(replierId, parentComment, activity) {
+  try {
+    if (!parentComment) return;
+    const User = mongoose.model('User');
+    const replier = await User.findById(replierId).select('name avatar');
+    if (!replier) return;
+    if (String(parentComment.userId) === String(replierId)) return;
+    return this.createNotification({
+      userId: parentComment.userId,
+      type: 'comment_reply',
+      title: 'New reply',
+      message: `${replier.name} replied to your comment`,
+      data: {
+        actorId: replierId,
+        actorName: replier.name,
+        actorAvatar: replier.avatar,
+        activityId: activity?._id,
+        commentId: parentComment._id
+      }
+    });
+  } catch (e) {
+    return null;
+  }
+};
+
+// Mention notification
+notificationSchema.statics.createMentionNotification = async function(mentionerId, mentionedUserId, context = {}) {
+  try {
+    if (!mentionedUserId || String(mentionerId) === String(mentionedUserId)) return;
+    const User = mongoose.model('User');
+    const mentioner = await User.findById(mentionerId).select('name avatar');
+    if (!mentioner) return;
+    return this.createNotification({
+      userId: mentionedUserId,
+      type: 'mention',
+      title: 'You were mentioned',
+      message: `${mentioner.name} mentioned you`,
+      data: {
+        actorId: mentionerId,
+        actorName: mentioner.name,
+        actorAvatar: mentioner.avatar,
+        activityId: context.activityId,
+        commentId: context.commentId
+      }
+    });
+  } catch (e) {
+    return null;
+  }
+};
+
+// Activity like notification
+notificationSchema.statics.createActivityLikeNotification = async function(likerId, activity) {
+  try {
+    if (!activity) return;
+    if (String(activity.userId) === String(likerId)) return;
+    const User = mongoose.model('User');
+    const liker = await User.findById(likerId).select('name avatar');
+    if (!liker) return;
+    return this.createNotification({
+      userId: activity.userId,
+      type: 'activity_liked',
+      title: 'Activity liked',
+      message: `${liker.name} liked your activity`,
+      data: {
+        actorId: likerId,
+        actorName: liker.name,
+        actorAvatar: liker.avatar,
+        activityId: activity._id
+      }
+    });
+  } catch (e) {
+    return null;
+  }
+};
+
+// Comment like notification
+notificationSchema.statics.createCommentLikeNotification = async function(likerId, comment) {
+  try {
+    if (!comment) return;
+    if (String(comment.userId) === String(likerId)) return;
+    const User = mongoose.model('User');
+    const liker = await User.findById(likerId).select('name avatar');
+    if (!liker) return;
+    return this.createNotification({
+      userId: comment.userId,
+      type: 'comment_liked',
+      title: 'Comment liked',
+      message: `${liker.name} liked your comment`,
+      data: {
+        actorId: likerId,
+        actorName: liker.name,
+        actorAvatar: liker.avatar,
+        commentId: comment._id
+      }
+    });
+  } catch (e) {
+    return null;
+  }
 };
 
 // Static method to create goal like notification

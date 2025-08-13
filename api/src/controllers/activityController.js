@@ -3,6 +3,7 @@ const Like = require('../models/Like');
 const Follow = require('../models/Follow');
 const cacheService = require('../services/cacheService');
 const ActivityComment = require('../models/ActivityComment');
+const Notification = require('../models/Notification');
 
 // @desc    Get recent activities (global or personal)
 // @route   GET /api/v1/activities/recent
@@ -176,6 +177,9 @@ const getUserActivities = async (req, res, next) => {
         Like.getLikeCount('activity', activity._id),
         Like.hasUserLiked(req.user.id, 'activity', activity._id)
       ]);
+      if (isLiked) {
+        await Notification.createActivityLikeNotification(req.user.id, activity);
+      }
       
       res.status(200).json({ success: true, data: { likeCount, isLiked } });
     } catch (error) {
@@ -459,7 +463,24 @@ const addActivityComment = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Activity not found' });
     }
     const comment = await ActivityComment.create({ activityId: id, userId: req.user.id, text: text.trim() });
-    const populated = await ActivityComment.findById(comment._id).populate('userId', 'name avatar').lean();
+    const [populated] = await Promise.all([
+      ActivityComment.findById(comment._id).populate('userId', 'name avatar').lean(),
+      Notification.createActivityCommentNotification(req.user.id, activity)
+    ]);
+
+    // Mention detection in comment text (e.g., @username)
+    try {
+      const mentionMatches = (text.match(/@([a-zA-Z0-9._-]{3,20})/g) || []).map(m => m.slice(1).toLowerCase());
+      if (mentionMatches.length > 0) {
+        const User = require('../models/User');
+        const users = await User.find({ username: { $in: mentionMatches } }).select('_id').lean();
+        const mentionedIds = Array.from(new Set(users.map(u => String(u._id))));
+        await Promise.all(mentionedIds
+          .filter(uid => uid !== String(req.user.id) && uid !== String(activity.userId))
+          .map(uid => Notification.createMentionNotification(req.user.id, uid, { activityId: id, commentId: comment._id }))
+        );
+      }
+    } catch (_) {}
     res.status(201).json({ success: true, data: { comment: populated } });
   } catch (err) {
     next(err);
@@ -486,6 +507,23 @@ const replyToActivityComment = async (req, res, next) => {
     }
     const reply = await ActivityComment.create({ activityId: id, userId: req.user.id, text: text.trim(), parentCommentId: commentId, mentionUserId: mentionUserId || null });
     const populated = await ActivityComment.findById(reply._id).populate('userId', 'name avatar').lean();
+    await Notification.createCommentReplyNotification(req.user.id, parent, activity);
+    if (mentionUserId) {
+      await Notification.createMentionNotification(req.user.id, mentionUserId, { activityId: id, commentId });
+    }
+    // Mention detection in reply text as well
+    try {
+      const mentionMatches = (text.match(/@([a-zA-Z0-9._-]{3,20})/g) || []).map(m => m.slice(1).toLowerCase());
+      if (mentionMatches.length > 0) {
+        const User = require('../models/User');
+        const users = await User.find({ username: { $in: mentionMatches } }).select('_id').lean();
+        const mentionedIds = Array.from(new Set(users.map(u => String(u._id))));
+        await Promise.all(mentionedIds
+          .filter(uid => uid !== String(req.user.id) && uid !== String(parent.userId))
+          .map(uid => Notification.createMentionNotification(req.user.id, uid, { activityId: id, commentId: reply._id }))
+        );
+      }
+    } catch (_) {}
     res.status(201).json({ success: true, data: { reply: populated } });
   } catch (err) {
     next(err);
@@ -524,6 +562,9 @@ const toggleCommentLike = async (req, res, next) => {
       Like.getLikeCount('activity_comment', commentId),
       Like.hasUserLiked(req.user.id, 'activity_comment', commentId)
     ]);
+    if (isLiked) {
+      await Notification.createCommentLikeNotification(req.user.id, comment);
+    }
     res.status(200).json({ success: true, data: { likeCount, isLiked } });
   } catch (err) {
     next(err);

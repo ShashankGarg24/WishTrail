@@ -1,12 +1,12 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Moon, Sun, Menu, X, Star, User, BarChart3, LogOut, Settings } from 'lucide-react'
+import { Moon, Sun, Menu, X, Star, User, BarChart3, LogOut, Settings, Bell } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
 import useApiStore from '../store/apiStore'
 import SettingsModal from './SettingsModal'
 
 const Header = () => {
-  const { isDarkMode, toggleTheme, isAuthenticated, logout } = useApiStore()
+  const { isDarkMode, toggleTheme, isAuthenticated, logout, unreadNotifications, getNotifications } = useApiStore()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const location = useLocation()
@@ -53,6 +53,13 @@ const Header = () => {
     navigate('/')
   }
 
+  useEffect(() => {
+    if (isAuthenticated) {
+      // Prefetch first page to get unread count
+      getNotifications({ page: 1, limit: 1 }).catch(() => {})
+    }
+  }, [isAuthenticated, getNotifications])
+
   return (
     <>
       <header className="fixed top-0 left-0 right-0 z-50 glass-card border-b border-white/10 theme-transition">
@@ -95,6 +102,21 @@ const Header = () => {
             </nav>
           {/* Right side */}
             <div className="flex items-center space-x-4">
+              {/* Notifications */}
+              {isAuthenticated && (
+                <button
+                  onClick={() => navigate('/explore')}
+                  className="relative p-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 dark:border-white/10 transition-all duration-300"
+                  aria-label="Notifications"
+                >
+                  <Bell className="h-5 w-5" />
+                  {unreadNotifications > 0 && (
+                    <span className="absolute -top-1 -right-1 inline-flex items-center justify-center min-w-[1.1rem] h-5 px-1 text-[10px] font-semibold rounded-full bg-red-500 text-white">
+                      {unreadNotifications > 99 ? '99+' : unreadNotifications}
+                    </span>
+                  )}
+                </button>
+              )}
               {/* Theme Toggle */}
               <motion.button
                 whileHover={{ scale: 1.05 }}
