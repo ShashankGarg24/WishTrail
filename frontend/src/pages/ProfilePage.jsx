@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from 'react-router-dom';
-import { Calendar, Target, TrendingUp, Star, Edit2, ExternalLink, Youtube, Instagram, MapPin, Globe, Award, Trophy, Heart, Clock, CheckCircle, Circle, User, Users, UserPlus, UserCheck, ArrowLeft, Lock } from "lucide-react";
+import { Calendar, Target, TrendingUp, Star, Edit2, ExternalLink, Youtube, Instagram, MapPin, Globe, Award, Trophy, Heart, Clock, CheckCircle, Circle, User, Users, UserPlus, UserCheck, ArrowLeft, Lock, ShieldAlert, Slash } from "lucide-react";
 import { motion } from "framer-motion";
 import useApiStore from "../store/apiStore";
 import ProfileEditModal from "../components/ProfileEditModal";
@@ -27,11 +27,15 @@ const ProfilePage = () => {
     getUserGoals,
     followUser,
     unfollowUser,
+    report,
+    blockUser,
   } = useApiStore();
 
   // Determine if viewing own profile or another user's profile
   const isOwnProfile = !userIdParam && !usernameParam || (currentUser && (currentUser.username === usernameParam || currentUser._id === userIdParam));
   const displayUser = isOwnProfile ? currentUser : profileUser;
+
+  const [isRequested, setIsRequested] = useState(false);
 
   const isProfileAccessible = () => {
     if (isOwnProfile) return true;
@@ -78,6 +82,7 @@ const ProfilePage = () => {
         setProfileUser(userResult.user);
         setUserStats(userResult.stats);
         setIsFollowing(userResult.isFollowing);
+        setIsRequested(!!userResult.isRequested);
 
         // Fetch user goals if profile is accessible
         if (userResult.user && (!userResult.user.isPrivate || userResult.isFollowing)) {
@@ -99,7 +104,11 @@ const ProfilePage = () => {
     try {
       const result = await followUser(profileUser?._id);
       if (result.success) {
-        setIsFollowing(true);
+        if (profileUser?.isPrivate || result.isRequested) {
+          setIsRequested(true);
+        } else {
+          setIsFollowing(true);
+        }
         fetchUserProfile();
       }
     } catch (error) {
@@ -275,7 +284,7 @@ const ProfilePage = () => {
                     ) : (
                       isAuthenticated && (
                         <div className="flex space-x-3">
-                          {isFollowing ? (
+                           {isFollowing ? (
                             <button
                               onClick={handleUnfollow}
                               className="flex items-center space-x-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-lg transition-colors font-medium border border-gray-300 dark:border-gray-600"
@@ -283,15 +292,22 @@ const ProfilePage = () => {
                               <UserCheck className="h-4 w-4" />
                               <span>Following</span>
                             </button>
-                          ) : (
-                            <button
-                              onClick={handleFollow}
-                              className="flex items-center space-x-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors font-medium"
-                            >
-                              <UserPlus className="h-4 w-4" />
-                              <span>Follow</span>
-                            </button>
-                          )}
+                           ) : (
+                            isRequested ? (
+                              <button disabled className="flex items-center space-x-2 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg cursor-not-allowed">
+                                <UserPlus className="h-4 w-4" />
+                                <span>Requested</span>
+                              </button>
+                            ) : (
+                              <button
+                                onClick={handleFollow}
+                                className="flex items-center space-x-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors font-medium"
+                              >
+                                <UserPlus className="h-4 w-4" />
+                                <span>Follow</span>
+                              </button>
+                            )
+                           )}
                         </div>
                       )
                     )}
@@ -325,6 +341,35 @@ const ProfilePage = () => {
                   <div className="text-gray-600 dark:text-gray-400 text-sm">Following</div>
                 </div>
               </div>
+
+              {/* Report / Block */}
+              {!isOwnProfile && (
+                <div className="flex items-center gap-3 mt-2">
+                  <button
+                    onClick={async () => {
+                      const reason = prompt('Report reason (spam, harassment, nudity, hate, violence, self-harm, misinformation, other):', 'spam');
+                      if (!reason) return;
+                      const description = prompt('Tell us more (optional):', '');
+                      await report({ targetType: 'user', targetId: profileUser._id, reason, description });
+                      alert('Thanks for your report. We will review it.');
+                    }}
+                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800 text-sm"
+                  >
+                    <ShieldAlert className="w-4 h-4" /> Report
+                  </button>
+                  <button
+                    onClick={async () => {
+                      if (!confirm(`Block @${profileUser.username}? They won't be able to interact with you.`)) return;
+                      await blockUser(profileUser._id);
+                      alert('User blocked.');
+                      navigate('/explore');
+                    }}
+                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-600 text-sm"
+                  >
+                    <Slash className="w-4 h-4" /> Block
+                  </button>
+                </div>
+              )}
 
               {/* Bio */}
               {displayUser.bio && (

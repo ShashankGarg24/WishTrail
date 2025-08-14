@@ -84,6 +84,12 @@ export const usersAPI = {
   getUserActivities: (id, params) => api.get(`/users/${id}/activities`, { params }),
   updatePrivacy: (data) => api.put('/users/privacy', data),
 };
+// Moderation API
+export const moderationAPI = {
+  report: (payload) => api.post('/moderation/report', payload),
+  blockUser: (userId) => api.post(`/moderation/block/${userId}`),
+  unblockUser: (userId) => api.delete(`/moderation/block/${userId}`)
+};
 
 // Social API
 export const socialAPI = {

@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, MessageCircle } from 'lucide-react'
+import { X, MessageCircle, ShieldAlert } from 'lucide-react'
 import useApiStore from '../store/apiStore'
 import { activitiesAPI } from '../services/api'
 
 const ActivityDetailModal = ({ isOpen, onClose, activity, onOpenComments }) => {
-  const { user } = useApiStore()
+  const { user, report } = useApiStore()
 
   const sharedNote = activity?.data?.metadata?.completionNote || activity?.data?.completionNote || ''
   const sharedImage = activity?.data?.metadata?.completionAttachmentUrl || activity?.data?.completionAttachmentUrl || ''
@@ -65,6 +65,19 @@ const ActivityDetailModal = ({ isOpen, onClose, activity, onOpenComments }) => {
               <span className="text-xs text-gray-500">❤ {activity?.likeCount ?? 0}</span>
               <button onClick={() => onOpenComments && onOpenComments(activity)} className="text-xs text-gray-500 hover:text-blue-600 flex items-center gap-1">
                 <MessageCircle className="h-4 w-4" /> {totalComments}
+              </button>
+              <button
+                onClick={async () => {
+                  const reason = prompt('Report reason (spam, harassment, nudity, hate, violence, self-harm, misinformation, other):', 'spam')
+                  if (!reason) return
+                  const description = prompt('Tell us more (optional):', '')
+                  await report({ targetType: 'activity', targetId: activity?._id, reason, description })
+                  alert('Thanks for your report. We will review it.')
+                }}
+                className="text-xs text-red-600 hover:text-red-700 flex items-center gap-1"
+                title="Report"
+              >
+                <ShieldAlert className="h-4 w-4" />
               </button>
               <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"><X className="h-5 w-5" /></button>
             </div>

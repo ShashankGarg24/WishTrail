@@ -697,13 +697,21 @@ const ExplorePage = () => {
                           <div className="flex space-x-2">
                             {userItem._id !== user?._id && (
                               <>
-                                {userItem.isFollowing ? (
+                                 {userItem.isFollowing ? (
                                   <button
                                     onClick={() => handleUnfollow(userItem._id)}
                                     className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-700 dark:text-white rounded-xl transition-colors duration-200 text-sm font-medium flex items-center justify-center space-x-1"
                                   >
                                     <UserCheck className="h-4 w-4" />
                                     <span>Following</span>
+                                  </button>
+                                ) : userItem.isRequested ? (
+                                  <button
+                                    disabled
+                                    className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-white rounded-xl transition-colors duration-200 text-sm font-medium flex items-center justify-center space-x-1"
+                                  >
+                                    <UserPlus className="h-4 w-4" />
+                                    <span>Requested</span>
                                   </button>
                                 ) : (
                                   <button

@@ -49,9 +49,16 @@ class UserService {
       usersWithFollowingStatus = await Promise.all(
         users.map(async (user) => {
           const isFollowing = await Follow.isFollowing(requestingUserId, user._id);
+          // determine request status
+          let isRequested = false;
+          if (!isFollowing) {
+            const pending = await require('../models/Follow').findOne({ followerId: requestingUserId, followingId: user._id, status: 'pending', isActive: false });
+            isRequested = !!pending;
+          }
           return {
             ...user,
-            isFollowing
+            isFollowing,
+            isRequested
           };
         })
       );
@@ -87,7 +94,13 @@ class UserService {
     
     const userResponse = user.toObject();   
     const userStats = await this.getUserStats(user);
-    return { user: userResponse, stats: userStats, isFollowing };
+    // Also expose pending request
+    let isRequested = false;
+    if (requestingUserId && !isFollowing && String(requestingUserId) !== String(userId)) {
+      const pending = await require('../models/Follow').findOne({ followerId: requestingUserId, followingId: userId, status: 'pending', isActive: false });
+      isRequested = !!pending;
+    }
+    return { user: userResponse, stats: userStats, isFollowing, isRequested };
   }
   
   /**
@@ -105,13 +118,18 @@ class UserService {
     }
 
     let isFollowing = false;
+    let isRequested = false;
     if (requestingUserId && user._id.toString() !== requestingUserId.toString()) {
       isFollowing = await Follow.isFollowing(requestingUserId, user._id);
+      if (!isFollowing) {
+        const pending = await require('../models/Follow').findOne({ followerId: requestingUserId, followingId: user._id, status: 'pending', isActive: false });
+        isRequested = !!pending;
+      }
     }
 
     const userResponse = user.toObject();
     const userStats = await this.getUserStats(user);
-    return { user: userResponse, stats: userStats, isFollowing };
+    return { user: userResponse, stats: userStats, isFollowing, isRequested };
   }
   
   /**

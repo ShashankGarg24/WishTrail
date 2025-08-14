@@ -12,6 +12,7 @@ import {
   handleApiError,
   setAuthToken,
   locationAPI,
+  moderationAPI,
   notificationsAPI
 } from '../services/api';
 
@@ -46,6 +47,7 @@ const useApiStore = create(
       followedUsers: [],
       followers: [],
       following: [],
+      blockedUsers: [],
       followRequests: [],
       
       // Activities
@@ -564,9 +566,9 @@ const useApiStore = create(
         try {
           set({ loading: true, error: null });
           const response = await usersAPI.getUser(id);
-          const {user, stats, isFollowing} = response.data.data;
+          const {user, stats, isFollowing, isRequested} = response.data.data;
           set({ loading: false });
-          return { success: true, user, stats, isFollowing};
+          return { success: true, user, stats, isFollowing, isRequested };
         } catch (error) {
           const errorMessage = handleApiError(error);
           set({ loading: false, error: errorMessage });
@@ -609,6 +611,7 @@ const useApiStore = create(
       followUser: async (userId) => {
         try {
           const response = await socialAPI.followUser(userId);
+          const message = response.data?.message || '';
           
           // Update local state
           set(state => ({
@@ -630,6 +633,38 @@ const useApiStore = create(
             )
           }));
           
+          // If follow request sent, reflect requested status
+          const isRequested = /request/i.test(message);
+          return { success: true, isRequested };
+        } catch (error) {
+          const errorMessage = handleApiError(error);
+          return { success: false, error: errorMessage };
+        }
+      },
+      // Moderation actions
+      report: async ({ targetType, targetId, reason, description }) => {
+        try {
+          const res = await moderationAPI.report({ targetType, targetId, reason, description });
+          return { success: true, data: res.data?.data };
+        } catch (error) {
+          const errorMessage = handleApiError(error);
+          return { success: false, error: errorMessage };
+        }
+      },
+      blockUser: async (userId) => {
+        try {
+          await moderationAPI.blockUser(userId);
+          set(state => ({ blockedUsers: [...state.blockedUsers, userId] }));
+          return { success: true };
+        } catch (error) {
+          const errorMessage = handleApiError(error);
+          return { success: false, error: errorMessage };
+        }
+      },
+      unblockUser: async (userId) => {
+        try {
+          await moderationAPI.unblockUser(userId);
+          set(state => ({ blockedUsers: state.blockedUsers.filter(id => id !== userId) }));
           return { success: true };
         } catch (error) {
           const errorMessage = handleApiError(error);
