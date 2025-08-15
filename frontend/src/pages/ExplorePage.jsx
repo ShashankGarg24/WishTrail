@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   Search, 
   Users, 
@@ -31,7 +31,9 @@ import BlockModal from '../components/BlockModal'
 
 const ExplorePage = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('Activities');
+  const [searchParams] = useSearchParams();
+  const initialTab = searchParams.get('tab') || 'Activities';
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
   const [users, setUsers] = useState([]);

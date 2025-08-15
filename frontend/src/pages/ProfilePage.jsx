@@ -190,7 +190,7 @@ const ProfilePage = () => {
           <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">User Not Found</h1>
           <p className="text-gray-600 dark:text-gray-400 mb-8">{error || 'The user you are looking for does not exist.'}</p>
           <button
-            onClick={() => navigate('/explore')}
+            onClick={() => navigate('/explore?tab=discover')}
             className="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl transition-colors duration-200 font-medium"
           >
             Back to Explore
