@@ -298,7 +298,7 @@ const InspirationPage = () => {
                         transition={{ duration: 0.5, delay: 0.1 * Math.min(index, 5) }}
                         className="flex items-center space-x-4 p-4 bg-gray-100 dark:bg-gray-700/30 rounded-xl border border-gray-200 dark:border-gray-600/30 hover:bg-gray-200 dark:hover:bg-gray-700/50 transition-all duration-200"
                       >
-                        <div className="relative">
+                        <div className="relative flex-shrink-0">
                           <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-lg ${
                             rank === 1 ? 'bg-yellow-500' : 
                             rank === 2 ? 'bg-gray-400' : 
@@ -314,14 +314,14 @@ const InspirationPage = () => {
                         <img
                           src={user.avatar || '/api/placeholder/48/48'}
                           alt={user.name}
-                          className="w-12 h-12 rounded-full border-2 border-gray-300 dark:border-gray-500 cursor-pointer"
+                          className="w-12 h-12 rounded-full border-2 border-gray-300 dark:border-gray-500 cursor-pointer flex-shrink-0"
                           onClick={() => navigate(`/profile/${user?._id}`)}
                         />
                         
-                        <div className="flex-1">
+                        <div className="flex-1 min-w-0">
                           <div className="flex items-center space-x-2 mb-1">
                             <span 
-                            className="font-semibold text-gray-900 dark:text-white cursor-pointer hover:text-blue-500"
+                            className="font-semibold text-gray-900 dark:text-white cursor-pointer hover:text-blue-500 truncate"
                             onClick={() => navigate(`/profile/${user?._id}`)}
                             >
                               {user.name}

@@ -567,10 +567,10 @@ const ExplorePage = () => {
           transition={{ duration: 0.5, delay: 0.2 }}
           className="flex justify-center mb-8"
         >
-          <div className="bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-2 border border-gray-200 dark:border-gray-700/50 flex shadow-lg">
+          <div className="bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-2 border border-gray-200 dark:border-gray-700/50 flex shadow-lg overflow-x-auto whitespace-nowrap gap-2">
             <button
               onClick={() => setActiveTab('Activities')}
-              className={`flex items-center space-x-2 px-6 py-3 rounded-xl transition-all duration-200 ${
+              className={`flex items-center space-x-2 px-6 py-3 rounded-xl transition-all duration-200 shrink-0 ${
                 activeTab === 'Activities'
                   ? 'bg-blue-500 text-white shadow-lg'
                   : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700/50'
@@ -581,7 +581,7 @@ const ExplorePage = () => {
             </button>
             <button
               onClick={() => setActiveTab('discover')}
-              className={`flex items-center space-x-2 px-6 py-3 rounded-xl transition-all duration-200 ${
+              className={`flex items-center space-x-2 px-6 py-3 rounded-xl transition-all duration-200 shrink-0 ${
                 activeTab === 'discover'
                   ? 'bg-blue-500 text-white shadow-lg'
                   : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700/50'
@@ -592,7 +592,7 @@ const ExplorePage = () => {
             </button>
             <button
               onClick={() => setActiveTab('notifications')}
-              className={`flex items-center space-x-2 px-6 py-3 rounded-xl transition-all duration-200 ${
+              className={`flex items-center space-x-2 px-6 py-3 rounded-xl transition-all duration-200 shrink-0 ${
                 activeTab === 'notifications'
                   ? 'bg-blue-500 text-white shadow-lg'
                   : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700/50'
