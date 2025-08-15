@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, MessageCircle, ShieldAlert } from 'lucide-react'
+import { X, MessageCircle } from 'lucide-react'
 import useApiStore from '../store/apiStore'
 import { activitiesAPI } from '../services/api'
 
-const ActivityDetailModal = ({ isOpen, onClose, activity, onOpenComments }) => {
-  const { user, report } = useApiStore()
+const ActivityDetailModal = ({ isOpen, onClose, activity, onOpenComments, onReportActivity, onUnfollowUser }) => {
+  const { user } = useApiStore()
+  const [menuOpen, setMenuOpen] = useState(false)
 
   const sharedNote = activity?.data?.metadata?.completionNote || activity?.data?.completionNote || ''
   const sharedImage = activity?.data?.metadata?.completionAttachmentUrl || activity?.data?.completionAttachmentUrl || ''
@@ -66,19 +67,23 @@ const ActivityDetailModal = ({ isOpen, onClose, activity, onOpenComments }) => {
               <button onClick={() => onOpenComments && onOpenComments(activity)} className="text-xs text-gray-500 hover:text-blue-600 flex items-center gap-1">
                 <MessageCircle className="h-4 w-4" /> {totalComments}
               </button>
-              <button
-                onClick={async () => {
-                  const reason = prompt('Report reason (spam, harassment, nudity, hate, violence, self-harm, misinformation, other):', 'spam')
-                  if (!reason) return
-                  const description = prompt('Tell us more (optional):', '')
-                  await report({ targetType: 'activity', targetId: activity?._id, reason, description })
-                  alert('Thanks for your report. We will review it.')
-                }}
-                className="text-xs text-red-600 hover:text-red-700 flex items-center gap-1"
-                title="Report"
-              >
-                <ShieldAlert className="h-4 w-4" />
-              </button>
+              <div className="relative">
+                <button onClick={() => setMenuOpen((v) => !v)} className="px-2 py-1 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800">⋯</button>
+                {menuOpen && (
+                  <div className="absolute right-0 mt-2 w-44 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-10">
+                    <button
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
+                      onClick={() => { setMenuOpen(false); onReportActivity && onReportActivity(activity); }}
+                    >Report</button>
+                    {activity?.user?._id && (
+                      <button
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
+                        onClick={() => { setMenuOpen(false); onUnfollowUser && onUnfollowUser(activity.user._id); }}
+                      >Unfollow user</button>
+                    )}
+                  </div>
+                )}
+              </div>
               <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"><X className="h-5 w-5" /></button>
             </div>
           </div>
