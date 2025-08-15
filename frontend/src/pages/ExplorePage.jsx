@@ -22,9 +22,12 @@ import {
   Check
 } from 'lucide-react';
 import useApiStore from '../store/apiStore';
+import { activitiesAPI } from '../services/api';
 import SkeletonList from '../components/loader/SkeletonList'
 import ActivityDetailModal from '../components/ActivityDetailModal'
 import ActivityCommentsModal from '../components/ActivityCommentsModal'
+import ReportModal from '../components/ReportModal'
+import BlockModal from '../components/BlockModal'
 
 const ExplorePage = () => {
   const navigate = useNavigate();
@@ -47,6 +50,10 @@ const ExplorePage = () => {
   const [commentsActivity, setCommentsActivity] = useState(null);
   const openComments = (act) => { setCommentsActivity(act); setCommentsOpen(true); };
   const closeComments = () => { setCommentsOpen(false); setCommentsActivity(null); };
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportTarget, setReportTarget] = useState({ type: null, id: null, label: '' });
+  const [blockOpen, setBlockOpen] = useState(false);
+  const [blockUserId, setBlockUserId] = useState(null);
 
   const { 
     isAuthenticated, 
@@ -71,7 +78,10 @@ const ExplorePage = () => {
     markNotificationRead,
     markAllNotificationsRead,
     acceptFollowRequest,
-    rejectFollowRequest
+    rejectFollowRequest,
+    report,
+    blockUser,
+    cancelFollowRequest
   } = useApiStore();
   // Infinite scroll state
   const ACTIVITIES_PAGE_SIZE = 10;
@@ -429,6 +439,18 @@ const ExplorePage = () => {
     }
   };
 
+  const openNotificationActivity = async (activityId) => {
+    if (!activityId) return;
+    try {
+      const resp = await activitiesAPI.getActivity(activityId);
+      const act = resp?.data?.data?.activity;
+      if (act) {
+        setDetailActivity(act);
+        setDetailOpen(true);
+      }
+    } catch (e) {}
+  };
+
   const UserCard = ({ user, showFollowButton = true }) => (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -643,7 +665,7 @@ const ExplorePage = () => {
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ duration: 0.5, delay: 0.1 * index }}
-                          className="bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 hover:border-gray-300 dark:hover:border-gray-600/50 transition-all duration-200 shadow-lg hover:shadow-xl"
+                          className="bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 hover:border-gray-300 dark:hover:border-gray-600/50 transition-all duration-200 shadow-lg hover:shadow-xl relative"
                         >
                           <div className="flex items-center space-x-4 mb-4">
                             <img
@@ -707,7 +729,7 @@ const ExplorePage = () => {
                                   </button>
                                 ) : userItem.isRequested ? (
                                   <button
-                                    disabled
+                                    onClick={async () => { await cancelFollowRequest(userItem._id); setUsers(prev => prev.map(u => u._id === userItem._id ? { ...u, isRequested: false } : u)); }}
                                     className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-white rounded-xl transition-colors duration-200 text-sm font-medium flex items-center justify-center space-x-1"
                                   >
                                     <UserPlus className="h-4 w-4" />
@@ -724,6 +746,22 @@ const ExplorePage = () => {
                                 )}
                               </>
                             )}
+                          </div>
+                          {/* 3-dots for user card */}
+                          <div className="absolute right-2 top-2">
+                            <div className="relative">
+                              <button className="px-2 py-1 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800">⋯</button>
+                              <div className="hidden absolute right-0 mt-2 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-10 group-hover:block">
+                                <button
+                                  className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
+                                  onClick={() => { setReportTarget({ type: 'user', id: userItem._id, label: 'user' }); setReportOpen(true); }}
+                                >Report</button>
+                                <button
+                                  className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
+                                  onClick={() => { setBlockUserId(userItem._id); setBlockOpen(true); }}
+                                >Block</button>
+                              </div>
+                            </div>
                           </div>
                         </motion.div>
                       ))}
@@ -794,10 +832,25 @@ const ExplorePage = () => {
                               const baseClass = isUnread ? 'bg-blue-50 dark:bg-gray-800/60 border-blue-200 dark:border-gray-700' : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800';
                               return (
                                 <div key={n._id} className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${baseClass}`}>
-                                  <img src={actorAvatar || '/api/placeholder/40/40'} alt={actorName} className="w-10 h-10 rounded-full" />
+                                  <img
+                                    src={actorAvatar || '/api/placeholder/40/40'}
+                                    alt={actorName}
+                                    className="w-10 h-10 rounded-full cursor-pointer"
+                                    onClick={() => {
+                                      if (n.data?.actorId) navigate(`/profile/@${n.data?.actorId?.username || ''}`);
+                                    }}
+                                  />
                                   <div className="flex-1 min-w-0">
                                     <div className="text-sm text-gray-800 dark:text-gray-200">
-                                      <span className="font-medium">{actorName}</span> <span className="text-gray-600 dark:text-gray-400">{n.message}</span>
+                                      <button
+                                        className="font-medium hover:underline"
+                                        onClick={() => {
+                                          if (n.data?.actorId && n.data?.actorId?._id) navigate(`/profile/${n.data.actorId._id}`)
+                                        }}
+                                      >
+                                        {actorName}
+                                      </button>
+                                      <span className="text-gray-600 dark:text-gray-400"> {n.message}</span>
                                     </div>
                                     <div className="text-xs text-gray-500 dark:text-gray-400">{formatTimeAgo(n.createdAt)}</div>
                                   </div>
@@ -807,6 +860,18 @@ const ExplorePage = () => {
                                         <button onClick={async () => { await acceptFollowRequest(n.data.followerId); await markNotificationRead(n._id); }} className="px-3 py-1.5 rounded-lg bg-green-500 hover:bg-green-600 text-white text-xs inline-flex items-center gap-1"><Check className="w-4 h-4" />Accept</button>
                                         <button onClick={async () => { await rejectFollowRequest(n.data.followerId); await markNotificationRead(n._id); }} className="px-3 py-1.5 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-xs inline-flex items-center gap-1"><X className="w-4 h-4" />Reject</button>
                                       </>
+                                    )}
+                                    {n.type === 'follow_request_accepted' && n.data?.actorId && (
+                                      <button
+                                        onClick={async () => { await followUser(n.data.actorId); await markNotificationRead(n._id); }}
+                                        className="px-3 py-1.5 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-xs"
+                                      >Follow back</button>
+                                    )}
+                                    {(n.data?.activityId) && (
+                                      <button
+                                        onClick={() => openNotificationActivity(n.data.activityId)}
+                                        className="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-xs"
+                                      >View</button>
                                     )}
                                     {isUnread && (
                                       <button onClick={() => markNotificationRead(n._id)} className="text-xs text-blue-600 hover:underline">Mark read</button>
@@ -859,9 +924,9 @@ const ExplorePage = () => {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, delay: 0.1 * index }}
-                        className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden"
+                        className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden relative"
                       >
-                        {/* Header */}
+                         {/* Header */}
                         <div className="flex items-center gap-3 px-4 pt-4 pb-3">
                           <img
                             src={activity?.user?.avatar || activity?.avatar || '/api/placeholder/48/48'}
@@ -975,6 +1040,31 @@ const ExplorePage = () => {
                             </button>
                            </div>
                          </div>
+
+                         {/* 3-dots menu for post */}
+                         <div className="absolute right-2 top-2">
+                           <div className="relative">
+                             <button className="px-2 py-1 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800">⋯</button>
+                             <div className="hidden absolute right-0 mt-2 w-44 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-10 group-hover:block">
+                               <button
+                                 className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
+                                 onClick={() => { setReportTarget({ type: 'activity', id: activity._id, label: 'activity' }); setReportOpen(true); }}
+                               >Report</button>
+                               {activity.user?._id && (
+                                 <button
+                                   className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
+                                   onClick={async () => { try { await unfollowUser(activity.user._id); } catch {} }}
+                                 >Unfollow user</button>
+                               )}
+                               {activity.user?._id && (
+                                 <button
+                                   className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
+                                   onClick={() => { setBlockUserId(activity.user._id); setBlockOpen(true); }}
+                                 >Block user</button>
+                               )}
+                             </div>
+                           </div>
+                         </div>
                        </motion.div>
                     ))}
                   </div>
@@ -1010,6 +1100,18 @@ const ExplorePage = () => {
 
         <ActivityDetailModal isOpen={detailOpen} onClose={closeDetail} activity={detailActivity} onOpenComments={openComments} />
         <ActivityCommentsModal isOpen={commentsOpen} onClose={closeComments} activity={commentsActivity} />
+        <ReportModal
+          isOpen={reportOpen}
+          onClose={() => setReportOpen(false)}
+          targetLabel={reportTarget.label}
+          onSubmit={async ({ reason, description }) => { await report({ targetType: reportTarget.type, targetId: reportTarget.id, reason, description }); }}
+        />
+        <BlockModal
+          isOpen={blockOpen}
+          onClose={() => setBlockOpen(false)}
+          username={''}
+          onConfirm={async () => { if (blockUserId) { await blockUser(blockUserId); setBlockOpen(false); } }}
+        />
       </div>
     </div>
   );

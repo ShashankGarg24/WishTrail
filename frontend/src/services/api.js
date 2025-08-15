@@ -106,6 +106,7 @@ export const socialAPI = {
   getFollowRequests: (params) => api.get('/social/follow/requests', { params }),
   acceptFollowRequest: (followerId) => api.post(`/social/follow/requests/${followerId}/accept`),
   rejectFollowRequest: (followerId) => api.post(`/social/follow/requests/${followerId}/reject`),
+  cancelFollowRequest: (userId) => api.delete(`/social/follow/requests/${userId}`),
 };
 
 // Activities API

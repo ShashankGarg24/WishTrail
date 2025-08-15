@@ -612,13 +612,14 @@ const useApiStore = create(
         try {
           const response = await socialAPI.followUser(userId);
           const message = response.data?.message || '';
+          const requested = response.data?.data?.requested === true || /request/i.test(message);
           
           // Update local state
           set(state => ({
-            followedUsers: [...state.followedUsers, userId],
+            followedUsers: requested ? state.followedUsers : [...state.followedUsers, userId],
             users: state.users.map(user => 
               user._id === userId 
-                ? { ...user, isFollowing: true }
+                ? { ...user, isFollowing: !requested, isRequested: requested }
                 : user
             ),
             leaderboard: state.leaderboard.map(user => 
@@ -628,14 +629,25 @@ const useApiStore = create(
             ),
             suggestedUsers: state.suggestedUsers.map(user => 
               user._id === userId 
-                ? { ...user, isFollowing: true }
+                ? { ...user, isFollowing: !requested, isRequested: requested }
                 : user
             )
           }));
           
-          // If follow request sent, reflect requested status
-          const isRequested = /request/i.test(message);
-          return { success: true, isRequested };
+          return { success: true, isRequested: requested };
+        } catch (error) {
+          const errorMessage = handleApiError(error);
+          return { success: false, error: errorMessage };
+        }
+      },
+      cancelFollowRequest: async (userId) => {
+        try {
+          await socialAPI.cancelFollowRequest(userId);
+          set(state => ({
+            users: state.users.map(u => u._id === userId ? { ...u, isRequested: false } : u),
+            suggestedUsers: state.suggestedUsers.map(u => u._id === userId ? { ...u, isRequested: false } : u)
+          }));
+          return { success: true };
         } catch (error) {
           const errorMessage = handleApiError(error);
           return { success: false, error: errorMessage };

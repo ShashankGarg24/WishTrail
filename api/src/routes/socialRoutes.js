@@ -13,6 +13,7 @@ router.delete('/follow/:userId', socialController.unfollowUser);
 router.get('/follow/requests', socialController.getFollowRequests);
 router.post('/follow/requests/:followerId/accept', socialController.acceptFollowRequest);
 router.post('/follow/requests/:followerId/reject', socialController.rejectFollowRequest);
+router.delete('/follow/requests/:userId', socialController.cancelFollowRequest);
 router.get('/followers', socialController.getFollowers);
 router.get('/following', socialController.getFollowing);
 router.get('/following/check/:userId', socialController.checkFollowingStatus);

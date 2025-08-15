@@ -29,6 +29,7 @@ const ProfilePage = () => {
     unfollowUser,
     report,
     blockUser,
+    cancelFollowRequest,
   } = useApiStore();
 
   // Determine if viewing own profile or another user's profile
@@ -294,7 +295,7 @@ const ProfilePage = () => {
                             </button>
                            ) : (
                             isRequested ? (
-                              <button disabled className="flex items-center space-x-2 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg cursor-not-allowed">
+                              <button onClick={async () => { await cancelFollowRequest(profileUser._id); setIsRequested(false); }} className="flex items-center space-x-2 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg">
                                 <UserPlus className="h-4 w-4" />
                                 <span>Requested</span>
                               </button>

@@ -42,7 +42,7 @@ const followUser = async (req, res, next) => {
     if (userToFollow.isPrivate) {
       await Follow.requestFollow(followerId, userId);
       await Notification.createFollowRequestNotification(followerId, userId);
-      return res.status(200).json({ success: true, message: 'Follow request sent' });
+      return res.status(200).json({ success: true, message: 'Follow request sent', data: { requested: true } });
     }
 
     // Follow the user directly for public profile
@@ -73,12 +73,31 @@ const followUser = async (req, res, next) => {
       );
     }
     
-    res.status(200).json({
-      success: true,
-      message: 'User followed successfully'
-    });
+    res.status(200).json({ success: true, message: 'User followed successfully', data: { requested: false } });
   } catch (error) {
     next(error);
+  }
+};
+// @desc    Cancel follow request for a private user
+// @route   DELETE /api/v1/social/follow/requests/:userId
+// @access  Private
+const cancelFollowRequest = async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    const followerId = req.user.id;
+    // Set any pending request to rejected/inactive
+    const FollowModel = require('../models/Follow');
+    const pending = await FollowModel.findOne({ followerId, followingId: userId, status: 'pending', isActive: false });
+    if (!pending) {
+      return res.status(404).json({ success: false, message: 'No pending request' });
+    }
+    pending.status = 'rejected';
+    pending.isActive = false;
+    await pending.save();
+    await Notification.deleteFollowRequestNotification(followerId, userId);
+    return res.status(200).json({ success: true, message: 'Follow request canceled' });
+  } catch (err) {
+    next(err);
   }
 };
 
@@ -121,7 +140,8 @@ const acceptFollowRequest = async (req, res, next) => {
     await Promise.all([
       currentUser.increaseFollowerCount(),
       follower.increaseFollowingCount(),
-      Notification.createFollowAcceptedNotification(followingId, followerId)
+      Notification.createFollowAcceptedNotification(followingId, followerId),
+      Notification.convertFollowRequestToNewFollower(followerId, followingId)
     ]);
     return res.status(200).json({ success: true, message: 'Follow request accepted', data: { follow: updated } });
   } catch (err) {
@@ -137,6 +157,7 @@ const rejectFollowRequest = async (req, res, next) => {
     const { followerId } = req.params;
     const followingId = req.user.id;
     await Follow.rejectFollowRequest(followerId, followingId);
+    await Notification.deleteFollowRequestNotification(followerId, followingId);
     return res.status(200).json({ success: true, message: 'Follow request rejected' });
   } catch (err) {
     next(err);
@@ -445,5 +466,6 @@ module.exports = {
   getPopularUsers,
   getFollowRequests,
   acceptFollowRequest,
-  rejectFollowRequest
+  rejectFollowRequest,
+  cancelFollowRequest
 };

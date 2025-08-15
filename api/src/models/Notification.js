@@ -347,6 +347,38 @@ notificationSchema.statics.createFollowRequestNotification = async function(foll
   });
 };
 
+// Delete a follow request notification when canceled or rejected
+notificationSchema.statics.deleteFollowRequestNotification = async function(followerId, followingId) {
+  try {
+    await this.findOneAndDelete({ userId: followingId, type: 'follow_request', 'data.followerId': followerId });
+  } catch (_) {}
+};
+
+// Convert an existing follow_request notification into new_follower after acceptance
+notificationSchema.statics.convertFollowRequestToNewFollower = async function(followerId, followingId) {
+  const User = mongoose.model('User');
+  const follower = await User.findById(followerId).select('name avatar');
+  if (!follower) return null;
+  const updated = await this.findOneAndUpdate(
+    { userId: followingId, type: 'follow_request', 'data.followerId': followerId },
+    {
+      $set: {
+        type: 'new_follower',
+        title: 'New Follower',
+        message: `${follower.name} started following you`,
+        'data.followerName': follower.name,
+        'data.followerAvatar': follower.avatar,
+        isRead: false,
+        readAt: null
+      }
+    },
+    { new: true }
+  );
+  if (updated) return updated;
+  // Fallback: create if original request not found
+  return this.createFollowNotification(followerId, followingId);
+};
+
 // Static method to notify follower that request accepted
 notificationSchema.statics.createFollowAcceptedNotification = async function(followingId, followerId) {
   const User = mongoose.model('User');
