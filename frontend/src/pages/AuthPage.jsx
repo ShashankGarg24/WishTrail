@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Mail, Lock, User, Eye, EyeOff, Star } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, Star } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import useApiStore from "../store/apiStore";
 import MultiStepSignup from "../components/MultiStepSignup";

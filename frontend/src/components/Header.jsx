@@ -20,7 +20,7 @@ const Header = () => {
   ...(isAuthenticated
     ? [
         { name: 'Explore', href: '/explore?tab=activities' },
-        { name: 'Leaderboard', href: '/leaderboard' },
+        { name: 'Leaderboard', href: '/leaderboard?tab=global' },
       ]
     : []),
   ]

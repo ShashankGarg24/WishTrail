@@ -1,36 +1,31 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   Trophy, 
-  Medal, 
   Star, 
   Target, 
   TrendingUp, 
   Users, 
-  Calendar,
   Filter,
   Crown,
   Award,
   Zap,
-  ChevronUp,
-  ChevronDown,
-  UserPlus,
-  UserCheck,
   Clock
 } from 'lucide-react';
 import useApiStore from '../store/apiStore';
 
 const LeaderboardPage = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('global');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialTab = searchParams.get('tab') || 'global';
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [leaderboardType, setLeaderboardType] = useState('points');
   const [timeframe, setTimeframe] = useState('all');
   const [selectedCategory, setSelectedCategory] = useState('Health & Fitness');
   
   const {
     isAuthenticated,
-    user,
     loading,
     error,
     leaderboard,
@@ -52,6 +47,18 @@ const LeaderboardPage = () => {
       initializeFollowingStatus();
     }
   }, [isAuthenticated, activeTab, leaderboardType, timeframe, selectedCategory]);
+
+  useEffect(() => {
+    const tabFromUrl = searchParams.get('tab') || 'global';
+    if (tabFromUrl !== activeTab) {
+      setActiveTab(tabFromUrl);
+    }
+  }, [searchParams]);
+
+  const handleTabChange = (tab) => {
+    setSearchParams({ tab });
+    setActiveTab(tab); 
+  };
 
   const loadLeaderboard = async () => {
     switch (activeTab) {
@@ -217,7 +224,7 @@ const LeaderboardPage = () => {
               ].map((tab) => (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
+                  onClick={() => handleTabChange(tab.id)}
                   className={`flex items-center space-x-2 px-6 py-3 rounded-xl transition-all duration-200 shrink-0 ${
                     activeTab === tab.id
                       ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg transform scale-105'

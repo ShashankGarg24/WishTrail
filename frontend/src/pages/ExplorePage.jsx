@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   Search, 
@@ -9,12 +9,8 @@ import {
   UserPlus, 
   TrendingUp, 
   Compass,
-  User,
   Target,
-  Clock,
   MessageCircle,
-  ThumbsUp,
-  Calendar,
   Flame,
   UserCheck,
   X,
@@ -40,10 +36,7 @@ const ExplorePage = () => {
   const [activities, setActivities] = useState([]);
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [lightboxOpen, setLightboxOpen] = useState(false);
-  const [lightboxUrl, setLightboxUrl] = useState('');
   const openLightbox = (url) => { if (!url) return; setLightboxUrl(url); setLightboxOpen(true); };
-  const closeLightbox = () => { setLightboxOpen(false); setLightboxUrl(''); };
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailActivity, setDetailActivity] = useState(null);
   const openDetail = (act) => { setDetailActivity(act); setDetailOpen(true); };
@@ -65,13 +58,9 @@ const ExplorePage = () => {
     getActivityFeed,
     searchUsers, 
     likeActivity,
-    unlikeActivity,
-    getFollowing,
-    following,
     followedUsers,
     initializeFollowingStatus,
     getUsers,
-    // notifications store
     getNotifications,
     loadMoreNotifications,
     notifications,
@@ -85,6 +74,7 @@ const ExplorePage = () => {
     blockUser,
     cancelFollowRequest
   } = useApiStore();
+
   // Infinite scroll state
   const ACTIVITIES_PAGE_SIZE = 10;
   const DISCOVER_PAGE_SIZE = 9;
@@ -464,66 +454,6 @@ const ExplorePage = () => {
       }
     } catch (e) {}
   };
-
-  const UserCard = ({ user, showFollowButton = true }) => (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-200 border border-gray-200 dark:border-gray-700"
-    >
-        <div className="flex items-center space-x-4">
-          <img
-          src={user.avatar || `/api/placeholder/64/64`}
-            alt={user.name}
-          className="w-16 h-16 rounded-full border-2 border-gray-200 dark:border-gray-600 cursor-pointer"
-          onClick={() => navigate(`/profile/${user._id}`)}
-          />
-        <div className="flex-1">
-          <h3 
-            className="text-lg font-semibold text-gray-900 dark:text-white cursor-pointer hover:text-blue-500"
-            onClick={() => navigate(`/profile/${user._id}`)}
-          >
-              {user.name}
-            </h3>
-          <p className="text-gray-600 dark:text-gray-400 text-sm">
-            {user.bio || 'No bio available'}
-          </p>
-          <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500 dark:text-gray-400">
-            <span className="flex items-center space-x-1">
-              <Target className="h-4 w-4" />
-              <span>{user.completedGoals || 0} goals</span>
-            </span>
-            <span className="flex items-center space-x-1">
-              <Flame className="h-4 w-4" />
-              <span>{user.currentStreak || 0} day streak</span>
-            </span>
-          </div>
-        </div>
-        {showFollowButton && user._id !== user?.id && (
-          <div className="flex flex-col space-y-2">
-            {isUserFollowed(user._id) || user.isFollowing ? (
-              <button
-                onClick={() => handleUnfollow(user._id)}
-                className="flex items-center space-x-2 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
-              >
-                <UserCheck className="h-4 w-4" />
-                <span>Following</span>
-              </button>
-            ) : (
-              <button
-                onClick={() => handleFollow(user._id)}
-                className="flex items-center space-x-2 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
-              >
-                <UserPlus className="h-4 w-4" />
-                <span>Follow</span>
-              </button>
-            )}
-          </div>
-        )}
-      </div>
-    </motion.div>
-  );
       
   const displayUsers = searchTerm.trim() && searchTerm.trim().length >= 2 ? searchResults : users;
       

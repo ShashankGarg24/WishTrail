@@ -1,15 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
-  Play, 
-  TrendingUp, 
+
   Star, 
   Trophy, 
   CheckCircle,
-  Flame,
-  Calendar,
-  Award,
-  Crown,
   Clock
 } from 'lucide-react';
 import useApiStore from '../store/apiStore';
@@ -26,8 +21,6 @@ const InspirationPage = () => {
     leaderboard,
     getRecentActivities,
     getGlobalLeaderboard,
-    user,
-    token
   } = useApiStore();
 
   useEffect(() => {
@@ -98,12 +91,6 @@ const InspirationPage = () => {
     if (rank === 1) return '🥇';
     if (rank === 2) return '🥈';
     if (rank === 3) return '🥉';
-  };
-
-  const calculateStreak = (user) => {
-    // Calculate streak based on user data or use a reasonable default
-    if (!user) return Math.floor(Math.random() * 30) + 1;
-    return user.currentStreak || Math.floor(Math.random() * 30) + 1;
   };
 
   const getActivityText = (activity) => {
@@ -368,7 +355,7 @@ const InspirationPage = () => {
               className="mt-6 text-center"
             >
               <a
-                href={isAuthenticated ? "/leaderboard" : "/auth"}
+                href={isAuthenticated ? "/leaderboard?tab=global" : "/auth"}
                 className="px-6 py-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-xl transition-colors duration-200 font-medium"
               >
                 {isAuthenticated ? "View Full Leaderboard" : "Join to See More"}
