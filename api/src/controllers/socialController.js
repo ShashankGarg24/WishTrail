@@ -2,6 +2,7 @@ const User = require('../models/User');
 const Follow = require('../models/Follow');
 const Activity = require('../models/Activity');
 const Notification = require('../models/Notification');
+const Block = require('../models/Block');
 const activityService = require('../services/activityService');
 
 // @desc    Follow a user
@@ -38,6 +39,11 @@ const followUser = async (req, res, next) => {
       });
     }
     
+    // Prevent follow if blocked either way
+    if (await Block.isBlockedBetween(followerId, userId)) {
+      return res.status(403).json({ success: false, message: 'Cannot follow due to block' });
+    }
+
     // If target user is private, create follow request and notification
     if (userToFollow.isPrivate) {
       await Follow.requestFollow(followerId, userId);

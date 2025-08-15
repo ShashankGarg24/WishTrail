@@ -3,6 +3,7 @@ const Follow = require('../models/Follow');
 const Like = require('../models/Like');
 const User = require('../models/User');
 const ActivityComment = require('../models/ActivityComment');
+const Block = require('../models/Block');
 
 class ActivityService {
   /**
@@ -10,6 +11,9 @@ class ActivityService {
    */
   async getActivityFeed(userId, params = {}) {
     const { page = 1, limit = 10 } = params;
+    // Exclude blocked users both ways
+    const { blockedOut, blockedIn } = await Block.getBlockedSets(userId);
+    const blockedSet = [...blockedOut, ...blockedIn];
   
     const followingIds = await Follow.getFollowingIds(userId);
   
@@ -66,6 +70,10 @@ class ActivityService {
         { 'data.targetUserId': userId, type: { $in: ['user_followed', 'goal_liked'] } }
       ]
     };
+
+    if (blockedSet.length > 0) {
+      query.userId = { $nin: blockedSet };
+    }
   
     const [list, total] = await Promise.all([
       Activity.find(query)
@@ -107,10 +115,20 @@ class ActivityService {
   async getRecentActivities(userId, params = {}) {
     const { page = 1, limit = 10, type = 'global' } = params;
     
+    const { blockedOut, blockedIn } = await Block.getBlockedSets(userId || null);
+    const blockedSet = [...(blockedOut || []), ...(blockedIn || [])];
     let query = { isActive: true, isPublic: true };
     if (type === 'personal') {
       query.userId = userId;
       query.isPublic = undefined; // Include both public and private for personal
+    }
+    if (blockedSet.length > 0) {
+      query.userId = query.userId ? query.userId : { $nin: blockedSet };
+      if (query.userId && query.userId.$nin === undefined) {
+        // personal view should not need $nin
+      } else if (query.userId && query.userId.$nin) {
+        // already set
+      }
     }
     
     const baseProjectUser = 'name username avatar level';
@@ -311,9 +329,10 @@ class ActivityService {
     }
     
     // Check if user can view this activity
-    const canView = activity.isPublic || 
+    const isBlocked = await Block.isBlockedBetween(requestingUserId, activity.userId._id);
+    const canView = !isBlocked && (activity.isPublic || 
       activity.userId._id.toString() === requestingUserId ||
-      await Follow.isFollowing(requestingUserId, activity.userId._id);
+      await Follow.isFollowing(requestingUserId, activity.userId._id));
     
     if (!canView) {
       throw new Error('Access denied');

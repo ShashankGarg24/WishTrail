@@ -742,6 +742,34 @@ const ProfilePage = () => {
           />
         )}
       </div>
+      {/* Report & Block Modals */}
+      <ReportModal
+        isOpen={reportOpen}
+        onClose={() => setReportOpen(false)}
+        targetLabel={displayUser?.username ? `@${displayUser.username}` : 'user'}
+        onSubmit={async ({ reason, description }) => {
+          try {
+            if (!displayUser?._id) return;
+            await report({ targetType: 'user', targetId: displayUser._id, reason, description });
+          } finally {
+            setReportOpen(false);
+          }
+        }}
+        onReportAndBlock={displayUser?._id ? async () => { await blockUser(displayUser._id); } : undefined}
+      />
+      <BlockModal
+        isOpen={blockOpen}
+        onClose={() => setBlockOpen(false)}
+        username={displayUser?.username || 'this user'}
+        onConfirm={async () => {
+          try {
+            if (!displayUser?._id) return;
+            await blockUser(displayUser._id);
+          } finally {
+            setBlockOpen(false);
+          }
+        }}
+      />
     </div>
   );
 };

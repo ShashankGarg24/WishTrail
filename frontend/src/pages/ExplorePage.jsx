@@ -36,6 +36,8 @@ const ExplorePage = () => {
   const [activities, setActivities] = useState([]);
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxUrl, setLightboxUrl] = useState('');
   const openLightbox = (url) => { if (!url) return; setLightboxUrl(url); setLightboxOpen(true); };
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailActivity, setDetailActivity] = useState(null);
@@ -49,6 +51,8 @@ const ExplorePage = () => {
   const [reportTarget, setReportTarget] = useState({ type: null, id: null, label: '' });
   const [blockOpen, setBlockOpen] = useState(false);
   const [blockUserId, setBlockUserId] = useState(null);
+  const [openUserMenuId, setOpenUserMenuId] = useState(null);
+  const [openActivityMenuId, setOpenActivityMenuId] = useState(null);
 
   const { 
     isAuthenticated, 
@@ -106,6 +110,16 @@ const ExplorePage = () => {
       initializeFollowingStatus();
     }
   }, [isAuthenticated]);
+
+  // Close any open 3-dot menus on outside click
+  useEffect(() => {
+    const onDocClick = () => {
+      setOpenUserMenuId(null);
+      setOpenActivityMenuId(null);
+    };
+    document.addEventListener('click', onDocClick);
+    return () => document.removeEventListener('click', onDocClick);
+  }, []);
 
   const fetchInitialData = async () => {
     setLoading(true);
@@ -692,19 +706,27 @@ const ExplorePage = () => {
                             )}
                           </div>
                           {/* 3-dots for user card */}
-                          <div className="absolute right-2 top-2">
+                          <div className="absolute right-2 top-2 z-30">
                             <div className="relative">
-                              <button className="px-2 py-1 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800">⋯</button>
-                              <div className="hidden absolute right-0 mt-2 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-10 group-hover:block">
-                                <button
-                                  className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
-                                  onClick={() => { setReportTarget({ type: 'user', id: userItem._id, label: 'user' }); setReportOpen(true); }}
-                                >Report</button>
-                                <button
-                                  className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
-                                  onClick={() => { setBlockUserId(userItem._id); setBlockOpen(true); }}
-                                >Block</button>
-                              </div>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setOpenUserMenuId(prev => prev === userItem._id ? null : userItem._id); }}
+                                className="px-2 py-1 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
+                              >⋯</button>
+                              {openUserMenuId === userItem._id && (
+                                <div
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-30"
+                                >
+                                  <button
+                                    className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
+                                    onClick={() => { setReportTarget({ type: 'user', id: userItem._id, label: 'user' }); setReportOpen(true); setOpenUserMenuId(null); }}
+                                  >Report</button>
+                                  <button
+                                    className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
+                                    onClick={() => { setBlockUserId(userItem._id); setBlockOpen(true); setOpenUserMenuId(null); }}
+                                  >Block</button>
+                                </div>
+                              )}
                             </div>
                           </div>
                         </motion.div>
@@ -868,7 +890,7 @@ const ExplorePage = () => {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, delay: 0.1 * index }}
-                        className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden relative"
+                        className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm relative overflow-visible"
                       >
                          {/* Header */}
                         <div className="flex items-center gap-3 px-4 pt-4 pb-3">
@@ -986,27 +1008,35 @@ const ExplorePage = () => {
                          </div>
 
                          {/* 3-dots menu for post */}
-                         <div className="absolute right-2 top-2">
+                         <div className="absolute right-2 top-2 z-30">
                            <div className="relative">
-                             <button className="px-2 py-1 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800">⋯</button>
-                             <div className="hidden absolute right-0 mt-2 w-44 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-10 group-hover:block">
-                               <button
-                                 className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
-                                 onClick={() => { setReportTarget({ type: 'activity', id: activity._id, label: 'activity' }); setReportOpen(true); }}
-                               >Report</button>
-                               {activity.user?._id && (
+                             <button
+                               onClick={(e) => { e.stopPropagation(); setOpenActivityMenuId(prev => prev === activity._id ? null : activity._id); }}
+                               className="px-2 py-1 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
+                             >⋯</button>
+                             {openActivityMenuId === activity._id && (
+                               <div
+                                 onClick={(e) => e.stopPropagation()}
+                                 className="absolute right-0 mt-2 w-44 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-30"
+                               >
                                  <button
                                    className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
-                                   onClick={async () => { try { await unfollowUser(activity.user._id); } catch {} }}
-                                 >Unfollow user</button>
-                               )}
-                               {activity.user?._id && (
-                                 <button
-                                   className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
-                                   onClick={() => { setBlockUserId(activity.user._id); setBlockOpen(true); }}
-                                 >Block user</button>
-                               )}
-                             </div>
+                                   onClick={() => { setReportTarget({ type: 'activity', id: activity._id, label: 'activity' }); setReportOpen(true); setOpenActivityMenuId(null); }}
+                                 >Report</button>
+                                 {activity.user?._id && (
+                                   <button
+                                     className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
+                                     onClick={async () => { try { await unfollowUser(activity.user._id); } catch {} ; setOpenActivityMenuId(null); }}
+                                   >Unfollow user</button>
+                                 )}
+                                 {activity.user?._id && (
+                                   <button
+                                     className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
+                                     onClick={() => { setBlockUserId(activity.user._id); setBlockOpen(true); setOpenActivityMenuId(null); }}
+                                   >Block user</button>
+                                 )}
+                               </div>
+                             )}
                            </div>
                          </div>
                        </motion.div>
@@ -1049,6 +1079,7 @@ const ExplorePage = () => {
           onClose={() => setReportOpen(false)}
           targetLabel={reportTarget.label}
           onSubmit={async ({ reason, description }) => { await report({ targetType: reportTarget.type, targetId: reportTarget.id, reason, description }); }}
+          onReportAndBlock={reportTarget.type === 'user' ? async () => { if (reportTarget.id) { await blockUser(reportTarget.id); } } : undefined}
         />
         <BlockModal
           isOpen={blockOpen}

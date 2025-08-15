@@ -1,3 +1,22 @@
+const User = require('../models/User');
+const Block = require('../models/Block');
+
+// Lightweight block status check
+const getBlockStatus = async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    const target = await User.findById(userId).select('_id').lean();
+    if (!target) return res.status(404).json({ success: false, message: 'User not found' });
+    const [iBlocked, blockedMe] = await Promise.all([
+      Block.findOne({ blockerId: req.user.id, blockedId: userId, isActive: true }).lean(),
+      Block.findOne({ blockerId: userId, blockedId: req.user.id, isActive: true }).lean()
+    ]);
+    return res.json({ success: true, data: { iBlocked: !!iBlocked, blockedMe: !!blockedMe } });
+  } catch (err) { next(err); }
+};
+
+module.exports = { getBlockStatus };
+
 const userService = require('../services/userService');
 const { validationResult } = require('express-validator');
 const authService = require('../services/authService');

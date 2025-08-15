@@ -18,5 +18,7 @@ router.get('/:id/goals', userController.getUserGoals);
 router.get('/:id/goals/yearly/:year', userController.getUserYearlyGoals);
 router.get('/:id/activities', userController.getUserActivities);
 router.put('/privacy', userController.updatePrivacy);
+// Block status helper
+router.get('/:userId/block-status', userController.getBlockStatus);
 
 module.exports = router; 

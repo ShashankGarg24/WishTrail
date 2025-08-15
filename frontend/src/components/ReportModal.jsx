@@ -12,7 +12,7 @@ const REASONS = [
   { value: 'other', label: 'Other' },
 ]
 
-const ReportModal = ({ isOpen, onClose, onSubmit, targetLabel = 'content' }) => {
+const ReportModal = ({ isOpen, onClose, onSubmit, targetLabel = 'content', onReportAndBlock }) => {
   const [reason, setReason] = useState('spam')
   const [description, setDescription] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -22,6 +22,13 @@ const ReportModal = ({ isOpen, onClose, onSubmit, targetLabel = 'content' }) => 
     setSubmitting(true)
     try {
       await onSubmit({ reason, description })
+      if (onReportAndBlock) {
+        // Ask if they also want to block
+        const confirmBlock = window.confirm('Report submitted. Also block this user to stop seeing their activity?')
+        if (confirmBlock) {
+          await onReportAndBlock()
+        }
+      }
       onClose()
       setReason('spam')
       setDescription('')

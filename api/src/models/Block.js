@@ -54,6 +54,17 @@ blockSchema.statics.isBlockedBetween = async function(userA, userB) {
   return !!(aBlocksB || bBlocksA);
 };
 
+// Returns two arrays of ObjectIds: users current user blocked (outgoing) and users who blocked current user (incoming)
+blockSchema.statics.getBlockedSets = async function(userId) {
+  const [outgoing, incoming] = await Promise.all([
+    this.find({ blockerId: userId, isActive: true }).select('blockedId').lean(),
+    this.find({ blockedId: userId, isActive: true }).select('blockerId').lean()
+  ]);
+  const blockedOut = outgoing.map(d => d.blockedId);
+  const blockedIn = incoming.map(d => d.blockerId);
+  return { blockedOut, blockedIn };
+};
+
 module.exports = mongoose.model('Block', blockSchema);
 
 
