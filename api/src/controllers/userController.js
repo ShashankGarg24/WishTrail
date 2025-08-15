@@ -1,5 +1,8 @@
 const User = require('../models/User');
 const Block = require('../models/Block');
+const userService = require('../services/userService');
+const { validationResult } = require('express-validator');
+const authService = require('../services/authService');
 
 // Lightweight block status check
 const getBlockStatus = async (req, res, next) => {
@@ -16,11 +19,6 @@ const getBlockStatus = async (req, res, next) => {
 };
 
 module.exports = { getBlockStatus };
-
-const userService = require('../services/userService');
-const { validationResult } = require('express-validator');
-const authService = require('../services/authService');
-const User = require('../models/User');
 
 // @desc    Get all users with pagination and search
 // @route   GET /api/v1/users
