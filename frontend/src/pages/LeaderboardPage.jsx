@@ -38,10 +38,6 @@ const LeaderboardPage = () => {
     getCategoryLeaderboard,
     getAchievementLeaderboard,
     getFriendsLeaderboard,
-    getLeaderboardStats,
-    followUser,
-    unfollowUser,
-    followedUsers,
     initializeFollowingStatus
   } = useApiStore();
 
@@ -74,27 +70,6 @@ const LeaderboardPage = () => {
       default:
         await getGlobalLeaderboard({ type: leaderboardType, timeframe });
     }
-  };
-
-  const handleFollow = async (userId) => {
-    try {
-      await followUser(userId);
-    } catch (error) {
-      console.error('Error following user:', error);
-    }
-  };
-
-  const handleUnfollow = async (userId) => {
-    try {
-      await unfollowUser(userId);
-    } catch (error) {
-      console.error('Error unfollowing user:', error);
-    }
-  };
-
-  // Check if user is followed
-  const isUserFollowed = (userId) => {
-    return followedUsers.includes(userId);
   };
 
   const getTypeIcon = (type) => {
@@ -460,7 +435,6 @@ const LeaderboardPage = () => {
             <div className="divide-y divide-gray-200 dark:divide-gray-700">
               {remainingUsers.map((user, index) => {
                 const rank = index + 4;
-                const isFollowed = isUserFollowed(user._id);
                 const isCurrentUser = user._id === user?.id;
                 
                 return (
@@ -505,27 +479,6 @@ const LeaderboardPage = () => {
                           </p>
                           <p className="text-sm text-gray-500">{getTypeLabel(leaderboardType)}</p>
                         </div>
-                        {!isCurrentUser && (
-                          <div onClick={(e) => e.stopPropagation()}>
-                            {isFollowed || user.isFollowing ? (
-                              <button
-                                onClick={() => handleUnfollow(user._id)}
-                                className="flex items-center space-x-2 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
-                              >
-                                <UserCheck className="h-4 w-4" />
-                                <span>Following</span>
-                              </button>
-                            ) : (
-                              <button
-                                onClick={() => handleFollow(user._id)}
-                                className="flex items-center space-x-2 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
-                              >
-                                <UserPlus className="h-4 w-4" />
-                                <span>Follow</span>
-                              </button>
-                            )}
-                          </div>
-                        )}
                       </div>
                     </div>
                   </motion.div>

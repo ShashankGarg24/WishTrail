@@ -19,7 +19,7 @@ const Header = () => {
   { name: 'Inspiration', href: '/inspiration' },
   ...(isAuthenticated
     ? [
-        { name: 'Explore', href: '/explore' },
+        { name: 'Explore', href: '/explore?tab=activities' },
         { name: 'Leaderboard', href: '/leaderboard' },
       ]
     : []),
@@ -105,7 +105,7 @@ const Header = () => {
               {/* Notifications */}
               {isAuthenticated && (
                 <button
-                  onClick={() => navigate('/explore')}
+                  onClick={() => navigate('/explore?tab=notifications')}
                   className="relative p-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 dark:border-white/10 transition-all duration-300"
                   aria-label="Notifications"
                 >

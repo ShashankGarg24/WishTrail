@@ -31,8 +31,8 @@ import BlockModal from '../components/BlockModal'
 
 const ExplorePage = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const initialTab = searchParams.get('tab') || 'Activities';
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialTab = searchParams.get('tab') || 'activities';
   const [activeTab, setActiveTab] = useState(initialTab);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
@@ -120,7 +120,7 @@ const ExplorePage = () => {
   const fetchInitialData = async () => {
     setLoading(true);
     try {
-      if (activeTab === 'Activities') {
+      if (activeTab === 'activities') {
         // First page for activities
         setActivitiesPage(1);
         setActivitiesHasMore(true);
@@ -156,7 +156,7 @@ const ExplorePage = () => {
   // Refetch data when tab changes
   useEffect(() => {
     if (!isAuthenticated) return;
-    if (activeTab === 'Activities') {
+    if (activeTab === 'activities') {
       setActivities([]);
       setActivitiesPage(1);
       setActivitiesHasMore(true);
@@ -169,6 +169,18 @@ const ExplorePage = () => {
     }
     fetchInitialData();
   }, [activeTab]);
+
+  useEffect(() => {
+    const tabFromUrl = searchParams.get('tab') || 'activities';
+    if (tabFromUrl !== activeTab) {
+      setActiveTab(tabFromUrl);
+    }
+  }, [searchParams]);
+
+  const handleTabChange = (tab) => {
+    setSearchParams({ tab });
+    setActiveTab(tab); 
+  };
 
   const handleSearch = async (term) => {
     if (!term.trim() || term.trim().length < 2) {
@@ -250,7 +262,7 @@ const ExplorePage = () => {
     const observer = new IntersectionObserver((entries) => {
       const entry = entries[0];
       if (entry.isIntersecting) {
-        if (activeTab === 'Activities') loadMoreActivities();
+        if (activeTab === 'activities') loadMoreActivities();
         if (activeTab === 'discover') loadMoreDiscover();
         if (activeTab === 'notifications') {
           const hasMore = (notificationsPagination?.page || 1) < (notificationsPagination?.pages || 1);
@@ -260,7 +272,7 @@ const ExplorePage = () => {
         }
       }
     }, { root: null, rootMargin: '300px', threshold: 0.1 });
-    const target = activeTab === 'Activities' ? activitiesSentinelRef.current : activeTab === 'discover' ? discoverSentinelRef.current : notificationsSentinelRef.current;
+    const target = activeTab === 'activities' ? activitiesSentinelRef.current : activeTab === 'discover' ? discoverSentinelRef.current : notificationsSentinelRef.current;
     if (target) observer.observe(target);
     return () => observer.disconnect();
   }, [activeTab, isAuthenticated, loadMoreActivities, loadMoreDiscover, activities.length, users.length, activitiesHasMore, discoverHasMore, searchTerm, notifications?.length, notificationsPagination?.page, notificationsPagination?.pages]);
@@ -292,7 +304,7 @@ const ExplorePage = () => {
       ));
       
       // If we're in Activities tab, remove the user from the list
-      if (activeTab === 'Activities') {
+      if (activeTab === 'activities') {
         setUsers(users.filter(u => u._id !== userId));
       }
     } catch (error) {
@@ -567,11 +579,11 @@ const ExplorePage = () => {
           transition={{ duration: 0.5, delay: 0.2 }}
           className="flex justify-center mb-8"
         >
-          <div className="bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-2 border border-gray-200 dark:border-gray-700/50 flex shadow-lg overflow-x-auto whitespace-nowrap gap-2">
+          <div className="bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-2 border border-gray-200 dark:border-gray-700/50 flex shadow-lg overflow-x-auto whitespace-nowrap gap-1">
             <button
-              onClick={() => setActiveTab('Activities')}
+              onClick={() => handleTabChange('activities')}
               className={`flex items-center space-x-2 px-6 py-3 rounded-xl transition-all duration-200 shrink-0 ${
-                activeTab === 'Activities'
+                activeTab === 'activities'
                   ? 'bg-blue-500 text-white shadow-lg'
                   : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700/50'
               }`}
@@ -580,7 +592,7 @@ const ExplorePage = () => {
               <span className="font-medium">Activities</span>
             </button>
             <button
-              onClick={() => setActiveTab('discover')}
+              onClick={() => handleTabChange('discover')}
               className={`flex items-center space-x-2 px-6 py-3 rounded-xl transition-all duration-200 shrink-0 ${
                 activeTab === 'discover'
                   ? 'bg-blue-500 text-white shadow-lg'
@@ -591,7 +603,7 @@ const ExplorePage = () => {
               <span className="font-medium">Discover</span>
             </button>
             <button
-              onClick={() => setActiveTab('notifications')}
+              onClick={() => handleTabChange('notifications')}
               className={`flex items-center space-x-2 px-6 py-3 rounded-xl transition-all duration-200 shrink-0 ${
                 activeTab === 'notifications'
                   ? 'bg-blue-500 text-white shadow-lg'
@@ -906,7 +918,7 @@ const ExplorePage = () => {
                 )}
               </div>
             )}
-            {activeTab === 'Activities' && (
+            {activeTab === 'activities' && (
               <div className="w-full">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">

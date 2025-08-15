@@ -3,8 +3,17 @@ import { Link } from 'react-router-dom'
 import { Star, Target, TrendingUp, Calendar, ArrowRight, Play, Users, Youtube, Instagram } from 'lucide-react'
 import BlogBanner from '../components/BlogBanner'
 import VideoEmbedGrid from '../components/VideoEmbedGrid'
+import useApiStore from '../store/apiStore'
 
 const HomePage = () => {
+
+  const { isAuthenticated } = useApiStore();
+
+  const getRedirectUrl = () => {
+    if (!isAuthenticated) return '/auth';
+    return '/dashboard';
+  }
+
   const features = [
     {
       icon: Target,
@@ -67,7 +76,7 @@ const HomePage = () => {
               transition={{ duration: 0.8, delay: 0.4 }}
               className="flex flex-col sm:flex-row gap-4 justify-center items-center"
             >
-              <Link to="/dashboard" className="btn-primary">
+              <Link to={getRedirectUrl()} className="btn-primary">
                 Start Your Journey
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
@@ -213,7 +222,7 @@ const HomePage = () => {
             <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-2xl mx-auto">
               Join thousands of others who are already achieving their goals with WishTrail
             </p>
-            <Link to="/dashboard" className="btn-primary">
+            <Link to={getRedirectUrl()} className="btn-primary">
               Get Started Now
               <ArrowRight className="ml-2 h-5 w-5" />
             </Link>
