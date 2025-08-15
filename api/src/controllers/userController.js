@@ -18,7 +18,7 @@ const getBlockStatus = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-module.exports = { getBlockStatus };
+// do not export here; include in final export bundle at bottom
 
 // @desc    Get all users with pagination and search
 // @route   GET /api/v1/users
@@ -303,6 +303,7 @@ const deleteUser = async (req, res, next) => {
 };
 
 module.exports = {
+  getBlockStatus,
   getUsers,
   getUser,
   getDashboardStats,
