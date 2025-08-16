@@ -171,7 +171,7 @@ const InspirationPage = () => {
                 <div className="bg-green-500 rounded-full p-2 mr-3">
                   <CheckCircle className="h-6 w-6 text-white" />
                 </div>
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Recent Achievements</h2>
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Recent Activities</h2>
               </div>
             </div>
             <div className="relative">
@@ -230,7 +230,7 @@ const InspirationPage = () => {
                 ) : !loading && (
                   <div className="text-center py-8">
                     <CheckCircle className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-600 dark:text-gray-400">No recent achievements to show.</p>
+                    <p className="text-gray-600 dark:text-gray-400">No recent activities to show.</p>
                     <p className="text-gray-500 dark:text-gray-500 text-sm mt-2">Follow some users to see their progress!</p>
                   </div>
                 )}
