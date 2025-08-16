@@ -66,8 +66,10 @@ class ActivityService {
       isActive: true,
       isPublic: true,
       $or: [
-        { userId: { $in: followingIds }, type: { $in: ['goal_completed', 'goal_created', 'level_up', 'streak_milestone', 'achievement_earned'] } },
-        { 'data.targetUserId': userId, type: { $in: ['user_followed', 'goal_liked'] } }
+        { 
+          userId: { $in: followingIds }, 
+          type: { $in: ['goal_completed', 'goal_created', 'level_up', 'streak_milestone', 'achievement_earned'] } 
+        }
       ]
     };
 

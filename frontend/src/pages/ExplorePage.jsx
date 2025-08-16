@@ -811,7 +811,7 @@ const ExplorePage = () => {
                                       <button
                                         className="font-medium hover:underline"
                                         onClick={() => {
-                                          if (n.data?.actorId && n.data?.actorId?._id) navigate(`/profile/${n.data.actorId._id}`)
+                                          if (n.data?.actorId && n.data?.actorId?.username) navigate(`/profile/${n.data.actorId.username}`)
                                         }}
                                       >
                                         {actorName}

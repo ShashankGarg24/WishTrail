@@ -330,7 +330,7 @@ const LeaderboardPage = () => {
                   className="text-center"
                 >
                   <div 
-                    onClick={() => handleUserClick(topThree[1]._id)}
+                    onClick={() => handleUserClick(topThree[1].username)}
                     className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-xl border-4 border-gray-300 dark:border-gray-600 h-48 flex flex-col justify-between cursor-pointer hover:shadow-2xl transition-shadow duration-200"
                   >
                     <div>
@@ -363,7 +363,7 @@ const LeaderboardPage = () => {
                   className="text-center"
                 >
                   <div 
-                    onClick={() => handleUserClick(topThree[0]._id)}
+                    onClick={() => handleUserClick(topThree[0].username)}
                     className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-xl border-4 border-yellow-400 h-56 flex flex-col justify-between relative cursor-pointer hover:shadow-2xl transition-shadow duration-200"
                   >
                     <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
@@ -399,7 +399,7 @@ const LeaderboardPage = () => {
                   className="text-center"
                 >
                   <div 
-                    onClick={() => handleUserClick(topThree[2]._id)}
+                    onClick={() => handleUserClick(topThree[2].username)}
                     className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-xl border-4 border-orange-400 h-44 flex flex-col justify-between cursor-pointer hover:shadow-2xl transition-shadow duration-200"
                   >
                     <div>
@@ -453,7 +453,7 @@ const LeaderboardPage = () => {
                     className={`p-6 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer ${
                       isCurrentUser ? 'bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500' : ''
                     }`}
-                    onClick={() => !isCurrentUser && handleUserClick(user._id)}
+                    onClick={() => !isCurrentUser && handleUserClick(user.username)}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-4">
