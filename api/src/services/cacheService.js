@@ -55,8 +55,8 @@ class CacheService {
   // Set data in cache
   async set(key, data, ttl = this.CACHE_TTL.DEFAULT) {
     try {
-      // Upstash Redis handles JSON serialization automatically
-      await redisClient.setex(key, ttl, data);
+      // Upstash Redis: use set with EX
+      await redisClient.set(key, data, { ex: ttl });
       return true;
     } catch (error) {
       console.error('Cache set error:', error);

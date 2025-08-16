@@ -59,6 +59,42 @@ const useApiStore = create(
       notificationsPagination: null,
       unreadNotifications: 0,
       
+      // Client-side caches (TTL + persisted)
+      cacheActivityFeed: {}, // key -> { data, ts }
+      cacheUsers: {},        // key -> { data, ts }
+      cacheNotifications: {},// key -> { data, ts }
+      cacheTTLs: {
+        activityFeed: 5 * 60 * 1000,   // 5 minutes
+        users: 10 * 60 * 1000,          // 10 minutes
+        notifications: 5 * 1000,      // 5 minute
+      },
+      maxCacheEntries: {
+        activityFeed: 8,
+        users: 8,
+        notifications: 5,
+      },
+      _cacheKeyFromParams: (params = {}) => {
+        const entries = Object.entries(params || {}).filter(([, v]) => v !== undefined && v !== null);
+        entries.sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+        return entries.map(([k, v]) => `${k}=${String(v)}`).join('&') || 'default';
+      },
+      _isFresh: (ts, ttl) => (typeof ts === 'number' && Date.now() - ts < ttl),
+      _setCacheWithLimit: (bucketName, key, payload) => {
+        const current = get()[bucketName] || {};
+        const bucket = { ...current, [key]: { data: payload, ts: Date.now() } };
+        const which = bucketName === 'cacheActivityFeed' ? 'activityFeed' : bucketName === 'cacheUsers' ? 'users' : 'notifications';
+        const limit = get().maxCacheEntries[which];
+        const keys = Object.keys(bucket);
+        if (keys.length > limit) {
+          keys
+            .map(k => [k, bucket[k]?.ts || 0])
+            .sort((a, b) => a[1] - b[1])
+            .slice(0, Math.max(0, keys.length - limit))
+            .forEach(([k]) => { delete bucket[k]; });
+        }
+        set({ [bucketName]: bucket });
+      },
+      
       // Leaderboard
       leaderboard: [],
       
@@ -537,12 +573,21 @@ const useApiStore = create(
       // USERS ACTIONS
       // =====================
       
-      getUsers: async (params = {}) => {
+      getUsers: async (params = {}, opts = {}) => {
         try {
+          const force = !!opts.force;
+          const key = get()._cacheKeyFromParams(params);
+          const ttl = get().cacheTTLs.users;
+          const cached = get().cacheUsers[key];
+          if (!force && cached && get()._isFresh(cached.ts, ttl)) {
+            const { users, pagination } = cached.data;
+            return { success: true, users, pagination };
+          }
           set({ loading: true, error: null });
           const response = await usersAPI.getUsers(params);
           const { users, pagination } = response.data.data;
           set({ users, usersPagination: pagination, loading: false });
+          get()._setCacheWithLimit('cacheUsers', key, { users, pagination });
           return { success: true, users, pagination };
         } catch (error) {
           const errorMessage = handleApiError(error);
@@ -792,12 +837,20 @@ const useApiStore = create(
       // ACTIVITIES ACTIONS
       // =====================
       
-      getActivityFeed: async (params = {}) => {
+      getActivityFeed: async (params = {}, opts = {}) => {
         try {
+          const force = !!opts.force;
+          const key = get()._cacheKeyFromParams(params);
+          const ttl = get().cacheTTLs.activityFeed;
+          const cached = get().cacheActivityFeed[key];
+          if (!force && cached && get()._isFresh(cached.ts, ttl)) {
+            return cached.data; // { activities, pagination }
+          }
           set({ loading: true, error: null });
           const response = await socialAPI.getActivityFeed(params);
-          const activities = response.data.data;
+          const activities = response.data.data; // { activities, pagination }
           set({ activityFeed: activities, loading: false });
+          get()._setCacheWithLimit('cacheActivityFeed', key, activities);
           return activities;
         } catch (error) {
           const errorMessage = handleApiError(error);
@@ -809,12 +862,22 @@ const useApiStore = create(
       // =====================
       // NOTIFICATIONS ACTIONS
       // =====================
-      getNotifications: async (params = {}) => {
+      getNotifications: async (params = {}, opts = {}) => {
         try {
+          const force = !!opts.force;
+          const key = get()._cacheKeyFromParams(params);
+          const ttl = get().cacheTTLs.notifications;
+          const cached = get().cacheNotifications[key];
+          if (!force && cached && get()._isFresh(cached.ts, ttl)) {
+            const { notifications, pagination, unread } = cached.data;
+            set({ notifications, notificationsPagination: pagination, unreadNotifications: unread });
+            return { success: true, notifications, pagination, unread };
+          }
           set({ loading: true, error: null });
           const response = await notificationsAPI.getNotifications(params);
           const { notifications, pagination, unread } = response.data.data;
           set({ notifications, notificationsPagination: pagination, unreadNotifications: unread, loading: false });
+          get()._setCacheWithLimit('cacheNotifications', key, { notifications, pagination, unread });
           return { success: true, notifications, pagination, unread };
         } catch (error) {
           const errorMessage = handleApiError(error);
@@ -830,6 +893,10 @@ const useApiStore = create(
           const response = await notificationsAPI.getNotifications({ page: nextPage, limit: notificationsPagination.limit });
           const { notifications: more, pagination } = response.data.data;
           set(state => ({ notifications: [...state.notifications, ...more], notificationsPagination: pagination }));
+          // also keep cache entry for this page to avoid immediate refetch
+          const key = get()._cacheKeyFromParams({ page: nextPage, limit: notificationsPagination.limit });
+          const unreadNow = get().unreadNotifications;
+          get()._setCacheWithLimit('cacheNotifications', key, { notifications: more, pagination, unread: unreadNow });
         } catch {}
       },
       markNotificationRead: async (id) => {

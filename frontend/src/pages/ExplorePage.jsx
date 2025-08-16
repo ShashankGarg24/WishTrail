@@ -15,7 +15,8 @@ import {
   UserCheck,
   X,
   Bell,
-  Check
+  Check,
+  RefreshCw
 } from 'lucide-react';
 import useApiStore from '../store/apiStore';
 import { activitiesAPI } from '../services/api';
@@ -121,14 +122,14 @@ const ExplorePage = () => {
     return () => document.removeEventListener('click', onDocClick);
   }, []);
 
-  const fetchInitialData = async () => {
+  const fetchInitialData = async (opts = {}) => {
     setLoading(true);
     try {
       if (activeTab === 'activities') {
         // First page for activities
         setActivitiesPage(1);
         setActivitiesHasMore(true);
-        const activitiesData = await getActivityFeed({ page: 1, limit: ACTIVITIES_PAGE_SIZE });
+        const activitiesData = await getActivityFeed({ page: 1, limit: ACTIVITIES_PAGE_SIZE }, opts);
         setActivities(activitiesData.activities || []);
         const totalPages = activitiesData.pagination?.pages || 1;
         setActivitiesHasMore(1 < totalPages);
@@ -137,7 +138,7 @@ const ExplorePage = () => {
         // First page for discover users
         setDiscoverPage(1);
         setDiscoverHasMore(true);
-        const usersData = await getUsers({ page: 1, limit: DISCOVER_PAGE_SIZE });
+        const usersData = await getUsers({ page: 1, limit: DISCOVER_PAGE_SIZE }, opts);
         if (usersData.success) {
           const filteredUsers = (usersData.users || []).filter(u => u && u._id && u._id !== user?._id);
           // Replace the entire list for page 1 to avoid stale entries
@@ -148,7 +149,7 @@ const ExplorePage = () => {
           setUsers([]);
         }
       } else if (activeTab === 'notifications') {
-        await getNotifications({ page: 1, limit: 20 });
+        await getNotifications({ page: 1, limit: 20 }, opts);
       }
     } catch (error) {
       console.error('Error fetching initial data:', error);
@@ -610,6 +611,16 @@ const ExplorePage = () => {
                     <Users className="h-6 w-6 mr-2 text-blue-500" />
                     {searchTerm.trim() ? 'Search Results' : 'Discover Users'}
                   </h2>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => fetchInitialData({ force: true })}
+                      aria-label="Refresh"
+                      className={`h-9 w-9 inline-flex items-center justify-center rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors ${loading ? 'opacity-80' : ''}`}
+                      disabled={loading}
+                    >
+                      <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                    </button>
+                  </div>
                 </div>
 
                 {(loading || isSearching) ? (
@@ -763,9 +774,19 @@ const ExplorePage = () => {
                     <Bell className="h-6 w-6 mr-2 text-purple-500" />
                     Notifications
                   </h2>
-                  {unreadNotifications > 0 && (
-                    <button onClick={markAllNotificationsRead} className="text-sm text-blue-600 hover:underline">Mark all as read</button>
-                  )}
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => fetchInitialData({ force: true })}
+                      aria-label="Refresh"
+                      className={`h-9 w-9 inline-flex items-center justify-center rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors ${loading ? 'opacity-80' : ''}`}
+                      disabled={loading}
+                    >
+                      <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                    </button>
+                    {unreadNotifications > 0 && (
+                      <button onClick={markAllNotificationsRead} className="text-sm text-blue-600 hover:underline">Mark all as read</button>
+                    )}
+                  </div>
                 </div>
 
                 {loading ? (
@@ -877,6 +898,16 @@ const ExplorePage = () => {
                     <Activity className="h-6 w-6 mr-2 text-green-500" />
                     Activities
                   </h2>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => fetchInitialData({ force: true })}
+                      aria-label="Refresh"
+                      className={`h-9 w-9 inline-flex items-center justify-center rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors ${loading ? 'opacity-80' : ''}`}
+                      disabled={loading}
+                    >
+                      <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                    </button>
+                  </div>
                 </div>
 
                 {loading ? (
