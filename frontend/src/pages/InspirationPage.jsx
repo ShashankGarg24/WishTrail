@@ -266,7 +266,7 @@ const InspirationPage = () => {
                 <div className="bg-yellow-500 rounded-full p-2 mr-3">
                   <Trophy className="h-6 w-6 text-white" />
                 </div>
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Top Goal Achievers</h2>
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Top Achievers</h2>
               </div>
             </div>
             <div className="relative">
