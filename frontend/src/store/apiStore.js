@@ -66,9 +66,9 @@ const useApiStore = create(
       cacheGoals: {},        // key -> { data, ts }
       cacheDashboardStats: null, // { data, ts }
       cacheTTLs: {
-        activityFeed: 5 * 60 * 1000,   // 5 minutes
-        users: 10 * 60 * 1000,          // 10 minutes
-        notifications: 5 * 1000,      // 5 minute
+        activityFeed: 15 * 60 * 1000,   // 15 minutes
+        users: 30 * 60 * 1000,          // 30 minutes
+        notifications: 5 * 60 * 1000,   // 5 minutes
         goals: Number.POSITIVE_INFINITY, // cache until explicitly invalidated
         dashboardStats: Number.POSITIVE_INFINITY,
       },
