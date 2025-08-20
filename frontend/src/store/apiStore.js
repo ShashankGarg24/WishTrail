@@ -63,15 +63,20 @@ const useApiStore = create(
       cacheActivityFeed: {}, // key -> { data, ts }
       cacheUsers: {},        // key -> { data, ts }
       cacheNotifications: {},// key -> { data, ts }
+      cacheGoals: {},        // key -> { data, ts }
+      cacheDashboardStats: null, // { data, ts }
       cacheTTLs: {
         activityFeed: 5 * 60 * 1000,   // 5 minutes
         users: 10 * 60 * 1000,          // 10 minutes
         notifications: 5 * 1000,      // 5 minute
+        goals: Number.POSITIVE_INFINITY, // cache until explicitly invalidated
+        dashboardStats: Number.POSITIVE_INFINITY,
       },
       maxCacheEntries: {
         activityFeed: 8,
         users: 8,
         notifications: 5,
+        goals: 8,
       },
       _cacheKeyFromParams: (params = {}) => {
         const entries = Object.entries(params || {}).filter(([, v]) => v !== undefined && v !== null);
@@ -82,7 +87,13 @@ const useApiStore = create(
       _setCacheWithLimit: (bucketName, key, payload) => {
         const current = get()[bucketName] || {};
         const bucket = { ...current, [key]: { data: payload, ts: Date.now() } };
-        const which = bucketName === 'cacheActivityFeed' ? 'activityFeed' : bucketName === 'cacheUsers' ? 'users' : 'notifications';
+        const which = bucketName === 'cacheActivityFeed'
+          ? 'activityFeed'
+          : bucketName === 'cacheUsers'
+          ? 'users'
+          : bucketName === 'cacheGoals'
+          ? 'goals'
+          : 'notifications';
         const limit = get().maxCacheEntries[which];
         const keys = Object.keys(bucket);
         if (keys.length > limit) {
@@ -410,12 +421,22 @@ const useApiStore = create(
       // DASHBOARD ACTIONS
       // =====================
       
-      getDashboardStats: async () => {
+      getDashboardStats: async (opts = {}) => {
         try {
+          const force = !!opts.force;
+          // Cached
+          const ttl = get().cacheTTLs.dashboardStats;
+          const cached = get().cacheDashboardStats;
+          if (!force && cached && get()._isFresh(cached.ts, ttl)) {
+            const stats = cached.data;
+            set({ dashboardStats: stats });
+            return { success: true, stats };
+          }
           set({ loading: true, error: null });
           const response = await usersAPI.getDashboardStats();
           const { stats } = response.data.data;
           set({ dashboardStats: stats, loading: false });
+          set({ cacheDashboardStats: { data: stats, ts: Date.now() } });
           return { success: true, stats };
         } catch (error) {
           const errorMessage = handleApiError(error);
@@ -428,12 +449,22 @@ const useApiStore = create(
       // GOALS ACTIONS
       // =====================
       
-      getGoals: async (params = {}) => {
+      getGoals: async (params = {}, opts = {}) => {
         try {
+          const force = !!opts.force;
+          const key = get()._cacheKeyFromParams(params);
+          const ttl = get().cacheTTLs.goals;
+          const cachedEntry = get().cacheGoals[key];
+          if (!force && cachedEntry && get()._isFresh(cachedEntry.ts, ttl)) {
+            const { goals, pagination } = cachedEntry.data;
+            set({ goals, goalsPagination: pagination });
+            return { success: true, goals, pagination };
+          }
           set({ loading: true, error: null });
           const response = await goalsAPI.getGoals(params);
           const { goals, pagination } = response.data.data;
           set({ goals, goalsPagination: pagination, loading: false });
+          get()._setCacheWithLimit('cacheGoals', key, { goals, pagination });
           return { success: true, goals, pagination };
         } catch (error) {
           const errorMessage = handleApiError(error);
@@ -453,6 +484,17 @@ const useApiStore = create(
             goals: [goal, ...state.goals],
             loading: false
           }));
+          // Invalidate caches related to goals and dashboard
+          const yearToInvalidate = goal?.year || goalData?.year;
+          const currentCache = get().cacheGoals || {};
+          const newCache = { ...currentCache };
+          if (yearToInvalidate !== undefined) {
+            Object.keys(newCache).forEach(k => { if (k.includes(`year=${yearToInvalidate}`)) delete newCache[k]; });
+          } else {
+            // if year not known, clear all
+            Object.keys(newCache).forEach(k => { delete newCache[k]; });
+          }
+          set({ cacheGoals: newCache, cacheDashboardStats: null });
           
           return { success: true, goal };
         } catch (error) {
@@ -473,6 +515,17 @@ const useApiStore = create(
             goals: state.goals.map(g => g._id === id ? goal : g),
             loading: false
           }));
+
+          // Invalidate caches and force refresh dashboard stats
+          const yearToInvalidate = goal?.year;
+          const currentCache = get().cacheGoals || {};
+          const newCache = { ...currentCache };
+          if (yearToInvalidate !== undefined) {
+            Object.keys(newCache).forEach(k => { if (k.includes(`year=${yearToInvalidate}`)) delete newCache[k]; });
+          }
+          set({ cacheGoals: newCache, cacheDashboardStats: null });
+          // Trigger a forced stats refresh since edits can change totals/points
+          try { await get().getDashboardStats({ force: true }); } catch {}
           
           return { success: true, goal };
         } catch (error) {
@@ -492,6 +545,9 @@ const useApiStore = create(
             goals: state.goals.filter(g => g._id !== id),
             loading: false
           }));
+
+          // Invalidate all goal caches (unknown year) and dashboard stats
+          set({ cacheGoals: {}, cacheDashboardStats: null });
           
           return { success: true };
         } catch (error) {
@@ -510,6 +566,16 @@ const useApiStore = create(
           set(state => ({
             goals: state.goals.map(g => g._id === id ? goal : g)
           }));
+
+          // Invalidate caches and refresh stats
+          const yearToInvalidate = goal?.year;
+          const currentCache = get().cacheGoals || {};
+          const newCache = { ...currentCache };
+          if (yearToInvalidate !== undefined) {
+            Object.keys(newCache).forEach(k => { if (k.includes(`year=${yearToInvalidate}`)) delete newCache[k]; });
+          }
+          set({ cacheGoals: newCache, cacheDashboardStats: null });
+          try { await get().getDashboardStats({ force: true }); } catch {}
           
           return { success: true, goal };
         } catch (error) {

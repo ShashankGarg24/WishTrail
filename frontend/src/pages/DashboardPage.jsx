@@ -65,7 +65,7 @@ const DashboardPage = () => {
     const result = await createGoal({ ...goalData, year: selectedYear })
     if (result.success) {
       // Refresh dashboard stats
-      await getDashboardStats()
+      await getDashboardStats({ force: true })
       setIsCreateModalOpen(false)
       setInitialGoalData(null)
     }
@@ -76,7 +76,7 @@ const DashboardPage = () => {
     const result = await toggleGoalCompletion(goalId)
     if (result.success) {
       // Refresh dashboard stats
-      getDashboardStats()
+      getDashboardStats({ force: true })
     }
   }
 
@@ -84,7 +84,7 @@ const DashboardPage = () => {
     const result = await deleteGoal(goalId)
     if (result.success) {
       // Refresh dashboard stats
-      await getDashboardStats()
+      await getDashboardStats({ force: true })
     }
   }
 
@@ -112,9 +112,9 @@ const DashboardPage = () => {
     }
     if (result.success) {
       // Refresh dashboard stats
-      getDashboardStats()
+      getDashboardStats({ force: true })
       // Refresh goals to get updated pointsEarned and other computed fields
-      getGoals({ year: selectedYear })
+      getGoals({ year: selectedYear }, { force: true })
     }
     return result
   }
