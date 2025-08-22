@@ -146,14 +146,9 @@ class UserService {
       totalGoals: user.totalGoals,
       completedGoals: user.completedGoals,
       activeGoals: user.activeGoals,
+      todayCompletions: user.getTodayCompletionCount,
       totalPoints: user.totalPoints
     };
-    
-    // Get recent activities
-    const recentActivities = await Activity.find({ userId })
-      .sort({ createdAt: -1 })
-      .limit(5)
-      .populate('data.goalId', 'title category');
     
     // Get goal completion trend (last 7 days)
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
@@ -194,7 +189,6 @@ class UserService {
       currentStreak: user.currentStreak || 0,
       longestStreak: user.longestStreak || 0,
       level: user.level || 'Beginner',
-      recentActivities,
       completionTrend,
       categoryBreakdown
     };
