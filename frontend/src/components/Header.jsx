@@ -201,7 +201,7 @@ const Header = () => {
                         Account
                       </div>
                       <Link
-                        to="/profile"
+                        to="/profile?tab=overview"
                         onClick={() => setIsMenuOpen(false)}
                         className="flex items-center space-x-3 px-3 py-2 text-base font-medium text-gray-700 hover:text-primary-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:text-primary-400 dark:hover:bg-gray-800 rounded-lg transition-colors"
                       >

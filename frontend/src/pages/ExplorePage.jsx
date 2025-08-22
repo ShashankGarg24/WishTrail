@@ -641,12 +641,12 @@ const ExplorePage = () => {
                               src={userItem.avatar || '/api/placeholder/64/64'}
                               alt={userItem.name}
                               className="w-16 h-16 rounded-full border-2 border-gray-200 dark:border-gray-600 cursor-pointer hover:border-blue-500 transition-colors"
-                              onClick={() => userItem.username && navigate(`/profile/@${userItem.username}`)}
+                              onClick={() => userItem.username && navigate(`/profile/@${userItem.username}?tab=overview`)}
                             />
                             <div className="flex-1">
                               <h3 
                                 className="font-semibold text-gray-900 dark:text-white text-lg cursor-pointer hover:text-blue-500 transition-colors"
-                                onClick={() => userItem.username && navigate(`/profile/@${userItem.username}`)}
+                                onClick={() => userItem.username && navigate(`/profile/@${userItem.username}?tab=overview`)}
                               >
                                 {userItem.name}
                               </h3>
@@ -824,7 +824,7 @@ const ExplorePage = () => {
                                     alt={actorName}
                                     className="w-10 h-10 rounded-full cursor-pointer"
                                     onClick={() => {
-                                      if (n.data?.actorId) navigate(`/profile/@${n.data?.actorId?.username || ''}`);
+                                      if (n.data?.actorId) navigate(`/profile/@${n.data?.actorId?.username || ''}?tab=overview`);
                                     }}
                                   />
                                   <div className="flex-1 min-w-0">
@@ -832,7 +832,7 @@ const ExplorePage = () => {
                                       <button
                                         className="font-medium hover:underline"
                                         onClick={() => {
-                                          if (n.data?.actorId && n.data?.actorId?.username) navigate(`/profile/${n.data.actorId.username}`)
+                                          if (n.data?.actorId && n.data?.actorId?.username) navigate(`/profile/${n.data.actorId.username}?tab=overview`)
                                         }}
                                       >
                                         {actorName}
@@ -929,13 +929,13 @@ const ExplorePage = () => {
                             src={activity?.user?.avatar || activity?.avatar || '/api/placeholder/48/48'}
                             alt={activity?.user?.name || activity?.name || 'User'}
                             className="w-10 h-10 rounded-full object-cover cursor-pointer"
-                            onClick={() => activity.user?.username && navigate(`/profile/@${activity.user.username}`)}
+                            onClick={() => activity.user?.username && navigate(`/profile/@${activity.user.username}?tab=overview`)}
                           />
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
                               <button
                                 className="font-semibold text-gray-900 dark:text-white hover:text-blue-500 truncate"
-                                onClick={() => activity.user?.username && navigate(`/profile/@${activity.user.username}`)}
+                                onClick={() => activity.user?.username && navigate(`/profile/@${activity.user.username}?tab=overview`)}
                               >
                                 {activity?.user?.name || activity?.name || 'Unknown User'}
                               </button>

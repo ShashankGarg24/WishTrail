@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Calendar, Target, TrendingUp, Star, Edit2, ExternalLink, Youtube, Instagram, MapPin, Globe, Award, Trophy, Heart, Clock, CheckCircle, Circle, User, Users, UserPlus, UserCheck, ArrowLeft, Lock, ShieldAlert, Slash } from "lucide-react";
 import { motion } from "framer-motion";
 import useApiStore from "../store/apiStore";
@@ -13,7 +13,9 @@ const ProfilePage = () => {
   const usernameParam = params.username;
   const navigate = useNavigate();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialTab = searchParams.get('tab') || 'overview';
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [userGoals, setUserGoals] = useState([]);
   const [profileUser, setProfileUser] = useState(null);
   const [userStats, setUserStats] = useState(null);
@@ -62,6 +64,13 @@ const ProfilePage = () => {
       fetchUserProfile();
     }
   }, [isAuthenticated, userIdParam, usernameParam]);
+
+  useEffect(() => {
+    const tabFromUrl = searchParams.get('tab') || 'overview';
+    if (tabFromUrl !== activeTab) {
+      setActiveTab(tabFromUrl);
+    }
+  }, [searchParams]);
 
   const fetchOwnProfile = async () => {
     setLoading(true);
@@ -132,6 +141,11 @@ const ProfilePage = () => {
     } catch (error) {
       console.error('Error unfollowing user:', error);
     }
+  };
+
+  const handleTabChange = (tab) => {
+    setSearchParams({ tab });
+    setActiveTab(tab); 
   };
 
   const formatTimeAgo = (dateString) => {
@@ -475,7 +489,7 @@ const ProfilePage = () => {
                 : "bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-2 border border-gray-200 dark:border-gray-700/50 flex"
               }>
                 <button
-                  onClick={() => setActiveTab('overview')}
+                  onClick={() => handleTabChange('overview')}
                   className={`flex items-center space-x-2 px-6 py-3 rounded-xl transition-all duration-200 ${
                     activeTab === 'overview'
                       ? (isOwnProfile ? 'bg-primary-500 text-white shadow-lg' : 'bg-blue-500 text-white shadow-lg')
@@ -486,7 +500,7 @@ const ProfilePage = () => {
                   <span className="font-medium">Overview</span>
                 </button>
                 <button
-                  onClick={() => setActiveTab('goals')}
+                  onClick={() => handleTabChange('goals')}
                   className={`flex items-center space-x-2 px-6 py-3 rounded-xl transition-all duration-200 ${
                     activeTab === 'goals'
                       ? (isOwnProfile ? 'bg-primary-500 text-white shadow-lg' : 'bg-blue-500 text-white shadow-lg')
@@ -517,7 +531,9 @@ const ProfilePage = () => {
                     </h3>
                     {isProfileAccessible() ? (
                       <div className="grid grid-cols-2 gap-4">
-                        <div className="text-center p-4 bg-gray-50 dark:bg-gray-700/30 rounded-xl">
+                        <div className="text-center p-4 bg-gray-50 dark:bg-gray-700/30 rounded-xl cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
+                          onClick={() => handleTabChange('goals')}
+                        >
                           <div className="text-2xl font-bold text-gray-900 dark:text-white">
                             {isOwnProfile ? (displayUser.totalGoals || 0) : (userStats?.totalGoals || 0)}
                           </div>

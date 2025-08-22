@@ -5,6 +5,7 @@ import useApiStore from '../store/apiStore'
 import CelebrationModal from './CelebrationModal'
 
 const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal }) => {
+  const MAX_NOTE_CHARS = 1000
   const [completionNote, setCompletionNote] = useState('')
   const [shareCompletionNote, setShareCompletionNote] = useState(true)
   const [error, setError] = useState('')
@@ -64,6 +65,11 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal }) => {
       return
     }
 
+    if (completionNote.trim().length > MAX_NOTE_CHARS) {
+      setError('Completion note must be 1000 characters or less')
+      return
+    }
+
     if (attachmentError) {
       setError('Please resolve the attachment issue before completing the goal')
       return
@@ -109,6 +115,7 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal }) => {
   }
 
   const wordCount = completionNote.trim().split(/\s+/).filter(word => word.length > 0).length
+  const charCount = completionNote.trim().length
 
   if (!isOpen) return null
 
@@ -183,6 +190,7 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal }) => {
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white resize-none"
               rows={4}
               required
+              maxLength={MAX_NOTE_CHARS}
             />
             <div className="flex items-center justify-between mt-2 text-xs">
               <span className={`${
@@ -201,7 +209,7 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal }) => {
                 )}
               </span>
               <span className="text-gray-500 dark:text-gray-400">
-                {wordCount} words
+                {charCount}/{MAX_NOTE_CHARS} chars • {wordCount} words
               </span>
             </div>
           </div>
@@ -297,7 +305,7 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal }) => {
             <button
               type="submit"
               className="flex-1 py-2 px-4 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              disabled={!validateNote(completionNote) || loading}
+              disabled={!validateNote(completionNote) || charCount > MAX_NOTE_CHARS || loading}
             >
               {loading ? 'Completing...' : 'Complete Goal'}
             </button>

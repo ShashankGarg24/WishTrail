@@ -38,7 +38,7 @@ const LeaderboardPage = () => {
 
   // Navigate to user profile
   const handleUserClick = (userId) => {
-    navigate(`/profile/${userId}`);
+    navigate(`/profile/${userId}?tab=overview`);
   };
 
   useEffect(() => {

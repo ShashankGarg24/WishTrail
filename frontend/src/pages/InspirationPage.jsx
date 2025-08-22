@@ -190,7 +190,7 @@ const InspirationPage = () => {
                           src={activity?.avatar || '/api/placeholder/48/48'}
                           alt={activity?.name || 'User'}
                           className="w-12 h-12 rounded-full border-2 border-gray-300 dark:border-gray-500 cursor-pointer"
-                          onClick={() => navigate(`/profile/${activity?.userId?.username}`)}
+                          onClick={() => navigate(`/profile/${activity?.userId?.username}?tab=overview`)}
                         />
                         <div className={`absolute -top-1 -right-1 w-6 h-6 rounded-full ${getCategoryColor(activity.data?.goalCategory)} flex items-center justify-center text-xs`}>
                           {getActivityIcon(activity)}
@@ -201,7 +201,7 @@ const InspirationPage = () => {
                         <div className="flex items-center space-x-2 mb-1">
                           <span 
                           className="font-semibold text-gray-900 dark:text-white cursor-pointer hover:text-blue-500"
-                          onClick={() => navigate(`/profile/${activity?.userId?.username}`)}
+                          onClick={() => navigate(`/profile/${activity?.userId?.username}?tab=overview`)}
                           >
                             {activity?.name || 'Unknown User'}
                           </span>
@@ -301,14 +301,14 @@ const InspirationPage = () => {
                           src={user.avatar || '/api/placeholder/48/48'}
                           alt={user.name}
                           className="w-12 h-12 rounded-full border-2 border-gray-300 dark:border-gray-500 cursor-pointer flex-shrink-0"
-                          onClick={() => navigate(`/profile/${user?.username}`)}
+                          onClick={() => navigate(`/profile/${user?.username}?tab=overview`)}
                         />
                         
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center space-x-2 mb-1">
                             <span 
                             className="font-semibold text-gray-900 dark:text-white cursor-pointer hover:text-blue-500 truncate"
-                            onClick={() => navigate(`/profile/${user?.username}`)}
+                            onClick={() => navigate(`/profile/${user?.username}?tab=overview`)}
                             >
                               {user.name}
                             </span>
