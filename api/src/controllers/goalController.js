@@ -1,4 +1,5 @@
 const { validationResult } = require('express-validator');
+const mongoose = require('mongoose');
 const Goal = require('../models/Goal');
 const User = require('../models/User');
 const Activity = require('../models/Activity');
@@ -132,36 +133,42 @@ const createGoal = async (req, res, next) => {
       });
     }
     
-    const goal = await Goal.create({
-      userId: req.user.id,
-      title,
-      description,
-      category,
-      priority,
-      duration,
-      targetDate,
-      year: currentYear
-    });
-    
-    const currentUser = (await User.findById(req.user.id).select('name avatar'));
-    await currentUser.increaseTotalGoals();
+    const session = await mongoose.startSession();
+    let createdGoal = null;
+    await session.withTransaction(async () => {
+      const [goal] = await Goal.create([
+        {
+          userId: req.user.id,
+          title,
+          description,
+          category,
+          priority,
+          duration,
+          targetDate,
+          year: currentYear
+        }
+      ], { session });
+      createdGoal = goal;
+      await User.updateOne({ _id: req.user.id }, { $inc: { totalGoals: 1 } }, { session });
 
-    // Create activity
-    await Activity.createActivity(
-      req.user.id,
-      currentUser.name,
-      currentUser.avatar,
-      'goal_created',
-      {
-        goalId: goal._id,
-        goalTitle: goal.title,
-        goalCategory: goal.category
-      }
-    );
-    
+      const currentUser = await User.findById(req.user.id).session(session).select('name avatar');
+      await Activity.createActivity(
+        req.user.id,
+        currentUser.name,
+        currentUser.avatar,
+        'goal_created',
+        {
+          goalId: goal._id,
+          goalTitle: goal.title,
+          goalCategory: goal.category
+        }
+      );
+    });
+    session.endSession();
+
     res.status(201).json({
       success: true,
-      data: { goal }
+      data: { goal: createdGoal }
     });
   } catch (error) {
     next(error);
@@ -229,15 +236,14 @@ const updateGoal = async (req, res, next) => {
 // @access  Private
 const deleteGoal = async (req, res, next) => {
   try {
-    const goal = await Goal.findById(req.params.id);
-    
+    const session = await mongoose.startSession();
+    let goal = await Goal.findById(req.params.id);
     if (!goal) {
       return res.status(404).json({
         success: false,
         message: 'Goal not found'
       });
     }
-    
     // Check ownership
     if (goal.userId.toString() !== req.user.id.toString()) {
       return res.status(403).json({
@@ -245,7 +251,6 @@ const deleteGoal = async (req, res, next) => {
         message: 'Access denied'
       });
     }
-    
     // Don't allow deleting completed goals
     if (goal.completed) {
       return res.status(400).json({
@@ -253,10 +258,11 @@ const deleteGoal = async (req, res, next) => {
         message: 'Cannot delete completed goals'
       });
     }
-    
-    await Goal.findByIdAndDelete(req.params.id);
-    const currentUser = (await User.findById(req.user.id));
-    await currentUser.decreaseTotalGoals();
+    await session.withTransaction(async () => {
+      await Goal.deleteOne({ _id: req.params.id }, { session });
+      await User.updateOne({ _id: req.user.id }, { $inc: { totalGoals: -1 } }, { session });
+    });
+    session.endSession();
 
     res.status(200).json({
       success: true,
@@ -280,136 +286,161 @@ const toggleGoalCompletion = async (req, res, next) => {
         errors: errors.array(),
       })
     }
-
     const { completionNote, shareCompletionNote: shareCompletionNoteRaw, attachmentUrl } = req.body
-    const goal = await Goal.findById(req.params.id)
-    if (!goal) {
-      return res.status(404).json({
-        success: false,
-        message: 'Goal not found',
-      })
-    }
-
-    if (goal.userId.toString() !== req.user.id.toString()) {
-      return res.status(403).json({
-        success: false,
-        message: 'Access denied',
-      })
-    }
-
-    const user = await User.findById(req.user.id)
-    const today = new Date().toISOString().split('T')[0]
-
-    let updatedGoal = null
-
-    if (goal.completed) {
-      // UNCOMPLETE GOAL
-
-      // Subtract earned points from user's total
-      if (goal.pointsEarned) {
-        user.totalPoints = Math.max(0, user.totalPoints - goal.pointsEarned)
+    const session = await mongoose.startSession();
+    let resultGoal = null;
+    await session.withTransaction(async () => {
+      const goal = await Goal.findById(req.params.id).session(session);
+      if (!goal) {
+        throw Object.assign(new Error('Goal not found'), { statusCode: 404 });
+      }
+      if (goal.userId.toString() !== req.user.id.toString()) {
+        throw Object.assign(new Error('Access denied'), { statusCode: 403 });
       }
 
-      // Remove from user's daily completions
-      const todayCompletions = user.dailyCompletions.get(today) || []
-      const updatedCompletions = todayCompletions.filter(
-        comp => comp.goalId.toString() !== goal._id.toString()
-      )
-      user.dailyCompletions.set(today, updatedCompletions)
-      user.decreaseCompletedGoals();
-      await user.save()
-
-      // Delete activity log for this goal (if exists)
-      await Activity.deleteOne({
-        userId: user._id,
-        type: 'goal_completed',
-        'data.goalId': goal._id
-      })
-
-      // Reset goal
-      goal.completed = false
-      goal.completedAt = null
-      goal.completionNote = null
-      goal.pointsEarned = 0
-      goal.shareCompletionNote = true
-      await goal.save()
-
-      updatedGoal = goal
-    } else {
-      // COMPLETE GOAL
-
-      if (user.getTodayCompletionCount() >= 3) {
-        return res.status(400).json({
-          success: false,
-          message: 'Daily completion limit reached (3 goals per day)',
-        })
-      }
-
-      if (goal.isLocked) {
-        return res.status(400).json({
-          success: false,
-          message:
-            'Goal is currently locked and cannot be completed yet. Please wait for the minimum duration period.',
-        })
-      }
+      const user = await User.findById(req.user.id).session(session).select('name avatar dailyCompletions totalPoints completedGoals');
 
       const shareCompletionNote = String(shareCompletionNoteRaw) === 'true' || shareCompletionNoteRaw === true
-      updatedGoal = await goal.completeGoal(completionNote, shareCompletionNote);
-      if (attachmentUrl) {
-        updatedGoal.completionAttachmentUrl = attachmentUrl
-        await updatedGoal.save()
-      }
+      const now = new Date();
+      const todayKey = now.toISOString().split('T')[0];
 
-      user.addToTotalPoints(updatedGoal.pointsEarned)
-      user.addDailyCompletion(goal._id);
-      user.increaseCompletedGoals();
-      await user.save();
-
-      const metadata = {}
-      if (shareCompletionNote && completionNote) metadata.completionNote = completionNote
-      if (attachmentUrl) metadata.completionAttachmentUrl = attachmentUrl
-
-      const activity = new Activity({
-        userId: user._id,
-        name: user.name,
-        avatar: user.avatar,
-        type: 'goal_completed',
-        isPublic: !!shareCompletionNote,
-        data: {
-          goalId: goal._id,
-          goalTitle: goal.title,
-          goalCategory: goal.category,
-          pointsEarned: updatedGoal.pointsEarned,
-          // duplicate fields for easier client rendering
-          completionNote: shareCompletionNote ? (completionNote || '') : '',
-          completionAttachmentUrl: attachmentUrl || '',
-          metadata
+      // Helper to compute points mirroring Goal.calculatePoints
+      const computePoints = (g, note) => {
+        let points = 0;
+        const durationPoints = { 'short-term': 10, 'medium-term': 25, 'long-term': 50 };
+        points += durationPoints[g.duration] || 10;
+        const priorityMultiplier = { 'high': 1.5, 'medium': 1.0, 'low': 0.7 };
+        points *= (priorityMultiplier[g.priority] || 1.0);
+        const categoryBonus = {
+          'Education & Learning': 8,
+          'Career & Business': 7,
+          'Financial Goals': 7,
+          'Personal Development': 6,
+          'Health & Fitness': 5,
+          'Creative Projects': 5,
+          'Relationships': 5,
+          'Family & Friends': 4,
+          'Travel & Adventure': 4,
+          'Other': 3
+        };
+        points += (categoryBonus[g.category] || 3);
+        if (g.targetDate && now < new Date(g.targetDate)) {
+          points += Math.floor(points * 0.2);
         }
-      })
-      await activity.save()
+        if (note) {
+          const wc = String(note).trim().split(/\s+/).filter(Boolean).length;
+          if (wc >= 50) points += 10; else if (wc >= 25) points += 5;
+        }
+        return Math.floor(points);
+      };
 
-      // Mention detection in completion note (if public)
-      try {
-        if (shareCompletionNote && completionNote) {
-          const mentionMatches = (completionNote.match(/@([a-zA-Z0-9._-]{3,20})/g) || []).map(m => m.slice(1).toLowerCase());
-          if (mentionMatches.length > 0) {
-            const User = require('../models/User');
-            const users = await User.find({ username: { $in: mentionMatches } }).select('_id').lean();
-            const mentionedIds = Array.from(new Set(users.map(u => String(u._id))));
-            await Promise.all(mentionedIds
-              .filter(uid => uid !== String(user._id))
-              .map(uid => Notification.createMentionNotification(user._id, uid, { activityId: activity._id }))
-            );
+      if (goal.completed) {
+        // UNCOMPLETE
+        const prevCompletedAt = goal.completedAt ? new Date(goal.completedAt) : null;
+        const prevDayKey = prevCompletedAt ? prevCompletedAt.toISOString().split('T')[0] : todayKey;
+        const prevPoints = goal.pointsEarned || 0;
+
+        await Goal.updateOne({ _id: goal._id, completed: true }, {
+          $set: {
+            completed: false,
+            completedAt: null,
+            completionNote: '',
+            pointsEarned: 0,
+            shareCompletionNote: true,
+            completionAttachmentUrl: ''
           }
-        }
-      } catch (_) {}
-    }
+        }, { session });
 
-    return res.status(200).json({
-      success: true,
-      data: { goal: updatedGoal },
-    })
+        await User.updateOne({ _id: user._id }, { $inc: { completedGoals: -1, totalPoints: -prevPoints } }, { session });
+        const pullKey = `dailyCompletions.${prevDayKey}`;
+        await User.updateOne({ _id: user._id }, { $pull: { [pullKey]: { goalId: goal._id } } }, { session });
+
+        await Activity.deleteOne({ userId: user._id, type: 'goal_completed', 'data.goalId': goal._id }).session(session);
+
+        resultGoal = await Goal.findById(goal._id).session(session);
+      } else {
+        // COMPLETE
+        const todayArr = (user.dailyCompletions && user.dailyCompletions.get(todayKey)) || [];
+        if ((todayArr?.length || 0) >= 3) {
+          throw Object.assign(new Error('Daily completion limit reached (3 goals per day)'), { statusCode: 400 });
+        }
+        if (goal.isLocked) {
+          throw Object.assign(new Error('Goal is currently locked and cannot be completed yet. Please wait for the minimum duration period.'), { statusCode: 400 });
+        }
+
+        const points = computePoints(goal, completionNote);
+        const setUpdate = {
+          completed: true,
+          completedAt: now,
+          completionNote: completionNote || '',
+          shareCompletionNote: !!shareCompletionNote,
+          pointsEarned: points
+        };
+        if (attachmentUrl) setUpdate.completionAttachmentUrl = attachmentUrl;
+
+        const updated = await Goal.findOneAndUpdate(
+          { _id: goal._id, userId: user._id, completed: false },
+          { $set: setUpdate },
+          { new: true, session }
+        );
+        if (!updated) {
+          throw Object.assign(new Error('Goal state changed, please retry'), { statusCode: 409 });
+        }
+
+        await User.updateOne({ _id: user._id }, { $inc: { completedGoals: 1, totalPoints: points } }, { session });
+        const key = `dailyCompletions.${todayKey}`;
+        // Ensure single entry per goal per day: pull then push
+        await User.updateOne({ _id: user._id }, { $pull: { [key]: { goalId: goal._id } } }, { session });
+        await User.updateOne({ _id: user._id }, { $push: { [key]: { goalId: goal._id, completedAt: now } } }, { session });
+
+        const metadata = {};
+        if (shareCompletionNote && completionNote) metadata.completionNote = completionNote;
+        if (attachmentUrl) metadata.completionAttachmentUrl = attachmentUrl;
+
+        const activity = new Activity({
+          userId: user._id,
+          name: user.name,
+          avatar: user.avatar,
+          type: 'goal_completed',
+          isPublic: !!shareCompletionNote,
+          data: {
+            goalId: goal._id,
+            goalTitle: goal.title,
+            goalCategory: goal.category,
+            pointsEarned: points,
+            completionNote: shareCompletionNote ? (completionNote || '') : '',
+            completionAttachmentUrl: attachmentUrl || '',
+            metadata
+          }
+        });
+        await activity.save({ session });
+
+        // Mention detection in completion note (if public)
+        try {
+          if (shareCompletionNote && completionNote) {
+            const mentionMatches = (completionNote.match(/@([a-zA-Z0-9._-]{3,20})/g) || []).map(m => m.slice(1).toLowerCase());
+            if (mentionMatches.length > 0) {
+              const U = require('../models/User');
+              const users = await U.find({ username: { $in: mentionMatches } }).select('_id').lean();
+              const mentionedIds = Array.from(new Set(users.map(u => String(u._id))));
+              await Promise.all(mentionedIds
+                .filter(uid => uid !== String(user._id))
+                .map(uid => Notification.createMentionNotification(user._id, uid, { activityId: activity._id }))
+              );
+            }
+          }
+        } catch (_) {}
+
+        resultGoal = updated;
+      }
+    });
+    session.endSession();
+
+    return res.status(200).json({ success: true, data: { goal: resultGoal } });
   } catch (error) {
+    if (error && error.statusCode) {
+      return res.status(error.statusCode).json({ success: false, message: error.message });
+    }
     next(error)
   }
 }

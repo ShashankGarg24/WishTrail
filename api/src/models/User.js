@@ -377,13 +377,10 @@ userSchema.methods.decreaseFollowingCount = function () {
 userSchema.methods.addDailyCompletion = function(goalId) {
   const today = new Date().toISOString().split('T')[0];
   const todayCompletions = this.dailyCompletions.get(today) || [];
-  
-  todayCompletions.push({
-    goalId,
-    completedAt: new Date()
-  });
-  
-  this.dailyCompletions.set(today, todayCompletions);
+  // prevent duplicates for same goal in same day
+  const filtered = todayCompletions.filter(c => String(c.goalId) !== String(goalId));
+  filtered.push({ goalId, completedAt: new Date() });
+  this.dailyCompletions.set(today, filtered);
 };
 
 //Add to total Points
