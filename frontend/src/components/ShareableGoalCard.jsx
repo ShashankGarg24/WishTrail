@@ -84,7 +84,7 @@ const ShareableGoalCard = forwardRef(({ goal, user, onClose }, ref) => {
 
       {/* Goal Title */}
       <div className="relative z-10 mb-6">
-        <h3 className="text-xl font-bold text-gray-900 dark:text-white text-center leading-tight">
+        <h3 className="text-xl font-bold text-gray-900 dark:text-white text-center leading-tight break-anywhere line-clamp-2">
           "{goal.title}"
         </h3>
       </div>
@@ -139,7 +139,7 @@ const ShareableGoalCard = forwardRef(({ goal, user, onClose }, ref) => {
             <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
               What I accomplished:
             </h4>
-            <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+            <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed break-anywhere line-clamp-5">
               {goal.completionNote}
             </p>
           </div>

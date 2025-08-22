@@ -4,6 +4,8 @@ import { X, Plus, Target, Calendar, Tag, AlertCircle } from 'lucide-react'
 import useApiStore from '../store/apiStore'
 
 const CreateWishModal = ({ isOpen, onClose, onSave, year, initialData }) => {
+  const MAX_TITLE_CHARS = 200
+  const MAX_DESC_CHARS = 1000
 
   const [formData, setFormData] = useState({
     title: '',
@@ -66,9 +68,14 @@ const CreateWishModal = ({ isOpen, onClose, onSave, year, initialData }) => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
+    const limited = name === 'title'
+      ? value.slice(0, MAX_TITLE_CHARS)
+      : name === 'description'
+        ? value.slice(0, MAX_DESC_CHARS)
+        : value
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: limited
     }))
     // Clear error when user starts typing
     if (errors[name]) {
@@ -85,9 +92,15 @@ const CreateWishModal = ({ isOpen, onClose, onSave, year, initialData }) => {
     if (!formData.title.trim()) {
       newErrors.title = 'Title is required'
     }
+    if (formData.title.trim().length > MAX_TITLE_CHARS) {
+      newErrors.title = `Title cannot exceed ${MAX_TITLE_CHARS} characters`
+    }
     
     if (!formData.description.trim()) {
       newErrors.description = 'Description is required'
+    }
+    if (formData.description.trim().length > MAX_DESC_CHARS) {
+      newErrors.description = `Description cannot exceed ${MAX_DESC_CHARS} characters`
     }
     
     if (!formData.category) {
@@ -211,7 +224,9 @@ const CreateWishModal = ({ isOpen, onClose, onSave, year, initialData }) => {
               }`}
               placeholder="Enter your goal title"
               required
+              maxLength={MAX_TITLE_CHARS}
             />
+            <div className="mt-1 text-xs text-gray-500 dark:text-gray-400 text-right">{formData.title.length}/{MAX_TITLE_CHARS}</div>
             {errors.title && (
               <div className="flex items-center mt-1 text-red-500 text-sm">
                 <AlertCircle className="h-4 w-4 mr-1" />
@@ -236,7 +251,9 @@ const CreateWishModal = ({ isOpen, onClose, onSave, year, initialData }) => {
               }`}
               placeholder="Describe your goal in detail"
               required
+              maxLength={MAX_DESC_CHARS}
             />
+            <div className="mt-1 text-xs text-gray-500 dark:text-gray-400 text-right">{formData.description.length}/{MAX_DESC_CHARS}</div>
             {errors.description && (
               <div className="flex items-center mt-1 text-red-500 text-sm">
                 <AlertCircle className="h-4 w-4 mr-1" />

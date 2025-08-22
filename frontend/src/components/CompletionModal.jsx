@@ -167,7 +167,7 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal }) => {
 
         {/* Goal Title */}
         <div className="mb-6">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 break-anywhere line-clamp-2">
             "{goalTitle}"
           </h3>
           <p className="text-gray-600 dark:text-gray-400 text-sm">
@@ -204,12 +204,12 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal }) => {
                 ) : (
                   <span className="flex items-center">
                     <AlertCircle className="h-3 w-3 mr-1" />
-                    At least 10 words required
+                    At least {10-wordCount} more words required
                   </span>
                 )}
               </span>
               <span className="text-gray-500 dark:text-gray-400">
-                {charCount}/{MAX_NOTE_CHARS} chars • {wordCount} words
+                {charCount}/{MAX_NOTE_CHARS} chars
               </span>
             </div>
           </div>

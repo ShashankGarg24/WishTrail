@@ -176,7 +176,7 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
             )}
           </button>
           <div className="flex-1 min-w-0">
-            <h3 className={`font-semibold text-lg ${
+            <h3 className={`font-semibold text-lg line-clamp-2 break-anywhere ${
               wish.completed 
                 ? 'text-gray-500 dark:text-gray-400 line-through' 
                 : 'text-gray-900 dark:text-white'
@@ -220,7 +220,7 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
       </div>
 
       {/* Description */}
-      <p className={`text-sm mb-4 ${
+      <p className={`text-sm mb-4 line-clamp-4 break-anywhere ${
         wish.completed 
           ? 'text-gray-400 dark:text-gray-500' 
           : 'text-gray-600 dark:text-gray-300'
@@ -370,7 +370,7 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
           </div>
           {wish.completionNote && (
             <div className="mt-2 p-2 bg-white/50 dark:bg-gray-800/50 rounded text-xs text-gray-700 dark:text-gray-300">
-              <strong>What I did:</strong> {wish.completionNote}
+              <strong>What I did:</strong> <span className="line-clamp-3 break-anywhere inline-block align-top">{wish.completionNote}</span>
             </div>
           )}
         </div>
