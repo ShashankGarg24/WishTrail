@@ -334,6 +334,26 @@ const toggleGoalCompletion = async (req, res, next) => {
         return Math.floor(points);
       };
 
+      // prune dailyCompletions to last 7 days
+      try {
+        const dc = user.dailyCompletions;
+        if (dc && typeof dc.keys === 'function') {
+          const nowMid = new Date(); nowMid.setHours(0,0,0,0);
+          const keepDays = 7;
+          const minKeep = new Date(nowMid.getTime() - (keepDays - 1) * 24 * 60 * 60 * 1000);
+          const unsetPaths = {};
+          for (const key of dc.keys()) {
+            const keyDate = new Date(key);
+            if (String(key) && !isNaN(keyDate) && keyDate < minKeep) {
+              unsetPaths[`dailyCompletions.${key}`] = "";
+            }
+          }
+          if (Object.keys(unsetPaths).length > 0) {
+            await User.updateOne({ _id: user._id }, { $unset: unsetPaths }, { session, strict: false });
+          }
+        }
+      } catch (_) {}
+
       if (goal.completed) {
         // UNCOMPLETE
         const prevCompletedAt = goal.completedAt ? new Date(goal.completedAt) : null;
@@ -390,8 +410,8 @@ const toggleGoalCompletion = async (req, res, next) => {
         await User.updateOne({ _id: user._id }, { $inc: { completedGoals: 1, totalPoints: points } }, { session });
         const key = `dailyCompletions.${todayKey}`;
         // Ensure single entry per goal per day: pull then push
-        await User.updateOne({ _id: user._id }, { $pull: { [key]: { goalId: goal._id } } }, { session });
-        await User.updateOne({ _id: user._id }, { $push: { [key]: { goalId: goal._id, completedAt: now } } }, { session });
+        await User.updateOne({ _id: user._id }, { $pull: { [key]: { goalId: goal._id } } }, { session, strict: false });
+        await User.updateOne({ _id: user._id }, { $push: { [key]: { goalId: goal._id, completedAt: now } } }, { session, strict: false });
 
         const metadata = {};
         if (shareCompletionNote && completionNote) metadata.completionNote = completionNote;

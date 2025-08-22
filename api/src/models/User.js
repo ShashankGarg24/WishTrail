@@ -220,7 +220,7 @@ const userSchema = new mongoose.Schema({
         default: Date.now
       }
     }],
-    default: new Map()
+    default: undefined
   },
   
   // Account Status
@@ -331,8 +331,9 @@ userSchema.methods.generateAuthToken = function() {
 // Instance method to get today's completion count
 userSchema.methods.getTodayCompletionCount = function() {
   const today = new Date().toISOString().split('T')[0];
+  if (!this.dailyCompletions) return 0;
   const todayCompletions = this.dailyCompletions.get(today);
-  return todayCompletions ? todayCompletions.length : 0;
+  return Array.isArray(todayCompletions) ? todayCompletions.length : 0;
 };
 
 userSchema.methods.increaseCompletedGoals = function () {
@@ -381,6 +382,17 @@ userSchema.methods.addDailyCompletion = function(goalId) {
   const filtered = todayCompletions.filter(c => String(c.goalId) !== String(goalId));
   filtered.push({ goalId, completedAt: new Date() });
   this.dailyCompletions.set(today, filtered);
+  // prune to last 7 days on mutate (best-effort in doc context)
+  try {
+    const nowMid = new Date(); nowMid.setHours(0,0,0,0);
+    const minKeep = new Date(nowMid.getTime() - 6 * 24 * 60 * 60 * 1000);
+    for (const key of this.dailyCompletions.keys()) {
+      const d = new Date(key);
+      if (!isNaN(d) && d < minKeep) {
+        this.dailyCompletions.delete(key);
+      }
+    }
+  } catch (_) {}
 };
 
 //Add to total Points
