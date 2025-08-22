@@ -146,7 +146,8 @@ class UserService {
       totalGoals: user.totalGoals,
       completedGoals: user.completedGoals,
       activeGoals: user.activeGoals,
-      todayCompletions: user.getTodayCompletionCount,
+      todayCompletions: user.getTodayCompletionCount(),
+      dailyLimit: 3,
       totalPoints: user.totalPoints
     };
     
