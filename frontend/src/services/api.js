@@ -78,6 +78,7 @@ export const usersAPI = {
   getDashboardStats: () => api.get('/users/dashboard'),
   getProfileSummary: () => api.get('/users/profile'),
   getSuggestedUsers: (params) => api.get('/users/suggestions', { params }),
+  getInterests: (params) => api.get('/users/interests', { params }),
   searchUsers: (params) => api.get('/users/search', { params }),
   getUserGoals: (id, params) => api.get(`/users/${id}/goals`, { params }),
   getUserYearlyGoals: (id, year, params) => api.get(`/users/${id}/goals/yearly/${year}`, { params }),

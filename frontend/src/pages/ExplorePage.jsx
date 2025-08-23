@@ -16,7 +16,8 @@ import {
   X,
   Bell,
   Check,
-  RefreshCw
+  RefreshCw,
+  ChevronsDown
 } from 'lucide-react';
 import useApiStore from '../store/apiStore';
 import { activitiesAPI } from '../services/api';
@@ -32,6 +33,7 @@ const ExplorePage = () => {
   const initialTab = searchParams.get('tab') || 'activities';
   const [activeTab, setActiveTab] = useState(initialTab);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedInterest, setSelectedInterest] = useState(searchParams.get('interest') || '');
   const [loading, setLoading] = useState(false);
   const [users, setUsers] = useState([]);
   const [activities, setActivities] = useState([]);
@@ -77,7 +79,9 @@ const ExplorePage = () => {
     rejectFollowRequest,
     report,
     blockUser,
-    cancelFollowRequest
+    cancelFollowRequest,
+    loadInterests,
+    interestsCatalog
   } = useApiStore();
 
   // Infinite scroll state
@@ -89,6 +93,8 @@ const ExplorePage = () => {
   const [discoverPage, setDiscoverPage] = useState(1);
   const [discoverHasMore, setDiscoverHasMore] = useState(true);
   const [loadingMoreDiscover, setLoadingMoreDiscover] = useState(false);
+  const [interestsExpanded, setInterestsExpanded] = useState(false);
+  const [interestQuery, setInterestQuery] = useState('');
   const activitiesSentinelRef = useRef(null);
   const discoverSentinelRef = useRef(null);
   const notificationsSentinelRef = useRef(null);
@@ -109,6 +115,10 @@ const ExplorePage = () => {
     if (isAuthenticated) {
       fetchInitialData();
       initializeFollowingStatus();
+      // Load dynamic interests once for Discover
+      if (activeTab === 'discover' && (!interestsCatalog || interestsCatalog.length === 0)) {
+        loadInterests().catch(() => {});
+      }
     }
   }, [isAuthenticated]);
 
@@ -183,12 +193,21 @@ const ExplorePage = () => {
   }, [searchParams]);
 
   const handleTabChange = (tab) => {
-    setSearchParams({ tab });
+    const params = { tab };
+    if (searchTerm) params.q = searchTerm;
+    if (selectedInterest) params.interest = selectedInterest;
+    setSearchParams(params);
     setActiveTab(tab); 
   };
 
-  const handleSearch = async (term) => {
-    if (!term.trim() || term.trim().length < 2) {
+  const handleSearch = async (term, interestValue) => {
+    const t = term.trim();
+    if (!t && !interestValue) {
+      setSearchResults([]);
+      setIsSearching(false);
+      return;
+    }
+    if (t && t.length < 2 && !interestValue) {
       setSearchResults([]);
       setIsSearching(false);
       return;
@@ -196,7 +215,7 @@ const ExplorePage = () => {
 
     setIsSearching(true);
     try {
-      const results = await searchUsers(term);
+      const results = await searchUsers(t, interestValue);
       const filteredResults = (results || []).filter(u => u && u._id !== user?._id);
       setSearchResults(filteredResults);
     } catch (error) {
@@ -211,14 +230,25 @@ const ExplorePage = () => {
     // Only trigger search if there's a valid search term
     if (searchTerm.trim() && searchTerm.trim().length >= 2) {
       const debounceTimer = setTimeout(() => {
-        handleSearch(searchTerm);
+        handleSearch(searchTerm, selectedInterest);
       }, 300);
       return () => clearTimeout(debounceTimer);
-    } else {
+    } else if (!selectedInterest) {
       setSearchResults([]);
       setIsSearching(false);
     }
-  }, [searchTerm]);
+  }, [searchTerm, selectedInterest]);
+
+  useEffect(() => {
+    if (activeTab !== 'discover') return;
+    const params = { tab: 'discover' };
+    if (searchTerm) params.q = searchTerm;
+    if (selectedInterest) params.interest = selectedInterest;
+    setSearchParams(params);
+    if (selectedInterest && (!searchTerm || searchTerm.trim().length < 2)) {
+      handleSearch('', selectedInterest);
+    }
+  }, [selectedInterest]);
 
   // Load more handlers
   const loadMoreActivities = useCallback(async () => {
@@ -564,19 +594,19 @@ const ExplorePage = () => {
           </div>
         </motion.div>
 
-        {/* Search Bar */}
+        {/* Search Bar + Interest Chips */}
         {activeTab === 'discover' && 
           (<motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="relative max-w-2xl mx-auto mb-8"
+            className="relative max-w-3xl mx-auto mb-8"
           >
             <div className="relative">
               <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
               <input
                 type="text"
-                placeholder="Search users by name or goals..."
+                placeholder="Search by name or username..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-12 pr-4 py-4 bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg border border-gray-200 dark:border-gray-700/50 rounded-2xl text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-lg"
@@ -587,6 +617,83 @@ const ExplorePage = () => {
                   </div>
               )} */}
             </div>
+            <div className="mt-3">
+              <div className="relative">
+                <div className="flex gap-2 flex-nowrap overflow-hidden pr-16 items-center">
+                  {(() => {
+                    const items = (interestsCatalog && interestsCatalog.length > 0)
+                      ? interestsCatalog.map(x => x.interest)
+                      : ['fitness','health','travel','education','career','finance','hobbies','relationships','personal_growth','creativity','technology','business','lifestyle','spirituality','sports','music','art','reading','cooking','gaming','nature','volunteering'];
+                    const unique = Array.from(new Set([
+                      selectedInterest || null,
+                      ...items
+                    ].filter(Boolean)));
+                    return unique.slice(0, 12).map((i) => {
+                      const active = selectedInterest === i;
+                      return (
+                        <button
+                          key={i}
+                          onClick={() => setSelectedInterest(active ? '' : i)}
+                          className={`px-3 py-1.5 rounded-full text-xs font-medium border shrink-0 transition-colors ${active ? 'bg-blue-500 text-white border-blue-500' : 'bg-white/70 dark:bg-gray-800/50 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700/50'}`}
+                          aria-pressed={active}
+                          title={i.replace(/_/g,' ')}
+                        >
+                          {i.replace(/_/g,' ')}
+                        </button>
+                      );
+                    });
+                  })()}
+                  
+                </div>
+                <div className="pointer-events-none absolute right-12 top-0 h-full w-8 bg-gradient-to-l from-white/90 dark:from-gray-800/90 to-transparent rounded-r-2xl" />
+                <button
+                  onClick={() => setInterestsExpanded(prev => !prev)}
+                  className="absolute right-0 top-1/2 -translate-y-1/2 px-3 py-1.5 rounded-full text-xs font-medium border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-800/70 text-gray-600 dark:text-gray-300 opacity-80 hover:opacity-100 hover:bg-gray-200 dark:hover:bg-gray-700 inline-flex items-center gap-1"
+                  aria-expanded={interestsExpanded}
+                >
+                  <ChevronsDown className="h-4 w-4 opacity-90" />
+                  {interestsExpanded ? 'Collapse' : 'Expand'}
+                </button>
+              </div>
+            </div>
+            {interestsExpanded && (
+              <div className="mt-3 bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl border border-gray-200 dark:border-gray-700/50 p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <Search className="h-4 w-4 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search interests..."
+                    value={interestQuery}
+                    onChange={(e) => setInterestQuery(e.target.value)}
+                    className="flex-1 bg-transparent outline-none text-sm text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+                  />
+                </div>
+                <div className="max-h-72 overflow-auto pr-1 grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {(() => {
+                    const list = (interestsCatalog && interestsCatalog.length > 0)
+                      ? interestsCatalog
+                      : ['fitness','health','travel','education','career','finance','hobbies','relationships','personal_growth','creativity','technology','business','lifestyle','spirituality','sports','music','art','reading','cooking','gaming','nature','volunteering'].map(i => ({ interest: i, count: 0 }));
+                    const q = interestQuery.trim().toLowerCase();
+                    const filtered = q ? list.filter(x => x.interest.replace(/_/g,' ').toLowerCase().includes(q)) : list;
+                    return filtered.map((x) => {
+                      const i = x.interest;
+                      const label = i.replace(/_/g,' ');
+                      const active = selectedInterest === i;
+                      return (
+                        <button
+                          key={i}
+                          className={`w-full text-left px-3 py-2 rounded-md flex items-center justify-between ${active ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-200' : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200'}`}
+                          onClick={() => { setSelectedInterest(active ? '' : i); }}
+                        >
+                          <span className="truncate">{label}</span>
+                          {typeof x.count === 'number' && x.count > 0 && (<span className="text-xs text-gray-500 dark:text-gray-400">{x.count}</span>)}
+                        </button>
+                      );
+                    });
+                  })()}
+                </div>
+              </div>
+            )}
           </motion.div>)
         }
 
@@ -609,7 +716,7 @@ const ExplorePage = () => {
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
                     <Users className="h-6 w-6 mr-2 text-blue-500" />
-                    {searchTerm.trim() ? 'Search Results' : 'Discover Users'}
+                    {(searchTerm.trim() || selectedInterest) ? 'Search Results' : 'Discover Users'}
                   </h2>
                   <div className="flex items-center gap-2">
                     <button

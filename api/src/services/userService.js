@@ -238,6 +238,22 @@ class UserService {
     
     return userResponse;
   }
+
+  /**
+   * List popular interests with counts
+   */
+  async listPopularInterests(limit = 50) {
+    const pipeline = [
+      { $match: { isActive: true, interests: { $exists: true, $ne: [] } } },
+      { $unwind: '$interests' },
+      { $group: { _id: '$interests', count: { $sum: 1 } } },
+      { $sort: { count: -1, _id: 1 } },
+      { $limit: parseInt(limit) },
+      { $project: { _id: 0, interest: '$_id', count: 1 } }
+    ];
+    const results = await User.aggregate(pipeline);
+    return results;
+  }
   
   /**
    * Get suggested users for a user
@@ -333,38 +349,79 @@ class UserService {
    * Search users
    */
   async searchUsers(searchTerm, params = {}) {
-    const { limit = 20, requestingUserId } = params;
-    
-    if (!searchTerm || searchTerm.trim().length < 2) {
-      return [];
+    const { limit = 20, page = 1, requestingUserId, interest } = params;
+
+    const escapeRegex = (s) => String(s || '').replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
+
+    const match = { isActive: true };
+    if (interest && String(interest).trim()) {
+      match.interests = String(interest).trim();
     }
-    
-    const searchRegex = new RegExp(searchTerm, 'i');
-    
-    const users = await User.find({
-      isActive: true,
-      $or: [
-        { name: searchRegex },
-        { username: searchRegex }
-      ]
-    })
-    .select('name username avatar bio level totalPoints completedGoals currentStreak')
-    .limit(parseInt(limit))
-    .sort({ totalPoints: -1 });
-    
+
+    const q = (searchTerm || '').trim();
+    const hasQ = q.length >= 2;
+    const sw = hasQ ? `^${escapeRegex(q.toLowerCase())}` : null;
+    const ct = hasQ ? escapeRegex(q.toLowerCase()) : null;
+
+    const aggregate = [
+      { $match: match },
+      {
+        $addFields: {
+          _uname: { $toLower: { $ifNull: ['$username', ''] } },
+          _name: { $toLower: { $ifNull: ['$name', ''] } }
+        }
+      },
+      {
+        $addFields: hasQ ? {
+          rank: {
+            $switch: {
+              branches: [
+                { case: { $regexMatch: { input: '$_uname', regex: sw } }, then: 4 },
+                { case: { $regexMatch: { input: '$_name',  regex: sw } }, then: 3 },
+                { case: { $regexMatch: { input: '$_uname', regex: ct } }, then: 2 },
+                { case: { $regexMatch: { input: '$_name',  regex: ct } }, then: 1 },
+              ],
+              default: 0
+            }
+          }
+        } : { rank: 0 }
+      },
+      {
+        $facet: {
+          data: [
+            { $sort: { rank: -1, totalPoints: -1, completedGoals: -1, createdAt: -1 } },
+            { $skip: (Math.max(1, parseInt(page)) - 1) * parseInt(limit) },
+            { $limit: parseInt(limit) },
+            { $project: { password: 0, refreshToken: 0, _uname: 0, _name: 0 } }
+          ],
+          total: [
+            { $count: 'count' }
+          ]
+        }
+      }
+    ];
+
+    const res = await User.aggregate(aggregate);
+    const arr = res && res[0] ? res[0] : { data: [], total: [] };
+    const users = arr.data || [];
+    const total = (arr.total && arr.total[0] && arr.total[0].count) ? arr.total[0].count : 0;
+
     if (requestingUserId) {
       const usersWithFollowingStatus = await Promise.all(
         users.map(async (user) => {
           const isFollowing = await Follow.isFollowing(requestingUserId, user._id);
-          return {
-            ...user.toObject(),
-            isFollowing: user._id.toString() !== requestingUserId ? isFollowing : null
-          };
+          // determine request status
+          let isRequested = false;
+          if (!isFollowing) {
+            const pending = await require('../models/Follow').findOne({ followerId: requestingUserId, followingId: user._id, status: 'pending', isActive: false });
+            isRequested = !!pending;
+          }
+          return { ...user, isFollowing, isRequested };
         })
       );
       return usersWithFollowingStatus;
     }
-    
+
     return users;
   }
   

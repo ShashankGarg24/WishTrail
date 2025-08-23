@@ -114,6 +114,7 @@ const useApiStore = create(
       suggestedUsers: [],
       trendingCategories: [],
       exploreSearchResults: null,
+      interestsCatalog: [],
       
       // =====================
       // AUTH ACTIONS
@@ -662,9 +663,11 @@ const useApiStore = create(
         }
       },
       
-      searchUsers: async (searchTerm) => {
+      searchUsers: async (searchTerm, interest) => {
         try {
-          const response = await usersAPI.searchUsers({ search: searchTerm });
+          const params = { search: searchTerm };
+          if (interest && String(interest).trim()) params.interest = String(interest).trim();
+          const response = await usersAPI.searchUsers(params);
           const { users } = response.data.data;
           return users;
         } catch (error) {
@@ -1147,6 +1150,19 @@ const useApiStore = create(
           const errorMessage = handleApiError(error);
           set({ loading: false, error: errorMessage });
           return { success: false, error: errorMessage };
+        }
+      },
+
+      loadInterests: async (limit = 64) => {
+        try {
+          const res = await usersAPI.getInterests({ limit });
+          const interests = res?.data?.data?.interests || [];
+          set({ interestsCatalog: interests });
+          return interests;
+        } catch (err) {
+          console.error('Failed to load interests', err);
+          set({ interestsCatalog: [] });
+          return [];
         }
       },
       

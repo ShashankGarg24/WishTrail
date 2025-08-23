@@ -103,6 +103,19 @@ const getSuggestedUsers = async (req, res, next) => {
   }
 };
 
+// @desc    List popular interests with counts
+// @route   GET /api/v1/users/interests
+// @access  Private
+const listInterests = async (req, res, next) => {
+  try {
+    const limit = parseInt(req.query.limit || '50');
+    const interests = await userService.listPopularInterests(limit);
+    res.status(200).json({ success: true, data: { interests } });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Search users
 // @route   GET /api/v1/users/search
 // @access  Private
@@ -315,5 +328,6 @@ module.exports = {
   getUserActivities,
   updateUser,
   updatePrivacy,
-  deleteUser
+  deleteUser,
+  listInterests
 }; 
