@@ -500,7 +500,9 @@ const ExplorePage = () => {
     } catch (e) {}
   };
       
-  const displayUsers = searchTerm.trim() && searchTerm.trim().length >= 2 ? searchResults : users;
+  const displayUsers = (selectedInterest || (searchTerm.trim() && searchTerm.trim().length >= 2))
+    ? searchResults
+    : users;
       
   if (!isAuthenticated) {
     return (
@@ -667,6 +669,12 @@ const ExplorePage = () => {
                     onChange={(e) => setInterestQuery(e.target.value)}
                     className="flex-1 bg-transparent outline-none text-sm text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
                   />
+                  {selectedInterest && (
+                    <button
+                      onClick={() => { setSelectedInterest(''); setInterestQuery(''); setSearchResults([]); }}
+                      className="text-xs px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+                    >Clear</button>
+                  )}
                 </div>
                 <div className="max-h-72 overflow-auto pr-1 grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {(() => {

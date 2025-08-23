@@ -121,16 +121,17 @@ const listInterests = async (req, res, next) => {
 // @access  Private
 const searchUsers = async (req, res, next) => {
   try {
-    const { search } = req.query;
-    
-    if (!search || search.trim().length < 2) {
+    const { search, interest } = req.query;
+
+    // Allow interest-only searches (no text required)
+    if ((!search || search.trim().length < 2) && !interest) {
       return res.status(400).json({
         success: false,
-        message: 'Search query must be at least 2 characters long'
+        message: 'Provide a search term (2+ chars) or an interest filter'
       });
     }
 
-    const users = await userService.searchUsers(search, { 
+    const users = await userService.searchUsers(search || '', { 
       ...req.query, 
       requestingUserId: req.user.id 
     });
