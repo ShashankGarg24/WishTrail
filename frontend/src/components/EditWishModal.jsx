@@ -12,7 +12,8 @@ const EditWishModal = ({ isOpen, onClose, goal }) => {
     category: '',
     priority: 'medium',
     duration: 'medium-term',
-    targetDate: ''
+    targetDate: '',
+    isPublic: true
   })
   const [errors, setErrors] = useState({})
   const { updateGoal, loading } = useApiStore()
@@ -38,7 +39,8 @@ const EditWishModal = ({ isOpen, onClose, goal }) => {
         category: validCategory,
         priority: goal.priority || 'medium',
         duration: goal.duration || 'medium-term',
-        targetDate: formattedTargetDate
+        targetDate: formattedTargetDate,
+        isPublic: goal.isPublic ?? true
       }
       
       setFormData(newFormData)
@@ -81,12 +83,13 @@ const EditWishModal = ({ isOpen, onClose, goal }) => {
   ]
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target
+    const { name, value, type, checked } = e.target
+    const v = type === 'checkbox' ? checked : value
     const limited = name === 'title'
-      ? value.slice(0, MAX_TITLE_CHARS)
+      ? String(v).slice(0, MAX_TITLE_CHARS)
       : name === 'description'
-        ? value.slice(0, MAX_DESC_CHARS)
-        : value
+        ? String(v).slice(0, MAX_DESC_CHARS)
+        : v
     setFormData(prev => ({
       ...prev,
       [name]: limited
@@ -151,6 +154,7 @@ const EditWishModal = ({ isOpen, onClose, goal }) => {
       priority: formData.priority,
       duration: formData.duration,
       targetDate: formData.targetDate,
+      isPublic: !!formData.isPublic
     }
 
     try {
@@ -168,7 +172,8 @@ const EditWishModal = ({ isOpen, onClose, goal }) => {
       category: '',
       priority: 'medium',
       duration: 'medium-term',
-      targetDate: ''
+      targetDate: '',
+      isPublic: true
     })
     setErrors({})
     onClose()
@@ -355,6 +360,15 @@ const EditWishModal = ({ isOpen, onClose, goal }) => {
                 {errors.targetDate}
               </div>
             )}
+          </div>
+
+          {/* Visibility settings */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+              <input type="checkbox" name="isPublic" checked={!!formData.isPublic} onChange={handleInputChange} className="rounded" />
+              Make this goal visible to others
+            </label>
+            
           </div>
 
           {/* Action Buttons */}

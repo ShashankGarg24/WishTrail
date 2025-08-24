@@ -163,11 +163,6 @@ const goalSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
-  // Include in public search/discover
-  isDiscoverable: {
-    type: Boolean,
-    default: true
-  },
   isShareable: {
     type: Boolean,
     default: true

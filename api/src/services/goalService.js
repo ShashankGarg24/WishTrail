@@ -512,7 +512,7 @@ class GoalService {
 
     const baseMatch = {
       completed: true,
-      isDiscoverable: true,
+      isPublic: true,
       isActive: true
     };
 

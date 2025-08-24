@@ -13,7 +13,9 @@ const CreateWishModal = ({ isOpen, onClose, onSave, year, initialData }) => {
     category: '',
     priority: 'medium',
     duration: 'medium-term',
-    targetDate: ''
+    targetDate: '',
+    isPublic: true,
+    
   })
   const [errors, setErrors] = useState({})
   const { createGoal, loading } = useApiStore()
@@ -27,7 +29,9 @@ const CreateWishModal = ({ isOpen, onClose, onSave, year, initialData }) => {
         category: initialData?.category || '',
         priority: initialData?.priority || 'medium',
         duration: initialData?.duration || 'medium-term',
-        targetDate: initialData?.targetDate || ''
+        targetDate: initialData?.targetDate || '',
+        isPublic: initialData?.isPublic ?? true,
+        
       }))
       setErrors({})
     }
@@ -67,12 +71,13 @@ const CreateWishModal = ({ isOpen, onClose, onSave, year, initialData }) => {
   }
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target
+    const { name, value, type, checked } = e.target
+    const v = type === 'checkbox' ? checked : value
     const limited = name === 'title'
-      ? value.slice(0, MAX_TITLE_CHARS)
+      ? String(v).slice(0, MAX_TITLE_CHARS)
       : name === 'description'
-        ? value.slice(0, MAX_DESC_CHARS)
-        : value
+        ? String(v).slice(0, MAX_DESC_CHARS)
+        : v
     setFormData(prev => ({
       ...prev,
       [name]: limited
@@ -137,7 +142,9 @@ const CreateWishModal = ({ isOpen, onClose, onSave, year, initialData }) => {
       priority: formData.priority,
       duration: formData.duration,
       targetDate: formData.targetDate || null,
-      year: year
+      year: year,
+      isPublic: !!formData.isPublic,
+      
     }
 
     try {
@@ -165,7 +172,9 @@ const CreateWishModal = ({ isOpen, onClose, onSave, year, initialData }) => {
       category: '',
       priority: 'medium',
       duration: 'medium-term',
-      targetDate: ''
+      targetDate: '',
+      isPublic: true,
+      
     })
     setErrors({})
     onClose()
@@ -352,6 +361,15 @@ const CreateWishModal = ({ isOpen, onClose, onSave, year, initialData }) => {
                 {errors.targetDate}
               </div>
             )}
+          </div>
+
+          {/* Visibility settings */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+              <input type="checkbox" name="isPublic" checked={!!formData.isPublic} onChange={handleInputChange} className="rounded" />
+              Make this goal visible to others
+            </label>
+            
           </div>
 
           {/* Action Buttons */}

@@ -112,6 +112,8 @@ const createGoal = async (req, res, next) => {
     }
     
     const { title, description, category, priority, duration, targetDate, year } = req.body;
+    const isPublicFlag = (req.body.isPublic === true || req.body.isPublic === 'true') ? true : false;
+    const isDiscoverableFlag = (req.body.isDiscoverable === true || req.body.isDiscoverable === 'true') ? true : false;
     
     // Check daily goal creation limit (max 5 per day)
     const today = new Date();
@@ -157,7 +159,9 @@ const createGoal = async (req, res, next) => {
           priority,
           duration,
           targetDate,
-          year: currentYear
+          year: currentYear,
+          isPublic: isPublicFlag,
+          isDiscoverable: isDiscoverableFlag
         }
       ], { session });
       createdGoal = goal;
@@ -227,10 +231,12 @@ const updateGoal = async (req, res, next) => {
     }
     
     const { title, description, category, priority, duration, targetDate } = req.body;
+    const isPublicFlag = (req.body.isPublic === true || req.body.isPublic === 'true') ? true : goal.isPublic;
+    const isDiscoverableFlag = (req.body.isDiscoverable === true || req.body.isDiscoverable === 'true') ? true : goal.isDiscoverable;
     
     const updatedGoal = await Goal.findByIdAndUpdate(
       req.params.id,
-      { title, description, category, priority, duration, targetDate },
+      { title, description, category, priority, duration, targetDate, isPublic: isPublicFlag, isDiscoverable: isDiscoverableFlag },
       { new: true, runValidators: true }
     );
     
