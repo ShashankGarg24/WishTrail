@@ -3,6 +3,51 @@ const User = require('../models/User');
 const Activity = require('../models/Activity');
 const userService = require('./userService');
 
+// Map user interests to goal categories for consistent filtering
+function mapInterestToCategory(raw) {
+  if (!raw) return 'Other';
+  const interest = String(raw).toLowerCase();
+  const map = {
+    // Health & Fitness
+    fitness: 'Health & Fitness',
+    health: 'Health & Fitness',
+    sports: 'Health & Fitness',
+
+    // Education & Learning
+    education: 'Education & Learning',
+
+    // Career & Business
+    career: 'Career & Business',
+    business: 'Career & Business',
+    technology: 'Career & Business',
+
+    // Personal Development
+    personal_growth: 'Personal Development',
+    lifestyle: 'Personal Development',
+    spirituality: 'Personal Development',
+
+    // Financial Goals
+    finance: 'Financial Goals',
+
+    // Creative Projects
+    creativity: 'Creative Projects',
+    hobbies: 'Creative Projects',
+    art: 'Creative Projects',
+    music: 'Creative Projects',
+    reading: 'Creative Projects',
+    cooking: 'Creative Projects',
+    gaming: 'Creative Projects',
+
+    // Travel & Adventure
+    travel: 'Travel & Adventure',
+    nature: 'Travel & Adventure',
+
+    // Relationships / Family & Friends
+    relationships: 'Relationships',
+  };
+  return map[interest] || 'Other';
+}
+
 class GoalService {
   /**
    * Get goals with pagination and filters
@@ -529,8 +574,8 @@ class GoalService {
       pipeline.push({ $match: { category } });
     }
     if (interest) {
-      // If your interests map to categories, match either; else skip or extend schema
-      pipeline.push({ $match: { category: { $regex: new RegExp(interest, 'i') } } });
+      const mappedCategory = mapInterestToCategory(interest);
+      pipeline.push({ $match: { category: mappedCategory } });
     }
 
     if (hasText) {

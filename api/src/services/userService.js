@@ -247,6 +247,7 @@ class UserService {
       { $match: { isActive: true, interests: { $exists: true, $ne: [] } } },
       { $unwind: '$interests' },
       { $group: { _id: '$interests', count: { $sum: 1 } } },
+      // Ensure interests align with Goal categories ordering buckets
       { $sort: { count: -1, _id: 1 } },
       { $limit: parseInt(limit) },
       { $project: { _id: 0, interest: '$_id' } }
