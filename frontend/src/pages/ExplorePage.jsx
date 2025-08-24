@@ -66,6 +66,11 @@ const ExplorePage = () => {
   const [goalModalOpen, setGoalModalOpen] = useState(false);
   const [goalModalData, setGoalModalData] = useState(null);
   const [goalModalLoading, setGoalModalLoading] = useState(false);
+  const [goalComments, setGoalComments] = useState([]);
+  const [goalCommentsPagination, setGoalCommentsPagination] = useState(null);
+  const [goalCommentsLoading, setGoalCommentsLoading] = useState(false);
+  const [showComments, setShowComments] = useState(false);
+  const [goalCommentText, setGoalCommentText] = useState('');
   const openGoalModal = async (goalId) => {
     if (!goalId) return;
     try {
@@ -74,13 +79,64 @@ const ExplorePage = () => {
       if (resp?.success) {
         setGoalModalData(resp.data);
         setGoalModalOpen(true);
+        // Update URL to be deep-linkable
+        try { navigate(`/goal/${goalId}`); } catch (_) {}
+        // Preload comments if activityId present
+        const aid = resp?.data?.social?.activityId;
+        if (aid) {
+          try {
+            setGoalCommentsLoading(true);
+            const r = await activitiesAPI.getComments(aid, { page: 1, limit: 20 });
+            const comments = r?.data?.data?.comments || [];
+            const pagination = r?.data?.data?.pagination || null;
+            setGoalComments(comments);
+            setGoalCommentsPagination(pagination);
+            setShowComments(true);
+          } catch (_) { setGoalComments([]); setGoalCommentsPagination(null); setShowComments(false); }
+          finally { setGoalCommentsLoading(false); }
+        } else {
+          setShowComments(false);
+          setGoalComments([]);
+          setGoalCommentsPagination(null);
+        }
       }
     } catch (_) {
     } finally {
       setGoalModalLoading(false);
     }
   };
-  const closeGoalModal = () => { setGoalModalOpen(false); setGoalModalData(null); };
+  const closeGoalModal = () => {
+    setGoalModalOpen(false); setGoalModalData(null);
+    // If opened via /goal/:goalId, go back to previous page
+    try { if (goalId) navigate(-1); } catch (_) {}
+  };
+  const loadMoreGoalComments = async () => {
+    if (!goalModalData?.social?.activityId || goalCommentsLoading) return;
+    const p = goalCommentsPagination?.page || 1;
+    const pages = goalCommentsPagination?.pages || 1;
+    if (p >= pages) return;
+    try {
+      setGoalCommentsLoading(true);
+      const next = p + 1;
+      const r = await activitiesAPI.getComments(goalModalData.social.activityId, { page: next, limit: goalCommentsPagination?.limit || 20 });
+      const more = r?.data?.data?.comments || [];
+      const pagination = r?.data?.data?.pagination || null;
+      setGoalComments(prev => [...prev, ...more]);
+      setGoalCommentsPagination(pagination);
+    } catch (_) {} finally { setGoalCommentsLoading(false); }
+  };
+
+  const addGoalComment = async () => {
+    try {
+      const aid = goalModalData?.social?.activityId;
+      const text = goalCommentText.trim();
+      if (!aid || !text) return;
+      const res = await activitiesAPI.addComment(aid, { text });
+      const newComment = res?.data?.data?.comment;
+      if (newComment) setGoalComments((prev) => [newComment, ...(prev || [])]);
+      setGoalCommentText('');
+    } catch (_) {}
+  };
 
   const { 
     isAuthenticated, 
@@ -1379,25 +1435,30 @@ const ExplorePage = () => {
               {goalModalLoading || !goalModalData ? (
                 <div className="p-10 text-center text-gray-500 dark:text-gray-400">Loading...</div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2">
+                <div className={`grid ${goalModalData?.share?.image ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'}`}>
                   {/* Media panel */}
-                  <div className="bg-black flex items-center justify-center min-h-[320px] md:min-h-[520px]">
-                    {goalModalData?.share?.image ? (
+                  {goalModalData?.share?.image ? (
+                    <div className="bg-black flex items-center justify-center min-h-[320px] md:min-h-[520px]">
                       <img src={goalModalData.share.image} alt="Completion" className="max-h-[80vh] w-auto object-contain" />
-                    ) : (
-                      <div className="p-6 text-center text-gray-300">No image</div>
-                    )}
-                  </div>
-                  {/* Details panel */}
-                  <div className="flex flex-col min-h-[320px] md:min-h-[520px]">
+                    </div>
+                  ) : (!showComments && (
+                    <div className="hidden md:block min-h-[320px] md:min-h-[520px]" />
+                  ))}
+                  {/* Details / Comments panel */}
+                  <div className={`flex flex-col min-h-[320px] md:min-h-[520px] ${(!goalModalData?.share?.image && !showComments) ? 'md:max-w-2xl mx-auto w-full' : ''}`}>
                     <div className="flex items-center gap-3 p-4 border-b border-gray-200 dark:border-gray-800">
                       <img src={goalModalData?.user?.avatar || '/api/placeholder/40/40'} className="w-10 h-10 rounded-full" />
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{goalModalData?.user?.name}</div>
                         {goalModalData?.user?.username && (<div className="text-xs text-gray-500">@{goalModalData.user.username}</div>)}
                       </div>
+                      {/* Open comments toggle */}
+                      {goalModalData?.social?.activityId && (
+                        <button onClick={() => setShowComments(true)} className="mr-2 text-xs px-3 py-1.5 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700">Comments</button>
+                      )}
                       <button onClick={closeGoalModal} className="px-3 py-1.5 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800">✕</button>
                     </div>
+                    {!showComments && (
                     <div className="p-4 space-y-3 overflow-auto">
                       <div>
                         <div className="text-xs text-gray-500">Category</div>
@@ -1432,12 +1493,18 @@ const ExplorePage = () => {
                         <div className="text-xs text-gray-500">No public completion note or image shared</div>
                       )}
                     </div>
+                    )}
+                    {showComments && goalModalData?.social?.activityId && (
+                      <div className="flex-1 min-h-0">
+                        <ActivityCommentsModal isOpen={true} onClose={() => setShowComments(false)} activity={{ _id: goalModalData.social.activityId, commentCount: goalModalData?.social?.commentCount }} inline />
+                      </div>
+                    )}
                     <div className="mt-auto border-t border-gray-200 dark:border-gray-800 p-4 flex items-center gap-4">
                       <div className="text-sm text-gray-700 dark:text-gray-300">❤️ {goalModalData?.social?.likeCount || 0}</div>
                       <div className="text-sm text-gray-700 dark:text-gray-300">💬 {goalModalData?.social?.commentCount || 0}</div>
-                      {goalModalData?.social?.activityId && (
+                      {goalModalData?.social?.activityId && !showComments && (
                         <button
-                          onClick={() => { closeGoalModal(); openNotificationActivity(goalModalData.social.activityId); }}
+                          onClick={() => setShowComments(true)}
                           className="ml-auto text-sm text-blue-600 hover:underline"
                         >Open comments</button>
                       )}
