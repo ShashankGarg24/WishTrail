@@ -324,7 +324,8 @@ class ActivityService {
   async getActivityById(activityId, requestingUserId) {
     const activity = await Activity.findById(activityId)
       .populate('userId', 'name avatar level')
-      .populate('likes', 'name avatar');
+      // likes is not a reference path; compute counts separately
+      ;
     
     if (!activity) {
       throw new Error('Activity not found');

@@ -195,8 +195,7 @@ const getActivity = async (req, res, next) => {
     const { id } = req.params;
     
     const activity = await Activity.findById(id)
-      .populate('userId', 'name avatar level')
-      .populate('likes', 'name avatar');
+      .populate('userId', 'name avatar level');
     
     if (!activity) {
       return res.status(404).json({
@@ -217,9 +216,15 @@ const getActivity = async (req, res, next) => {
       });
     }
     
+    const [likeCount, isLiked, commentCount] = await Promise.all([
+      Like.getLikeCount('activity', id),
+      Like.hasUserLiked(req.user.id, 'activity', id),
+      ActivityComment.countDocuments({ activityId: id, isActive: true })
+    ]);
+
     res.status(200).json({
       success: true,
-      data: { activity }
+      data: { activity: { ...activity.toObject(), likeCount, isLiked, commentCount } }
     });
   } catch (error) {
     next(error);
