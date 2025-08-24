@@ -554,6 +554,8 @@ class GoalService {
 
     const t = (searchTerm || '').trim().toLowerCase();
     const hasText = t.length >= 2;
+    const escapeRegex = (s) => String(s || '').replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+    const safe = hasText ? escapeRegex(t) : '';
 
     const baseMatch = {
       completed: true,
@@ -579,7 +581,9 @@ class GoalService {
     }
 
     if (hasText) {
-      pipeline.push({ $match: { titleLower: { $regex: new RegExp(t) } } });
+      // Compute lowercase title on the fly to support older docs without titleLower
+      pipeline.push({ $addFields: { _titleLower: { $toLower: { $ifNull: ['$titleLower', '$title'] } } } });
+      pipeline.push({ $match: { _titleLower: { $regex: new RegExp(safe) } } });
     }
 
     const skip = (Math.max(1, parseInt(page)) - 1) * parseInt(limit);

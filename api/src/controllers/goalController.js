@@ -1,4 +1,5 @@
 const { validationResult } = require('express-validator');
+import { goalService } from '../services/goalService';
 const mongoose = require('mongoose');
 // @desc    Search goals (completed, discoverable, public users)
 // @route   GET /api/v1/goals/search?q=&category=&interest=&page=&limit=
@@ -17,7 +18,7 @@ const searchGoals = async (req, res, next) => {
 
     let payload = cached;
     if (!payload) {
-      payload = await require('../services/goalService').searchGoals(q, { category, interest, page, limit });
+      payload = await goalService.searchGoals(q, { category, interest, page, limit });
       if (interest || category) {
         await cacheService.setGoalSearch(payload, cacheParams);
       }
