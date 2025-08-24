@@ -110,7 +110,9 @@ const listInterests = async (req, res, next) => {
   try {
     const limit = parseInt(req.query.limit || '50');
     const interests = await userService.listPopularInterests(limit);
-    res.status(200).json({ success: true, data: { interests } });
+    // Ensure we do not expose counts
+    const sanitized = (interests || []).map(i => ({ interest: i.interest }));
+    res.status(200).json({ success: true, data: { interests: sanitized } });
   } catch (error) {
     next(error);
   }
@@ -121,7 +123,7 @@ const listInterests = async (req, res, next) => {
 // @access  Private
 const searchUsers = async (req, res, next) => {
   try {
-    const { search, interest } = req.query;
+    const { search, interest, page = 1, limit = 20 } = req.query;
 
     // Allow interest-only searches (no text required)
     if ((!search || search.trim().length < 2) && !interest) {
@@ -131,14 +133,30 @@ const searchUsers = async (req, res, next) => {
       });
     }
 
-    const users = await userService.searchUsers(search || '', { 
-      ...req.query, 
-      requestingUserId: req.user.id 
-    });
+    // Try cache for interest-based searches (fast perceived speed)
+    const cacheService = require('../services/cacheService');
+    const cacheParams = { q: search || '', interest, page: parseInt(page), limit: parseInt(limit) };
+    let cached = null;
+    if (interest) {
+      cached = await cacheService.getUserSearch(cacheParams);
+    }
+
+    let payload = cached;
+    if (!payload) {
+      payload = await userService.searchUsers(search || '', { 
+        ...req.query, 
+        requestingUserId: req.user.id 
+      });
+      if (interest) {
+        // Store only minimal payload for cache
+        await cacheService.setUserSearch(payload, cacheParams);
+      }
+    }
 
     res.status(200).json({
       success: true,
-      data: { users }
+      data: payload,
+      fromCache: !!cached
     });
   } catch (error) {
     next(error);

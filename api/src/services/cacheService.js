@@ -13,7 +13,9 @@ class CacheService {
       CATEGORY_LEADERBOARD: 'wishtrail:leaderboard:category',
       ACHIEVEMENT_LEADERBOARD: 'wishtrail:leaderboard:achievement',
       FRIENDS_LEADERBOARD: 'wishtrail:leaderboard:friends',
-      LEADERBOARD_STATS: 'wishtrail:leaderboard:stats'
+      LEADERBOARD_STATS: 'wishtrail:leaderboard:stats',
+      USER_SEARCH: 'wishtrail:search:users',
+      GOAL_SEARCH: 'wishtrail:search:goals'
     };
     
     this.CACHE_TTL = {
@@ -285,6 +287,43 @@ class CacheService {
       console.error('Cache clear all error:', error);
       return false;
     }
+  }
+
+  // =====================
+  // Search cache helpers
+  // =====================
+  _keyForSearch(baseKey, params = {}) {
+    const parts = [baseKey];
+    const add = (k, v) => {
+      if (v === undefined || v === null || v === '') return;
+      parts.push(`${k}:${String(v)}`);
+    };
+    add('interest', params.interest);
+    add('q', params.q);
+    add('page', parseInt(params.page));
+    add('limit', parseInt(params.limit));
+    add('category', params.category);
+    return parts.join(':');
+  }
+
+  async getUserSearch(params = {}) {
+    const key = this._keyForSearch(this.CACHE_KEYS.USER_SEARCH, params);
+    return await this.get(key);
+  }
+
+  async setUserSearch(data, params = {}) {
+    const key = this._keyForSearch(this.CACHE_KEYS.USER_SEARCH, params);
+    return await this.set(key, data, this.CACHE_TTL.THREE_MINUTES);
+  }
+
+  async getGoalSearch(params = {}) {
+    const key = this._keyForSearch(this.CACHE_KEYS.GOAL_SEARCH, params);
+    return await this.get(key);
+  }
+
+  async setGoalSearch(data, params = {}) {
+    const key = this._keyForSearch(this.CACHE_KEYS.GOAL_SEARCH, params);
+    return await this.set(key, data, this.CACHE_TTL.THREE_MINUTES);
   }
 }
 

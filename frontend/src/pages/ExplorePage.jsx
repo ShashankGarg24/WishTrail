@@ -97,6 +97,13 @@ const ExplorePage = () => {
   const [discoverHasMore, setDiscoverHasMore] = useState(true);
   const [loadingMoreDiscover, setLoadingMoreDiscover] = useState(false);
   const [interestsExpanded, setInterestsExpanded] = useState(false);
+  // Search pagination state
+  const [userSearchPage, setUserSearchPage] = useState(1);
+  const [userSearchHasMore, setUserSearchHasMore] = useState(true);
+  const [loadingMoreUserSearch, setLoadingMoreUserSearch] = useState(false);
+  const [goalSearchPage, setGoalSearchPage] = useState(1);
+  const [goalSearchHasMore, setGoalSearchHasMore] = useState(true);
+  const [loadingMoreGoalSearch, setLoadingMoreGoalSearch] = useState(false);
   // removed interestQuery since we no longer search inside the expanded interests panel
   const activitiesSentinelRef = useRef(null);
   const discoverSentinelRef = useRef(null);
@@ -220,15 +227,23 @@ const ExplorePage = () => {
     }
 
     setIsSearching(true);
+    setUserSearchPage(1);
+    setGoalSearchPage(1);
+    setUserSearchHasMore(true);
+    setGoalSearchHasMore(true);
     try {
       if (activeDiscoverSubtab === 'users') {
-        const results = await searchUsers(t, interestValue);
+        const { users: results, pagination } = await searchUsers({ search: t, interest: interestValue, page: 1, limit: 18 });
         const filteredResults = (results || []).filter(u => u && u._id !== user?._id);
         setSearchResults(filteredResults);
+        const totalPages = pagination?.pages || 1;
+        setUserSearchHasMore(1 < totalPages);
       } else {
         setLoadingGoals(true);
-        const goals = await useApiStore.getState().searchGoals({ q: t, interest: interestValue, limit: 20 });
+        const { goals, pagination } = await useApiStore.getState().searchGoals({ q: t, interest: interestValue, page: 1, limit: 18 });
         setGoalResults(goals || []);
+        const totalPages = pagination?.pages || 1;
+        setGoalSearchHasMore(1 < totalPages);
       }
     } catch (error) {
       console.error('Error searching:', error);
@@ -305,6 +320,43 @@ const ExplorePage = () => {
     }
   }, [discoverPage, discoverHasMore, loadingMoreDiscover, getUsers, searchTerm]);
 
+  const loadMoreUserSearch = useCallback(async () => {
+    if (loadingMoreUserSearch || !userSearchHasMore) return;
+    const t = searchTerm.trim();
+    const next = userSearchPage + 1;
+    setLoadingMoreUserSearch(true);
+    try {
+      const { users: results, pagination } = await searchUsers({ search: t, interest: selectedInterest, page: next, limit: 18 });
+      const filtered = (results || []).filter(u => u && u._id && u._id !== user?._id);
+      setSearchResults(prev => mergeUniqueById(prev, filtered));
+      setUserSearchPage(next);
+      const totalPages = pagination?.pages || next;
+      setUserSearchHasMore(next < totalPages);
+    } catch (_) {
+      setUserSearchHasMore(false);
+    } finally {
+      setLoadingMoreUserSearch(false);
+    }
+  }, [userSearchPage, userSearchHasMore, loadingMoreUserSearch, searchUsers, searchTerm, selectedInterest]);
+
+  const loadMoreGoalSearch = useCallback(async () => {
+    if (loadingMoreGoalSearch || !goalSearchHasMore) return;
+    const t = searchTerm.trim();
+    const next = goalSearchPage + 1;
+    setLoadingMoreGoalSearch(true);
+    try {
+      const { goals, pagination } = await useApiStore.getState().searchGoals({ q: t, interest: selectedInterest, page: next, limit: 18 });
+      setGoalResults(prev => mergeUniqueById(prev, goals || []));
+      setGoalSearchPage(next);
+      const totalPages = pagination?.pages || next;
+      setGoalSearchHasMore(next < totalPages);
+    } catch (_) {
+      setGoalSearchHasMore(false);
+    } finally {
+      setLoadingMoreGoalSearch(false);
+    }
+  }, [goalSearchPage, goalSearchHasMore, loadingMoreGoalSearch, searchTerm, selectedInterest]);
+
   // Observer
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -312,7 +364,15 @@ const ExplorePage = () => {
       const entry = entries[0];
       if (entry.isIntersecting) {
         if (activeTab === 'activities') loadMoreActivities();
-        if (activeTab === 'discover') loadMoreDiscover();
+        if (activeTab === 'discover') {
+          if ((searchTerm.trim() || selectedInterest) && activeDiscoverSubtab === 'users') {
+            loadMoreUserSearch();
+          } else if ((searchTerm.trim() || selectedInterest) && activeDiscoverSubtab === 'goals') {
+            loadMoreGoalSearch();
+          } else {
+            loadMoreDiscover();
+          }
+        }
         if (activeTab === 'notifications') {
           const hasMore = (notificationsPagination?.page || 1) < (notificationsPagination?.pages || 1);
           if (hasMore) {
@@ -691,8 +751,8 @@ const ExplorePage = () => {
                 <div className="max-h-72 overflow-auto pr-1 grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {(() => {
                     const list = (interestsCatalog && interestsCatalog.length > 0)
-                      ? interestsCatalog
-                      : ['fitness','health','travel','education','career','finance','hobbies','relationships','personal_growth','creativity','technology','business','lifestyle','spirituality','sports','music','art','reading','cooking','gaming','nature','volunteering'].map(i => ({ interest: i, count: 0 }));
+                      ? interestsCatalog.map(x => ({ interest: x.interest }))
+                      : ['fitness','health','travel','education','career','finance','hobbies','relationships','personal_growth','creativity','technology','business','lifestyle','spirituality','sports','music','art','reading','cooking','gaming','nature','volunteering'].map(i => ({ interest: i }));
                     return list.map((x) => {
                       const i = x.interest;
                       const label = i.replace(/_/g,' ');
@@ -704,7 +764,6 @@ const ExplorePage = () => {
                           onClick={() => { setSelectedInterest(active ? '' : i); }}
                         >
                           <span className="truncate">{label}</span>
-                          {typeof x.count === 'number' && x.count > 0 && (<span className="text-xs text-gray-500 dark:text-gray-400">{x.count}</span>)}
                         </button>
                       );
                     });

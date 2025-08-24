@@ -641,13 +641,13 @@ const useApiStore = create(
       searchGoals: async (params = {}) => {
         try {
           const response = await goalsAPI.searchGoals(params);
-          const { goals } = response.data.data;
+          const { goals, pagination } = response.data.data;
           set({ goalsSearchResults: goals });
-          return goals;
+          return { goals, pagination };
         } catch (error) {
           console.error('Error searching goals:', error);
           set({ goalsSearchResults: [] });
-          return [];
+          return { goals: [], pagination: null };
         }
       },
       
@@ -678,16 +678,19 @@ const useApiStore = create(
         }
       },
       
-      searchUsers: async (searchTerm, interest) => {
+      searchUsers: async (params = {}) => {
         try {
-          const params = { search: searchTerm };
-          if (interest && String(interest).trim()) params.interest = String(interest).trim();
-          const response = await usersAPI.searchUsers(params);
-          const { users } = response.data.data;
-          return users;
+          const query = {};
+          if (params.search && String(params.search).trim()) query.search = String(params.search).trim();
+          if (params.interest && String(params.interest).trim()) query.interest = String(params.interest).trim();
+          if (params.page) query.page = params.page;
+          if (params.limit) query.limit = params.limit;
+          const response = await usersAPI.searchUsers(query);
+          const { users, pagination } = response.data.data;
+          return { users, pagination };
         } catch (error) {
           console.error('Error searching users:', error);
-          return [];
+          return { users: [], pagination: null };
         }
       },
       

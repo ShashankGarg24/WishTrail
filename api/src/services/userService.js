@@ -249,7 +249,7 @@ class UserService {
       { $group: { _id: '$interests', count: { $sum: 1 } } },
       { $sort: { count: -1, _id: 1 } },
       { $limit: parseInt(limit) },
-      { $project: { _id: 0, interest: '$_id', count: 1 } }
+      { $project: { _id: 0, interest: '$_id' } }
     ];
     const results = await User.aggregate(pipeline);
     return results;
@@ -406,11 +406,11 @@ class UserService {
     const users = arr.data || [];
     const total = (arr.total && arr.total[0] && arr.total[0].count) ? arr.total[0].count : 0;
 
+    let enrichedUsers = users;
     if (requestingUserId) {
-      const usersWithFollowingStatus = await Promise.all(
+      enrichedUsers = await Promise.all(
         users.map(async (user) => {
           const isFollowing = await Follow.isFollowing(requestingUserId, user._id);
-          // determine request status
           let isRequested = false;
           if (!isFollowing) {
             const pending = await require('../models/Follow').findOne({ followerId: requestingUserId, followingId: user._id, status: 'pending', isActive: false });
@@ -419,10 +419,17 @@ class UserService {
           return { ...user, isFollowing, isRequested };
         })
       );
-      return usersWithFollowingStatus;
     }
 
-    return users;
+    return {
+      users: enrichedUsers,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / parseInt(limit || 1))
+      }
+    };
   }
   
   /**

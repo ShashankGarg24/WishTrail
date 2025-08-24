@@ -505,7 +505,7 @@ class GoalService {
    * Search goals
    */
   async searchGoals(searchTerm, params = {}) {
-    const { limit = 20, category, interest } = params;
+    const { limit = 20, page = 1, category, interest } = params;
 
     const t = (searchTerm || '').trim().toLowerCase();
     const hasText = t.length >= 2;
@@ -537,14 +537,33 @@ class GoalService {
       pipeline.push({ $match: { titleLower: { $regex: new RegExp(t) } } });
     }
 
+    const skip = (Math.max(1, parseInt(page)) - 1) * parseInt(limit);
     pipeline.push(
       { $sort: { completedAt: -1, pointsEarned: -1 } },
-      { $limit: parseInt(limit) },
-      { $project: { title: 1, category: 1, completedAt: 1, pointsEarned: 1, likeCount: 1, user: { _id: 1, name: 1, avatar: 1 } } }
+      { $facet: {
+          data: [
+            { $skip: skip },
+            { $limit: parseInt(limit) },
+            { $project: { title: 1, category: 1, completedAt: 1, pointsEarned: 1, likeCount: 1, user: { _id: 1, name: 1, avatar: 1 } } }
+          ],
+          total: [ { $count: 'count' } ]
+        }
+      }
     );
 
-    const results = await Goal.aggregate(pipeline);
-    return results;
+    const res = await Goal.aggregate(pipeline);
+    const arr = res && res[0] ? res[0] : { data: [], total: [] };
+    const goals = arr.data || [];
+    const total = (arr.total && arr.total[0] && arr.total[0].count) ? arr.total[0].count : 0;
+    return {
+      goals,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / parseInt(limit || 1))
+      }
+    };
   }
 }
 

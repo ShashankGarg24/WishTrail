@@ -1,13 +1,29 @@
 const { validationResult } = require('express-validator');
 const mongoose = require('mongoose');
 // @desc    Search goals (completed, discoverable, public users)
-// @route   GET /api/v1/goals/search?q=&category=&interest=&limit=20
+// @route   GET /api/v1/goals/search?q=&category=&interest=&page=&limit=
 // @access  Private
 const searchGoals = async (req, res, next) => {
   try {
-    const { q = '', category, interest, limit } = req.query;
-    const goals = await require('../services/goalService').searchGoals(q, { category, interest, limit });
-    return res.status(200).json({ success: true, data: { goals } });
+    const { q = '', category, interest, page = 1, limit = 20 } = req.query;
+
+    // Cache only interest-based searches (with or without q)
+    const cacheService = require('../services/cacheService');
+    const cacheParams = { q, interest, category, page: parseInt(page), limit: parseInt(limit) };
+    let cached = null;
+    if (interest || category) {
+      cached = await cacheService.getGoalSearch(cacheParams);
+    }
+
+    let payload = cached;
+    if (!payload) {
+      payload = await require('../services/goalService').searchGoals(q, { category, interest, page, limit });
+      if (interest || category) {
+        await cacheService.setGoalSearch(payload, cacheParams);
+      }
+    }
+
+    return res.status(200).json({ success: true, data: payload, fromCache: !!cached });
   } catch (err) {
     next(err);
   }
