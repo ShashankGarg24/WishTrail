@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
 import { 
   Search, 
   Users, 
@@ -26,9 +26,11 @@ import ActivityDetailModal from '../components/ActivityDetailModal'
 import ActivityCommentsModal from '../components/ActivityCommentsModal'
 import ReportModal from '../components/ReportModal'
 import BlockModal from '../components/BlockModal'
+// We'll reuse ActivityDetailModal for comments open, but create a lightweight Goal modal inline here for speed
 
 const ExplorePage = () => {
   const navigate = useNavigate();
+  const { goalId } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialTab = searchParams.get('tab') || 'activities';
   const [activeTab, setActiveTab] = useState(initialTab);
@@ -59,6 +61,26 @@ const ExplorePage = () => {
   const [blockUserId, setBlockUserId] = useState(null);
   const [openUserMenuId, setOpenUserMenuId] = useState(null);
   const [openActivityMenuId, setOpenActivityMenuId] = useState(null);
+
+  // Goal modal state
+  const [goalModalOpen, setGoalModalOpen] = useState(false);
+  const [goalModalData, setGoalModalData] = useState(null);
+  const [goalModalLoading, setGoalModalLoading] = useState(false);
+  const openGoalModal = async (goalId) => {
+    if (!goalId) return;
+    try {
+      setGoalModalLoading(true);
+      const resp = await useApiStore.getState().getGoalPost(goalId);
+      if (resp?.success) {
+        setGoalModalData(resp.data);
+        setGoalModalOpen(true);
+      }
+    } catch (_) {
+    } finally {
+      setGoalModalLoading(false);
+    }
+  };
+  const closeGoalModal = () => { setGoalModalOpen(false); setGoalModalData(null); };
 
   const { 
     isAuthenticated, 
@@ -131,6 +153,13 @@ const ExplorePage = () => {
       }
     }
   }, [isAuthenticated]);
+
+  // Open goal modal if /goal/:goalId is accessed directly
+  useEffect(() => {
+    if (goalId) {
+      openGoalModal(goalId);
+    }
+  }, [goalId]);
 
   // Close any open 3-dot menus on outside click
   useEffect(() => {
@@ -975,7 +1004,7 @@ const ExplorePage = () => {
                           <h3 className="font-semibold text-gray-900 dark:text-white line-clamp-2 break-anywhere mb-2">{g.title}</h3>
                           <div className="flex items-center justify-between">
                             <span className="inline-block px-2 py-1 rounded-full text-xs font-medium text-white bg-blue-500">{g.category}</span>
-                            <button className="text-sm text-blue-600 hover:underline" onClick={() => g._id && navigate(`/goal/${g._id}`)}>View</button>
+                            <button className="text-sm text-blue-600 hover:underline" onClick={() => g._id && openGoalModal(g._id)}>View</button>
                           </div>
                         </motion.div>
                       ))}
@@ -1341,6 +1370,84 @@ const ExplorePage = () => {
           username={''}
           onConfirm={async () => { if (blockUserId) { await blockUser(blockUserId); setBlockOpen(false); } }}
         />
+
+        {/* Goal Post Modal */}
+        {goalModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/50" onClick={closeGoalModal} />
+            <div className="relative w-full max-w-5xl mx-auto bg-white dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-800">
+              {goalModalLoading || !goalModalData ? (
+                <div className="p-10 text-center text-gray-500 dark:text-gray-400">Loading...</div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2">
+                  {/* Media panel */}
+                  <div className="bg-black flex items-center justify-center min-h-[320px] md:min-h-[520px]">
+                    {goalModalData?.share?.image ? (
+                      <img src={goalModalData.share.image} alt="Completion" className="max-h-[80vh] w-auto object-contain" />
+                    ) : (
+                      <div className="p-6 text-center text-gray-300">No image</div>
+                    )}
+                  </div>
+                  {/* Details panel */}
+                  <div className="flex flex-col min-h-[320px] md:min-h-[520px]">
+                    <div className="flex items-center gap-3 p-4 border-b border-gray-200 dark:border-gray-800">
+                      <img src={goalModalData?.user?.avatar || '/api/placeholder/40/40'} className="w-10 h-10 rounded-full" />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{goalModalData?.user?.name}</div>
+                        {goalModalData?.user?.username && (<div className="text-xs text-gray-500">@{goalModalData.user.username}</div>)}
+                      </div>
+                      <button onClick={closeGoalModal} className="px-3 py-1.5 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800">✕</button>
+                    </div>
+                    <div className="p-4 space-y-3 overflow-auto">
+                      <div>
+                        <div className="text-xs text-gray-500">Category</div>
+                        <div className="inline-block px-2 py-1 rounded-full text-xs font-medium text-white bg-blue-500">{goalModalData?.goal?.category}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-gray-500">Title</div>
+                        <div className="text-gray-900 dark:text-gray-100 font-semibold">{goalModalData?.goal?.title}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-gray-500">Description</div>
+                        <div className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{goalModalData?.goal?.description || '—'}</div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <div className="text-xs text-gray-500">Completed</div>
+                          <div className="text-gray-800 dark:text-gray-200">{goalModalData?.goal?.completedAt ? new Date(goalModalData.goal.completedAt).toLocaleString() : '—'}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-gray-500">Points</div>
+                          <div className="text-gray-800 dark:text-gray-200">{goalModalData?.goal?.pointsEarned ?? 0}</div>
+                        </div>
+                      </div>
+                      {/* Shareable content cases */}
+                      {goalModalData?.share?.note && (
+                        <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
+                          <div className="text-xs text-gray-500 mb-1">Completion note</div>
+                          <div className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap">{goalModalData.share.note}</div>
+                        </div>
+                      )}
+                      {!goalModalData?.share?.note && !goalModalData?.share?.image && (
+                        <div className="text-xs text-gray-500">No public completion note or image shared</div>
+                      )}
+                    </div>
+                    <div className="mt-auto border-t border-gray-200 dark:border-gray-800 p-4 flex items-center gap-4">
+                      <div className="text-sm text-gray-700 dark:text-gray-300">❤️ {goalModalData?.social?.likeCount || 0}</div>
+                      <div className="text-sm text-gray-700 dark:text-gray-300">💬 {goalModalData?.social?.commentCount || 0}</div>
+                      {goalModalData?.social?.activityId && (
+                        <button
+                          onClick={() => { closeGoalModal(); openNotificationActivity(goalModalData.social.activityId); }}
+                          className="ml-auto text-sm text-blue-600 hover:underline"
+                        >Open comments</button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -37,6 +37,77 @@ const { createCanvas, loadImage, registerFont } = require('canvas');
 const Notification = require('../models/Notification');
 const path = require('path');
 const fs = require('fs');
+// @desc    Get goal post details for modal (Instagram-like)
+// @route   GET /api/v1/goals/:id/post
+// @access  Private (visible per visibility rules)
+const getGoalPost = async (req, res, next) => {
+  try {
+    const goal = await Goal.findById(req.params.id)
+      .populate('userId', 'name avatar username isPrivate isActive')
+      .select('title description category completed completedAt shareCompletionNote completionNote completionAttachmentUrl likeCount pointsEarned userId');
+
+    if (!goal) return res.status(404).json({ success: false, message: 'Goal not found' });
+
+    // Visibility: owner or public share or follower-only if you add such logic later
+    const isOwner = String(goal.userId._id) === String(req.user.id);
+    if (!isOwner) {
+      // If user is private or goal not shareable, still allow core details
+      if (!goal.userId.isActive) return res.status(403).json({ success: false, message: 'Access denied' });
+    }
+
+    // Determine shareable content
+    const shareNote = goal.shareCompletionNote ? (goal.completionNote || '') : '';
+    const shareImage = goal.shareCompletionNote ? (goal.completionAttachmentUrl || '') : '';
+
+    // Latest comments count
+    const Activity = require('../models/Activity');
+    const Like = require('../models/Like');
+    const ActivityComment = require('../models/ActivityComment');
+
+    // Try to find corresponding completion activity to compute comments/likes cohesively
+    const activity = await Activity.findOne({ 'data.goalId': goal._id, type: 'goal_completed', userId: goal.userId._id }).sort({ createdAt: -1 }).lean();
+    let likeCount = goal.likeCount || 0;
+    let isLiked = false;
+    let commentCount = 0;
+    if (activity) {
+      likeCount = await Like.getLikeCount('activity', activity._id);
+      isLiked = await Like.hasUserLiked(req.user.id, 'activity', activity._id);
+      commentCount = await ActivityComment.countDocuments({ activityId: activity._id, isActive: true });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        goal: {
+          _id: goal._id,
+          title: goal.title,
+          description: goal.description,
+          category: goal.category,
+          completedAt: goal.completedAt,
+          pointsEarned: goal.pointsEarned,
+        },
+        user: {
+          _id: goal.userId._id,
+          name: goal.userId.name,
+          avatar: goal.userId.avatar,
+          username: goal.userId.username,
+        },
+        share: {
+          note: shareNote,
+          image: shareImage,
+        },
+        social: {
+          likeCount,
+          isLiked,
+          commentCount,
+          activityId: activity ? activity._id : null
+        }
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
 // @desc    Get user's goals
 // @route   GET /api/v1/goals
@@ -833,4 +904,5 @@ module.exports = {
   getShareableGoal,
   generateOGImage,
   searchGoals,
+  getGoalPost,
 }; 

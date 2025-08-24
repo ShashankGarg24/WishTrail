@@ -637,6 +637,16 @@ const useApiStore = create(
         return goalsAPI.getOGImageUrl(id);
       },
 
+      getGoalPost: async (id) => {
+        try {
+          const response = await goalsAPI.getGoalPost(id);
+          return { success: true, ...response.data };
+        } catch (error) {
+          const errorMessage = handleApiError(error);
+          return { success: false, error: errorMessage };
+        }
+      },
+
       // Search completed, discoverable goals (public users)
       searchGoals: async (params = {}) => {
         try {

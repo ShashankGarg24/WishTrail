@@ -50,6 +50,7 @@ function App() {
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/inspiration" element={<InspirationPage />} />
             <Route path="/leaderboard" element={<LeaderboardPage />} />
+            <Route path="/goal/:goalId" element={<ExplorePage />} />
           </Routes>
         </main>
         <Footer />
