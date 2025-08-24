@@ -114,6 +114,7 @@ const useApiStore = create(
       suggestedUsers: [],
       trendingCategories: [],
       exploreSearchResults: null,
+      goalsSearchResults: [],
       interestsCatalog: [],
       
       // =====================
@@ -634,6 +635,20 @@ const useApiStore = create(
       
       getOGImageUrl: (id) => {
         return goalsAPI.getOGImageUrl(id);
+      },
+
+      // Search completed, discoverable goals (public users)
+      searchGoals: async (params = {}) => {
+        try {
+          const response = await goalsAPI.searchGoals(params);
+          const { goals } = response.data.data;
+          set({ goalsSearchResults: goals });
+          return goals;
+        } catch (error) {
+          console.error('Error searching goals:', error);
+          set({ goalsSearchResults: [] });
+          return [];
+        }
       },
       
       // =====================

@@ -62,6 +62,7 @@ router.use(protect);
 
 // Goal routes
 router.get('/', goalController.getGoals);
+router.get('/search', goalController.searchGoals);
 router.post('/', goalValidation, goalController.createGoal);
 router.get('/yearly/:year', goalController.getYearlyGoalsSummary);
 router.get('/:id', goalController.getGoal);

@@ -32,6 +32,9 @@ const ExplorePage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialTab = searchParams.get('tab') || 'activities';
   const [activeTab, setActiveTab] = useState(initialTab);
+  const [activeDiscoverSubtab, setActiveDiscoverSubtab] = useState(searchParams.get('mode') || 'users'); // 'users' | 'goals'
+  const [goalResults, setGoalResults] = useState([]);
+  const [loadingGoals, setLoadingGoals] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedInterest, setSelectedInterest] = useState(searchParams.get('interest') || '');
   const [loading, setLoading] = useState(false);
@@ -94,7 +97,7 @@ const ExplorePage = () => {
   const [discoverHasMore, setDiscoverHasMore] = useState(true);
   const [loadingMoreDiscover, setLoadingMoreDiscover] = useState(false);
   const [interestsExpanded, setInterestsExpanded] = useState(false);
-  const [interestQuery, setInterestQuery] = useState('');
+  // removed interestQuery since we no longer search inside the expanded interests panel
   const activitiesSentinelRef = useRef(null);
   const discoverSentinelRef = useRef(null);
   const notificationsSentinelRef = useRef(null);
@@ -196,6 +199,7 @@ const ExplorePage = () => {
     const params = { tab };
     if (searchTerm) params.q = searchTerm;
     if (selectedInterest) params.interest = selectedInterest;
+    if (activeTab === 'discover') params.mode = activeDiscoverSubtab;
     setSearchParams(params);
     setActiveTab(tab); 
   };
@@ -204,25 +208,35 @@ const ExplorePage = () => {
     const t = term.trim();
     if (!t && !interestValue) {
       setSearchResults([]);
+      setGoalResults([]);
       setIsSearching(false);
       return;
     }
     if (t && t.length < 2 && !interestValue) {
       setSearchResults([]);
+      setGoalResults([]);
       setIsSearching(false);
       return;
     }
 
     setIsSearching(true);
     try {
-      const results = await searchUsers(t, interestValue);
-      const filteredResults = (results || []).filter(u => u && u._id !== user?._id);
-      setSearchResults(filteredResults);
+      if (activeDiscoverSubtab === 'users') {
+        const results = await searchUsers(t, interestValue);
+        const filteredResults = (results || []).filter(u => u && u._id !== user?._id);
+        setSearchResults(filteredResults);
+      } else {
+        setLoadingGoals(true);
+        const goals = await useApiStore.getState().searchGoals({ q: t, interest: interestValue, limit: 20 });
+        setGoalResults(goals || []);
+      }
     } catch (error) {
       console.error('Error searching:', error);
       setSearchResults([]);
+      setGoalResults([]);
     } finally {
       setIsSearching(false);
+      setLoadingGoals(false);
     }
   };
 
@@ -608,11 +622,25 @@ const ExplorePage = () => {
               <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
               <input
                 type="text"
-                placeholder="Search by name or username..."
+                placeholder={activeDiscoverSubtab === 'users' ? 'Search users by name or username...' : 'Search goals by title...'}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-12 pr-4 py-4 bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg border border-gray-200 dark:border-gray-700/50 rounded-2xl text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-lg"
+                className="w-full pl-12 pr-36 py-4 bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg border border-gray-200 dark:border-gray-700/50 rounded-2xl text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-lg"
               />
+              <div role="tablist" aria-label="Discover mode" className="flex absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700/50 rounded-xl p-1 shadow-sm">
+                <button
+                  role="tab"
+                  aria-selected={activeDiscoverSubtab === 'users'}
+                  className={`px-2.5 py-1.5 rounded-lg text-xs font-medium ${activeDiscoverSubtab === 'users' ? 'bg-blue-500 text-white' : 'text-gray-700 dark:text-gray-300'}`}
+                  onClick={() => { setActiveDiscoverSubtab('users'); setGoalResults([]); if (searchTerm.trim() || selectedInterest) handleSearch(searchTerm, selectedInterest); const params = Object.fromEntries([...searchParams]); params.mode = 'users'; setSearchParams(params); }}
+                >Users</button>
+                <button
+                  role="tab"
+                  aria-selected={activeDiscoverSubtab === 'goals'}
+                  className={`ml-1 px-2.5 py-1.5 rounded-lg text-xs font-medium ${activeDiscoverSubtab === 'goals' ? 'bg-blue-500 text-white' : 'text-gray-700 dark:text-gray-300'}`}
+                  onClick={() => { setActiveDiscoverSubtab('goals'); setSearchResults([]); if (searchTerm.trim() || selectedInterest) handleSearch(searchTerm, selectedInterest); const params = Object.fromEntries([...searchParams]); params.mode = 'goals'; setSearchParams(params); }}
+                >Goals</button>
+              </div>
               {/* {(isSearching || loading) && (
                 <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
                   <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
@@ -621,7 +649,7 @@ const ExplorePage = () => {
             </div>
             <div className="mt-3">
               <div className="relative">
-                <div className="flex gap-2 flex-nowrap overflow-hidden pr-16 items-center">
+                <div className="flex gap-2 flex-nowrap overflow-x-auto no-scrollbar pr-16 items-center">
                   {(() => {
                     const items = (interestsCatalog && interestsCatalog.length > 0)
                       ? interestsCatalog.map(x => x.interest)
@@ -630,7 +658,7 @@ const ExplorePage = () => {
                       selectedInterest || null,
                       ...items
                     ].filter(Boolean)));
-                    return unique.slice(0, 12).map((i) => {
+                    return unique.map((i) => {
                       const active = selectedInterest === i;
                       return (
                         <button
@@ -650,7 +678,7 @@ const ExplorePage = () => {
                 <div className="pointer-events-none absolute right-12 top-0 h-full w-8 bg-gradient-to-l from-white/90 dark:from-gray-800/90 to-transparent rounded-r-2xl" />
                 <button
                   onClick={() => setInterestsExpanded(prev => !prev)}
-                  className="absolute right-0 top-1/2 -translate-y-1/2 px-3 py-1.5 rounded-full text-xs font-medium border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-800/70 text-gray-600 dark:text-gray-300 opacity-80 hover:opacity-100 hover:bg-gray-200 dark:hover:bg-gray-700 inline-flex items-center gap-1"
+                  className="absolute right-0 top-0 px-3 py-1.5 rounded-full text-xs font-medium border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-800/70 text-gray-600 dark:text-gray-300 opacity-80 hover:opacity-100 hover:bg-gray-200 dark:hover:bg-gray-700 inline-flex items-center gap-1"
                   aria-expanded={interestsExpanded}
                 >
                   <ChevronsDown className="h-4 w-4 opacity-90" />
@@ -660,30 +688,12 @@ const ExplorePage = () => {
             </div>
             {interestsExpanded && (
               <div className="mt-3 bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl border border-gray-200 dark:border-gray-700/50 p-3">
-                <div className="flex items-center gap-2 mb-2">
-                  <Search className="h-4 w-4 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="Search interests..."
-                    value={interestQuery}
-                    onChange={(e) => setInterestQuery(e.target.value)}
-                    className="flex-1 bg-transparent outline-none text-sm text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
-                  />
-                  {selectedInterest && (
-                    <button
-                      onClick={() => { setSelectedInterest(''); setInterestQuery(''); setSearchResults([]); }}
-                      className="text-xs px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
-                    >Clear</button>
-                  )}
-                </div>
                 <div className="max-h-72 overflow-auto pr-1 grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {(() => {
                     const list = (interestsCatalog && interestsCatalog.length > 0)
                       ? interestsCatalog
                       : ['fitness','health','travel','education','career','finance','hobbies','relationships','personal_growth','creativity','technology','business','lifestyle','spirituality','sports','music','art','reading','cooking','gaming','nature','volunteering'].map(i => ({ interest: i, count: 0 }));
-                    const q = interestQuery.trim().toLowerCase();
-                    const filtered = q ? list.filter(x => x.interest.replace(/_/g,' ').toLowerCase().includes(q)) : list;
-                    return filtered.map((x) => {
+                    return list.map((x) => {
                       const i = x.interest;
                       const label = i.replace(/_/g,' ');
                       const active = selectedInterest === i;
@@ -722,10 +732,18 @@ const ExplorePage = () => {
             {activeTab === 'discover' && (
               <div className="w-full">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
-                    <Users className="h-6 w-6 mr-2 text-blue-500" />
-                    {(searchTerm.trim() || selectedInterest) ? 'Search Results' : 'Discover Users'}
-                  </h2>
+                  <div className="flex items-center gap-3">
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
+                      {activeDiscoverSubtab === 'users' ? (
+                        <Users className="h-6 w-6 mr-2 text-blue-500" />
+                      ) : (
+                        <Target className="h-6 w-6 mr-2 text-blue-500" />
+                      )}
+                      {(searchTerm.trim() || selectedInterest)
+                        ? (activeDiscoverSubtab === 'users' ? 'User Results' : 'Goal Results')
+                        : (activeDiscoverSubtab === 'users' ? 'Discover Users' : 'Discover Goals')}
+                    </h2>
+                  </div>
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => fetchInitialData({ force: true })}
@@ -738,147 +756,178 @@ const ExplorePage = () => {
                   </div>
                 </div>
 
-                {(loading || isSearching) ? (
+                {(loading || isSearching || loadingGoals) ? (
                   <SkeletonList count={9} grid avatar lines={3} />
-                ) : displayUsers.length > 0 ? (
-                  <>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {displayUsers.filter(u => u && u._id).map((userItem, index) => (
-                        <motion.div
-                          key={`${userItem._id}-${index}`}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ duration: 0.5, delay: 0.1 * index }}
-                          className="bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 hover:border-gray-300 dark:hover:border-gray-600/50 transition-all duration-200 shadow-lg hover:shadow-xl relative"
-                        >
-                          <div className="flex items-center space-x-4 mb-4">
-                            <img
-                              src={userItem.avatar || '/api/placeholder/64/64'}
-                              alt={userItem.name}
-                              className="w-16 h-16 rounded-full border-2 border-gray-200 dark:border-gray-600 cursor-pointer hover:border-blue-500 transition-colors"
-                              onClick={() => userItem.username && navigate(`/profile/@${userItem.username}?tab=overview`)}
-                            />
-                            <div className="flex-1">
-                              <h3 
-                                className="font-semibold text-gray-900 dark:text-white text-lg cursor-pointer hover:text-blue-500 transition-colors"
+                ) : activeDiscoverSubtab === 'users' ? (
+                  displayUsers.length > 0 ? (
+                    <>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {displayUsers.filter(u => u && u._id).map((userItem, index) => (
+                          <motion.div
+                            key={`${userItem._id}-${index}`}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.5, delay: 0.1 * index }}
+                            className="bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 hover:border-gray-300 dark:hover:border-gray-600/50 transition-all duration-200 shadow-lg hover:shadow-xl relative"
+                          >
+                            <div className="flex items-center space-x-4 mb-4">
+                              <img
+                                src={userItem.avatar || '/api/placeholder/64/64'}
+                                alt={userItem.name}
+                                className="w-16 h-16 rounded-full border-2 border-gray-200 dark:border-gray-600 cursor-pointer hover:border-blue-500 transition-colors"
                                 onClick={() => userItem.username && navigate(`/profile/@${userItem.username}?tab=overview`)}
-                              >
-                                {userItem.name}
-                              </h3>
-                              <p className="text-gray-500 dark:text-gray-400 text-sm">
-                                @{userItem.username || userItem.email?.split('@')[0]}
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="space-y-2 mb-4">
-                            <div className="flex items-center text-gray-600 dark:text-gray-300 text-sm">
-                              <Target className="h-4 w-4 mr-2 text-blue-500" />
-                              <span>{userItem.totalGoals || 0} goals</span>
-                            </div>
-                            <div className="flex items-center text-gray-600 dark:text-gray-300 text-sm">
-                              <TrendingUp className="h-4 w-4 mr-2 text-green-500" />
-                              <span>{userItem.completedGoals || 0} completed</span>
-                            </div>
-                            <div className="flex items-center text-gray-600 dark:text-gray-300 text-sm">
-                              <Flame className="h-4 w-4 mr-2 text-orange-500" />
-                              <span>{userItem.currentStreak || 0} day streak</span>
-                            </div>
-                          </div>
-
-                          {userItem.recentGoals && userItem.recentGoals.length > 0 && (
-                            <div className="mb-4">
-                              <p className="text-gray-500 dark:text-gray-400 text-xs mb-2">Recent Goals:</p>
-                              <div className="space-y-1">
-                                {userItem.recentGoals.slice(0, 2).map((goal, idx) => (
-                                  <div key={idx} className="flex items-center space-x-2">
-                                    <div className={`w-2 h-2 rounded-full ${getCategoryColor(goal.category)}`}></div>
-                                    <span className="text-gray-600 dark:text-gray-300 text-sm truncate">{goal.title}</span>
-                                  </div>
-                                ))}
+                              />
+                              <div className="flex-1">
+                                <h3 
+                                  className="font-semibold text-gray-900 dark:text-white text-lg cursor-pointer hover:text-blue-500 transition-colors"
+                                  onClick={() => userItem.username && navigate(`/profile/@${userItem.username}?tab=overview`)}
+                                >
+                                  {userItem.name}
+                                </h3>
+                                <p className="text-gray-500 dark:text-gray-400 text-sm">
+                                  @{userItem.username || userItem.email?.split('@')[0]}
+                                </p>
                               </div>
                             </div>
-                          )}
 
-                          <div className="flex space-x-2">
-                            {userItem._id !== user?._id && (
-                              <>
-                                 {userItem.isFollowing ? (
-                                  <button
-                                    onClick={() => handleUnfollow(userItem._id)}
-                                    className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-700 dark:text-white rounded-xl transition-colors duration-200 text-sm font-medium flex items-center justify-center space-x-1"
-                                  >
-                                    <UserCheck className="h-4 w-4" />
-                                    <span>Following</span>
-                                  </button>
-                                ) : userItem.isRequested ? (
-                                  <button
-                                    onClick={async () => { await cancelFollowRequest(userItem._id); setUsers(prev => prev.map(u => u._id === userItem._id ? { ...u, isRequested: false } : u)); }}
-                                    className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-white rounded-xl transition-colors duration-200 text-sm font-medium flex items-center justify-center space-x-1"
-                                  >
-                                    <UserPlus className="h-4 w-4" />
-                                    <span>Requested</span>
-                                  </button>
-                                ) : (
-                                  <button
-                                    onClick={() => handleFollow(userItem._id)}
-                                    className="flex-1 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-xl transition-colors duration-200 text-sm font-medium flex items-center justify-center space-x-1"
-                                  >
-                                    <UserPlus className="h-4 w-4" />
-                                    <span>Follow</span>
-                                  </button>
-                                )}
-                              </>
-                            )}
-                          </div>
-                          {/* 3-dots for user card */}
-                          <div className="absolute right-2 top-2 z-30">
-                            <div className="relative">
-                              <button
-                                onClick={(e) => { e.stopPropagation(); setOpenUserMenuId(prev => prev === userItem._id ? null : userItem._id); }}
-                                className="px-2 py-1 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
-                              >⋯</button>
-                              {openUserMenuId === userItem._id && (
-                                <div
-                                  onClick={(e) => e.stopPropagation()}
-                                  className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-30"
-                                >
-                                  <button
-                                    className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
-                                    onClick={() => { setReportTarget({ type: 'user', id: userItem._id, label: 'user' }); setReportOpen(true); setOpenUserMenuId(null); }}
-                                  >Report</button>
-                                  <button
-                                    className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
-                                    onClick={() => { setBlockUserId(userItem._id); setBlockOpen(true); setOpenUserMenuId(null); }}
-                                  >Block</button>
+                            <div className="space-y-2 mb-4">
+                              <div className="flex items-center text-gray-600 dark:text-gray-300 text-sm">
+                                <Target className="h-4 w-4 mr-2 text-blue-500" />
+                                <span>{userItem.totalGoals || 0} goals</span>
+                              </div>
+                              <div className="flex items-center text-gray-600 dark:text-gray-300 text-sm">
+                                <TrendingUp className="h-4 w-4 mr-2 text-green-500" />
+                                <span>{userItem.completedGoals || 0} completed</span>
+                              </div>
+                              <div className="flex items-center text-gray-600 dark:text-gray-300 text-sm">
+                                <Flame className="h-4 w-4 mr-2 text-orange-500" />
+                                <span>{userItem.currentStreak || 0} day streak</span>
+                              </div>
+                            </div>
+
+                            {userItem.recentGoals && userItem.recentGoals.length > 0 && (
+                              <div className="mb-4">
+                                <p className="text-gray-500 dark:text-gray-400 text-xs mb-2">Recent Goals:</p>
+                                <div className="space-y-1">
+                                  {userItem.recentGoals.slice(0, 2).map((goal, idx) => (
+                                    <div key={idx} className="flex items-center space-x-2">
+                                      <div className={`w-2 h-2 rounded-full ${getCategoryColor(goal.category)}`}></div>
+                                      <span className="text-gray-600 dark:text-gray-300 text-sm truncate">{goal.title}</span>
+                                    </div>
+                                  ))}
                                 </div>
+                              </div>
+                            )}
+
+                            <div className="flex space-x-2">
+                              {userItem._id !== user?._id && (
+                                <>
+                                   {userItem.isFollowing ? (
+                                    <button
+                                      onClick={() => handleUnfollow(userItem._id)}
+                                      className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-700 dark:text-white rounded-xl transition-colors duration-200 text-sm font-medium flex items-center justify-center space-x-1"
+                                    >
+                                      <UserCheck className="h-4 w-4" />
+                                      <span>Following</span>
+                                    </button>
+                                  ) : userItem.isRequested ? (
+                                    <button
+                                      onClick={async () => { await cancelFollowRequest(userItem._id); setUsers(prev => prev.map(u => u._id === userItem._id ? { ...u, isRequested: false } : u)); }}
+                                      className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-white rounded-xl transition-colors duration-200 text-sm font-medium flex items-center justify-center space-x-1"
+                                    >
+                                      <UserPlus className="h-4 w-4" />
+                                      <span>Requested</span>
+                                    </button>
+                                  ) : (
+                                    <button
+                                      onClick={() => handleFollow(userItem._id)}
+                                      className="flex-1 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-xl transition-colors duration-200 text-sm font-medium flex items-center justify-center space-x-1"
+                                    >
+                                      <UserPlus className="h-4 w-4" />
+                                      <span>Follow</span>
+                                    </button>
+                                  )}
+                                </>
                               )}
                             </div>
+                            {/* 3-dots for user card */}
+                            <div className="absolute right-2 top-2 z-30">
+                              <div className="relative">
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); setOpenUserMenuId(prev => prev === userItem._id ? null : userItem._id); }}
+                                  className="px-2 py-1 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
+                                >⋯</button>
+                                {openUserMenuId === userItem._id && (
+                                  <div
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-30"
+                                  >
+                                    <button
+                                      className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
+                                      onClick={() => { setReportTarget({ type: 'user', id: userItem._id, label: 'user' }); setReportOpen(true); setOpenUserMenuId(null); }}
+                                    >Report</button>
+                                    <button
+                                      className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
+                                      onClick={() => { setBlockUserId(userItem._id); setBlockOpen(true); setOpenUserMenuId(null); }}
+                                    >Block</button>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </motion.div>
+                        ))}
+                      </div>
+                      <div ref={discoverSentinelRef} className="h-10"></div>
+                      {loadingMoreDiscover && (
+                        <div className="flex items-center justify-center py-4">
+                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
+                        </div>
+                      )}
+                      {!discoverHasMore && users.length > 0 && (
+                        <div className="text-center text-xs text-gray-400 py-4">No more users</div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="text-center py-12">
+                      <Users className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-600 dark:text-gray-400 text-lg">
+                        {searchTerm.trim() || selectedInterest ? 'No users found matching your search.' : 'No users to discover yet.'}
+                      </p>
+                    </div>
+                  )
+                ) : (
+                  goalResults && goalResults.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {goalResults.map((g, idx) => (
+                        <motion.div
+                          key={`${g._id || idx}`}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.5, delay: 0.1 * idx }}
+                          className="bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-5 border border-gray-200 dark:border-gray-700/50 hover:border-gray-300 dark:hover:border-gray-600/50 transition-all duration-200 shadow-lg hover:shadow-xl"
+                        >
+                          <div className="flex items-center gap-3 mb-3">
+                            <img src={g.user?.avatar || '/api/placeholder/48/48'} className="w-10 h-10 rounded-full" />
+                            <div className="min-w-0">
+                              <div className="text-sm text-gray-700 dark:text-gray-300 truncate">{g.user?.name || 'User'}</div>
+                              <div className="text-xs text-gray-400">{g.completedAt ? new Date(g.completedAt).toLocaleDateString() : ''}</div>
+                            </div>
+                          </div>
+                          <h3 className="font-semibold text-gray-900 dark:text-white line-clamp-2 break-anywhere mb-2">{g.title}</h3>
+                          <div className="flex items-center justify-between">
+                            <span className="inline-block px-2 py-1 rounded-full text-xs font-medium text-white bg-blue-500">{g.category}</span>
+                            <button className="text-sm text-blue-600 hover:underline" onClick={() => g._id && navigate(`/goal/${g._id}`)}>View</button>
                           </div>
                         </motion.div>
                       ))}
                     </div>
-                    <div ref={discoverSentinelRef} className="h-10"></div>
-                    {loadingMoreDiscover && (
-                      <div className="flex items-center justify-center py-4">
-                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
-                      </div>
-                    )}
-                    {!discoverHasMore && users.length > 0 && (
-                      <div className="text-center text-xs text-gray-400 py-4">No more users</div>
-                    )}
-                  </>
-                ) : (
-                <div className="text-center py-12">
-                  <Users className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-600 dark:text-gray-400 text-lg">
-                      {searchTerm.trim() ? 'No users found matching your search.' : 'No users to discover yet.'}
-                    </p>
-                    <p className="text-gray-500 dark:text-gray-500 text-sm mt-2">
-                      {searchTerm.trim() ? 'Try a different search term.' : 'Check back later for new members!'}
-                  </p>
-                </div>
-              )}
+                  ) : (
+                    <div className="text-center py-12">
+                      <Target className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-600 dark:text-gray-400 text-lg">{searchTerm.trim() || selectedInterest ? 'No goals found.' : 'Search to discover completed goals.'}</p>
+                    </div>
+                  )
+                )}
             </div>
           )}
 

@@ -1,5 +1,17 @@
 const { validationResult } = require('express-validator');
 const mongoose = require('mongoose');
+// @desc    Search goals (completed, discoverable, public users)
+// @route   GET /api/v1/goals/search?q=&category=&interest=&limit=20
+// @access  Private
+const searchGoals = async (req, res, next) => {
+  try {
+    const { q = '', category, interest, limit } = req.query;
+    const goals = await require('../services/goalService').searchGoals(q, { category, interest, limit });
+    return res.status(200).json({ success: true, data: { goals } });
+  } catch (err) {
+    next(err);
+  }
+};
 const Goal = require('../models/Goal');
 const User = require('../models/User');
 const Activity = require('../models/Activity');
@@ -796,5 +808,6 @@ module.exports = {
   toggleGoalLike,
   getYearlyGoalsSummary,
   getShareableGoal,
-  generateOGImage
+  generateOGImage,
+  searchGoals,
 }; 

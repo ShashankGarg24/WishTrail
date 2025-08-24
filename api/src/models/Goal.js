@@ -15,6 +15,13 @@ const goalSchema = new mongoose.Schema({
     maxlength: [1000, 'Goal description cannot exceed 1000 characters'],
     default: ''
   },
+
+  // Normalized title for fast case-insensitive search
+  titleLower: {
+    type: String,
+    trim: true,
+    index: true
+  },
   
   // Goal Classification
   category: {
@@ -151,6 +158,16 @@ const goalSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
+  // View permission for non-owners
+  isPublic: {
+    type: Boolean,
+    default: true
+  },
+  // Include in public search/discover
+  isDiscoverable: {
+    type: Boolean,
+    default: true
+  },
   isShareable: {
     type: Boolean,
     default: true
@@ -173,6 +190,7 @@ goalSchema.index({ category: 1 });
 goalSchema.index({ completed: 1, completedAt: -1 });
 goalSchema.index({ createdAt: -1 });
 goalSchema.index({ targetDate: 1 });
+goalSchema.index({ completed: 1, isDiscoverable: 1, titleLower: 1, category: 1 });
 
 // Virtual for days until target
 goalSchema.virtual('daysUntilTarget').get(function() {
@@ -222,6 +240,14 @@ goalSchema.pre('save', function(next) {
     this.canCompleteAfter = new Date(Date.now() + (days * 24 * 60 * 60 * 1000));
   }
   
+  next();
+});
+
+// Normalize titleLower
+goalSchema.pre('save', function(next) {
+  if (this.isModified('title')) {
+    this.titleLower = (this.title || '').toLowerCase();
+  }
   next();
 });
 

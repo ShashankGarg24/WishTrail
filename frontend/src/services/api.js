@@ -69,6 +69,7 @@ export const goalsAPI = {
   getYearlyGoals: (year, userId) => api.get(`/goals/yearly/${year}`, { params: { userId } }),
   getShareableGoal: (id) => api.get(`/goals/${id}/share`),
   getOGImageUrl: (id) => `${api.defaults.baseURL}/goals/${id}/og-image`,
+  searchGoals: (params) => api.get('/goals/search', { params }),
 };
 
 // Users API

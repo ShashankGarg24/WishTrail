@@ -505,36 +505,46 @@ class GoalService {
    * Search goals
    */
   async searchGoals(searchTerm, params = {}) {
-    const { limit = 20, category, completed } = params;
-    
-    if (!searchTerm || searchTerm.trim().length < 2) {
-      return [];
-    }
-    
-    const searchRegex = new RegExp(searchTerm, 'i');
-    let query = {
-      isPublic: true,
-      $or: [
-        { title: searchRegex },
-        { description: searchRegex },
-        { tags: { $in: [searchRegex] } }
-      ]
+    const { limit = 20, category, interest } = params;
+
+    const t = (searchTerm || '').trim().toLowerCase();
+    const hasText = t.length >= 2;
+
+    const baseMatch = {
+      completed: true,
+      isDiscoverable: true,
+      isActive: true
     };
-    
+
+    // Join with user to ensure only public/active users
+    const pipeline = [
+      { $match: baseMatch },
+      { $lookup: { from: 'users', localField: 'userId', foreignField: '_id', as: 'user' } },
+      { $unwind: '$user' },
+      { $match: { 'user.isActive': true, 'user.isPrivate': { $ne: true } } },
+    ];
+
+    // Filter by category or interest (map interest to category if needed)
     if (category) {
-      query.category = category;
+      pipeline.push({ $match: { category } });
     }
-    
-    if (completed !== undefined) {
-      query.completed = completed;
+    if (interest) {
+      // If your interests map to categories, match either; else skip or extend schema
+      pipeline.push({ $match: { category: { $regex: new RegExp(interest, 'i') } } });
     }
-    
-    const goals = await Goal.find(query)
-      .populate('userId', 'name avatar level')
-      .sort({ pointsEarned: -1, completedAt: -1 })
-      .limit(parseInt(limit));
-    
-    return goals;
+
+    if (hasText) {
+      pipeline.push({ $match: { titleLower: { $regex: new RegExp(t) } } });
+    }
+
+    pipeline.push(
+      { $sort: { completedAt: -1, pointsEarned: -1 } },
+      { $limit: parseInt(limit) },
+      { $project: { title: 1, category: 1, completedAt: 1, pointsEarned: 1, likeCount: 1, user: { _id: 1, name: 1, avatar: 1 } } }
+    );
+
+    const results = await Goal.aggregate(pipeline);
+    return results;
   }
 }
 
