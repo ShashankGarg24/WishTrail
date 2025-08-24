@@ -1,5 +1,5 @@
 const { validationResult } = require('express-validator');
-import { goalService } from '../services/goalService';
+const goalService = require('../services/goalService');
 const mongoose = require('mongoose');
 // @desc    Search goals (completed, discoverable, public users)
 // @route   GET /api/v1/goals/search?q=&category=&interest=&page=&limit=
