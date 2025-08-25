@@ -1431,86 +1431,126 @@ const ExplorePage = () => {
         {goalModalOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center">
             <div className="absolute inset-0 bg-black/50" onClick={closeGoalModal} />
-            <div className="relative w-full max-w-5xl mx-auto bg-white dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-800">
+            <div className={`relative w-full ${(!goalModalData?.share?.image && !showComments) ? 'max-w-3xl' : 'max-w-6xl'} mx-auto bg-white dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-800`}>
               {goalModalLoading || !goalModalData ? (
                 <div className="p-10 text-center text-gray-500 dark:text-gray-400">Loading...</div>
               ) : (
-                <div className={`grid ${goalModalData?.share?.image ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'}`}>
-                  {/* Media panel */}
-                  {goalModalData?.share?.image ? (
+                goalModalData?.share?.image ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 items-stretch">
+                    {/* Left: Media */}
                     <div className="bg-black flex items-center justify-center min-h-[320px] md:min-h-[520px]">
                       <img src={goalModalData.share.image} alt="Completion" className="max-h-[80vh] w-auto object-contain" />
                     </div>
-                  ) : (!showComments && (
-                    <div className="hidden md:block min-h-[320px] md:min-h-[520px]" />
-                  ))}
-                  {/* Details / Comments panel */}
-                  <div className={`flex flex-col min-h-[320px] md:min-h-[520px] ${(!goalModalData?.share?.image && !showComments) ? 'md:max-w-2xl mx-auto w-full' : ''}`}>
-                    <div className="flex items-center gap-3 p-4 border-b border-gray-200 dark:border-gray-800">
-                      <img src={goalModalData?.user?.avatar || '/api/placeholder/40/40'} className="w-10 h-10 rounded-full" />
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{goalModalData?.user?.name}</div>
-                        {goalModalData?.user?.username && (<div className="text-xs text-gray-500">@{goalModalData.user.username}</div>)}
+                    {/* Right: Details with toggleable comments */}
+                    <div className="flex flex-col min-h-[320px] md:min-h-[520px]">
+                      <div className="flex items-center gap-3 p-4 border-b border-gray-200 dark:border-gray-800">
+                        <img src={goalModalData?.user?.avatar || '/api/placeholder/40/40'} className="w-10 h-10 rounded-full" />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{goalModalData?.user?.name}</div>
+                          {goalModalData?.user?.username && (<div className="text-xs text-gray-500">@{goalModalData.user.username}</div>)}
+                        </div>
+                        {goalModalData?.social?.activityId && (
+                          <button onClick={() => setShowComments(true)} className="mr-2 text-xs px-3 py-1.5 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700">Comments</button>
+                        )}
+                        <button onClick={closeGoalModal} className="px-3 py-1.5 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800">✕</button>
                       </div>
-                      {/* Open comments toggle */}
-                      {goalModalData?.social?.activityId && (
-                        <button onClick={() => setShowComments(true)} className="mr-2 text-xs px-3 py-1.5 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700">Comments</button>
+                      {!showComments && (
+                        <div className="p-6 space-y-4 overflow-auto">
+                          <div>
+                            <div className="h-1.5 w-14 rounded-full mb-2" style={{ background: 'linear-gradient(90deg, rgba(99,102,241,0.8), rgba(147,197,253,0.8))' }} />
+                            <div className="inline-block px-2 py-1 rounded-full text-xs font-medium text-white bg-blue-500">{goalModalData?.goal?.category}</div>
+                          </div>
+                          <div>
+                            <div className="text-xs text-gray-500">Title</div>
+                            <div className="text-gray-900 dark:text-gray-100 font-semibold text-lg leading-snug">{goalModalData?.goal?.title}</div>
+                          </div>
+                          <div>
+                            <div className="text-xs text-gray-500">Description</div>
+                            <div className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">{goalModalData?.goal?.description || '—'}</div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <div className="text-xs text-gray-500">Completed</div>
+                              <div className="text-gray-800 dark:text-gray-200">{goalModalData?.goal?.completedAt ? new Date(goalModalData.goal.completedAt).toLocaleString() : '—'}</div>
+                            </div>
+                            <div>
+                              <div className="text-xs text-gray-500">Points</div>
+                              <div className="text-gray-800 dark:text-gray-200">{goalModalData?.goal?.pointsEarned ?? 0}</div>
+                            </div>
+                          </div>
+                          {goalModalData?.share?.note && (
+                            <div className="bg-gray-50 dark:bg-gray-800/40 rounded-xl p-3 border border-gray-200 dark:border-gray-700">
+                              <div className="text-xs text-gray-500 mb-1">Completion note</div>
+                              <div className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap line-clamp-6">{goalModalData.share.note}</div>
+                              {String(goalModalData.share.note || '').length > 240 && (
+                                <button className="mt-1 text-xs text-blue-600" onClick={(e)=>{e.currentTarget.previousSibling.classList.toggle('line-clamp-6')}}>Read more</button>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       )}
-                      <button onClick={closeGoalModal} className="px-3 py-1.5 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800">✕</button>
+                      {showComments && goalModalData?.social?.activityId && (
+                        <div className="flex-1 min-h-0">
+                          <ActivityCommentsModal isOpen={true} onClose={() => setShowComments(false)} activity={{ _id: goalModalData.social.activityId, commentCount: goalModalData?.social?.commentCount }} inline />
+                        </div>
+                      )}
+                      <div className="mt-auto border-t border-gray-200 dark:border-gray-800 p-4 flex items-center gap-4 sticky bottom-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur">
+                        <div className="text-sm text-gray-700 dark:text-gray-300">❤️ {goalModalData?.social?.likeCount || 0}</div>
+                        <div className="text-sm text-gray-700 dark:text-gray-300">💬 {goalModalData?.social?.commentCount || 0}</div>
+                      </div>
                     </div>
-                    {!showComments && (
-                    <div className="p-4 space-y-3 overflow-auto">
-                      <div>
-                        <div className="text-xs text-gray-500">Category</div>
-                        <div className="inline-block px-2 py-1 rounded-full text-xs font-medium text-white bg-blue-500">{goalModalData?.goal?.category}</div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 items-stretch">
+                    {/* Left: Details */}
+                    <div className="flex flex-col min-h-[320px] md:min-h-[520px]">
+                      <div className="flex items-center gap-3 p-4 border-b border-gray-200 dark:border-gray-800">
+                        <img src={goalModalData?.user?.avatar || '/api/placeholder/40/40'} className="w-10 h-10 rounded-full" />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{goalModalData?.user?.name}</div>
+                          {goalModalData?.user?.username && (<div className="text-xs text-gray-500">@{goalModalData.user.username}</div>)}
+                        </div>
+                        <button onClick={closeGoalModal} className="px-3 py-1.5 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800">✕</button>
                       </div>
-                      <div>
-                        <div className="text-xs text-gray-500">Title</div>
-                        <div className="text-gray-900 dark:text-gray-100 font-semibold">{goalModalData?.goal?.title}</div>
-                      </div>
-                      <div>
-                        <div className="text-xs text-gray-500">Description</div>
-                        <div className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{goalModalData?.goal?.description || '—'}</div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="p-6 space-y-4 overflow-auto">
                         <div>
-                          <div className="text-xs text-gray-500">Completed</div>
-                          <div className="text-gray-800 dark:text-gray-200">{goalModalData?.goal?.completedAt ? new Date(goalModalData.goal.completedAt).toLocaleString() : '—'}</div>
+                          <div className="h-1.5 w-14 rounded-full mb-2" style={{ background: 'linear-gradient(90deg, rgba(99,102,241,0.8), rgba(147,197,253,0.8))' }} />
+                          <div className="inline-block px-2 py-1 rounded-full text-xs font-medium text-white bg-blue-500">{goalModalData?.goal?.category}</div>
                         </div>
                         <div>
-                          <div className="text-xs text-gray-500">Points</div>
-                          <div className="text-gray-800 dark:text-gray-200">{goalModalData?.goal?.pointsEarned ?? 0}</div>
+                          <div className="text-xs text-gray-500">Title</div>
+                          <div className="text-gray-900 dark:text-gray-100 font-semibold text-lg leading-snug">{goalModalData?.goal?.title}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-gray-500">Description</div>
+                          <div className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">{goalModalData?.goal?.description || '—'}</div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <div className="text-xs text-gray-500">Completed</div>
+                            <div className="text-gray-800 dark:text-gray-200">{goalModalData?.goal?.completedAt ? new Date(goalModalData.goal.completedAt).toLocaleString() : '—'}</div>
+                          </div>
+                          <div>
+                            <div className="text-xs text-gray-500">Points</div>
+                            <div className="text-gray-800 dark:text-gray-200">{goalModalData?.goal?.pointsEarned ?? 0}</div>
+                          </div>
                         </div>
                       </div>
-                      {/* Shareable content cases */}
-                      {goalModalData?.share?.note && (
-                        <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
-                          <div className="text-xs text-gray-500 mb-1">Completion note</div>
-                          <div className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap">{goalModalData.share.note}</div>
-                        </div>
-                      )}
-                      {!goalModalData?.share?.note && !goalModalData?.share?.image && (
-                        <div className="text-xs text-gray-500">No public completion note or image shared</div>
-                      )}
+                      <div className="mt-auto border-t border-gray-200 dark:border-gray-800 p-4 flex items-center gap-4 sticky bottom-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur">
+                        <div className="text-sm text-gray-700 dark:text-gray-300">❤️ {goalModalData?.social?.likeCount || 0}</div>
+                        <div className="text-sm text-gray-700 dark:text-gray-300">💬 {goalModalData?.social?.commentCount || 0}</div>
+                      </div>
                     </div>
-                    )}
-                    {showComments && goalModalData?.social?.activityId && (
-                      <div className="flex-1 min-h-0">
-                        <ActivityCommentsModal isOpen={true} onClose={() => setShowComments(false)} activity={{ _id: goalModalData.social.activityId, commentCount: goalModalData?.social?.commentCount }} inline />
-                      </div>
-                    )}
-                    <div className="mt-auto border-t border-gray-200 dark:border-gray-800 p-4 flex items-center gap-4">
-                      <div className="text-sm text-gray-700 dark:text-gray-300">❤️ {goalModalData?.social?.likeCount || 0}</div>
-                      <div className="text-sm text-gray-700 dark:text-gray-300">💬 {goalModalData?.social?.commentCount || 0}</div>
-                      {goalModalData?.social?.activityId && !showComments && (
-                        <button
-                          onClick={() => setShowComments(true)}
-                          className="ml-auto text-sm text-blue-600 hover:underline"
-                        >Open comments</button>
+                    {/* Right: Comments always visible */}
+                    <div className="flex-1 min-h-0">
+                      {goalModalData?.social?.activityId ? (
+                        <ActivityCommentsModal isOpen={true} onClose={null} activity={{ _id: goalModalData.social.activityId, commentCount: goalModalData?.social?.commentCount }} inline />
+                      ) : (
+                        <div className="p-6 text-sm text-gray-500">Comments unavailable</div>
                       )}
                     </div>
                   </div>
-                </div>
+                )
               )}
             </div>
           </div>
