@@ -1159,7 +1159,7 @@ const ExplorePage = () => {
                                       <button
                                         className="font-medium hover:underline"
                                         onClick={() => {
-                                          if (n.data?.actorId && n.data?.actorId?.username) navigate(`/profile/${n.data.actorId.username}?tab=overview`)
+                                          if (n.data?.actorId && n.data?.actorId?.username) navigate(`/profile/@${n.data.actorId.username}?tab=overview`)
                                         }}
                                       >
                                         {actorName}
@@ -1183,7 +1183,7 @@ const ExplorePage = () => {
                                     )}
                                     {(n.data?.activityId) && (
                                       <button
-                                        onClick={() => openNotificationActivity(n.data.activityId)}
+                                        onClick={() => openGoalModal(n?.data?.goalId?._id)}
                                         className="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-xs"
                                       >View</button>
                                     )}
