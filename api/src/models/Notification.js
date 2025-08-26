@@ -238,10 +238,10 @@ notificationSchema.statics.getUserNotifications = function(userId, options = {})
     .sort({ createdAt: -1 })
     .limit(limit)
     .skip(skip)
-    .populate('data.followerId', 'name avatar')
+    .populate('data.followerId', 'name avatar username')
     .populate('data.goalId', 'title category')
-    .populate('data.likerId', 'name avatar')
-    .populate('data.actorId', 'name avatar')
+    .populate('data.likerId', 'name avatar username')
+    .populate('data.actorId', 'name avatar username')
     .populate('data.activityId', 'type')
     .populate('data.commentId');
 };
@@ -402,7 +402,7 @@ notificationSchema.statics.createActivityCommentNotification = async function(co
   try {
     if (!activity) return;
     const User = mongoose.model('User');
-    const commenter = await User.findById(commenterId).select('name avatar');
+    const commenter = await User.findById(commenterId).select('name avatar username');
     if (!commenter) return;
     if (String(activity.userId) === String(commenterId)) return; // no self notif
     return this.createNotification({
@@ -414,7 +414,8 @@ notificationSchema.statics.createActivityCommentNotification = async function(co
         actorId: commenterId,
         actorName: commenter.name,
         actorAvatar: commenter.avatar,
-        activityId: activity._id
+        activityId: activity._id,
+        goalId: activity?.data?.goalId || undefined
       }
     });
   } catch (e) {
@@ -427,7 +428,7 @@ notificationSchema.statics.createCommentReplyNotification = async function(repli
   try {
     if (!parentComment) return;
     const User = mongoose.model('User');
-    const replier = await User.findById(replierId).select('name avatar');
+    const replier = await User.findById(replierId).select('name avatar username');
     if (!replier) return;
     if (String(parentComment.userId) === String(replierId)) return;
     return this.createNotification({
@@ -440,7 +441,8 @@ notificationSchema.statics.createCommentReplyNotification = async function(repli
         actorName: replier.name,
         actorAvatar: replier.avatar,
         activityId: activity?._id,
-        commentId: parentComment._id
+        commentId: parentComment._id,
+        goalId: activity?.data?.goalId || undefined
       }
     });
   } catch (e) {
@@ -453,7 +455,7 @@ notificationSchema.statics.createMentionNotification = async function(mentionerI
   try {
     if (!mentionedUserId || String(mentionerId) === String(mentionedUserId)) return;
     const User = mongoose.model('User');
-    const mentioner = await User.findById(mentionerId).select('name avatar');
+    const mentioner = await User.findById(mentionerId).select('name avatar username');
     if (!mentioner) return;
     return this.createNotification({
       userId: mentionedUserId,
@@ -465,7 +467,8 @@ notificationSchema.statics.createMentionNotification = async function(mentionerI
         actorName: mentioner.name,
         actorAvatar: mentioner.avatar,
         activityId: context.activityId,
-        commentId: context.commentId
+        commentId: context.commentId,
+        goalId: context.goalId
       }
     });
   } catch (e) {
@@ -479,7 +482,7 @@ notificationSchema.statics.createActivityLikeNotification = async function(liker
     if (!activity) return;
     if (String(activity.userId) === String(likerId)) return;
     const User = mongoose.model('User');
-    const liker = await User.findById(likerId).select('name avatar');
+    const liker = await User.findById(likerId).select('name avatar username');
     if (!liker) return;
     return this.createNotification({
       userId: activity.userId,
@@ -490,7 +493,8 @@ notificationSchema.statics.createActivityLikeNotification = async function(liker
         actorId: likerId,
         actorName: liker.name,
         actorAvatar: liker.avatar,
-        activityId: activity._id
+        activityId: activity._id,
+        goalId: activity?.data?.goalId || undefined
       }
     });
   } catch (e) {
@@ -529,7 +533,7 @@ notificationSchema.statics.createGoalLikeNotification = async function(likerId, 
   const Goal = mongoose.model('Goal');
   
   const [liker, goal] = await Promise.all([
-    User.findById(likerId).select('name avatar'),
+    User.findById(likerId).select('name avatar username'),
     Goal.findById(goalId).select('title category')
   ]);
   

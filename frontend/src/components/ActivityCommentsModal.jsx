@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, Send } from 'lucide-react'
 import { activitiesAPI } from '../services/api'
 
-const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false }) => {
+const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embedded = false }) => {
   const [comments, setComments] = useState([])
   const [loading, setLoading] = useState(false)
   const [input, setInput] = useState('')
@@ -11,7 +11,7 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false }) =>
   const [expandedReplies, setExpandedReplies] = useState({}) // {commentId: boolean}
 
   useEffect(() => {
-    const shouldLoad = inline ? !!activity?._id : (isOpen && !!activity?._id)
+    const shouldLoad = (inline || embedded) ? !!activity?._id : (isOpen && !!activity?._id)
     if (!shouldLoad) return
     const fetchComments = async () => {
       setLoading(true)
@@ -82,12 +82,100 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false }) =>
     } catch {}
   }
 
-  const totalComments = useMemo(() => {
-    if (!comments || !comments.length) return activity?.commentCount || 0
-    return comments.reduce((acc, c) => acc + 1 + (c.replies ? c.replies.length : 0), 0)
-  }, [comments, activity?.commentCount])
+  if (!inline && !embedded && !isOpen) return null
 
-  if (!inline && !isOpen) return null
+  // Embedded mode: render comments in-place without own header or scroll container
+  if (embedded) {
+    return (
+      <div className="w-full">
+        <div className="space-y-4">
+          {loading ? (
+            <div className="text-sm text-gray-500">Loading comments...</div>
+          ) : comments.length === 0 ? (
+            <div className="text-sm text-gray-500">No comments yet. Be the first to comment.</div>
+          ) : (
+            comments.map((c) => {
+              const replyCount = (c.replies || []).length;
+              return (
+                <div key={c._id} className="pb-1">
+                  <div className="flex items-start gap-3">
+                    <img src={c.userId?.avatar} alt={c.userId?.name} className="w-8 h-8 rounded-full object-cover" />
+                    <div className="flex-1">
+                      <div className="flex items-start justify-between">
+                        <div className="text-xs text-gray-500">
+                          <span className="font-semibold text-gray-900 dark:text-white mr-2">{c.userId?.name}</span>
+                          <span className="text-gray-500">{formatTimeAgo(c.createdAt)}</span>
+                        </div>
+                        <button onClick={() => toggleCommentLike(c._id)} className={`text-xs hover:text-red-600 ${c.isLiked ? 'text-red-600' : 'text-gray-500'} flex items-center gap-1`}>♥ {c.likeCount || 0}</button>
+                      </div>
+                      <div className="mt-1 text-sm text-gray-700 dark:text-gray-300">{c.text}</div>
+                      <div className="mt-1 flex items-center gap-3">
+                        <button onClick={() => startReply(c)} className="text-xs text-blue-600">Reply</button>
+                        {replyCount > 0 && (
+                          <button onClick={() => toggleReplies(c._id)} className="text-xs text-gray-600 dark:text-gray-400">
+                            {expandedReplies[c._id] ? 'Hide replies' : `View replies (${replyCount})`}
+                          </button>
+                        )}
+                      </div>
+                      {replyTo?.commentId === c._id && (
+                        <div className="mt-2 flex items-center gap-2">
+                          <input
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                            placeholder={`Replying to ${replyTo.userName}`}
+                            className="flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                          />
+                          <button onClick={handlePost} className="px-3 py-2 rounded-lg bg-blue-600 text-white disabled:opacity-50" disabled={!input.trim()}>
+                            <Send className="h-4 w-4" />
+                          </button>
+                          <button onClick={() => { setReplyTo(null); setInput(''); }} className="text-xs text-gray-500">Cancel</button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  {expandedReplies[c._id] && replyCount > 0 && (
+                    <div className="mt-2 pl-11 space-y-2">
+                      {(c.replies || []).map((r) => (
+                        <div key={r._id}>
+                          <div className="flex items-start gap-3">
+                            <img src={r.userId?.avatar} alt={r.userId?.name} className="w-7 h-7 rounded-full object-cover" />
+                            <div className="flex-1">
+                              <div className="flex items-start justify-between">
+                                <div className="text-xs text-gray-500">
+                                  <span className="font-semibold text-gray-900 dark:text-white mr-2">{r.userId?.name}</span>
+                                  <span className="text-gray-500">{formatTimeAgo(r.createdAt)}</span>
+                                </div>
+                                <button onClick={() => toggleCommentLike(r._id)} className={`text-xs hover:text-red-600 ${r.isLiked ? 'text-red-600' : 'text-gray-500'} flex items-center gap-1`}>♥ {r.likeCount || 0}</button>
+                              </div>
+                              <div className="mt-1 text-sm text-gray-700 dark:text-gray-300">{r.text}</div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {!replyTo && (
+          <div className="flex items-center gap-2 mt-4 pt-3 border-t border-gray-200 dark:border-gray-800 sticky bottom-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur supports-[backdrop-filter]:bg-white/70 supports-[backdrop-filter]:dark:bg-gray-900/70 z-10">
+            <input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder={'Add a comment'}
+              className="flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+            />
+            <button onClick={handlePost} className="px-3 py-2 rounded-lg bg-blue-600 text-white disabled:opacity-50" disabled={!input.trim()}>
+              <Send className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+      </div>
+    )
+  }
 
   if (inline) {
     return (
@@ -96,7 +184,6 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false }) =>
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-800">
           <div className="font-semibold text-gray-900 dark:text-white truncate">Comments</div>
           <div className="flex items-center gap-3">
-            <span className="text-xs text-gray-500">{totalComments}</span>
             {onClose && (
               <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"><X className="h-5 w-5" /></button>
             )}
@@ -218,7 +305,6 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false }) =>
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-800">
             <div className="font-semibold text-gray-900 dark:text-white truncate">Comments</div>
             <div className="flex items-center gap-3">
-              <span className="text-xs text-gray-500">{totalComments}</span>
               <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"><X className="h-5 w-5" /></button>
             </div>
           </div>
