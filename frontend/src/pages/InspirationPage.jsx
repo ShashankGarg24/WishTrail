@@ -117,20 +117,6 @@ const InspirationPage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-slate-900 dark:via-gray-900 dark:to-zinc-900">
       <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="text-center mb-8"
-        >
-          <h1 className="text-5xl font-bold text-gray-900 dark:text-white mb-4">
-            Inspiration
-          </h1>
-          <p className="text-gray-600 dark:text-gray-300 text-xl max-w-3xl mx-auto">
-            Be inspired by the incredible progress happening in our community right now
-          </p>
-        </motion.div>
         {/* Data Refresh Notice */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}

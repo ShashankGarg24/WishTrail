@@ -170,25 +170,7 @@ const LeaderboardPage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 to-purple-50 dark:from-gray-900 dark:to-gray-800">
       <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="text-center mb-8"
-        >
-          <div className="flex items-center justify-center mb-4">
-            <div className="bg-gradient-to-r from-yellow-400 to-orange-500 p-3 rounded-full mr-4">
-              <Trophy className="h-8 w-8 text-white" />
-            </div>
-            <h1 className="text-4xl font-bold text-gray-900 dark:text-white">
-              Leaderboard
-            </h1>
-          </div>
-          <p className="text-gray-600 dark:text-gray-400 text-lg">
-            Compete with others and climb to the top
-          </p>
-        </motion.div>
+        
         {/* Data Refresh Notice */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}

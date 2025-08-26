@@ -218,20 +218,6 @@ const DashboardPage = () => {
   return (
     <div className="min-h-screen py-8">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className="mb-8"
-        >
-          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-2">
-            Goal Dashboard
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            Track your progress and achieve your dreams
-          </p>
-        </motion.div>
 
         {/* Year Selection */}
         <motion.div

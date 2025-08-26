@@ -200,16 +200,20 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false }) =>
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[210] bg-black/70 flex items-center justify-center p-4"
+        className="fixed inset-0 z-[210] bg-black/70 flex items-end md:items-center md:justify-center p-0 md:p-4"
         onClick={onClose}
       >
         <motion.div
-          initial={{ scale: 0.98, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.98, opacity: 0 }}
-          className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden shadow-2xl"
+          initial={{ y: 40, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: 40, opacity: 0 }}
+          className="bg-white dark:bg-gray-900 rounded-t-2xl md:rounded-2xl w-full md:max-w-2xl max-h-[90vh] md:max-h-[85vh] flex flex-col overflow-hidden shadow-2xl"
           onClick={(e) => e.stopPropagation()}
         >
+          {/* Mobile drag handle */}
+          <div className="md:hidden flex items-center justify-center pt-2">
+            <div className="w-12 h-1.5 bg-gray-300 dark:bg-gray-700 rounded-full" />
+          </div>
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-800">
             <div className="font-semibold text-gray-900 dark:text-white truncate">Comments</div>

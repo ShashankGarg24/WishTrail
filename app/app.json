@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "WishTrail",
+    "slug": "wishtrail",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "updates": {
+      "fallbackToCacheTimeout": 0
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.yourco.wishtrail"
+    },
+    "android": {
+      "package": "com.yourco.wishtrail"
+    },
+    "web": {},
+    "extra": {
+      "WEB_URL": "https://wishtrail.vercel.app/",
+      "eas": {
+        "projectId": "e3515452-9da8-40f1-a213-2cda05137373"
+      }
+    }
+  }
+}

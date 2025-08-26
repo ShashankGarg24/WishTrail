@@ -1,0 +1,26 @@
+{
+  "name": "wishtrail-app",
+  "version": "1.0.0",
+  "private": true,
+  "main": "index.js",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios"
+  },
+  "dependencies": {
+    "expo": "53.0.22",
+    "expo-constants": "~17.1.7",
+    "expo-modules-core": "~2.5.0",
+    "expo-status-bar": "~2.2.3",
+    "react": "19.0.0",
+    "react-devtools-core": "^6.1.5",
+    "react-native": "0.79.5",
+    "react-native-webview": "13.13.5"
+  },
+  "devDependencies": {
+    "metro": "^0.82.0",
+    "metro-config": "^0.82.0",
+    "metro-resolver": "^0.82.0"
+  }
+}
