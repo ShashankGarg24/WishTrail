@@ -407,6 +407,27 @@ achievementSchema.statics.createDefaultAchievements = async function() {
       criteria: { accountAgeRequired: 365 },
       rewards: { points: 200 },
       displayOrder: 18
+    },
+    // Emotional Achievements
+    {
+      name: 'Compassionate Soul',
+      description: 'Consistently helped and showed gratitude this period',
+      icon: '🕊️',
+      type: 'special',
+      rarity: 'uncommon',
+      criteria: { specialConditions: { code: 'compassionate_soul' } },
+      rewards: { points: 20 },
+      displayOrder: 19
+    },
+    {
+      name: 'Ray of Sunshine',
+      description: 'Radiated positivity throughout the period',
+      icon: '🌞',
+      type: 'special',
+      rarity: 'common',
+      criteria: { specialConditions: { code: 'ray_of_sunshine' } },
+      rewards: { points: 10 },
+      displayOrder: 20
     }
   ];
   

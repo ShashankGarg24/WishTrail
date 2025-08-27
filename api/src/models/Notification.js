@@ -25,6 +25,7 @@ const notificationSchema = new mongoose.Schema({
       'goal_due_soon',
       'weekly_summary',
       'monthly_summary',
+      'journal_prompt',
       // Extended types for social interactions
       'follow_request',
       'follow_request_accepted',

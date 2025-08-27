@@ -20,6 +20,7 @@ const leaderboardRoutes = require('./routes/leaderboardRoutes');
 const exploreRoutes = require('./routes/exploreRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
 const locationRoutes = require('./routes/locationRoutes');
+const journalRoutes = require('./routes/journalRoutes');
 const bloomFilter = require('./utility/BloomFilterService');
 
 const apiVersion = process.env.API_VERSION || 'v1';
@@ -30,6 +31,7 @@ const createApp = async () => {
   await connectDB();       
   await bloomFilter.init();
   require('./cron/bloomFilterJob');
+  require('./cron/journalJobs');
   console.log('✅ Initialization complete');
 
   const app = express();
@@ -129,6 +131,7 @@ const createApp = async () => {
   apiRouter.use('/explore', exploreRoutes);
   apiRouter.use('/upload', uploadRoutes);
   apiRouter.use('/location', locationRoutes);
+  apiRouter.use('/journals', journalRoutes);
   apiRouter.use('/feedback', require('./routes/feedbackRoutes'));
   apiRouter.use('/moderation', require('./routes/moderationRoutes'));
   apiRouter.use('/notifications', require('./routes/notificationRoutes'));

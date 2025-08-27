@@ -152,6 +152,14 @@ export const notificationsAPI = {
   deleteNotification: (id) => api.delete(`/notifications/${id}`)
 };
 
+// Journals API
+export const journalsAPI = {
+  getPrompt: () => api.get('/journals/prompt'),
+  createEntry: (payload) => api.post('/journals', payload),
+  getMyEntries: (params) => api.get('/journals/me', { params }),
+  getHighlights: (userId, params) => api.get(`/journals/highlights/${userId}`, { params })
+};
+
 // Location API
 export const locationAPI = {
   getCitySuggestions: (query) =>

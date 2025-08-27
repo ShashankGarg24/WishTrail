@@ -13,7 +13,8 @@ import {
   setAuthToken,
   locationAPI,
   moderationAPI,
-  notificationsAPI
+  notificationsAPI,
+  journalsAPI
 } from '../services/api';
 
 const useApiStore = create(
@@ -58,6 +59,11 @@ const useApiStore = create(
       notifications: [],
       notificationsPagination: null,
       unreadNotifications: 0,
+
+      // Journaling
+      journalPrompt: null,
+      journalEntries: [],
+      journalHighlights: [],
       
       // Client-side caches (TTL + persisted)
       cacheActivityFeed: {}, // key -> { data, ts }
@@ -980,6 +986,57 @@ const useApiStore = create(
           const errorMessage = handleApiError(error);
           set({ loading: false, error: errorMessage });
           return { success: false, error: errorMessage };
+        }
+      },
+
+      // =====================
+      // JOURNALING ACTIONS
+      // =====================
+      getJournalPrompt: async () => {
+        try {
+          const res = await journalsAPI.getPrompt();
+          const prompt = res?.data?.data?.prompt;
+          if (prompt) {
+            set({ journalPrompt: prompt });
+          }
+          return prompt;
+        } catch (error) {
+          return null;
+        }
+      },
+      createJournalEntry: async ({ content, promptKey, visibility = 'private', mood = 'neutral', tags = [] }) => {
+        try {
+          const res = await journalsAPI.createEntry({ content, promptKey, visibility, mood, tags });
+          const entry = res?.data?.data?.entry;
+          if (entry) {
+            set(state => ({ journalEntries: [entry, ...state.journalEntries] }));
+          }
+          return { success: true, entry };
+        } catch (error) {
+          const errorMessage = handleApiError(error);
+          return { success: false, error: errorMessage };
+        }
+      },
+      getMyJournalEntries: async (params = {}) => {
+        try {
+          const res = await journalsAPI.getMyEntries(params);
+          const entries = res?.data?.data?.entries || [];
+          set({ journalEntries: entries });
+          return entries;
+        } catch (error) {
+          set({ journalEntries: [] });
+          return [];
+        }
+      },
+      getUserJournalHighlights: async (userId, params = {}) => {
+        try {
+          const res = await journalsAPI.getHighlights(userId, params);
+          const highlights = res?.data?.data?.highlights || [];
+          set({ journalHighlights: highlights });
+          return highlights;
+        } catch (error) {
+          set({ journalHighlights: [] });
+          return [];
         }
       },
       loadMoreNotifications: async () => {

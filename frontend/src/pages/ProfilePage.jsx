@@ -6,6 +6,7 @@ import useApiStore from "../store/apiStore";
 import ProfileEditModal from "../components/ProfileEditModal";
 import ReportModal from "../components/ReportModal";
 import BlockModal from "../components/BlockModal";
+import JournalPromptModal from "../components/JournalPromptModal";
 
 const ProfilePage = () => {
   const params = useParams();
@@ -37,6 +38,10 @@ const ProfilePage = () => {
     report,
     blockUser,
     cancelFollowRequest,
+    getUserJournalHighlights,
+    getMyJournalEntries,
+    journalHighlights,
+    journalEntries
   } = useApiStore();
 
   // Determine if viewing own profile or another user's profile
@@ -44,6 +49,7 @@ const ProfilePage = () => {
   const displayUser = isOwnProfile ? currentUser : profileUser;
 
   const [isRequested, setIsRequested] = useState(false);
+  const [isJournalOpen, setIsJournalOpen] = useState(false);
 
   const isProfileAccessible = () => {
     if (isOwnProfile) return true;
@@ -71,6 +77,22 @@ const ProfilePage = () => {
       setActiveTab(tabFromUrl);
     }
   }, [searchParams]);
+
+  useEffect(() => {
+    // Load Heart Moments when tab opens
+    const fetchHeart = async () => {
+      try {
+        const targetId = (isOwnProfile ? currentUser?._id : profileUser?._id);
+        if (activeTab === 'heart' && targetId) {
+          await getUserJournalHighlights(targetId, { limit: 12 });
+          if (isOwnProfile) {
+            await getMyJournalEntries({ limit: 10 });
+          }
+        }
+      } catch (e) {}
+    };
+    fetchHeart();
+  }, [activeTab, profileUser?._id, currentUser?._id]);
 
   const fetchOwnProfile = async () => {
     setLoading(true);
@@ -510,6 +532,17 @@ const ProfilePage = () => {
                   <Target className="h-5 w-5" />
                   <span className="font-medium">Goals</span>
                 </button>
+                <button
+                  onClick={() => handleTabChange('heart')}
+                  className={`flex items-center space-x-2 px-6 py-3 rounded-xl transition-all duration-200 ${
+                    activeTab === 'heart'
+                      ? (isOwnProfile ? 'bg-primary-500 text-white shadow-lg' : 'bg-blue-500 text-white shadow-lg')
+                      : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  <Heart className="h-5 w-5" />
+                  <span className="font-medium">Heart Moments</span>
+                </button>
               </div>
             </motion.div>
             {/* Tab Content */}
@@ -747,6 +780,67 @@ const ProfilePage = () => {
                   )}
                 </div>
               )}
+              {activeTab === 'heart' && (
+                <div className={isOwnProfile 
+                  ? "bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg"
+                  : "bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50"
+                }>
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
+                      <Heart className="h-6 w-6 mr-2 text-pink-600 dark:text-pink-400" />
+                      {isOwnProfile ? 'Your Heart Moments' : 'Heart Moments'}
+                    </h3>
+                    {isOwnProfile && (
+                      <button
+                        onClick={() => setIsJournalOpen(true)}
+                        className="px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg transition-colors"
+                      >
+                        Write Today’s Journal
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Highlights */}
+                  {Array.isArray(journalHighlights) && journalHighlights.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-8">
+                      {journalHighlights.map((h, i) => (
+                        <div key={i} className="p-4 bg-gray-50 dark:bg-gray-700/30 rounded-xl border border-gray-200 dark:border-gray-600/30 text-gray-800 dark:text-gray-200">
+                          {h}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-10">
+                      <Heart className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                      <p className="text-gray-600 dark:text-gray-400">No heart moments yet.</p>
+                      {isOwnProfile && (
+                        <button onClick={() => setIsJournalOpen(true)} className="mt-4 px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg">Write Your First Journal</button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Recent Journal (own profile) */}
+                  {isOwnProfile && Array.isArray(journalEntries) && journalEntries.length > 0 && (
+                    <div>
+                      <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Recent Journal</h4>
+                      <div className="space-y-3">
+                        {journalEntries.slice(0, 5).map((e) => (
+                          <div key={e._id} className="p-4 bg-gray-50 dark:bg-gray-700/30 rounded-xl border border-gray-200 dark:border-gray-600/30">
+                            <div className="flex items-center justify-between mb-2 text-sm text-gray-500 dark:text-gray-400">
+                              <span>{formatTimeAgo(e.createdAt)}</span>
+                              <span className="inline-flex items-center gap-2">
+                                <span className="px-2 py-0.5 rounded-full text-xs bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200">{e.visibility}</span>
+                                <span className="px-2 py-0.5 rounded-full text-xs bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200">{e.mood?.replace('_',' ') || 'neutral'}</span>
+                              </span>
+                            </div>
+                            <p className="text-gray-800 dark:text-gray-200">{e.content}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </motion.div>
           </>
         )}
@@ -755,6 +849,19 @@ const ProfilePage = () => {
           <ProfileEditModal 
             isOpen={isEditModalOpen} 
             onClose={() => setIsEditModalOpen(false)} 
+          />
+        )}
+        {/* Journal Prompt Modal */}
+        {isOwnProfile && (
+          <JournalPromptModal
+            isOpen={isJournalOpen}
+            onClose={() => setIsJournalOpen(false)}
+            onSubmitted={async () => {
+              try {
+                await getUserJournalHighlights(currentUser?._id, { limit: 12 });
+                await getMyJournalEntries({ limit: 10 });
+              } catch {}
+            }}
           />
         )}
       </div>
