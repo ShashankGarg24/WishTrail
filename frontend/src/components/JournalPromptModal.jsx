@@ -102,30 +102,39 @@ const JournalPromptModal = ({ isOpen, onClose, onSubmitted }) => {
               </form>
             </>
           ) : (
-            <div className="space-y-4">
-              <div className="p-4 bg-pink-50 dark:bg-pink-900/20 border border-pink-200 dark:border-pink-800 rounded-xl">
-                <div className="text-sm text-pink-800 dark:text-pink-200 font-semibold mb-2">Motivation</div>
-                <div className="text-gray-800 dark:text-gray-100 leading-relaxed">{llmResult.motivation}</div>
+            <div className="space-y-5">
+              <div className="p-5 bg-gradient-to-br from-pink-50 to-rose-50 dark:from-pink-900/10 dark:to-rose-900/10 border border-pink-200/70 dark:border-pink-800/50 rounded-2xl">
+                <div className="text-sm text-pink-800 dark:text-pink-200 font-semibold mb-2">Today’s Boost</div>
+                <div className="text-gray-800 dark:text-gray-100 leading-relaxed text-[15px]">{llmResult.motivation}</div>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="p-3 bg-gray-50 dark:bg-gray-800/40 rounded-lg border border-gray-200 dark:border-gray-700 text-center">
-                  <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Helped</div>
-                  <div className="text-lg font-semibold text-gray-800 dark:text-gray-100">+{llmResult.signals?.helpedCount || 0}</div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <div className="p-3 bg-white dark:bg-gray-800/40 rounded-xl border border-gray-200 dark:border-gray-700 text-center shadow-sm">
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">+1 Helped</div>
+                  <div className="text-lg font-semibold text-gray-800 dark:text-gray-100">{llmResult.signals?.helpedCount || 0}</div>
                 </div>
-                <div className="p-3 bg-gray-50 dark:bg-gray-800/40 rounded-lg border border-gray-200 dark:border-gray-700 text-center">
-                  <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Gratitude</div>
-                  <div className="text-lg font-semibold text-gray-800 dark:text-gray-100">+{llmResult.signals?.gratitudeCount || 0}</div>
+                <div className="p-3 bg-white dark:bg-gray-800/40 rounded-xl border border-gray-200 dark:border-gray-700 text-center shadow-sm">
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">+1 Gratitude</div>
+                  <div className="text-lg font-semibold text-gray-800 dark:text-gray-100">{llmResult.signals?.gratitudeCount || 0}</div>
                 </div>
-                <div className="p-3 bg-gray-50 dark:bg-gray-800/40 rounded-lg border border-gray-200 dark:border-gray-700 text-center">
-                  <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Self Sacrifice</div>
-                  <div className="text-lg font-semibold text-gray-800 dark:text-gray-100">+{llmResult.signals?.selfSacrificeCount || 0}</div>
+                <div className="p-3 bg-white dark:bg-gray-800/40 rounded-xl border border-gray-200 dark:border-gray-700 text-center shadow-sm">
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">+1 Self Sacrifice</div>
+                  <div className="text-lg font-semibold text-gray-800 dark:text-gray-100">{llmResult.signals?.selfSacrificeCount || 0}</div>
                 </div>
-                <div className="p-3 bg-gray-50 dark:bg-gray-800/40 rounded-lg border border-gray-200 dark:border-gray-700 text-center">
-                  <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Positive</div>
-                  <div className="text-lg font-semibold text-gray-800 dark:text-gray-100">+{llmResult.signals?.positiveCount || 0}</div>
+                <div className="p-3 bg-white dark:bg-gray-800/40 rounded-xl border border-gray-200 dark:border-gray-700 text-center shadow-sm">
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">+1 Positive</div>
+                  <div className="text-lg font-semibold text-gray-800 dark:text-gray-100">{llmResult.signals?.positiveCount || 0}</div>
+                </div>
+                <div className="p-3 bg-white dark:bg-gray-800/40 rounded-xl border border-gray-200 dark:border-gray-700 text-center shadow-sm">
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">+1 Kindness</div>
+                  <div className="text-lg font-semibold text-gray-800 dark:text-gray-100">{llmResult.signals?.kindnessCount || 0}</div>
+                </div>
+                <div className="p-3 bg-white dark:bg-gray-800/40 rounded-xl border border-gray-200 dark:border-gray-700 text-center shadow-sm">
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">+1 Resilience</div>
+                  <div className="text-lg font-semibold text-gray-800 dark:text-gray-100">{llmResult.signals?.resilienceCount || 0}</div>
                 </div>
               </div>
-              <div className="flex justify-end">
+              <div className="flex items-center justify-between">
+                <div className="text-xs text-gray-500 dark:text-gray-400">Great work—small steps build a lasting emotional legacy.</div>
                 <button
                   onClick={() => { setLlmResult(null); setContent(''); onSubmitted?.(); onClose(); }}
                   className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600"

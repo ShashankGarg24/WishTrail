@@ -63,14 +63,15 @@ const journalEntrySchema = new mongoose.Schema({
   // AI generated motivation and signal extraction
   ai: {
     motivation: { type: String, default: '' },
-    model: { type: String, default: '' },
-    raw: { type: mongoose.Schema.Types.Mixed, default: null },
+    model: { type: String, default: '' }
   },
   aiSignals: {
     helpedCount: { type: Number, default: 0, min: 0 },
     gratitudeCount: { type: Number, default: 0, min: 0 },
     selfSacrificeCount: { type: Number, default: 0, min: 0 },
     positiveCount: { type: Number, default: 0, min: 0 },
+    kindnessCount: { type: Number, default: 0, min: 0 },
+    resilienceCount: { type: Number, default: 0, min: 0 },
     otherCount: { type: Number, default: 0, min: 0 }
   }
 }, {

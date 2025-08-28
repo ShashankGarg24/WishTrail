@@ -51,11 +51,13 @@ Also extract counts of emotional aspects present in the journal:
 - gratitudeCount: number of gratitude expressions
 - selfSacrificeCount: number of selfless/sacrifice indications
 - positiveCount: number of clearly positive moments or emotions
+- kindnessCount: number of acts of kindness
+- resilienceCount: number of resilient/courageous moments
 - otherCount: number of other meaningful emotional aspects not covered above
 Return strict JSON with shape:
 {
   "motivation": string,
-  "signals": {"helpedCount": number, "gratitudeCount": number, "selfSacrificeCount": number, "positiveCount": number, "otherCount": number}
+  "signals": {"helpedCount": number, "gratitudeCount": number, "selfSacrificeCount": number, "positiveCount": number, "kindnessCount": number, "resilienceCount": number, "otherCount": number}
 }
 
 Journal prompt key: ${promptKey || 'freeform'}
@@ -87,13 +89,13 @@ Journal content: <<<${content}>>>`;
     if (!parsed || typeof parsed !== 'object') {
       parsed = {
         motivation: (answer || '').slice(0, 240),
-        signals: { helpedCount: 0, gratitudeCount: 0, selfSacrificeCount: 0, positiveCount: 0, otherCount: 0 }
+        signals: { helpedCount: 0, gratitudeCount: 0, selfSacrificeCount: 0, positiveCount: 0, kindnessCount: 0, resilienceCount: 0, otherCount: 0 }
       };
     } else {
       parsed.motivation = String(parsed.motivation || '').slice(0, 400);
-      parsed.signals = parsed.signals || { helpedCount: 0, gratitudeCount: 0, selfSacrificeCount: 0, positiveCount: 0, otherCount: 0 };
+      parsed.signals = parsed.signals || { helpedCount: 0, gratitudeCount: 0, selfSacrificeCount: 0, positiveCount: 0, kindnessCount: 0, resilienceCount: 0, otherCount: 0 };
     }
-    return { parsed, raw: resp?.data };
+    return { parsed };
   } catch (e) {
     return null;
   }
@@ -142,13 +144,15 @@ async function createEntry(userId, { content, promptKey, visibility = 'private',
   try {
     const llm = await generateMotivationLLM({ content, promptKey: entry.promptKey });
     if (llm && llm.parsed) {
-      entry.ai = { motivation: llm.parsed.motivation || '', model: 'llama3-70b-8192', raw: llm.raw };
+      entry.ai = { motivation: llm.parsed.motivation || '', model: 'llama3-70b-8192' };
       const s = llm.parsed.signals || {};
       entry.aiSignals = {
         helpedCount: Number(s.helpedCount) || 0,
         gratitudeCount: Number(s.gratitudeCount) || 0,
         selfSacrificeCount: Number(s.selfSacrificeCount) || 0,
         positiveCount: Number(s.positiveCount) || 0,
+        kindnessCount: Number(s.kindnessCount) || 0,
+        resilienceCount: Number(s.resilienceCount) || 0,
         otherCount: Number(s.otherCount) || 0
       };
       // Adjust basic signals positivity if strong positiveCount
@@ -266,6 +270,7 @@ async function computeSummary(userId, period = 'week') {
       metrics.gratitudeCount += Number(e.aiSignals.gratitudeCount || 0);
       metrics.sacrificeCount += Number(e.aiSignals.selfSacrificeCount || 0);
       metrics.positiveMoments += Number(e.aiSignals.positiveCount || 0);
+      // kindness/resilience could be surfaced in the copy later if needed
     }
   }
 
