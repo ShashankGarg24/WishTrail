@@ -506,13 +506,12 @@ const ProfilePage = () => {
               transition={{ duration: 0.5, delay: 0.1 }}
               className="flex justify-center mb-8"
             >
-              <div className={isOwnProfile 
-                ? "bg-white dark:bg-gray-800 rounded-2xl p-2 shadow-lg flex"
-                : "bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-2 border border-gray-200 dark:border-gray-700/50 flex"
-              }>
+              <div className={(isOwnProfile 
+                ? "bg-white dark:bg-gray-800"
+                : "bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg border border-gray-200 dark:border-gray-700/50") + " rounded-2xl p-2 shadow-lg flex overflow-x-auto whitespace-nowrap gap-1 no-scrollbar"}>
                 <button
                   onClick={() => handleTabChange('overview')}
-                  className={`flex items-center space-x-2 px-6 py-3 rounded-xl transition-all duration-200 ${
+                  className={`flex items-center space-x-2 px-6 py-3 rounded-xl transition-all duration-200 shrink-0 ${
                     activeTab === 'overview'
                       ? (isOwnProfile ? 'bg-primary-500 text-white shadow-lg' : 'bg-blue-500 text-white shadow-lg')
                       : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
@@ -523,7 +522,7 @@ const ProfilePage = () => {
                 </button>
                 <button
                   onClick={() => handleTabChange('goals')}
-                  className={`flex items-center space-x-2 px-6 py-3 rounded-xl transition-all duration-200 ${
+                  className={`flex items-center space-x-2 px-6 py-3 rounded-xl transition-all duration-200 shrink-0 ${
                     activeTab === 'goals'
                       ? (isOwnProfile ? 'bg-primary-500 text-white shadow-lg' : 'bg-blue-500 text-white shadow-lg')
                       : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
@@ -534,7 +533,7 @@ const ProfilePage = () => {
                 </button>
                 <button
                   onClick={() => handleTabChange('heart')}
-                  className={`flex items-center space-x-2 px-6 py-3 rounded-xl transition-all duration-200 ${
+                  className={`flex items-center space-x-2 px-6 py-3 rounded-xl transition-all duration-200 shrink-0 ${
                     activeTab === 'heart'
                       ? (isOwnProfile ? 'bg-primary-500 text-white shadow-lg' : 'bg-blue-500 text-white shadow-lg')
                       : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'

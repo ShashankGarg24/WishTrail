@@ -23,6 +23,11 @@ const journalEntrySchema = new mongoose.Schema({
     trim: true,
     maxlength: 1000
   },
+  wordCount: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
   mood: {
     type: String,
     enum: ['very_negative','negative','neutral','positive','very_positive'],
@@ -53,6 +58,20 @@ const journalEntrySchema = new mongoose.Schema({
   dayKey: {
     type: String,
     index: true
+  },
+
+  // AI generated motivation and signal extraction
+  ai: {
+    motivation: { type: String, default: '' },
+    model: { type: String, default: '' },
+    raw: { type: mongoose.Schema.Types.Mixed, default: null },
+  },
+  aiSignals: {
+    helpedCount: { type: Number, default: 0, min: 0 },
+    gratitudeCount: { type: Number, default: 0, min: 0 },
+    selfSacrificeCount: { type: Number, default: 0, min: 0 },
+    positiveCount: { type: Number, default: 0, min: 0 },
+    otherCount: { type: Number, default: 0, min: 0 }
   }
 }, {
   timestamps: true,

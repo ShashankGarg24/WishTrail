@@ -23,6 +23,8 @@ const JournalPromptModal = ({ isOpen, onClose, onSubmitted }) => {
   const [visibility, setVisibility] = useState('private');
   const [mood, setMood] = useState('neutral');
   const [submitting, setSubmitting] = useState(false);
+  const maxWords = 120;
+  const words = content.trim() ? content.trim().split(/\s+/).length : 0;
 
   useEffect(() => {
     if (isOpen && !journalPrompt) {
@@ -60,6 +62,7 @@ const JournalPromptModal = ({ isOpen, onClose, onSubmitted }) => {
           </div>
           <form onSubmit={handleSubmit} className="space-y-4">
             <textarea value={content} onChange={(e) => setContent(e.target.value)} placeholder="Write 1-3 sentences..." rows={4} className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 resize-none" />
+            <div className={`text-right text-xs ${words > maxWords ? 'text-red-600' : 'text-gray-500 dark:text-gray-400'}`}>{words}/{maxWords} words</div>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-sm text-gray-600 dark:text-gray-400 mb-2 block">Mood</label>
@@ -82,7 +85,7 @@ const JournalPromptModal = ({ isOpen, onClose, onSubmitted }) => {
               <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
                 <Heart className="h-3 w-3" /> Your words can become a Heart Moment on your profile.
               </div>
-              <button type="submit" disabled={submitting || !content.trim()} className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed">{submitting ? 'Saving...' : 'Save'}</button>
+              <button type="submit" disabled={submitting || !content.trim() || words > maxWords} className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed">{submitting ? 'Saving...' : 'Save'}</button>
             </div>
           </form>
         </motion.div>

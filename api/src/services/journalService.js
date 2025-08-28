@@ -5,6 +5,7 @@ const Notification = require('../models/Notification');
 const User = require('../models/User');
 const Achievement = require('../models/Achievement');
 const UserAchievement = require('../models/UserAchievement');
+const axios = require('axios');
 
 const PROMPTS = [
   { key: 'smile', text: 'What made you smile today?' },
@@ -38,7 +39,91 @@ function deriveSignalsFromEntry(entry) {
   return signals;
 }
 
+async function generateMotivationLLM({ content, promptKey }) {
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) return null;
+  try {
+    const userPrompt = `You are an encouraging coach.
+Read the user's short daily journal below. If it is inappropriate or harmful, respond with motivation: "Thanks for sharing. Please keep entries respectful and safe.".
+Otherwise, produce a concise, emotionally supportive message (30-50 words) celebrating their effort.
+Also extract counts of emotional aspects present in the journal:
+- helpedCount: number of times they helped someone
+- gratitudeCount: number of gratitude expressions
+- selfSacrificeCount: number of selfless/sacrifice indications
+- positiveCount: number of clearly positive moments or emotions
+- otherCount: number of other meaningful emotional aspects not covered above
+Return strict JSON with shape:
+{
+  "motivation": string,
+  "signals": {"helpedCount": number, "gratitudeCount": number, "selfSacrificeCount": number, "positiveCount": number, "otherCount": number}
+}
+
+Journal prompt key: ${promptKey || 'freeform'}
+Journal content: <<<${content}>>>`;
+
+    const body = {
+      model: 'llama3-70b-8192',
+      messages: [
+        { role: 'system', content: 'You are a kind, concise motivational assistant. Always return valid JSON only.' },
+        { role: 'user', content: userPrompt }
+      ],
+      temperature: 0.6,
+      max_tokens: 300,
+    };
+    const resp = await axios.post('https://api.groq.com/openai/v1/chat/completions', body, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      timeout: 10000
+    });
+    const answer = resp?.data?.choices?.[0]?.message?.content || '';
+    let parsed = null;
+    try { parsed = JSON.parse(answer); } catch (_) {
+      // Try to extract JSON substring
+      const m = answer.match(/\{[\s\S]*\}/);
+      if (m) { try { parsed = JSON.parse(m[0]); } catch (_) {} }
+    }
+    if (!parsed || typeof parsed !== 'object') {
+      parsed = {
+        motivation: (answer || '').slice(0, 240),
+        signals: { helpedCount: 0, gratitudeCount: 0, selfSacrificeCount: 0, positiveCount: 0, otherCount: 0 }
+      };
+    } else {
+      parsed.motivation = String(parsed.motivation || '').slice(0, 400);
+      parsed.signals = parsed.signals || { helpedCount: 0, gratitudeCount: 0, selfSacrificeCount: 0, positiveCount: 0, otherCount: 0 };
+    }
+    return { parsed, raw: resp?.data };
+  } catch (e) {
+    return null;
+  }
+}
+
 async function createEntry(userId, { content, promptKey, visibility = 'private', mood = 'neutral', tags = [] }) {
+  // Enforce 1 per day
+  const todayKey = new Date(); todayKey.setUTCHours(0,0,0,0);
+  const dayKey = todayKey.toISOString().split('T')[0];
+  const existing = await JournalEntry.findOne({ userId, dayKey, isActive: true }).lean();
+  if (existing) {
+    const err = new Error('Daily journal already submitted. Come back tomorrow.');
+    err.statusCode = 429;
+    throw err;
+  }
+
+  // Word limit (e.g., 120 words)
+  const maxWords = parseInt(process.env.JOURNAL_MAX_WORDS || '120', 10);
+  const words = String(content || '').trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) {
+    const err = new Error('Content is required');
+    err.statusCode = 400;
+    throw err;
+  }
+  if (words.length > maxWords) {
+    const err = new Error(`Please keep your journal under ${maxWords} words.`);
+    err.statusCode = 400;
+    throw err;
+  }
+
   const promptObj = PROMPTS.find(p => p.key === promptKey) || { key: 'freeform', text: '' };
   const entry = new JournalEntry({
     userId,
@@ -47,10 +132,33 @@ async function createEntry(userId, { content, promptKey, visibility = 'private',
     content,
     visibility,
     mood,
-    tags
+    tags,
+    dayKey,
+    wordCount: words.length
   });
   entry.signals = deriveSignalsFromEntry(entry);
   await entry.save();
+  // Fire-and-forget LLM enrichment
+  try {
+    const llm = await generateMotivationLLM({ content, promptKey: entry.promptKey });
+    if (llm && llm.parsed) {
+      entry.ai = { motivation: llm.parsed.motivation || '', model: 'llama3-70b-8192', raw: llm.raw };
+      const s = llm.parsed.signals || {};
+      entry.aiSignals = {
+        helpedCount: Number(s.helpedCount) || 0,
+        gratitudeCount: Number(s.gratitudeCount) || 0,
+        selfSacrificeCount: Number(s.selfSacrificeCount) || 0,
+        positiveCount: Number(s.positiveCount) || 0,
+        otherCount: Number(s.otherCount) || 0
+      };
+      // Adjust basic signals positivity if strong positiveCount
+      if ((entry.aiSignals.positiveCount || 0) > 0 && (!entry.signals || typeof entry.signals.positivity !== 'number')) {
+        entry.signals = entry.signals || {};
+        entry.signals.positivity = 1;
+      }
+      await entry.save();
+    }
+  } catch (_) {}
   return entry;
 }
 
@@ -153,6 +261,12 @@ async function computeSummary(userId, period = 'week') {
     if (e.signals?.expressedGratitude) metrics.gratitudeCount += 1;
     if (e.signals?.selfSacrifice) metrics.sacrificeCount += 1;
     if ((e.signals?.positivity || 0) > 0) metrics.positiveMoments += 1;
+    if (e.aiSignals) {
+      metrics.helpedCount += Number(e.aiSignals.helpedCount || 0);
+      metrics.gratitudeCount += Number(e.aiSignals.gratitudeCount || 0);
+      metrics.sacrificeCount += Number(e.aiSignals.selfSacrificeCount || 0);
+      metrics.positiveMoments += Number(e.aiSignals.positiveCount || 0);
+    }
   }
 
   const summaryText = period === 'week'
