@@ -94,6 +94,16 @@ const ProfilePage = () => {
     fetchHeart();
   }, [activeTab, profileUser?._id, currentUser?._id]);
 
+  const hasTodayJournal = (() => {
+    if (!isOwnProfile) return false;
+    const today = new Date(); today.setUTCHours(0,0,0,0);
+    const todayKey = today.toISOString().split('T')[0];
+    if (Array.isArray(journalEntries) && journalEntries.length > 0) {
+      return journalEntries.some(e => (e.dayKey || (new Date(e.createdAt).toISOString().split('T')[0])) === todayKey);
+    }
+    return false;
+  })();
+
   const fetchOwnProfile = async () => {
     setLoading(true);
     try {
@@ -792,9 +802,11 @@ const ProfilePage = () => {
                     {isOwnProfile && (
                       <button
                         onClick={() => setIsJournalOpen(true)}
-                        className="px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg transition-colors"
+                        disabled={hasTodayJournal}
+                        className={`px-4 py-2 rounded-lg transition-colors ${hasTodayJournal ? 'bg-gray-300 dark:bg-gray-700 text-gray-600 dark:text-gray-300 cursor-not-allowed' : 'bg-pink-500 hover:bg-pink-600 text-white'}`}
+                        title={hasTodayJournal ? 'You have already submitted today. Come back tomorrow!' : 'Open journal prompt'}
                       >
-                        Write Today’s Journal
+                        {hasTodayJournal ? 'Journal Submitted' : 'Write Today’s Journal'}
                       </button>
                     )}
                   </div>
@@ -813,7 +825,7 @@ const ProfilePage = () => {
                       <Heart className="h-12 w-12 text-gray-400 mx-auto mb-3" />
                       <p className="text-gray-600 dark:text-gray-400">No heart moments yet.</p>
                       {isOwnProfile && (
-                        <button onClick={() => setIsJournalOpen(true)} className="mt-4 px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg">Write Your First Journal</button>
+                        <button onClick={() => setIsJournalOpen(true)} disabled={hasTodayJournal} className={`mt-4 px-4 py-2 rounded-lg ${hasTodayJournal ? 'bg-gray-300 dark:bg-gray-700 text-gray-600 dark:text-gray-300 cursor-not-allowed' : 'bg-pink-500 hover:bg-pink-600 text-white'}`}>{hasTodayJournal ? 'Journal Submitted' : 'Write Your First Journal'}</button>
                       )}
                     </div>
                   )}
