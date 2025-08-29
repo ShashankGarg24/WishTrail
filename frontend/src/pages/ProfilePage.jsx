@@ -802,14 +802,14 @@ const ProfilePage = () => {
                 }>
                   <div className="flex items-center justify-between mb-6">
                     <h3 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
-                      <BookOpen className="h-6 w-6 mr-2 text-pink-600 dark:text-pink-400" />
+                      <BookOpen className="h-6 w-6 mr-2 text-indigo-600 dark:text-indigo-400" />
                       {isOwnProfile ? 'Your Journal' : 'Journal'}
                     </h3>
                     {isOwnProfile && (
                       <button
                         onClick={() => setIsJournalOpen(true)}
                         disabled={hasTodayJournal}
-                        className={`px-4 py-2 rounded-lg transition-colors ${hasTodayJournal ? 'bg-gray-300 dark:bg-gray-700 text-gray-600 dark:text-gray-300 cursor-not-allowed' : 'bg-pink-500 hover:bg-pink-600 text-white'}`}
+                        className={`px-4 py-2 rounded-lg transition-colors ${hasTodayJournal ? 'bg-gray-300 dark:bg-gray-700 text-gray-600 dark:text-gray-300 cursor-not-allowed' : 'bg-indigo-500 hover:bg-indigo-600 text-white'}`}
                         title={hasTodayJournal ? 'You have already submitted today. Come back tomorrow!' : 'Open journal prompt'}
                       >
                         {hasTodayJournal ? 'Journal Submitted' : 'Write Today’s Journal'}
@@ -831,7 +831,7 @@ const ProfilePage = () => {
                       <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-3" />
                       <p className="text-gray-600 dark:text-gray-400">No entries yet.</p>
                       {isOwnProfile && (
-                        <button onClick={() => setIsJournalOpen(true)} disabled={hasTodayJournal} className={`mt-4 px-4 py-2 rounded-lg ${hasTodayJournal ? 'bg-gray-300 dark:bg-gray-700 text-gray-600 dark:text-gray-300 cursor-not-allowed' : 'bg-pink-500 hover:bg-pink-600 text-white'}`}>{hasTodayJournal ? 'Journal Submitted' : 'Write Your First Journal'}</button>
+                        <button onClick={() => setIsJournalOpen(true)} disabled={hasTodayJournal} className={`mt-4 px-4 py-2 rounded-lg ${hasTodayJournal ? 'bg-gray-300 dark:bg-gray-700 text-gray-600 dark:text-gray-300 cursor-not-allowed' : 'bg-indigo-500 hover:bg-indigo-600 text-white'}`}>{hasTodayJournal ? 'Journal Submitted' : 'Write Your First Journal'}</button>
                       )}
                     </div>
                   )}
@@ -842,7 +842,7 @@ const ProfilePage = () => {
                       <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Recent Journal</h4>
                       <div className="space-y-3">
                         {journalEntries.slice(0, 5).map((e) => (
-                          <div key={e._id} className="p-4 bg-gray-50 dark:bg-gray-700/30 rounded-xl border border-gray-200 dark:border-gray-600/30">
+                          <button key={e._id} onClick={() => { setSelectedEntry(e); setEntryModalOpen(true); }} className="w-full text-left p-4 bg-gray-50 dark:bg-gray-700/30 rounded-xl border border-gray-200 dark:border-gray-600/30 hover:bg-gray-100 dark:hover:bg-gray-700/40 transition-colors">
                             <div className="flex items-center justify-between mb-2 text-sm text-gray-500 dark:text-gray-400">
                               <span>{formatTimeAgo(e.createdAt)}</span>
                               <span className="inline-flex items-center gap-2">
@@ -850,8 +850,8 @@ const ProfilePage = () => {
                                 <span className="px-2 py-0.5 rounded-full text-xs bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200">{e.mood?.replace('_',' ') || 'neutral'}</span>
                               </span>
                             </div>
-                            <p className="text-gray-800 dark:text-gray-200">{e.content}</p>
-                          </div>
+                            <p className="text-gray-800 dark:text-gray-200 line-clamp-2">{e.content}</p>
+                          </button>
                         ))}
                       </div>
                     </div>
