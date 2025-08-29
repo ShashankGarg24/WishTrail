@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { Calendar, Target, TrendingUp, Star, Edit2, ExternalLink, Youtube, Instagram, MapPin, Globe, Award, Trophy, Heart, Clock, CheckCircle, Circle, User, Users, UserPlus, UserCheck, ArrowLeft, Lock, ShieldAlert, Slash } from "lucide-react";
+import { Calendar, Target, TrendingUp, Star, Edit2, ExternalLink, Youtube, Instagram, MapPin, Globe, Award, Trophy, BookOpen, Clock, CheckCircle, Circle, User, Users, UserPlus, UserCheck, ArrowLeft, Lock, ShieldAlert, Slash } from "lucide-react";
 import { motion } from "framer-motion";
 import useApiStore from "../store/apiStore";
 import ProfileEditModal from "../components/ProfileEditModal";
@@ -79,11 +79,11 @@ const ProfilePage = () => {
   }, [searchParams]);
 
   useEffect(() => {
-    // Load Heart Moments when tab opens
-    const fetchHeart = async () => {
+    // Load Journal when tab opens
+    const fetchJournal = async () => {
       try {
         const targetId = (isOwnProfile ? currentUser?._id : profileUser?._id);
-        if (activeTab === 'heart' && targetId) {
+        if (activeTab === 'journal' && targetId) {
           await getUserJournalHighlights(targetId, { limit: 12 });
           if (isOwnProfile) {
             await getMyJournalEntries({ limit: 10 });
@@ -91,7 +91,7 @@ const ProfilePage = () => {
         }
       } catch (e) {}
     };
-    fetchHeart();
+    fetchJournal();
   }, [activeTab, profileUser?._id, currentUser?._id]);
 
   const hasTodayJournal = (() => {
@@ -542,15 +542,15 @@ const ProfilePage = () => {
                   <span className="font-medium">Goals</span>
                 </button>
                 <button
-                  onClick={() => handleTabChange('heart')}
+                  onClick={() => handleTabChange('journal')}
                   className={`flex items-center space-x-2 px-6 py-3 rounded-xl transition-all duration-200 shrink-0 ${
-                    activeTab === 'heart'
+                    activeTab === 'journal'
                       ? (isOwnProfile ? 'bg-primary-500 text-white shadow-lg' : 'bg-blue-500 text-white shadow-lg')
                       : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
                   }`}
                 >
-                  <Heart className="h-5 w-5" />
-                  <span className="font-medium">Heart Moments</span>
+                  <BookOpen className="h-5 w-5" />
+                  <span className="font-medium">Journal</span>
                 </button>
               </div>
             </motion.div>
@@ -645,7 +645,7 @@ const ProfilePage = () => {
                     : "bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50"
                   }>
                     <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6 flex items-center">
-                      <Heart className="h-6 w-6 mr-2 text-pink-600 dark:text-pink-400" />
+                      <BookOpen className="h-6 w-6 mr-2 text-pink-600 dark:text-pink-400" />
                       {isOwnProfile ? 'Your Interests' : 'Interests'}
                     </h3>
                     {isProfileAccessible() ? (
@@ -664,7 +664,7 @@ const ProfilePage = () => {
                         isOwnProfile ? (
                           <div className="text-center py-8">
                             <div className="bg-gray-100 dark:bg-gray-700/50 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                              <Heart className="h-8 w-8 text-gray-400" />
+                              <BookOpen className="h-8 w-8 text-gray-400" />
                             </div>
                             <p className="text-gray-600 dark:text-gray-400 mb-4">No interests added yet</p>
                             <p className="text-gray-500 dark:text-gray-500 text-sm mb-4">
@@ -674,7 +674,7 @@ const ProfilePage = () => {
                               onClick={() => setIsEditModalOpen(true)}
                               className="inline-flex items-center px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600 transition-colors"
                             >
-                              <Heart className="h-4 w-4 mr-2" />
+                              <BookOpen className="h-4 w-4 mr-2" />
                               Add Interests
                             </button>
                           </div>
@@ -789,15 +789,15 @@ const ProfilePage = () => {
                   )}
                 </div>
               )}
-              {activeTab === 'heart' && (
+              {activeTab === 'journal' && (
                 <div className={isOwnProfile 
                   ? "bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg"
                   : "bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50"
                 }>
                   <div className="flex items-center justify-between mb-6">
                     <h3 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
-                      <Heart className="h-6 w-6 mr-2 text-pink-600 dark:text-pink-400" />
-                      {isOwnProfile ? 'Your Heart Moments' : 'Heart Moments'}
+                      <BookOpen className="h-6 w-6 mr-2 text-pink-600 dark:text-pink-400" />
+                      {isOwnProfile ? 'Your Journal' : 'Journal'}
                     </h3>
                     {isOwnProfile && (
                       <button
@@ -822,8 +822,8 @@ const ProfilePage = () => {
                     </div>
                   ) : (
                     <div className="text-center py-10">
-                      <Heart className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                      <p className="text-gray-600 dark:text-gray-400">No heart moments yet.</p>
+                      <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                      <p className="text-gray-600 dark:text-gray-400">No entries yet.</p>
                       {isOwnProfile && (
                         <button onClick={() => setIsJournalOpen(true)} disabled={hasTodayJournal} className={`mt-4 px-4 py-2 rounded-lg ${hasTodayJournal ? 'bg-gray-300 dark:bg-gray-700 text-gray-600 dark:text-gray-300 cursor-not-allowed' : 'bg-pink-500 hover:bg-pink-600 text-white'}`}>{hasTodayJournal ? 'Journal Submitted' : 'Write Your First Journal'}</button>
                       )}
