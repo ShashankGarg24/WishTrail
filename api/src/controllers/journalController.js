@@ -45,4 +45,15 @@ exports.getUserHighlights = async (req, res, next) => {
   }
 };
 
+exports.getEmotionStats = async (req, res, next) => {
+  try {
+    const targetUserId = req.params.userId;
+    const viewerId = req.user?._id;
+    const stats = await journalService.getEmotionStats(targetUserId, viewerId);
+    res.status(200).json({ success: true, data: { stats } });
+  } catch (error) {
+    next(error);
+  }
+};
+
 

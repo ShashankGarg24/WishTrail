@@ -64,6 +64,7 @@ const useApiStore = create(
       journalPrompt: null,
       journalEntries: [],
       journalHighlights: [],
+      journalStats: null,
       
       // Client-side caches (TTL + persisted)
       cacheActivityFeed: {}, // key -> { data, ts }
@@ -1037,6 +1038,17 @@ const useApiStore = create(
         } catch (error) {
           set({ journalHighlights: [] });
           return [];
+        }
+      },
+      getUserJournalStats: async (userId) => {
+        try {
+          const res = await journalsAPI.getStats(userId);
+          const stats = res?.data?.data?.stats || null;
+          set({ journalStats: stats });
+          return stats;
+        } catch (error) {
+          set({ journalStats: null });
+          return null;
         }
       },
       loadMoreNotifications: async () => {

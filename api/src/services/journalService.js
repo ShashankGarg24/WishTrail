@@ -174,6 +174,37 @@ async function listMyEntries(userId, { limit = 20, skip = 0 } = {}) {
     .lean();
 }
 
+async function getEmotionStats(targetUserId, viewerUserId) {
+  const isSelf = String(targetUserId) === String(viewerUserId);
+  const visibilityFilter = isSelf ? {} : { visibility: { $in: ['public', 'friends'] } };
+  const entries = await JournalEntry.find({ userId: targetUserId, isActive: true, ...visibilityFilter }).select('signals aiSignals').lean();
+  const stats = {
+    helped: 0,
+    gratitude: 0,
+    selfSacrifice: 0,
+    positive: 0,
+    kindness: 0,
+    resilience: 0,
+    other: 0
+  };
+  for (const e of entries) {
+    if (e.signals?.helpedSomeone) stats.helped += 1;
+    if (e.signals?.expressedGratitude) stats.gratitude += 1;
+    if (e.signals?.selfSacrifice) stats.selfSacrifice += 1;
+    if ((e.signals?.positivity || 0) > 0) stats.positive += 1;
+    if (e.aiSignals) {
+      stats.helped += Number(e.aiSignals.helpedCount || 0);
+      stats.gratitude += Number(e.aiSignals.gratitudeCount || 0);
+      stats.selfSacrifice += Number(e.aiSignals.selfSacrificeCount || 0);
+      stats.positive += Number(e.aiSignals.positiveCount || 0);
+      stats.kindness += Number(e.aiSignals.kindnessCount || 0);
+      stats.resilience += Number(e.aiSignals.resilienceCount || 0);
+      stats.other += Number(e.aiSignals.otherCount || 0);
+    }
+  }
+  return stats;
+}
+
 async function getUserHighlights(targetUserId, viewerUserId, { limit = 12 } = {}) {
   const isSelf = String(targetUserId) === String(viewerUserId);
   let allowedVisibility = ['public'];

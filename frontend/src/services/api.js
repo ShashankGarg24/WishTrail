@@ -157,7 +157,8 @@ export const journalsAPI = {
   getPrompt: () => api.get('/journals/prompt'),
   createEntry: (payload) => api.post('/journals', payload),
   getMyEntries: (params) => api.get('/journals/me', { params }),
-  getHighlights: (userId, params) => api.get(`/journals/highlights/${userId}`, { params })
+  getHighlights: (userId, params) => api.get(`/journals/highlights/${userId}`, { params }),
+  getStats: (userId) => api.get(`/journals/stats/${userId}`)
 };
 
 // Location API

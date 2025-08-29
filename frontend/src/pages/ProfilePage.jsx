@@ -7,6 +7,7 @@ import ProfileEditModal from "../components/ProfileEditModal";
 import ReportModal from "../components/ReportModal";
 import BlockModal from "../components/BlockModal";
 import JournalPromptModal from "../components/JournalPromptModal";
+import JournalEntryModal from "../components/JournalEntryModal";
 
 const ProfilePage = () => {
   const params = useParams();
@@ -40,8 +41,10 @@ const ProfilePage = () => {
     cancelFollowRequest,
     getUserJournalHighlights,
     getMyJournalEntries,
+    getUserJournalStats,
     journalHighlights,
-    journalEntries
+    journalEntries,
+    journalStats
   } = useApiStore();
 
   // Determine if viewing own profile or another user's profile
@@ -50,6 +53,8 @@ const ProfilePage = () => {
 
   const [isRequested, setIsRequested] = useState(false);
   const [isJournalOpen, setIsJournalOpen] = useState(false);
+  const [entryModalOpen, setEntryModalOpen] = useState(false);
+  const [selectedEntry, setSelectedEntry] = useState(null);
 
   const isProfileAccessible = () => {
     if (isOwnProfile) return true;
@@ -88,6 +93,7 @@ const ProfilePage = () => {
           if (isOwnProfile) {
             await getMyJournalEntries({ limit: 10 });
           }
+          await getUserJournalStats(targetId);
         }
       } catch (e) {}
     };
@@ -850,6 +856,19 @@ const ProfilePage = () => {
                       </div>
                     </div>
                   )}
+                  {journalStats && (
+                    <div className="mb-6">
+                      <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Emotional Points</h4>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        <StatPill label="+1 Helped" value={journalStats.helped} />
+                        <StatPill label="+1 Gratitude" value={journalStats.gratitude} />
+                        <StatPill label="+1 Self Sacrifice" value={journalStats.selfSacrifice} />
+                        <StatPill label="+1 Positive" value={journalStats.positive} />
+                        <StatPill label="+1 Kindness" value={journalStats.kindness} />
+                        <StatPill label="+1 Resilience" value={journalStats.resilience} />
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </motion.div>
@@ -864,15 +883,23 @@ const ProfilePage = () => {
         )}
         {/* Journal Prompt Modal */}
         {isOwnProfile && (
-          <JournalPromptModal
-            isOpen={isJournalOpen}
-            onClose={() => setIsJournalOpen(false)}
+          <JournalPromptModal 
+            isOpen={isJournalOpen} 
+            onClose={() => setIsJournalOpen(false)} 
             onSubmitted={async () => {
               try {
                 await getUserJournalHighlights(currentUser?._id, { limit: 12 });
                 await getMyJournalEntries({ limit: 10 });
+                await getUserJournalStats(currentUser?._id);
               } catch {}
             }}
+          />
+        )}
+        {entryModalOpen && selectedEntry && (
+          <JournalEntryModal
+            isOpen={entryModalOpen}
+            onClose={() => { setEntryModalOpen(false); setSelectedEntry(null); }}
+            entry={selectedEntry}
           />
         )}
       </div>
@@ -915,3 +942,11 @@ export default ProfilePage;
 {/* Report & Block Modals */}
 {/* Intentionally placed after export to keep render tree simple; you can move inline if preferred */}
 // (No-op comment to indicate modal usage is already integrated above.)
+
+// Reusable small stat pill
+export const StatPill = ({ label, value }) => (
+  <div className="p-3 bg-gray-50 dark:bg-gray-800/40 rounded-lg border border-gray-200 dark:border-gray-700 text-center">
+    <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">{label}</div>
+    <div className="text-lg font-semibold text-gray-800 dark:text-gray-100">{value || 0}</div>
+  </div>
+);

@@ -16,6 +16,9 @@ router.get('/me', protect, journalController.getMyEntries);
 // Get user highlights (public/friends/private-aware)
 router.get('/highlights/:userId', optionalAuth, journalController.getUserHighlights);
 
+// Get emotion stats for a profile
+router.get('/stats/:userId', optionalAuth, journalController.getEmotionStats);
+
 module.exports = router;
 
 
