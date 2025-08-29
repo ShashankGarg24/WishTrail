@@ -27,6 +27,7 @@ exports.getMyEntries = async (req, res, next) => {
     const limit = Math.min(parseInt(req.query.limit) || 20, 50);
     const skip = parseInt(req.query.skip) || 0;
     const entries = await journalService.listMyEntries(req.user._id, { limit, skip });
+    // Ensure ai and aiSignals (motivation) are present in response
     res.status(200).json({ success: true, data: { entries } });
   } catch (error) {
     next(error);

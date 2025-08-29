@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { Calendar, Target, TrendingUp, Star, Edit2, ExternalLink, Youtube, Instagram, MapPin, Globe, Award, Trophy, BookOpen, Clock, CheckCircle, Circle, User, Users, UserPlus, UserCheck, ArrowLeft, Lock, ShieldAlert, Slash } from "lucide-react";
+import { Calendar, Target, TrendingUp, Star, Edit2, ExternalLink, Youtube, Instagram, MapPin, Globe, Award, Trophy, BookOpen, Clock, CheckCircle, Circle, User, Users, UserPlus, UserCheck, ArrowLeft, Lock, ShieldAlert, Slash, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
 import useApiStore from "../store/apiStore";
+import { journalsAPI } from "../services/api";
 import ProfileEditModal from "../components/ProfileEditModal";
 import ReportModal from "../components/ReportModal";
 import BlockModal from "../components/BlockModal";
@@ -55,6 +56,11 @@ const ProfilePage = () => {
   const [isJournalOpen, setIsJournalOpen] = useState(false);
   const [entryModalOpen, setEntryModalOpen] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState(null);
+  const [journalFeed, setJournalFeed] = useState([]);
+  const [journalSkip, setJournalSkip] = useState(0);
+  const JOURNAL_LIMIT = 6;
+  const [journalHasMore, setJournalHasMore] = useState(true);
+  const [journalLoading, setJournalLoading] = useState(false);
 
   const isProfileAccessible = () => {
     if (isOwnProfile) return true;
@@ -89,16 +95,41 @@ const ProfilePage = () => {
       try {
         const targetId = (isOwnProfile ? currentUser?._id : profileUser?._id);
         if (activeTab === 'journal' && targetId) {
-          await getUserJournalHighlights(targetId, { limit: 12 });
-          if (isOwnProfile) {
-            await getMyJournalEntries({ limit: 10 });
-          }
+          // Stats
           await getUserJournalStats(targetId);
+          // Reset feed and load first page (own profile only)
+          if (isOwnProfile) {
+            setJournalFeed([]);
+            setJournalSkip(0);
+            setJournalHasMore(true);
+            await loadMoreJournal();
+          }
         }
       } catch (e) {}
     };
     fetchJournal();
   }, [activeTab, profileUser?._id, currentUser?._id]);
+
+  const loadMoreJournal = async () => {
+    if (!isOwnProfile || journalLoading || !journalHasMore) return;
+    try {
+      setJournalLoading(true);
+      const params = { limit: JOURNAL_LIMIT, skip: journalSkip };
+      const res = await journalsAPI.getMyEntries(params);
+      const entries = res?.data?.data?.entries || [];
+      setJournalFeed(prev => {
+        const seen = new Set(prev.map(x => x?._id).filter(Boolean));
+        const filtered = entries.filter(e => e && e._id && !seen.has(e._id));
+        return [...prev, ...filtered];
+      });
+      setJournalSkip(prev => prev + entries.length);
+      if (entries.length < JOURNAL_LIMIT) setJournalHasMore(false);
+    } catch (_) {
+      setJournalHasMore(false);
+    } finally {
+      setJournalLoading(false);
+    }
+  };
 
   const hasTodayJournal = (() => {
     if (!isOwnProfile) return false;
@@ -817,45 +848,7 @@ const ProfilePage = () => {
                     )}
                   </div>
 
-                  {/* Highlights */}
-                  {Array.isArray(journalHighlights) && journalHighlights.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-8">
-                      {journalHighlights.map((h, i) => (
-                        <div key={i} className="p-4 bg-gray-50 dark:bg-gray-700/30 rounded-xl border border-gray-200 dark:border-gray-600/30 text-gray-800 dark:text-gray-200">
-                          {h}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-10">
-                      <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                      <p className="text-gray-600 dark:text-gray-400">No entries yet.</p>
-                      {isOwnProfile && (
-                        <button onClick={() => setIsJournalOpen(true)} disabled={hasTodayJournal} className={`mt-4 px-4 py-2 rounded-lg ${hasTodayJournal ? 'bg-gray-300 dark:bg-gray-700 text-gray-600 dark:text-gray-300 cursor-not-allowed' : 'bg-indigo-500 hover:bg-indigo-600 text-white'}`}>{hasTodayJournal ? 'Journal Submitted' : 'Write Your First Journal'}</button>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Recent Journal (own profile) */}
-                  {isOwnProfile && Array.isArray(journalEntries) && journalEntries.length > 0 && (
-                    <div>
-                      <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Recent Journal</h4>
-                      <div className="space-y-3">
-                        {journalEntries.slice(0, 5).map((e) => (
-                          <button key={e._id} onClick={() => { setSelectedEntry(e); setEntryModalOpen(true); }} className="w-full text-left p-4 bg-gray-50 dark:bg-gray-700/30 rounded-xl border border-gray-200 dark:border-gray-600/30 hover:bg-gray-100 dark:hover:bg-gray-700/40 transition-colors">
-                            <div className="flex items-center justify-between mb-2 text-sm text-gray-500 dark:text-gray-400">
-                              <span>{formatTimeAgo(e.createdAt)}</span>
-                              <span className="inline-flex items-center gap-2">
-                                <span className="px-2 py-0.5 rounded-full text-xs bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200">{e.visibility}</span>
-                                <span className="px-2 py-0.5 rounded-full text-xs bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200">{e.mood?.replace('_',' ') || 'neutral'}</span>
-                              </span>
-                            </div>
-                            <p className="text-gray-800 dark:text-gray-200 line-clamp-2">{e.content}</p>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                  {/* Points */}
                   {journalStats && (
                     <div className="mb-6">
                       <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Emotional Points</h4>
@@ -866,6 +859,51 @@ const ProfilePage = () => {
                         <StatPill label="+1 Positive" value={journalStats.positive} />
                         <StatPill label="+1 Kindness" value={journalStats.kindness} />
                         <StatPill label="+1 Resilience" value={journalStats.resilience} />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Journal Feed (own profile) */}
+                  {isOwnProfile && (
+                    <div>
+                      <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Recent Journal</h4>
+                      {journalFeed.length === 0 && !journalLoading && (
+                        <div className="text-center py-10">
+                          <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                          <p className="text-gray-600 dark:text-gray-400">No entries yet.</p>
+                          {isOwnProfile && (
+                            <button onClick={() => setIsJournalOpen(true)} disabled={hasTodayJournal} className={`mt-4 px-4 py-2 rounded-lg ${hasTodayJournal ? 'bg-gray-300 dark:bg-gray-700 text-gray-600 dark:text-gray-300 cursor-not-allowed' : 'bg-indigo-500 hover:bg-indigo-600 text-white'}`}>{hasTodayJournal ? 'Journal Submitted' : 'Write Your First Journal'}</button>
+                          )}
+                        </div>
+                      )}
+                      <div className="space-y-3 max-h-[520px] overflow-auto pr-1">
+                        {journalFeed.map((e) => (
+                          <button key={e._id} onClick={() => { setSelectedEntry(e); setEntryModalOpen(true); }} className="w-full text-left p-4 bg-gray-50 dark:bg-gray-700/30 rounded-xl border border-gray-200 dark:border-gray-600/30 hover:bg-gray-100 dark:hover:bg-gray-700/40 transition-colors">
+                            <div className="flex items-center justify-between mb-2 text-sm text-gray-500 dark:text-gray-400">
+                              <span>{formatTimeAgo(e.createdAt)}</span>
+                              <span className="inline-flex items-center gap-2">
+                                <span className="px-2 py-0.5 rounded-full text-xs bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200">{e.visibility}</span>
+                                <span className="px-2 py-0.5 rounded-full text-xs bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200">{e.mood?.replace('_',' ') || 'neutral'}</span>
+                              </span>
+                            </div>
+                            <p className="text-gray-800 dark:text-gray-200 line-clamp-2 mb-2">{e.content}</p>
+                            {e?.ai?.motivation && (
+                              <div className="p-3 bg-gradient-to-r from-indigo-50 to-sky-50 dark:from-indigo-900/10 dark:to-sky-900/10 border border-indigo-200/60 dark:border-indigo-800/40 rounded-lg text-sm text-indigo-800 dark:text-indigo-200 flex items-start gap-2">
+                                <Sparkles className="h-4 w-4 mt-0.5 text-indigo-500" />
+                                <span className="leading-relaxed">{e.ai.motivation}</span>
+                              </div>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="flex items-center justify-center mt-4">
+                        {journalHasMore ? (
+                          <button onClick={loadMoreJournal} disabled={journalLoading} className="px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-lg border border-gray-200 dark:border-gray-600">
+                            {journalLoading ? 'Loading…' : 'Load more'}
+                          </button>
+                        ) : (
+                          journalFeed.length > 0 && <div className="text-xs text-gray-400">No more entries</div>
+                        )}
                       </div>
                     </div>
                   )}
