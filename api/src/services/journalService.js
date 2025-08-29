@@ -379,7 +379,8 @@ module.exports = {
   getUserHighlights,
   computeSummary,
   notifyDailyPrompt,
-  notifyPeriodSummary
+  notifyPeriodSummary,
+  getEmotionStats
 };
 
 
