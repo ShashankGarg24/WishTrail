@@ -1,10 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const auth = require('../middleware/auth');
+const { protect } = require('../middleware/auth');
 const habitController = require('../controllers/habitController');
 
-// All routes require auth
-router.use(auth);
+// Public route (no auth)
+router.get('/:id/og-image', habitController.generateStreakOGImage);
+
+// Authenticated routes
+router.use(protect);
 
 // CRUD
 router.get('/', habitController.listHabits);
@@ -19,8 +22,6 @@ router.delete('/:id', habitController.deleteHabit);
 // Logging
 router.post('/:id/log', habitController.toggleLog);
 router.get('/:id/heatmap', habitController.getHeatmap);
-// Public OG image for milestone share (no auth)
-router.get('/:id/og-image', habitController.generateStreakOGImage);
 
 module.exports = router;
 
