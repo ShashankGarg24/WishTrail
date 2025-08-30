@@ -106,7 +106,10 @@ activitySchema.virtual('message').get(function() {
     'goal_created': `created a new goal "${this.data.goalTitle}"`,
     'user_followed': `started following ${this.data.targetUserName}`,
     'level_up': `leveled up to ${this.data.newLevel}`,
-    'streak_milestone': `achieved a ${this.data.streakCount}-day streak`,
+    'streak_milestone': (() => {
+      const name = this?.data?.metadata?.habitName;
+      return name ? `achieved a ${this.data.streakCount}-day streak on "${name}"` : `achieved a ${this.data.streakCount}-day streak`;
+    })(),
     'achievement_earned': `earned the "${this.data.achievementName}" achievement`,
     'goal_liked': `liked "${this.data.goalTitle}"`,
     'profile_updated': `updated their profile`

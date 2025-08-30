@@ -4,6 +4,7 @@ import { Calendar, Target, TrendingUp, Star, Edit2, ExternalLink, Youtube, Insta
 import { motion } from "framer-motion";
 import useApiStore from "../store/apiStore";
 import { journalsAPI } from "../services/api";
+import { habitsAPI } from '../services/api';
 import ProfileEditModal from "../components/ProfileEditModal";
 import ReportModal from "../components/ReportModal";
 import BlockModal from "../components/BlockModal";
@@ -61,6 +62,8 @@ const ProfilePage = () => {
   const JOURNAL_LIMIT = 6;
   const [journalHasMore, setJournalHasMore] = useState(true);
   const [journalLoading, setJournalLoading] = useState(false);
+  const [habitHeatmap, setHabitHeatmap] = useState({});
+  const [myHabits, setMyHabits] = useState([]);
 
   const isProfileAccessible = () => {
     if (isOwnProfile) return true;
@@ -108,6 +111,23 @@ const ProfilePage = () => {
       } catch (e) {}
     };
     fetchJournal();
+    // Load first habit and its heatmap for overview
+    const fetchHabits = async () => {
+      try {
+        if (activeTab !== 'overview') return;
+        if (!isOwnProfile) return;
+        const res = await habitsAPI.list();
+        const habits = res?.data?.data?.habits || [];
+        setMyHabits(habits);
+        if (habits[0]?._id) {
+          const hmapRes = await habitsAPI.heatmap(habits[0]._id, { months: 1 });
+          setHabitHeatmap(hmapRes?.data?.data?.heatmap || {});
+        } else {
+          setHabitHeatmap({});
+        }
+      } catch (_) {}
+    };
+    fetchHabits();
   }, [activeTab, profileUser?._id, currentUser?._id]);
 
   const loadMoreJournal = async () => {
@@ -771,6 +791,34 @@ const ProfilePage = () => {
                       )}
                     </div>
                   </div>
+                  {isOwnProfile && myHabits.length > 0 && (
+                    <div className={isOwnProfile 
+                      ? "bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg"
+                      : "bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50"
+                    }>
+                      <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Habit Activity (last 30 days)</h3>
+                      <div className="grid grid-cols-7 gap-1">
+                        {(() => {
+                          const boxes = [];
+                          const today = new Date();
+                          for (let i = 29; i >= 0; i--) {
+                            const d = new Date(today);
+                            d.setDate(today.getDate() - i);
+                            d.setHours(0,0,0,0);
+                            const key = d.toISOString().split('T')[0];
+                            const status = habitHeatmap[key];
+                            let bg = 'bg-gray-200 dark:bg-gray-700';
+                            if (status === 'done') bg = 'bg-green-500';
+                            else if (status === 'missed') bg = 'bg-red-400';
+                            else if (status === 'skipped') bg = 'bg-yellow-400';
+                            boxes.push(<div key={key} className={`h-3 w-3 rounded ${bg}`} title={`${key} ${status || ''}`}></div>);
+                          }
+                          return boxes;
+                        })()}
+                      </div>
+                      <div className="text-xs text-gray-500 mt-2">Showing: {myHabits[0]?.name}</div>
+                    </div>
+                  )}
                 </div>
               )}
               {activeTab === 'goals' && (

@@ -32,6 +32,7 @@ const createApp = async () => {
   await bloomFilter.init();
   require('./cron/bloomFilterJob');
   require('./cron/journalJobs');
+  require('./cron/habitReminderJobs');
   console.log('✅ Initialization complete');
 
   const app = express();
@@ -133,6 +134,7 @@ const createApp = async () => {
   apiRouter.use('/location', locationRoutes);
   apiRouter.use('/journals', journalRoutes);
   apiRouter.use('/feedback', require('./routes/feedbackRoutes'));
+  apiRouter.use('/habits', require('./routes/habitRoutes'));
   apiRouter.use('/moderation', require('./routes/moderationRoutes'));
   apiRouter.use('/notifications', require('./routes/notificationRoutes'));
 

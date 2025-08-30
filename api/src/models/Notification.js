@@ -26,6 +26,7 @@ const notificationSchema = new mongoose.Schema({
       'weekly_summary',
       'monthly_summary',
       'journal_prompt',
+      'habit_reminder',
       // Extended types for social interactions
       'follow_request',
       'follow_request_accepted',
@@ -106,6 +107,11 @@ const notificationSchema = new mongoose.Schema({
     activityId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Activity'
+    },
+    // For habit notifications
+    habitId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Habit'
     },
     // For comment notifications
     commentId: {
@@ -601,6 +607,21 @@ notificationSchema.statics.createGoalReminderNotification = async function(userI
       goalTitle,
       goalDueDate: dueDate
     }
+  });
+};
+
+// Habit reminder
+notificationSchema.statics.createHabitReminderNotification = async function(userId, habitId, habitName, timeHHmm) {
+  return this.createNotification({
+    userId,
+    type: 'habit_reminder',
+    title: 'Habit Reminder',
+    message: `Time to do: ${habitName}`,
+    data: {
+      habitId,
+      metadata: { time: timeHHmm }
+    },
+    priority: 'low'
   });
 };
 

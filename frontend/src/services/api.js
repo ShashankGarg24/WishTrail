@@ -161,6 +161,20 @@ export const journalsAPI = {
   getStats: (userId) => api.get(`/journals/stats/${userId}`)
 };
 
+// Habits API
+export const habitsAPI = {
+  list: (params) => api.get('/habits', { params }),
+  create: (payload) => api.post('/habits', payload),
+  get: (id) => api.get(`/habits/${id}`),
+  update: (id, payload) => api.put(`/habits/${id}`, payload),
+  archive: (id) => api.patch(`/habits/${id}/archive`),
+  remove: (id) => api.delete(`/habits/${id}`),
+  stats: () => api.get('/habits/stats'),
+  log: (id, payload) => api.post(`/habits/${id}/log`, payload),
+  heatmap: (id, params) => api.get(`/habits/${id}/heatmap`, { params }),
+  analytics: (params) => api.get('/habits/analytics', { params }),
+};
+
 // Location API
 export const locationAPI = {
   getCitySuggestions: (query) =>

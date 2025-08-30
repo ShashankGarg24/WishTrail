@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Plus, Calendar, Target, CheckCircle, Circle, Star, Award, Lightbulb } from 'lucide-react'
+import HabitsPanel from '../components/HabitsPanel'
+import CreateHabitModal from '../components/CreateHabitModal'
 import useApiStore from '../store/apiStore'
 import CreateWishModal from '../components/CreateWishModal'
 import WishCard from '../components/WishCard'
@@ -11,6 +13,7 @@ import { API_CONFIG } from '../config/api'
 const DashboardPage = () => {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [isHabitModalOpen, setIsHabitModalOpen] = useState(false)
   const [initialGoalData, setInitialGoalData] = useState(null)
   const [isSuggestionsOpen, setIsSuggestionsOpen] = useState(false)
   
@@ -70,6 +73,11 @@ const DashboardPage = () => {
       setInitialGoalData(null)
     }
     return result
+  }
+
+  const handleHabitCreated = async () => {
+    // No global store yet for habits; HabitsPanel will refetch on mount
+    setIsHabitModalOpen(false)
   }
 
   const handleToggleGoal = async (goalId) => {
@@ -344,7 +352,7 @@ const DashboardPage = () => {
           )}
         </motion.div>
 
-        {/* Goals + Suggestions Layout */}
+        {/* Goals + Suggestions + Habits Layout */}
         {currentYearGoals.length === 0 ? (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -376,12 +384,21 @@ const DashboardPage = () => {
           </motion.div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Goals Column */}
+            {/* Left: Habits */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.45 }}
+              className="lg:col-span-1"
+            >
+              <HabitsPanel onCreate={() => setIsHabitModalOpen(true)} />
+            </motion.div>
+            {/* Right: Goals */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.5 }}
-              className="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6"
+              className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6"
             >
               {currentYearGoals.map((goal, index) => (
                 <WishCard
@@ -421,6 +438,15 @@ const DashboardPage = () => {
         limit={6}
         title="Goal Suggestions"
       />
+      )}
+
+      {/* Create Habit Modal */}
+      {isHabitModalOpen && (
+        <CreateHabitModal
+          isOpen={isHabitModalOpen}
+          onClose={() => setIsHabitModalOpen(false)}
+          onCreated={handleHabitCreated}
+        />
       )}
     </div>
   )
