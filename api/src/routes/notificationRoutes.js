@@ -10,6 +10,8 @@ router.get('/', notificationController.getNotifications);
 router.patch('/:id/read', notificationController.markAsRead);
 router.patch('/read-all', notificationController.markAllAsRead);
 router.delete('/:id', notificationController.deleteNotification);
+router.post('/devices/register', notificationController.registerDevice);
+router.post('/devices/unregister', notificationController.unregisterDevice);
 
 module.exports = router;
 

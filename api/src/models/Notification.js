@@ -215,7 +215,16 @@ notificationSchema.pre('save', function(next) {
 notificationSchema.statics.createNotification = async function(notificationData) {
   try {
     const notification = new this(notificationData);
-    return await notification.save();
+    const saved = await notification.save();
+    // Push delivery (best-effort)
+    if (saved?.channels?.push) {
+      try {
+        const { sendExpoPushToUser } = require('../services/pushService');
+        await sendExpoPushToUser(saved.userId, saved);
+        await this.updateOne({ _id: saved._id }, { $set: { isDelivered: true, deliveredAt: new Date() } });
+      } catch (_) {}
+    }
+    return saved;
   } catch (error) {
     console.error('Error creating notification:', error);
     throw error;

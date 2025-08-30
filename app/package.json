@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "expo": "53.0.22",
+    "expo-notifications": "~0.28.15",
+    "expo-device": "~6.0.2",
     "expo-constants": "~17.1.7",
     "expo-modules-core": "~2.5.0",
     "expo-status-bar": "~2.2.3",

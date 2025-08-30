@@ -1,3 +1,27 @@
+const DeviceToken = require('../models/DeviceToken');
+
+exports.registerDevice = async (req, res, next) => {
+  try {
+    const { token, platform = 'unknown', provider = 'expo' } = req.body || {};
+    if (!token) return res.status(400).json({ success: false, message: 'token is required' });
+    const doc = await DeviceToken.findOneAndUpdate(
+      { userId: req.user._id || req.user.id, token },
+      { $set: { platform, provider, lastSeenAt: new Date(), isActive: true } },
+      { upsert: true, new: true }
+    );
+    res.status(200).json({ success: true, data: { device: doc } });
+  } catch (e) { next(e); }
+};
+
+exports.unregisterDevice = async (req, res, next) => {
+  try {
+    const { token } = req.body || {};
+    if (!token) return res.status(400).json({ success: false, message: 'token is required' });
+    await DeviceToken.updateOne({ userId: req.user._id || req.user.id, token }, { $set: { isActive: false } });
+    res.status(200).json({ success: true });
+  } catch (e) { next(e); }
+};
+
 const Notification = require('../models/Notification');
 
 // @desc    Get current user's notifications
