@@ -214,6 +214,19 @@ notificationSchema.pre('save', function(next) {
 // Static method to create notification
 notificationSchema.statics.createNotification = async function(notificationData) {
   try {
+    // Default push channel on selected types if not explicitly set
+    const pushPreferredTypes = new Set([
+      'habit_reminder','goal_due_soon','weekly_summary','monthly_summary',
+      'follow_request','follow_request_accepted','new_follower',
+      'activity_comment','comment_reply','mention',
+      'achievement_earned','level_up','streak_milestone'
+    ]);
+    const channels = notificationData.channels || {};
+    if (typeof channels.push === 'undefined') {
+      channels.push = pushPreferredTypes.has(notificationData.type);
+    }
+    notificationData.channels = channels;
+
     const notification = new this(notificationData);
     const saved = await notification.save();
     // Push delivery (best-effort)

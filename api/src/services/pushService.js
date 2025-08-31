@@ -14,6 +14,13 @@ function buildDeepLink(notification) {
       const id = typeof notification.data.goalId === 'object' ? notification.data.goalId._id || notification.data.goalId : notification.data.goalId;
       if (id) return `${base}/goal/${id}`;
     }
+    if (notification?.data?.habitId) {
+      return `${base}/dashboard`;
+    }
+    if (notification?.data?.activityId) {
+      // Fallback to activities tab; app can open a modal if it supports activityId in query
+      return `${base}/explore?tab=activities`;
+    }
   } catch {}
   return `${base}/explore?tab=notifications`;
 }

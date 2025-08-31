@@ -88,6 +88,8 @@ const deleteNotification = async (req, res, next) => {
 };
 
 module.exports = {
+  registerDevice: exports.registerDevice,
+  unregisterDevice: exports.unregisterDevice,
   getNotifications,
   markAsRead,
   markAllAsRead,

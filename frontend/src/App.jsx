@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, useLocation, useNavigate } from 'react-router-dom'
 import { useEffect } from 'react'
 import useApiStore from './store/apiStore'
 import Header from './components/Header'
@@ -16,6 +16,8 @@ import FeedbackButton from './components/FeedbackButton'
 
 function App() {
   const { isDarkMode, initializeAuth } = useApiStore()
+  const location = useLocation()
+  const navigate = useNavigate()
 
   useEffect(() => {
     // Initialize authentication state
@@ -27,6 +29,17 @@ function App() {
       document.documentElement.classList.remove('dark')
     }
   }, [isDarkMode, initializeAuth])
+
+  // Deep link bootstrap: allow ?url=... to redirect (for push taps)
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(location.search)
+      const target = params.get('url')
+      if (target && /^\/.+/.test(new URL(target, window.location.origin).pathname)) {
+        navigate(new URL(target, window.location.origin).pathname + new URL(target, window.location.origin).search, { replace: true })
+      }
+    } catch {}
+  }, [location.search, navigate])
 
   return (
     <div className="flex flex-col min-h-screen bg-white dark:bg-gray-900 transition-colors duration-300">
