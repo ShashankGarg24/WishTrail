@@ -64,7 +64,7 @@ Journal prompt key: ${promptKey || 'freeform'}
 Journal content: <<<${content}>>>`;
 
     const body = {
-      model: 'llama3-70b-8192',
+      model: 'Llama-3.1-8B-Instant',
       messages: [
         { role: 'system', content: 'You are a kind, concise motivational assistant. Always return valid JSON only.' },
         { role: 'user', content: userPrompt }
@@ -144,7 +144,7 @@ async function createEntry(userId, { content, promptKey, visibility = 'private',
   try {
     const llm = await generateMotivationLLM({ content, promptKey: entry.promptKey });
     if (llm && llm.parsed) {
-      entry.ai = { motivation: llm.parsed.motivation || '', model: 'llama3-70b-8192' };
+      entry.ai = { motivation: llm.parsed.motivation || '', model: 'Llama-3.1-8B-Instant' };
       const s = llm.parsed.signals || {};
       entry.aiSignals = {
         helpedCount: Number(s.helpedCount) || 0,
