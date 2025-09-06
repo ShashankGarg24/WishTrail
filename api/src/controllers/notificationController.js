@@ -88,17 +88,10 @@ const deleteNotification = async (req, res, next) => {
   }
 };
 
-module.exports = {
-  registerDevice: exports.registerDevice,
-  unregisterDevice: exports.unregisterDevice,
-  getNotifications,
-  markAsRead,
-  markAllAsRead,
-  deleteNotification
-};
-
-// Test push (no DB write) - sends a push to the current user's active devices
-exports.testPush = async (req, res, next) => {
+// @desc    Send a test push to current user's devices (no DB write)
+// @route   POST /api/v1/notifications/test-push
+// @access  Private
+const testPush = async (req, res, next) => {
   try {
     const userId = req.user.id || req.user._id;
     const title = req.body?.title || 'Test Notification';
@@ -109,5 +102,15 @@ exports.testPush = async (req, res, next) => {
     const result = await sendExpoPushToUser(userId, fake);
     return res.status(200).json({ success: true, data: { result } });
   } catch (e) { next(e); }
+};
+
+module.exports = {
+  registerDevice: exports.registerDevice,
+  unregisterDevice: exports.unregisterDevice,
+  getNotifications,
+  markAsRead,
+  markAllAsRead,
+  deleteNotification,
+  testPush
 };
 
