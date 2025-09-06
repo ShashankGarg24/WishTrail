@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState, useCallback, useEffect } from 'react';
-import { Platform, SafeAreaView, StatusBar, View, RefreshControl, Linking, AppState, TouchableOpacity, Text, Modal, FlatList } from 'react-native';
+import { Platform, SafeAreaView, StatusBar, View, RefreshControl, Linking, AppState } from 'react-native';
 import { WebView } from 'react-native-webview';
 import Constants from 'expo-constants';
 import { registerRootComponent } from 'expo';
@@ -14,10 +14,6 @@ function App() {
   const [loading, setLoading] = useState(true);
   const appState = useRef(AppState.currentState);
   const [authToken, setAuthToken] = useState(null);
-  const [notifOpen, setNotifOpen] = useState(false);
-  const [notifications, setNotifications] = useState([]);
-  const [notificationsLoading, setNotificationsLoading] = useState(false);
-  const [unread, setUnread] = useState(0);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -52,10 +48,39 @@ function App() {
       appState.current = state;
       if (prev.match(/inactive|background/) && state === 'active') {
         webRef.current?.injectJavaScript(`window.dispatchEvent(new Event('focus')); true;`);
-        if (authToken) fetchNotifications();
       }
     });
     return () => sub.remove();
+  }, []);
+
+  // Foreground and tap listeners for push notifications
+  useEffect(() => {
+    const receivedSub = Notifications.addNotificationReceivedListener((notification) => {
+      try {
+        const content = notification?.request?.content || {};
+        const data = content?.data || {};
+        const payload = {
+          title: content?.title || '',
+          body: content?.body || '',
+          url: data?.url || '',
+          type: data?.type || '',
+          id: data?.id || ''
+        };
+        const js = `window.dispatchEvent(new CustomEvent('wt_push', { detail: ${JSON.stringify(payload)} })); true;`;
+        webRef.current?.injectJavaScript(js);
+      } catch {}
+    });
+    const responseSub = Notifications.addNotificationResponseReceivedListener((response) => {
+      try {
+        const data = response?.notification?.request?.content?.data || {};
+        const url = data?.url;
+        if (url && typeof url === 'string') {
+          const js = `try{window.location.href = ${JSON.stringify(url)};}catch(e){}; true;`;
+          webRef.current?.injectJavaScript(js);
+        }
+      } catch {}
+    });
+    return () => { receivedSub.remove(); responseSub.remove(); };
   }, []);
 
   // Capture auth token from the web app (after load)
@@ -82,29 +107,8 @@ function App() {
     } catch {}
   }, []);
 
-  useEffect(() => {
-    if (authToken) {
-      fetchNotifications();
-    }
-  }, [authToken]);
-
-  async function fetchNotifications() {
-    try {
-      setNotificationsLoading(true);
-      const res = await fetch(`${WEB_URL.replace(/\/$/, '')}/api/v1/notifications`, {
-        headers: { 'Authorization': `Bearer ${authToken}` },
-        credentials: 'include'
-      });
-      const json = await res.json();
-      const list = json?.data?.notifications || json?.data || [];
-      setNotifications(Array.isArray(list) ? list : []);
-      setUnread(json?.data?.unread || (list.filter(n => !n.isRead).length));
-    } catch (e) {
-      setNotifications([]);
-    } finally {
-      setNotificationsLoading(false);
-    }
-  }
+  // Re-register device token when auth becomes available (helps associating token with user)
+  useEffect(() => { if (authToken) { registerForPushNotificationsAsync().catch(() => {}); } }, [authToken]);
 
   async function registerForPushNotificationsAsync() {
     if (!Device.isDevice) return;
@@ -115,6 +119,18 @@ function App() {
       finalStatus = status;
     }
     if (finalStatus !== 'granted') return;
+    // Android: ensure a high-importance channel
+    if (Platform.OS === 'android') {
+      try {
+        await Notifications.setNotificationChannelAsync('default', {
+          name: 'Default',
+          importance: Notifications.AndroidImportance.HIGH,
+          vibrationPattern: [0, 200, 200, 200],
+          lightColor: '#0ea5e9',
+          lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+        });
+      } catch {}
+    }
     const projectId = Constants?.expoConfig?.extra?.eas?.projectId || Constants?.easConfig?.projectId;
     const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
     const platform = Platform.OS;
@@ -127,21 +143,6 @@ function App() {
       });
     } catch {}
   }
-
-  const timeAgo = (iso) => {
-    try {
-      const now = Date.now();
-      const t = new Date(iso).getTime();
-      const diff = Math.max(0, now - t);
-      const m = Math.floor(diff / 60000);
-      if (m < 1) return 'now';
-      if (m < 60) return `${m}m`;
-      const h = Math.floor(m / 60);
-      if (h < 24) return `${h}h`;
-      const d = Math.floor(h / 24);
-      return `${d}d`;
-    } catch { return ''; }
-  };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#ffffff' }}>
@@ -161,52 +162,6 @@ function App() {
         renderLoading={() => <View style={{ flex: 1, backgroundColor: '#fff' }} />}
         refreshControl={Platform.OS === 'ios' ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} /> : undefined}
       />
-      {/* Floating notifications button */}
-      <View style={{ position: 'absolute', right: 16, bottom: 24 }}>
-        <TouchableOpacity onPress={() => { setNotifOpen(true); if (authToken && notifications.length === 0) fetchNotifications(); }} style={{ backgroundColor: '#0ea5e9', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 24, flexDirection: 'row', alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 6, elevation: 4 }}>
-          <Text style={{ color: '#fff', fontWeight: '600' }}>🔔</Text>
-          {unread > 0 && (
-            <View style={{ marginLeft: 6, backgroundColor: '#ef4444', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10 }}>
-              <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>{unread}</Text>
-            </View>
-          )}
-        </TouchableOpacity>
-      </View>
-
-      {/* Notifications modal */}
-      <Modal visible={notifOpen} animationType="slide" transparent onRequestClose={() => setNotifOpen(false)}>
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'flex-end' }}>
-          <View style={{ backgroundColor: '#111827', borderTopLeftRadius: 16, borderTopRightRadius: 16, maxHeight: '70%', paddingBottom: 24 }}>
-            <View style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>Notifications</Text>
-              <TouchableOpacity onPress={() => setNotifOpen(false)}><Text style={{ color: '#9ca3af', fontSize: 14 }}>Close</Text></TouchableOpacity>
-            </View>
-            <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
-              <TouchableOpacity disabled={!authToken} onPress={async () => { try { await fetch(`${WEB_URL.replace(/\/$/, '')}/api/v1/notifications/read-all`, { method: 'PATCH', headers: { 'Authorization': `Bearer ${authToken}` }, credentials: 'include' }); setNotifications(list => list.map(n => ({ ...n, isRead: true }))); setUnread(0); } catch {} }}>
-                <Text style={{ color: authToken ? '#60a5fa' : '#6b7280' }}>Mark all as read</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={{ backgroundColor: '#1f2937', height: 1, marginBottom: 8 }} />
-            {notificationsLoading ? (
-              <View style={{ padding: 16 }}><Text style={{ color: '#9ca3af' }}>Loading…</Text></View>
-            ) : (
-              <FlatList
-                data={notifications}
-                keyExtractor={(item) => item._id || String(Math.random())}
-                contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 12 }}
-                renderItem={({ item }) => (
-                  <View style={{ backgroundColor: item.isRead ? '#111827' : '#0b1220', borderRadius: 12, padding: 12, marginVertical: 6 }}>
-                    <Text style={{ color: '#e5e7eb', fontWeight: '600' }}>{item.title || 'Update'}</Text>
-                    <Text style={{ color: '#c7d2fe', marginTop: 2 }}>{item.message}</Text>
-                    <Text style={{ color: '#9ca3af', marginTop: 6, fontSize: 12 }}>{timeAgo(item.createdAt)}</Text>
-                  </View>
-                )}
-                ListEmptyComponent={<View style={{ padding: 16 }}><Text style={{ color: '#9ca3af' }}>No notifications</Text></View>}
-              />
-            )}
-          </View>
-        </View>
-      </Modal>
     </SafeAreaView>
   );
 }
