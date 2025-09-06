@@ -14,6 +14,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const appState = useRef(AppState.currentState);
   const [authToken, setAuthToken] = useState(null);
+  const [userId, setUserId] = useState(null);
   const [expoPushToken, setExpoPushToken] = useState(null);
   const authProbeTries = useRef(0);
   const authProbeTimer = useRef(null);
@@ -97,7 +98,14 @@ function App() {
         (function(){
           try {
             var t = localStorage.getItem('token') || '';
+            var persisted = localStorage.getItem('wishtrail-api-store') || '';
+            var uid = '';
+            try {
+              var obj = JSON.parse(persisted);
+              uid = (obj && obj.state && (obj.state.user && (obj.state.user._id || obj.state.user.id))) || '';
+            } catch(e) {}
             window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'WT_AUTH', token: t }));
+            window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'WT_USER', userId: uid }));
           } catch(e) {}
         })(); true;
       `;
@@ -148,6 +156,9 @@ function App() {
       if (data?.type === 'WT_AUTH') {
         const t = (data.token || '').trim();
         if (t && t.length > 0) setAuthToken(t);
+      } else if (data?.type === 'WT_USER') {
+        const uid = (data.userId || '').trim();
+        if (uid && uid.length > 0) setUserId(uid);
       }
     } catch {}
   }, []);
@@ -185,10 +196,11 @@ function App() {
     const platform = Platform.OS;
     try {
       const auth = authToken ? { Authorization: `Bearer ${authToken}` } : null;
+      console.log('Registering device (native) token...', { hasAuth: !!authToken, userId: userId || null, platform });
       await fetch(`${WEB_URL.replace(/\/$/, '')}/api/v1/notifications/devices/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(auth || {}) },
-        body: JSON.stringify({ token, platform, provider: 'expo' })
+        body: JSON.stringify({ token, platform, provider: 'expo', ...(auth ? {} : (userId ? { userId } : {})) })
       });
     } catch {}
   }

@@ -7,7 +7,9 @@ exports.registerDevice = async (req, res, next) => {
     try {
       const masked = token.slice(0, 12) + '...';
       console.log('[notifications] registerDevice hit', {
-        userId: (req.user && (req.user.id || req.user._id)) || null,
+        headerAuth: !!(req.headers && req.headers.authorization),
+        userIdHeader: (req.user && (req.user.id || req.user._id)) || null,
+        userIdBody: req.body && req.body.userId ? req.body.userId : null,
         platform,
         provider,
         token: masked
@@ -17,11 +19,17 @@ exports.registerDevice = async (req, res, next) => {
     const bodyUserId = (req.body && req.body.userId) || null;
     const userId = (req.user && (req.user._id || req.user.id)) || bodyUserId;
     if (!userId) return res.status(401).json({ success: false, message: 'Not authorized' });
-    const doc = await DeviceToken.findOneAndUpdate(
-      { userId, token },
-      { $set: { platform, provider, lastSeenAt: new Date(), isActive: true } },
-      { upsert: true, new: true }
-    );
+    let doc;
+    try {
+      doc = await DeviceToken.findOneAndUpdate(
+        { userId, token },
+        { $set: { platform, provider, lastSeenAt: new Date(), isActive: true } },
+        { upsert: true, new: true }
+      );
+    } catch (e) {
+      console.error('[notifications] registerDevice DB error', e?.message);
+      throw e;
+    }
     res.status(200).json({ success: true, data: { device: doc } });
   } catch (e) { next(e); }
 };
@@ -107,6 +115,7 @@ const deleteNotification = async (req, res, next) => {
 const listDevices = async (req, res, next) => {
   try {
     const items = await DeviceToken.find({ userId: req.user.id }).sort({ updatedAt: -1 }).lean();
+    console.log('[notifications] listDevices', { userId: req.user.id, count: items.length });
     return res.status(200).json({ success: true, data: { devices: items } });
   } catch (err) {
     next(err);

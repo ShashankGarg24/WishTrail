@@ -27,6 +27,7 @@ function buildDeepLink(notification) {
 
 async function sendExpoPushToUser(userId, notification) {
   const tokens = await DeviceToken.find({ userId, isActive: true, provider: 'expo' }).select('token').lean();
+  console.log('[push] tokens found', { userId: String(userId), count: tokens.length });
   if (!tokens || tokens.length === 0) return { ok: true, count: 0 };
   const dataUrl = buildDeepLink(notification);
   const messages = tokens.map(t => ({
@@ -39,14 +40,17 @@ async function sendExpoPushToUser(userId, notification) {
   try {
     const resp = await axios.post('https://exp.host/--/api/v2/push/send', messages, { headers: { 'Content-Type': 'application/json' }, timeout: 8000 });
     const results = Array.isArray(resp.data?.data) ? resp.data.data : [];
+    console.log('[push] expo response', { count: results.length });
     // best-effort cleanup
     const invalid = [];
     results.forEach((r, idx) => { if (r?.status === 'error' && /DeviceNotRegistered|InvalidCredentials|MessageRateExceeded/i.test(r?.details?.error || r?.message || '')) invalid.push(tokens[idx]?.token); });
     if (invalid.length) {
       await DeviceToken.updateMany({ token: { $in: invalid } }, { $set: { isActive: false } });
+      console.log('[push] deactivated invalid tokens', { invalidCount: invalid.length });
     }
     return { ok: true, count: tokens.length };
   } catch (e) {
+    console.error('[push] expo send error', e?.message);
     return { ok: false, error: e?.message };
   }
 }
