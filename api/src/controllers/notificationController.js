@@ -4,6 +4,15 @@ exports.registerDevice = async (req, res, next) => {
   try {
     const { token, platform = 'unknown', provider = 'expo' } = req.body || {};
     if (!token) return res.status(400).json({ success: false, message: 'token is required' });
+    try {
+      const masked = token.slice(0, 12) + '...';
+      console.log('[notifications] registerDevice hit', {
+        userId: (req.user && (req.user.id || req.user._id)) || null,
+        platform,
+        provider,
+        token: masked
+      });
+    } catch {}
     const doc = await DeviceToken.findOneAndUpdate(
       { userId: req.user._id || req.user.id, token },
       { $set: { platform, provider, lastSeenAt: new Date(), isActive: true } },
@@ -88,6 +97,18 @@ const deleteNotification = async (req, res, next) => {
   }
 };
 
+// @desc    List current user's registered device tokens
+// @route   GET /api/v1/notifications/devices
+// @access  Private
+const listDevices = async (req, res, next) => {
+  try {
+    const items = await DeviceToken.find({ userId: req.user.id }).sort({ updatedAt: -1 }).lean();
+    return res.status(200).json({ success: true, data: { devices: items } });
+  } catch (err) {
+    next(err);
+  }
+};
+
 // @desc    Send a test push to current user's devices (no DB write)
 // @route   POST /api/v1/notifications/test-push
 // @access  Private
@@ -111,6 +132,7 @@ module.exports = {
   markAsRead,
   markAllAsRead,
   deleteNotification,
+  listDevices,
   testPush
 };
 

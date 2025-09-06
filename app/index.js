@@ -14,6 +14,9 @@ function App() {
   const [loading, setLoading] = useState(true);
   const appState = useRef(AppState.currentState);
   const [authToken, setAuthToken] = useState(null);
+  const [expoPushToken, setExpoPushToken] = useState(null);
+  const authProbeTries = useRef(0);
+  const authProbeTimer = useRef(null);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -48,10 +51,14 @@ function App() {
       appState.current = state;
       if (prev.match(/inactive|background/) && state === 'active') {
         webRef.current?.injectJavaScript(`window.dispatchEvent(new Event('focus')); true;`);
+        // Try to re-capture auth after returning to foreground
+        if (!authToken) injectAuthProbe();
+        // Retry web-side registration if we have the token
+        if (expoPushToken) injectRegisterViaWeb(expoPushToken);
       }
     });
     return () => sub.remove();
-  }, []);
+  }, [expoPushToken]);
 
   // Foreground and tap listeners for push notifications
   useEffect(() => {
@@ -83,19 +90,57 @@ function App() {
     return () => { receivedSub.remove(); responseSub.remove(); };
   }, []);
 
+  // Inject a script into the web app to post the auth token to native
+  const injectAuthProbe = useCallback(() => {
+    try {
+      const script = `
+        (function(){
+          try {
+            var t = localStorage.getItem('token') || '';
+            window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'WT_AUTH', token: t }));
+          } catch(e) {}
+        })(); true;
+      `;
+      webRef.current?.injectJavaScript(script);
+      // Poll a few times in case user logs in shortly after load
+      if (!authToken && authProbeTries.current < 10) {
+        clearTimeout(authProbeTimer.current);
+        authProbeTimer.current = setTimeout(() => {
+          authProbeTries.current += 1;
+          injectAuthProbe();
+        }, 1500);
+      } else {
+        clearTimeout(authProbeTimer.current);
+      }
+    } catch {}
+  }, [authToken]);
+
+  // Web-context registration using the web app's Authorization (localStorage token)
+  const injectRegisterViaWeb = useCallback((token) => {
+    try {
+      if (!token) return;
+      const script = `
+        (async function(){
+          try {
+            var jwt = localStorage.getItem('token') || '';
+            if (!jwt) return;
+            await fetch('${WEB_URL.replace(/\/$/, '')}/api/v1/notifications/devices/register', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + jwt },
+              body: JSON.stringify({ token: ${JSON.stringify(token)}, platform: ${JSON.stringify(Platform.OS)}, provider: 'expo' })
+            });
+          } catch(e) {}
+        })(); true;
+      `;
+      webRef.current?.injectJavaScript(script);
+    } catch {}
+  }, []);
+
   // Capture auth token from the web app (after load)
   useEffect(() => {
-    const script = `
-      (function(){
-        try {
-          const t = localStorage.getItem('token') || '';
-          window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'WT_AUTH', token: t }));
-        } catch(e) {}
-      })(); true;
-    `;
-    const timer = setTimeout(() => { try { webRef.current?.injectJavaScript(script); } catch {} }, 1200);
-    return () => clearTimeout(timer);
-  }, [WEB_URL]);
+    const t = setTimeout(() => injectAuthProbe(), 1200);
+    return () => clearTimeout(t);
+  }, [injectAuthProbe]);
 
   const onMessage = useCallback((event) => {
     try {
@@ -109,6 +154,9 @@ function App() {
 
   // Re-register device token when auth becomes available (helps associating token with user)
   useEffect(() => { if (authToken) { registerForPushNotificationsAsync().catch(() => {}); } }, [authToken]);
+
+  // Retry web-context registration when we have expo token
+  useEffect(() => { if (expoPushToken) injectRegisterViaWeb(expoPushToken); }, [expoPushToken, injectRegisterViaWeb]);
 
   async function registerForPushNotificationsAsync() {
     if (!Device.isDevice) return;
@@ -133,6 +181,7 @@ function App() {
     }
     const projectId = Constants?.expoConfig?.extra?.eas?.projectId || Constants?.easConfig?.projectId;
     const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
+    setExpoPushToken(token);
     const platform = Platform.OS;
     try {
       const auth = authToken ? { Authorization: `Bearer ${authToken}` } : null;
@@ -152,7 +201,7 @@ function App() {
         source={{ uri: WEB_URL }}
         originWhitelist={originWhitelist}
         onLoadStart={() => setLoading(true)}
-        onLoadEnd={() => setLoading(false)}
+        onLoadEnd={() => { setLoading(false); injectAuthProbe(); if (expoPushToken) injectRegisterViaWeb(expoPushToken); }}
         onShouldStartLoadWithRequest={onShouldStartLoadWithRequest}
         onMessage={onMessage}
         pullToRefreshEnabled={Platform.OS === 'android'}
