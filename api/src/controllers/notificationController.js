@@ -23,6 +23,7 @@ exports.unregisterDevice = async (req, res, next) => {
 };
 
 const Notification = require('../models/Notification');
+const { sendExpoPushToUser } = require('../services/pushService');
 
 // @desc    Get current user's notifications
 // @route   GET /api/v1/notifications
@@ -94,5 +95,19 @@ module.exports = {
   markAsRead,
   markAllAsRead,
   deleteNotification
+};
+
+// Test push (no DB write) - sends a push to the current user's active devices
+exports.testPush = async (req, res, next) => {
+  try {
+    const userId = req.user.id || req.user._id;
+    const title = req.body?.title || 'Test Notification';
+    const message = req.body?.message || 'This is a test push from WishTrail';
+    const url = req.body?.url || '/explore?tab=notifications';
+    const type = req.body?.type || 'test';
+    const fake = { _id: new Date().getTime(), userId, type, title, message, data: { url } };
+    const result = await sendExpoPushToUser(userId, fake);
+    return res.status(200).json({ success: true, data: { result } });
+  } catch (e) { next(e); }
 };
 

@@ -12,6 +12,7 @@ router.patch('/read-all', notificationController.markAllAsRead);
 router.delete('/:id', notificationController.deleteNotification);
 router.post('/devices/register', notificationController.registerDevice);
 router.post('/devices/unregister', notificationController.unregisterDevice);
+router.post('/test-push', notificationController.testPush);
 
 module.exports = router;
 
