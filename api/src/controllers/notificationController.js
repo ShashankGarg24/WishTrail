@@ -13,8 +13,12 @@ exports.registerDevice = async (req, res, next) => {
         token: masked
       });
     } catch {}
+    // If user is not authenticated yet, accept a userId in body for initial association (fallback)
+    const bodyUserId = (req.body && req.body.userId) || null;
+    const userId = (req.user && (req.user._id || req.user.id)) || bodyUserId;
+    if (!userId) return res.status(401).json({ success: false, message: 'Not authorized' });
     const doc = await DeviceToken.findOneAndUpdate(
-      { userId: req.user._id || req.user.id, token },
+      { userId, token },
       { $set: { platform, provider, lastSeenAt: new Date(), isActive: true } },
       { upsert: true, new: true }
     );
