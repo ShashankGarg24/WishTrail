@@ -162,7 +162,7 @@ module.exports = {
   markAsRead,
   markAllAsRead,
   deleteNotification,
-  listDevices,
+  listDevices: exports.listDevices,
   testPush
 };
 
