@@ -155,22 +155,42 @@ function App() {
       const data = JSON.parse(event?.nativeEvent?.data || '{}');
       if (data?.type === 'WT_AUTH') {
         const t = (data.token || '').trim();
-        if (t && t.length > 0) setAuthToken(t);
+        if (t && t.length > 0) {
+          setAuthToken(t);
+        } else {
+          // token gone = user logged out
+          if (expoPushToken) unregisterForPushNotificationsAsync(expoPushToken);
+          setAuthToken(null);
+          setUserId(null);
+        }
       } else if (data?.type === 'WT_USER') {
         const uid = (data.userId || '').trim();
         if (uid && uid.length > 0) setUserId(uid);
       }
     } catch {}
-  }, []);
+  }, [expoPushToken]);
 
-  // Re-register device token when auth becomes available (helps associating token with user)
-  useEffect(() => { if (authToken) { registerForPushNotificationsAsync().catch(() => {}); } }, [authToken]);
+  // Re-register device token when auth becomes available
+  useEffect(() => {
+    if (authToken && expoPushToken) {
+      registerForPushNotificationsAsync().catch(() => {});
+    }
+  }, [authToken, expoPushToken]);
+
+  useEffect(() => {
+    return () => {
+      if (expoPushToken && authToken) {
+        unregisterForPushNotificationsAsync(expoPushToken);
+      }
+    };
+  }, [expoPushToken, authToken]);
 
   // Retry web-context registration when we have expo token
   useEffect(() => { if (expoPushToken) injectRegisterViaWeb(expoPushToken); }, [expoPushToken, injectRegisterViaWeb]);
 
   async function registerForPushNotificationsAsync() {
-    if (!Device.isDevice) return;
+    if (!Device.isDevice || !authToken) return;
+  
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
     let finalStatus = existingStatus;
     if (existingStatus !== 'granted') {
@@ -178,32 +198,45 @@ function App() {
       finalStatus = status;
     }
     if (finalStatus !== 'granted') return;
-    // Android: ensure a high-importance channel
+  
     if (Platform.OS === 'android') {
-      try {
-        await Notifications.setNotificationChannelAsync('default', {
-          name: 'Default',
-          importance: Notifications.AndroidImportance.HIGH,
-          vibrationPattern: [0, 200, 200, 200],
-          lightColor: '#0ea5e9',
-          lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
-        });
-      } catch {}
+      await Notifications.setNotificationChannelAsync('default', {
+        name: 'Default',
+        importance: Notifications.AndroidImportance.HIGH,
+      });
     }
+  
     const projectId = Constants?.expoConfig?.extra?.eas?.projectId || Constants?.easConfig?.projectId;
     const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
     setExpoPushToken(token);
-    const platform = Platform.OS;
-    try {
-      const auth = authToken ? { Authorization: `Bearer ${authToken}` } : null;
-      console.log('Registering device (native) token...', { hasAuth: !!authToken, userId: userId || null, platform });
-      await fetch(`${WEB_URL.replace(/\/$/, '')}/api/v1/notifications/devices/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(auth || {}) },
-        body: JSON.stringify({ token, platform, provider: 'expo', ...(auth ? {} : (userId ? { userId } : {})) })
-      });
-    } catch {}
+  
+    // Always include auth header so backend can extract userId
+    await fetch(`${WEB_URL.replace(/\/$/, '')}/api/v1/notifications/devices/register`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${authToken}`,
+      },
+      body: JSON.stringify({ token, platform: Platform.OS, provider: 'expo' }),
+    });
   }
+
+  async function unregisterForPushNotificationsAsync(token) {
+    if (!token || !authToken) return;
+    try {
+      await fetch(`${WEB_URL.replace(/\/$/, '')}/api/v1/notifications/devices/unregister`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${authToken}`,
+        },
+        body: JSON.stringify({ token }),
+      });
+    } catch (e) {
+      console.warn('Unregister failed', e);
+    }
+  }
+  
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#ffffff' }}>

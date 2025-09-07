@@ -18,7 +18,8 @@
     "react": "19.0.0",
     "react-devtools-core": "^6.1.5",
     "react-native": "0.79.5",
-    "react-native-webview": "13.13.5"
+    "react-native-webview": "13.13.5",
+    "expo-dev-client": "~5.2.4"
   },
   "devDependencies": {
     "metro": "^0.82.0",

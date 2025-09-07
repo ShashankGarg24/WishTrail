@@ -26,6 +26,12 @@ exports.registerDevice = async (req, res, next) => {
         { $set: { platform, provider, lastSeenAt: new Date(), isActive: true } },
         { upsert: true, new: true }
       );
+
+      // ONE active token per user:
+      await DeviceToken.updateMany(
+        { userId, token: { $ne: token } },
+        { $set: { isActive: false } }
+      );
     } catch (e) {
       console.error('[notifications] registerDevice DB error', e?.message);
       throw e;
@@ -34,13 +40,22 @@ exports.registerDevice = async (req, res, next) => {
   } catch (e) { next(e); }
 };
 
-exports.unregisterDevice = async (req, res, next) => {
+exports.unregisterDevice = async (req, res) => {
   try {
-    const { token } = req.body || {};
-    if (!token) return res.status(400).json({ success: false, message: 'token is required' });
-    await DeviceToken.updateOne({ userId: req.user._id || req.user.id, token }, { $set: { isActive: false } });
-    res.status(200).json({ success: true });
-  } catch (e) { next(e); }
+    const { token } = req.body;
+    const userId = req.user?._id || req.user?.id;
+    if (!userId || !token) return res.status(400).json({ error: 'Missing userId or token' });
+
+    await DeviceToken.updateOne(
+      { userId, token },
+      { $set: { isActive: false, lastSeenAt: new Date() } }
+    );
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[unregisterDevice]', err);
+    res.status(500).json({ error: 'Failed to unregister device' });
+  }
 };
 
 const Notification = require('../models/Notification');
@@ -112,13 +127,15 @@ const deleteNotification = async (req, res, next) => {
 // @desc    List current user's registered device tokens
 // @route   GET /api/v1/notifications/devices
 // @access  Private
-const listDevices = async (req, res, next) => {
+exports.listDevices = async (req, res) => {
   try {
-    const items = await DeviceToken.find({ userId: req.user.id }).sort({ updatedAt: -1 }).lean();
-    console.log('[notifications] listDevices', { userId: req.user.id, count: items.length });
-    return res.status(200).json({ success: true, data: { devices: items } });
+    const userId = req.user?._id || req.user?.id;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+    const devices = await DeviceToken.find({ userId }).lean();
+    res.json({ devices });
   } catch (err) {
-    next(err);
+    console.error('[listDevices]', err);
+    res.status(500).json({ error: 'Failed to list devices' });
   }
 };
 

@@ -1,3 +1,4 @@
+const DeviceToken = require('../models/DeviceToken');
 const authService = require('../services/authService');
 const { validationResult } = require('express-validator');
 
@@ -43,7 +44,6 @@ const register = async (req, res, next) => {
 // @access  Public
 const login = async (req, res, next) => {
   try {
-    // Check for validation errors
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({
@@ -53,10 +53,20 @@ const login = async (req, res, next) => {
       });
     }
 
-    const { email, password } = req.body;
+    const { email, password, deviceToken, platform } = req.body;
+
     const result = await authService.login(email, password);
 
-    // Set refresh token as httpOnly cookie
+    // ✅ Store Expo push token if login is from app
+    if (deviceToken) {
+      await DeviceToken.findOneAndUpdate(
+        { userId: result.user._id, token: deviceToken },
+        { $set: { platform, provider: 'expo', isActive: true, lastSeenAt: new Date() } },
+        { upsert: true }
+      );
+    }
+
+    // Set refresh token as httpOnly cookie (used by web)
     res.cookie('refreshToken', result.refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -82,9 +92,18 @@ const login = async (req, res, next) => {
 // @access  Private
 const logout = async (req, res, next) => {
   try {
+    const { deviceToken } = req.body;
+
     await authService.logout(req.user.id);
 
-    // Clear refresh token cookie
+    if (deviceToken) {
+      await DeviceToken.updateOne(
+        { userId: req.user.id, token: deviceToken },
+        { $set: { isActive: false, lastSeenAt: new Date() } }
+      );
+    }
+
+    // Clear refresh token cookie (for web)
     res.clearCookie('refreshToken');
 
     res.status(200).json({
