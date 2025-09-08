@@ -16,7 +16,6 @@ export default function EditHabitModal({ isOpen, onClose, habit, onSave }) {
   const [frequency, setFrequency] = useState('daily');
   const [daysOfWeek, setDaysOfWeek] = useState([]);
   const [reminders, setReminders] = useState(['']);
-  const [timezone, setTimezone] = useState('UTC');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
@@ -27,7 +26,6 @@ export default function EditHabitModal({ isOpen, onClose, habit, onSave }) {
     setFrequency(habit.frequency || 'daily');
     setDaysOfWeek(Array.isArray(habit.daysOfWeek) ? habit.daysOfWeek.slice() : []);
     setReminders(Array.isArray(habit.reminders) && habit.reminders.length > 0 ? habit.reminders.map(r => r.time || '') : ['']);
-    setTimezone(habit.timezone || 'UTC');
     setSubmitting(false);
     setError(null);
   }, [isOpen, habit]);
@@ -49,7 +47,6 @@ export default function EditHabitModal({ isOpen, onClose, habit, onSave }) {
         frequency,
         daysOfWeek: frequency === 'daily' ? [] : daysOfWeek.sort(),
         reminders: reminders.filter(Boolean).map(t => ({ time: t })),
-        timezone,
       };
       await onSave?.(payload);
       onClose?.();
@@ -107,10 +104,6 @@ export default function EditHabitModal({ isOpen, onClose, habit, onSave }) {
                 </div>
               ))}
               <button type="button" onClick={() => setReminders(prev => [...prev, ''])} className="px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">Add reminder</button>
-            </div>
-            <div className="mt-2">
-              <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">Timezone</label>
-              <input value={timezone} onChange={(e) => setTimezone(e.target.value)} placeholder="e.g., UTC or America/Los_Angeles" className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white" />
             </div>
           </div>
           <div className="flex items-center justify-end gap-2 pt-2">

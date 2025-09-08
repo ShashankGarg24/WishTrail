@@ -17,7 +17,6 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated }) {
   const [frequency, setFrequency] = useState('daily');
   const [daysOfWeek, setDaysOfWeek] = useState([]);
   const [reminders, setReminders] = useState(['']);
-  const [timezone, setTimezone] = useState('UTC');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
@@ -38,7 +37,6 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated }) {
         frequency,
         daysOfWeek: frequency === 'daily' ? [] : daysOfWeek.sort(),
         reminders: reminders.filter(Boolean).map(t => ({ time: t })),
-        timezone,
       };
       const res = await habitsAPI.create(payload);
       if (res?.data?.success) {
@@ -101,11 +99,6 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated }) {
                 </div>
               ))}
               <button type="button" onClick={() => setReminders(prev => [...prev, ''])} className="px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">Add reminder</button>
-            </div>
-            <div className="mt-2">
-              <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">Timezone</label>
-              <input value={timezone} onChange={(e) => setTimezone(e.target.value)} placeholder="e.g., UTC or America/Los_Angeles" className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white" />
-              <div className="mt-1 text-xs text-gray-500">Reminders fire by your timezone (IANA names supported, default UTC).</div>
             </div>
           </div>
           <div className="flex items-center justify-end gap-2 pt-2">
