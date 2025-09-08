@@ -22,11 +22,11 @@ import {
 import useApiStore from '../store/apiStore';
 import { activitiesAPI } from '../services/api';
 import SkeletonList from '../components/loader/SkeletonList'
-import ActivityDetailModal from '../components/ActivityDetailModal'
 import ActivityCommentsModal from '../components/ActivityCommentsModal'
 import ReportModal from '../components/ReportModal'
 import BlockModal from '../components/BlockModal'
-// We'll reuse ActivityDetailModal for comments open, but create a lightweight Goal modal inline here for speed
+import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
+// Use a single Activity (Goal Post) modal for details and comments
 
 const ExplorePage = () => {
   const navigate = useNavigate();
@@ -50,14 +50,7 @@ const ExplorePage = () => {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxUrl, setLightboxUrl] = useState('');
   const openLightbox = (url) => { if (!url) return; setLightboxUrl(url); setLightboxOpen(true); };
-  const [detailOpen, setDetailOpen] = useState(false);
-  const [detailActivity, setDetailActivity] = useState(null);
-  const openDetail = (act) => { setDetailActivity(act); setDetailOpen(true); };
-  const closeDetail = () => { setDetailOpen(false); setDetailActivity(null); };
-  const [commentsOpen, setCommentsOpen] = useState(false);
-  const [commentsActivity, setCommentsActivity] = useState(null);
-  const openComments = (act) => { setCommentsActivity(act); setCommentsOpen(true); };
-  const closeComments = () => { setCommentsOpen(false); setCommentsActivity(null); };
+  const [scrollCommentsOnOpen, setScrollCommentsOnOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [reportTarget, setReportTarget] = useState({ type: null, id: null, label: '' });
   const [blockOpen, setBlockOpen] = useState(false);
@@ -81,11 +74,13 @@ const ExplorePage = () => {
   const openGoalModal = async (goalId) => {
     if (!goalId) return;
     try {
+      // Open immediately and show loading spinner
       setGoalModalLoading(true);
+      setGoalModalOpen(true);
+      setGoalModalData(null);
       const resp = await useApiStore.getState().getGoalPost(goalId);
       if (resp?.success) {
         setGoalModalData(resp.data);
-        setGoalModalOpen(true);
         // Do not change URL when opening from Explore; keep deep-link support only when URL already has goalId
         // Preload comments if activityId present
         const aid = resp?.data?.social?.activityId;
@@ -142,25 +137,37 @@ const ExplorePage = () => {
     return () => window.removeEventListener('resize', compute);
   }, []);
 
+  // Lock body scroll while the goal modal is open
+  useEffect(() => {
+    if (goalModalOpen) {
+      lockBodyScroll();
+      return () => unlockBodyScroll();
+    }
+    return undefined;
+  }, [goalModalOpen]);
+
+  // If opening comments directly, scroll to comments once data loads
+  useEffect(() => {
+    if (goalModalOpen && goalModalData && scrollCommentsOnOpen) {
+      openGoalCommentsForModal();
+      setScrollCommentsOnOpen(false);
+    }
+  }, [goalModalOpen, goalModalData, scrollCommentsOnOpen]);
+
   const openGoalCommentsForModal = () => {
     const aid = goalModalData?.social?.activityId;
     if (!aid) return;
-    if (isMobile) {
-      setCommentsActivity({ _id: aid, commentCount: goalModalData?.social?.commentCount });
-      setCommentsOpen(true);
-    } else {
-      // Scroll the embedded comments into view inside the right panel
-      setTimeout(() => {
-        try {
-          const scroller = rightPanelScrollRef.current;
-          const anchor = commentsAnchorRef.current;
-          if (scroller && anchor) {
-            const top = anchor.offsetTop - 8;
-            scroller.scrollTo({ top, behavior: 'smooth' });
-          }
-        } catch (_) {}
-      }, 0);
-    }
+    // Scroll the embedded comments into view inside the modal
+    setTimeout(() => {
+      try {
+        const scroller = rightPanelScrollRef.current;
+        const anchor = commentsAnchorRef.current;
+        if (scroller && anchor) {
+          const top = anchor.offsetTop - 8;
+          scroller.scrollTo({ top, behavior: 'smooth' });
+        }
+      } catch (_) {}
+    }, 0);
   };
 
   const addGoalComment = async () => {
@@ -763,9 +770,8 @@ const ExplorePage = () => {
     try {
       const resp = await activitiesAPI.getActivity(activityId);
       const act = resp?.data?.data?.activity;
-      if (act) {
-        setDetailActivity(act);
-        setDetailOpen(true);
+      if (act?.data?.goalId?._id) {
+        await openGoalModal(act.data.goalId._id);
       }
     } catch (e) {}
   };
@@ -1411,7 +1417,7 @@ const ExplorePage = () => {
                                    const sharedImage = activity?.data?.metadata?.completionAttachmentUrl || activity?.data?.completionAttachmentUrl || ''
                                    if (!sharedNote && !sharedImage) return null
                                    return (
-                                     <div className="mt-3 space-y-3 cursorcursor-pointer" onClick={() => openDetail(activity)}>
+                                     <div className="mt-3 space-y-3 cursorcursor-pointer" onClick={() => openGoalModal(activity?.data?.goalId?._id)}>
                                        {sharedImage && (
                                          <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700">
                                             <img
@@ -1473,7 +1479,7 @@ const ExplorePage = () => {
                               <span>{activity.likeCount || 0}</span>
                             </button>
                             <button
-                              onClick={() => openComments(activity)}
+                              onClick={() => { setScrollCommentsOnOpen(true); openGoalModal(activity?.data?.goalId?._id); }}
                               className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm transition-colors bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700`}
                             >
                               <MessageCircle className="h-4 w-4" />
@@ -1546,9 +1552,7 @@ const ExplorePage = () => {
           )}
                 </motion.div>
         </div>
-
-        <ActivityDetailModal isOpen={detailOpen} onClose={closeDetail} activity={detailActivity} onOpenComments={openComments} />
-        <ActivityCommentsModal isOpen={commentsOpen} onClose={closeComments} activity={commentsActivity} />
+        {/* Removed separate ActivityDetailModal and standalone comments modal; consolidated into Goal Post modal */}
         <ReportModal
           isOpen={reportOpen}
           onClose={() => setReportOpen(false)}
