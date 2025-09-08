@@ -83,9 +83,14 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
     } catch {}
   }
 
+  useEffect(() => {
+    if (!inline && !embedded && isOpen) {
+      lockBodyScroll();
+      return () => unlockBodyScroll();
+    }
+    return undefined;
+  }, [inline, embedded, isOpen])
   if (!inline && !embedded && !isOpen) return null
-
-  useEffect(() => { if (!inline && !embedded) { lockBodyScroll(); return () => unlockBodyScroll(); } }, [inline, embedded])
 
   // Embedded mode: render comments in-place without own header or scroll container
   if (embedded) {

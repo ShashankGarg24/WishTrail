@@ -37,9 +37,14 @@ const ActivityDetailModal = ({ isOpen, onClose, activity, onOpenComments, onRepo
   const activityTime = activity?.data?.metadata?.completedAt || activity?.data?.completedAt || activity?.completedAt || activity?.createdAt
   const totalComments = activity?.commentCount || 0
 
+  useEffect(() => {
+    if (isOpen) {
+      lockBodyScroll();
+      return () => unlockBodyScroll();
+    }
+    return undefined;
+  }, [isOpen])
   if (!isOpen) return null
-
-  useEffect(() => { lockBodyScroll(); return () => unlockBodyScroll(); }, [])
 
   return (
     <AnimatePresence>

@@ -15,9 +15,14 @@ const Pill = ({ title, value }) => (
 );
 
 const JournalEntryModal = ({ isOpen, onClose, entry }) => {
+  useEffect(() => {
+    if (isOpen) {
+      lockBodyScroll();
+      return () => unlockBodyScroll();
+    }
+    return undefined;
+  }, [isOpen]);
   if (!isOpen || !entry) return null;
-
-  useEffect(() => { lockBodyScroll(); return () => unlockBodyScroll(); }, []);
   const motivation = entry?.ai?.motivation || '';
   const s = entry?.aiSignals || {};
   return (

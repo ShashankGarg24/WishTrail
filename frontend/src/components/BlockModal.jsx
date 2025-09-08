@@ -3,9 +3,8 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
 
 const BlockModal = ({ isOpen, onClose, onConfirm, username = 'this user' }) => {
+  useEffect(() => { if (isOpen) { lockBodyScroll(); return () => unlockBodyScroll(); } return undefined }, [isOpen])
   if (!isOpen) return null
-
-  useEffect(() => { lockBodyScroll(); return () => unlockBodyScroll(); }, [])
   return (
     <AnimatePresence>
       <motion.div
