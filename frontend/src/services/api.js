@@ -142,6 +142,7 @@ export const exploreAPI = {
   getSuggestedUsers: (params) => api.get('/explore/users', { params }),
   getTrendingCategories: (params) => api.get('/explore/categories', { params }),
   searchExplore: (params) => api.get('/explore/search', { params }),
+  getTrendingGoals: (params) => api.get('/explore/goals/trending', { params }),
 };
 
 // Notifications API

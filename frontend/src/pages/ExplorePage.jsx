@@ -37,6 +37,9 @@ const ExplorePage = () => {
   const [activeDiscoverSubtab, setActiveDiscoverSubtab] = useState(searchParams.get('mode') || 'users'); // 'users' | 'goals'
   const [goalResults, setGoalResults] = useState([]);
   const [loadingGoals, setLoadingGoals] = useState(false);
+  const [trending, setTrending] = useState([]);
+  const [trendingPage, setTrendingPage] = useState(1);
+  const [trendingHasMore, setTrendingHasMore] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedInterest, setSelectedInterest] = useState(searchParams.get('interest') || '');
   const [loading, setLoading] = useState(false);
@@ -196,7 +199,8 @@ const ExplorePage = () => {
     blockUser,
     cancelFollowRequest,
     loadInterests,
-    interestsCatalog
+    interestsCatalog,
+    getTrendingGoals
   } = useApiStore();
 
   // Infinite scroll state
@@ -244,6 +248,31 @@ const ExplorePage = () => {
     }
   }, [isAuthenticated]);
 
+  // When switching to Discover → Goals without a search, load trending
+  useEffect(() => {
+    const run = async () => {
+      if (!isAuthenticated) return;
+      if (activeTab !== 'discover') return;
+      if (activeDiscoverSubtab !== 'goals') return;
+      if (searchTerm.trim() || selectedInterest) return;
+      try {
+        setLoadingGoals(true);
+        setTrendingPage(1);
+        setTrendingHasMore(true);
+        const { goals, pagination } = await getTrendingGoals({ strategy: 'global', page: 1, limit: 18 });
+        setTrending(goals || []);
+        const totalPages = pagination?.pages || 1;
+        setTrendingHasMore(1 < totalPages);
+      } catch (_) {
+        setTrending([]);
+        setTrendingHasMore(false);
+      } finally {
+        setLoadingGoals(false);
+      }
+    };
+    run();
+  }, [activeDiscoverSubtab, activeTab]);
+
   // Open goal modal if /goal/:goalId is accessed directly
   useEffect(() => {
     if (goalId) {
@@ -274,18 +303,44 @@ const ExplorePage = () => {
         setActivitiesHasMore(1 < totalPages);
         // Do not mutate users list here; keep Discover users separate
       } else if (activeTab === 'discover') {
-        // First page for discover users
-        setDiscoverPage(1);
-        setDiscoverHasMore(true);
-        const usersData = await getUsers({ page: 1, limit: DISCOVER_PAGE_SIZE }, opts);
-        if (usersData.success) {
-          const filteredUsers = (usersData.users || []).filter(u => u && u._id && u._id !== user?._id);
-          // Replace the entire list for page 1 to avoid stale entries
-          setUsers(filteredUsers.slice(0, DISCOVER_PAGE_SIZE));
-          const totalPages = usersData.pagination?.pages || 1;
-          setDiscoverHasMore(1 < totalPages);
+        if (activeDiscoverSubtab === 'users') {
+          // First page for discover users
+          setDiscoverPage(1);
+          setDiscoverHasMore(true);
+          const usersData = await getUsers({ page: 1, limit: DISCOVER_PAGE_SIZE }, opts);
+          if (usersData.success) {
+            const filteredUsers = (usersData.users || []).filter(u => u && u._id && u._id !== user?._id);
+            setUsers(filteredUsers.slice(0, DISCOVER_PAGE_SIZE));
+            const totalPages = usersData.pagination?.pages || 1;
+            setDiscoverHasMore(1 < totalPages);
+          } else {
+            setUsers([]);
+          }
         } else {
-          setUsers([]);
+          // Goals subtab: either refresh search or fetch trending list
+          if (searchTerm.trim() || selectedInterest) {
+            try {
+              setLoadingGoals(true);
+              await handleSearch(searchTerm, selectedInterest);
+            } finally {
+              setLoadingGoals(false);
+            }
+          } else {
+            try {
+              setLoadingGoals(true);
+              setTrendingPage(1);
+              setTrendingHasMore(true);
+              const { goals, pagination } = await getTrendingGoals({ strategy: 'global', page: 1, limit: 18 });
+              setTrending(goals || []);
+              const totalPages = pagination?.pages || 1;
+              setTrendingHasMore(1 < totalPages);
+            } catch (_) {
+              setTrending([]);
+              setTrendingHasMore(false);
+            } finally {
+              setLoadingGoals(false);
+            }
+          }
         }
       } else if (activeTab === 'notifications') {
         await getNotifications({ page: 1, limit: 20 }, opts);
@@ -439,6 +494,24 @@ const ExplorePage = () => {
     }
   }, [discoverPage, discoverHasMore, loadingMoreDiscover, getUsers, searchTerm]);
 
+  const loadMoreTrending = useCallback(async () => {
+    if (loadingMoreDiscover || !trendingHasMore) return;
+    if (searchTerm.trim() || selectedInterest) return; // pause if searching
+    setLoadingMoreDiscover(true);
+    try {
+      const next = trendingPage + 1;
+      const { goals, pagination } = await getTrendingGoals({ strategy: 'global', page: next, limit: 18 });
+      setTrending(prev => mergeUniqueById(prev, goals || []));
+      setTrendingPage(next);
+      const totalPages = pagination?.pages || next;
+      setTrendingHasMore(next < totalPages);
+    } catch (_) {
+      setTrendingHasMore(false);
+    } finally {
+      setLoadingMoreDiscover(false);
+    }
+  }, [trendingPage, trendingHasMore, loadingMoreDiscover, getTrendingGoals, searchTerm, selectedInterest]);
+
   const loadMoreUserSearch = useCallback(async () => {
     if (loadingMoreUserSearch || !userSearchHasMore) return;
     const t = searchTerm.trim();
@@ -489,7 +562,11 @@ const ExplorePage = () => {
           } else if ((searchTerm.trim() || selectedInterest) && activeDiscoverSubtab === 'goals') {
             loadMoreGoalSearch();
           } else {
-            loadMoreDiscover();
+            if (activeDiscoverSubtab === 'users') {
+              loadMoreDiscover();
+            } else if (activeDiscoverSubtab === 'goals') {
+              loadMoreTrending();
+            }
           }
         }
         if (activeTab === 'notifications') {
@@ -1059,7 +1136,8 @@ const ExplorePage = () => {
                     </div>
                   )
                 ) : (
-                  goalResults && goalResults.length > 0 ? (
+                  (searchTerm.trim() || selectedInterest)
+                  ? (goalResults && goalResults.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                       {goalResults.map((g, idx) => (
                         <motion.div
@@ -1087,8 +1165,47 @@ const ExplorePage = () => {
                   ) : (
                     <div className="text-center py-12">
                       <Target className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-600 dark:text-gray-400 text-lg">{searchTerm.trim() || selectedInterest ? 'No goals found.' : 'Search to discover completed goals.'}</p>
+                      <p className="text-gray-600 dark:text-gray-400 text-lg">No goals found.</p>
                     </div>
+                  ))
+                  : (
+                    trending && trending.length > 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {trending.map((g, idx) => (
+                          <motion.div
+                            key={`${g._id || idx}`}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.5, delay: 0.1 * idx }}
+                            className="bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-5 border border-gray-200 dark:border-gray-700/50 hover:border-gray-300 dark:hover:border-gray-600/50 transition-all duration-200 shadow-lg hover:shadow-xl"
+                          >
+                            <div className="flex items-center gap-3 mb-3">
+                              <img src={g.user?.avatar || '/api/placeholder/48/48'} className="w-10 h-10 rounded-full" />
+                              <div className="min-w-0">
+                                <div className="text-sm text-gray-700 dark:text-gray-300 truncate">{g.user?.name || 'User'}</div>
+                                <div className="text-xs text-gray-400">{g.completedAt ? new Date(g.completedAt).toLocaleDateString() : ''}</div>
+                              </div>
+                            </div>
+                            <h3 className="font-semibold text-gray-900 dark:text-white line-clamp-2 break-anywhere mb-2">{g.title}</h3>
+                            <div className="flex items-center justify-between">
+                              <span className="inline-block px-2 py-1 rounded-full text-xs font-medium text-white bg-blue-500">{g.category}</span>
+                              <button className="text-sm text-blue-600 hover:underline" onClick={() => g._id && openGoalModal(g._id)}>View</button>
+                            </div>
+                          </motion.div>
+                        ))}
+                        <div ref={discoverSentinelRef} className="col-span-full h-10"></div>
+                        {loadingMoreDiscover && (
+                          <div className="col-span-full flex items-center justify-center py-4">
+                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-center py-12">
+                        <Target className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                        <p className="text-gray-600 dark:text-gray-400 text-lg">No trending goals yet.</p>
+                      </div>
+                    )
                   )
                 )}
             </div>

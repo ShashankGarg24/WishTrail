@@ -122,6 +122,8 @@ const useApiStore = create(
       trendingCategories: [],
       exploreSearchResults: null,
       goalsSearchResults: [],
+      trendingGoals: [],
+      trendingGoalsPagination: null,
       interestsCatalog: [],
       
       // =====================
@@ -1232,6 +1234,19 @@ const useApiStore = create(
         } catch (error) {
           const errorMessage = handleApiError(error);
           set({ loading: false, error: errorMessage });
+          return { success: false, error: errorMessage };
+        }
+      },
+
+      getTrendingGoals: async (params = {}) => {
+        try {
+          const response = await exploreAPI.getTrendingGoals(params);
+          const { goals, pagination } = response.data.data;
+          set({ trendingGoals: goals, trendingGoalsPagination: pagination });
+          return { success: true, goals, pagination };
+        } catch (error) {
+          const errorMessage = handleApiError(error);
+          set({ trendingGoals: [], trendingGoalsPagination: null });
           return { success: false, error: errorMessage };
         }
       },
