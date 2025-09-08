@@ -1,7 +1,6 @@
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import { Star, Target, TrendingUp, Calendar, ArrowRight, Play, Users, Youtube, Instagram } from 'lucide-react'
-import BlogBanner from '../components/BlogBanner'
 import VideoEmbedGrid from '../components/VideoEmbedGrid'
 import useApiStore from '../store/apiStore'
 
@@ -77,7 +76,7 @@ const HomePage = () => {
               className="flex flex-col sm:flex-row gap-4 justify-center items-center"
             >
               <Link to={getRedirectUrl()} className="btn-primary">
-                Start Your Journey
+                {!isAuthenticated ? "Start Your Journey" : "Discover Goal Ideas"}
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
               <Link to="/inspiration" className="btn-secondary">
@@ -204,11 +203,9 @@ const HomePage = () => {
         </div>
       </section>
 
-      {/* Blog Banner */}
-      <BlogBanner />
 
       {/* CTA Section */}
-      <section className="py-20">
+      {!isAuthenticated && <section className="py-20">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -229,6 +226,7 @@ const HomePage = () => {
           </motion.div>
         </div>
       </section>
+      }
     </div>
   )
 }

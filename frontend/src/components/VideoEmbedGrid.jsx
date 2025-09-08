@@ -348,21 +348,15 @@ const VideoEmbedGrid = () => {
                 onClick={() => setActiveTab(tab.id)}
                 className={`relative flex items-center space-x-3 px-8 py-4 rounded-xl font-medium transition-all ${
                   activeTab === tab.id
-                    ? 'bg-white/20 text-white shadow-lg'
-                    : 'text-gray-600 hover:text-white hover:bg-white/10 dark:text-gray-400'
+                    ? 'bg-white/20 text-gray-900 dark:text-white shadow-lg'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-white hover:bg-white/10'
                 }`}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
                 <tab.icon className={`h-6 w-6 ${tab.color}`} />
                 <span className="text-lg">{tab.label}</span>
-                {activeTab === tab.id && (
-                  <motion.div
-                    layoutId="activeTab"
-                    className="absolute inset-0 bg-white/20 rounded-xl -z-10"
-                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                  />
-                )}
+                {/* Removed animated highlight to eliminate shimmer during tab switch */}
               </motion.button>
             ))}
           </div>

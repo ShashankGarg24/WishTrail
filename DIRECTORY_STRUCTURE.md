@@ -68,7 +68,6 @@ frontend/
 ├── src/                        # Source code
 │   ├── components/             # Reusable React components
 │   │   ├── ActivityFeed.jsx    # Activity feed component
-│   │   ├── BlogBanner.jsx      # Blog banner component
 │   │   ├── CelebrationModal.jsx # Celebration modal
 │   │   ├── CompletionModal.jsx  # Task completion modal
 │   │   ├── CreateWishModal.jsx  # Wish creation modal

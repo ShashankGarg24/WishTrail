@@ -298,7 +298,7 @@ wishtrail/
 │   │   ├── CelebrationModal.jsx # Celebration with confetti and quotes
 │   │   ├── ProfileEditModal.jsx # Profile editing modal
 │   │   ├── ActivityFeed.jsx # Activity feed component
-│   │   └── BlogBanner.jsx   # Blog promotion banner
+│   │   
 │   ├── pages/               # Main page components
 │   │   ├── HomePage.jsx     # Landing page
 │   │   ├── AuthPage.jsx     # Authentication
