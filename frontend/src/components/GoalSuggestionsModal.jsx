@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, RefreshCw } from 'lucide-react'
 import GoalSuggestions from './GoalSuggestions'
+import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
 
 const GoalSuggestionsModal = ({ isOpen, onClose, interests = [], onSelect, limit = 6, title = 'Goal Suggestions' }) => {
   useEffect(() => {
@@ -16,6 +17,8 @@ const GoalSuggestionsModal = ({ isOpen, onClose, interests = [], onSelect, limit
   const handleShuffle = () => setShuffleVersion((v) => v + 1)
 
   if (!isOpen) return null
+
+  useEffect(() => { lockBodyScroll(); return () => unlockBodyScroll(); }, [])
 
   return (
     <AnimatePresence>

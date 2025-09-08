@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock';
 
 const dayOptions = [
   { label: 'Sun', value: 0 },
@@ -31,6 +32,11 @@ export default function EditHabitModal({ isOpen, onClose, habit, onSave }) {
   }, [isOpen, habit]);
 
   if (!isOpen || !habit) return null;
+
+  useEffect(() => {
+    lockBodyScroll();
+    return () => unlockBodyScroll();
+  }, []);
 
   const toggleDay = (v) => {
     setDaysOfWeek(prev => prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v]);

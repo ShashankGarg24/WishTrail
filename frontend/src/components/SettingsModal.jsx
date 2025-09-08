@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock';
 import { motion } from 'framer-motion';
 import { X, Lock, Eye, EyeOff, Shield, Settings } from 'lucide-react';
 import useApiStore from '../store/apiStore';
@@ -234,6 +235,8 @@ const SettingsModal = ({ isOpen, onClose }) => {
   ];
 
   if (!isOpen) return null;
+
+  useEffect(() => { lockBodyScroll(); return () => unlockBodyScroll(); }, []);
 
   return (
     <motion.div

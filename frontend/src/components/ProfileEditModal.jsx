@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, User, Mail, MapPin, Globe, Youtube, Instagram, Camera, Save, ExternalLink, Heart, AlertCircle } from 'lucide-react'
 import useApiStore from '../store/apiStore'
+import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
 import { uploadAPI } from '../services/api'
 
 const INTERESTS_OPTIONS = [
@@ -170,6 +171,8 @@ const ProfileEditModal = ({ isOpen, onClose }) => {
 
 
   if (!isOpen || !user) return null
+
+  useEffect(() => { lockBodyScroll(); return () => unlockBodyScroll(); }, [])
 
   return (
     <AnimatePresence>

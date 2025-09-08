@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { X, CheckCircle, AlertCircle, FileText, Share2, Lock, Globe, Image as ImageIcon } from 'lucide-react'
 import useApiStore from '../store/apiStore'
 import CelebrationModal from './CelebrationModal'
+import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
 
 const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal }) => {
   const MAX_NOTE_CHARS = 1000
@@ -118,6 +119,8 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal }) => {
   const charCount = completionNote.trim().length
 
   if (!isOpen) return null
+
+  useEffect(() => { lockBodyScroll(); return () => unlockBodyScroll(); }, [])
 
   // Show celebration modal after completion
   if (showCelebration) {

@@ -1,7 +1,11 @@
+import { useEffect } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
+import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
 
 const BlockModal = ({ isOpen, onClose, onConfirm, username = 'this user' }) => {
   if (!isOpen) return null
+
+  useEffect(() => { lockBodyScroll(); return () => unlockBodyScroll(); }, [])
   return (
     <AnimatePresence>
       <motion.div

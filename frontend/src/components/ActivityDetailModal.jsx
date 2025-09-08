@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, MessageCircle } from 'lucide-react'
 import useApiStore from '../store/apiStore'
 import { activitiesAPI } from '../services/api'
+import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
 
 const ActivityDetailModal = ({ isOpen, onClose, activity, onOpenComments, onReportActivity, onUnfollowUser }) => {
   const { user } = useApiStore()
@@ -37,6 +38,8 @@ const ActivityDetailModal = ({ isOpen, onClose, activity, onOpenComments, onRepo
   const totalComments = activity?.commentCount || 0
 
   if (!isOpen) return null
+
+  useEffect(() => { lockBodyScroll(); return () => unlockBodyScroll(); }, [])
 
   return (
     <AnimatePresence>

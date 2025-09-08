@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { X, Edit2, Target, Calendar, Tag, AlertCircle } from 'lucide-react'
 import useApiStore from '../store/apiStore'
+import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
 
 const EditWishModal = ({ isOpen, onClose, goal }) => {
   const MAX_TITLE_CHARS = 200
@@ -180,6 +181,8 @@ const EditWishModal = ({ isOpen, onClose, goal }) => {
   }
 
   if (!isOpen || !goal) return null
+
+  useEffect(() => { lockBodyScroll(); return () => unlockBodyScroll(); }, [])
 
   return (
     <motion.div

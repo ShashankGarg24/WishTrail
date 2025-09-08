@@ -1,7 +1,10 @@
+import { useEffect } from 'react';
 import { CheckCircle, SkipForward, Clock, Pencil, X, Trash2 } from 'lucide-react';
+import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock';
 
 export default function HabitDetailModal({ habit, isOpen, onClose, onLog, onEdit, onDelete }) {
   if (!isOpen || !habit) return null;
+  useEffect(() => { lockBodyScroll(); return () => unlockBodyScroll(); }, []);
   const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   const schedule = habit.frequency === 'daily' ? 'Every day' : (habit.daysOfWeek || []).sort().map(d => days[d]).join(', ') || 'Weekly';
   const isScheduledToday = (() => {

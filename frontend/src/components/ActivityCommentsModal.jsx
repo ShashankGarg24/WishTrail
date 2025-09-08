@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Send } from 'lucide-react'
 import { activitiesAPI } from '../services/api'
+import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
 
 const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embedded = false }) => {
   const [comments, setComments] = useState([])
@@ -83,6 +84,8 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
   }
 
   if (!inline && !embedded && !isOpen) return null
+
+  useEffect(() => { if (!inline && !embedded) { lockBodyScroll(); return () => unlockBodyScroll(); } }, [inline, embedded])
 
   // Embedded mode: render comments in-place without own header or scroll container
   if (embedded) {

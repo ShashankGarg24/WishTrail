@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Sparkles, Lock, Users, Globe, Smile, Frown, Meh, Heart } from 'lucide-react';
 import useApiStore from '../store/apiStore';
+import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock';
 
 const moods = [
   { value: 'very_negative', label: 'Very Negative', icon: <Frown className="h-4 w-4" /> },
@@ -56,6 +57,8 @@ const JournalPromptModal = ({ isOpen, onClose, onSubmitted }) => {
   };
 
   if (!isOpen) return null;
+
+  useEffect(() => { lockBodyScroll(); return () => unlockBodyScroll(); }, []);
 
   return (
     <AnimatePresence>

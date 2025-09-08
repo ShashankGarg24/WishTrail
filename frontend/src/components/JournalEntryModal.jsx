@@ -1,4 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
+import { useEffect } from 'react';
+import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock';
 import { X, Heart } from 'lucide-react';
 
 const Chip = ({ children }) => (
@@ -14,6 +16,8 @@ const Pill = ({ title, value }) => (
 
 const JournalEntryModal = ({ isOpen, onClose, entry }) => {
   if (!isOpen || !entry) return null;
+
+  useEffect(() => { lockBodyScroll(); return () => unlockBodyScroll(); }, []);
   const motivation = entry?.ai?.motivation || '';
   const s = entry?.aiSignals || {};
   return (

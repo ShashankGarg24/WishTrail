@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock';
 import { habitsAPI } from '../services/api';
 
 const dayOptions = [
@@ -21,6 +22,11 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated }) {
   const [error, setError] = useState(null);
 
   if (!isOpen) return null;
+
+  useEffect(() => {
+    lockBodyScroll();
+    return () => unlockBodyScroll();
+  }, []);
 
   const toggleDay = (v) => {
     setDaysOfWeek(prev => prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v]);
