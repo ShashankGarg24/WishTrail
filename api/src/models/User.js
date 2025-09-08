@@ -79,6 +79,16 @@ const userSchema = new mongoose.Schema({
     default: ''
   },
 
+  // Timezone preferences (auto-detected)
+  timezone: {
+    type: String,
+    default: '' // IANA name, e.g., "America/Los_Angeles"
+  },
+  timezoneOffsetMinutes: {
+    type: Number,
+    default: null // minutes east of UTC (e.g., -480 for PST -> send -offset if using JS getTimezoneOffset)
+  },
+
   dateOfBirth: {
     type: Date,
     validate: {

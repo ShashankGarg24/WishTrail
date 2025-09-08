@@ -2,7 +2,7 @@ const DeviceToken = require('../models/DeviceToken');
 
 exports.registerDevice = async (req, res, next) => {
   try {
-    const { token, platform = 'unknown', provider = 'expo' } = req.body || {};
+    const { token, platform = 'unknown', provider = 'expo', timezone = '', timezoneOffsetMinutes = null } = req.body || {};
     if (!token) return res.status(400).json({ success: false, message: 'token is required' });
     try {
       const masked = token.slice(0, 12) + '...';
@@ -23,7 +23,7 @@ exports.registerDevice = async (req, res, next) => {
     try {
       doc = await DeviceToken.findOneAndUpdate(
         { userId, token },
-        { $set: { platform, provider, lastSeenAt: new Date(), isActive: true } },
+        { $set: { platform, provider, lastSeenAt: new Date(), isActive: true, timezone: timezone || undefined, timezoneOffsetMinutes: timezoneOffsetMinutes ?? undefined } },
         { upsert: true, new: true }
       );
 
@@ -36,6 +36,13 @@ exports.registerDevice = async (req, res, next) => {
       console.error('[notifications] registerDevice DB error', e?.message);
       throw e;
     }
+    // Optionally update user's canonical timezone if provided and changed (debounced by device hits naturally)
+    try {
+      if (timezone && req.user && req.user.id) {
+        const User = require('../models/User');
+        await User.updateOne({ _id: req.user.id }, { $set: { timezone, timezoneOffsetMinutes: typeof timezoneOffsetMinutes === 'number' ? timezoneOffsetMinutes : undefined } });
+      }
+    } catch {}
     res.status(200).json({ success: true, data: { device: doc } });
   } catch (e) { next(e); }
 };

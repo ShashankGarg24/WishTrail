@@ -222,13 +222,21 @@ function App() {
   
     // Include auth header when present and fallback userId when available
     try {
+      // Detect timezone and offset
+      let tz = '';
+      let offset = null;
+      try {
+        const resolved = Intl.DateTimeFormat().resolvedOptions();
+        tz = resolved?.timeZone || '';
+        offset = -new Date().getTimezoneOffset();
+      } catch {}
       const res = await fetch(`${WEB_URL.replace(/\/$/, '')}/api/v1/notifications/devices/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
         },
-        body: JSON.stringify({ token, platform: Platform.OS, provider: 'expo', userId: userId || undefined }),
+        body: JSON.stringify({ token, platform: Platform.OS, provider: 'expo', userId: userId || undefined, timezone: tz || undefined, timezoneOffsetMinutes: typeof offset === 'number' ? offset : undefined }),
       });
       let body = null; try { body = await res.json(); } catch {}
       try { console.log('[native] register result', { ok: res.ok, status: res.status, body }); } catch {}

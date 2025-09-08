@@ -334,6 +334,23 @@ const deleteUser = async (req, res, next) => {
   }
 };
 
+// @desc    Update user's timezone (auto-detected from client)
+// @route   POST /api/v1/users/timezone
+// @access  Private
+const updateTimezone = async (req, res, next) => {
+  try {
+    const { timezone, timezoneOffsetMinutes } = req.body || {};
+    if (!timezone && typeof timezoneOffsetMinutes !== 'number') {
+      return res.status(400).json({ success: false, message: 'Provide timezone or timezoneOffsetMinutes' });
+    }
+    const set = {};
+    if (timezone) set.timezone = timezone;
+    if (typeof timezoneOffsetMinutes === 'number') set.timezoneOffsetMinutes = timezoneOffsetMinutes;
+    const user = await User.findByIdAndUpdate(req.user.id, { $set: set }, { new: true }).select('_id timezone timezoneOffsetMinutes');
+    return res.status(200).json({ success: true, data: { user } });
+  } catch (err) { next(err); }
+};
+
 module.exports = {
   getBlockStatus,
   getUsers,
@@ -348,5 +365,6 @@ module.exports = {
   updateUser,
   updatePrivacy,
   deleteUser,
-  listInterests
+  listInterests,
+  updateTimezone
 }; 

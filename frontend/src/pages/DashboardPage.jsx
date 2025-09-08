@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Plus, Calendar, Target, CheckCircle, Circle, Star, Award, Lightbulb } from 'lucide-react'
 import HabitsPanel from '../components/HabitsPanel'
+import HabitAnalyticsCard from '../components/HabitAnalyticsCard'
+import HabitDetailModal from '../components/HabitDetailModal'
+import EditHabitModal from '../components/EditHabitModal'
 import CreateHabitModal from '../components/CreateHabitModal'
 import useApiStore from '../store/apiStore'
 import CreateWishModal from '../components/CreateWishModal'
@@ -14,6 +17,8 @@ const DashboardPage = () => {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isHabitModalOpen, setIsHabitModalOpen] = useState(false)
+  const [selectedHabit, setSelectedHabit] = useState(null)
+  const [isEditHabitOpen, setIsEditHabitOpen] = useState(false)
   const [initialGoalData, setInitialGoalData] = useState(null)
   const [isSuggestionsOpen, setIsSuggestionsOpen] = useState(false)
   
@@ -75,9 +80,15 @@ const DashboardPage = () => {
     return result
   }
 
-  const handleHabitCreated = async () => {
-    // No global store yet for habits; HabitsPanel will refetch on mount
-    setIsHabitModalOpen(false)
+  const handleHabitCreated = async (habit) => {
+    try {
+      if (habit && habit._id) {
+        // append to store immediately so UI updates without full refresh
+        useApiStore.getState().appendHabit(habit)
+      }
+    } finally {
+      setIsHabitModalOpen(false)
+    }
   }
 
   const handleToggleGoal = async (goalId) => {
@@ -391,7 +402,10 @@ const DashboardPage = () => {
               transition={{ duration: 0.8, delay: 0.45 }}
               className="lg:col-span-1"
             >
-              <HabitsPanel onCreate={() => setIsHabitModalOpen(true)} />
+              <div className="space-y-6">
+                <HabitsPanel onCreate={() => setIsHabitModalOpen(true)} onOpenHabit={(h) => setSelectedHabit(h)} />
+                <HabitAnalyticsCard days={30} />
+              </div>
             </motion.div>
             {/* Right: Goals */}
             <motion.div
@@ -446,6 +460,44 @@ const DashboardPage = () => {
           isOpen={isHabitModalOpen}
           onClose={() => setIsHabitModalOpen(false)}
           onCreated={handleHabitCreated}
+        />
+      )}
+
+      {/* Habit Detail Modal */}
+      {selectedHabit && (
+        <HabitDetailModal
+          isOpen={!!selectedHabit}
+          habit={selectedHabit}
+          onClose={() => setSelectedHabit(null)}
+          onLog={async (status) => {
+            try {
+              const res = await useApiStore.getState().logHabit(selectedHabit._id, status)
+              if (res.success) {
+                setSelectedHabit(prev => prev ? { ...prev, currentStreak: status === 'done' ? (prev.currentStreak || 0) + 1 : 0, longestStreak: status === 'done' ? Math.max(prev.longestStreak || 0, (prev.currentStreak || 0) + 1) : prev.longestStreak, totalCompletions: status === 'done' ? (prev.totalCompletions || 0) + 1 : (prev.totalCompletions || 0) } : prev)
+              }
+            } catch {}
+          }}
+          onEdit={() => setIsEditHabitOpen(true)}
+          onDelete={async () => {
+            const res = await useApiStore.getState().deleteHabit(selectedHabit._id)
+            if (res.success) {
+              setSelectedHabit(null)
+            }
+          }}
+        />
+      )}
+
+      {isEditHabitOpen && selectedHabit && (
+        <EditHabitModal
+          isOpen={isEditHabitOpen}
+          onClose={() => setIsEditHabitOpen(false)}
+          habit={selectedHabit}
+          onSave={async (payload) => {
+            const res = await useApiStore.getState().updateHabit(selectedHabit._id, payload)
+            if (res.success && res.habit) {
+              setSelectedHabit(prev => prev ? { ...prev, ...payload } : prev)
+            }
+          }}
         />
       )}
     </div>

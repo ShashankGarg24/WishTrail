@@ -37,12 +37,16 @@ async function createHabit(userId, payload) {
   });
   await doc.save();
 
-  try {
-    const currentUser = await User.findById(userId).select('name avatar').lean();
-    await Activity.createActivity(userId, currentUser?.name, currentUser?.avatar, 'streak_milestone', {
-      metadata: { kind: 'habit_created', habitId: doc._id, habitName: doc.name }
-    });
-  } catch (_) {}
+  // Optional social activity sharing (disabled by default)
+  const shareEnabled = String(process.env.HABIT_SHARE_ENABLED || '').toLowerCase() === 'true';
+  if (shareEnabled) {
+    try {
+      const currentUser = await User.findById(userId).select('name avatar').lean();
+      await Activity.createActivity(userId, currentUser?.name, currentUser?.avatar, 'streak_milestone', {
+        metadata: { kind: 'habit_created', habitId: doc._id, habitName: doc.name }
+      });
+    } catch (_) {}
+  }
 
   return doc;
 }
@@ -125,11 +129,13 @@ async function toggleLog(userId, habitId, { status = 'done', note = '', mood = '
     };
     await Habit.updateOne({ _id: habit._id }, { $set: update });
 
-    // Milestones: 7, 30, 100
-    if ([1, 7, 30, 100].includes(nextStreak)) {
+    // Milestones: 1, 7, 30, 100 (social sharing optional via flag)
+    const shareEnabled = String(process.env.HABIT_SHARE_ENABLED || '').toLowerCase() === 'true';
+    if (shareEnabled && [1, 7, 30, 100].includes(nextStreak)) {
       try {
         const u = await User.findById(userId).select('name avatar').lean();
         const metadata = { kind: 'habit_streak', habitId: habit._id, habitName: habit.name };
+        // Keep OG image path generation internal; only used if sharing enabled
         if (nextStreak === 30) {
           metadata.shareImagePath = `/api/v1/habits/${habit._id}/og-image?count=${nextStreak}`;
         }

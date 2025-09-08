@@ -14,7 +14,8 @@ import {
   locationAPI,
   moderationAPI,
   notificationsAPI,
-  journalsAPI
+  journalsAPI,
+  habitsAPI
 } from '../services/api';
 
 const useApiStore = create(
@@ -72,12 +73,19 @@ const useApiStore = create(
       cacheNotifications: {},// key -> { data, ts }
       cacheGoals: {},        // key -> { data, ts }
       cacheDashboardStats: null, // { data, ts }
+      // Habits cache
+      habits: [],
+      cacheHabitsTs: 0,
+      habitAnalytics: null,
+      cacheHabitAnalyticsTs: 0,
       cacheTTLs: {
         activityFeed: 15 * 60 * 1000,   // 15 minutes
         users: 30 * 60 * 1000,          // 30 minutes
         notifications: 5 * 60 * 1000,   // 5 minutes
         goals: Number.POSITIVE_INFINITY, // cache until explicitly invalidated
         dashboardStats: Number.POSITIVE_INFINITY,
+        habits: 2 * 60 * 1000,          // 2 minutes
+        habitAnalytics: 5 * 60 * 1000   // 5 minutes
       },
       maxCacheEntries: {
         activityFeed: 8,
@@ -453,6 +461,86 @@ const useApiStore = create(
           const errorMessage = handleApiError(error);
           set({ loading: false, error: errorMessage });
           return { success: false, error: errorMessage };
+        }
+      },
+
+      // =====================
+      // HABITS ACTIONS
+      // =====================
+      loadHabits: async (opts = {}) => {
+        try {
+          const force = !!opts.force;
+          const ts = get().cacheHabitsTs || 0;
+          const ttl = get().cacheTTLs.habits;
+          if (!force && ts && Date.now() - ts < ttl && Array.isArray(get().habits) && get().habits.length > 0) {
+            return { success: true, habits: get().habits };
+          }
+          const res = await habitsAPI.list();
+          const habits = res?.data?.data?.habits || [];
+          set({ habits, cacheHabitsTs: Date.now() });
+          return { success: true, habits };
+        } catch (error) {
+          return { success: false, error: handleApiError(error) };
+        }
+      },
+      appendHabit: (habit) => {
+        if (!habit) return;
+        set(state => ({ habits: [habit, ...(state.habits || [])], cacheHabitsTs: Date.now() }));
+      },
+      logHabit: async (id, status) => {
+        try {
+          await habitsAPI.log(id, { status });
+          set(state => ({
+            habits: (state.habits || []).map(h => {
+              if (h._id !== id) return h;
+              if (status === 'done') {
+                const nextStreak = (h.currentStreak || 0) + 1;
+                const longest = Math.max(h.longestStreak || 0, nextStreak);
+                return { ...h, currentStreak: nextStreak, longestStreak: longest, totalCompletions: (h.totalCompletions || 0) + 1 };
+              }
+              return { ...h, currentStreak: 0 };
+            })
+          }));
+          return { success: true };
+        } catch (error) {
+          return { success: false, error: handleApiError(error) };
+        }
+      },
+      updateHabit: async (id, payload) => {
+        try {
+          const res = await habitsAPI.update(id, payload);
+          const updated = res?.data?.data || res?.data;
+          if (updated) {
+            set(state => ({ habits: (state.habits || []).map(h => h._id === id ? { ...h, ...updated } : h) }));
+          }
+          return { success: true, habit: updated };
+        } catch (error) {
+          return { success: false, error: handleApiError(error) };
+        }
+      },
+      deleteHabit: async (id) => {
+        try {
+          await habitsAPI.remove(id);
+          set(state => ({ habits: (state.habits || []).filter(h => h._id !== id) }));
+          return { success: true };
+        } catch (error) {
+          return { success: false, error: handleApiError(error) };
+        }
+      },
+      loadHabitAnalytics: async (opts = {}) => {
+        try {
+          const force = !!opts.force;
+          const ts = get().cacheHabitAnalyticsTs || 0;
+          const ttl = get().cacheTTLs.habitAnalytics;
+          if (!force && ts && Date.now() - ts < ttl && get().habitAnalytics) {
+            return { success: true, data: get().habitAnalytics };
+          }
+          const res = await habitsAPI.analytics({ days: 30 });
+          const data = res?.data?.data || null;
+          set({ habitAnalytics: data, cacheHabitAnalyticsTs: Date.now() });
+          return { success: true, data };
+        } catch (error) {
+          return { success: false, error: handleApiError(error) };
         }
       },
       
@@ -1320,6 +1408,19 @@ const useApiStore = create(
           set({ token, isAuthenticated: true });
           // Optionally fetch user data
           get().getMe();
+          // Auto-detect timezone and send to backend (fire-and-forget)
+          try {
+            const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+            const offset = -new Date().getTimezoneOffset();
+            if (tz || typeof offset === 'number') {
+              fetch(`${API_CONFIG.BASE_URL}/users/timezone`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                credentials: 'include',
+                body: JSON.stringify({ timezone: tz || undefined, timezoneOffsetMinutes: offset })
+              }).catch(() => {});
+            }
+          } catch {}
         }
       }
     }),

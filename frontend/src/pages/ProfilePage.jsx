@@ -62,7 +62,7 @@ const ProfilePage = () => {
   const JOURNAL_LIMIT = 6;
   const [journalHasMore, setJournalHasMore] = useState(true);
   const [journalLoading, setJournalLoading] = useState(false);
-  const [habitHeatmap, setHabitHeatmap] = useState({});
+  const [habitStats, setHabitStats] = useState(null);
   const [myHabits, setMyHabits] = useState([]);
 
   const isProfileAccessible = () => {
@@ -111,20 +111,19 @@ const ProfilePage = () => {
       } catch (e) {}
     };
     fetchJournal();
-    // Load first habit and its heatmap for overview
+    // Load habit analytics (no heatmap)
     const fetchHabits = async () => {
       try {
         if (activeTab !== 'overview') return;
         if (!isOwnProfile) return;
-        const res = await habitsAPI.list();
-        const habits = res?.data?.data?.habits || [];
+        const [listRes, analyticsRes] = await Promise.all([
+          habitsAPI.list(),
+          habitsAPI.analytics({ days: 30 })
+        ]);
+        const habits = listRes?.data?.data?.habits || [];
         setMyHabits(habits);
-        if (habits[0]?._id) {
-          const hmapRes = await habitsAPI.heatmap(habits[0]._id, { months: 1 });
-          setHabitHeatmap(hmapRes?.data?.data?.heatmap || {});
-        } else {
-          setHabitHeatmap({});
-        }
+        const analytics = analyticsRes?.data?.data || null;
+        setHabitStats(analytics);
       } catch (_) {}
     };
     fetchHabits();
@@ -796,27 +795,26 @@ const ProfilePage = () => {
                       ? "bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg"
                       : "bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50"
                     }>
-                      <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Habit Activity (last 30 days)</h3>
-                      <div className="grid grid-cols-7 gap-1">
-                        {(() => {
-                          const boxes = [];
-                          const today = new Date();
-                          for (let i = 29; i >= 0; i--) {
-                            const d = new Date(today);
-                            d.setDate(today.getDate() - i);
-                            d.setHours(0,0,0,0);
-                            const key = d.toISOString().split('T')[0];
-                            const status = habitHeatmap[key];
-                            let bg = 'bg-gray-200 dark:bg-gray-700';
-                            if (status === 'done') bg = 'bg-green-500';
-                            else if (status === 'missed') bg = 'bg-red-400';
-                            else if (status === 'skipped') bg = 'bg-yellow-400';
-                            boxes.push(<div key={key} className={`h-3 w-3 rounded ${bg}`} title={`${key} ${status || ''}`}></div>);
-                          }
-                          return boxes;
-                        })()}
-                      </div>
-                      <div className="text-xs text-gray-500 mt-2">Showing: {myHabits[0]?.name}</div>
+                      <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Habit Analytics (30 days)</h3>
+                      {habitStats ? (
+                        <div className="grid grid-cols-3 gap-4">
+                          <div className="p-4 bg-gray-50 dark:bg-gray-700/30 rounded-xl text-center">
+                            <div className="text-2xl font-bold text-green-600 dark:text-green-400">{habitStats.totals?.done || 0}</div>
+                            <div className="text-sm text-gray-600 dark:text-gray-400">Done</div>
+                          </div>
+                          <div className="p-4 bg-gray-50 dark:bg-gray-700/30 rounded-xl text-center">
+                            <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{habitStats.totals?.skipped || 0}</div>
+                            <div className="text-sm text-gray-600 dark:text-gray-400">Skipped</div>
+                          </div>
+                          <div className="p-4 bg-gray-50 dark:bg-gray-700/30 rounded-xl text-center">
+                            <div className="text-2xl font-bold text-red-600 dark:text-red-400">{habitStats.totals?.missed || 0}</div>
+                            <div className="text-sm text-gray-600 dark:text-gray-400">Missed</div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-sm text-gray-500">No analytics yet.</div>
+                      )}
+                      <div className="text-xs text-gray-500 mt-3">Tracked habits: {myHabits.length}</div>
                     </div>
                   )}
                 </div>
