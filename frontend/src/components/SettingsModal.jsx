@@ -234,9 +234,14 @@ const SettingsModal = ({ isOpen, onClose }) => {
     // Future tabs can be easily added here
   ];
 
+  useEffect(() => {
+    if (isOpen) {
+      lockBodyScroll();
+      return () => unlockBodyScroll();
+    }
+    return undefined;
+  }, [isOpen]);
   if (!isOpen) return null;
-
-  useEffect(() => { lockBodyScroll(); return () => unlockBodyScroll(); }, []);
 
   return (
     <motion.div
