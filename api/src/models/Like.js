@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const cacheService = require('../services/cacheService');
 
 const likeSchema = new mongoose.Schema({
   // User who liked
@@ -237,6 +238,8 @@ likeSchema.statics.updateTargetLikeCount = async function(targetType, targetId) 
     if (targetType === 'goal') {
       const Goal = mongoose.model('Goal');
       await Goal.findByIdAndUpdate(targetId, { likeCount });
+      // Invalidate trending goals cache since ordering may change
+      try { await cacheService.invalidateTrendingGoals(); } catch (_) {}
     }
     // Add more target types as needed
     

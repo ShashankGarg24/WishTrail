@@ -12,5 +12,6 @@ router.get('/', exploreController.getExploreFeed);
 router.get('/users', exploreController.getSuggestedUsers);
 router.get('/categories', exploreController.getTrendingCategories);
 router.get('/search', exploreController.searchExplore);
+router.get('/goals/trending', exploreController.getTrendingGoals);
 
 module.exports = router; 

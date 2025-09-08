@@ -186,6 +186,9 @@ goalSchema.index({ completed: 1, completedAt: -1 });
 goalSchema.index({ createdAt: -1 });
 goalSchema.index({ targetDate: 1 });
 goalSchema.index({ completed: 1, isDiscoverable: 1, titleLower: 1, category: 1 });
+// Optimized indexes for trending queries (public, active, completed, by likes)
+goalSchema.index({ isPublic: 1, isActive: 1, completed: 1, likeCount: -1, completedAt: -1 });
+goalSchema.index({ isPublic: 1, isActive: 1, completed: 1, category: 1, likeCount: -1, completedAt: -1 });
 
 // Virtual for days until target
 goalSchema.virtual('daysUntilTarget').get(function() {

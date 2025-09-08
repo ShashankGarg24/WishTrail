@@ -2,6 +2,7 @@ const Goal = require('../models/Goal');
 const User = require('../models/User');
 const Activity = require('../models/Activity');
 const userService = require('./userService');
+const cacheService = require('./cacheService');
 
 // Map user interests to goal categories for consistent filtering
 function mapInterestToCategory(raw) {
@@ -226,6 +227,7 @@ class GoalService {
       updates,
       { new: true, runValidators: true }
     );
+    try { await cacheService.invalidateTrendingGoals(); } catch (_) {}
     
     return updatedGoal;
   }
@@ -248,6 +250,7 @@ class GoalService {
     // Soft delete
     goal.isActive = false;
     await goal.save();
+    try { await cacheService.invalidateTrendingGoals(); } catch (_) {}
     
     return { message: 'Goal deleted successfully' };
   }
@@ -286,6 +289,7 @@ class GoalService {
     goal.completionProof = completionProof;
     
     await goal.save();
+    try { await cacheService.invalidateTrendingGoals(); } catch (_) {}
     
     // Update user points and stats
     const user = await User.findById(userId);
@@ -416,106 +420,103 @@ class GoalService {
    * Get trending goals
    */
   async getTrendingGoals(params = {}) {
-    const { limit = 10, timeframe = 'week' } = params;
-    
-    let startDate;
-    const now = new Date();
-    
-    switch (timeframe) {
-      case 'day':
-        startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-        break;
-      case 'week':
-        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        break;
-      case 'month':
-        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-        break;
-      default:
-        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    }
-    
+    const { limit = 10 } = params;
+
     const trendingGoals = await Goal.aggregate([
-      {
-        $match: {
-          completed: true,
-          completedAt: { $gte: startDate },
-          isPublic: true
+      { $match: { completed: true, isPublic: true, isActive: true } },
+      { $addFields: { trendingScore: { $add: [ { $multiply: ['$likeCount', 5] }, '$pointsEarned' ] } } },
+      { $sort: { trendingScore: -1, completedAt: -1 } },
+      { $limit: parseInt(limit) },
+      { $lookup: { from: 'users', localField: 'userId', foreignField: '_id', as: 'user' } },
+      { $unwind: { path: '$user', preserveNullAndEmptyArrays: true } },
+      { $project: { title: 1, description: 1, category: 1, priority: 1, duration: 1, completedAt: 1, pointsEarned: 1, likeCount: 1, user: { _id: '$user._id', name: '$user.name', avatar: '$user.avatar', level: '$user.level' } } }
+    ]);
+
+    return trendingGoals;
+  }
+
+  /**
+   * Get trending goals with pagination and strategies (fast, low-load)
+   */
+  async getTrendingGoalsPaged(params = {}) {
+    const {
+      page = 1,
+      limit = 20,
+      strategy = 'global', // global | category | personalized
+      category,
+      userId
+    } = params;
+
+    const parsedLimit = Math.min(50, Math.max(1, parseInt(limit)));
+    const parsedPage = Math.max(1, parseInt(page));
+    const skip = (parsedPage - 1) * parsedLimit;
+
+    const baseMatch = { completed: true, isPublic: true, isActive: true };
+    if (strategy === 'category' && category) {
+      baseMatch.category = category;
+    }
+
+    // Personalized categories derived from user interests (optional)
+    let interestCategories = [];
+    if (strategy === 'personalized' && userId) {
+      const user = await User.findById(userId).select('interests').lean();
+      const interests = Array.isArray(user && user.interests) ? user.interests : [];
+      // Map interests to goal categories
+      const catSet = new Set();
+      for (const i of interests) {
+        catSet.add(mapInterestToCategory(i));
+      }
+      interestCategories = Array.from(catSet);
+    }
+
+    // Build aggregation pipeline
+    const pipeline = [
+      { $match: baseMatch },
+      { $addFields: {
+          _trendBase: { $add: [ { $multiply: ['$likeCount', 5] }, '$pointsEarned' ] }
         }
       },
-      {
-        $lookup: {
-          from: 'users',
-          localField: 'userId',
-          foreignField: '_id',
-          as: 'user'
-        }
-      },
-      {
-        $unwind: '$user'
-      },
-      {
-        $match: {
-          'user.isActive': true
-        }
-      },
-      {
-        $lookup: {
-          from: 'likes',
-          let: { goalId: '$_id' },
-          pipeline: [
-            {
-              $match: {
-                $expr: {
-                  $and: [
-                    { $eq: ['$itemId', '$$goalId'] },
-                    { $eq: ['$itemType', 'goal'] }
-                  ]
-                }
-              }
-            }
-          ],
-          as: 'likes'
-        }
-      },
-      {
+    ];
+
+    if (interestCategories.length > 0) {
+      pipeline.push({
         $addFields: {
-          likeCount: { $size: '$likes' },
-          trendingScore: {
-            $add: [
-              '$pointsEarned',
-              { $multiply: [{ $size: '$likes' }, 5] }
-            ]
-          }
+          _interestBoost: { $cond: [{ $in: ['$category', interestCategories] }, 5, 0] },
+          trendingScore: { $add: ['$_trendBase', { $cond: [{ $in: ['$category', interestCategories] }, 5, 0] }] }
         }
-      },
-      {
-        $sort: { trendingScore: -1, completedAt: -1 }
-      },
-      {
-        $limit: parseInt(limit)
-      },
-      {
-        $project: {
-          title: 1,
-          description: 1,
-          category: 1,
-          priority: 1,
-          completedAt: 1,
-          pointsEarned: 1,
-          likeCount: 1,
-          completionNote: 1,
-          user: {
-            _id: '$user._id',
-            name: '$user.name',
-            avatar: '$user.avatar',
-            level: '$user.level'
-          }
+      });
+    } else {
+      pipeline.push({ $addFields: { trendingScore: '$_trendBase' } });
+    }
+
+    pipeline.push(
+      { $sort: { trendingScore: -1, completedAt: -1 } },
+      { $facet: {
+          data: [
+            { $skip: skip },
+            { $limit: parsedLimit },
+            { $lookup: { from: 'users', localField: 'userId', foreignField: '_id', as: 'user' } },
+            { $unwind: { path: '$user', preserveNullAndEmptyArrays: true } },
+            { $project: { _id: 1, title: 1, description: 1, category: 1, priority: 1, duration: 1, completedAt: 1, pointsEarned: 1, likeCount: 1, user: { _id: '$user._id', name: '$user.name', avatar: '$user.avatar', level: '$user.level' } } }
+          ],
+          total: [ { $count: 'count' } ]
         }
       }
-    ]);
-    
-    return trendingGoals;
+    );
+
+    const aggResult = await Goal.aggregate(pipeline).allowDiskUse(true);
+    const bucket = aggResult && aggResult[0] ? aggResult[0] : { data: [], total: [] };
+    const goals = bucket.data || [];
+    const total = (bucket.total && bucket.total[0] && bucket.total[0].count) ? bucket.total[0].count : 0;
+    return {
+      goals,
+      pagination: {
+        page: parsedPage,
+        limit: parsedLimit,
+        total,
+        pages: Math.ceil(total / parsedLimit)
+      }
+    };
   }
   
   /**

@@ -2,6 +2,8 @@ const User = require('../models/User');
 const Goal = require('../models/Goal');
 const Activity = require('../models/Activity');
 const Follow = require('../models/Follow');
+const goalService = require('../services/goalService');
+const cacheService = require('../services/cacheService');
 
 // @desc    Get trending goals and users
 // @route   GET /api/v1/explore
@@ -552,5 +554,46 @@ module.exports = {
   getExploreFeed,
   getSuggestedUsers,
   getTrendingCategories,
-  searchExplore
+  searchExplore,
+  // @desc    Get trending goals (fast + cached)
+  // @route   GET /api/v1/explore/goals/trending
+  // @access  Private
+  async getTrendingGoals(req, res, next) {
+    try {
+      const { strategy = 'global', category, page = 1, limit = 20 } = req.query;
+      if (strategy === 'category' && !category) {
+        return res.status(400).json({ success: false, message: 'category is required for strategy=category' });
+      }
+
+      const cacheParams = {
+        strategy,
+        page: parseInt(page),
+        limit: parseInt(limit)
+      };
+      if (category) cacheParams.category = category;
+      if (strategy === 'personalized') cacheParams.userId = req.user.id;
+
+      const cached = await cacheService.getTrendingGoals(cacheParams);
+      if (cached) {
+        return res.status(200).json({ success: true, data: cached });
+      }
+
+      const result = await goalService.getTrendingGoalsPaged({
+        page,
+        limit,
+        strategy,
+        category,
+        userId: req.user.id
+      });
+
+      const ttl = strategy === 'personalized'
+        ? cacheService.CACHE_TTL.FIVE_MINUTES
+        : cacheService.CACHE_TTL.TEN_MINUTES;
+      await cacheService.setTrendingGoals(result, cacheParams, ttl);
+
+      return res.status(200).json({ success: true, data: result });
+    } catch (error) {
+      next(error);
+    }
+  }
 }; 

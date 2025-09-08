@@ -15,7 +15,8 @@ class CacheService {
       FRIENDS_LEADERBOARD: 'wishtrail:leaderboard:friends',
       LEADERBOARD_STATS: 'wishtrail:leaderboard:stats',
       USER_SEARCH: 'wishtrail:search:users',
-      GOAL_SEARCH: 'wishtrail:search:goals'
+      GOAL_SEARCH: 'wishtrail:search:goals',
+      TRENDING_GOALS: 'wishtrail:goals:trending'
     };
     
     this.CACHE_TTL = {
@@ -39,6 +40,7 @@ class CacheService {
     if (params.timeframe) keyParts.push(`timeframe:${params.timeframe}`);
     if (params.category) keyParts.push(`category:${params.category}`);
     if (params.rarity) keyParts.push(`rarity:${params.rarity}`);
+    if (params.strategy) keyParts.push(`strategy:${params.strategy}`);
 
     return keyParts.join(':');
   }
@@ -324,6 +326,23 @@ class CacheService {
   async setGoalSearch(data, params = {}) {
     const key = this._keyForSearch(this.CACHE_KEYS.GOAL_SEARCH, params);
     return await this.set(key, data, this.CACHE_TTL.THREE_MINUTES);
+  }
+
+  // =====================
+  // Trending goals cache
+  // =====================
+  async getTrendingGoals(params = {}) {
+    const key = this.generateKey(this.CACHE_KEYS.TRENDING_GOALS, params);
+    return await this.get(key);
+  }
+
+  async setTrendingGoals(data, params = {}, ttl = this.CACHE_TTL.TEN_MINUTES) {
+    const key = this.generateKey(this.CACHE_KEYS.TRENDING_GOALS, params);
+    return await this.set(key, data, ttl);
+  }
+
+  async invalidateTrendingGoals() {
+    return await this.deletePattern(`${this.CACHE_KEYS.TRENDING_GOALS}*`);
   }
 }
 

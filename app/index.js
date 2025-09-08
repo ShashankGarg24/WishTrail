@@ -46,7 +46,7 @@ function App() {
     Notifications.setNotificationHandler({
       handleNotification: async () => ({ shouldShowAlert: true, shouldPlaySound: false, shouldSetBadge: false })
     });
-    registerForPushNotificationsAsync().catch(() => {});
+    registerForPushNotificationsAsync().catch((e) => { try { console.log('registerForPushNotificationsAsync error', e?.message || e); } catch {} });
     const sub = AppState.addEventListener('change', (state) => {
       const prev = appState.current;
       appState.current = state;
@@ -131,13 +131,18 @@ function App() {
         (async function(){
           try {
             var jwt = localStorage.getItem('token') || '';
-            if (!jwt) return;
-            await fetch('${WEB_URL.replace(/\/$/, '')}/api/v1/notifications/devices/register', {
+            var persisted = localStorage.getItem('wishtrail-api-store') || '';
+            var uid = '';
+            try { var obj = JSON.parse(persisted); uid = (obj && obj.state && (obj.state.user && (obj.state.user._id || obj.state.user.id))) || ''; } catch(e) {}
+            if (!jwt && !uid) { window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'WT_REGISTER_RESULT', source: 'web', ok: false, reason: 'no-auth-and-no-uid' })); return; }
+            var res = await fetch('${WEB_URL.replace(/\/$/, '')}/api/v1/notifications/devices/register', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + jwt },
-              body: JSON.stringify({ token: ${JSON.stringify(token)}, platform: ${JSON.stringify(Platform.OS)}, provider: 'expo' })
+              headers: { 'Content-Type': 'application/json', ...(jwt ? { 'Authorization': 'Bearer ' + jwt } : {}) },
+              body: JSON.stringify({ token: ${JSON.stringify(token)}, platform: ${JSON.stringify(Platform.OS)}, provider: 'expo', userId: uid || undefined })
             });
-          } catch(e) {}
+            var ok = !!res.ok; var status = res.status; var body = null; try { body = await res.json(); } catch(e) {}
+            window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'WT_REGISTER_RESULT', source: 'web', ok: ok, status: status, body: body }));
+          } catch(e) { window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'WT_REGISTER_RESULT', source: 'web', ok: false, error: (e && e.message) || String(e) })); }
         })(); true;
       `;
       webRef.current?.injectJavaScript(script);
@@ -166,6 +171,8 @@ function App() {
       } else if (data?.type === 'WT_USER') {
         const uid = (data.userId || '').trim();
         if (uid && uid.length > 0) setUserId(uid);
+      } else if (data?.type === 'WT_REGISTER_RESULT') {
+        try { console.log('[web] register result', data); } catch {}
       }
     } catch {}
   }, [expoPushToken]);
@@ -173,7 +180,7 @@ function App() {
   // Re-register device token when auth becomes available
   useEffect(() => {
     if (authToken && expoPushToken) {
-      registerForPushNotificationsAsync().catch(() => {});
+      registerForPushNotificationsAsync().catch((e) => { try { console.log('re-register error', e?.message || e); } catch {} });
     }
   }, [authToken, expoPushToken]);
 
@@ -189,7 +196,8 @@ function App() {
   useEffect(() => { if (expoPushToken) injectRegisterViaWeb(expoPushToken); }, [expoPushToken, injectRegisterViaWeb]);
 
   async function registerForPushNotificationsAsync() {
-    if (!Device.isDevice || !authToken) return;
+    try { console.log('Ownership:', (Constants?.appOwnership || 'unknown')); } catch {}
+    if (!Device.isDevice) { try { console.log('Not a physical device; skip push registration'); } catch {} return; }
   
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
     let finalStatus = existingStatus;
@@ -197,7 +205,7 @@ function App() {
       const { status } = await Notifications.requestPermissionsAsync();
       finalStatus = status;
     }
-    if (finalStatus !== 'granted') return;
+    if (finalStatus !== 'granted') { try { console.log('Push permission not granted'); } catch {} return; }
   
     if (Platform.OS === 'android') {
       await Notifications.setNotificationChannelAsync('default', {
@@ -207,18 +215,26 @@ function App() {
     }
   
     const projectId = Constants?.expoConfig?.extra?.eas?.projectId || Constants?.easConfig?.projectId;
-    const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
+    const tokenObj = await Notifications.getExpoPushTokenAsync({ projectId });
+    const token = tokenObj?.data;
+    try { console.log('Expo push token:', token ? (token.slice(0, 12) + '...') : 'null'); } catch {}
     setExpoPushToken(token);
   
-    // Always include auth header so backend can extract userId
-    await fetch(`${WEB_URL.replace(/\/$/, '')}/api/v1/notifications/devices/register`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${authToken}`,
-      },
-      body: JSON.stringify({ token, platform: Platform.OS, provider: 'expo' }),
-    });
+    // Include auth header when present and fallback userId when available
+    try {
+      const res = await fetch(`${WEB_URL.replace(/\/$/, '')}/api/v1/notifications/devices/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+        },
+        body: JSON.stringify({ token, platform: Platform.OS, provider: 'expo', userId: userId || undefined }),
+      });
+      let body = null; try { body = await res.json(); } catch {}
+      try { console.log('[native] register result', { ok: res.ok, status: res.status, body }); } catch {}
+    } catch (e) {
+      try { console.log('[native] register error', e?.message || e); } catch {}
+    }
   }
 
   async function unregisterForPushNotificationsAsync(token) {
