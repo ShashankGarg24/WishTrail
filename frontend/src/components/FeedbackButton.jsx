@@ -1,8 +1,14 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { MessageSquarePlus, X, Image } from 'lucide-react'
 import useApiStore from '../store/apiStore'
 import { feedbackAPI } from '../services/api'
+import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
+
+const ScrollLockGuard = () => {
+  useEffect(() => { lockBodyScroll(); return () => unlockBodyScroll(); }, [])
+  return null
+}
 
 const FeedbackButton = () => {
   const { isAuthenticated } = useApiStore()
@@ -124,6 +130,8 @@ const FeedbackButton = () => {
               className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-lg p-6 border border-gray-200 dark:border-gray-700 shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
+              {/* lock scroll while this feedback modal is mounted */}
+              <ScrollLockGuard />
               <div className="flex items-center justify-between mb-1">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Send Feedback</h3>
                 <button onClick={() => setIsOpen(false)} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800">
