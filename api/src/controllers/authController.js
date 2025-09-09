@@ -23,6 +23,7 @@ const register = async (req, res, next) => {
       httpOnly: true,
       secure: true,
       sameSite: 'none',
+      partitioned: true,
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
 
@@ -71,6 +72,7 @@ const login = async (req, res, next) => {
       httpOnly: true,
       secure: true,
       sameSite: 'none',
+      partitioned: true,
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
 
@@ -104,7 +106,7 @@ const logout = async (req, res, next) => {
     }
 
     // Clear refresh token cookie (for web)
-    res.clearCookie('refreshToken', { httpOnly: true, secure: true, sameSite: 'none' });
+    res.clearCookie('refreshToken', { httpOnly: true, secure: true, sameSite: 'none', partitioned: true });
 
     res.status(200).json({
       success: true,
@@ -207,6 +209,7 @@ const refreshToken = async (req, res, next) => {
       httpOnly: true,
       secure: true,
       sameSite: 'none',
+      partitioned: true,
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
 
