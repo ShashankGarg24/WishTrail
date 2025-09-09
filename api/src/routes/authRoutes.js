@@ -122,6 +122,8 @@ const resetPasswordValidation = [
 // Public routes
 router.post('/register', signupValidation, authController.register);
 router.post('/login', loginValidation, authController.login);
+// Refresh access token using httpOnly cookie
+router.post('/refresh', authController.refreshToken);
 
 // Password reset routes
 router.post('/forgot-password', forgotPasswordValidation, authController.forgotPassword);
