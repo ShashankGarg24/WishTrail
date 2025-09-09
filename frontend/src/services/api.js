@@ -23,16 +23,63 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor to handle errors
+// Response interceptor to handle errors with refresh flow
+let isRefreshing = false;
+const queue = [];
+const processQueue = (error, token = null) => {
+  while (queue.length > 0) {
+    const { resolve, reject, originalRequest } = queue.shift();
+    if (token) {
+      originalRequest.headers.Authorization = `Bearer ${token}`;
+      resolve(api(originalRequest));
+    } else {
+      reject(error);
+    }
+  }
+};
+
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      // Clear token and redirect to login
+  async (error) => {
+    const { config, response } = error || {};
+    if (!response) return Promise.reject(error);
+    if (response.status !== 401) return Promise.reject(error);
+
+    const originalRequest = config;
+    // If refresh itself failed, logout
+    if (originalRequest?.url?.includes('/auth/refresh')) {
       localStorage.removeItem('token');
       window.location.href = '/auth';
+      return Promise.reject(error);
     }
-    return Promise.reject(error);
+
+    if (isRefreshing) {
+      // Queue this request until refresh completes
+      return new Promise((resolve, reject) => {
+        queue.push({ resolve, reject, originalRequest });
+      });
+    }
+
+    // Start refresh
+    isRefreshing = true;
+    try {
+      const res = await api.post('/auth/refresh', null, { withCredentials: true });
+      const newToken = res?.data?.data?.token;
+      if (!newToken) throw new Error('No access token in refresh response');
+      localStorage.setItem('token', newToken);
+      api.defaults.headers.common.Authorization = `Bearer ${newToken}`;
+      processQueue(null, newToken);
+      // Retry original
+      originalRequest.headers.Authorization = `Bearer ${newToken}`;
+      return api(originalRequest);
+    } catch (refreshErr) {
+      localStorage.removeItem('token');
+      processQueue(refreshErr, null);
+      window.location.href = '/auth';
+      return Promise.reject(refreshErr);
+    } finally {
+      isRefreshing = false;
+    }
   }
 );
 
