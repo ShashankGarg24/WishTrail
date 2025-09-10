@@ -232,7 +232,7 @@ const InspirationPage = () => {
               className="mt-6 text-center"
             >
               <a
-                href={isAuthenticated ? "/explore?tab=activities" : "/auth"}
+                href={isAuthenticated ? "/feed" : "/auth"}
                 className="px-6 py-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-xl transition-colors duration-200 font-medium"
               >
                 {isAuthenticated ? "View All Activities" : "Join to See More"}

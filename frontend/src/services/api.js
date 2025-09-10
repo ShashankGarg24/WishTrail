@@ -183,14 +183,7 @@ export const leaderboardAPI = {
   getLeaderboardStats: () => api.get('/leaderboard/stats'),
 };
 
-// Explore API
-export const exploreAPI = {
-  getExploreFeed: (params) => api.get('/explore', { params }),
-  getSuggestedUsers: (params) => api.get('/explore/users', { params }),
-  getTrendingCategories: (params) => api.get('/explore/categories', { params }),
-  searchExplore: (params) => api.get('/explore/search', { params }),
-  getTrendingGoals: (params) => api.get('/explore/goals/trending', { params }),
-};
+// Explore API (removed)
 
 // Notifications API
 export const notificationsAPI = {

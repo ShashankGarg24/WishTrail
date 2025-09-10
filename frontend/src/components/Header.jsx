@@ -68,6 +68,13 @@ const Header = () => {
     }
   }, [isAuthenticated, getNotifications])
 
+  // Global event to open settings from anywhere
+  useEffect(() => {
+    const handler = () => setIsSettingsOpen(true)
+    window.addEventListener('wt_open_settings', handler)
+    return () => window.removeEventListener('wt_open_settings', handler)
+  }, [])
+
   return (
     <>
       <header className="fixed top-0 left-0 right-0 z-50 glass-card border-b border-white/10 theme-transition">

@@ -19,9 +19,9 @@ function buildDeepLink(notification) {
       if (id) return `${base}/goal/${id}`;
     }
     if (notification?.data?.habitId) return `${base}/dashboard`;
-    if (notification?.data?.activityId) return `${base}/explore?tab=activities`;
+    if (notification?.data?.activityId) return `${base}/feed`;
   } catch {}
-  return `${base}/explore?tab=notifications`;
+  return `${base}/notifications`;
 }
 
 async function sendExpoPushToUser(userId, notification) {

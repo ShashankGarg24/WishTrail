@@ -1,17 +1,2 @@
-const express = require('express');
-const exploreController = require('../controllers/exploreController');
-const { protect } = require('../middleware/auth');
-
-const router = express.Router();
-
-// All routes are protected
-router.use(protect);
-
-// Explore routes
-router.get('/', exploreController.getExploreFeed);
-router.get('/users', exploreController.getSuggestedUsers);
-router.get('/categories', exploreController.getTrendingCategories);
-router.get('/search', exploreController.searchExplore);
-router.get('/goals/trending', exploreController.getTrendingGoals);
-
-module.exports = router; 
+// Explore routes removed
+module.exports = require('express').Router();

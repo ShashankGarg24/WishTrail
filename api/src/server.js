@@ -17,7 +17,6 @@ const goalRoutes = require('./routes/goalRoutes');
 const socialRoutes = require('./routes/socialRoutes');
 const activityRoutes = require('./routes/activityRoutes');
 const leaderboardRoutes = require('./routes/leaderboardRoutes');
-const exploreRoutes = require('./routes/exploreRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
 const locationRoutes = require('./routes/locationRoutes');
 const journalRoutes = require('./routes/journalRoutes');
@@ -101,7 +100,7 @@ const createApp = async () => {
   app.use(/^\/api\/v\d+\/auth\/login$/, createRateLimiter(15 * 60 * 1000, 5, 'Too many login attempts, try again later.'));
   app.use(/^\/api\/v\d+\/auth\/signup$/, createRateLimiter(15 * 60 * 1000, 5, 'Too many signup attempts, try again later.'));
   app.use(/^\/api\/v\d+\/users/, createRateLimiter(60 * 1000, 30, 'Too many user requests, slow down.'));
-  app.use(/^\/api\/v\d+\/explore\/search$/, createRateLimiter(60 * 1000, 30, 'Too many explore searches, try again later.'));
+  // Explore rate limiter removed
 
   app.use(compression());
   app.use(morgan(process.env.NODE_ENV === 'development' ? 'dev' : 'combined'));
@@ -129,7 +128,7 @@ const createApp = async () => {
   apiRouter.use('/social', socialRoutes);
   apiRouter.use('/activities', activityRoutes);
   apiRouter.use('/leaderboard', leaderboardRoutes);
-  apiRouter.use('/explore', exploreRoutes);
+  // Explore routes removed
   apiRouter.use('/upload', uploadRoutes);
   apiRouter.use('/location', locationRoutes);
   apiRouter.use('/journals', journalRoutes);

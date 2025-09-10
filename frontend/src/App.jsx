@@ -9,12 +9,13 @@ import AuthPage from './pages/AuthPage'
 import DashboardPage from './pages/DashboardPage'
 import ProfilePage from './pages/ProfilePage'
 import InspirationPage from './pages/InspirationPage'
-import ExplorePage from './pages/ExplorePage'
 import FeedPage from './pages/FeedPage'
 import DiscoverPage from './pages/DiscoverPage'
 import NotificationsPage from './pages/NotificationsPage'
 import LeaderboardPage from './pages/LeaderboardPage'
 import ResetPasswordPage from './pages/ResetPasswordPage'
+import SettingsPage from './pages/SettingsPage'
+import NotFoundPage from './pages/NotFoundPage'
 import { SpeedInsights } from '@vercel/speed-insights/react';
 import FeedbackButton from './components/FeedbackButton'
 
@@ -61,18 +62,18 @@ function App() {
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/dashboard" element={<DashboardPage />} />
-            {/* Legacy route retained temporarily; will redirect in future */}
-            <Route path="/explore" element={<ExplorePage />} />
             <Route path="/feed" element={<FeedPage />} />
             <Route path="/discover" element={<DiscoverPage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
             <Route path="/profile/:userId" element={<ProfilePage />} />
             <Route path="/profile/@:username" element={<ProfilePage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/inspiration" element={<InspirationPage />} />
             <Route path="/leaderboard" element={<LeaderboardPage />} />
-            {/* Goal deeplink opens feed modal behavior within FeedPage via /feed or existing ExplorePage logic */}
+            {/* Goal deeplink opens modal within feed/discover */}
             <Route path="/goal/:goalId" element={<FeedPage />} />
+            <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </main>
         <BottomTabBar />

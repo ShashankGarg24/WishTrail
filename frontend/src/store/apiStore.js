@@ -8,7 +8,6 @@ import {
   socialAPI, 
   activitiesAPI, 
   leaderboardAPI,
-  exploreAPI,
   handleApiError,
   setAuthToken,
   locationAPI,
@@ -78,6 +77,8 @@ const useApiStore = create(
       cacheHabitsTs: 0,
       habitAnalytics: null,
       cacheHabitAnalyticsTs: 0,
+      // UI state
+      settingsModalOpen: false,
       cacheTTLs: {
         activityFeed: 15 * 60 * 1000,   // 15 minutes
         users: 30 * 60 * 1000,          // 30 minutes
@@ -93,6 +94,8 @@ const useApiStore = create(
         notifications: 5,
         goals: 8,
       },
+      openSettingsModal: () => set({ settingsModalOpen: true }),
+      closeSettingsModal: () => set({ settingsModalOpen: false }),
       _cacheKeyFromParams: (params = {}) => {
         const entries = Object.entries(params || {}).filter(([, v]) => v !== undefined && v !== null);
         entries.sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
@@ -124,14 +127,8 @@ const useApiStore = create(
       // Leaderboard
       leaderboard: [],
       
-      // Explore
-      exploreFeed: null,
-      suggestedUsers: [],
-      trendingCategories: [],
-      exploreSearchResults: null,
+      // Explore removed; keep interestsCatalog used by Discover
       goalsSearchResults: [],
-      trendingGoals: [],
-      trendingGoalsPagination: null,
       interestsCatalog: [],
       
       // =====================
@@ -1308,51 +1305,6 @@ const useApiStore = create(
         }
       },
       
-      // =====================
-      // EXPLORE ACTIONS
-      // =====================
-      
-      getExploreFeed: async (params = {}) => {
-        try {
-          set({ loading: true, error: null });
-          const response = await exploreAPI.getExploreFeed(params);
-          const exploreFeed = response.data.data;
-          set({ exploreFeed, loading: false });
-          return { success: true, exploreFeed };
-        } catch (error) {
-          const errorMessage = handleApiError(error);
-          set({ loading: false, error: errorMessage });
-          return { success: false, error: errorMessage };
-        }
-      },
-
-      getTrendingGoals: async (params = {}) => {
-        try {
-          const response = await exploreAPI.getTrendingGoals(params);
-          const { goals, pagination } = response.data.data;
-          set({ trendingGoals: goals, trendingGoalsPagination: pagination });
-          return { success: true, goals, pagination };
-        } catch (error) {
-          const errorMessage = handleApiError(error);
-          set({ trendingGoals: [], trendingGoalsPagination: null });
-          return { success: false, error: errorMessage };
-        }
-      },
-      
-      getSuggestedUsers: async (params = {}) => {
-        try {
-          set({ loading: true, error: null });
-          const response = await exploreAPI.getSuggestedUsers(params);
-          const { users } = response.data.data;
-          set({ suggestedUsers: users, loading: false });
-          return { success: true, users };
-        } catch (error) {
-          const errorMessage = handleApiError(error);
-          set({ loading: false, error: errorMessage });
-          return { success: false, error: errorMessage };
-        }
-      },
-
       loadInterests: async (limit = 64) => {
         try {
           const res = await usersAPI.getInterests({ limit });
@@ -1363,32 +1315,6 @@ const useApiStore = create(
           console.error('Failed to load interests', err);
           set({ interestsCatalog: [] });
           return [];
-        }
-      },
-      
-      getTrendingCategories: async (params = {}) => {
-        try {
-          const response = await exploreAPI.getTrendingCategories(params);
-          const { categories } = response.data.data;
-          set({ trendingCategories: categories });
-          return { success: true, categories };
-        } catch (error) {
-          const errorMessage = handleApiError(error);
-          return { success: false, error: errorMessage };
-        }
-      },
-      
-      searchExplore: async (params = {}) => {
-        try {
-          set({ loading: true, error: null });
-          const response = await exploreAPI.searchExplore(params);
-          const results = response.data.data;
-          set({ exploreSearchResults: results, loading: false });
-          return { success: true, results };
-        } catch (error) {
-          const errorMessage = handleApiError(error);
-          set({ loading: false, error: errorMessage });
-          return { success: false, error: errorMessage };
         }
       },
       
