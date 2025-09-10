@@ -1,4 +1,4 @@
-.name: Android Build
+name: Android Build
 
 on:
   push:
@@ -19,7 +19,7 @@ jobs:
           java-version: "17"
           distribution: "temurin"
 
-      - name: Install Node
+      - name: Set up Node 18
         uses: actions/setup-node@v3
         with:
           node-version: "18"
@@ -27,8 +27,9 @@ jobs:
       - name: Install Yarn
         run: npm install -g yarn
 
-      - name: Install Dependencies
-        run: yarn install
+      - name: Install App Dependencies
+        working-directory: app
+        run: yarn install --frozen-lockfile || yarn install
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v2
@@ -40,7 +41,7 @@ jobs:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
 
       - name: Build Release APK
-        working-directory: android
+        working-directory: app/android
         env:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
@@ -51,4 +52,6 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: wishtrail-release-apk
-          path: app/build/outputs/apk/release/app-release.apk
+          path: app/android/app/build/outputs/apk/release/app-release.apk
+
+
