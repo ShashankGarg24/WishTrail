@@ -2,6 +2,7 @@ import { Routes, Route, useLocation, useNavigate } from 'react-router-dom'
 import { useEffect } from 'react'
 import useApiStore from './store/apiStore'
 import Header from './components/Header'
+import BottomTabBar from './components/BottomTabBar'
 import Footer from './components/Footer'
 import HomePage from './pages/HomePage'
 import AuthPage from './pages/AuthPage'
@@ -74,6 +75,7 @@ function App() {
             <Route path="/goal/:goalId" element={<FeedPage />} />
           </Routes>
         </main>
+        <BottomTabBar />
         <Footer />
         <FeedbackButton />
       </div>
