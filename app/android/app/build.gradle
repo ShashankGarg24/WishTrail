@@ -103,8 +103,8 @@ android {
             keyPassword 'android'
         }
         release {
-            // Keystore decoded by CI into app/wishtrail.keystore; from app/android we reference ../wishtrail.keystore
-            storeFile file('../wishtrail.keystore')
+            // Keystore decoded by CI into app/wishtrail.keystore; from app/android/app we reference ../../wishtrail.keystore
+            storeFile file('../../wishtrail.keystore')
             storePassword System.getenv('ANDROID_KEYSTORE_PASSWORD') ?: ''
             keyAlias System.getenv('ANDROID_KEY_ALIAS') ?: ''
             keyPassword (System.getenv('ANDROID_KEY_PASSWORD') ?: System.getenv('ANDROID_KEYSTORE_PASSWORD') ?: '')
