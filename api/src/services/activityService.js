@@ -68,7 +68,7 @@ class ActivityService {
       $or: [
         { 
           userId: { $in: followingIds }, 
-          type: { $in: ['goal_completed', 'goal_created', 'level_up', 'streak_milestone', 'achievement_earned'] } 
+          type: { $in: ['goal_completed', 'goal_created'] } 
         }
       ]
     };

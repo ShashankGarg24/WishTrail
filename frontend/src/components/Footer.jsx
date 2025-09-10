@@ -53,9 +53,9 @@ const Footer = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div>
               <ul className="space-y-2">
-                {['Home', 'Inspiration', 'Explore', 'Leaderboard'].map((link) => {
+                {['Home', 'Inspiration', 'Feed', 'Discover', 'Leaderboard'].map((link) => {
                   const lowerLink = link.toLowerCase();
-                  const isHiddenForAuth = !isAuthenticated && ['Explore', 'Leaderboard'].includes(link);
+                  const isHiddenForAuth = !isAuthenticated && ['Feed', 'Discover', 'Leaderboard'].includes(link);
                   if (isHiddenForAuth) return null;
 
                   return (

@@ -14,15 +14,17 @@ const Header = () => {
   const navigate = useNavigate();
 
   // Main navigation tabs in specified order
+  // Replace single Explore with standalone Feed and Discover pages
   const mainNavigation = [
-  { name: 'Home', href: '/' },
-  { name: 'Inspiration', href: '/inspiration' },
-  ...(isAuthenticated
-    ? [
-        { name: 'Explore', href: '/explore?tab=activities' },
-        { name: 'Leaderboard', href: '/leaderboard?tab=global' },
-      ]
-    : []),
+    { name: 'Home', href: '/' },
+    { name: 'Inspiration', href: '/inspiration' },
+    ...(isAuthenticated
+      ? [
+          { name: 'Feed', href: '/feed' },
+          { name: 'Discover', href: '/discover' },
+          { name: 'Leaderboard', href: '/leaderboard?tab=global' },
+        ]
+      : []),
   ]
 
   useEffect(() => {
@@ -41,10 +43,16 @@ const Header = () => {
     }
   }, [isMenuOpen])
 
-  const isActive = (path) => {
-    if (path === '/' && location.pathname === '/') return true
-    if (path !== '/' && location.pathname.startsWith(path)) return true
-    return false
+  const isActive = (href) => {
+    try {
+      const url = new URL(href, window.location.origin)
+      const path = url.pathname
+      return path === '/' ? location.pathname === '/' : location.pathname.startsWith(path)
+    } catch (_) {
+      if (href === '/' && location.pathname === '/') return true
+      if (href !== '/' && location.pathname.startsWith(href)) return true
+      return false
+    }
   }
 
   const handleLogout = async () => {
@@ -105,7 +113,7 @@ const Header = () => {
               {/* Notifications */}
               {isAuthenticated && (
                 <button
-                  onClick={() => navigate('/explore?tab=notifications')}
+                  onClick={() => navigate('/notifications')}
                   className="relative p-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 dark:border-white/10 transition-all duration-300"
                   aria-label="Notifications"
                 >

@@ -32,7 +32,10 @@ const ExplorePage = () => {
   const navigate = useNavigate();
   const { goalId } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
-  const initialTab = searchParams.get('tab') || 'activities';
+  // Determine initial tab from URL: support legacy /explore?tab=... and new /feed, /discover, /notifications
+  const path = typeof window !== 'undefined' ? window.location.pathname : '';
+  const derivedTabFromPath = path.startsWith('/discover') ? 'discover' : path.startsWith('/notifications') ? 'notifications' : path.startsWith('/feed') ? 'activities' : null;
+  const initialTab = derivedTabFromPath || (searchParams.get('tab') || 'activities');
   const [activeTab, setActiveTab] = useState(initialTab);
   const [activeDiscoverSubtab, setActiveDiscoverSubtab] = useState(searchParams.get('mode') || 'users'); // 'users' | 'goals'
   const [goalResults, setGoalResults] = useState([]);
@@ -377,11 +380,14 @@ const ExplorePage = () => {
   }, [activeTab]);
 
   useEffect(() => {
-    const tabFromUrl = searchParams.get('tab') || 'activities';
+    // Keep activeTab in sync with both query param and new path-based routes
+    const pathName = window.location.pathname;
+    const pathTab = pathName.startsWith('/discover') ? 'discover' : pathName.startsWith('/notifications') ? 'notifications' : pathName.startsWith('/feed') ? 'activities' : null;
+    const tabFromUrl = pathTab || searchParams.get('tab') || 'activities';
     if (tabFromUrl !== activeTab) {
       setActiveTab(tabFromUrl);
     }
-  }, [searchParams]);
+  }, [searchParams, window.location?.pathname]);
 
   const handleTabChange = (tab) => {
     const params = { tab };
@@ -810,52 +816,7 @@ const ExplorePage = () => {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-slate-900 dark:via-gray-900 dark:to-zinc-900">
       <div className="max-w-7xl mx-auto px-4 py-8">
  
-        {/* Tabs */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          className="flex justify-center mb-8"
-        >
-          <div className="bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-2 border border-gray-200 dark:border-gray-700/50 flex shadow-lg overflow-x-auto whitespace-nowrap gap-1">
-            <button
-              onClick={() => handleTabChange('activities')}
-              className={`flex items-center space-x-2 px-6 py-3 rounded-xl transition-all duration-200 shrink-0 ${
-                activeTab === 'activities'
-                  ? 'bg-blue-500 text-white shadow-lg'
-                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700/50'
-              }`}
-            >
-              <Activity className="h-5 w-5" />
-              <span className="font-medium">Activities</span>
-            </button>
-            <button
-              onClick={() => handleTabChange('discover')}
-              className={`flex items-center space-x-2 px-6 py-3 rounded-xl transition-all duration-200 shrink-0 ${
-                activeTab === 'discover'
-                  ? 'bg-blue-500 text-white shadow-lg'
-                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700/50'
-              }`}
-            >
-              <Users className="h-5 w-5" />
-              <span className="font-medium">Discover</span>
-            </button>
-            <button
-              onClick={() => handleTabChange('notifications')}
-              className={`flex items-center space-x-2 px-6 py-3 rounded-xl transition-all duration-200 shrink-0 ${
-                activeTab === 'notifications'
-                  ? 'bg-blue-500 text-white shadow-lg'
-                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700/50'
-              }`}
-            >
-              <Bell className="h-5 w-5" />
-              <span className="font-medium">Notifications</span>
-              {unreadNotifications > 0 && (
-                <span className="ml-2 inline-flex items-center justify-center min-w-[1.25rem] h-5 text-xs px-1 rounded-full bg-red-500 text-white">{unreadNotifications}</span>
-              )}
-            </button>
-          </div>
-        </motion.div>
+        {/* Tabs moved to global header: Feed (activities) and Discover. Notifications via header bell. */}
 
         {/* Search Bar + Interest Chips */}
         {activeTab === 'discover' && 
