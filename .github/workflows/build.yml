@@ -49,7 +49,7 @@ jobs:
         run: ./gradlew assembleRelease --no-daemon
 
       - name: Upload APK Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: wishtrail-release-apk
           path: app/android/app/build/outputs/apk/release/app-release.apk
