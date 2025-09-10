@@ -153,7 +153,21 @@ const Header = () => {
                   Get Started
                 </Link>
               )}
-             {/* Hamburger removed for mobile due to bottom bar */}
+             {/* Hamburger menu (desktop only) */}
+              {isAuthenticated && (
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setIsMenuOpen(!isMenuOpen)}
+                  className="hidden md:inline-flex p-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 dark:border-white/10 transition-all duration-300"
+                >
+                  {isMenuOpen ? (
+                    <X className="h-5 w-5" />
+                  ) : (
+                    <Menu className="h-5 w-5" />
+                  )}
+                </motion.button>
+              )}
             </div>
           </div>
 {/* Mobile/Hamburger Menu */}
