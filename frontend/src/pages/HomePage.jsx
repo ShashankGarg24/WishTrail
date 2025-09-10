@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion'
+import { useRef } from 'react'
 import { Link } from 'react-router-dom'
-import { Star, Target, TrendingUp, Calendar, ArrowRight, Play, Users, Youtube, Instagram } from 'lucide-react'
+import { Star, ArrowRight, Play, Users, Youtube, Instagram, Activity, BarChart3, Trophy, BookOpen, ChevronLeft, ChevronRight } from 'lucide-react'
 import VideoEmbedGrid from '../components/VideoEmbedGrid'
 import useApiStore from '../store/apiStore'
 
@@ -13,27 +14,48 @@ const HomePage = () => {
     return '/dashboard';
   }
 
+  const scrollerRef = useRef(null)
+
+  const scrollByAmount = (dir) => {
+    try {
+      const el = scrollerRef.current
+      if (!el) return
+      const amount = Math.max(240, Math.floor(el.clientWidth * 0.9))
+      el.scrollBy({ left: dir * amount, behavior: 'smooth' })
+    } catch {}
+  }
+
   const features = [
     {
-      icon: Target,
-      title: 'Goal Setting',
-      description: 'Create meaningful goals and break them down into actionable steps'
+      icon: BarChart3,
+      title: 'Personal Dashboard',
+      description: 'Track points, streaks, and progress at a glance.',
+      to: isAuthenticated ? '/dashboard' : '/auth'
     },
     {
-      icon: Calendar,
-      title: 'Year-wise Planning',
-      description: 'Organize your aspirations by year and track your progress'
-    },
-    {
-      icon: TrendingUp,
-      title: 'Progress Tracking',
-      description: 'Visualize your journey and celebrate your achievements'
+      icon: Activity,
+      title: 'Social Feed',
+      description: 'See goal updates from people you follow. Like and comment instantly.',
+      to: isAuthenticated ? '/feed' : '/auth'
     },
     {
       icon: Users,
-      title: 'Community Inspiration',
-      description: 'Get motivated by seeing others achieve their goals'
-    }
+      title: 'Discover People & Goals',
+      description: 'Find inspiring users and trending goals tailored to your interests.',
+      to: isAuthenticated ? '/discover' : '/auth'
+    },
+    {
+      icon: BookOpen,
+      title: 'Daily Journal',
+      description: 'Capture reflections, moods, and insights in seconds.',
+      to: isAuthenticated ? '/profile?journal=1' : '/auth'
+    },
+    {
+      icon: Trophy,
+      title: 'Leaderboards',
+      description: 'Climb rankings and celebrate achievements with the community.',
+      to: isAuthenticated ? '/leaderboard' : '/auth'
+    },
   ]
 
   const stats = [
@@ -148,26 +170,46 @@ const HomePage = () => {
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="relative">
+            <div ref={scrollerRef} className="flex overflow-x-auto snap-x snap-mandatory gap-5 -mx-4 px-4 pb-1">
             {features.map((feature, index) => (
               <motion.div
                 key={feature.title}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: index * 0.1 }}
-                className="glass-card-hover p-6 rounded-xl text-center"
+                className="glass-card-hover p-0 rounded-xl text-center overflow-hidden shrink-0 basis-[92%] sm:basis-[62%] md:basis-1/2 lg:basis-[26%] snap-start"
               >
-                <div className="bg-primary-500 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <feature.icon className="h-8 w-8 text-white" />
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                  {feature.title}
-                </h3>
-                <p className="text-gray-600 dark:text-gray-400">
-                  {feature.description}
-                </p>
+                <Link to={feature.to} className="block p-6">
+                  <div className="bg-primary-500 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <feature.icon className="h-8 w-8 text-white" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                    {feature.title}
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-400">
+                    {feature.description}
+                  </p>
+                </Link>
               </motion.div>
             ))}
+            </div>
+            <button
+              type="button"
+              aria-label="Scroll left"
+              onClick={() => scrollByAmount(-1)}
+              className="absolute left-1 top-1/2 -translate-y-1/2 z-10 h-10 w-10 rounded-full bg-white/80 dark:bg-gray-900/80 border border-gray-200 dark:border-gray-700 shadow hover:bg-white dark:hover:bg-gray-800 hidden sm:flex items-center justify-center backdrop-blur"
+            >
+              <ChevronLeft className="h-5 w-5 text-gray-700 dark:text-gray-200" />
+            </button>
+            <button
+              type="button"
+              aria-label="Scroll right"
+              onClick={() => scrollByAmount(1)}
+              className="absolute right-1 top-1/2 -translate-y-1/2 z-10 h-10 w-10 rounded-full bg-white/80 dark:bg-gray-900/80 border border-gray-200 dark:border-gray-700 shadow hover:bg-white dark:hover:bg-gray-800 hidden sm:flex items-center justify-center backdrop-blur"
+            >
+              <ChevronRight className="h-5 w-5 text-gray-700 dark:text-gray-200" />
+            </button>
           </div>
         </div>
       </section>

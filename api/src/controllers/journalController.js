@@ -22,6 +22,18 @@ exports.createEntry = async (req, res, next) => {
   }
 };
 
+exports.updateEntry = async (req, res, next) => {
+  try {
+    const { entryId } = req.params;
+    const { mood, visibility } = req.body;
+    if (!entryId) return res.status(400).json({ success: false, message: 'entryId required' });
+    const updated = await journalService.updateEntry(req.user._id, entryId, { mood, visibility });
+    res.status(200).json({ success: true, data: { entry: updated } });
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.getMyEntries = async (req, res, next) => {
   try {
     const limit = Math.min(parseInt(req.query.limit) || 20, 50);

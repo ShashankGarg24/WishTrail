@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import useApiStore from '../store/apiStore';
 import { TrendingUp, Flame, CheckCircle, XCircle, SkipForward } from 'lucide-react';
 
-export default function HabitAnalyticsCard({ days = 30 }) {
+export default function HabitAnalyticsCard({ days = 30, embedded = false }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [data, setData] = useState(null);
@@ -23,7 +23,11 @@ export default function HabitAnalyticsCard({ days = 30 }) {
   }, [loadHabitAnalytics]);
 
   if (loading) {
-    return (
+    return embedded ? (
+      <div className="grid grid-cols-3 gap-4">
+        {[0,1,2].map(i => <div key={i} className="h-16 bg-gray-100 dark:bg-gray-800 rounded" />)}
+      </div>
+    ) : (
       <div className="glass-card-hover p-6 rounded-xl">
         <div className="animate-pulse h-6 w-32 bg-gray-200 dark:bg-gray-700 rounded mb-4" />
         <div className="grid grid-cols-3 gap-4">
@@ -34,7 +38,9 @@ export default function HabitAnalyticsCard({ days = 30 }) {
   }
 
   if (error || !data) {
-    return (
+    return embedded ? (
+      <div className="text-sm text-gray-500 dark:text-gray-400">{error || 'No analytics yet.'}</div>
+    ) : (
       <div className="glass-card-hover p-6 rounded-xl">
         <div className="text-sm text-gray-500 dark:text-gray-400">{error || 'No analytics yet.'}</div>
       </div>
@@ -44,12 +50,17 @@ export default function HabitAnalyticsCard({ days = 30 }) {
   const totals = data.totals || { done: 0, missed: 0, skipped: 0 };
   const top = Array.isArray(data.topHabits) ? data.topHabits : [];
 
-  return (
-    <div className="glass-card-hover p-6 rounded-xl">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Habit Analytics</h3>
-        <span className="text-xs text-gray-500">Last {days} days</span>
-      </div>
+  const Inner = (
+    <>
+      {!embedded && (
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Habit Analytics</h3>
+          <span className="text-xs text-gray-500">Last {days} days</span>
+        </div>
+      )}
+      {embedded && (
+        <div className="text-right text-xs text-gray-500 mb-2">Last {days} days</div>
+      )}
       <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="p-4 bg-gray-50 dark:bg-gray-800/40 rounded-xl text-center">
           <div className="text-2xl font-bold text-green-600 dark:text-green-400">{totals.done}</div>
@@ -83,7 +94,13 @@ export default function HabitAnalyticsCard({ days = 30 }) {
           </div>
         </div>
       )}
-    </div>
+    </>
+  );
+
+  return embedded ? (
+    <div>{Inner}</div>
+  ) : (
+    <div className="glass-card-hover p-6 rounded-xl">{Inner}</div>
   );
 }
 

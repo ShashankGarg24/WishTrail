@@ -51,6 +51,7 @@ const FeedPage = () => {
   const commentsAnchorRef = useRef(null)
   const activitiesSentinelRef = useRef(null)
   const [isMobile, setIsMobile] = useState(false);
+  const [commentsOpenActivityId, setCommentsOpenActivityId] = useState(null);
 
 
   useEffect(() => {
@@ -267,7 +268,11 @@ const FeedPage = () => {
   const openGoalCommentsForModal = () => {
     const aid = goalModalData?.social?.activityId;
     if (!aid) return;
-    // Scroll the embedded comments into view inside the modal
+    if (isMobile) {
+      setCommentsOpenActivityId(aid);
+      return;
+    }
+    // Scroll the embedded comments into view inside the modal (desktop)
     setTimeout(() => {
       try {
         const scroller = rightPanelScrollRef.current;
@@ -449,7 +454,7 @@ const FeedPage = () => {
                           {/* Action bar */}
                           <div className="flex items-center gap-4 pt-2 px-1">
                             <button
-                              onClick={() => toggleActivityLikeOptimistic(activity._id)}
+                              onClick={(e) => { e.stopPropagation(); toggleActivityLikeOptimistic(activity._id); }}
                               className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm transition-colors ${activity.isLiked ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-300' : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
                               disabled={!!likePending[activity._id]}
                             >
@@ -457,7 +462,7 @@ const FeedPage = () => {
                               <span>{activity.likeCount || 0}</span>
                             </button>
                             <button
-                              onClick={() => setScrollCommentsOnOpen(true)}
+                              onClick={(e) => { e.stopPropagation(); if (isMobile) { setCommentsOpenActivityId(activity._id); } else { setScrollCommentsOnOpen(true); } }}
                               className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm transition-colors bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700`}
                             >
                               <MessageCircle className="h-4 w-4" />
@@ -530,6 +535,13 @@ const FeedPage = () => {
           onClose={() => setBlockOpen(false)}
           username={''}
           onConfirm={async () => { if (blockUserId) { await blockUser(blockUserId); setBlockOpen(false); } }}
+        />
+
+        {/* Activity Comments Bottom Sheet */}
+        <ActivityCommentsModal
+          isOpen={!!commentsOpenActivityId}
+          onClose={() => setCommentsOpenActivityId(null)}
+          activity={{ _id: commentsOpenActivityId }}
         />
 
         {/* Goal Post Modal */}

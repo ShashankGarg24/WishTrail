@@ -1105,6 +1105,19 @@ const useApiStore = create(
           return { success: false, error: errorMessage };
         }
       },
+      updateJournalEntry: async (id, payload) => {
+        try {
+          const res = await journalsAPI.updateEntry(id, payload);
+          const entry = res?.data?.data?.entry;
+          if (entry) {
+            set(state => ({ journalEntries: state.journalEntries.map(e => e._id === entry._id ? entry : e) }));
+          }
+          return { success: true, entry };
+        } catch (error) {
+          const errorMessage = handleApiError(error);
+          return { success: false, error: errorMessage };
+        }
+      },
       getMyJournalEntries: async (params = {}) => {
         try {
           const res = await journalsAPI.getMyEntries(params);

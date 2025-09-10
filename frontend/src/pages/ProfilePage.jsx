@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { Calendar, Target, TrendingUp, Star, Edit2, ExternalLink, Youtube, Instagram, MapPin, Globe, Award, Trophy, BookOpen, Clock, CheckCircle, Circle, User, Users, UserPlus, UserCheck, ArrowLeft, Lock, ShieldAlert, Slash, Sparkles } from "lucide-react";
+import { Calendar, Target, TrendingUp, Star, Edit2, ExternalLink, Youtube, Instagram, MapPin, Globe, Trophy, BookOpen, Clock, CheckCircle, Circle, User, UserPlus, UserCheck, ArrowLeft, Lock, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
 import useApiStore from "../store/apiStore";
 import { journalsAPI } from "../services/api";
@@ -10,6 +10,7 @@ import ReportModal from "../components/ReportModal";
 import BlockModal from "../components/BlockModal";
 import JournalPromptModal from "../components/JournalPromptModal";
 import JournalEntryModal from "../components/JournalEntryModal";
+import HabitAnalyticsCard from "../components/HabitAnalyticsCard";
 
 const ProfilePage = () => {
   const params = useParams();
@@ -84,6 +85,16 @@ const ProfilePage = () => {
       fetchUserProfile();
     }
   }, [isAuthenticated, userIdParam, usernameParam]);
+
+  // Open Journal modal directly if ?journal=1 and viewing own profile
+  useEffect(() => {
+    try {
+      const j = searchParams.get('journal');
+      if (j === '1' && isOwnProfile) {
+        setIsJournalOpen(true);
+      }
+    } catch {}
+  }, [searchParams, isOwnProfile]);
 
   useEffect(() => {
     const tabFromUrl = searchParams.get('tab') || 'overview';
@@ -695,55 +706,26 @@ const ProfilePage = () => {
                       </div>
                     )}
                   </div>
-                  {/* User Interests */}
+                  {/* Hobby Analytics (replaces Interests) */}
                   <div className={isOwnProfile 
                     ? "bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg"
                     : "bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50"
                   }>
                     <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6 flex items-center">
-                      <BookOpen className="h-6 w-6 mr-2 text-pink-600 dark:text-pink-400" />
-                      {isOwnProfile ? 'Your Interests' : 'Interests'}
+                      <TrendingUp className="h-6 w-6 mr-2 text-emerald-600 dark:text-emerald-400" />
+                      Hobby Analytics
                     </h3>
                     {isProfileAccessible() ? (
-                      displayUser.interests && displayUser.interests.length > 0 ? (
-                        <div className="flex flex-wrap gap-2">
-                          {displayUser.interests.map((interest, index) => (
-                            <span 
-                              key={index}
-                              className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded-full text-sm font-medium"
-                            >
-                              {interest.charAt(0).toUpperCase() + interest.slice(1).replace('_', ' ')}
-                            </span>
-                          ))}
-                        </div>
-                      ) : (
-                        isOwnProfile ? (
-                          <div className="text-center py-8">
-                            <div className="bg-gray-100 dark:bg-gray-700/50 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                              <BookOpen className="h-8 w-8 text-gray-400" />
-                            </div>
-                            <p className="text-gray-600 dark:text-gray-400 mb-4">No interests added yet</p>
-                            <p className="text-gray-500 dark:text-gray-500 text-sm mb-4">
-                              Add interests to help others discover shared passions and connect with you.
-                            </p>
-                            <button
-                              onClick={() => setIsEditModalOpen(true)}
-                              className="inline-flex items-center px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600 transition-colors"
-                            >
-                              <BookOpen className="h-4 w-4 mr-2" />
-                              Add Interests
-                            </button>
-                          </div>
-                        ) : (
-                          <p className="text-gray-500 dark:text-gray-400 text-center py-8">No interests shared</p>
-                        )
-                      )
+                      <div className="space-y-4">
+                        {/* Embed Habit Analytics inline (no nested card) */}
+                        <HabitAnalyticsCard days={30} embedded />
+                      </div>
                     ) : (
                       <div className="text-center py-8">
                         <div className="bg-gray-100 dark:bg-gray-700/50 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
                           <Lock className="h-8 w-8 text-gray-600 dark:text-gray-400" />
                         </div>
-                        <p className="text-gray-500 dark:text-gray-400">Interests are private</p>
+                        <p className="text-gray-500 dark:text-gray-400">Analytics are private</p>
                       </div>
                     )}
                   </div>
@@ -790,33 +772,7 @@ const ProfilePage = () => {
                       )}
                     </div>
                   </div>
-                  {isOwnProfile && myHabits.length > 0 && (
-                    <div className={isOwnProfile 
-                      ? "bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg"
-                      : "bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50"
-                    }>
-                      <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Habit Analytics (30 days)</h3>
-                      {habitStats ? (
-                        <div className="grid grid-cols-3 gap-4">
-                          <div className="p-4 bg-gray-50 dark:bg-gray-700/30 rounded-xl text-center">
-                            <div className="text-2xl font-bold text-green-600 dark:text-green-400">{habitStats.totals?.done || 0}</div>
-                            <div className="text-sm text-gray-600 dark:text-gray-400">Done</div>
-                          </div>
-                          <div className="p-4 bg-gray-50 dark:bg-gray-700/30 rounded-xl text-center">
-                            <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{habitStats.totals?.skipped || 0}</div>
-                            <div className="text-sm text-gray-600 dark:text-gray-400">Skipped</div>
-                          </div>
-                          <div className="p-4 bg-gray-50 dark:bg-gray-700/30 rounded-xl text-center">
-                            <div className="text-2xl font-bold text-red-600 dark:text-red-400">{habitStats.totals?.missed || 0}</div>
-                            <div className="text-sm text-gray-600 dark:text-gray-400">Missed</div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="text-sm text-gray-500">No analytics yet.</div>
-                      )}
-                      <div className="text-xs text-gray-500 mt-3">Tracked habits: {myHabits.length}</div>
-                    </div>
-                  )}
+                  {/* Removed bottom Habit Analytics block as requested */}
                 </div>
               )}
               {activeTab === 'goals' && (

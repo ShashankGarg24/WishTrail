@@ -46,6 +46,9 @@ async function generateMotivationLLM({ content, promptKey }) {
     const userPrompt = `You are an encouraging coach.
 Read the user's short daily journal below. If it is inappropriate or harmful, respond with motivation: "Thanks for sharing. Please keep entries respectful and safe.".
 Otherwise, produce a concise, emotionally supportive message (30-50 words) celebrating their effort.
+
+Also perform sentiment analysis to classify the user's overall mood as EXACTLY ONE of the following strings: "very_negative", "negative", "neutral", "positive", or "very_positive".
+
 Also extract counts of emotional aspects present in the journal:
 - helpedCount: number of times they helped someone
 - gratitudeCount: number of gratitude expressions
@@ -54,9 +57,11 @@ Also extract counts of emotional aspects present in the journal:
 - kindnessCount: number of acts of kindness
 - resilienceCount: number of resilient/courageous moments
 - otherCount: number of other meaningful emotional aspects not covered above
-Return strict JSON with shape:
+
+Return STRICT JSON only (no markdown, no commentary) with shape:
 {
   "motivation": string,
+  "mood": "very_negative" | "negative" | "neutral" | "positive" | "very_positive",
   "signals": {"helpedCount": number, "gratitudeCount": number, "selfSacrificeCount": number, "positiveCount": number, "kindnessCount": number, "resilienceCount": number, "otherCount": number}
 }
 
@@ -89,11 +94,20 @@ Journal content: <<<${content}>>>`;
     if (!parsed || typeof parsed !== 'object') {
       parsed = {
         motivation: (answer || '').slice(0, 240),
+        mood: 'neutral',
         signals: { helpedCount: 0, gratitudeCount: 0, selfSacrificeCount: 0, positiveCount: 0, kindnessCount: 0, resilienceCount: 0, otherCount: 0 }
       };
     } else {
       parsed.motivation = String(parsed.motivation || '').slice(0, 400);
       parsed.signals = parsed.signals || { helpedCount: 0, gratitudeCount: 0, selfSacrificeCount: 0, positiveCount: 0, kindnessCount: 0, resilienceCount: 0, otherCount: 0 };
+      const allowedMoods = new Set(['very_negative','negative','neutral','positive','very_positive']);
+      if (!allowedMoods.has(String(parsed.mood || '').toLowerCase())) {
+        // Derive a reasonable default from signals
+        const pos = Number(parsed.signals?.positiveCount || 0);
+        parsed.mood = pos > 1 ? 'positive' : 'neutral';
+      } else {
+        parsed.mood = String(parsed.mood).toLowerCase();
+      }
     }
     return { parsed };
   } catch (e) {
@@ -155,6 +169,10 @@ async function createEntry(userId, { content, promptKey, visibility = 'private',
         resilienceCount: Number(s.resilienceCount) || 0,
         otherCount: Number(s.otherCount) || 0
       };
+      // Set mood from LLM (user can edit later)
+      if (llm.parsed.mood) {
+        entry.mood = llm.parsed.mood;
+      }
       // Adjust basic signals positivity if strong positiveCount
       if ((entry.aiSignals.positiveCount || 0) > 0 && (!entry.signals || typeof entry.signals.positivity !== 'number')) {
         entry.signals = entry.signals || {};
@@ -166,6 +184,18 @@ async function createEntry(userId, { content, promptKey, visibility = 'private',
   return entry;
 }
 
+async function updateEntry(userId, entryId, { mood, visibility }) {
+  const entry = await JournalEntry.findOne({ _id: entryId, userId, isActive: true });
+  if (!entry) {
+    const err = new Error('Entry not found');
+    err.statusCode = 404;
+    throw err;
+  }
+  if (typeof mood === 'string' && mood.trim()) entry.mood = mood.trim();
+  if (typeof visibility === 'string' && ['private', 'friends', 'public'].includes(visibility)) entry.visibility = visibility;
+  await entry.save();
+  return entry.toObject();
+}
 async function listMyEntries(userId, { limit = 20, skip = 0 } = {}) {
   return JournalEntry.find({ userId, isActive: true })
     .sort({ createdAt: -1 })
@@ -375,6 +405,7 @@ async function notifyPeriodSummary(period) {
 module.exports = {
   getTodayPrompt,
   createEntry,
+  updateEntry,
   listMyEntries,
   getUserHighlights,
   computeSummary,

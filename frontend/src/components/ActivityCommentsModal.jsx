@@ -302,11 +302,19 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
           initial={{ y: 40, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 40, opacity: 0 }}
+          drag="y"
+          dragConstraints={{ top: 0, bottom: 0 }}
+          dragElastic={{ top: 0, bottom: 0.5 }}
+          onDragEnd={(e, info) => {
+            if (info.offset.y > 120 || info.velocity.y > 600) {
+              onClose?.();
+            }
+          }}
           className="bg-white dark:bg-gray-900 rounded-t-2xl md:rounded-2xl w-full md:max-w-2xl max-h-[90vh] md:max-h-[85vh] flex flex-col overflow-hidden shadow-2xl"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Mobile drag handle */}
-          <div className="md:hidden flex items-center justify-center pt-2">
+          <div className="md:hidden flex items-center justify-center px-4 pt-2">
             <div className="w-12 h-1.5 bg-gray-300 dark:bg-gray-700 rounded-full" />
           </div>
           {/* Header */}
