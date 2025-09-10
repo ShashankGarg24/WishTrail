@@ -14,7 +14,6 @@ import DiscoverPage from './pages/DiscoverPage'
 import NotificationsPage from './pages/NotificationsPage'
 import LeaderboardPage from './pages/LeaderboardPage'
 import ResetPasswordPage from './pages/ResetPasswordPage'
-import SettingsPage from './pages/SettingsPage'
 import NotFoundPage from './pages/NotFoundPage'
 import { SpeedInsights } from '@vercel/speed-insights/react';
 import FeedbackButton from './components/FeedbackButton'
@@ -65,7 +64,6 @@ function App() {
             <Route path="/feed" element={<FeedPage />} />
             <Route path="/discover" element={<DiscoverPage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
             <Route path="/profile/:userId" element={<ProfilePage />} />
             <Route path="/profile/@:username" element={<ProfilePage />} />
             <Route path="/profile" element={<ProfilePage />} />
