@@ -37,12 +37,7 @@ const AccountMenuSheet = ({ open, onClose }) => {
             <button onClick={() => { navigate('/dashboard'); onClose(); }} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">
               <BarChart3 className="h-5 w-5" /> Dashboard
             </button>
-            <button onClick={() => { navigate('/notifications'); onClose(); }} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">
-              <Bell className="h-5 w-5" /> Notifications
-              {unreadNotifications > 0 && (
-                <span className="ml-auto inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 text-xs rounded-full bg-red-500 text-white">{unreadNotifications}</span>
-              )}
-            </button>
+            {/* Notifications entry removed (access via top bell) */}
             <button onClick={() => { navigate('/settings'); onClose(); }} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">
               <Settings className="h-5 w-5" /> Settings
             </button>

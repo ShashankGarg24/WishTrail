@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { Activity, Users, Target, Play, User } from 'lucide-react'
+import { Activity, Users, Target, BarChart3, User } from 'lucide-react'
 import useApiStore from '../store/apiStore'
 import AccountMenuSheet from './account/AccountMenuSheet'
 
@@ -32,9 +32,9 @@ const BottomTabBar = () => {
   return (
     <>
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-50">
-        <div className="mx-auto max-w-7xl px-3 pb-safe">
-          <div className="glass-card backdrop-blur-lg bg-white/80 dark:bg-gray-800/60 border border-white/20 dark:border-white/10 rounded-2xl shadow-lg overflow-hidden">
-            <div className="flex items-stretch">
+        <div className="w-full pb-safe">
+          <div className="backdrop-blur bg-white/90 dark:bg-gray-900/90 border-t border-gray-200 dark:border-gray-800 shadow-2xl rounded-none">
+            <div className="flex items-stretch w-full">
               <TabButton
                 active={path.startsWith('/feed') || path === '/'}
                 label="Feed"
@@ -48,16 +48,16 @@ const BottomTabBar = () => {
                 onClick={() => navigate('/discover')}
               />
               <TabButton
+                active={path.startsWith('/dashboard')}
+                label="Dashboard"
+                Icon={BarChart3}
+                onClick={() => navigate('/dashboard')}
+              />
+              <TabButton
                 active={path.startsWith('/leaderboard')}
                 label="Leaders"
                 Icon={Target}
                 onClick={() => navigate('/leaderboard')}
-              />
-              <TabButton
-                active={path.startsWith('/inspiration')}
-                label="Inspire"
-                Icon={Play}
-                onClick={() => navigate('/inspiration')}
               />
               <TabButton
                 active={false}

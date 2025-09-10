@@ -17,12 +17,12 @@ const Header = () => {
   // Replace single Explore with standalone Feed and Discover pages
   const mainNavigation = [
     { name: 'Home', href: '/' },
-    { name: 'Inspiration', href: '/inspiration' },
     ...(isAuthenticated
       ? [
           { name: 'Feed', href: '/feed' },
           { name: 'Discover', href: '/discover' },
           { name: 'Leaderboard', href: '/leaderboard?tab=global' },
+          { name: 'Dashboard', href: '/dashboard' },
         ]
       : []),
   ]
@@ -153,21 +153,7 @@ const Header = () => {
                   Get Started
                 </Link>
               )}
-             {/* Hamburger Menu Button - Only show when authenticated */}
-              {isAuthenticated && (
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setIsMenuOpen(!isMenuOpen)}
-                  className="p-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 dark:border-white/10 transition-all duration-300"
-                >
-                  {isMenuOpen ? (
-                    <X className="h-5 w-5" />
-                  ) : (
-                    <Menu className="h-5 w-5" />
-                  )}
-                </motion.button>
-              )}
+             {/* Hamburger removed for mobile due to bottom bar */}
             </div>
           </div>
 {/* Mobile/Hamburger Menu */}
