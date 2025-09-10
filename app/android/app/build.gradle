@@ -102,15 +102,21 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
+        release {
+            // Keystore decoded by CI into app/wishtrail.keystore; from app/android we reference ../wishtrail.keystore
+            storeFile file('../wishtrail.keystore')
+            storePassword System.getenv('ANDROID_KEYSTORE_PASSWORD') ?: ''
+            keyAlias System.getenv('ANDROID_KEY_ALIAS') ?: ''
+            keyPassword (System.getenv('ANDROID_KEY_PASSWORD') ?: System.getenv('ANDROID_KEYSTORE_PASSWORD') ?: '')
+        }
     }
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
         }
         release {
-            // Caution! In production, you need to generate your own keystore file.
-            // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.debug
+            // Sign with release keystore in CI/local when env vars are provided
+            signingConfig signingConfigs.release
             shrinkResources (findProperty('android.enableShrinkResourcesInReleaseBuilds')?.toBoolean() ?: false)
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
