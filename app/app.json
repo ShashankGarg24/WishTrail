@@ -20,6 +20,7 @@
     "web": {},
     "extra": {
       "WEB_URL": "https://wishtrail.vercel.app/",
+      "API_URL": "https://wishtrail-backend.vercel.app/api/v1",
       "eas": {
         "projectId": "e3515452-9da8-40f1-a213-2cda05137373"
       }

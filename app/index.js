@@ -7,6 +7,12 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 
 const WEB_URL = (Constants.expoConfig?.extra?.WEB_URL || Constants.manifest?.extra?.WEB_URL || 'http://localhost:5173');
+// Backend API base (include /api/v1). Falls back to WEB_URL + /api/v1 when not provided
+const API_BASE = (
+  Constants.expoConfig?.extra?.API_URL ||
+  Constants.manifest?.extra?.API_URL ||
+  `${WEB_URL.replace(/\/$/, '')}/api/v1`
+);
 
 function App() {
   const webRef = useRef(null);
@@ -135,7 +141,7 @@ function App() {
             var uid = '';
             try { var obj = JSON.parse(persisted); uid = (obj && obj.state && (obj.state.user && (obj.state.user._id || obj.state.user.id))) || ''; } catch(e) {}
             if (!jwt && !uid) { window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'WT_REGISTER_RESULT', source: 'web', ok: false, reason: 'no-auth-and-no-uid' })); return; }
-            var res = await fetch('${WEB_URL.replace(/\/$/, '')}/api/v1/notifications/devices/register', {
+            var res = await fetch('${API_BASE.replace(/\/$/, '')}/notifications/devices/register', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', ...(jwt ? { 'Authorization': 'Bearer ' + jwt } : {}) },
               body: JSON.stringify({ token: ${JSON.stringify(token)}, platform: ${JSON.stringify(Platform.OS)}, provider: 'expo', userId: uid || undefined })
@@ -230,7 +236,7 @@ function App() {
         tz = resolved?.timeZone || '';
         offset = -new Date().getTimezoneOffset();
       } catch {}
-      const res = await fetch(`${WEB_URL.replace(/\/$/, '')}/api/v1/notifications/devices/register`, {
+      const res = await fetch(`${API_BASE.replace(/\/$/, '')}/notifications/devices/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -248,7 +254,7 @@ function App() {
   async function unregisterForPushNotificationsAsync(token) {
     if (!token || !authToken) return;
     try {
-      await fetch(`${WEB_URL.replace(/\/$/, '')}/api/v1/notifications/devices/unregister`, {
+      await fetch(`${API_BASE.replace(/\/$/, '')}/notifications/devices/unregister`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

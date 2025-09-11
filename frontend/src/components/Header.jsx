@@ -68,6 +68,15 @@ const Header = () => {
     }
   }, [isAuthenticated, getNotifications])
 
+  // Listen for native push forwarded from the app WebView (wt_push) to refresh unread badge
+  useEffect(() => {
+    const handler = () => {
+      try { getNotifications({ page: 1, limit: 1 }); } catch {}
+    };
+    window.addEventListener('wt_push', handler);
+    return () => window.removeEventListener('wt_push', handler);
+  }, [getNotifications]);
+
   // Global event to open settings from anywhere
   useEffect(() => {
     const handler = () => setIsSettingsOpen(true)
