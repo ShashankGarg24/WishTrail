@@ -369,6 +369,28 @@ class ActivityService {
     }
     
     const result = await Like.toggleLike(userId, 'activity', activityId);
+    // Fire push notification to the activity owner on like
+    try {
+      if (result && result.isLiked && String(activity.userId) !== String(userId)) {
+        const User = require('../models/User');
+        const Notification = require('../models/Notification');
+        const liker = await User.findById(userId).select('name avatar username');
+        await Notification.createNotification({
+          userId: activity.userId,
+          type: 'activity_liked',
+          title: 'Activity liked',
+          message: `${liker?.name || 'Someone'} liked your activity`,
+          data: {
+            actorId: userId,
+            actorName: liker?.name,
+            actorAvatar: liker?.avatar,
+            activityId: activity._id,
+            goalId: activity?.data?.goalId || undefined
+          },
+          channels: { push: true, inApp: true }
+        });
+      }
+    } catch (e) { /* non-blocking */ }
     
     return {
       isLiked: result.isLiked,

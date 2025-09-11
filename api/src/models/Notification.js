@@ -234,8 +234,8 @@ notificationSchema.statics.createNotification = async function(notificationData)
     // Push delivery (best-effort)
     if (saved?.channels?.push) {
       try {
-        const { sendExpoPushToUser } = require('../services/pushService');
-        await sendExpoPushToUser(saved.userId, saved);
+        const { sendFcmToUser } = require('../services/pushService');
+        await sendFcmToUser(saved.userId, saved);
         await this.updateOne({ _id: saved._id }, { $set: { isDelivered: true, deliveredAt: new Date() } });
       } catch (_) {}
     }

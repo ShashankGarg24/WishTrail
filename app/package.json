@@ -10,11 +10,11 @@
   },
   "dependencies": {
     "expo": "53.0.22",
-    "expo-notifications": "~0.31.4",
-    "expo-device": "~7.1.4",
     "expo-constants": "~17.1.7",
     "expo-modules-core": "~2.5.0",
     "expo-status-bar": "~2.2.3",
+    "@react-native-firebase/app": "^20.4.0",
+    "@react-native-firebase/messaging": "^20.4.0",
     "react": "19.0.0",
     "react-devtools-core": "^6.1.5",
     "react-native": "0.79.5",

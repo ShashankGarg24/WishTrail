@@ -2,6 +2,7 @@ const DeviceToken = require('../models/DeviceToken');
 
 exports.registerDevice = async (req, res, next) => {
   try {
+    console.log('registerDevice hit', req.body);
     const { token, platform = 'unknown', provider = 'expo', timezone = '', timezoneOffsetMinutes = null } = req.body || {};
     if (!token) return res.status(400).json({ success: false, message: 'token is required' });
     try {
@@ -66,7 +67,7 @@ exports.unregisterDevice = async (req, res) => {
 };
 
 const Notification = require('../models/Notification');
-const { sendExpoPushToUser } = require('../services/pushService');
+const { sendFcmToUser } = require('../services/pushService');
 
 // @desc    Get current user's notifications
 // @route   GET /api/v1/notifications
@@ -157,7 +158,7 @@ const testPush = async (req, res, next) => {
     const url = req.body?.url || '/notifications';
     const type = req.body?.type || 'test';
     const fake = { _id: new Date().getTime(), userId, type, title, message, data: { url } };
-    const result = await sendExpoPushToUser(userId, fake);
+    const result = await sendFcmToUser(userId, fake);
     return res.status(200).json({ success: true, data: { result } });
   } catch (e) { next(e); }
 };

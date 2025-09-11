@@ -1,4 +1,5 @@
 const axios = require('axios');
+const admin = require('firebase-admin');
 const DeviceToken = require('../models/DeviceToken');
 
 function getClientBaseUrl() {
@@ -24,56 +25,69 @@ function buildDeepLink(notification) {
   return `${base}/notifications`;
 }
 
-async function sendExpoPushToUser(userId, notification) {
-  const tokens = await DeviceToken.find({ userId, isActive: true, provider: 'expo' })
-    .select('token')
+function ensureFirebaseInitialized() {
+  if (admin.apps && admin.apps.length > 0) return;
+  try {
+    if (process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
+      const creds = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
+      admin.initializeApp({ credential: admin.credential.cert(creds) });
+    } else {
+      admin.initializeApp();
+    }
+    console.log('[push] Firebase Admin initialized');
+  } catch (e) {
+    console.error('[push] Firebase init error', e?.message || e);
+  }
+}
+
+async function sendFcmToUser(userId, notification) {
+  ensureFirebaseInitialized();
+  const tokens = await DeviceToken.find({ userId, isActive: true, provider: { $in: ['fcm', 'expo'] } })
+    .select('token provider')
     .lean();
 
   console.log('[push] tokens found', { userId: String(userId), count: tokens.length });
   if (!tokens.length) return { ok: true, count: 0 };
 
   const dataUrl = buildDeepLink(notification);
-  const messages = tokens.map(t => ({
-    to: t.token,
-    title: notification.title || 'Notification',
-    body: notification.message || '',
-    data: { url: dataUrl, type: notification.type, id: String(notification._id) },
-    priority: 'high'
-  }));
+  const fcmTokens = tokens
+    .filter(t => t.provider === 'fcm' || (t.token && !t.token.startsWith('ExponentPushToken')))
+    .map(t => t.token);
 
-  const invalid = [];
-  const tickets = [];
-  const BATCH_SIZE = 100;
+  const invalidFcm = [];
+  let successCount = 0;
 
-  for (let i = 0; i < messages.length; i += BATCH_SIZE) {
-    const batch = messages.slice(i, i + BATCH_SIZE);
+  if (fcmTokens.length) {
     try {
-      const resp = await axios.post('https://exp.host/--/api/v2/push/send', batch, {
-        headers: { 'Content-Type': 'application/json' },
-        timeout: 8000
+      const resp = await admin.messaging().sendEachForMulticast({
+        tokens: fcmTokens,
+        notification: { title: notification.title || 'Notification', body: notification.message || '' },
+        data: { url: dataUrl, type: String(notification.type || ''), id: String(notification._id || '') }
       });
-      const results = Array.isArray(resp.data?.data) ? resp.data.data : [];
-      results.forEach((r, idx) => {
-        if (r?.status === 'ok' && r.id) tickets.push(r.id);
-        else if (r?.status === 'error' && r?.details?.error === 'DeviceNotRegistered') {
-          invalid.push(batch[idx].to);
-        } else if (r?.status === 'error') {
-          console.warn('[push] expo error', r?.details?.error || r?.message);
+      successCount += resp.successCount || 0;
+      (resp.responses || []).forEach((r, idx) => {
+        if (!r.success) {
+          const code = r.error && r.error.code;
+          if (code && (code.includes('registration-token-not-registered') || code.includes('invalid-registration-token'))) {
+            invalidFcm.push(fcmTokens[idx]);
+          } else {
+            console.warn('[push] fcm send error', code || r.error?.message);
+          }
         }
       });
-    } catch (err) {
-      console.error('[push] expo send error', err.message);
+    } catch (e) {
+      console.error('[push] fcm multicast error', e?.message || e);
     }
   }
 
-  if (invalid.length) {
-    await DeviceToken.updateMany({ token: { $in: invalid } }, { $set: { isActive: false } });
-    console.log('[push] deactivated invalid tokens', { invalidCount: invalid.length });
+  if (invalidFcm.length) {
+    await DeviceToken.updateMany({ token: { $in: invalidFcm } }, { $set: { isActive: false } });
+    console.log('[push] deactivated invalid FCM tokens', { invalidCount: invalidFcm.length });
   }
 
-  return { ok: true, count: tokens.length, tickets };
+  return { ok: true, count: tokens.length, successCount };
 }
 
-module.exports = { sendExpoPushToUser };
+module.exports = { sendFcmToUser };
 
 

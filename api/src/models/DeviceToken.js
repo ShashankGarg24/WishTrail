@@ -4,7 +4,7 @@ const deviceTokenSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', index: true, required: true },
   token: { type: String, required: true, index: true },
   platform: { type: String, enum: ['ios', 'android', 'web','unknown'], default: 'unknown' },
-  provider: { type: String, enum: ['expo'], default: 'expo' },
+  provider: { type: String, enum: ['expo', 'fcm'], default: 'fcm' },
   timezone: { type: String, default: '' },
   timezoneOffsetMinutes: { type: Number, default: null },
   lastSeenAt: { type: Date, default: Date.now },

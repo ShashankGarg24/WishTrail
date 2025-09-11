@@ -1,10 +1,10 @@
 import React, { useMemo, useRef, useState, useCallback, useEffect } from 'react';
-import { Platform, SafeAreaView, StatusBar, View, RefreshControl, Linking, AppState, Pressable, Text } from 'react-native';
+import { Platform, SafeAreaView, StatusBar, View, RefreshControl, Linking, AppState } from 'react-native';
 import { WebView } from 'react-native-webview';
 import Constants from 'expo-constants';
+import messaging from '@react-native-firebase/messaging';
 import { registerRootComponent } from 'expo';
-import * as Notifications from 'expo-notifications';
-import * as Device from 'expo-device';
+// Push notifications removed (Expo). FCM to be integrated later.
 
 const WEB_URL = (Constants.expoConfig?.extra?.WEB_URL || Constants.manifest?.extra?.WEB_URL || 'http://localhost:5173');
 // Backend API base (include /api/v1). Falls back to WEB_URL + /api/v1 when not provided
@@ -21,12 +21,10 @@ function App() {
   const appState = useRef(AppState.currentState);
   const [authToken, setAuthToken] = useState(null);
   const [userId, setUserId] = useState(null);
-  const [expoPushToken, setExpoPushToken] = useState(null);
-  const deviceRegisterAttempted = useRef(false);
+  // Expo push removed
   const authProbeTries = useRef(0);
   const authProbeTimer = useRef(null);
-  const [toast, setToast] = useState(null); // { title, body, url }
-  const toastTimer = useRef(null);
+  // In-app toast removed (was for Expo foreground notifications)
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -51,11 +49,6 @@ function App() {
   };
 
   useEffect(() => {
-    // Configure notification handler (foreground display)
-    Notifications.setNotificationHandler({
-      handleNotification: async () => ({ shouldShowAlert: true, shouldPlaySound: false, shouldSetBadge: false })
-    });
-    registerForPushNotificationsAsync().catch((e) => { try { console.log('registerForPushNotificationsAsync error', e?.message || e); } catch {} });
     const sub = AppState.addEventListener('change', (state) => {
       const prev = appState.current;
       appState.current = state;
@@ -63,48 +56,65 @@ function App() {
         webRef.current?.injectJavaScript(`window.dispatchEvent(new Event('focus')); true;`);
         // Try to re-capture auth after returning to foreground
         if (!authToken) injectAuthProbe();
-        // Retry web-side registration if we have the token
-        if (expoPushToken) injectRegisterViaWeb(expoPushToken);
       }
     });
     return () => sub.remove();
-  }, [expoPushToken]);
-
-  // Foreground and tap listeners for push notifications
-  useEffect(() => {
-    const receivedSub = Notifications.addNotificationReceivedListener((notification) => {
-      try {
-        const content = notification?.request?.content || {};
-        const data = content?.data || {};
-        const payload = {
-          title: content?.title || '',
-          body: content?.body || '',
-          url: data?.url || '',
-          type: data?.type || '',
-          id: data?.id || ''
-        };
-        const js = `window.dispatchEvent(new CustomEvent('wt_push', { detail: ${JSON.stringify(payload)} })); true;`;
-        webRef.current?.injectJavaScript(js);
-        // Show in-app toast while foreground
-        try {
-          setToast({ title: payload.title, body: payload.body, url: payload.url });
-          clearTimeout(toastTimer.current);
-          toastTimer.current = setTimeout(() => setToast(null), 4000);
-        } catch {}
-      } catch {}
-    });
-    const responseSub = Notifications.addNotificationResponseReceivedListener((response) => {
-      try {
-        const data = response?.notification?.request?.content?.data || {};
-        const url = data?.url;
-        if (url && typeof url === 'string') {
-          const js = `try{window.location.href = ${JSON.stringify(url)};}catch(e){}; true;`;
-          webRef.current?.injectJavaScript(js);
-        }
-      } catch {}
-    });
-    return () => { receivedSub.remove(); responseSub.remove(); };
   }, []);
+
+  // FCM: request permissions, get token, and forward foreground messages to web UI
+  useEffect(() => {
+    (async () => {
+      try {
+        const authStatus = await messaging().requestPermission();
+        const enabled = authStatus === messaging.AuthorizationStatus.AUTHORIZED || authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+        if (!enabled) return;
+        const fcmToken = await messaging().getToken();
+        try { console.log('FCM token:', fcmToken ? (fcmToken.slice(0, 12) + '...') : 'null'); } catch {}
+        // Send token to backend via web context when user is logged in
+        if (fcmToken) {
+          const script = `
+            (async function(){
+              try {
+                var jwt = localStorage.getItem('token') || '';
+                var persisted = localStorage.getItem('wishtrail-api-store') || '';
+                var uid = '';
+                try { var obj = JSON.parse(persisted); uid = (obj && obj.state && (obj.state.user && (obj.state.user._id || obj.state.user.id))) || ''; } catch(e) {}
+                if (!jwt && !uid) return;
+                await fetch('${(Constants.expoConfig?.extra?.API_URL || Constants.manifest?.extra?.API_URL || '').replace(/\/$/, '')}/notifications/devices/register', {
+                  method: 'POST', headers: { 'Content-Type': 'application/json', ...(jwt ? { 'Authorization': 'Bearer ' + jwt } : {}) },
+                  body: JSON.stringify({ token: ${JSON.stringify('') } + ${JSON.stringify('') } + ${JSON.stringify('')} || '${''}' })
+                });
+              } catch(e) {}
+            })(); true;`;
+          // Simpler: call native fetch directly if API_URL is present
+          const API_BASE = (Constants.expoConfig?.extra?.API_URL || Constants.manifest?.extra?.API_URL || '').replace(/\/$/, '');
+          if (API_BASE && (authToken || userId)) {
+            try {
+              await fetch(`${API_BASE}/notifications/devices/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}) },
+                body: JSON.stringify({ token: fcmToken, platform: Platform.OS, provider: 'fcm', userId: userId || undefined })
+              });
+            } catch {}
+          } else {
+            webRef.current?.injectJavaScript(script);
+          }
+        }
+        // Foreground messages
+        const unsub = messaging().onMessage(async (remoteMessage) => {
+          try {
+            const data = remoteMessage?.data || {};
+            const payload = { title: remoteMessage?.notification?.title || '', body: remoteMessage?.notification?.body || '', url: data?.url || '', type: data?.type || '', id: data?.id || '' };
+            const js = `window.dispatchEvent(new CustomEvent('wt_push', { detail: ${JSON.stringify(payload)} })); true;`;
+            webRef.current?.injectJavaScript(js);
+          } catch {}
+        });
+        return () => unsub();
+      } catch {}
+    })();
+  }, [authToken, userId]);
+
+  // Expo push listeners removed
 
   // Inject a script into the web app to post the auth token to native
   const injectAuthProbe = useCallback(() => {
@@ -138,31 +148,7 @@ function App() {
     } catch {}
   }, [authToken]);
 
-  // Web-context registration using the web app's Authorization (localStorage token)
-  const injectRegisterViaWeb = useCallback((token) => {
-    try {
-      if (!token) return;
-      const script = `
-        (async function(){
-          try {
-            var jwt = localStorage.getItem('token') || '';
-            var persisted = localStorage.getItem('wishtrail-api-store') || '';
-            var uid = '';
-            try { var obj = JSON.parse(persisted); uid = (obj && obj.state && (obj.state.user && (obj.state.user._id || obj.state.user.id))) || ''; } catch(e) {}
-            if (!jwt && !uid) { window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'WT_REGISTER_RESULT', source: 'web', ok: false, reason: 'no-auth-and-no-uid' })); return; }
-            var res = await fetch('${API_BASE.replace(/\/$/, '')}/notifications/devices/register', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', ...(jwt ? { 'Authorization': 'Bearer ' + jwt } : {}) },
-              body: JSON.stringify({ token: ${JSON.stringify(token)}, platform: ${JSON.stringify(Platform.OS)}, provider: 'expo', userId: uid || undefined })
-            });
-            var ok = !!res.ok; var status = res.status; var body = null; try { body = await res.json(); } catch(e) {}
-            window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'WT_REGISTER_RESULT', source: 'web', ok: ok, status: status, body: body }));
-          } catch(e) { window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'WT_REGISTER_RESULT', source: 'web', ok: false, error: (e && e.message) || String(e) })); }
-        })(); true;
-      `;
-      webRef.current?.injectJavaScript(script);
-    } catch {}
-  }, []);
+  // Expo WebView registration helper removed
 
   // Capture auth token from the web app (after load)
   useEffect(() => {
@@ -179,101 +165,26 @@ function App() {
           setAuthToken(t);
         } else {
           // token gone = user logged out
-          if (expoPushToken) unregisterForPushNotificationsAsync(expoPushToken);
+          // push removed
           setAuthToken(null);
           setUserId(null);
         }
       } else if (data?.type === 'WT_USER') {
         const uid = (data.userId || '').trim();
         if (uid && uid.length > 0) setUserId(uid);
-      } else if (data?.type === 'WT_REGISTER_RESULT') {
-        try { console.log('[web] register result', data); } catch {}
       }
     } catch {}
-  }, [expoPushToken]);
+  }, []);
 
-  // Helper: attempt server registration when we have token and (auth or userId)
-  const tryRegisterDevice = useCallback(async (token) => {
-    try {
-      if (!token) return;
-      if (!(authToken || userId)) { return; }
-      // Detect timezone and offset
-      let tz = '';
-      let offset = null;
-      try { const resolved = Intl.DateTimeFormat().resolvedOptions(); tz = resolved?.timeZone || ''; offset = -new Date().getTimezoneOffset(); } catch {}
-      const res = await fetch(`${API_BASE.replace(/\/$/, '')}/notifications/devices/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}) },
-        body: JSON.stringify({ token, platform: Platform.OS, provider: 'expo', userId: userId || undefined, timezone: tz || undefined, timezoneOffsetMinutes: typeof offset === 'number' ? offset : undefined })
-      });
-      let body = null; try { body = await res.json(); } catch {}
-      deviceRegisterAttempted.current = true;
-      try { console.log('[native] tryRegisterDevice', { ok: res.ok, status: res.status, body }); } catch {}
-    } catch (e) { try { console.log('[native] tryRegisterDevice error', e?.message || e); } catch {} }
-  }, [authToken, userId]);
+  // Expo registration helper removed
 
-  // Re-attempt registration whenever we gain auth or userId
-  useEffect(() => {
-    if (expoPushToken && (authToken || userId)) {
-      tryRegisterDevice(expoPushToken);
-    }
-  }, [expoPushToken, authToken, userId, tryRegisterDevice]);
+  // Expo registration retry removed
 
-  useEffect(() => {
-    return () => {
-      if (expoPushToken && authToken) {
-        unregisterForPushNotificationsAsync(expoPushToken);
-      }
-    };
-  }, [expoPushToken, authToken]);
+  // Expo unregister removed
 
-  // Retry web-context registration when we have expo token
-  useEffect(() => { if (expoPushToken) injectRegisterViaWeb(expoPushToken); }, [expoPushToken, injectRegisterViaWeb]);
+  // Expo web registration removed
 
-  async function registerForPushNotificationsAsync() {
-    try { console.log('Ownership:', (Constants?.appOwnership || 'unknown')); } catch {}
-    if (!Device.isDevice) { try { console.log('Not a physical device; skip push registration'); } catch {} return; }
-  
-    const { status: existingStatus } = await Notifications.getPermissionsAsync();
-    let finalStatus = existingStatus;
-    if (existingStatus !== 'granted') {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
-    }
-    if (finalStatus !== 'granted') { try { console.log('Push permission not granted'); } catch {} return; }
-  
-    if (Platform.OS === 'android') {
-      await Notifications.setNotificationChannelAsync('default', {
-        name: 'Default',
-        importance: Notifications.AndroidImportance.HIGH,
-      });
-    }
-  
-    const projectId = Constants?.expoConfig?.extra?.eas?.projectId || Constants?.easConfig?.projectId;
-    const tokenObj = await Notifications.getExpoPushTokenAsync({ projectId });
-    const token = tokenObj?.data;
-    try { console.log('Expo push token:', token ? (token.slice(0, 12) + '...') : 'null'); } catch {}
-    setExpoPushToken(token);
-  
-    // Defer server registration until we have at least auth or userId
-    tryRegisterDevice(token);
-  }
-
-  async function unregisterForPushNotificationsAsync(token) {
-    if (!token || !authToken) return;
-    try {
-      await fetch(`${API_BASE.replace(/\/$/, '')}/notifications/devices/unregister`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${authToken}`,
-        },
-        body: JSON.stringify({ token }),
-      });
-    } catch (e) {
-      console.warn('Unregister failed', e);
-    }
-  }
+  // Expo push registration/unregistration removed (migrating to FCM)
   
 
   return (
@@ -294,22 +205,7 @@ function App() {
         renderLoading={() => <View style={{ flex: 1, backgroundColor: '#fff' }} />}
         refreshControl={Platform.OS === 'ios' ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} /> : undefined}
       />
-      {toast && (
-        <Pressable
-          onPress={() => {
-            try {
-              if (toast.url && typeof toast.url === 'string') {
-                webRef.current?.injectJavaScript(`try{window.location.href = ${JSON.stringify(toast.url)};}catch(e){}; true;`);
-              }
-            } catch {}
-            setToast(null);
-          }}
-          style={{ position: 'absolute', left: 16, right: 16, bottom: 24, borderRadius: 12, backgroundColor: 'rgba(17,24,39,0.95)', paddingVertical: 12, paddingHorizontal: 14, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 6, elevation: 6 }}
-        >
-          <Text style={{ color: 'white', fontWeight: '600', marginBottom: 2 }} numberOfLines={1}>{toast.title || 'Notification'}</Text>
-          {!!toast.body && <Text style={{ color: '#d1d5db' }} numberOfLines={2}>{toast.body}</Text>}
-        </Pressable>
-      )}
+      {/* Expo in-app toast removed */}
     </SafeAreaView>
   );
 }

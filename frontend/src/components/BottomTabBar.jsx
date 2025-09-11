@@ -64,7 +64,6 @@ const BottomTabBar = () => {
                 label={isAuthenticated ? 'Account' : 'Login'}
                 Icon={User}
                 onClick={() => (isAuthenticated ? setAccountOpen(true) : navigate('/auth'))}
-                badge={isAuthenticated ? unreadNotifications : 0}
               />
             </div>
           </div>
