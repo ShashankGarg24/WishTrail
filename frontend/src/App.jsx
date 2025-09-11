@@ -1,5 +1,5 @@
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import useApiStore from './store/apiStore'
 import Header from './components/Header'
 import BottomTabBar from './components/BottomTabBar'
@@ -22,6 +22,7 @@ function App() {
   const { isDarkMode, initializeAuth, isAuthenticated } = useApiStore()
   const location = useLocation()
   const navigate = useNavigate()
+  const [inNativeApp, setInNativeApp] = useState(false)
 
   useEffect(() => {
     // Initialize authentication state
@@ -44,6 +45,15 @@ function App() {
       }
     } catch {}
   }, [location.search, navigate])
+
+  // Detect if running inside the mobile app WebView
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined' && window.ReactNativeWebView) {
+        setInNativeApp(true)
+      }
+    } catch {}
+  }, [])
 
   return (
     <div className="flex flex-col min-h-screen bg-white dark:bg-gray-900 transition-colors duration-300">
@@ -74,12 +84,12 @@ function App() {
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </main>
-        {/* Hide mobile bottom bar and mobile footer when logged out */}
+        {/* Bottom nav (web) */}
         {isAuthenticated && <BottomTabBar />}
-        {/* Footer only for desktop; hide on small screens when logged out */}
-        <div className="hidden md:block">
+        {/* Footer on web at all sizes; hide only inside native app */}
+        {!inNativeApp && (
           <Footer />
-        </div>
+        )}
         <FeedbackButton />
       </div>
       <SpeedInsights />
