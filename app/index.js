@@ -64,6 +64,13 @@ function App() {
         webRef.current?.injectJavaScript(`window.dispatchEvent(new Event('focus')); true;`);
         // Try to re-capture auth after returning to foreground
         if (!authToken) injectAuthProbe();
+        // Ping backend lastActiveAt
+        try {
+          const API = (Constants.expoConfig?.extra?.API_URL || Constants.manifest?.extra?.API_URL || '').replace(/\/$/, '');
+          if (API && authToken) {
+            fetch(`${API}/notifications/ping`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` } }).catch(()=>{});
+          }
+        } catch {}
       }
     });
     return () => sub.remove();

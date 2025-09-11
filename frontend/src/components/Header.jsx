@@ -4,6 +4,7 @@ import { Moon, Sun, Menu, X, Star, User, BarChart3, LogOut, Settings, Bell } fro
 import { useState, useEffect, useRef } from 'react'
 import useApiStore from '../store/apiStore'
 import SettingsModal from './SettingsModal'
+import { notificationsAPI } from '../services/api'
 
 const Header = () => {
   const { isDarkMode, toggleTheme, isAuthenticated, logout, unreadNotifications, getNotifications } = useApiStore()
@@ -67,6 +68,13 @@ const Header = () => {
       getNotifications({ page: 1, limit: 1 }).catch(() => {})
     }
   }, [isAuthenticated, getNotifications])
+
+  // On focus, ping backend to record lastActiveAt (rate-limited server-side)
+  useEffect(() => {
+    const onFocus = () => { if (isAuthenticated) { notificationsAPI.ping().catch(() => {}); } };
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, [isAuthenticated]);
 
   // Listen for native push forwarded from the app WebView (wt_push) to refresh unread badge
   useEffect(() => {

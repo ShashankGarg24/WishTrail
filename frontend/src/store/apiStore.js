@@ -59,6 +59,7 @@ const useApiStore = create(
       notifications: [],
       notificationsPagination: null,
       unreadNotifications: 0,
+      notificationSettings: null,
 
       // Journaling
       journalPrompt: null,
@@ -1074,6 +1075,30 @@ const useApiStore = create(
           const errorMessage = handleApiError(error);
           set({ loading: false, error: errorMessage });
           return { success: false, error: errorMessage };
+        }
+      },
+
+      // =====================
+      // NOTIFICATION SETTINGS
+      // =====================
+      loadNotificationSettings: async () => {
+        try {
+          const res = await notificationsAPI.getSettings();
+          const settings = res?.data?.data?.settings || null;
+          set({ notificationSettings: settings });
+          return settings;
+        } catch (error) {
+          return null;
+        }
+      },
+      updateNotificationSettings: async (settings) => {
+        try {
+          const res = await notificationsAPI.updateSettings(settings);
+          const updated = res?.data?.data?.settings || settings;
+          set({ notificationSettings: updated });
+          return { success: true, settings: updated };
+        } catch (error) {
+          return { success: false, error: handleApiError(error) };
         }
       },
 

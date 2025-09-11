@@ -190,7 +190,10 @@ export const notificationsAPI = {
   getNotifications: (params) => api.get('/notifications', { params }),
   markAsRead: (id) => api.patch(`/notifications/${id}/read`),
   markAllAsRead: () => api.patch('/notifications/read-all'),
-  deleteNotification: (id) => api.delete(`/notifications/${id}`)
+  deleteNotification: (id) => api.delete(`/notifications/${id}`),
+  getSettings: () => api.get('/notifications/settings'),
+  updateSettings: (settings) => api.put('/notifications/settings', { settings }),
+  ping: () => api.post('/notifications/ping')
 };
 
 // Journals API
