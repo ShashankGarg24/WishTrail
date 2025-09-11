@@ -21,20 +21,24 @@ const SettingsModal = ({ isOpen, onClose }) => {
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Autosave helper for notification settings
+  const saveNotifSettings = async (next) => {
+    setNotif(next);
+    try {
+      await updateNotificationSettings(next);
+    } catch (_) {}
+  };
+
   useEffect(() => {
     if (isOpen) {
       (async () => {
         const settings = notificationSettings || (await loadNotificationSettings());
         setNotif(settings || {
-          enabled: true,
           inAppEnabled: true,
-          quietHours: { start: '22:00', end: '07:00' },
-          inactivity: { enabled: true },
-          habits: { enabled: true, respectTimezone: true, skipIfDone: true },
-          journal: { enabled: true, frequency: 'daily', time: '20:00', weeklyDays: [] },
-          motivation: { enabled: false, frequency: 'off', weeklyDays: [] },
-          social: { enabled: false, batchWindowMinutes: 10 },
-          appUpdates: { enabled: true }
+          habits: { enabled: true },
+          journal: { enabled: true, frequency: 'daily' },
+          motivation: { enabled: false, frequency: 'off' },
+          social: { enabled: true }
         });
       })();
     }
@@ -166,157 +170,87 @@ const SettingsModal = ({ isOpen, onClose }) => {
             <div className="text-sm text-gray-500 dark:text-gray-400">Loading…</div>
           ) : (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-base font-semibold text-gray-900 dark:text-white">Enable Push</h3>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Master switch for push notifications</p>
-                    </div>
+              {/* Compact stacked list */}
+              <div className="rounded-lg">
+                <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                  {/* Master */}
+                  <div className="flex items-center justify-between py-3">
+                    <h3 className="text-sm font-medium text-gray-900 dark:text-white">In-App notifications</h3>
                     <button
-                      onClick={() => setNotif({ ...notif, enabled: !notif.enabled })}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full ${notif.enabled ? 'bg-primary-600' : 'bg-gray-200 dark:bg-gray-600'}`}
-                    >
-                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${notif.enabled ? 'translate-x-6' : 'translate-x-1'}`} />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-base font-semibold text-gray-900 dark:text-white">In-App Notifications</h3>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Show alerts inside the app</p>
-                    </div>
-                    <button
-                      onClick={() => setNotif({ ...notif, inAppEnabled: !notif.inAppEnabled })}
+                      onClick={() => saveNotifSettings({ ...notif, inAppEnabled: !notif.inAppEnabled })}
                       className={`relative inline-flex h-6 w-11 items-center rounded-full ${notif.inAppEnabled ? 'bg-primary-600' : 'bg-gray-200 dark:bg-gray-600'}`}
                     >
                       <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${notif.inAppEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
                     </button>
                   </div>
-                </div>
-              </div>
 
-              <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-                <h4 className="font-medium text-gray-900 dark:text-white mb-2">Quiet Hours</h4>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs text-gray-500 dark:text-gray-400">Start</label>
-                    <input type="time" value={notif.quietHours?.start || '22:00'} onChange={(e) => setNotif({ ...notif, quietHours: { ...(notif.quietHours || {}), start: e.target.value } })} className="mt-1 w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-500 dark:text-gray-400">End</label>
-                    <input type="time" value={notif.quietHours?.end || '07:00'} onChange={(e) => setNotif({ ...notif, quietHours: { ...(notif.quietHours || {}), end: e.target.value } })} className="mt-1 w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center justify-between mb-2">
-                    <div>
-                      <h3 className="text-base font-semibold text-gray-900 dark:text-white">Habit Reminders</h3>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Daily reminders; skip if done</p>
-                    </div>
-                    <button onClick={() => setNotif({ ...notif, habits: { ...(notif.habits || {}), enabled: !(notif.habits?.enabled !== false) } })} className={`relative inline-flex h-6 w-11 items-center rounded-full ${(notif.habits?.enabled !== false) ? 'bg-primary-600' : 'bg-gray-200 dark:bg-gray-600'}`}>
+                  {/* Habit reminders */}
+                  <div className={`flex items-center justify-between py-3 ${!notif.inAppEnabled ? 'opacity-50' : ''}`}>
+                    <h3 className="text-sm text-gray-900 dark:text-white">Habit reminders</h3>
+                    <button
+                      onClick={() => { if (!notif.inAppEnabled) return; const next = { ...notif, habits: { ...(notif.habits || {}), enabled: !(notif.habits?.enabled !== false) } }; saveNotifSettings(next); }}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full ${(notif.habits?.enabled !== false) ? 'bg-primary-600' : 'bg-gray-200 dark:bg-gray-600'} ${!notif.inAppEnabled ? 'cursor-not-allowed' : ''}`}
+                    >
                       <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${(notif.habits?.enabled !== false) ? 'translate-x-6' : 'translate-x-1'}`} />
                     </button>
                   </div>
-                </div>
 
-                <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center justify-between mb-2">
-                    <div>
-                      <h3 className="text-base font-semibold text-gray-900 dark:text-white">Journal Reminders</h3>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Once per day at your time</p>
-                    </div>
-                    <button onClick={() => setNotif({ ...notif, journal: { ...(notif.journal || {}), enabled: !(notif.journal?.enabled !== false) } })} className={`relative inline-flex h-6 w-11 items-center rounded-full ${(notif.journal?.enabled !== false) ? 'bg-primary-600' : 'bg-gray-200 dark:bg-gray-600'}`}>
-                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${(notif.journal?.enabled !== false) ? 'translate-x-6' : 'translate-x-1'}`} />
-                    </button>
+                  {/* Journal reminders */}
+                  <div className={`flex items-center justify-between py-3 ${!notif.inAppEnabled ? 'opacity-50' : ''}`}>
+                    <h3 className="text-sm text-gray-900 dark:text-white">Journal reminders</h3>
+                    <select
+                      disabled={!notif.inAppEnabled}
+                      value={(notif.journal?.enabled === false) ? 'off' : (notif.journal?.frequency || 'daily')}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        const next = v === 'off'
+                          ? { ...notif, journal: { ...(notif.journal || {}), enabled: false, frequency: 'off' } }
+                          : { ...notif, journal: { enabled: true, frequency: v } };
+                        saveNotifSettings(next);
+                      }}
+                      className={`ml-4 w-40 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white ${!notif.inAppEnabled ? 'cursor-not-allowed' : ''}`}
+                    >
+                      <option value="daily">Daily</option>
+                      <option value="weekly">Weekly</option>
+                      <option value="off">Off</option>
+                    </select>
                   </div>
-                  <div className="mt-2 grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs text-gray-500 dark:text-gray-400">Frequency</label>
-                      <select value={notif.journal?.frequency || 'daily'} onChange={(e) => setNotif({ ...notif, journal: { ...(notif.journal || {}), frequency: e.target.value } })} className="mt-1 w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
-                        <option value="daily">Daily</option>
-                        <option value="weekly">Weekly</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-xs text-gray-500 dark:text-gray-400">Time</label>
-                      <input type="time" value={notif.journal?.time || '20:00'} onChange={(e) => setNotif({ ...notif, journal: { ...(notif.journal || {}), time: e.target.value } })} className="mt-1 w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
-                    </div>
-                  </div>
-                </div>
 
-                <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center justify-between mb-2">
-                    <div>
-                      <h3 className="text-base font-semibold text-gray-900 dark:text-white">Inactivity Reminders</h3>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Gentle nudges if inactive</p>
-                    </div>
-                    <button onClick={() => setNotif({ ...notif, inactivity: { ...(notif.inactivity || {}), enabled: !(notif.inactivity?.enabled !== false) } })} className={`relative inline-flex h-6 w-11 items-center rounded-full ${(notif.inactivity?.enabled !== false) ? 'bg-primary-600' : 'bg-gray-200 dark:bg-gray-600'}`}>
-                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${(notif.inactivity?.enabled !== false) ? 'translate-x-6' : 'translate-x-1'}`} />
-                    </button>
+                  {/* Motivation */}
+                  <div className={`flex items-center justify-between py-3 ${!notif.inAppEnabled ? 'opacity-50' : ''}`}>
+                    <h3 className="text-sm text-gray-900 dark:text-white">Motivation</h3>
+                    <select
+                      disabled={!notif.inAppEnabled}
+                      value={(notif.motivation?.enabled === false || notif.motivation?.frequency === 'off') ? 'off' : (notif.motivation?.frequency || 'off')}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        const next = v === 'off'
+                          ? { ...notif, motivation: { ...(notif.motivation || {}), enabled: false, frequency: 'off' } }
+                          : { ...notif, motivation: { enabled: true, frequency: v } };
+                        saveNotifSettings(next);
+                      }}
+                      className={`ml-4 w-40 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white ${!notif.inAppEnabled ? 'cursor-not-allowed' : ''}`}
+                    >
+                      <option value="daily">Daily</option>
+                      <option value="weekly">Weekly</option>
+                      <option value="off">Off</option>
+                    </select>
                   </div>
-                </div>
 
-                <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center justify-between mb-2">
-                    <div>
-                      <h3 className="text-base font-semibold text-gray-900 dark:text-white">Motivational Quotes</h3>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Uplifting messages; off by default</p>
-                    </div>
-                    <button onClick={() => setNotif({ ...notif, motivation: { ...(notif.motivation || {}), enabled: !(notif.motivation?.enabled === true), frequency: (notif.motivation?.enabled === true ? 'off' : (notif.motivation?.frequency || 'daily')) } })} className={`relative inline-flex h-6 w-11 items-center rounded-full ${(notif.motivation?.enabled === true) ? 'bg-primary-600' : 'bg-gray-200 dark:bg-gray-600'}`}>
-                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${(notif.motivation?.enabled === true) ? 'translate-x-6' : 'translate-x-1'}`} />
-                    </button>
-                  </div>
-                  {notif.motivation?.enabled && (
-                    <div className="mt-2">
-                      <label className="text-xs text-gray-500 dark:text-gray-400">Frequency</label>
-                      <select value={notif.motivation?.frequency || 'daily'} onChange={(e) => setNotif({ ...notif, motivation: { ...(notif.motivation || {}), frequency: e.target.value } })} className="mt-1 w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
-                        <option value="daily">Daily</option>
-                        <option value="weekly">Weekly</option>
-                      </select>
-                    </div>
-                  )}
-                </div>
-
-                <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center justify-between mb-2">
-                    <div>
-                      <h3 className="text-base font-semibold text-gray-900 dark:text-white">Social</h3>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Likes, comments, follows; off by default</p>
-                    </div>
-                    <button onClick={() => setNotif({ ...notif, social: { ...(notif.social || {}), enabled: !(notif.social?.enabled === true) } })} className={`relative inline-flex h-6 w-11 items-center rounded-full ${(notif.social?.enabled === true) ? 'bg-primary-600' : 'bg-gray-200 dark:bg-gray-600'}`}>
+                  {/* Social activity */}
+                  <div className={`flex items-center justify-between py-3 ${!notif.inAppEnabled ? 'opacity-50' : ''}`}>
+                    <h3 className="text-sm text-gray-900 dark:text-white">Social activity</h3>
+                    <button
+                      onClick={() => { if (!notif.inAppEnabled) return; const next = { ...notif, social: { ...(notif.social || {}), enabled: !(notif.social?.enabled === true) } }; saveNotifSettings(next); }}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full ${(notif.social?.enabled === true) ? 'bg-primary-600' : 'bg-gray-200 dark:bg-gray-600'} ${!notif.inAppEnabled ? 'cursor-not-allowed' : ''}`}
+                    >
                       <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${(notif.social?.enabled === true) ? 'translate-x-6' : 'translate-x-1'}`} />
                     </button>
                   </div>
                 </div>
-
-                <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-base font-semibold text-gray-900 dark:text-white">App Updates & Alerts</h3>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Security/account alerts</p>
-                    </div>
-                    <button onClick={() => setNotif({ ...notif, appUpdates: { ...(notif.appUpdates || {}), enabled: !(notif.appUpdates?.enabled !== false) } })} className={`relative inline-flex h-6 w-11 items-center rounded-full ${(notif.appUpdates?.enabled !== false) ? 'bg-primary-600' : 'bg-gray-200 dark:bg-gray-600'}`}>
-                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${(notif.appUpdates?.enabled !== false) ? 'translate-x-6' : 'translate-x-1'}`} />
-                    </button>
-                  </div>
-                </div>
               </div>
 
-              <div className="flex justify-end pt-2">
-                <button
-                  onClick={async () => { setLoading(true); setError(''); setSuccess(''); const res = await updateNotificationSettings(notif); setLoading(false); if (res.success) { setSuccess('Notification settings updated'); setTimeout(()=>setSuccess(''), 2500);} else { setError(res.error || 'Update failed'); setTimeout(()=>setError(''), 3000);} }}
-                  disabled={loading}
-                  className="px-4 py-2 bg-primary-600 hover:bg-primary-700 disabled:bg-primary-400 text-white rounded-lg text-sm"
-                >
-                  {loading ? 'Saving…' : 'Save'}
-                </button>
-              </div>
+              {/* Autosave on change: no explicit save button */}
             </>
           )}
         </div>
