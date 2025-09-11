@@ -2,7 +2,6 @@ import React, { useMemo, useRef, useState, useCallback, useEffect } from 'react'
 import { Platform, SafeAreaView, StatusBar, View, RefreshControl, Linking, AppState } from 'react-native';
 import { WebView } from 'react-native-webview';
 import Constants from 'expo-constants';
-import messaging from '@react-native-firebase/messaging';
 import { registerRootComponent } from 'expo';
 // Push notifications removed (Expo). FCM to be integrated later.
 
@@ -64,8 +63,21 @@ function App() {
   // FCM: request permissions, get token, and forward foreground messages to web UI
   useEffect(() => {
     if (Platform.OS !== 'android') return;
+    // Allow disabling FCM at build-time if needed
+    const disableFcm = !!(Constants?.expoConfig?.extra?.DISABLE_FCM || Constants?.manifest?.extra?.DISABLE_FCM);
+    if (disableFcm) { try { console.log('FCM disabled via extra.DISABLE_FCM'); } catch {} ; return; }
     (async () => {
       try {
+        // Dynamically import RNFB messaging to avoid crashes if native module isn't linked yet
+        let messaging;
+        try {
+          const mod = await import('@react-native-firebase/messaging');
+          messaging = mod?.default;
+        } catch (_) {
+          messaging = null;
+        }
+        if (!messaging) { try { console.log('FCM: messaging module not available; skipping'); } catch {} ; return; }
+
         const authStatus = await messaging().requestPermission();
         const enabled = authStatus === messaging.AuthorizationStatus.AUTHORIZED || authStatus === messaging.AuthorizationStatus.PROVISIONAL;
         if (!enabled) return;
@@ -177,7 +189,7 @@ function App() {
         source={{ uri: WEB_URL }}
         originWhitelist={originWhitelist}
         onLoadStart={() => setLoading(true)}
-        onLoadEnd={() => { setLoading(false); injectAuthProbe(); if (expoPushToken) injectRegisterViaWeb(expoPushToken); }}
+        onLoadEnd={() => { setLoading(false); injectAuthProbe(); }}
         onShouldStartLoadWithRequest={onShouldStartLoadWithRequest}
         onMessage={onMessage}
         pullToRefreshEnabled={Platform.OS === 'android'}
