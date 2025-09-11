@@ -5,6 +5,15 @@ import Constants from 'expo-constants';
 import { registerRootComponent } from 'expo';
 // Push notifications removed (Expo). FCM to be integrated later.
 
+// RNFB: set a background handler early to suppress warnings and ensure background messages are handled gracefully.
+try {
+  const mod = require('@react-native-firebase/messaging');
+  const bgMessaging = mod && (mod.default || mod);
+  if (bgMessaging && typeof bgMessaging === 'function' && Platform.OS === 'android') {
+    try { bgMessaging().setBackgroundMessageHandler(async () => {}); } catch (_) {}
+  }
+} catch (_) {}
+
 const WEB_URL = (Constants.expoConfig?.extra?.WEB_URL || Constants.manifest?.extra?.WEB_URL || 'http://localhost:5173');
 // Backend API base (include /api/v1). Falls back to WEB_URL + /api/v1 when not provided
 const API_BASE = (

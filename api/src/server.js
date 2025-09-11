@@ -32,6 +32,7 @@ const createApp = async () => {
   require('./cron/bloomFilterJob');
   require('./cron/journalJobs');
   require('./cron/habitReminderJobs');
+  require('./cron/inactivityJobs');
   console.log('✅ Initialization complete');
 
   const app = express();

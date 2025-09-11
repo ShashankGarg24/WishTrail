@@ -211,12 +211,42 @@ async function dueHabitsForReminder(userId) {
   return jobs;
 }
 
+function isWithinQuietHours(user) {
+  try {
+    const ns = user?.notificationSettings || {};
+    const quiet = ns.quietHours || { start: '22:00', end: '07:00' };
+    const tz = user?.timezone || 'UTC';
+    const fmt = new Intl.DateTimeFormat('en-GB', { hour12: false, hour: '2-digit', minute: '2-digit', timeZone: tz });
+    const parts = fmt.formatToParts(new Date());
+    const hh = parseInt(parts.find(p => p.type === 'hour')?.value || '0', 10);
+    const mm = parseInt(parts.find(p => p.type === 'minute')?.value || '0', 10);
+    const nowM = hh * 60 + mm;
+    const [sh, sm] = String(quiet.start || '22:00').split(':').map(n => parseInt(n, 10));
+    const [eh, em] = String(quiet.end || '07:00').split(':').map(n => parseInt(n, 10));
+    const startM = (isNaN(sh) ? 22 : sh) * 60 + (isNaN(sm) ? 0 : sm);
+    const endM = (isNaN(eh) ? 7 : eh) * 60 + (isNaN(em) ? 0 : em);
+    if (startM <= endM) return nowM >= startM && nowM < endM;
+    return nowM >= startM || nowM < endM;
+  } catch (_) { return false; }
+}
+
 async function sendReminderNotifications() {
-  const users = await User.find({ isActive: true }).select('_id').lean();
+  const users = await User.find({ isActive: true }).select('_id notificationSettings timezone').lean();
   const jobs = [];
   for (const u of users) {
+    const ns = u.notificationSettings || {};
+    if (ns.habits && ns.habits.enabled === false) continue;
+    // Optional: avoid creating notifications during quiet hours
+    if (isWithinQuietHours(u)) continue;
     const habits = await dueHabitsForReminder(u._id);
     for (const h of habits) {
+      // Skip if already done today (default true)
+      const skipIfDone = ns.habits && typeof ns.habits.skipIfDone === 'boolean' ? ns.habits.skipIfDone : true;
+      if (skipIfDone) {
+        const todayKey = toDateKeyUTC(new Date());
+        const done = await HabitLog.findOne({ userId: u._id, habitId: h._id, dateKey: todayKey, status: 'done' }).select('_id').lean();
+        if (done) continue;
+      }
       const localTime = nowInTimezoneHHmm(h.timezone || 'UTC');
       jobs.push(Notification.createNotification({
         userId: u._id,

@@ -118,6 +118,25 @@ const listInterests = async (req, res, next) => {
   }
 };
 
+// @desc    Update user's timezone (IANA) and offset (minutes)
+// @route   POST /api/v1/users/timezone
+// @access  Private
+const updateTimezone = async (req, res, next) => {
+  try {
+    const { timezone, offsetMinutes } = req.body || {};
+    if (!timezone || typeof timezone !== 'string') {
+      return res.status(400).json({ success: false, message: 'timezone (IANA) is required' });
+    }
+    await User.updateOne({ _id: req.user.id }, {
+      $set: {
+        timezone: timezone,
+        timezoneOffsetMinutes: typeof offsetMinutes === 'number' ? offsetMinutes : null
+      }
+    });
+    return res.json({ success: true, data: { timezone, offsetMinutes: typeof offsetMinutes === 'number' ? offsetMinutes : null } });
+  } catch (err) { next(err); }
+};
+
 // @desc    Search users
 // @route   GET /api/v1/users/search
 // @access  Private

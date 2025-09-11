@@ -27,6 +27,8 @@ const notificationSchema = new mongoose.Schema({
       'monthly_summary',
       'journal_prompt',
       'habit_reminder',
+      'inactivity_reminder',
+      'motivation_quote',
       // Extended types for social interactions
       'follow_request',
       'follow_request_accepted',
@@ -216,7 +218,7 @@ notificationSchema.statics.createNotification = async function(notificationData)
   try {
     // Default push channel on selected types if not explicitly set
     const pushPreferredTypes = new Set([
-      'habit_reminder','goal_due_soon','weekly_summary','monthly_summary','journal_prompt',
+      'habit_reminder','goal_due_soon','weekly_summary','monthly_summary','journal_prompt','inactivity_reminder',
       'follow_request','follow_request_accepted','new_follower',
       'friend_created_goal','friend_completed_goal',
       'activity_comment','comment_reply','mention',
@@ -234,9 +236,52 @@ notificationSchema.statics.createNotification = async function(notificationData)
     // Push delivery (best-effort)
     if (saved?.channels?.push) {
       try {
-        const { sendFcmToUser } = require('../services/pushService');
-        await sendFcmToUser(saved.userId, saved);
-        await this.updateOne({ _id: saved._id }, { $set: { isDelivered: true, deliveredAt: new Date() } });
+        const User = require('../models/User');
+        const user = await User.findById(saved.userId).select('notificationSettings timezone');
+        let allowPush = true;
+
+        // Respect per-category user settings
+        const t = saved.type;
+        const ns = user?.notificationSettings || {};
+        const enabledGlobal = ns?.enabled !== false; // default true
+        if (!enabledGlobal) allowPush = false;
+
+        const socialTypes = new Set(['new_follower','follow_request','follow_request_accepted','activity_comment','comment_reply','mention','activity_liked','comment_liked','goal_liked']);
+        if (socialTypes.has(t) && ns?.social && ns.social.enabled === false) allowPush = false;
+        if (t === 'habit_reminder' && ns?.habits && ns.habits.enabled === false) allowPush = false;
+        if ((t === 'journal_prompt' || t === 'weekly_summary' || t === 'monthly_summary') && ns?.journal && ns.journal.enabled === false) allowPush = false;
+        if (t === 'inactivity_reminder' && ns?.inactivity && ns.inactivity.enabled === false) allowPush = false;
+        if (t === 'motivation_quote' && ns?.motivation && ns.motivation.enabled === false) allowPush = false;
+
+        // Quiet hours gating for non-urgent
+        const isUrgent = String(saved.priority || 'medium') === 'urgent';
+        if (allowPush && !isUrgent) {
+          const tz = (user && user.timezone) ? user.timezone : 'UTC';
+          const quiet = ns?.quietHours || { start: '22:00', end: '07:00' };
+          const withinQuiet = (() => {
+            try {
+              const fmt = new Intl.DateTimeFormat('en-GB', { hour12: false, hour: '2-digit', minute: '2-digit', timeZone: tz });
+              const parts = fmt.formatToParts(new Date());
+              const hh = parseInt(parts.find(p => p.type === 'hour')?.value || '0', 10);
+              const mm = parseInt(parts.find(p => p.type === 'minute')?.value || '0', 10);
+              const nowM = hh * 60 + mm;
+              const [sh, sm] = String(quiet.start || '22:00').split(':').map(n => parseInt(n, 10));
+              const [eh, em] = String(quiet.end || '07:00').split(':').map(n => parseInt(n, 10));
+              const startM = (isNaN(sh) ? 22 : sh) * 60 + (isNaN(sm) ? 0 : sm);
+              const endM = (isNaN(eh) ? 7 : eh) * 60 + (isNaN(em) ? 0 : em);
+              if (startM <= endM) return nowM >= startM && nowM < endM;
+              // overnight window
+              return nowM >= startM || nowM < endM;
+            } catch { return false; }
+          })();
+          if (withinQuiet) allowPush = false;
+        }
+
+        if (allowPush) {
+          const { sendFcmToUser } = require('../services/pushService');
+          await sendFcmToUser(saved.userId, saved);
+          await this.updateOne({ _id: saved._id }, { $set: { isDelivered: true, deliveredAt: new Date() } });
+        }
       } catch (_) {}
     }
     return saved;

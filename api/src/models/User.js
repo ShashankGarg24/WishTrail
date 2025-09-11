@@ -89,6 +89,13 @@ const userSchema = new mongoose.Schema({
     default: null // minutes east of UTC (e.g., -480 for PST -> send -offset if using JS getTimezoneOffset)
   },
 
+  // Last time the user was active (app open or key action)
+  lastActiveAt: {
+    type: Date,
+    default: Date.now,
+    index: true
+  },
+
   dateOfBirth: {
     type: Date,
     validate: {
@@ -118,6 +125,41 @@ const userSchema = new mongoose.Schema({
   onboardingCompleted: {
     type: Boolean,
     default: false
+  },
+  // Fine-grained notification preferences
+  notificationSettings: {
+    enabled: { type: Boolean, default: true },
+    inAppEnabled: { type: Boolean, default: true },
+    quietHours: {
+      start: { type: String, default: '22:00' }, // local time HH:mm
+      end: { type: String, default: '07:00' }    // local time HH:mm
+    },
+    inactivity: {
+      enabled: { type: Boolean, default: true }
+    },
+    habits: {
+      enabled: { type: Boolean, default: true },
+      respectTimezone: { type: Boolean, default: true },
+      skipIfDone: { type: Boolean, default: true }
+    },
+    journal: {
+      enabled: { type: Boolean, default: true },
+      frequency: { type: String, enum: ['daily','weekly'], default: 'daily' },
+      time: { type: String, default: '20:00' }, // local time HH:mm
+      weeklyDays: { type: [Number], default: undefined } // 0..6 (Sun..Sat)
+    },
+    motivation: {
+      enabled: { type: Boolean, default: false },
+      frequency: { type: String, enum: ['off','daily','weekly'], default: 'off' },
+      weeklyDays: { type: [Number], default: undefined }
+    },
+    social: {
+      enabled: { type: Boolean, default: false },
+      batchWindowMinutes: { type: Number, default: 10 }
+    },
+    appUpdates: {
+      enabled: { type: Boolean, default: true }
+    }
   },
   preferences: {
     privacy: {

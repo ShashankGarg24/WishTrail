@@ -99,7 +99,6 @@ async function sendFcmToUser(userId, notification) {
         android: {
           priority: 'high',
           notification: {
-            channelId: 'default',
             sound: 'default'
           }
         }

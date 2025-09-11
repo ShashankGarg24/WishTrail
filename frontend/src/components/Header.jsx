@@ -71,7 +71,8 @@ const Header = () => {
   // Listen for native push forwarded from the app WebView (wt_push) to refresh unread badge
   useEffect(() => {
     const handler = () => {
-      try { getNotifications({ page: 1, limit: 1 }); } catch {}
+      // Force bypass cache to ensure latest unread count
+      try { getNotifications({ page: 1, limit: 1 }, { force: true }); } catch {}
     };
     window.addEventListener('wt_push', handler);
     return () => window.removeEventListener('wt_push', handler);
