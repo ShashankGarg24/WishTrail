@@ -22,6 +22,7 @@ function App() {
   const [authToken, setAuthToken] = useState(null);
   const [userId, setUserId] = useState(null);
   const [expoPushToken, setExpoPushToken] = useState(null);
+  const deviceRegisterAttempted = useRef(false);
   const authProbeTries = useRef(0);
   const authProbeTimer = useRef(null);
 
@@ -183,12 +184,32 @@ function App() {
     } catch {}
   }, [expoPushToken]);
 
-  // Re-register device token when auth becomes available
+  // Helper: attempt server registration when we have token and (auth or userId)
+  const tryRegisterDevice = useCallback(async (token) => {
+    try {
+      if (!token) return;
+      if (!(authToken || userId)) { return; }
+      // Detect timezone and offset
+      let tz = '';
+      let offset = null;
+      try { const resolved = Intl.DateTimeFormat().resolvedOptions(); tz = resolved?.timeZone || ''; offset = -new Date().getTimezoneOffset(); } catch {}
+      const res = await fetch(`${API_BASE.replace(/\/$/, '')}/notifications/devices/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}) },
+        body: JSON.stringify({ token, platform: Platform.OS, provider: 'expo', userId: userId || undefined, timezone: tz || undefined, timezoneOffsetMinutes: typeof offset === 'number' ? offset : undefined })
+      });
+      let body = null; try { body = await res.json(); } catch {}
+      deviceRegisterAttempted.current = true;
+      try { console.log('[native] tryRegisterDevice', { ok: res.ok, status: res.status, body }); } catch {}
+    } catch (e) { try { console.log('[native] tryRegisterDevice error', e?.message || e); } catch {} }
+  }, [authToken, userId]);
+
+  // Re-attempt registration whenever we gain auth or userId
   useEffect(() => {
-    if (authToken && expoPushToken) {
-      registerForPushNotificationsAsync().catch((e) => { try { console.log('re-register error', e?.message || e); } catch {} });
+    if (expoPushToken && (authToken || userId)) {
+      tryRegisterDevice(expoPushToken);
     }
-  }, [authToken, expoPushToken]);
+  }, [expoPushToken, authToken, userId, tryRegisterDevice]);
 
   useEffect(() => {
     return () => {
@@ -226,29 +247,8 @@ function App() {
     try { console.log('Expo push token:', token ? (token.slice(0, 12) + '...') : 'null'); } catch {}
     setExpoPushToken(token);
   
-    // Include auth header when present and fallback userId when available
-    try {
-      // Detect timezone and offset
-      let tz = '';
-      let offset = null;
-      try {
-        const resolved = Intl.DateTimeFormat().resolvedOptions();
-        tz = resolved?.timeZone || '';
-        offset = -new Date().getTimezoneOffset();
-      } catch {}
-      const res = await fetch(`${API_BASE.replace(/\/$/, '')}/notifications/devices/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
-        },
-        body: JSON.stringify({ token, platform: Platform.OS, provider: 'expo', userId: userId || undefined, timezone: tz || undefined, timezoneOffsetMinutes: typeof offset === 'number' ? offset : undefined }),
-      });
-      let body = null; try { body = await res.json(); } catch {}
-      try { console.log('[native] register result', { ok: res.ok, status: res.status, body }); } catch {}
-    } catch (e) {
-      try { console.log('[native] register error', e?.message || e); } catch {}
-    }
+    // Defer server registration until we have at least auth or userId
+    tryRegisterDevice(token);
   }
 
   async function unregisterForPushNotificationsAsync(token) {
