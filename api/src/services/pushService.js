@@ -92,12 +92,21 @@ async function sendFcmToUser(userId, notification) {
 
   if (fcmTokens.length) {
     try {
-      const resp = await admin.messaging().sendEachForMulticast({
+      const msg = {
         tokens: fcmTokens,
         notification: { title: notification.title || 'Notification', body: notification.message || '' },
-        data: { url: dataUrl, type: String(notification.type || ''), id: String(notification._id || '') }
-      });
+        data: { url: dataUrl, type: String(notification.type || ''), id: String(notification._id || '') },
+        android: {
+          priority: 'high',
+          notification: {
+            channelId: 'default',
+            sound: 'default'
+          }
+        }
+      };
+      const resp = await admin.messaging().sendEachForMulticast(msg);
       successCount += resp.successCount || 0;
+      console.log('[push] fcm result', { successCount: resp.successCount, failureCount: resp.failureCount });
       (resp.responses || []).forEach((r, idx) => {
         if (!r.success) {
           const code = r.error && r.error.code;
