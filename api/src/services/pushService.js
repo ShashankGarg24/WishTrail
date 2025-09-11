@@ -28,13 +28,42 @@ function buildDeepLink(notification) {
 function ensureFirebaseInitialized() {
   if (admin.apps && admin.apps.length > 0) return;
   try {
-    if (process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
-      const creds = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
-      admin.initializeApp({ credential: admin.credential.cert(creds) });
-    } else {
-      admin.initializeApp();
+    // Prefer JSON from env; support plain JSON, base64 JSON, or ADC path
+    const rawJson = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON || process.env.FIREBASE_SERVICE_ACCOUNT_JSON || '';
+    const b64 = process.env.FIREBASE_SERVICE_ACCOUNT_B64 || '';
+    let creds = null;
+    if (rawJson) {
+      try {
+        // If env starts with '{', assume plain JSON
+        const text = rawJson.trim().startsWith('{') ? rawJson : (() => { throw new Error('not-json'); })();
+        creds = JSON.parse(text);
+      } catch (_) {
+        // Try to decode as base64 JSON
+        try {
+          const decoded = Buffer.from(rawJson, 'base64').toString('utf8');
+          creds = JSON.parse(decoded);
+        } catch (e2) {
+          console.error('[push] Firebase init error: SERVICE ACCOUNT in env is not valid JSON or base64 JSON');
+        }
+      }
+    } else if (b64) {
+      try {
+        const decoded = Buffer.from(b64, 'base64').toString('utf8');
+        creds = JSON.parse(decoded);
+      } catch (e3) {
+        console.error('[push] Firebase init error: FIREBASE_SERVICE_ACCOUNT_B64 not valid');
+      }
     }
-    console.log('[push] Firebase Admin initialized');
+
+    if (creds) {
+      admin.initializeApp({ credential: admin.credential.cert(creds) });
+      console.log('[push] Firebase Admin initialized (service account from env)');
+      return;
+    }
+
+    // Fall back to ADC / GOOGLE_APPLICATION_CREDENTIALS file path
+    admin.initializeApp();
+    console.log('[push] Firebase Admin initialized (ADC)');
   } catch (e) {
     console.error('[push] Firebase init error', e?.message || e);
   }
@@ -42,6 +71,10 @@ function ensureFirebaseInitialized() {
 
 async function sendFcmToUser(userId, notification) {
   ensureFirebaseInitialized();
+  if (!admin.apps || admin.apps.length === 0) {
+    console.error('[push] FCM send aborted: Firebase not initialized');
+    return { ok: false, count: 0, error: 'firebase-not-initialized' };
+  }
   const tokens = await DeviceToken.find({ userId, isActive: true, provider: { $in: ['fcm', 'expo'] } })
     .select('token provider')
     .lean();
