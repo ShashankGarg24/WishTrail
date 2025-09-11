@@ -193,7 +193,11 @@ const updatePassword = async (req, res, next) => {
 // @access  Public
 const refreshToken = async (req, res, next) => {
   try {
-    const { refreshToken: token } = req.cookies;
+    // Prefer header or body when cookies are unavailable (e.g., mobile clients)
+    const headerToken = (req.headers['x-refresh-token'] || '').trim();
+    const bodyToken = (req.body && req.body.refreshToken) ? String(req.body.refreshToken).trim() : '';
+    const cookieToken = (req.cookies && req.cookies.refreshToken) ? String(req.cookies.refreshToken).trim() : '';
+    const token = headerToken || bodyToken || cookieToken;
 
     if (!token) {
       return res.status(401).json({
@@ -205,13 +209,15 @@ const refreshToken = async (req, res, next) => {
     const result = await authService.refreshToken(token);
 
     // Set new refresh token as httpOnly cookie
-    res.cookie('refreshToken', result.refreshToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'none',
-      partitioned: true,
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-    });
+    try {
+      res.cookie('refreshToken', result.refreshToken, {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'none',
+        partitioned: true,
+        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+      });
+    } catch (_) {}
 
     res.status(200).json({
       success: true,

@@ -19,7 +19,7 @@ import { SpeedInsights } from '@vercel/speed-insights/react';
 import FeedbackButton from './components/FeedbackButton'
 
 function App() {
-  const { isDarkMode, initializeAuth } = useApiStore()
+  const { isDarkMode, initializeAuth, isAuthenticated } = useApiStore()
   const location = useLocation()
   const navigate = useNavigate()
 
@@ -74,8 +74,12 @@ function App() {
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </main>
-        <BottomTabBar />
-        <Footer />
+        {/* Hide mobile bottom bar and mobile footer when logged out */}
+        {isAuthenticated && <BottomTabBar />}
+        {/* Footer only for desktop; hide on small screens when logged out */}
+        <div className="hidden md:block">
+          <Footer />
+        </div>
         <FeedbackButton />
       </div>
       <SpeedInsights />
