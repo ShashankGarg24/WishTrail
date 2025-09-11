@@ -126,38 +126,22 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
-  // Fine-grained notification preferences
+  // Notification preferences
   notificationSettings: {
-    enabled: { type: Boolean, default: true },
     inAppEnabled: { type: Boolean, default: true },
-    quietHours: {
-      start: { type: String, default: '22:00' }, // local time HH:mm
-      end: { type: String, default: '07:00' }    // local time HH:mm
-    },
-    inactivity: {
-      enabled: { type: Boolean, default: true }
-    },
     habits: {
       enabled: { type: Boolean, default: true },
-      respectTimezone: { type: Boolean, default: true },
       skipIfDone: { type: Boolean, default: true }
     },
     journal: {
       enabled: { type: Boolean, default: true },
-      frequency: { type: String, enum: ['daily','weekly'], default: 'daily' },
-      time: { type: String, default: '20:00' }, // local time HH:mm
-      weeklyDays: { type: [Number], default: undefined } // 0..6 (Sun..Sat)
+      frequency: { type: String, enum: ['daily','weekly','off'], default: 'daily' }
     },
     motivation: {
       enabled: { type: Boolean, default: false },
-      frequency: { type: String, enum: ['off','daily','weekly'], default: 'off' },
-      weeklyDays: { type: [Number], default: undefined }
+      frequency: { type: String, enum: ['off','daily','weekly'], default: 'off' }
     },
     social: {
-      enabled: { type: Boolean, default: false },
-      batchWindowMinutes: { type: Number, default: 10 }
-    },
-    appUpdates: {
       enabled: { type: Boolean, default: true }
     }
   },

@@ -209,6 +209,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
                         saveNotifSettings(next);
                       }}
                       className={`ml-4 w-40 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white ${!notif.inAppEnabled ? 'cursor-not-allowed' : ''}`}
+                      onClick={(e) => { e.stopPropagation(); }}
                     >
                       <option value="daily">Daily</option>
                       <option value="weekly">Weekly</option>
@@ -230,6 +231,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
                         saveNotifSettings(next);
                       }}
                       className={`ml-4 w-40 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white ${!notif.inAppEnabled ? 'cursor-not-allowed' : ''}`}
+                      onClick={(e) => { e.stopPropagation(); }}
                     >
                       <option value="daily">Daily</option>
                       <option value="weekly">Weekly</option>

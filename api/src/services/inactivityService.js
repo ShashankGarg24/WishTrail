@@ -16,18 +16,8 @@ function localNowMinutes(timezone) {
   }
 }
 
-function isWithinQuietHours(user) {
-  const ns = user?.notificationSettings || {};
-  const quiet = ns.quietHours || { start: '22:00', end: '07:00' };
-  const tz = user?.timezone || 'UTC';
-  const nowM = localNowMinutes(tz);
-  const [sh, sm] = String(quiet.start || '22:00').split(':').map(n => parseInt(n, 10));
-  const [eh, em] = String(quiet.end || '07:00').split(':').map(n => parseInt(n, 10));
-  const startM = (isNaN(sh) ? 22 : sh) * 60 + (isNaN(sm) ? 0 : sm);
-  const endM = (isNaN(eh) ? 7 : eh) * 60 + (isNaN(em) ? 0 : em);
-  if (startM <= endM) return nowM >= startM && nowM < endM;
-  return nowM >= startM || nowM < endM;
-}
+// Quiet hours removed per new spec
+function isWithinQuietHours() { return false; }
 
 function daysSince(date) {
   if (!date) return Infinity;
@@ -40,28 +30,16 @@ async function hasPushableDevice(userId) {
   return !!token;
 }
 
-// Basic 24h rate limit via last inactivity reminder of any step
-async function canSendInactivity(userId) {
-  const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
-  const recent = await Notification.findOne({ userId, type: 'inactivity_reminder', createdAt: { $gte: since } }).select('_id').lean();
-  return !recent;
-}
-
-function messageForDay(gapDays) {
-  if (gapDays >= 30) return { step: 4, title: 'We’re here for you', message: 'Take your time. When you’re ready, your journey awaits 🌟' };
-  if (gapDays >= 14) return { step: 3, title: 'Small step, big momentum', message: 'A quick check-in can reignite your progress. You’ve got this ✨' };
-  if (gapDays >= 7)  return { step: 2, title: 'Your goals miss you', message: 'Come back and check in 💡' };
-  if (gapDays >= 3)  return { step: 1, title: 'We miss you', message: 'Haven’t seen you in a while—ready to continue your journey?' };
+function messageForExactDay(gapDays) {
+  if (gapDays === 30) return { step: 4, title: 'We’re here for you', message: 'Take your time. When you’re ready, your journey awaits 🌟' };
+  if (gapDays === 14) return { step: 3, title: 'Small step, big momentum', message: 'A quick check-in can reignite your progress. You’ve got this ✨' };
+  if (gapDays === 7)  return { step: 2, title: 'Your goals miss you', message: 'Come back and check in 💡' };
+  if (gapDays === 3)  return { step: 1, title: 'We miss you', message: 'Haven’t seen you in a while—ready to continue your journey?' };
   return null;
 }
 
 // Stop conditions: any activity means lastActiveAt updated externally
-function shouldStop(user) {
-  const ns = user?.notificationSettings || {};
-  if (ns.enabled === false) return true;
-  if (ns.inactivity && ns.inactivity.enabled === false) return true;
-  return false;
-}
+function shouldStop() { return false; }
 
 async function sendDueInactivityReminders({ batchLimit = 1000 } = {}) {
   // Consider active users only
@@ -74,11 +52,17 @@ async function sendDueInactivityReminders({ batchLimit = 1000 } = {}) {
     const hasDevice = await hasPushableDevice(u._id);
     if (!hasDevice) continue;
     const gap = daysSince(u.lastActiveAt);
-    const msg = messageForDay(gap);
+    const msg = messageForExactDay(gap);
     if (!msg) continue;
-    // 24h cooldown
-    if (!(await canSendInactivity(u._id))) continue;
-    // quiet hours
+    // ensure we haven't sent this step since last activity
+    const dup = await Notification.findOne({
+      userId: u._id,
+      type: 'inactivity_reminder',
+      createdAt: { $gte: new Date(u.lastActiveAt || 0) },
+      'data.metadata.step': msg.step
+    }).select('_id').lean();
+    if (dup) continue;
+    // quiet hours removed
     if (isWithinQuietHours(u)) continue;
     await Notification.createNotification({
       userId: u._id,
@@ -86,7 +70,8 @@ async function sendDueInactivityReminders({ batchLimit = 1000 } = {}) {
       title: msg.title,
       message: msg.message,
       priority: 'low',
-      channels: { push: true, inApp: true }
+      channels: { push: true, inApp: true },
+      data: { metadata: { step: msg.step, gapDays: gap } }
     });
     sent += 1;
   }
