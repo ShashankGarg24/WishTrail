@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState, useCallback, useEffect } from 'react';
-import { Platform, SafeAreaView, StatusBar, View, RefreshControl, Linking, AppState } from 'react-native';
+import { Platform, SafeAreaView, StatusBar, View, RefreshControl, Linking, AppState, Pressable, Text } from 'react-native';
 import { WebView } from 'react-native-webview';
 import Constants from 'expo-constants';
 import { registerRootComponent } from 'expo';
@@ -25,6 +25,8 @@ function App() {
   const deviceRegisterAttempted = useRef(false);
   const authProbeTries = useRef(0);
   const authProbeTimer = useRef(null);
+  const [toast, setToast] = useState(null); // { title, body, url }
+  const toastTimer = useRef(null);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -83,6 +85,12 @@ function App() {
         };
         const js = `window.dispatchEvent(new CustomEvent('wt_push', { detail: ${JSON.stringify(payload)} })); true;`;
         webRef.current?.injectJavaScript(js);
+        // Show in-app toast while foreground
+        try {
+          setToast({ title: payload.title, body: payload.body, url: payload.url });
+          clearTimeout(toastTimer.current);
+          toastTimer.current = setTimeout(() => setToast(null), 4000);
+        } catch {}
       } catch {}
     });
     const responseSub = Notifications.addNotificationResponseReceivedListener((response) => {
@@ -286,6 +294,22 @@ function App() {
         renderLoading={() => <View style={{ flex: 1, backgroundColor: '#fff' }} />}
         refreshControl={Platform.OS === 'ios' ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} /> : undefined}
       />
+      {toast && (
+        <Pressable
+          onPress={() => {
+            try {
+              if (toast.url && typeof toast.url === 'string') {
+                webRef.current?.injectJavaScript(`try{window.location.href = ${JSON.stringify(toast.url)};}catch(e){}; true;`);
+              }
+            } catch {}
+            setToast(null);
+          }}
+          style={{ position: 'absolute', left: 16, right: 16, bottom: 24, borderRadius: 12, backgroundColor: 'rgba(17,24,39,0.95)', paddingVertical: 12, paddingHorizontal: 14, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 6, elevation: 6 }}
+        >
+          <Text style={{ color: 'white', fontWeight: '600', marginBottom: 2 }} numberOfLines={1}>{toast.title || 'Notification'}</Text>
+          {!!toast.body && <Text style={{ color: '#d1d5db' }} numberOfLines={2}>{toast.body}</Text>}
+        </Pressable>
+      )}
     </SafeAreaView>
   );
 }
