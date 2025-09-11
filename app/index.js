@@ -63,6 +63,7 @@ function App() {
 
   // FCM: request permissions, get token, and forward foreground messages to web UI
   useEffect(() => {
+    if (Platform.OS !== 'android') return;
     (async () => {
       try {
         const authStatus = await messaging().requestPermission();
@@ -70,37 +71,16 @@ function App() {
         if (!enabled) return;
         const fcmToken = await messaging().getToken();
         try { console.log('FCM token:', fcmToken ? (fcmToken.slice(0, 12) + '...') : 'null'); } catch {}
-        // Send token to backend via web context when user is logged in
-        if (fcmToken) {
-          const script = `
-            (async function(){
-              try {
-                var jwt = localStorage.getItem('token') || '';
-                var persisted = localStorage.getItem('wishtrail-api-store') || '';
-                var uid = '';
-                try { var obj = JSON.parse(persisted); uid = (obj && obj.state && (obj.state.user && (obj.state.user._id || obj.state.user.id))) || ''; } catch(e) {}
-                if (!jwt && !uid) return;
-                await fetch('${(Constants.expoConfig?.extra?.API_URL || Constants.manifest?.extra?.API_URL || '').replace(/\/$/, '')}/notifications/devices/register', {
-                  method: 'POST', headers: { 'Content-Type': 'application/json', ...(jwt ? { 'Authorization': 'Bearer ' + jwt } : {}) },
-                  body: JSON.stringify({ token: ${JSON.stringify('') } + ${JSON.stringify('') } + ${JSON.stringify('')} || '${''}' })
-                });
-              } catch(e) {}
-            })(); true;`;
-          // Simpler: call native fetch directly if API_URL is present
-          const API_BASE = (Constants.expoConfig?.extra?.API_URL || Constants.manifest?.extra?.API_URL || '').replace(/\/$/, '');
-          if (API_BASE && (authToken || userId)) {
-            try {
-              await fetch(`${API_BASE}/notifications/devices/register`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}) },
-                body: JSON.stringify({ token: fcmToken, platform: Platform.OS, provider: 'fcm', userId: userId || undefined })
-              });
-            } catch {}
-          } else {
-            webRef.current?.injectJavaScript(script);
-          }
+        const API_BASE = (Constants.expoConfig?.extra?.API_URL || Constants.manifest?.extra?.API_URL || '').replace(/\/$/, '');
+        if (API_BASE && fcmToken && (authToken || userId)) {
+          try {
+            await fetch(`${API_BASE}/notifications/devices/register`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}) },
+              body: JSON.stringify({ token: fcmToken, platform: Platform.OS, provider: 'fcm', userId: userId || undefined })
+            });
+          } catch {}
         }
-        // Foreground messages
         const unsub = messaging().onMessage(async (remoteMessage) => {
           try {
             const data = remoteMessage?.data || {};
@@ -109,8 +89,10 @@ function App() {
             webRef.current?.injectJavaScript(js);
           } catch {}
         });
-        return () => unsub();
-      } catch {}
+        // Note: no cleanup needed on Android for now
+      } catch (e) {
+        try { console.log('FCM init error', e?.message || e); } catch {}
+      }
     })();
   }, [authToken, userId]);
 
