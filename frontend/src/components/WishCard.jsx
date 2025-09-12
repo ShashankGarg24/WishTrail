@@ -7,7 +7,7 @@ import CompletionModal from './CompletionModal'
 import EditWishModal from './EditWishModal'
 import ShareModal from './ShareModal'
 
-const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewingOwnGoals = true }) => {
+const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewingOwnGoals = true, onOpenGoal }) => {
   const { 
     completeGoal, 
     deleteGoal, 
@@ -136,7 +136,8 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: index * 0.1 }}
-      className={`glass-card-hover p-6 rounded-xl theme-transition ${
+      onClick={() => onOpenGoal?.(wish?._id)}
+      className={`glass-card-hover p-6 rounded-xl theme-transition ${onOpenGoal ? 'cursor-pointer' : ''} ${
         wish.completed ? 'bg-green-50/50 dark:bg-green-900/10' : ''
       } ${isOverdue() ? 'ring-2 ring-red-200 dark:ring-red-800' : ''}`}
     >
@@ -144,7 +145,7 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center space-x-3">
           <button
-            onClick={handleToggle}
+            onClick={(e) => { e.stopPropagation(); handleToggle(); }}
             className={`flex-shrink-0 transition-colors ${
               wish.isLocked && !wish.completed ? 'cursor-not-allowed' : ''
             }`}
@@ -176,11 +177,11 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
             )}
           </button>
           <div className="flex-1 min-w-0">
-            <h3 className={`font-semibold text-lg line-clamp-2 break-anywhere ${
+            <h3 onClick={() => onOpenGoal?.(wish?._id)} className={`font-semibold text-lg line-clamp-2 break-anywhere ${
               wish.completed 
                 ? 'text-gray-500 dark:text-gray-400 line-through' 
                 : 'text-gray-900 dark:text-white'
-            }`}>
+            } ${onOpenGoal ? 'cursor-pointer hover:underline' : ''}`}>
               {wish.title}
             </h3>
           </div>
@@ -192,7 +193,7 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
           {/* Only show edit button for uncompleted goals */}
           {!wish.completed && (
             <button
-              onClick={handleEdit}
+              onClick={(e) => { e.stopPropagation(); handleEdit(); }}
               className="p-1 rounded-full hover:bg-white/10 transition-colors"
                 disabled={loading}
             >
@@ -201,7 +202,7 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
           )}
           {isViewingOwnGoals && wish.completed && (
             <button
-              onClick={handleShare}
+              onClick={(e) => { e.stopPropagation(); handleShare(); }}
               className="p-1 rounded-full hover:bg-white/10 transition-colors"
                 disabled={loading}
             >
@@ -209,7 +210,7 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
             </button>
           )}
           <button
-            onClick={handleDelete}
+            onClick={(e) => { e.stopPropagation(); handleDelete(); }}
             className="p-1 rounded-full hover:bg-white/10 transition-colors"
               disabled={loading}
           >

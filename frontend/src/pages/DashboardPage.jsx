@@ -12,6 +12,7 @@ import WishCard from '../components/WishCard'
 import GoalSuggestions from '../components/GoalSuggestions'
 import GoalSuggestionsModal from '../components/GoalSuggestionsModal'
 import { API_CONFIG } from '../config/api'
+import GoalPostModal from '../components/GoalPostModal'
 
 const DashboardPage = () => {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
@@ -35,6 +36,8 @@ const DashboardPage = () => {
     toggleGoalCompletion,
     deleteGoal,
   } = useApiStore()
+
+  const [openGoalId, setOpenGoalId] = useState(null)
 
   // Load dashboard data on mount
   useEffect(() => {
@@ -424,6 +427,7 @@ const DashboardPage = () => {
                   onDelete={() => handleDeleteGoal(goal._id)}
                   onComplete={handleCompleteGoal}
                   isViewingOwnGoals={true}
+                  onOpenGoal={(id) => setOpenGoalId(id)}
                 />
               ))}
             </motion.div>
@@ -499,6 +503,11 @@ const DashboardPage = () => {
             }
           }}
         />
+      )}
+
+      {/* Goal Post Modal (shared with Feed) */}
+      {openGoalId && (
+        <GoalPostModal isOpen={!!openGoalId} goalId={openGoalId} onClose={() => setOpenGoalId(null)} />
       )}
     </div>
   )

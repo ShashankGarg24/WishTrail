@@ -19,8 +19,23 @@ function buildDeepLink(notification) {
         : notification.data.goalId;
       if (id) return `${base}/goal/${id}`;
     }
+    if (notification?.data?.activityId) {
+      // Prefer goal modal if goalId present
+      const g = notification?.data?.goalId;
+      if (g) {
+        const gid = typeof g === 'object' ? (g._id || g) : g;
+        if (gid) return `${base}/goal/${gid}`;
+      }
+      return `${base}/feed`;
+    }
     if (notification?.data?.habitId) return `${base}/dashboard`;
-    if (notification?.data?.activityId) return `${base}/feed`;
+    if (notification?.type === 'follow_request' || notification?.type === 'follow_request_accepted' || notification?.type === 'new_follower') {
+      const actor = notification?.data?.actorId || notification?.data?.followerId;
+      if (actor) return `${base}/profile/${actor}`;
+      return `${base}/notifications`;
+    }
+    if (notification?.type === 'journal_prompt') return `${base}/profile?tab=journal`;
+    if (notification?.type === 'motivation_quote') return `${base}/dashboard`;
   } catch {}
   return `${base}/notifications`;
 }

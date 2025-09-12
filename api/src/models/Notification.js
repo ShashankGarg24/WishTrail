@@ -591,14 +591,25 @@ notificationSchema.statics.createCommentLikeNotification = async function(likerI
     if (!comment) return;
     if (String(comment.userId) === String(likerId)) return;
     const User = mongoose.model('User');
+    const Activity = mongoose.model('Activity');
+    const ActivityComment = mongoose.model('ActivityComment');
     const liker = await User.findById(likerId).select('name avatar');
     if (!liker) return;
+    // Try to enrich with activityId and goalId for deep linking
+    let activityId = comment.activityId;
+    if (!activityId) {
+      try { const c = await ActivityComment.findById(comment._id).select('activityId'); activityId = c?.activityId; } catch (_) {}
+    }
+    let goalId = undefined;
+    if (activityId) {
+      try { const act = await Activity.findById(activityId).select('data.goalId'); goalId = act?.data?.goalId; } catch (_) {}
+    }
     const filter = { userId: comment.userId, type: 'comment_liked', 'data.commentId': comment._id, 'data.actorId': likerId };
     const existing = await this.findOne(filter).sort({ createdAt: -1 });
     if (existing) {
       const ageMs = Date.now() - new Date(existing.createdAt).getTime();
       if (ageMs < 60000) return existing;
-      await this.updateOne({ _id: existing._id }, { $set: { isRead: false, readAt: null, title: 'Comment liked', message: `${liker.name} liked your comment`, 'data.actorName': liker.name, 'data.actorAvatar': liker.avatar, updatedAt: new Date(), createdAt: new Date() } });
+      await this.updateOne({ _id: existing._id }, { $set: { isRead: false, readAt: null, title: 'Comment liked', message: `${liker.name} liked your comment`, 'data.actorName': liker.name, 'data.actorAvatar': liker.avatar, 'data.activityId': activityId || existing?.data?.activityId, 'data.goalId': goalId || existing?.data?.goalId, updatedAt: new Date(), createdAt: new Date() } });
       return existing;
     }
     return this.createNotification({
@@ -610,7 +621,9 @@ notificationSchema.statics.createCommentLikeNotification = async function(likerI
         actorId: likerId,
         actorName: liker.name,
         actorAvatar: liker.avatar,
-        commentId: comment._id
+        commentId: comment._id,
+        activityId: activityId || undefined,
+        goalId: goalId || undefined
       }
     });
   } catch (e) {
