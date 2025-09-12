@@ -364,7 +364,21 @@ notificationSchema.statics.createFollowNotification = async function(followerId,
   const follower = await User.findById(followerId).select('name avatar');
   
   if (!follower) return;
-  
+
+  // Only notify on first follow ever. If relationship ever existed previously, do not notify again.
+  const Follow = mongoose.model('Follow');
+  try {
+    const hist = await Follow.findOne({ followerId, followingId }).lean();
+    if (hist && (hist.isActive || hist.followedAt)) {
+      // Relationship existed before; skip new follower notification on re-follow
+      return null;
+    }
+  } catch (_) {}
+
+  // Also dedup any existing new_follower entry
+  const existing = await this.findOne({ userId: followingId, type: 'new_follower', 'data.followerId': followerId });
+  if (existing) return existing;
+
   return this.createNotification({
     userId: followingId,
     type: 'new_follower',
@@ -383,6 +397,13 @@ notificationSchema.statics.createFollowRequestNotification = async function(foll
   const User = mongoose.model('User');
   const follower = await User.findById(followerId).select('name avatar');
   if (!follower) return;
+  // Upsert one pending request notification per follower/following
+  const existing = await this.findOne({ userId: followingId, type: 'follow_request', 'data.followerId': followerId });
+  if (existing) {
+    // Refresh timestamp and mark unread
+    await this.updateOne({ _id: existing._id }, { $set: { isRead: false, readAt: null, title: 'Follow Request', message: `${follower.name} requested to follow you`, 'data.followerName': follower.name, 'data.followerAvatar': follower.avatar, 'data.actorName': follower.name, 'data.actorAvatar': follower.avatar, updatedAt: new Date(), createdAt: new Date() } });
+    return existing;
+  }
   return this.createNotification({
     userId: followingId,
     type: 'follow_request',
@@ -537,6 +558,15 @@ notificationSchema.statics.createActivityLikeNotification = async function(liker
     const User = mongoose.model('User');
     const liker = await User.findById(likerId).select('name avatar username');
     if (!liker) return;
+    // Dedup: one per actor per activity; cooldown 60s
+    const filter = { userId: activity.userId, type: 'activity_liked', 'data.activityId': activity._id, 'data.actorId': likerId };
+    const existing = await this.findOne(filter).sort({ createdAt: -1 });
+    if (existing) {
+      const ageMs = Date.now() - new Date(existing.createdAt).getTime();
+      if (ageMs < 60000) return existing; // suppress within 60s
+      await this.updateOne({ _id: existing._id }, { $set: { isRead: false, readAt: null, title: 'Activity liked', message: `${liker.name} liked your activity`, 'data.actorName': liker.name, 'data.actorAvatar': liker.avatar, updatedAt: new Date(), createdAt: new Date() } });
+      return existing;
+    }
     return this.createNotification({
       userId: activity.userId,
       type: 'activity_liked',
@@ -563,6 +593,14 @@ notificationSchema.statics.createCommentLikeNotification = async function(likerI
     const User = mongoose.model('User');
     const liker = await User.findById(likerId).select('name avatar');
     if (!liker) return;
+    const filter = { userId: comment.userId, type: 'comment_liked', 'data.commentId': comment._id, 'data.actorId': likerId };
+    const existing = await this.findOne(filter).sort({ createdAt: -1 });
+    if (existing) {
+      const ageMs = Date.now() - new Date(existing.createdAt).getTime();
+      if (ageMs < 60000) return existing;
+      await this.updateOne({ _id: existing._id }, { $set: { isRead: false, readAt: null, title: 'Comment liked', message: `${liker.name} liked your comment`, 'data.actorName': liker.name, 'data.actorAvatar': liker.avatar, updatedAt: new Date(), createdAt: new Date() } });
+      return existing;
+    }
     return this.createNotification({
       userId: comment.userId,
       type: 'comment_liked',
@@ -591,7 +629,16 @@ notificationSchema.statics.createGoalLikeNotification = async function(likerId, 
   ]);
   
   if (!liker || !goal) return;
-  
+
+  // Dedup: one per actor per goal; cooldown 60s
+  const filter = { userId: goalUserId, type: 'goal_liked', 'data.goalId': goalId, 'data.likerId': likerId };
+  const existing = await this.findOne(filter).sort({ createdAt: -1 });
+  if (existing) {
+    const ageMs = Date.now() - new Date(existing.createdAt).getTime();
+    if (ageMs < 60000) return existing;
+    await this.updateOne({ _id: existing._id }, { $set: { isRead: false, readAt: null, title: 'Goal Liked', message: `${liker.name} liked your goal "${goal.title}"`, 'data.likerName': liker.name, 'data.likerAvatar': liker.avatar, updatedAt: new Date(), createdAt: new Date() } });
+    return existing;
+  }
   return this.createNotification({
     userId: goalUserId,
     type: 'goal_liked',
