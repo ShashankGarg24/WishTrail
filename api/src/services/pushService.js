@@ -92,40 +92,44 @@ async function sendFcmToUser(userId, notification) {
 
   if (fcmTokens.length) {
     try {
-      // Compose notification title/body per spec: receiver's name and actor/purpose context
+      // Compose notification title/body per new spec: "ActorName : action" and body shows truncated goal title when relevant
       let title = notification.title || 'Notification';
       let body = notification.message || '';
       try {
-        // Fetch receiver's display name if possible
-        const User = require('../models/User');
-        const receiver = await User.findById(notification.userId).select('name').lean();
-        const receiverName = receiver?.name || '';
         const actorName = notification?.data?.actorName || notification?.data?.likerName || notification?.data?.followerName || '';
-        // Derive a concise purpose from type
         const type = String(notification.type || '');
-        const purposeMap = {
-          activity_liked: 'Activity Liked',
-          comment_liked: 'Comment Liked',
-          goal_liked: 'Goal Liked',
-          activity_comment: 'Commented',
-          comment_reply: 'Reply',
-          mention: 'Mentioned You',
-          new_follower: 'New Follower',
-          follow_request: 'Follow Request',
-          follow_request_accepted: 'Request Accepted',
-          habit_reminder: 'Habit Reminder',
-          journal_prompt: 'Journal Prompt',
-          motivation_quote: 'Motivation',
-          inactivity_reminder: 'We Miss You'
+        const actionMap = {
+          activity_liked: 'liked your activity',
+          comment_liked: 'liked your comment',
+          goal_liked: 'liked your goal',
+          activity_comment: 'commented on your activity',
+          comment_reply: 'replied to your comment',
+          mention: 'mentioned you',
+          new_follower: 'started following you',
+          follow_request: 'requested to follow you',
+          follow_request_accepted: 'accepted your follow request'
         };
-        const purpose = purposeMap[type] || (notification.title || 'Notification');
-        // Build title as: "ReceiverName FriendName: Purpose" (omit blanks gracefully)
-        const left = receiverName ? receiverName : '';
-        const mid = actorName ? ` ${actorName}` : '';
-        const end = `: ${purpose}`;
-        const composed = `${left}${mid}${end}`.trim();
-        title = composed || title;
-        // Body stays as original message to preserve details
+        if (actorName && actionMap[type]) {
+          title = `${actorName} : ${actionMap[type]}`;
+        } else if (type === 'habit_reminder' || type === 'journal_prompt' || type === 'motivation_quote' || type === 'inactivity_reminder') {
+          // keep system titles as-is
+          title = notification.title || title;
+        }
+        // If there's a goal title, prefer it as body (truncated). Otherwise keep original message.
+        const truncate = (s, n = 48) => {
+          try { const t = String(s || ''); return t.length > n ? (t.slice(0, n - 3) + '...') : t; } catch { return ''; }
+        };
+        let goalTitle = notification?.data?.goalTitle || '';
+        if (!goalTitle && notification?.data?.goalId) {
+          try {
+            const Goal = require('../models/Goal');
+            const g = await Goal.findById(notification.data.goalId).select('title').lean();
+            goalTitle = g?.title || '';
+          } catch {}
+        }
+        if (goalTitle && (type === 'goal_liked' || type === 'activity_liked' || type === 'activity_comment')) {
+          body = truncate(goalTitle, 64);
+        }
       } catch (_) {}
 
       const msg = {

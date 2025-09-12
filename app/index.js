@@ -76,40 +76,51 @@ function App() {
     return () => sub.remove();
   }, []);
 
-  // FCM: request permissions, get token, and forward foreground messages to web UI
+  // FCM: request permission on first run (Android/iOS), store token, and forward foreground messages
+  const [fcmToken, setFcmToken] = useState(null);
+  const didRegisterRef = useRef(false);
   useEffect(() => {
-    if (Platform.OS !== 'android') return;
     // Allow disabling FCM at build-time if needed
     const disableFcm = !!(Constants?.expoConfig?.extra?.DISABLE_FCM || Constants?.manifest?.extra?.DISABLE_FCM);
     if (disableFcm) { try { console.log('FCM disabled via extra.DISABLE_FCM'); } catch {} ; return; }
     (async () => {
       try {
-        // Dynamically import RNFB messaging to avoid crashes if native module isn't linked yet
+        // Require RNFB messaging and AsyncStorage synchronously to avoid Metro dynamic import issues
         let messaging;
         try {
-          const mod = await import('@react-native-firebase/messaging');
-          messaging = mod?.default;
-        } catch (_) {
-          messaging = null;
-        }
+          const mod = require('@react-native-firebase/messaging');
+          messaging = mod?.default || mod;
+        } catch (_) { messaging = null; }
         if (!messaging) { try { console.log('FCM: messaging module not available; skipping'); } catch {} ; return; }
 
-        const authStatus = await messaging().requestPermission();
-        const enabled = authStatus === messaging.AuthorizationStatus.AUTHORIZED || authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+        let storage = null;
+        try { const s = require('@react-native-async-storage/async-storage'); storage = s?.default || s; } catch (_) {}
+
+        let prompted = false;
+        try { prompted = !!(storage && (await storage.getItem('WT_PUSH_PROMPTED'))); } catch (_) {}
+
+        // Request permission on first run (iOS/Android 13+)
+        let authStatus = null;
+        try {
+          if (!prompted) {
+            authStatus = await messaging().requestPermission();
+            try { storage && (await storage.setItem('WT_PUSH_PROMPTED', '1')); } catch (_) {}
+          } else {
+            // Attempt to check current permission if available
+            if (messaging().hasPermission) {
+              try { authStatus = await messaging().hasPermission(); } catch (_) {}
+            }
+          }
+        } catch (_) {}
+
+        const enabled = authStatus === messaging?.AuthorizationStatus?.AUTHORIZED || authStatus === messaging?.AuthorizationStatus?.PROVISIONAL || (typeof authStatus === 'number' && authStatus >= 1);
         if (!enabled) return;
-        const fcmToken = await messaging().getToken();
-        try { console.log('FCM token:', fcmToken ? (fcmToken.slice(0, 12) + '...') : 'null'); } catch {}
-        const API_BASE = (Constants.expoConfig?.extra?.API_URL || Constants.manifest?.extra?.API_URL || '').replace(/\/$/, '');
-        if (API_BASE && fcmToken && (authToken || userId)) {
-          try {
-            await fetch(`${API_BASE}/notifications/devices/register`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}) },
-              body: JSON.stringify({ token: fcmToken, platform: Platform.OS, provider: 'fcm', userId: userId || undefined })
-            });
-          } catch {}
-        }
-        const unsub = messaging().onMessage(async (remoteMessage) => {
+        const token = await messaging().getToken();
+        setFcmToken(token);
+        try { console.log('FCM token:', token ? (token.slice(0, 12) + '...') : 'null'); } catch {}
+
+        // Foreground message bridge
+        messaging().onMessage(async (remoteMessage) => {
           try {
             const data = remoteMessage?.data || {};
             const payload = { title: remoteMessage?.notification?.title || '', body: remoteMessage?.notification?.body || '', url: data?.url || '', type: data?.type || '', id: data?.id || '' };
@@ -117,12 +128,28 @@ function App() {
             webRef.current?.injectJavaScript(js);
           } catch {}
         });
-        // Note: no cleanup needed on Android for now
       } catch (e) {
         try { console.log('FCM init error', e?.message || e); } catch {}
       }
     })();
-  }, [authToken, userId]);
+  }, []);
+
+  // Register device token when token/auth/user is available
+  useEffect(() => {
+    (async () => {
+      try {
+        if (didRegisterRef.current) return;
+        const API = (Constants.expoConfig?.extra?.API_URL || Constants.manifest?.extra?.API_URL || '').replace(/\/$/, '');
+        if (!API || !fcmToken || !(authToken || userId)) return;
+        await fetch(`${API}/notifications/devices/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}) },
+          body: JSON.stringify({ token: fcmToken, platform: Platform.OS, provider: 'fcm', userId: userId || undefined })
+        });
+        didRegisterRef.current = true;
+      } catch (_) {}
+    })();
+  }, [authToken, userId, fcmToken]);
 
   // Expo push listeners removed
 
