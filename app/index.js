@@ -93,27 +93,11 @@ function App() {
         } catch (_) { messaging = null; }
         if (!messaging) { try { console.log('FCM: messaging module not available; skipping'); } catch {} ; return; }
 
-        let storage = null;
-        try { const s = require('@react-native-async-storage/async-storage'); storage = s?.default || s; } catch (_) {}
-
-        let prompted = false;
-        try { prompted = !!(storage && (await storage.getItem('WT_PUSH_PROMPTED'))); } catch (_) {}
-
         // Request permission on first run (iOS/Android 13+)
         let authStatus = null;
-        try {
-          if (!prompted) {
-            authStatus = await messaging().requestPermission();
-            try { storage && (await storage.setItem('WT_PUSH_PROMPTED', '1')); } catch (_) {}
-          } else {
-            // Attempt to check current permission if available
-            if (messaging().hasPermission) {
-              try { authStatus = await messaging().hasPermission(); } catch (_) {}
-            }
-          }
-        } catch (_) {}
+        try { authStatus = await messaging().requestPermission(); } catch (_) {}
 
-        const enabled = authStatus === messaging?.AuthorizationStatus?.AUTHORIZED || authStatus === messaging?.AuthorizationStatus?.PROVISIONAL || (typeof authStatus === 'number' && authStatus >= 1);
+        const enabled = (typeof authStatus === 'number') ? (authStatus >= 1) : !!authStatus;
         if (!enabled) return;
         const token = await messaging().getToken();
         setFcmToken(token);
