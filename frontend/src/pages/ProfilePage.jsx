@@ -389,10 +389,10 @@ const ProfilePage = () => {
                   @{displayUser.username}
                 </p>
                 {/* 3-dots menu for profile actions (aligned right) */}
-                <div className="relative">
+                <div className="relative inline-block">
                   <button onClick={() => setProfileMenuOpen(v => !v)} className="px-2 py-1 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800">⋯</button>
                   {profileMenuOpen && (
-                    <div className="absolute right-0 mt-2 w-44 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-10">
+                    <div className="absolute right-0 top-full mt-2 w-44 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-40">
                       {isOwnProfile ? (
                         <button
                           className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"

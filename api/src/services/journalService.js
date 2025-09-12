@@ -382,10 +382,14 @@ async function notifyDailyPrompt() {
   for (const u of users) {
     const ns = u.notificationSettings || {};
     if (ns.journal && ns.journal.enabled === false) continue;
-    if (ns.motivation && ns.motivation.enabled === true && ns.motivation.frequency === 'daily') {
-      // We'll send motivation_quote elsewhere if needed; keep journal prompt separate
-    }
-    // Quiet hours removed
+    // Send prompt at user's local 20:00
+    try {
+      const fmt = new Intl.DateTimeFormat('en-GB', { hour12: false, timeZone: u.timezone || 'UTC', hour: '2-digit', minute: '2-digit' });
+      const parts = fmt.formatToParts(new Date());
+      const hh = parts.find(p => p.type === 'hour')?.value || '00';
+      const mm = parts.find(p => p.type === 'minute')?.value || '00';
+      if (`${hh}:${mm}` !== '20:00') continue;
+    } catch {}
     jobs.push(Notification.createNotification({
       userId: u._id,
       type: 'journal_prompt',

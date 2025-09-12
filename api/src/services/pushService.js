@@ -92,9 +92,45 @@ async function sendFcmToUser(userId, notification) {
 
   if (fcmTokens.length) {
     try {
+      // Compose notification title/body per spec: receiver's name and actor/purpose context
+      let title = notification.title || 'Notification';
+      let body = notification.message || '';
+      try {
+        // Fetch receiver's display name if possible
+        const User = require('../models/User');
+        const receiver = await User.findById(notification.userId).select('name').lean();
+        const receiverName = receiver?.name || '';
+        const actorName = notification?.data?.actorName || notification?.data?.likerName || notification?.data?.followerName || '';
+        // Derive a concise purpose from type
+        const type = String(notification.type || '');
+        const purposeMap = {
+          activity_liked: 'Activity Liked',
+          comment_liked: 'Comment Liked',
+          goal_liked: 'Goal Liked',
+          activity_comment: 'Commented',
+          comment_reply: 'Reply',
+          mention: 'Mentioned You',
+          new_follower: 'New Follower',
+          follow_request: 'Follow Request',
+          follow_request_accepted: 'Request Accepted',
+          habit_reminder: 'Habit Reminder',
+          journal_prompt: 'Journal Prompt',
+          motivation_quote: 'Motivation',
+          inactivity_reminder: 'We Miss You'
+        };
+        const purpose = purposeMap[type] || (notification.title || 'Notification');
+        // Build title as: "ReceiverName FriendName: Purpose" (omit blanks gracefully)
+        const left = receiverName ? receiverName : '';
+        const mid = actorName ? ` ${actorName}` : '';
+        const end = `: ${purpose}`;
+        const composed = `${left}${mid}${end}`.trim();
+        title = composed || title;
+        // Body stays as original message to preserve details
+      } catch (_) {}
+
       const msg = {
         tokens: fcmTokens,
-        notification: { title: notification.title || 'Notification', body: notification.message || '' },
+        notification: { title, body },
         data: { url: dataUrl, type: String(notification.type || ''), id: String(notification._id || '') },
         android: {
           priority: 'high',

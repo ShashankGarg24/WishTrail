@@ -24,13 +24,15 @@ function computeConsistency(totalCompletions, createdAt) {
 }
 
 async function createHabit(userId, payload) {
+  // Default timezone to user's stored timezone if none provided
+  const user = await User.findById(userId).select('timezone').lean();
   const doc = new Habit({
     userId,
     name: payload.name,
     description: payload.description || '',
     frequency: payload.frequency || 'daily',
     daysOfWeek: Array.isArray(payload.daysOfWeek) ? payload.daysOfWeek : undefined,
-    timezone: payload.timezone || 'UTC',
+    timezone: payload.timezone || user?.timezone || 'UTC',
     reminders: Array.isArray(payload.reminders) ? payload.reminders : [],
     goalId: payload.goalId || undefined,
     isPublic: payload.isPublic !== undefined ? !!payload.isPublic : true
@@ -198,13 +200,14 @@ function nowInTimezoneHHmm(timezone) {
 }
 
 // Return due habits for this exact minute considering timezone and schedule
-async function dueHabitsForReminder(userId) {
+async function dueHabitsForReminder(userId, userTimezone) {
   const habits = await Habit.find({ userId, isActive: true, isArchived: false }).lean();
   const todayUTC = new Date();
   const jobs = [];
   for (const h of habits) {
     if (!isScheduledForDay(h, todayUTC)) continue;
-    const localHHmm = nowInTimezoneHHmm(h.timezone || 'UTC');
+    const tz = h.timezone || userTimezone || 'UTC';
+    const localHHmm = nowInTimezoneHHmm(tz);
     const times = (h.reminders || []).map(r => r?.time).filter(Boolean);
     if (times.includes(localHHmm)) jobs.push(h);
   }
@@ -221,7 +224,7 @@ async function sendReminderNotifications() {
     const ns = u.notificationSettings || {};
     if (ns.habits && ns.habits.enabled === false) continue;
     // Quiet hours removed
-    const habits = await dueHabitsForReminder(u._id);
+    const habits = await dueHabitsForReminder(u._id, u.timezone || 'UTC');
     for (const h of habits) {
       // Skip if already done today (default true)
       const skipIfDone = ns.habits && typeof ns.habits.skipIfDone === 'boolean' ? ns.habits.skipIfDone : true;

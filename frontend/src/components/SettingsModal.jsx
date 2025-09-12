@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock';
 import { motion } from 'framer-motion';
 import { X, Lock, Eye, EyeOff, Shield, Settings, Bell } from 'lucide-react';
@@ -20,6 +20,10 @@ const SettingsModal = ({ isOpen, onClose }) => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+  const [openJournalDd, setOpenJournalDd] = useState(false);
+  const [openMotivationDd, setOpenMotivationDd] = useState(false);
+  const journalDdRef = useRef(null);
+  const motivationDdRef = useRef(null);
 
   // Autosave helper for notification settings
   const saveNotifSettings = async (next) => {
@@ -43,6 +47,20 @@ const SettingsModal = ({ isOpen, onClose }) => {
       })();
     }
   }, [isOpen]);
+
+  // Close dropdowns on outside click
+  useEffect(() => {
+    const onDocClick = (e) => {
+      if (openJournalDd && journalDdRef.current && !journalDdRef.current.contains(e.target)) {
+        setOpenJournalDd(false);
+      }
+      if (openMotivationDd && motivationDdRef.current && !motivationDdRef.current.contains(e.target)) {
+        setOpenMotivationDd(false);
+      }
+    };
+    document.addEventListener('mousedown', onDocClick);
+    return () => document.removeEventListener('mousedown', onDocClick);
+  }, [openJournalDd, openMotivationDd]);
 
   const handlePrivacyToggle = async () => {
     setLoading(true);
@@ -198,45 +216,67 @@ const SettingsModal = ({ isOpen, onClose }) => {
                   {/* Journal reminders */}
                   <div className={`flex items-center justify-between py-3 ${!notif.inAppEnabled ? 'opacity-50' : ''}`}>
                     <h3 className="text-sm text-gray-900 dark:text-white">Journal reminders</h3>
-                    <select
-                      disabled={!notif.inAppEnabled}
-                      value={(notif.journal?.enabled === false) ? 'off' : (notif.journal?.frequency || 'daily')}
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        const next = v === 'off'
-                          ? { ...notif, journal: { ...(notif.journal || {}), enabled: false, frequency: 'off' } }
-                          : { ...notif, journal: { enabled: true, frequency: v } };
-                        saveNotifSettings(next);
-                      }}
-                      className={`ml-4 w-40 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white ${!notif.inAppEnabled ? 'cursor-not-allowed' : ''}`}
-                      onClick={(e) => { e.stopPropagation(); }}
-                    >
-                      <option value="daily">Daily</option>
-                      <option value="weekly">Weekly</option>
-                      <option value="off">Off</option>
-                    </select>
+                    <div ref={journalDdRef} className="relative ml-4">
+                      <button
+                        type="button"
+                        disabled={!notif.inAppEnabled}
+                        onClick={(e) => { e.stopPropagation(); setOpenJournalDd(v => !v); setOpenMotivationDd(false); }}
+                        className={`w-40 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-left ${!notif.inAppEnabled ? 'cursor-not-allowed' : ''}`}
+                      >
+                        {(notif.journal?.enabled === false || notif.journal?.frequency === 'off') ? 'Off' : (notif.journal?.frequency || 'daily')}
+                      </button>
+                      {openJournalDd && (
+                        <div className="absolute right-0 top-full mt-2 w-44 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50">
+                          {['daily','weekly','off'].map(opt => (
+                            <button
+                              key={opt}
+                              className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
+                              onClick={() => {
+                                const v = opt;
+                                const next = v === 'off'
+                                  ? { ...notif, journal: { ...(notif.journal || {}), enabled: false, frequency: 'off' } }
+                                  : { ...notif, journal: { enabled: true, frequency: v } };
+                                saveNotifSettings(next);
+                                setOpenJournalDd(false);
+                              }}
+                            >{opt === 'off' ? 'Off' : (opt.charAt(0).toUpperCase() + opt.slice(1))}</button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   {/* Motivation */}
                   <div className={`flex items-center justify-between py-3 ${!notif.inAppEnabled ? 'opacity-50' : ''}`}>
                     <h3 className="text-sm text-gray-900 dark:text-white">Motivation</h3>
-                    <select
-                      disabled={!notif.inAppEnabled}
-                      value={(notif.motivation?.enabled === false || notif.motivation?.frequency === 'off') ? 'off' : (notif.motivation?.frequency || 'off')}
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        const next = v === 'off'
-                          ? { ...notif, motivation: { ...(notif.motivation || {}), enabled: false, frequency: 'off' } }
-                          : { ...notif, motivation: { enabled: true, frequency: v } };
-                        saveNotifSettings(next);
-                      }}
-                      className={`ml-4 w-40 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white ${!notif.inAppEnabled ? 'cursor-not-allowed' : ''}`}
-                      onClick={(e) => { e.stopPropagation(); }}
-                    >
-                      <option value="daily">Daily</option>
-                      <option value="weekly">Weekly</option>
-                      <option value="off">Off</option>
-                    </select>
+                    <div ref={motivationDdRef} className="relative ml-4">
+                      <button
+                        type="button"
+                        disabled={!notif.inAppEnabled}
+                        onClick={(e) => { e.stopPropagation(); setOpenMotivationDd(v => !v); setOpenJournalDd(false); }}
+                        className={`w-40 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-left ${!notif.inAppEnabled ? 'cursor-not-allowed' : ''}`}
+                      >
+                        {(notif.motivation?.enabled === false || notif.motivation?.frequency === 'off') ? 'Off' : (notif.motivation?.frequency || 'off')}
+                      </button>
+                      {openMotivationDd && (
+                        <div className="absolute right-0 top-full mt-2 w-44 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50">
+                          {['daily','weekly','off'].map(opt => (
+                            <button
+                              key={opt}
+                              className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
+                              onClick={() => {
+                                const v = opt;
+                                const next = v === 'off'
+                                  ? { ...notif, motivation: { ...(notif.motivation || {}), enabled: false, frequency: 'off' } }
+                                  : { ...notif, motivation: { enabled: true, frequency: v } };
+                                saveNotifSettings(next);
+                                setOpenMotivationDd(false);
+                              }}
+                            >{opt === 'off' ? 'Off' : (opt.charAt(0).toUpperCase() + opt.slice(1))}</button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   {/* Social activity */}
@@ -370,7 +410,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-[150]"
       onClick={onClose}
     >
       <motion.div

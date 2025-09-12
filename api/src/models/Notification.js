@@ -219,6 +219,7 @@ notificationSchema.statics.createNotification = async function(notificationData)
     // Default push channel on selected types if not explicitly set
     const pushPreferredTypes = new Set([
       'habit_reminder','goal_due_soon','weekly_summary','monthly_summary','journal_prompt','inactivity_reminder',
+      'motivation_quote',
       'follow_request','follow_request_accepted','new_follower',
       'friend_created_goal','friend_completed_goal',
       'activity_comment','comment_reply','mention',
