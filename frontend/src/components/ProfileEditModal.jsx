@@ -77,6 +77,13 @@ const ProfileEditModal = ({ isOpen, onClose }) => {
     return () => clearTimeout(debounce);
   }, [locationQuery]);
 
+  // Body scroll lock while modal is open (keep hook order stable)
+  useEffect(() => {
+    if (!isOpen) return;
+    lockBodyScroll();
+    return () => unlockBodyScroll();
+  }, [isOpen]);
+
   const handleInputChange = (e) => {
     const { name, value } = e.target
     setFormData(prev => ({
@@ -171,8 +178,6 @@ const ProfileEditModal = ({ isOpen, onClose }) => {
 
 
   if (!isOpen || !user) return null
-
-  useEffect(() => { lockBodyScroll(); return () => unlockBodyScroll(); }, [])
 
   return (
     <AnimatePresence>
