@@ -247,7 +247,7 @@ async function dueHabitsForReminder(userId, userTimezone, windowMinutes = 10) {
     // Prefer user's timezone when habit timezone is empty or left at default 'UTC'
     const tz = (h.timezone && h.timezone !== 'UTC') ? h.timezone : (userTimezone || 'UTC');
     const localNowMin = minutesOfDayInTimezone(tz);
-    const times = (h.reminders || []).map(r => r?.time).filter(Boolean);
+    const times = (h.reminders || []).map(r => (typeof r === 'string' ? r : (r?.time))).filter(Boolean);
     for (const t of times) {
       const tMin = parseHHmmToMinutes(t);
       if (tMin == null) continue;
