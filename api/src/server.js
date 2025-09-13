@@ -137,6 +137,8 @@ const createApp = async () => {
   apiRouter.use('/habits', require('./routes/habitRoutes'));
   apiRouter.use('/moderation', require('./routes/moderationRoutes'));
   apiRouter.use('/notifications', require('./routes/notificationRoutes'));
+  // Cron endpoints for serverless environments; protect with CRON_SECRET
+  apiRouter.use('/cron', require('./routes/cronRoutes'));
 
   app.use(apiBasePath, apiRouter);
 
