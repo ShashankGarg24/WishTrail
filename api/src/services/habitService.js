@@ -222,6 +222,21 @@ function minutesOfDayInTimezone(timezone) {
   }
 }
 
+function parseHHmmToMinutes(text) {
+  try {
+    if (!text || typeof text !== 'string') return null;
+    const parts = text.split(':');
+    if (parts.length < 2) return null;
+    const hh = Number(parts[0]);
+    const mm = Number(parts[1]);
+    if (Number.isNaN(hh) || Number.isNaN(mm)) return null;
+    if (hh < 0 || hh > 23 || mm < 0 || mm > 59) return null;
+    return hh * 60 + mm;
+  } catch {
+    return null;
+  }
+}
+
 // Return due habits for this exact minute considering timezone and schedule
 async function dueHabitsForReminder(userId, userTimezone, windowMinutes = 10) {
   const habits = await Habit.find({ userId, isActive: true, isArchived: false }).lean();
@@ -234,9 +249,8 @@ async function dueHabitsForReminder(userId, userTimezone, windowMinutes = 10) {
     const localNowMin = minutesOfDayInTimezone(tz);
     const times = (h.reminders || []).map(r => r?.time).filter(Boolean);
     for (const t of times) {
-      if (!/^\d{2}:\d{2}$/.test(t)) continue;
-      const [th, tm] = t.split(':').map(n => Number(n));
-      const tMin = th * 60 + tm;
+      const tMin = parseHHmmToMinutes(t);
+      if (tMin == null) continue;
       const delta = (localNowMin - tMin + 1440) % 1440; // minutes since scheduled time, wrapped
       if (delta >= 0 && delta <= windowMinutes) {
         jobs.push({ habit: h, timezone: tz, matchedMinutes: tMin });
