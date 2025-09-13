@@ -206,7 +206,8 @@ async function dueHabitsForReminder(userId, userTimezone) {
   const jobs = [];
   for (const h of habits) {
     if (!isScheduledForDay(h, todayUTC)) continue;
-    const tz = h.timezone || userTimezone || 'UTC';
+    // Prefer user's timezone when habit timezone is empty or left at default 'UTC'
+    const tz = (h.timezone && h.timezone !== 'UTC') ? h.timezone : (userTimezone || 'UTC');
     const localHHmm = nowInTimezoneHHmm(tz);
     const times = (h.reminders || []).map(r => r?.time).filter(Boolean);
     if (times.includes(localHHmm)) jobs.push(h);
@@ -224,7 +225,7 @@ async function sendReminderNotifications() {
     const ns = u.notificationSettings || {};
     if (ns.habits && ns.habits.enabled === false) continue;
     // Quiet hours removed
-    const habits = await dueHabitsForReminder(u._id, u.timezone || 'UTC');
+    const habits = await dueHabitsForReminder(u._id, u.timezone || 'Asia/Kolkata');
     for (const h of habits) {
       // Skip if already done today (default true)
       const skipIfDone = ns.habits && typeof ns.habits.skipIfDone === 'boolean' ? ns.habits.skipIfDone : true;
