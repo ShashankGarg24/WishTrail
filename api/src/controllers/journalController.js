@@ -2,6 +2,7 @@ const journalService = require('../services/journalService');
 const User = require('../models/User');
 const JournalEntry = require('../models/JournalEntry');
 const PDFDocument = require('pdfkit');
+const axios = require('axios');
 
 exports.getPrompt = async (req, res, next) => {
   try {
@@ -117,14 +118,29 @@ exports.exportMyJournal = async (req, res, next) => {
     const doc = new PDFDocument({ size: 'A4', margin: 50 });
     doc.pipe(res);
 
-    const writeCover = () => {
-      const start = entries[0]?.createdAt ? new Date(entries[0].createdAt) : user.createdAt || new Date();
+    const writeCover = async () => {
+      const start = entries[0]?.createdAt ? new Date(entries[0].createdAt) : (user.createdAt ? new Date(user.createdAt) : new Date());
       const end = entries[entries.length - 1]?.createdAt ? new Date(entries[entries.length - 1].createdAt) : new Date();
       const range = `${start.toLocaleString('en-US', { month: 'short' })}–${end.toLocaleString('en-US', { month: 'short' })} ${end.getFullYear()}`;
-      doc.fontSize(22).fillColor('#111').text(`WishTrail Journal of ${user.name}`, { align: 'center' });
-      doc.moveDown(0.5);
-      doc.fontSize(12).fillColor('#666').text(range, { align: 'center' });
-      doc.moveDown(1.5);
+      // Title & range with classic serif
+      doc.font('Times-Bold').fontSize(26).fillColor('#111').text(`WishTrail Journal of ${user.name}`, { align: 'center' });
+      doc.moveDown(0.6);
+      doc.font('Times-Roman').fontSize(13).fillColor('#6b7280').text(range, { align: 'center' });
+      doc.moveDown(2);
+      // Avatar circle
+      if (user.avatar) {
+        try {
+          const resp = await axios.get(user.avatar, { responseType: 'arraybuffer', timeout: 5000 });
+          const img = Buffer.from(resp.data);
+          const cx = doc.page.width / 2 - 45;
+          const cy = doc.y;
+          doc.save();
+          doc.circle(cx + 45, cy + 45, 45).clip();
+          doc.image(img, cx, cy, { width: 90, height: 90 });
+          doc.restore();
+          doc.moveDown(5);
+        } catch (_) {}
+      }
       // Decorative line
       const w = doc.page.width - doc.page.margins.left - doc.page.margins.right;
       const x = doc.page.margins.left;
@@ -134,11 +150,10 @@ exports.exportMyJournal = async (req, res, next) => {
     };
 
     const writeSignature = () => {
-      doc.addPage();
       doc.moveDown(6);
-      doc.fontSize(18).fillColor('#111').text('This is your journey. Keep growing 🌱', { align: 'center' });
+      doc.font('Times-Bold').fontSize(18).fillColor('#111').text('This is your journey. Keep growing 🌱', { align: 'center' });
       doc.moveDown(4);
-      doc.fontSize(12).fillColor('#555').text('— WishTrail', { align: 'center' });
+      doc.font('Times-Roman').fontSize(12).fillColor('#555').text('— WishTrail', { align: 'center' });
     };
 
     const writeEntry = (e) => {
@@ -146,41 +161,73 @@ exports.exportMyJournal = async (req, res, next) => {
       const header = dt.toLocaleString();
       if (style === 'diary') {
         // Date header box
-        doc.roundedRect(doc.x, doc.y, 200, 22, 6).fill('#eef2ff');
-        doc.fillColor('#3730a3').fontSize(11).text(header, doc.x + 8, doc.y - 16);
+        doc.roundedRect(doc.x, doc.y, 220, 22, 6).fill('#eef2ff');
+        doc.fillColor('#3730a3').font('Helvetica-Bold').fontSize(11).text(header, doc.x + 8, doc.y - 16);
         doc.moveDown(0.8);
         if (e.promptText) {
-          doc.fontSize(10).fillColor('#6b7280').text(e.promptText);
+          doc.font('Helvetica-Oblique').fontSize(10).fillColor('#6b7280').text(e.promptText);
           doc.moveDown(0.3);
         }
-        doc.fontSize(12).fillColor('#111').text(e.content, { align: 'left' });
+        doc.font('Times-Roman').fontSize(12).fillColor('#111').text(e.content, { align: 'left' });
         if (includeMot && e.ai?.motivation) {
           doc.moveDown(0.4);
-          doc.fontSize(11).fillColor('#065f46').text(`Motivation: ${e.ai.motivation}`);
+          doc.font('Times-Italic').fontSize(11).fillColor('#065f46').text(`Motivation: ${e.ai.motivation}`);
         }
         doc.moveDown(1.0);
       } else {
         // Simple style
-        doc.fontSize(12).fillColor('#111').text(`=== ${header} ===`);
-        if (e.promptText) doc.fontSize(10).fillColor('#6b7280').text(`[Prompt] ${e.promptText}`);
-        doc.fontSize(12).fillColor('#111').text(e.content);
+        doc.font('Helvetica-Bold').fontSize(12).fillColor('#111').text(`=== ${header} ===`);
+        if (e.promptText) doc.font('Helvetica-Oblique').fontSize(10).fillColor('#6b7280').text(`[Prompt] ${e.promptText}`);
+        doc.font('Helvetica').fontSize(12).fillColor('#111').text(e.content);
         if (includeMot && e.ai?.motivation) {
           doc.moveDown(0.3);
-          doc.fontSize(11).fillColor('#065f46').text(`Motivation: ${e.ai.motivation}`);
+          doc.font('Helvetica-Oblique').fontSize(11).fillColor('#065f46').text(`Motivation: ${e.ai.motivation}`);
         }
         doc.moveDown(0.8);
       }
     };
 
+    // Decorated content pages (header/footer/lines)
+    let inContent = false;
+    let pageNo = 0;
+    const decoratePage = () => {
+      if (!inContent) return;
+      pageNo += 1;
+      const left = doc.page.margins.left;
+      const right = doc.page.width - doc.page.margins.right;
+      const top = doc.page.margins.top;
+      const bottom = doc.page.height - doc.page.margins.bottom;
+      doc.save();
+      // Header title
+      doc.font('Helvetica').fontSize(9).fillColor('#6b7280').text(`WishTrail Journal • ${user.name}`, left, top - 30, { width: right - left, align: 'left' });
+      // Footer page number
+      doc.font('Helvetica').fontSize(9).fillColor('#9ca3af').text(`${pageNo}`, left, bottom + 6, { width: right - left, align: 'center' });
+      // Left margin rule
+      doc.strokeColor('#e5e7eb').lineWidth(1).moveTo(left + 20, top - 10).lineTo(left + 20, bottom - 10).stroke();
+      // Lined paper effect
+      doc.strokeColor('#eef2f7').lineWidth(0.5);
+      for (let y = top + 30; y < bottom - 20; y += 18) {
+        doc.moveTo(left, y).lineTo(right, y).stroke();
+      }
+      doc.restore();
+      doc.moveDown(1);
+    };
+    doc.on('pageAdded', decoratePage);
+
     // Cover
-    writeCover();
+    await writeCover();
+    // Start content on new decorated page
+    doc.addPage();
+    inContent = true;
+    decoratePage();
     // Content
     for (const e of entries) {
       writeEntry(e);
-      // If we are near page end, add a new page to avoid cutting content abruptly
       if (doc.y > doc.page.height - doc.page.margins.bottom - 120) doc.addPage();
     }
-    // Signature
+    // Signature on its own page
+    inContent = false;
+    doc.addPage();
     writeSignature();
     doc.end();
   } catch (error) {
