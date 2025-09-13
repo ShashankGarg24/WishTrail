@@ -501,16 +501,14 @@ const FeedPage = () => {
                           <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-4 border border-gray-100 dark:border-gray-800">
                              {(activity.type === 'goal_completed' || activity.type === 'goal_created') ? (
                                <>
--                                 <div className="mb-2 min-h-[56px] flex flex-col justify-start">
-                                   <div className="font-semibold text-gray-900 dark:text-white text-base leading-snug line-clamp-1">
-                                     {activity.data?.goalTitle || 'Goal Achievement'}
-                                   </div>
-                                   {activity.data?.goalCategory && (
-                                     <span className={`mt-1 inline-block px-2 py-1 rounded-full text-xs font-medium text-white ${getCategoryColor(activity.data.goalCategory)}`}>
-                                       {activity.data.goalCategory}
-                                     </span>
-                                   )}
-                                 </div>
+-                               <h4 className="font-semibold text-gray-900 dark:text-white mb-2">
+                                   {activity.data?.goalTitle || 'Goal Achievement'}
+                                 </h4>
+                                 {activity.data?.goalCategory && (
+                                   <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium text-white ${getCategoryColor(activity.data.goalCategory)}`}>
+                                     {activity.data.goalCategory}
+                                   </span>
+                                 )}
                                  {/* Shared note/image when public */}
                                  {activity.isPublic && (() => {
                                    const sharedNote = activity?.data?.metadata?.completionNote || activity?.data?.completionNote || ''

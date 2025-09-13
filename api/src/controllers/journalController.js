@@ -130,16 +130,20 @@ exports.exportMyJournal = async (req, res, next) => {
       // Avatar circle
       if (user.avatar) {
         try {
-          const resp = await axios.get(user.avatar, { responseType: 'arraybuffer', timeout: 5000 });
-          const img = Buffer.from(resp.data);
+          const resp = await axios.get(user.avatar, { responseType: 'arraybuffer', timeout: 5000, validateStatus: () => true });
+          const ctype = String(resp?.headers?.['content-type'] || '');
+          if (!(/^image\/(jpeg|png)$/i.test(ctype))) throw new Error('unsupported image');
+          const img = Buffer.from(resp.data || Buffer.alloc(0));
           const cx = doc.page.width / 2 - 45;
           const cy = doc.y;
-          doc.save();
-          doc.circle(cx + 45, cy + 45, 45).clip();
-          doc.image(img, cx, cy, { width: 90, height: 90 });
-          doc.restore();
+          try { doc.save(); } catch (_) {}
+          try {
+            doc.circle(cx + 45, cy + 45, 45).clip();
+            doc.image(img, cx, cy, { width: 90, height: 90 });
+          } catch (_) {}
+          try { doc.restore(); } catch (_) {}
           doc.moveDown(5);
-        } catch (_) {}
+        } catch (_) { /* ignore avatar errors */ }
       }
       // Decorative line
       const w = doc.page.width - doc.page.margins.left - doc.page.margins.right;
@@ -212,14 +216,13 @@ exports.exportMyJournal = async (req, res, next) => {
       doc.restore();
       doc.moveDown(1);
     };
-    doc.on('pageAdded', decoratePage);
+    doc.on('pageAdded', () => { try { decoratePage(); } catch (_) {} });
 
     // Cover
     await writeCover();
     // Start content on new decorated page
     doc.addPage();
     inContent = true;
-    decoratePage();
     // Content
     for (const e of entries) {
       writeEntry(e);
@@ -229,7 +232,7 @@ exports.exportMyJournal = async (req, res, next) => {
     inContent = false;
     doc.addPage();
     writeSignature();
-    doc.end();
+    try { doc.end(); } catch (_) {}
   } catch (error) {
     next(error);
   }
