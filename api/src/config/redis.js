@@ -14,5 +14,5 @@ const noop = {
   async set() { return null; },
   async del() { return null; }
 };
-
-module.exports = client || noop;
+const exported = client || Object.assign(noop, { __isNoop: true });
+module.exports = exported;

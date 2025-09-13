@@ -16,8 +16,9 @@ function verifyCronKey(req, res, next) {
 
 router.post('/habit-reminders', verifyCronKey, async (req, res) => {
   try {
+    const windowMinutes = Math.max(1, Math.min(30, Number(req.query.window || 10)));
     setImmediate(async () => {
-      try { await sendReminderNotifications(); } catch (e) { console.error('[cron] habit-reminders error', e?.message || e); }
+      try { await sendReminderNotifications({ windowMinutes }); } catch (e) { console.error('[cron] habit-reminders error', e?.message || e); }
     });
     res.status(202).json({ success: true, accepted: true });
   } catch (e) {

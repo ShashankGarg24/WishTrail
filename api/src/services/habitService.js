@@ -4,6 +4,7 @@ const HabitLog = require('../models/HabitLog');
 const Notification = require('../models/Notification');
 const Activity = require('../models/Activity');
 const User = require('../models/User');
+const redis = require('../config/redis');
 
 function toDateKeyUTC(date = new Date()) {
   const d = new Date(date);
@@ -208,8 +209,21 @@ function nowInTimezoneHHmm(timezone) {
   }
 }
 
+function minutesOfDayInTimezone(timezone) {
+  try {
+    const fmt = new Intl.DateTimeFormat('en-GB', { hour12: false, timeZone: timezone, hour: '2-digit', minute: '2-digit' });
+    const parts = fmt.formatToParts(new Date());
+    const hh = Number(parts.find(p => p.type === 'hour')?.value || '0');
+    const mm = Number(parts.find(p => p.type === 'minute')?.value || '0');
+    return hh * 60 + mm;
+  } catch {
+    const d = new Date();
+    return d.getUTCHours() * 60 + d.getUTCMinutes();
+  }
+}
+
 // Return due habits for this exact minute considering timezone and schedule
-async function dueHabitsForReminder(userId, userTimezone) {
+async function dueHabitsForReminder(userId, userTimezone, windowMinutes = 10) {
   const habits = await Habit.find({ userId, isActive: true, isArchived: false }).lean();
   const todayUTC = new Date();
   const jobs = [];
@@ -217,9 +231,17 @@ async function dueHabitsForReminder(userId, userTimezone) {
     if (!isScheduledForDay(h, todayUTC)) continue;
     // Prefer user's timezone when habit timezone is empty or left at default 'UTC'
     const tz = (h.timezone && h.timezone !== 'UTC') ? h.timezone : (userTimezone || 'UTC');
-    const localHHmm = nowInTimezoneHHmm(tz);
+    const localNowMin = minutesOfDayInTimezone(tz);
     const times = (h.reminders || []).map(r => r?.time).filter(Boolean);
-    if (times.includes(localHHmm)) jobs.push(h);
+    for (const t of times) {
+      if (!/^\d{2}:\d{2}$/.test(t)) continue;
+      const [th, tm] = t.split(':').map(n => Number(n));
+      const tMin = th * 60 + tm;
+      const delta = (localNowMin - tMin + 1440) % 1440; // minutes since scheduled time, wrapped
+      if (delta >= 0 && delta <= windowMinutes) {
+        jobs.push({ habit: h, timezone: tz, matchedMinutes: tMin });
+      }
+    }
   }
   return jobs;
 }
@@ -227,15 +249,16 @@ async function dueHabitsForReminder(userId, userTimezone) {
 // Quiet hours removed per new spec
 function isWithinQuietHours() { return false; }
 
-async function sendReminderNotifications() {
+async function sendReminderNotifications({ windowMinutes = 10 } = {}) {
   const users = await User.find({ isActive: true }).select('_id notificationSettings timezone').lean();
   const jobs = [];
   for (const u of users) {
     const ns = u.notificationSettings || {};
     if (ns.habits && ns.habits.enabled === false) continue;
     // Quiet hours removed
-    const habits = await dueHabitsForReminder(u._id, u.timezone || 'Asia/Kolkata');
-    for (const h of habits) {
+    const due = await dueHabitsForReminder(u._id, u.timezone || 'Asia/Kolkata', windowMinutes);
+    for (const job of due) {
+      const h = job.habit;
       // Skip if already done today (default true)
       const skipIfDone = ns.habits && typeof ns.habits.skipIfDone === 'boolean' ? ns.habits.skipIfDone : true;
       if (skipIfDone) {
@@ -243,15 +266,22 @@ async function sendReminderNotifications() {
         const done = await HabitLog.findOne({ userId: u._id, habitId: h._id, dateKey: todayKey, status: 'done' }).select('_id').lean();
         if (done) continue;
       }
-      const localTime = nowInTimezoneHHmm(h.timezone || 'UTC');
-      jobs.push(Notification.createNotification({
-        userId: u._id,
-        type: 'habit_reminder',
-        title: 'Habit Reminder',
-        message: `Time to do: ${h.name}`,
-        data: { habitId: h._id, metadata: { habitName: h.name, time: localTime, timezone: h.timezone || 'UTC' } },
-        priority: 'low'
-      }));
+      // Idempotency guard (10-min window key)
+      try {
+        const dateKey = toDateKeyUTC(new Date());
+        const key = `habit:reminder:${String(u._id)}:${String(h._id)}:${dateKey}:${job.matchedMinutes}`;
+        const exists = await redis.get(key);
+        if (!exists) {
+          const ttl = Math.max(600, windowMinutes * 60); // >=10min
+          await redis.set(key, '1', { ex: ttl });
+          const timeHHmm = `${String(Math.floor(job.matchedMinutes / 60)).padStart(2,'0')}:${String(job.matchedMinutes % 60).padStart(2,'0')}`;
+          jobs.push(Notification.createHabitReminderNotification(u._id, h._id, h.name, timeHHmm));
+        }
+      } catch (_) {
+        // If redis unavailable, fall back to sending (dedup relies on notification rules/user settings)
+        const timeHHmm = `${String(Math.floor(job.matchedMinutes / 60)).padStart(2,'0')}:${String(job.matchedMinutes % 60).padStart(2,'0')}`;
+        jobs.push(Notification.createHabitReminderNotification(u._id, h._id, h.name, timeHHmm));
+      }
     }
   }
   await Promise.allSettled(jobs);

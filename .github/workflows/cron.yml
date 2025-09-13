@@ -8,6 +8,8 @@ on:
     - cron: '0 * * * *'
     # Inactivity reminders hourly at :15
     - cron: '15 * * * *'
+    # Habit reminders every 10 minutes
+    - cron: '*/10 * * * *'
   workflow_dispatch:
 
 jobs:
@@ -51,6 +53,18 @@ jobs:
       - name: Trigger inactivity reminders
         run: |
           curl -fsS -X POST "$API_BASE/cron/inactivity-reminders?key=$CRON_SECRET"
+        env:
+          API_BASE: https://wishtrail-backend.vercel.app/api/v1
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+
+  habit-reminders:
+    # Run every 10 minutes; rely on a 10-minute matching window so no minute-level cron is needed
+    if: github.event.schedule == '*/10 * * * *' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger habit reminders (10-min window)
+        run: |
+          curl -fsS -X POST "$API_BASE/cron/habit-reminders?window=10&key=$CRON_SECRET"
         env:
           API_BASE: https://wishtrail-backend.vercel.app/api/v1
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
