@@ -411,11 +411,11 @@ const FeedPage = () => {
                 <button
                   key={g._id || idx}
                   onClick={() => g._id && openGoalModal(g._id)}
-                  className="group relative shrink-0 w-20 focus:outline-none"
+                  className="group relative shrink-0 w-20 focus:outline-none flex flex-col items-center justify-start"
                   title={g.title}
                   aria-label={`Open goal ${g.title}`}
                 >
-                  <div className={`relative mx-auto h-16 w-16 rounded-full p-[2px] bg-gradient-to-br ${getCategoryGradient(g.category)} transition-transform duration-200 group-hover:scale-105`}>
+                  <div className={`relative mx-auto h-16 w-16 rounded-full p-[2px] bg-gradient-to-br ${getCategoryGradient(g.category)} transition-transform duration-200 group-hover:scale-105 mb-1`}>
                     <div className="h-full w-full rounded-full bg-white dark:bg-gray-900 p-[2px]">
                       <img src={g.user?.avatar || '/api/placeholder/40/40'} className="h-full w-full rounded-full object-cover" />
                     </div>
@@ -426,7 +426,7 @@ const FeedPage = () => {
                     )}
                   </div>
                   <div className="mt-2 w-full text-center">
-                    <div className="h-[28px] overflow-hidden">
+                    <div className="h-[28px] overflow-hidden leading-[14px]">
                       <div className="text-[11px] text-gray-800 dark:text-gray-200 leading-[14px] line-clamp-2">
                         {g.title}
                       </div>
