@@ -501,7 +501,7 @@ const FeedPage = () => {
                           <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-4 border border-gray-100 dark:border-gray-800">
                              {(activity.type === 'goal_completed' || activity.type === 'goal_created') ? (
                                <>
--                               <h4 className="font-semibold text-gray-900 dark:text-white mb-2">
+                                <h4 className="font-semibold text-gray-900 dark:text-white mb-2">
                                    {activity.data?.goalTitle || 'Goal Achievement'}
                                  </h4>
                                  {activity.data?.goalCategory && (
