@@ -236,6 +236,31 @@ const FeedPage = () => {
     return colors[category] || 'bg-gray-500';
   };
 
+  const getCategoryGradient = (category) => {
+    switch(category) {
+      case 'Health & Fitness':
+        return 'from-emerald-400 via-teal-400 to-cyan-400';
+      case 'Education & Learning':
+        return 'from-amber-400 via-yellow-400 to-orange-400';
+      case 'Career & Business':
+        return 'from-blue-400 via-indigo-400 to-sky-400';
+      case 'Financial Goals':
+        return 'from-rose-400 via-pink-400 to-fuchsia-400';
+      case 'Creative Projects':
+        return 'from-purple-400 via-violet-400 to-fuchsia-400';
+      case 'Travel & Adventure':
+        return 'from-orange-400 via-amber-400 to-yellow-400';
+      case 'Relationships':
+        return 'from-pink-400 via-rose-400 to-red-400';
+      case 'Family & Friends':
+        return 'from-indigo-400 via-violet-400 to-sky-400';
+      case 'Personal Development':
+        return 'from-green-400 via-lime-400 to-emerald-400';
+      default:
+        return 'from-indigo-400 via-purple-400 to-pink-400';
+    }
+  };
+
   const formatTimeAgo = (dateString) => {
     const now = new Date();
     const date = new Date(dateString);
@@ -370,12 +395,15 @@ const FeedPage = () => {
         {/* Stories bar: inspiring + trending goals */}
         <div className="mb-6">
           <div className="relative">
-            <div className="flex gap-3 overflow-x-auto no-scrollbar pr-12 items-stretch">
+            <div className="flex gap-4 overflow-x-auto no-scrollbar pr-12 items-center">
               {/* Explore pill at the end (but visually kept in view with sticky gradient) */}
               {storiesLoading && (
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-4">
                   {[...Array(6)].map((_, i) => (
-                    <div key={i} className="w-20 h-28 rounded-2xl bg-gray-200 dark:bg-gray-800 animate-pulse border border-gray-200 dark:border-gray-800" />
+                    <div key={i} className="flex flex-col items-center gap-2">
+                      <div className="h-16 w-16 rounded-full bg-gray-200 dark:bg-gray-800 animate-pulse" />
+                      <div className="h-2 w-14 rounded bg-gray-200 dark:bg-gray-800 animate-pulse" />
+                    </div>
                   ))}
                 </div>
               )}
@@ -383,25 +411,38 @@ const FeedPage = () => {
                 <button
                   key={g._id || idx}
                   onClick={() => g._id && openGoalModal(g._id)}
-                  className="relative shrink-0 w-20 h-28 rounded-2xl border border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-900/60 backdrop-blur hover:border-gray-300 dark:hover:border-gray-700 transition-all overflow-hidden"
+                  className="group relative shrink-0 w-20 focus:outline-none"
                   title={g.title}
+                  aria-label={`Open goal ${g.title}`}
                 >
-                  <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/20" />
-                  <div className="p-2 flex flex-col items-center justify-between h-full">
-                    <img src={g.user?.avatar || '/api/placeholder/40/40'} className="w-10 h-10 rounded-full ring-2 ring-white/80 dark:ring-gray-800" />
-                    <div className="text-[10px] text-center text-gray-800 dark:text-gray-200 line-clamp-3 w-full">{g.title}</div>
-                    <span className="inline-block px-1.5 py-0.5 rounded-full text-[9px] font-medium text-white bg-blue-500">{g.category}</span>
+                  <div className={`relative mx-auto h-16 w-16 rounded-full p-[2px] bg-gradient-to-br ${getCategoryGradient(g.category)} transition-transform duration-200 group-hover:scale-105`}>
+                    <div className="h-full w-full rounded-full bg-white dark:bg-gray-900 p-[2px]">
+                      <img src={g.user?.avatar || '/api/placeholder/40/40'} className="h-full w-full rounded-full object-cover" />
+                    </div>
+                    {/* Like badge */}
+                    {typeof g.likeCount === 'number' && g.likeCount > 0 && (
+                      <div className="absolute -bottom-1 -right-1 px-1.5 py-[2px] rounded-full text-[10px] font-medium bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-200 shadow border border-gray-200 dark:border-gray-800">
+                        ❤️ {g.likeCount}
+                      </div>
+                    )}
                   </div>
+                  <div className="mt-2 text-[11px] text-center text-gray-800 dark:text-gray-200 line-clamp-2 w-full">{g.title}</div>
+                  <div className="text-[10px] text-center text-gray-500 dark:text-gray-400 mt-0.5">{g.category}</div>
                 </button>
               ))}
               {/* Explore shortcut */}
               <button
                 onClick={() => navigate('/discover?tab=discover&mode=goals')}
-                className="shrink-0 w-20 h-28 rounded-2xl border border-blue-200 dark:border-blue-900/50 bg-blue-50/80 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 hover:bg-blue-100/80 dark:hover:bg-blue-900/30 transition-all flex flex-col items-center justify-center gap-2"
+                className="group shrink-0 w-20 focus:outline-none"
                 title="Explore goals"
+                aria-label="Explore goals"
               >
-                <ArrowRightCircle className="h-6 w-6" />
-                <span className="text-[11px] font-medium">Explore</span>
+                <div className="relative mx-auto h-16 w-16 rounded-full p-[2px] bg-gradient-to-br from-blue-500 via-sky-500 to-cyan-400 transition-transform duration-200 group-hover:scale-105">
+                  <div className="h-full w-full rounded-full bg-white dark:bg-gray-900 flex items-center justify-center">
+                    <ArrowRightCircle className="h-7 w-7 text-blue-600 dark:text-blue-300" />
+                  </div>
+                </div>
+                <div className="mt-2 text-[11px] text-center text-blue-600 dark:text-blue-300 font-medium">Explore</div>
               </button>
             </div>
             <div className="pointer-events-none absolute right-0 top-0 h-full w-12 bg-gradient-to-l from-white/90 dark:from-gray-900/90 to-transparent rounded-r-2xl" />
