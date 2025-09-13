@@ -24,7 +24,7 @@ function computeConsistency(totalCompletions, createdAt) {
 }
 
 async function createHabit(userId, payload) {
-  // Default timezone to user's stored timezone if none provided
+  // Default timezone to user's stored timezone if available, else UTC
   const user = await User.findById(userId).select('timezone').lean();
   const doc = new Habit({
     userId,
@@ -32,7 +32,7 @@ async function createHabit(userId, payload) {
     description: payload.description || '',
     frequency: payload.frequency || 'daily',
     daysOfWeek: Array.isArray(payload.daysOfWeek) ? payload.daysOfWeek : undefined,
-    timezone: payload.timezone || user?.timezone || 'UTC',
+    timezone: (payload.timezone || user?.timezone || 'UTC'),
     reminders: Array.isArray(payload.reminders) ? payload.reminders : [],
     goalId: payload.goalId || undefined,
     isPublic: payload.isPublic !== undefined ? !!payload.isPublic : true
@@ -80,6 +80,15 @@ async function updateHabit(userId, habitId, payload) {
   if (Array.isArray(payload.reminders)) set.reminders = payload.reminders;
   if (payload.goalId !== undefined) set.goalId = payload.goalId || undefined;
   if (payload.isPublic !== undefined) set.isPublic = !!payload.isPublic;
+  // Ensure timezone is set when editing reminders if habit has no meaningful timezone
+  if (Array.isArray(payload.reminders) && (set.timezone === undefined)) {
+    try {
+      if (!h.timezone || h.timezone === 'UTC') {
+        const u = await User.findById(userId).select('timezone').lean();
+        if (u?.timezone) set.timezone = u.timezone; else if (!h.timezone) set.timezone = 'UTC';
+      }
+    } catch (_) {}
+  }
   const updated = await Habit.findByIdAndUpdate(habitId, { $set: set }, { new: true, runValidators: true });
   return updated;
 }
