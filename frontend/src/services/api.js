@@ -204,7 +204,8 @@ export const journalsAPI = {
   updateEntry: (id, payload) => api.patch(`/journals/${id}`, payload),
   getMyEntries: (params) => api.get('/journals/me', { params }),
   getHighlights: (userId, params) => api.get(`/journals/highlights/${userId}`, { params }),
-  getStats: (userId) => api.get(`/journals/stats/${userId}`)
+  getStats: (userId) => api.get(`/journals/stats/${userId}`),
+  export: (params) => api.get('/journals/export', { params, responseType: 'blob' })
 };
 
 // Habits API

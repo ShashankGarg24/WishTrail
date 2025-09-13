@@ -15,6 +15,8 @@ router.patch('/:entryId', protect, journalController.updateEntry);
 
 // Get my entries
 router.get('/me', protect, journalController.getMyEntries);
+// Export my journal
+router.get('/export', protect, journalController.exportMyJournal);
 
 // Get user highlights (public/friends/private-aware)
 router.get('/highlights/:userId', optionalAuth, journalController.getUserHighlights);

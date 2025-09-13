@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { Calendar, Target, TrendingUp, Star, Edit2, ExternalLink, Youtube, Instagram, MapPin, Globe, Trophy, BookOpen, Clock, CheckCircle, Circle, User, UserPlus, UserCheck, ArrowLeft, Lock, Sparkles } from "lucide-react";
+import { Calendar, Target, TrendingUp, Star, Edit2, ExternalLink, Youtube, Instagram, MapPin, Globe, Trophy, BookOpen, Clock, CheckCircle, Circle, User, UserPlus, UserCheck, ArrowLeft, Lock, Sparkles, Download } from "lucide-react";
 import { motion } from "framer-motion";
 import useApiStore from "../store/apiStore";
 import { journalsAPI } from "../services/api";
@@ -10,6 +10,7 @@ import ReportModal from "../components/ReportModal";
 import BlockModal from "../components/BlockModal";
 import JournalPromptModal from "../components/JournalPromptModal";
 import JournalEntryModal from "../components/JournalEntryModal";
+import JournalExportModal from "../components/JournalExportModal";
 import HabitAnalyticsCard from "../components/HabitAnalyticsCard";
 
 const ProfilePage = () => {
@@ -63,6 +64,7 @@ const ProfilePage = () => {
   const JOURNAL_LIMIT = 6;
   const [journalHasMore, setJournalHasMore] = useState(true);
   const [journalLoading, setJournalLoading] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
   const [habitStats, setHabitStats] = useState(null);
   const [myHabits, setMyHabits] = useState([]);
 
@@ -839,14 +841,23 @@ const ProfilePage = () => {
                       {isOwnProfile ? 'Your Journal' : 'Journal'}
                     </h3>
                     {isOwnProfile && (
-                      <button
-                        onClick={() => setIsJournalOpen(true)}
-                        disabled={hasTodayJournal}
-                        className={`px-4 py-2 rounded-lg transition-colors ${hasTodayJournal ? 'bg-gray-300 dark:bg-gray-700 text-gray-600 dark:text-gray-300 cursor-not-allowed' : 'bg-indigo-500 hover:bg-indigo-600 text-white'}`}
-                        title={hasTodayJournal ? 'You have already submitted today. Come back tomorrow!' : 'Open journal prompt'}
-                      >
-                        {hasTodayJournal ? 'Journal Submitted' : 'Write Today’s Journal'}
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setExportOpen(true)}
+                          className="px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 inline-flex items-center gap-2"
+                          title="Export your journal"
+                        >
+                          <Download className="h-4 w-4"/> Export
+                        </button>
+                        <button
+                          onClick={() => setIsJournalOpen(true)}
+                          disabled={hasTodayJournal}
+                          className={`px-4 py-2 rounded-lg transition-colors ${hasTodayJournal ? 'bg-gray-300 dark:bg-gray-700 text-gray-600 dark:text-gray-300 cursor-not-allowed' : 'bg-indigo-500 hover:bg-indigo-600 text-white'}`}
+                          title={hasTodayJournal ? 'You have already submitted today. Come back tomorrow!' : 'Open journal prompt'}
+                        >
+                          {hasTodayJournal ? 'Journal Submitted' : 'Write Today’s Journal'}
+                        </button>
+                      </div>
                     )}
                   </div>
 
@@ -934,6 +945,9 @@ const ProfilePage = () => {
               } catch {}
             }}
           />
+        )}
+        {exportOpen && (
+          <JournalExportModal isOpen={exportOpen} onClose={() => setExportOpen(false)} />
         )}
         {entryModalOpen && selectedEntry && (
           <JournalEntryModal

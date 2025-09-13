@@ -395,7 +395,7 @@ const FeedPage = () => {
         {/* Stories bar: inspiring + trending goals */}
         <div className="mb-6">
           <div className="relative">
-            <div className="flex gap-4 overflow-x-auto no-scrollbar pr-12 items-center">
+            <div className="flex gap-4 overflow-x-auto no-scrollbar pr-12 items-start">
               {/* Explore pill at the end (but visually kept in view with sticky gradient) */}
               {storiesLoading && (
                 <div className="flex items-center gap-4">
@@ -419,15 +419,22 @@ const FeedPage = () => {
                     <div className="h-full w-full rounded-full bg-white dark:bg-gray-900 p-[2px]">
                       <img src={g.user?.avatar || '/api/placeholder/40/40'} className="h-full w-full rounded-full object-cover" />
                     </div>
-                    {/* Like badge */}
                     {typeof g.likeCount === 'number' && g.likeCount > 0 && (
                       <div className="absolute -bottom-1 -right-1 px-1.5 py-[2px] rounded-full text-[10px] font-medium bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-200 shadow border border-gray-200 dark:border-gray-800">
                         ❤️ {g.likeCount}
                       </div>
                     )}
                   </div>
-                  <div className="mt-2 text-[11px] text-center text-gray-800 dark:text-gray-200 line-clamp-2 w-full">{g.title}</div>
-                  <div className="text-[10px] text-center text-gray-500 dark:text-gray-400 mt-0.5">{g.category}</div>
+                  <div className="mt-2 w-full text-center">
+                    <div className="h-[28px] overflow-hidden">
+                      <div className="text-[11px] text-gray-800 dark:text-gray-200 leading-[14px] line-clamp-2">
+                        {g.title}
+                      </div>
+                    </div>
+                    <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 truncate">
+                      {g.category}
+                    </div>
+                  </div>
                 </button>
               ))}
               {/* Explore shortcut */}
