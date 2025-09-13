@@ -16,8 +16,10 @@ function verifyCronKey(req, res, next) {
 
 router.post('/habit-reminders', verifyCronKey, async (req, res) => {
   try {
-    const result = await sendReminderNotifications();
-    res.json({ success: true, data: result });
+    setImmediate(async () => {
+      try { await sendReminderNotifications(); } catch (e) { console.error('[cron] habit-reminders error', e?.message || e); }
+    });
+    res.status(202).json({ success: true, accepted: true });
   } catch (e) {
     res.status(500).json({ success: false, error: e?.message || 'failed' });
   }
@@ -25,8 +27,10 @@ router.post('/habit-reminders', verifyCronKey, async (req, res) => {
 
 router.post('/journal-prompts', verifyCronKey, async (req, res) => {
   try {
-    await notifyDailyPrompt();
-    res.json({ success: true });
+    setImmediate(async () => {
+      try { await notifyDailyPrompt(); } catch (e) { console.error('[cron] journal-prompts error', e?.message || e); }
+    });
+    res.status(202).json({ success: true, accepted: true });
   } catch (e) {
     res.status(500).json({ success: false, error: e?.message || 'failed' });
   }
@@ -34,8 +38,10 @@ router.post('/journal-prompts', verifyCronKey, async (req, res) => {
 
 router.post('/morning-quotes', verifyCronKey, async (req, res) => {
   try {
-    const r = await sendMorningQuotes();
-    res.json({ success: true, data: r });
+    setImmediate(async () => {
+      try { await sendMorningQuotes(); } catch (e) { console.error('[cron] morning-quotes error', e?.message || e); }
+    });
+    res.status(202).json({ success: true, accepted: true });
   } catch (e) {
     res.status(500).json({ success: false, error: e?.message || 'failed' });
   }
@@ -43,8 +49,10 @@ router.post('/morning-quotes', verifyCronKey, async (req, res) => {
 
 router.post('/nightly-quotes', verifyCronKey, async (req, res) => {
   try {
-    const r = await generateNightlyQuotes();
-    res.json({ success: true, data: r });
+    setImmediate(async () => {
+      try { await generateNightlyQuotes(); } catch (e) { console.error('[cron] nightly-quotes error', e?.message || e); }
+    });
+    res.status(202).json({ success: true, accepted: true });
   } catch (e) {
     res.status(500).json({ success: false, error: e?.message || 'failed' });
   }
@@ -52,8 +60,10 @@ router.post('/nightly-quotes', verifyCronKey, async (req, res) => {
 
 router.post('/inactivity-reminders', verifyCronKey, async (req, res) => {
   try {
-    const r = await sendDueInactivityReminders({ batchLimit: 2000 });
-    res.json({ success: true, data: r });
+    setImmediate(async () => {
+      try { await sendDueInactivityReminders({ batchLimit: 2000 }); } catch (e) { console.error('[cron] inactivity-reminders error', e?.message || e); }
+    });
+    res.status(202).json({ success: true, accepted: true });
   } catch (e) {
     res.status(500).json({ success: false, error: e?.message || 'failed' });
   }

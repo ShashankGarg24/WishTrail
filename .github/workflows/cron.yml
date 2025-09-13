@@ -1,0 +1,58 @@
+name: Scheduled API Crons
+
+on:
+  schedule:
+    # Nightly quotes (LLM per-interest generation) at 01:00 UTC
+    - cron: '0 1 * * *'
+    # Morning quotes + journal prompts hourly (services filter local time)
+    - cron: '0 * * * *'
+    # Inactivity reminders hourly at :15
+    - cron: '15 * * * *'
+  workflow_dispatch:
+
+jobs:
+  nightly-quotes:
+    if: github.event.schedule == '0 1 * * *' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger nightly quotes
+        run: |
+          curl -fsS -X POST "$API_BASE/cron/nightly-quotes?key=$CRON_SECRET"
+        env:
+          API_BASE: https://wishtrail-backend.vercel.app/api/v1
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+
+  morning-quotes:
+    if: github.event.schedule == '0 * * * *' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger morning quotes
+        run: |
+          curl -fsS -X POST "$API_BASE/cron/morning-quotes?key=$CRON_SECRET"
+        env:
+          API_BASE: https://wishtrail-backend.vercel.app/api/v1
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+
+  journal-prompts:
+    if: github.event.schedule == '0 * * * *' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger journal prompts
+        run: |
+          curl -fsS -X POST "$API_BASE/cron/journal-prompts?key=$CRON_SECRET"
+        env:
+          API_BASE: https://wishtrail-backend.vercel.app/api/v1
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+
+  inactivity-reminders:
+    if: github.event.schedule == '15 * * * *' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger inactivity reminders
+        run: |
+          curl -fsS -X POST "$API_BASE/cron/inactivity-reminders?key=$CRON_SECRET"
+        env:
+          API_BASE: https://wishtrail-backend.vercel.app/api/v1
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+
+
