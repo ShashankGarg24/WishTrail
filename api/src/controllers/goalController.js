@@ -905,4 +905,39 @@ module.exports = {
   generateOGImage,
   searchGoals,
   getGoalPost,
+  // @desc    Get trending goals (supports strategy: global | category | personalized)
+  // @route   GET /api/v1/goals/trending?strategy=&category=&page=&limit=
+  // @access  Private
+  async getTrendingGoals(req, res, next) {
+    try {
+      const cacheService = require('../services/cacheService');
+      const goalService = require('../services/goalService');
+      const { strategy = 'global', category, page = 1, limit = 20 } = req.query;
+      if (strategy === 'category' && !category) {
+        return res.status(400).json({ success: false, message: 'category is required for strategy=category' });
+      }
+
+      const safeLimit = Math.min(50, Math.max(1, parseInt(limit)));
+      const cacheParams = { strategy, category, page: parseInt(page), limit: safeLimit };
+      if (strategy === 'personalized') cacheParams.userId = req.user.id;
+
+      const cached = await cacheService.getTrendingGoals(cacheParams);
+      if (cached) return res.status(200).json({ success: true, data: cached });
+
+      const result = await goalService.getTrendingGoalsPaged({
+        page,
+        limit: safeLimit,
+        strategy,
+        category,
+        userId: req.user.id
+      });
+
+      const ttl = strategy === 'personalized' ? cacheService.CACHE_TTL.FIVE_MINUTES : cacheService.CACHE_TTL.TEN_MINUTES;
+      await cacheService.setTrendingGoals(result, cacheParams, ttl);
+
+      return res.status(200).json({ success: true, data: result });
+    } catch (err) {
+      next(err);
+    }
+  }
 }; 

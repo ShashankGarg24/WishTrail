@@ -718,7 +718,6 @@ notificationSchema.statics.createGoalReminderNotification = async function(userI
 
 // Habit reminder
 notificationSchema.statics.createHabitReminderNotification = async function(userId, habitId, habitName, timeHHmm) {
-  console.log('createHabitReminderNotification', userId, habitId, habitName, timeHHmm);
   return this.createNotification({
     userId,
     type: 'habit_reminder',

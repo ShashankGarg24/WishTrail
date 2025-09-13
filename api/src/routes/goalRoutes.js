@@ -62,6 +62,7 @@ router.use(protect);
 
 // Goal routes
 router.get('/', goalController.getGoals);
+router.get('/trending', goalController.getTrendingGoals);
 router.get('/search', goalController.searchGoals);
 router.get('/:id/post', goalController.getGoalPost);
 router.post('/', goalValidation, goalController.createGoal);

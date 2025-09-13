@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Activity, Heart, MessageCircle, RefreshCw, Compass} from 'lucide-react'
+import { Activity, Heart, MessageCircle, RefreshCw, Compass, ArrowRightCircle } from 'lucide-react'
 import useApiStore from '../store/apiStore'
 import { activitiesAPI } from '../services/api'
 import SkeletonList from '../components/loader/SkeletonList'
@@ -17,6 +17,8 @@ const FeedPage = () => {
   const {
     isAuthenticated,
     getActivityFeed,
+    user,
+    getTrendingGoals,
     likeActivity,
     unfollowUser,
     report,
@@ -52,6 +54,11 @@ const FeedPage = () => {
   const activitiesSentinelRef = useRef(null)
   const [isMobile, setIsMobile] = useState(false);
   const [commentsOpenActivityId, setCommentsOpenActivityId] = useState(null);
+
+  // Stories (trending/inspiring goals) state
+  const [stories, setStories] = useState([])
+  const [storiesLoading, setStoriesLoading] = useState(false)
+  const STORIES_LIMIT = 20
 
 
   useEffect(() => {
@@ -92,6 +99,22 @@ const FeedPage = () => {
   const fetchInitial = async () => {
     setLoading(true)
     try {
+      // Load stories bar first for quick UI feel
+      try {
+        setStoriesLoading(true)
+        const interests = Array.isArray(user?.interests) ? user.interests : []
+        // Personalized if user has interests, else global
+        const params = interests.length > 0
+          ? { strategy: 'personalized', page: 1, limit: STORIES_LIMIT }
+          : { strategy: 'global', page: 1, limit: STORIES_LIMIT }
+        const { goals } = await getTrendingGoals(params)
+        setStories((goals || []).slice(0, STORIES_LIMIT))
+      } catch (_) {
+        setStories([])
+      } finally {
+        setStoriesLoading(false)
+      }
+
       setActivitiesPage(1)
       setActivitiesHasMore(true)
       const activitiesData = await getActivityFeed({ page: 1, limit: ACTIVITIES_PAGE_SIZE })
@@ -342,6 +365,50 @@ const FeedPage = () => {
               <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             </button>
           </div>
+        </div>
+
+        {/* Stories bar: inspiring + trending goals */}
+        <div className="mb-6">
+          <div className="relative">
+            <div className="flex gap-3 overflow-x-auto no-scrollbar pr-12 items-stretch">
+              {/* Explore pill at the end (but visually kept in view with sticky gradient) */}
+              {storiesLoading && (
+                <div className="flex items-center gap-3">
+                  {[...Array(6)].map((_, i) => (
+                    <div key={i} className="w-20 h-28 rounded-2xl bg-gray-200 dark:bg-gray-800 animate-pulse border border-gray-200 dark:border-gray-800" />
+                  ))}
+                </div>
+              )}
+              {!storiesLoading && stories && stories.length > 0 && stories.slice(0, STORIES_LIMIT).map((g, idx) => (
+                <button
+                  key={g._id || idx}
+                  onClick={() => g._id && openGoalModal(g._id)}
+                  className="relative shrink-0 w-20 h-28 rounded-2xl border border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-900/60 backdrop-blur hover:border-gray-300 dark:hover:border-gray-700 transition-all overflow-hidden"
+                  title={g.title}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/20" />
+                  <div className="p-2 flex flex-col items-center justify-between h-full">
+                    <img src={g.user?.avatar || '/api/placeholder/40/40'} className="w-10 h-10 rounded-full ring-2 ring-white/80 dark:ring-gray-800" />
+                    <div className="text-[10px] text-center text-gray-800 dark:text-gray-200 line-clamp-3 w-full">{g.title}</div>
+                    <span className="inline-block px-1.5 py-0.5 rounded-full text-[9px] font-medium text-white bg-blue-500">{g.category}</span>
+                  </div>
+                </button>
+              ))}
+              {/* Explore shortcut */}
+              <button
+                onClick={() => navigate('/discover?tab=discover&mode=goals')}
+                className="shrink-0 w-20 h-28 rounded-2xl border border-blue-200 dark:border-blue-900/50 bg-blue-50/80 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 hover:bg-blue-100/80 dark:hover:bg-blue-900/30 transition-all flex flex-col items-center justify-center gap-2"
+                title="Explore goals"
+              >
+                <ArrowRightCircle className="h-6 w-6" />
+                <span className="text-[11px] font-medium">Explore</span>
+              </button>
+            </div>
+            <div className="pointer-events-none absolute right-0 top-0 h-full w-12 bg-gradient-to-l from-white/90 dark:from-gray-900/90 to-transparent rounded-r-2xl" />
+          </div>
+          {stories && stories.length > 0 && (
+            <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">Inspiring for you • updates hourly</div>
+          )}
         </div>
 
         {loading ? (

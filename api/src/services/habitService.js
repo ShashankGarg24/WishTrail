@@ -266,18 +266,15 @@ function isWithinQuietHours() { return false; }
 async function sendReminderNotifications({ windowMinutes = 10 } = {}) {
   const users = await User.find({ isActive: true }).select('_id notificationSettings timezone').lean();
   const jobs = [];
-  console.log('users', users);
   for (const u of users) {
     const ns = u.notificationSettings || {};
     if (ns.habits && ns.habits.enabled === false) continue;
     // Quiet hours removed
     const due = await dueHabitsForReminder(u._id, u.timezone || 'Asia/Kolkata', windowMinutes);
-    console.log('due', due);
     for (const job of due) {
       const h = job.habit;
       // Skip if already done today (default true)
       const skipIfDone = ns.habits && typeof ns.habits.skipIfDone === 'boolean' ? ns.habits.skipIfDone : true;
-      console.log('skipIfDone', skipIfDone);
       if (skipIfDone) {
         const todayKey = toDateKeyUTC(new Date());
         const done = await HabitLog.findOne({ userId: u._id, habitId: h._id, dateKey: todayKey, status: 'done' }).select('_id').lean();
@@ -288,20 +285,16 @@ async function sendReminderNotifications({ windowMinutes = 10 } = {}) {
         const dateKey = toDateKeyUTC(new Date());
         const key = `habit:reminder:${String(u._id)}:${String(h._id)}:${dateKey}:${job.matchedMinutes}`;
         const exists = await redis.get(key);
-        console.log('exists', exists);
         if (!exists) {
           const ttl = Math.max(600, windowMinutes * 60); // >=10min
           await redis.set(key, '1', { ex: ttl });
           const timeHHmm = `${String(Math.floor(job.matchedMinutes / 60)).padStart(2,'0')}:${String(job.matchedMinutes % 60).padStart(2,'0')}`;
-          console.log('timeHHmm', timeHHmm);
           jobs.push(Notification.createHabitReminderNotification(u._id, h._id, h.name, timeHHmm));
-          console.log('jobs', jobs);
         }
       } catch (_) {
         // If redis unavailable, fall back to sending (dedup relies on notification rules/user settings)
         const timeHHmm = `${String(Math.floor(job.matchedMinutes / 60)).padStart(2,'0')}:${String(job.matchedMinutes % 60).padStart(2,'0')}`;
         jobs.push(Notification.createHabitReminderNotification(u._id, h._id, h.name, timeHHmm));
-        console.log('jobs2', jobs);
       }
     }
   }

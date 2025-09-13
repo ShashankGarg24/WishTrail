@@ -131,6 +131,8 @@ const useApiStore = create(
       // Explore removed; keep interestsCatalog used by Discover
       goalsSearchResults: [],
       interestsCatalog: [],
+      // Cached trending goals for stories bar (per params key)
+      cacheTrendingGoals: {},
       
       // =====================
       // AUTH ACTIONS
@@ -700,6 +702,29 @@ const useApiStore = create(
         } catch (error) {
           const errorMessage = handleApiError(error);
           return { success: false, error: errorMessage };
+        }
+      },
+
+      // Trending goals (paged/strategies)
+      getTrendingGoals: async (params = {}, opts = {}) => {
+        try {
+          const force = !!opts.force;
+          const key = get()._cacheKeyFromParams(params);
+          const bucket = get().cacheTrendingGoals || {};
+          const cached = bucket[key];
+          // Keep lightweight cache for 10 minutes
+          const ts = cached?.ts || 0;
+          const fresh = Date.now() - ts < 10 * 60 * 1000;
+          if (!force && cached && fresh) {
+            return cached.data; // { goals, pagination }
+          }
+          const res = await goalsAPI.getTrendingGoals(params);
+          const data = res?.data?.data || { goals: [], pagination: null };
+          const nextBucket = { ...(get().cacheTrendingGoals || {}), [key]: { data, ts: Date.now() } };
+          set({ cacheTrendingGoals: nextBucket });
+          return data;
+        } catch (error) {
+          return { goals: [], pagination: null };
         }
       },
       

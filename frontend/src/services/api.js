@@ -107,6 +107,7 @@ export const authAPI = {
 export const goalsAPI = {
   getGoals: (params) => api.get('/goals', { params }),
   getGoal: (id) => api.get(`/goals/${id}`),
+  getTrendingGoals: (params) => api.get('/goals/trending', { params }),
   createGoal: (goalData) => api.post('/goals', goalData),
   updateGoal: (id, goalData) => api.put(`/goals/${id}`, goalData),
   deleteGoal: (id) => api.delete(`/goals/${id}`),
