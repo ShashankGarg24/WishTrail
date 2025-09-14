@@ -57,7 +57,7 @@ function getDayOfYear(date = new Date()) {
 async function sendMorningQuotes(windowMinutes = 30) {
   const users = await User.find({ isActive: true }).select('_id notificationSettings timezone interests').lean();
   const jobs = [];
-  const targetH = 8, targetM = 0;
+  const targetH = 7, targetM = 0;
   for (const u of users) {
     const ns = u.notificationSettings || {};
     const mot = ns.motivation || {};
@@ -68,8 +68,16 @@ async function sendMorningQuotes(windowMinutes = 30) {
     const targetMin = targetH * 60 + targetM;
     // Send once any time after the target time (08:00) the same day
     if (nowMin < targetMin) continue;
-    // weekly => send on Mon & Thu at 08:00
+    // weekly => send on Mon & Thu after 07:00
     if ((mot.frequency || 'off') === 'weekly' && !['Mon', 'Thu'].includes(weekday)) continue;
+    // Idempotency: one per day per user
+    try {
+      const dayKey = new Date(); dayKey.setHours(0,0,0,0);
+      const sentKey = `motivation:sent:${dayKey.toISOString().slice(0,10)}:${String(u._id)}`;
+      const sent = await redis.get(sentKey);
+      if (sent) continue;
+      await redis.set(sentKey, '1', { ex: 36 * 60 * 60 });
+    } catch {}
     // Choose one interest deterministically; fallback to general
     const interests = Array.isArray(u.interests) && u.interests.length ? u.interests : ['general'];
     const doy = getDayOfYear(new Date());
@@ -107,6 +115,13 @@ async function generateNightlyQuotes() {
   const dayKey = new Date(); dayKey.setHours(0,0,0,0);
   const isoDate = dayKey.toISOString().slice(0,10);
   const ttlSeconds = 36 * 60 * 60; // keep ~36h
+  // Idempotency: only generate once per day
+  try {
+    const genKey = `motivation:nightly:generated:${isoDate}`;
+    const already = await redis.get(genKey);
+    if (already) return { ok: true, skipped: true };
+    await redis.set(genKey, '1', { ex: 48 * 60 * 60 });
+  } catch {}
 
   for (const interest of interestList) {
     try {
