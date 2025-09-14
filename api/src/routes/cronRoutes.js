@@ -17,10 +17,11 @@ function verifyCronKey(req, res, next) {
 router.post('/habit-reminders', verifyCronKey, async (req, res) => {
   try {
     const windowMinutes = Math.max(1, Math.min(30, Number(req.query.window || 10)));
-    setImmediate(async () => {
-      try { await sendReminderNotifications({ windowMinutes }); } catch (e) { console.error('[cron] habit-reminders error', e?.message || e); }
-    });
-    res.status(202).json({ success: true, accepted: true });
+    const startedAt = Date.now();
+    const result = await sendReminderNotifications({ windowMinutes });
+    const durationMs = Date.now() - startedAt;
+    try { console.log('[cron] habit-reminders', { windowMinutes, durationMs, count: result?.count }); } catch {}
+    res.json({ success: true, data: result, durationMs });
   } catch (e) {
     res.status(500).json({ success: false, error: e?.message || 'failed' });
   }
@@ -28,10 +29,11 @@ router.post('/habit-reminders', verifyCronKey, async (req, res) => {
 
 router.post('/journal-prompts', verifyCronKey, async (req, res) => {
   try {
-    setImmediate(async () => {
-      try { await notifyDailyPrompt(); } catch (e) { console.error('[cron] journal-prompts error', e?.message || e); }
-    });
-    res.status(202).json({ success: true, accepted: true });
+    const startedAt = Date.now();
+    await notifyDailyPrompt();
+    const durationMs = Date.now() - startedAt;
+    try { console.log('[cron] journal-prompts', { durationMs }); } catch {}
+    res.json({ success: true, durationMs });
   } catch (e) {
     res.status(500).json({ success: false, error: e?.message || 'failed' });
   }
@@ -39,10 +41,11 @@ router.post('/journal-prompts', verifyCronKey, async (req, res) => {
 
 router.post('/morning-quotes', verifyCronKey, async (req, res) => {
   try {
-    setImmediate(async () => {
-      try { await sendMorningQuotes(); } catch (e) { console.error('[cron] morning-quotes error', e?.message || e); }
-    });
-    res.status(202).json({ success: true, accepted: true });
+    const startedAt = Date.now();
+    const r = await sendMorningQuotes();
+    const durationMs = Date.now() - startedAt;
+    try { console.log('[cron] morning-quotes', { durationMs, count: r?.count }); } catch {}
+    res.json({ success: true, data: r, durationMs });
   } catch (e) {
     res.status(500).json({ success: false, error: e?.message || 'failed' });
   }
@@ -50,10 +53,11 @@ router.post('/morning-quotes', verifyCronKey, async (req, res) => {
 
 router.post('/nightly-quotes', verifyCronKey, async (req, res) => {
   try {
-    setImmediate(async () => {
-      try { await generateNightlyQuotes(); } catch (e) { console.error('[cron] nightly-quotes error', e?.message || e); }
-    });
-    res.status(202).json({ success: true, accepted: true });
+    const startedAt = Date.now();
+    const r = await generateNightlyQuotes();
+    const durationMs = Date.now() - startedAt;
+    try { console.log('[cron] nightly-quotes', { durationMs }); } catch {}
+    res.json({ success: true, data: r, durationMs });
   } catch (e) {
     res.status(500).json({ success: false, error: e?.message || 'failed' });
   }
@@ -61,10 +65,11 @@ router.post('/nightly-quotes', verifyCronKey, async (req, res) => {
 
 router.post('/inactivity-reminders', verifyCronKey, async (req, res) => {
   try {
-    setImmediate(async () => {
-      try { await sendDueInactivityReminders({ batchLimit: 2000 }); } catch (e) { console.error('[cron] inactivity-reminders error', e?.message || e); }
-    });
-    res.status(202).json({ success: true, accepted: true });
+    const startedAt = Date.now();
+    const r = await sendDueInactivityReminders({ batchLimit: 2000 });
+    const durationMs = Date.now() - startedAt;
+    try { console.log('[cron] inactivity-reminders', { durationMs }); } catch {}
+    res.json({ success: true, data: r, durationMs });
   } catch (e) {
     res.status(500).json({ success: false, error: e?.message || 'failed' });
   }
