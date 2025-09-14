@@ -54,15 +54,20 @@ function getDayOfYear(date = new Date()) {
   return Math.floor(diff / (24 * 60 * 60 * 1000));
 }
 
-async function sendMorningQuotes() {
+async function sendMorningQuotes(windowMinutes = 30) {
   const users = await User.find({ isActive: true }).select('_id notificationSettings timezone interests').lean();
   const jobs = [];
+  const targetH = 8, targetM = 0;
   for (const u of users) {
     const ns = u.notificationSettings || {};
     const mot = ns.motivation || {};
     if (mot.enabled === false || mot.frequency === 'off') continue;
     const { hhmm, weekday } = nowInTimezoneHHmmAndWeekday(u.timezone || 'UTC');
-    if (hhmm !== '08:00') continue;
+    const [h, m] = hhmm.split(':').map(n => Number(n));
+    const nowMin = h * 60 + m;
+    const targetMin = targetH * 60 + targetM;
+    // Send once any time after the target time (08:00) the same day
+    if (nowMin < targetMin) continue;
     // weekly => send on Mon & Thu at 08:00
     if ((mot.frequency || 'off') === 'weekly' && !['Mon', 'Thu'].includes(weekday)) continue;
     // Choose one interest deterministically; fallback to general

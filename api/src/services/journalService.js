@@ -6,6 +6,7 @@ const User = require('../models/User');
 const Achievement = require('../models/Achievement');
 const UserAchievement = require('../models/UserAchievement');
 const axios = require('axios');
+const redis = require('../config/redis');
 
 const PROMPTS = [
   { key: 'smile', text: 'What made you smile today?' },
@@ -375,20 +376,47 @@ async function computeSummary(userId, period = 'week') {
 // Quiet hours removed per new spec
 function isWithinQuietHours() { return false; }
 
-async function notifyDailyPrompt() {
+function minutesOfDayInTimezone(timezone) {
+  try {
+    const fmt = new Intl.DateTimeFormat('en-GB', { hour12: false, timeZone: timezone || 'UTC', hour: '2-digit', minute: '2-digit' });
+    const parts = fmt.formatToParts(new Date());
+    const hh = Number(parts.find(p => p.type === 'hour')?.value || '0');
+    const mm = Number(parts.find(p => p.type === 'minute')?.value || '0');
+    return hh * 60 + mm;
+  } catch {
+    const d = new Date();
+    return d.getUTCHours() * 60 + d.getUTCMinutes();
+  }
+}
+
+function parseHHmmToMinutes(text) {
+  try {
+    const [hh, mm] = String(text || '').split(':');
+    const H = Number(hh), M = Number(mm);
+    if (Number.isNaN(H) || Number.isNaN(M)) return null;
+    if (H < 0 || H > 23 || M < 0 || M > 59) return null;
+    return H * 60 + M;
+  } catch { return null; }
+}
+
+async function notifyDailyPrompt(windowMinutes = 30, targetHHmm = '20:00') {
   const prompt = getTodayPrompt();
   const users = await User.find({ isActive: true }).select('_id notificationSettings timezone').lean();
   const jobs = [];
+  const targetMin = parseHHmmToMinutes(targetHHmm) ?? 20 * 60;
   for (const u of users) {
     const ns = u.notificationSettings || {};
     if (ns.journal && ns.journal.enabled === false) continue;
-    // Send prompt at user's local 20:00
+    const localMin = minutesOfDayInTimezone(u.timezone || 'UTC');
+    // Send once any time after the target time (20:00) the same day
+    if (localMin < targetMin) continue;
+    // Idempotency: one per day per user
     try {
-      const fmt = new Intl.DateTimeFormat('en-GB', { hour12: false, timeZone: u.timezone || 'UTC', hour: '2-digit', minute: '2-digit' });
-      const parts = fmt.formatToParts(new Date());
-      const hh = parts.find(p => p.type === 'hour')?.value || '00';
-      const mm = parts.find(p => p.type === 'minute')?.value || '00';
-      if (`${hh}:${mm}` !== '20:00') continue;
+      const today = new Date(); today.setHours(0,0,0,0);
+      const key = `journal:promptSent:${today.toISOString().slice(0,10)}:${String(u._id)}`;
+      const seen = await redis.get(key);
+      if (seen) continue;
+      await redis.set(key, '1', { ex: 36 * 60 * 60 });
     } catch {}
     jobs.push(Notification.createNotification({
       userId: u._id,
