@@ -382,7 +382,7 @@ const FeedPage = () => {
       <div className="max-w-7xl mx-auto px-4 py-8">
         {!inNativeApp && (
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text_white flex items-center">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
               <Activity className="h-6 w-6 mr-2 text-green-500" />
               Feed
             </h2>
@@ -422,12 +422,12 @@ const FeedPage = () => {
                   title={g.title}
                   aria-label={`Open goal ${g.title}`}
                 >
-                  <div className={`relative mx-auto h-16 w-16 rounded_full p-[2px] bg-gradient-to-br ${getCategoryGradient(g.category)} transition-transform duration-200 group-hover:scale-105 mb-1`}>
+                  <div className={`relative mx-auto h-16 w-16 rounded-full p-[2px] bg-gradient-to-br ${getCategoryGradient(g.category)} transition-transform duration-200 group-hover:scale-105 mb-1`}>
                     <div className="h-full w-full rounded-full bg-white dark:bg-gray-900 p-[2px]">
                       <img src={g.user?.avatar || '/api/placeholder/40/40'} className="h-full w-full rounded-full object-cover" />
                     </div>
                     {typeof g.likeCount === 'number' && g.likeCount > 0 && (
-                      <div className="absolute -bottom-1 -right-1 px-1.5 py-[2px] rounded-full text-[10px] font-medium bg_white dark:bg-gray-900 text-gray-700 dark:text-gray-200 shadow border border-gray-200 dark:border-gray-800">
+                      <div className="absolute -bottom-1 -right-1 px-1.5 py-[2px] rounded-full text-[10px] font-medium bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-200 shadow border border-gray-200 dark:border-gray-800">
                         ❤️ {g.likeCount}
                       </div>
                     )}
@@ -508,7 +508,7 @@ const FeedPage = () => {
                           <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-4 border border-gray-100 dark:border-gray-800">
                              {(activity.type === 'goal_completed' || activity.type === 'goal_created') ? (
                                <>
-                                <h4 className="font-semibold text-gray-900 dark:text_white mb-2">
+                                <h4 className="font-semibold text-gray-900 dark:text-white mb-2">
                                    {activity.data?.goalTitle || 'Goal Achievement'}
                                  </h4>
                                  {activity.data?.goalCategory && (
@@ -567,7 +567,7 @@ const FeedPage = () => {
                                   <span className="text-2xl">🏆</span>
                                 </div>
                               ) : (
-                                <h4 className="font-medium text-gray-900 dark:text_white mb-2">
+                                <h4 className="font-medium text-gray-900 dark:text-white mb-2">
                                   Activity Update
                                 </h4>
                               )}
@@ -597,7 +597,7 @@ const FeedPage = () => {
                     <div className="relative">
                       <button
                         onClick={(e) => { e.stopPropagation(); setOpenActivityMenuId(prev => prev === activity._id ? null : activity._id); }}
-                        className="px-2 py-1 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg_gray-800"
+                        className="px-2 py-1 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
                       >⋯</button>
                       {openActivityMenuId === activity._id && (
                         <div
@@ -634,7 +634,7 @@ const FeedPage = () => {
               </div>
             )}
             {!activitiesHasMore && activities.length > 0 && (
-              <div className="text_center text-xs text-gray-400 py-4">No more activities</div>
+              <div className="text-center text-xs text-gray-400 py-4">No more activities</div>
             )}
           </>
         ) : (
@@ -742,7 +742,7 @@ const FeedPage = () => {
                         <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{goalModalData?.user?.name}</div>
                         {goalModalData?.user?.username && (<div className="text-xs text-gray-500">@{goalModalData.user.username}</div>)}
                       </div>
-                      <button onClick={closeGoalModal} className="px-3 py-1.5 rounded-md text-gray-500 hover:bg_gray-100 dark:hover:bg-gray-800">✕</button>
+                      <button onClick={closeGoalModal} className="px-3 py-1.5 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800">✕</button>
                     </div>
                     <div ref={rightPanelScrollRef} className={`flex-1 min-h-0 ${isMobile ? '' : 'overflow-auto'}` }>
                       <div className="p-6 space-y-4">

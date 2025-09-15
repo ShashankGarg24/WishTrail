@@ -56,6 +56,23 @@ function App() {
     } catch {}
   }, []);
 
+  // iOS pull-to-refresh via onScroll + bounces
+  const iosPullLockRef = useRef(false);
+  const iosLastPullMsRef = useRef(0);
+  const onWebViewScroll = useCallback((e) => {
+    if (Platform.OS !== 'ios') return;
+    try {
+      const y = e?.nativeEvent?.contentOffset?.y ?? 0;
+      const now = Date.now();
+      if (y < -64 && !iosPullLockRef.current && now - iosLastPullMsRef.current > 2000) {
+        iosPullLockRef.current = true;
+        iosLastPullMsRef.current = now;
+        try { webRef.current?.reload(); } catch {}
+        setTimeout(() => { iosPullLockRef.current = false; }, 1500);
+      }
+    } catch {}
+  }, []);
+
   useEffect(() => {
     (async () => {
       try {
@@ -292,6 +309,8 @@ function App() {
         onShouldStartLoadWithRequest={onShouldStartLoadWithRequest}
         onMessage={onMessage}
         pullToRefreshEnabled={Platform.OS === 'android'}
+        bounces={Platform.OS === 'ios'}
+        onScroll={onWebViewScroll}
         overScrollMode="always"
         allowsBackForwardNavigationGestures
         startInLoadingState
