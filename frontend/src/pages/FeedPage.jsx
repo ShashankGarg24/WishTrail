@@ -54,6 +54,7 @@ const FeedPage = () => {
   const activitiesSentinelRef = useRef(null)
   const [isMobile, setIsMobile] = useState(false);
   const [commentsOpenActivityId, setCommentsOpenActivityId] = useState(null);
+  const [inNativeApp, setInNativeApp] = useState(false)
 
   // Stories (trending/inspiring goals) state
   const [stories, setStories] = useState([])
@@ -80,6 +81,10 @@ const FeedPage = () => {
     window.addEventListener('resize', compute);
     return () => window.removeEventListener('resize', compute);
   }, []);
+
+  useEffect(() => {
+    try { if (typeof window !== 'undefined' && window.ReactNativeWebView) setInNativeApp(true) } catch {}
+  }, [])
 
   useEffect(() => {
     if (goalModalOpen) {
@@ -348,11 +353,11 @@ const FeedPage = () => {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50 dark:from-slate-900 dark:via-gray-900 dark:to-zinc-900">
+      <div className="min-h-screen flex items-center justify_center bg-gradient-to-br from-blue-50 to-purple-50 dark:from-slate-900 dark:via-gray-900 dark:to-zinc-900">
         <div className="text-center">
           <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
             className="bg-gradient-to-r from-blue-500 to-indigo-600 p-6 rounded-full mb-6 mx-auto w-24 h-24 flex items-center justify-center"
           >
@@ -375,22 +380,24 @@ const FeedPage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-slate-900 dark:via-gray-900 dark:to-zinc-900">
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
-            <Activity className="h-6 w-6 mr-2 text-green-500" />
-            Feed
-          </h2>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => fetchInitial()}
-              aria-label="Refresh"
-              className={`h-9 w-9 inline-flex items-center justify-center rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors ${loading ? 'opacity-80' : ''}`}
-              disabled={loading}
-            >
-              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            </button>
+        {!inNativeApp && (
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text_white flex items-center">
+              <Activity className="h-6 w-6 mr-2 text-green-500" />
+              Feed
+            </h2>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => fetchInitial()}
+                aria-label="Refresh"
+                className={`h-9 w-9 inline-flex items-center justify-center rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors ${loading ? 'opacity-80' : ''}`}
+                disabled={loading}
+              >
+                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              </button>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Stories bar: inspiring + trending goals */}
         <div className="mb-6">
@@ -415,12 +422,12 @@ const FeedPage = () => {
                   title={g.title}
                   aria-label={`Open goal ${g.title}`}
                 >
-                  <div className={`relative mx-auto h-16 w-16 rounded-full p-[2px] bg-gradient-to-br ${getCategoryGradient(g.category)} transition-transform duration-200 group-hover:scale-105 mb-1`}>
+                  <div className={`relative mx-auto h-16 w-16 rounded_full p-[2px] bg-gradient-to-br ${getCategoryGradient(g.category)} transition-transform duration-200 group-hover:scale-105 mb-1`}>
                     <div className="h-full w-full rounded-full bg-white dark:bg-gray-900 p-[2px]">
                       <img src={g.user?.avatar || '/api/placeholder/40/40'} className="h-full w-full rounded-full object-cover" />
                     </div>
                     {typeof g.likeCount === 'number' && g.likeCount > 0 && (
-                      <div className="absolute -bottom-1 -right-1 px-1.5 py-[2px] rounded-full text-[10px] font-medium bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-200 shadow border border-gray-200 dark:border-gray-800">
+                      <div className="absolute -bottom-1 -right-1 px-1.5 py-[2px] rounded-full text-[10px] font-medium bg_white dark:bg-gray-900 text-gray-700 dark:text-gray-200 shadow border border-gray-200 dark:border-gray-800">
                         ❤️ {g.likeCount}
                       </div>
                     )}
@@ -480,7 +487,7 @@ const FeedPage = () => {
                       onClick={() => activity.user?.username && navigate(`/profile/@${activity.user.username}?tab=overview`)}
                     />
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items_center gap-2">
                         <button
                           className="font-semibold text-gray-900 dark:text-white hover:text-blue-500 truncate"
                           onClick={() => activity.user?.username && navigate(`/profile/@${activity.user.username}?tab=overview`)}
@@ -501,7 +508,7 @@ const FeedPage = () => {
                           <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-4 border border-gray-100 dark:border-gray-800">
                              {(activity.type === 'goal_completed' || activity.type === 'goal_created') ? (
                                <>
-                                <h4 className="font-semibold text-gray-900 dark:text-white mb-2">
+                                <h4 className="font-semibold text-gray-900 dark:text_white mb-2">
                                    {activity.data?.goalTitle || 'Goal Achievement'}
                                  </h4>
                                  {activity.data?.goalCategory && (
@@ -528,7 +535,7 @@ const FeedPage = () => {
                                         )}
                                         {sharedNote && (
                                           <div className="bg-white/80 dark:bg-gray-900/40 rounded-xl p-3 border border-gray-200 dark:border-gray-700">
-                                            <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line">
+                                            <p className="text_sm text-gray-700 dark:text-gray-300 whitespace-pre-line">
                                               {sharedNote}
                                             </p>
                                           </div>
@@ -560,7 +567,7 @@ const FeedPage = () => {
                                   <span className="text-2xl">🏆</span>
                                 </div>
                               ) : (
-                                <h4 className="font-medium text-gray-900 dark:text-white mb-2">
+                                <h4 className="font-medium text-gray-900 dark:text_white mb-2">
                                   Activity Update
                                 </h4>
                               )}
@@ -590,7 +597,7 @@ const FeedPage = () => {
                     <div className="relative">
                       <button
                         onClick={(e) => { e.stopPropagation(); setOpenActivityMenuId(prev => prev === activity._id ? null : activity._id); }}
-                        className="px-2 py-1 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
+                        className="px-2 py-1 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg_gray-800"
                       >⋯</button>
                       {openActivityMenuId === activity._id && (
                         <div
@@ -627,7 +634,7 @@ const FeedPage = () => {
               </div>
             )}
             {!activitiesHasMore && activities.length > 0 && (
-              <div className="text-center text-xs text-gray-400 py-4">No more activities</div>
+              <div className="text_center text-xs text-gray-400 py-4">No more activities</div>
             )}
           </>
         ) : (
@@ -700,16 +707,6 @@ const FeedPage = () => {
                               <button className="mt-1 text-xs text-blue-600" onClick={() => setDetailsExpanded((v) => !v)}>{detailsExpanded ? 'Show less' : 'More'}</button>
                             )}
                           </div>
-                          <div className="grid grid-cols-2 gap-3">
-                            <div>
-                              <div className="text-xs text-gray-500">Completed</div>
-                              <div className="text-gray-800 dark:text-gray-200">{goalModalData?.goal?.completedAt ? new Date(goalModalData.goal.completedAt).toLocaleString() : '—'}</div>
-                            </div>
-                            <div>
-                              <div className="text-xs text-gray-500">Points</div>
-                              <div className="text-gray-800 dark:text-gray-200">{goalModalData?.goal?.pointsEarned ?? 0}</div>
-                            </div>
-                          </div>
                           {goalModalData?.share?.note && (
                             <div className="bg-gray-50 dark:bg-gray-800/40 rounded-xl p-3 border border-gray-200 dark:border-gray-700">
                               <div className="text-xs text-gray-500 mb-1">Completion note</div>
@@ -745,7 +742,7 @@ const FeedPage = () => {
                         <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{goalModalData?.user?.name}</div>
                         {goalModalData?.user?.username && (<div className="text-xs text-gray-500">@{goalModalData.user.username}</div>)}
                       </div>
-                      <button onClick={closeGoalModal} className="px-3 py-1.5 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800">✕</button>
+                      <button onClick={closeGoalModal} className="px-3 py-1.5 rounded-md text-gray-500 hover:bg_gray-100 dark:hover:bg-gray-800">✕</button>
                     </div>
                     <div ref={rightPanelScrollRef} className={`flex-1 min-h-0 ${isMobile ? '' : 'overflow-auto'}` }>
                       <div className="p-6 space-y-4">
@@ -767,11 +764,11 @@ const FeedPage = () => {
                         <div className="grid grid-cols-2 gap-3">
                           <div>
                             <div className="text-xs text-gray-500">Completed</div>
-                            <div className="text-gray-800 dark:text-gray-200">{goalModalData?.goal?.completedAt ? new Date(goalModalData.goal.completedAt).toLocaleString() : '—'}</div>
+                            <div className="text-gray-800 dark:text_gray-200">{goalModalData?.goal?.completedAt ? new Date(goalModalData.goal.completedAt).toLocaleString() : '—'}</div>
                           </div>
                           <div>
-                            <div className="text-xs text-gray-500">Points</div>
-                            <div className="text-gray-800 dark:text-gray-200">{goalModalData?.goal?.pointsEarned ?? 0}</div>
+                            <div className="text-xs text_gray-500">Points</div>
+                            <div className="text_gray-800 dark:text-gray-200">{goalModalData?.goal?.pointsEarned ?? 0}</div>
                           </div>
                         </div>
                       </div>

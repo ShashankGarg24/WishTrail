@@ -45,13 +45,24 @@ function App() {
     { title: 'Get Motivated', body: 'Be inspired by friends, likes, comments, and leaderboards.' }
   ];
 
+  // Deep link forwarding state
+  const [webReady, setWebReady] = useState(false);
+  const pendingDeepLinkRef = useRef('');
+  const forwardDeepLinkToWeb = useCallback((url) => {
+    try {
+      if (!url) return;
+      const js = `window.dispatchEvent(new CustomEvent('wt_push', { detail: { url: ${JSON.stringify(url)} } })); true;`;
+      webRef.current?.injectJavaScript(js);
+    } catch {}
+  }, []);
+
   useEffect(() => {
     (async () => {
       try {
-        if (!AsyncStorage) return;
+        if (!AsyncStorage) { setShowOnboarding(true); return; }
         const seen = await AsyncStorage.getItem('wt_onboarding_seen');
         if (!seen) setShowOnboarding(true);
-      } catch {}
+      } catch { setShowOnboarding(true); }
     })();
   }, []);
 
@@ -92,7 +103,7 @@ function App() {
         if (!authToken) injectAuthProbe();
         // Ping backend lastActiveAt
         try {
-          const API = (Constants.expoConfig?.extra?.API_URL || Constants.manifest?.extra?.API_URL || '').replace(/\/$/, '');
+          const API = (Constants.expoConfig?.extra?.API_URL || Constants?.manifest?.extra?.API_URL || '').replace(/\/$/, '');
           if (API && authToken) {
             fetch(`${API}/notifications/ping`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` } }).catch(()=>{});
           }
@@ -102,7 +113,7 @@ function App() {
     return () => sub.remove();
   }, []);
 
-  // FCM: request permission on first run (Android/iOS), store token, and forward foreground messages
+  // FCM: request permission on first run (Android/iOS), store token, and forward foreground/background messages
   const [fcmToken, setFcmToken] = useState(null);
   const didRegisterRef = useRef(false);
   useEffect(() => {
@@ -129,7 +140,7 @@ function App() {
         setFcmToken(token);
         try { console.log('FCM token:', token ? (token.slice(0, 12) + '...') : 'null'); } catch {}
 
-        // Foreground message bridge
+        // Foreground message bridge -> web
         messaging().onMessage(async (remoteMessage) => {
           try {
             const data = remoteMessage?.data || {};
@@ -138,11 +149,30 @@ function App() {
             webRef.current?.injectJavaScript(js);
           } catch {}
         });
+
+        // App opened from background by tapping notification
+        messaging().onNotificationOpenedApp((remoteMessage) => {
+          try {
+            const url = remoteMessage?.data?.url || '';
+            if (url) {
+              if (webReady) forwardDeepLinkToWeb(url); else pendingDeepLinkRef.current = url;
+            }
+          } catch {}
+        });
+
+        // App opened from quit state by tapping notification
+        try {
+          const initial = await messaging().getInitialNotification();
+          const url = initial?.data?.url || '';
+          if (url) {
+            if (webReady) forwardDeepLinkToWeb(url); else pendingDeepLinkRef.current = url;
+          }
+        } catch {}
       } catch (e) {
         try { console.log('FCM init error', e?.message || e); } catch {}
       }
     })();
-  }, []);
+  }, [webReady, forwardDeepLinkToWeb]);
 
   // Register device token when token/auth/user is available
   useEffect(() => {
@@ -160,8 +190,6 @@ function App() {
       } catch (_) {}
     })();
   }, [authToken, userId, fcmToken]);
-
-  // Expo push listeners removed
 
   // Inject a script into the web app to post the auth token to native
   const injectAuthProbe = useCallback(() => {
@@ -194,8 +222,6 @@ function App() {
       }
     } catch {}
   }, [authToken]);
-
-  // Expo WebView registration helper removed
 
   // Capture auth token from the web app (after load)
   useEffect(() => {
@@ -254,17 +280,6 @@ function App() {
     );
   };
 
-  // Expo registration helper removed
-
-  // Expo registration retry removed
-
-  // Expo unregister removed
-
-  // Expo web registration removed
-
-  // Expo push registration/unregistration removed (migrating to FCM)
-  
-
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#ffffff' }}>
       <StatusBar barStyle={Platform.OS === 'ios' ? 'dark-content' : 'default'} />
@@ -273,7 +288,7 @@ function App() {
         source={{ uri: WEB_URL }}
         originWhitelist={originWhitelist}
         onLoadStart={() => setLoading(true)}
-        onLoadEnd={() => { setLoading(false); injectAuthProbe(); }}
+        onLoadEnd={() => { setLoading(false); setWebReady(true); if (pendingDeepLinkRef.current) { forwardDeepLinkToWeb(pendingDeepLinkRef.current); pendingDeepLinkRef.current = ''; } injectAuthProbe(); }}
         onShouldStartLoadWithRequest={onShouldStartLoadWithRequest}
         onMessage={onMessage}
         pullToRefreshEnabled={Platform.OS === 'android'}

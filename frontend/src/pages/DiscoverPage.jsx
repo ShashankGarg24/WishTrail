@@ -69,6 +69,7 @@ const DiscoverPage = () => {
   const [blockOpen, setBlockOpen] = useState(false)
   const [blockUserId, setBlockUserId] = useState(null)
   const { goalId } = useParams();
+  const [inNativeApp, setInNativeApp] = useState(false)
 
   useEffect(() => {
     const compute = () => setIsMobile(window.innerWidth < 768);
@@ -76,6 +77,10 @@ const DiscoverPage = () => {
     window.addEventListener('resize', compute);
     return () => window.removeEventListener('resize', compute);
   }, []);
+
+  useEffect(() => {
+    try { if (typeof window !== 'undefined' && window.ReactNativeWebView) setInNativeApp(true) } catch {}
+  }, [])
 
   useEffect(() => {
     if (!isAuthenticated) return
@@ -454,6 +459,7 @@ const DiscoverPage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-slate-900 dark:via-gray-900 dark:to-zinc-900">
       <div className="max-w-7xl mx-auto px-4 py-8">
+        {!inNativeApp && (
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
             <Users className="h-6 w-6 mr-2 text-blue-500" />
@@ -470,6 +476,7 @@ const DiscoverPage = () => {
             </button>
           </div>
         </div>
+        )}
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }} className="relative max-w-3xl mx-auto mb-8">
           <div className="relative">
