@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState, useCallback, useEffect } from 'react';
-import { Platform, SafeAreaView, StatusBar, View, RefreshControl, Linking, AppState, Text, TouchableOpacity, Dimensions } from 'react-native';
+import { Platform, SafeAreaView, StatusBar, View, RefreshControl, Linking, AppState, Text, TouchableOpacity, Dimensions, ScrollView } from 'react-native';
 import { WebView } from 'react-native-webview';
 import Constants from 'expo-constants';
 import { registerRootComponent } from 'expo';
@@ -40,9 +40,9 @@ function App() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingIndex, setOnboardingIndex] = useState(0);
   const slides = [
-    { title: 'Welcome to WishTrail', body: 'Turn dreams into achievable goals with a supportive community.' },
-    { title: 'Track Habits & Journal', body: 'Build daily habits and capture your reflections to stay consistent.' },
-    { title: 'Get Motivated', body: 'Be inspired by friends, likes, comments, and leaderboards.' }
+    { title: 'Welcome to WishTrail', body: 'Turn dreams into achievable goals with community support.', emoji: '✨' },
+    { title: 'Build Powerful Habits', body: 'Track daily habits and reflect in your journal.', emoji: '📈' },
+    { title: 'Stay Motivated', body: 'Celebrate wins, get likes and comments from friends.', emoji: '🔥' }
   ];
 
   // Deep link forwarding state
@@ -56,7 +56,7 @@ function App() {
     } catch {}
   }, []);
 
-  // iOS pull-to-refresh via onScroll + bounces
+  // iOS pull-to-refresh via onScroll + bounces and JS gesture fallback
   const iosPullLockRef = useRef(false);
   const iosLastPullMsRef = useRef(0);
   const onWebViewScroll = useCallback((e) => {
@@ -64,12 +64,40 @@ function App() {
     try {
       const y = e?.nativeEvent?.contentOffset?.y ?? 0;
       const now = Date.now();
-      if (y < -64 && !iosPullLockRef.current && now - iosLastPullMsRef.current > 2000) {
+      if (y < -72 && !iosPullLockRef.current && now - iosLastPullMsRef.current > 2000) {
         iosPullLockRef.current = true;
         iosLastPullMsRef.current = now;
         try { webRef.current?.reload(); } catch {}
         setTimeout(() => { iosPullLockRef.current = false; }, 1500);
       }
+    } catch {}
+  }, []);
+
+  // Inject web-level pull-to-refresh gesture to ensure reliability
+  const injectPullToRefreshJS = useCallback(() => {
+    try {
+      const js = `
+        (function(){
+          try {
+            if (window.__wtPullAttached) return; window.__wtPullAttached = true;
+            var startY = 0, pulling = false, fired = false;
+            window.addEventListener('touchstart', function(e){
+              try { startY = (e.touches && e.touches[0] ? e.touches[0].clientY : 0); pulling = (window.scrollY <= 0); fired = false; } catch(_){}
+            }, { passive: true });
+            window.addEventListener('touchmove', function(e){
+              try {
+                if (!pulling) return;
+                var y = (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+                if (!fired && (y - startY) > 90) {
+                  fired = true;
+                  window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'WT_PULL' }));
+                }
+              } catch(_){}
+            }, { passive: true });
+          } catch(e){}
+        })(); true;
+      `;
+      webRef.current?.injectJavaScript(js);
     } catch {}
   }, []);
 
@@ -208,7 +236,7 @@ function App() {
     })();
   }, [authToken, userId, fcmToken]);
 
-  // Inject a script into the web app to post the auth token to native
+  // Inject a script into the web app to post the auth token to native + attach pull gesture
   const injectAuthProbe = useCallback(() => {
     try {
       const script = `
@@ -227,6 +255,7 @@ function App() {
         })(); true;
       `;
       webRef.current?.injectJavaScript(script);
+      injectPullToRefreshJS();
       // Poll a few times in case user logs in shortly after load
       if (!authToken && authProbeTries.current < 10) {
         clearTimeout(authProbeTimer.current);
@@ -238,9 +267,9 @@ function App() {
         clearTimeout(authProbeTimer.current);
       }
     } catch {}
-  }, [authToken]);
+  }, [authToken, injectPullToRefreshJS]);
 
-  // Capture auth token from the web app (after load)
+  // Capture auth token and pull-to-refresh from the web app (after load)
   useEffect(() => {
     const t = setTimeout(() => injectAuthProbe(), 1200);
     return () => clearTimeout(t);
@@ -262,44 +291,71 @@ function App() {
       } else if (data?.type === 'WT_USER') {
         const uid = (data.userId || '').trim();
         if (uid && uid.length > 0) setUserId(uid);
+      } else if (data?.type === 'WT_PULL') {
+        try { webRef.current?.reload(); } catch {}
       }
     } catch {}
   }, []);
 
-  // Simple onboarding overlay UI
+  // Full-screen onboarding carousel
   const renderOnboarding = () => {
     if (!showOnboarding) return null;
-    const { width } = Dimensions.get('window');
-    const s = slides[onboardingIndex];
+    const { width, height } = Dimensions.get('window');
     return (
-      <View style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
-        <View style={{ width: Math.min(width - 48, 340), backgroundColor: 'white', borderRadius: 16, padding: 20 }}>
-          <Text style={{ fontSize: 22, fontWeight: '700', marginBottom: 8 }}>{s.title}</Text>
-          <Text style={{ fontSize: 15, color: '#374151', marginBottom: 20 }}>{s.body}</Text>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <TouchableOpacity onPress={() => { if (onboardingIndex > 0) setOnboardingIndex(onboardingIndex - 1); }} disabled={onboardingIndex === 0}>
-              <Text style={{ color: onboardingIndex === 0 ? '#9CA3AF' : '#111827', fontSize: 15 }}>Back</Text>
-            </TouchableOpacity>
-            <View style={{ flexDirection: 'row', gap: 6 }}>
-              {slides.map((_, i) => (
-                <View key={i} style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: i === onboardingIndex ? '#6366F1' : '#E5E7EB', marginHorizontal: 3 }} />
-              ))}
-            </View>
-            <TouchableOpacity onPress={() => { if (onboardingIndex < slides.length - 1) setOnboardingIndex(onboardingIndex + 1); else completeOnboarding(); }}>
-              <Text style={{ color: '#2563EB', fontSize: 15 }}>{onboardingIndex < slides.length - 1 ? 'Continue' : 'Finish'}</Text>
+      <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#0f172a' }}>
+        <SafeAreaView style={{ flex: 1 }}>
+          <View style={{ position: 'absolute', top: 12, right: 16, zIndex: 10 }}>
+            <TouchableOpacity onPress={completeOnboarding}>
+              <Text style={{ color: '#cbd5e1', fontSize: 14 }}>Skip</Text>
             </TouchableOpacity>
           </View>
-          <TouchableOpacity onPress={completeOnboarding} style={{ marginTop: 12, alignSelf: 'center' }}>
-            <Text style={{ color: '#6B7280', fontSize: 13 }}>Skip</Text>
-          </TouchableOpacity>
-        </View>
+          <ScrollView
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            onScroll={(e) => {
+              try {
+                const x = e.nativeEvent.contentOffset.x;
+                const i = Math.round(x / Math.max(width, 1));
+                if (i !== onboardingIndex) setOnboardingIndex(i);
+              } catch {}
+            }}
+            scrollEventThrottle={16}
+            style={{ flex: 1 }}
+          >
+            {slides.map((s, i) => (
+              <View key={i} style={{ width, height, paddingHorizontal: 24, paddingTop: 48, alignItems: 'center' }}>
+                <View style={{ width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(99,102,241,0.15)', alignItems: 'center', justifyContent: 'center', marginBottom: 24 }}>
+                  <Text style={{ fontSize: 56 }}>{s.emoji}</Text>
+                </View>
+                <Text style={{ fontSize: 28, fontWeight: '800', color: 'white', textAlign: 'center', marginBottom: 12 }}>{s.title}</Text>
+                <Text style={{ fontSize: 16, color: '#cbd5e1', textAlign: 'center', lineHeight: 22, paddingHorizontal: 12 }}>{s.body}</Text>
+              </View>
+            ))}
+          </ScrollView>
+          <View style={{ position: 'absolute', bottom: 24, left: 24, right: 24, alignItems: 'center' }}>
+            <View style={{ flexDirection: 'row', marginBottom: 12 }}>
+              {slides.map((_, i) => (
+                <View key={i} style={{ width: 8, height: 8, borderRadius: 4, marginHorizontal: 4, backgroundColor: i === onboardingIndex ? '#6366F1' : '#334155' }} />
+              ))}
+            </View>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%' }}>
+              <TouchableOpacity onPress={() => onboardingIndex > 0 && setOnboardingIndex(onboardingIndex - 1)} disabled={onboardingIndex === 0} style={{ paddingVertical: 12, paddingHorizontal: 18, borderRadius: 12, backgroundColor: onboardingIndex === 0 ? '#1f2937' : '#111827' }}>
+                <Text style={{ color: '#cbd5e1', fontSize: 15 }}>Back</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => { if (onboardingIndex < slides.length - 1) setOnboardingIndex(onboardingIndex + 1); else completeOnboarding(); }} style={{ paddingVertical: 12, paddingHorizontal: 18, borderRadius: 12, backgroundColor: '#2563EB' }}>
+                <Text style={{ color: 'white', fontSize: 15 }}>{onboardingIndex < slides.length - 1 ? 'Continue' : 'Finish'}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </SafeAreaView>
       </View>
     );
   };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#ffffff' }}>
-      <StatusBar barStyle={Platform.OS === 'ios' ? 'dark-content' : 'default'} />
+      <StatusBar barStyle={Platform.OS === 'ios' ? 'light-content' : 'default'} />
       <WebView
         ref={webRef}
         source={{ uri: WEB_URL }}
@@ -312,13 +368,13 @@ function App() {
         bounces={Platform.OS === 'ios'}
         onScroll={onWebViewScroll}
         overScrollMode="always"
+        scrollEnabled
         allowsBackForwardNavigationGestures
         startInLoadingState
         renderLoading={() => <View style={{ flex: 1, backgroundColor: '#fff' }} />}
         refreshControl={Platform.OS === 'ios' ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} /> : undefined}
       />
       {renderOnboarding()}
-      {/* Expo in-app toast removed */}
     </SafeAreaView>
   );
 }
