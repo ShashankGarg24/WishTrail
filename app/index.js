@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState, useCallback, useEffect } from 'react';
-import { Platform, SafeAreaView, StatusBar, View, RefreshControl, Linking, AppState } from 'react-native';
+import { Platform, SafeAreaView, StatusBar, View, RefreshControl, Linking, AppState, Text, TouchableOpacity, Dimensions } from 'react-native';
 import { WebView } from 'react-native-webview';
 import Constants from 'expo-constants';
 import { registerRootComponent } from 'expo';
@@ -13,6 +13,8 @@ try {
     try { bgMessaging().setBackgroundMessageHandler(async () => {}); } catch (_) {}
   }
 } catch (_) {}
+
+const AsyncStorage = (() => { try { return require('@react-native-async-storage/async-storage').default; } catch { return null; } })();
 
 const WEB_URL = (Constants.expoConfig?.extra?.WEB_URL || Constants.manifest?.extra?.WEB_URL || 'http://localhost:5173');
 // Backend API base (include /api/v1). Falls back to WEB_URL + /api/v1 when not provided
@@ -33,6 +35,30 @@ function App() {
   const authProbeTries = useRef(0);
   const authProbeTimer = useRef(null);
   // In-app toast removed (was for Expo foreground notifications)
+
+  // Onboarding state
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [onboardingIndex, setOnboardingIndex] = useState(0);
+  const slides = [
+    { title: 'Welcome to WishTrail', body: 'Turn dreams into achievable goals with a supportive community.' },
+    { title: 'Track Habits & Journal', body: 'Build daily habits and capture your reflections to stay consistent.' },
+    { title: 'Get Motivated', body: 'Be inspired by friends, likes, comments, and leaderboards.' }
+  ];
+
+  useEffect(() => {
+    (async () => {
+      try {
+        if (!AsyncStorage) return;
+        const seen = await AsyncStorage.getItem('wt_onboarding_seen');
+        if (!seen) setShowOnboarding(true);
+      } catch {}
+    })();
+  }, []);
+
+  const completeOnboarding = useCallback(async () => {
+    try { if (AsyncStorage) await AsyncStorage.setItem('wt_onboarding_seen', '1'); } catch {}
+    setShowOnboarding(false);
+  }, []);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -197,6 +223,37 @@ function App() {
     } catch {}
   }, []);
 
+  // Simple onboarding overlay UI
+  const renderOnboarding = () => {
+    if (!showOnboarding) return null;
+    const { width } = Dimensions.get('window');
+    const s = slides[onboardingIndex];
+    return (
+      <View style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+        <View style={{ width: Math.min(width - 48, 340), backgroundColor: 'white', borderRadius: 16, padding: 20 }}>
+          <Text style={{ fontSize: 22, fontWeight: '700', marginBottom: 8 }}>{s.title}</Text>
+          <Text style={{ fontSize: 15, color: '#374151', marginBottom: 20 }}>{s.body}</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <TouchableOpacity onPress={() => { if (onboardingIndex > 0) setOnboardingIndex(onboardingIndex - 1); }} disabled={onboardingIndex === 0}>
+              <Text style={{ color: onboardingIndex === 0 ? '#9CA3AF' : '#111827', fontSize: 15 }}>Back</Text>
+            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', gap: 6 }}>
+              {slides.map((_, i) => (
+                <View key={i} style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: i === onboardingIndex ? '#6366F1' : '#E5E7EB', marginHorizontal: 3 }} />
+              ))}
+            </View>
+            <TouchableOpacity onPress={() => { if (onboardingIndex < slides.length - 1) setOnboardingIndex(onboardingIndex + 1); else completeOnboarding(); }}>
+              <Text style={{ color: '#2563EB', fontSize: 15 }}>{onboardingIndex < slides.length - 1 ? 'Continue' : 'Finish'}</Text>
+            </TouchableOpacity>
+          </View>
+          <TouchableOpacity onPress={completeOnboarding} style={{ marginTop: 12, alignSelf: 'center' }}>
+            <Text style={{ color: '#6B7280', fontSize: 13 }}>Skip</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
+
   // Expo registration helper removed
 
   // Expo registration retry removed
@@ -226,6 +283,7 @@ function App() {
         renderLoading={() => <View style={{ flex: 1, backgroundColor: '#fff' }} />}
         refreshControl={Platform.OS === 'ios' ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} /> : undefined}
       />
+      {renderOnboarding()}
       {/* Expo in-app toast removed */}
     </SafeAreaView>
   );

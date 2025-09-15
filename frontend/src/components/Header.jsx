@@ -78,9 +78,20 @@ const Header = () => {
 
   // Listen for native push forwarded from the app WebView (wt_push) to refresh unread badge
   useEffect(() => {
-    const handler = () => {
-      // Force bypass cache to ensure latest unread count
-      try { getNotifications({ page: 1, limit: 1 }, { force: true }); } catch {}
+    const handler = (evt) => {
+      // evt.detail may contain { url, type, id }
+      try {
+        const d = evt?.detail || {};
+        // Refresh unread count
+        getNotifications({ page: 1, limit: 1 }, { force: true });
+        // If a deep link URL is provided, navigate to it (in-app routing)
+        if (d.url && typeof d.url === 'string') {
+          const u = new URL(d.url, window.location.origin);
+          if (u.origin === window.location.origin) {
+            navigate(u.pathname + u.search);
+          }
+        }
+      } catch {}
     };
     window.addEventListener('wt_push', handler);
     return () => window.removeEventListener('wt_push', handler);

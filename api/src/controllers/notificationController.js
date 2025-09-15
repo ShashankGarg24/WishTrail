@@ -75,20 +75,42 @@ const User = require('../models/User');
 // @access  Private
 const getNotifications = async (req, res, next) => {
   try {
-    const { page = 1, limit = 20, isRead, type } = req.query;
+    const { page = 1, limit = 20, isRead, type, scope } = req.query;
     const parsedPage = parseInt(page);
     const parsedLimit = parseInt(limit);
-    const options = {
-      limit: parsedLimit,
-      skip: (parsedPage - 1) * parsedLimit
-    };
-    if (typeof isRead !== 'undefined') options.isRead = String(isRead) === 'true';
-    if (type) options.type = type;
+    // Default scope is social-only for in-app panel
+    const scopeValue = (scope || 'social').toLowerCase();
+    const socialTypes = [
+      'new_follower','follow_request','follow_request_accepted',
+      'activity_comment','comment_reply','mention',
+      'activity_liked','comment_liked','goal_liked'
+    ];
+
+    // Build base query
+    const baseQuery = { userId: req.user.id };
+    if (typeof isRead !== 'undefined') baseQuery.isRead = String(isRead) === 'true';
+    if (type) {
+      baseQuery.type = type;
+    } else if (scopeValue === 'social') {
+      baseQuery.type = { $in: socialTypes };
+    }
+
+    const skip = (parsedPage - 1) * parsedLimit;
 
     const [items, total, unread] = await Promise.all([
-      Notification.getUserNotifications(req.user.id, options),
-      Notification.countDocuments({ userId: req.user.id, ...(typeof options.isRead === 'boolean' ? { isRead: options.isRead } : {}) }),
-      Notification.getUnreadCount(req.user.id)
+      Notification.find(baseQuery)
+        .sort({ createdAt: -1 })
+        .limit(parsedLimit)
+        .skip(skip)
+        .populate('data.followerId', 'name avatar username')
+        .populate('data.goalId', 'title category')
+        .populate('data.likerId', 'name avatar username')
+        .populate('data.actorId', 'name avatar username')
+        .populate('data.activityId', 'type')
+        .populate('data.commentId'),
+      Notification.countDocuments(baseQuery),
+      // Unread count should reflect same scope/category
+      Notification.countDocuments({ userId: req.user.id, isRead: false, ...(type ? { type } : (scopeValue === 'social' ? { type: { $in: socialTypes } } : {})) })
     ]);
 
     return res.status(200).json({ success: true, data: { notifications: items, pagination: { page: parsedPage, limit: parsedLimit, total, pages: Math.ceil(total / parsedLimit) }, unread } });

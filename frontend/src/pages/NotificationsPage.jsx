@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { Bell, RefreshCw, Check, X } from 'lucide-react'
 import useApiStore from '../store/apiStore'
 import SkeletonList from '../components/loader/SkeletonList'
+import { useNavigate } from 'react-router-dom'
 
 const NotificationsPage = () => {
   const {
@@ -20,10 +21,11 @@ const NotificationsPage = () => {
   } = useApiStore()
 
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate()
 
   useEffect(() => {
     if (!isAuthenticated) return
-    getNotifications({ page: 1, limit: 20 }).catch(() => {})
+    getNotifications({ page: 1, limit: 20, scope: 'social' }).catch(() => {})
   }, [isAuthenticated])
 
   const openGoalModal = async (goalId) => {
@@ -65,7 +67,7 @@ const NotificationsPage = () => {
   const fetchInitialData = async (opts = {}) => {
     setLoading(true);
     try {
-      await getNotifications({ page: 1, limit: 20 }, opts);
+      await getNotifications({ page: 1, limit: 20, scope: 'social' }, opts);
     } catch (error) {
       console.error('Error fetching notification data:', error);
     } finally {
@@ -144,7 +146,8 @@ const NotificationsPage = () => {
                           alt={actorName}
                           className="w-10 h-10 rounded-full cursor-pointer"
                           onClick={() => {
-                            if (n.data?.actorId) navigate(`/profile/@${n.data?.actorId?.username || ''}?tab=overview`);
+                            if (n.data?.actorId?.username) navigate(`/profile/@${n.data.actorId.username}?tab=overview`)
+                            else if (n.data?.actorId?._id) navigate(`/profile/${n.data.actorId._id}`)
                           }}
                         />
                         <div className="flex-1 min-w-0">
@@ -152,7 +155,8 @@ const NotificationsPage = () => {
                             <button
                               className="font-medium hover:underline"
                               onClick={() => {
-                                if (n.data?.actorId && n.data?.actorId?.username) navigate(`/profile/@${n.data.actorId.username}?tab=overview`)
+                                if (n.data?.actorId?.username) navigate(`/profile/@${n.data.actorId.username}?tab=overview`)
+                                else if (n.data?.actorId?._id) navigate(`/profile/${n.data.actorId._id}`)
                               }}
                             >
                               {actorName}
@@ -174,9 +178,16 @@ const NotificationsPage = () => {
                               className="px-3 py-1.5 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-xs"
                             >Follow back</button>
                           )}
-                          {(n.data?.activityId) && (
+                          {(n.data?.activityId || n.data?.goalId) && (
                             <button
-                              onClick={() => openGoalModal(n?.data?.goalId?._id)}
+                              onClick={() => {
+                                const gid = n?.data?.goalId && (n.data.goalId._id || n.data.goalId);
+                                if (gid) {
+                                  openGoalModal(gid);
+                                } else if (n?.data?.activityId) {
+                                  navigate('/feed');
+                                }
+                              }}
                               className="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-xs"
                             >View</button>
                           )}

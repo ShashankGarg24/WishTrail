@@ -31,6 +31,11 @@ function buildDeepLink(notification) {
     if (notification?.data?.habitId) return `${base}/dashboard`;
     if (notification?.type === 'follow_request' || notification?.type === 'follow_request_accepted' || notification?.type === 'new_follower') {
       const actor = notification?.data?.actorId || notification?.data?.followerId;
+      // Prefer username if populated, else fall back to raw id
+      if (actor && typeof actor === 'object') {
+        if (actor.username) return `${base}/profile/@${encodeURIComponent(actor.username)}?tab=overview`;
+        if (actor._id) return `${base}/profile/${actor._id}`;
+      }
       if (actor) return `${base}/profile/${actor}`;
       return `${base}/notifications`;
     }
