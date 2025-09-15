@@ -21,7 +21,12 @@ const NotificationsPage = () => {
   } = useApiStore()
 
   const [loading, setLoading] = useState(false);
+  const [inNativeApp, setInNativeApp] = useState(false)
   const navigate = useNavigate()
+
+  useEffect(() => {
+    try { if (typeof window !== 'undefined' && window.ReactNativeWebView) setInNativeApp(true) } catch {}
+  }, [])
 
   useEffect(() => {
     if (!isAuthenticated) return
@@ -91,6 +96,7 @@ const NotificationsPage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-slate-900 dark:via-gray-900 dark:to-zinc-900">
       <div className="max-w-7xl mx-auto px-4 py-8">
+      {!inNativeApp && (
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
           <Bell className="h-6 w-6 mr-2 text-purple-500" />
@@ -110,6 +116,7 @@ const NotificationsPage = () => {
           )}
         </div>
       </div>
+      )}
 
       {loading ? (
         <SkeletonList count={6} grid={false} avatar lines={3} />
