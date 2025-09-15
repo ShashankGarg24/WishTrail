@@ -40,11 +40,9 @@ function App() {
   const [onboardingIndex, setOnboardingIndex] = useState(0);
   const slides = [
     { title: 'Welcome to WishTrail', body: 'Turn dreams into achievable goals with community support.', emoji: '✨' },
-    { title: 'Goals & Wishes', body: 'Create yearly goals with priorities, durations, due dates and points.', emoji: '🎯' },
-    { title: 'Build Powerful Habits', body: 'Track daily habits, view analytics and grow consistent streaks.', emoji: '📈' },
-    { title: 'Journal & Reflection', body: 'Capture prompts and emotions; earn positive points for wellness.', emoji: '📓' },
-    { title: 'Social Feed & Notifications', body: 'Get likes, comments, follows and real-time updates from friends.', emoji: '💬' },
-    { title: 'Leaderboard & Inspiration', body: 'Compete on points, discover trending goals, and get motivated.', emoji: '🏆' }
+    { title: 'Goals & Habits', body: 'Create goals and build daily habits with insightful analytics.', emoji: '📈' },
+    { title: 'Journal & Wellness', body: 'Reflect with prompts, moods and positive points for growth.', emoji: '📓' },
+    { title: 'Social & Leaderboards', body: 'Get likes, comments, and compete on leaderboards for motivation.', emoji: '🏆' }
   ];
 
   // Deep link forwarding state
@@ -62,23 +60,40 @@ function App() {
   const [ptrVisible, setPtrVisible] = useState(false);
   const [ptrProgress, setPtrProgress] = useState(0);
   const [ptrLoading, setPtrLoading] = useState(false);
+  const [isPTRPage, setIsPTRPage] = useState(false);
+  const ptrAnim = useRef(new Animated.Value(0)).current;
 
   // Animated pager for onboarding
   const scrollX = useRef(new Animated.Value(0)).current;
+  const emojiPulse = useRef(new Animated.Value(0)).current;
+  const bodyAnim = useRef(new Animated.Value(0)).current;
+  const ctaAnim = useRef(new Animated.Value(0)).current;
+  const pulseLoopRef = useRef(null);
 
-  // Inject web-level pull-to-refresh gesture to control overlay and reload (disabled on /discover)
+  // Animated background blobs for onboarding
+  const blob1 = useRef(new Animated.Value(0)).current;
+  const blob2 = useRef(new Animated.Value(0)).current;
+
+  // Inject web-level pull-to-refresh gesture to control overlay and reload (enabled only on /feed and /notifications)
   const injectPullToRefreshJS = useCallback(() => {
     try {
       const js = `
         (function(){
           try {
+            function postPath(){ try{ window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'WT_PATH', path: (location && location.pathname) || '/' })); }catch(e){} }
+            postPath();
+            (function(){
+              var _push=history.pushState; history.pushState=function(){ var r=_push.apply(this, arguments); try{ postPath(); }catch(_e){}; return r; };
+              var _replace=history.replaceState; history.replaceState=function(){ var r=_replace.apply(this, arguments); try{ postPath(); }catch(_e){}; return r; };
+              window.addEventListener('popstate', postPath);
+            })();
             if (window.__wtPullAttached) return; window.__wtPullAttached = true;
-            var startY = 0, pulling = false, progress = 0, threshold = 100, enabled = false;
+            var startY = 0, pulling = false, progress = 0, threshold = 100;
             function path() { try { return (window.location && window.location.pathname) || '/'; } catch(_) { return '/'; } }
+            function eligible(){ try { var p = String(path()||''); return p.startsWith('/feed') || p.startsWith('/notifications'); } catch(_) { return false; } }
             window.addEventListener('touchstart', function(e){
               try {
-                enabled = !String(path()||'').startsWith('/discover');
-                if (!enabled) return;
+                if (!eligible()) return;
                 startY = (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
                 pulling = (window.scrollY <= 0);
                 progress = 0;
@@ -87,7 +102,7 @@ function App() {
             }, { passive: true });
             window.addEventListener('touchmove', function(e){
               try {
-                if (!enabled || !pulling) return;
+                if (!eligible() || !pulling) return;
                 var y = (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
                 var dy = y - startY;
                 if (dy <= 0) { progress = 0; window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'WT_PTR_PROGRESS', progress: 0 })); return; }
@@ -97,7 +112,7 @@ function App() {
             }, { passive: true });
             window.addEventListener('touchend', function(){
               try {
-                if (!enabled) return;
+                if (!eligible()) return;
                 if (pulling && progress >= 1) {
                   window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'WT_PTR_TRIGGER' }));
                 } else {
@@ -172,6 +187,36 @@ function App() {
     });
     return () => sub.remove();
   }, []);
+
+  // Start/stop richer onboarding animations on slide change and overlay visibility
+  useEffect(() => {
+    if (!showOnboarding) return;
+    try {
+      // Background blobs gentle float
+      Animated.loop(Animated.sequence([
+        Animated.timing(blob1, { toValue: 1, duration: 3000, useNativeDriver: true }),
+        Animated.timing(blob1, { toValue: 0, duration: 3000, useNativeDriver: true })
+      ])).start();
+      Animated.loop(Animated.sequence([
+        Animated.timing(blob2, { toValue: 1, duration: 3500, useNativeDriver: true }),
+        Animated.timing(blob2, { toValue: 0, duration: 3500, useNativeDriver: true })
+      ])).start();
+    } catch {}
+  }, [showOnboarding, blob1, blob2]);
+
+  useEffect(() => {
+    // Restart pulse and intro anims when slide index changes
+    try {
+      if (pulseLoopRef.current && pulseLoopRef.current.stop) pulseLoopRef.current.stop();
+    } catch {}
+    try { emojiPulse.setValue(0); bodyAnim.setValue(0); ctaAnim.setValue(0); } catch {}
+    const up = Animated.timing(emojiPulse, { toValue: 1, duration: 800, useNativeDriver: true });
+    const down = Animated.timing(emojiPulse, { toValue: 0, duration: 800, useNativeDriver: true });
+    const loop = Animated.loop(Animated.sequence([up, down]));
+    pulseLoopRef.current = loop; try { loop.start(); } catch {}
+    try { Animated.timing(bodyAnim, { toValue: 1, duration: 450, useNativeDriver: true }).start(); } catch {}
+    try { Animated.spring(ctaAnim, { toValue: 1, useNativeDriver: true, friction: 6, tension: 120 }).start(); } catch {}
+  }, [onboardingIndex, emojiPulse, bodyAnim, ctaAnim]);
 
   // FCM init + handlers (unchanged)
   const [fcmToken, setFcmToken] = useState(null);
@@ -296,34 +341,61 @@ function App() {
       } else if (data?.type === 'WT_USER') {
         const uid = (data.userId || '').trim();
         if (uid && uid.length > 0) setUserId(uid);
+      } else if (data?.type === 'WT_PATH') {
+        try {
+          const p = String(data.path || '/');
+          setIsPTRPage(p.startsWith('/feed') || p.startsWith('/notifications'));
+          if (!(p.startsWith('/feed') || p.startsWith('/notifications'))) { setPtrVisible(false); setPtrProgress(0); setPtrLoading(false); }
+        } catch {}
       } else if (data?.type === 'WT_PTR_VISIBLE') {
+        if (!isPTRPage) return;
         setPtrLoading(false);
         setPtrVisible(!!data.visible);
         setPtrProgress(0);
+        Animated.timing(ptrAnim, { toValue: !!data.visible ? 1 : 0, duration: 180, useNativeDriver: true }).start();
       } else if (data?.type === 'WT_PTR_PROGRESS') {
+        if (!isPTRPage) return;
         const p = Math.max(0, Math.min(Number(data.progress) || 0, 1));
         setPtrVisible(true);
         setPtrProgress(p);
+        Animated.timing(ptrAnim, { toValue: 1, duration: 120, useNativeDriver: true }).start();
       } else if (data?.type === 'WT_PTR_TRIGGER') {
+        if (!isPTRPage) return;
         setPtrLoading(true);
         setPtrVisible(true);
         setPtrProgress(1);
+        Animated.timing(ptrAnim, { toValue: 1, duration: 120, useNativeDriver: true }).start();
         try { webRef.current?.reload(); } catch {}
       } else if (data?.type === 'WT_PTR_HIDE') {
         setPtrVisible(false);
         setPtrProgress(0);
         setPtrLoading(false);
+        Animated.timing(ptrAnim, { toValue: 0, duration: 200, useNativeDriver: true }).start();
       }
     } catch {}
-  }, []);
+  }, [isPTRPage, ptrAnim]);
 
   // Full-screen onboarding carousel (animated)
   const renderOnboarding = () => {
     if (!showOnboarding) return null;
     const { width, height } = Dimensions.get('window');
+    const b1x = blob1.interpolate({ inputRange: [0, 1], outputRange: [-40, 20] });
+    const b1y = blob1.interpolate({ inputRange: [0, 1], outputRange: [-30, 10] });
+    const b2x = blob2.interpolate({ inputRange: [0, 1], outputRange: [30, -20] });
+    const b2y = blob2.interpolate({ inputRange: [0, 1], outputRange: [20, -15] });
+    const pulseScale = emojiPulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.08] });
+    const pulseRotate = emojiPulse.interpolate({ inputRange: [0, 1], outputRange: ['-4deg', '4deg'] });
+    const bodyOpacity = bodyAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 1] });
+    const bodyTranslate = bodyAnim.interpolate({ inputRange: [0, 1], outputRange: [10, 0] });
+    const ctaScale = ctaAnim.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1] });
+
     return (
       <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#0f172a' }}>
         <SafeAreaView style={{ flex: 1 }}>
+          {/* Animated background blobs */}
+          <Animated.View style={{ position: 'absolute', width: 220, height: 220, borderRadius: 110, backgroundColor: 'rgba(99,102,241,0.2)', top: 80, left: 30, transform: [{ translateX: b1x }, { translateY: b1y }] }} />
+          <Animated.View style={{ position: 'absolute', width: 260, height: 260, borderRadius: 130, backgroundColor: 'rgba(59,130,246,0.18)', bottom: 40, right: 20, transform: [{ translateX: b2x }, { translateY: b2y }] }} />
+
           <View style={{ position: 'absolute', top: 12, right: 16, zIndex: 10 }}>
             <TouchableOpacity onPress={finishOnboarding}>
               <Text style={{ color: '#cbd5e1', fontSize: 14 }}>Skip</Text>
@@ -345,15 +417,16 @@ function App() {
           >
             {slides.map((s, i) => {
               const inputRange = [(i - 1) * width, i * width, (i + 1) * width];
-              const emojiScale = scrollX.interpolate({ inputRange, outputRange: [0.85, 1.15, 0.85], extrapolate: 'clamp' });
+              const emojiParallax = scrollX.interpolate({ inputRange, outputRange: [20, 0, -20], extrapolate: 'clamp' });
               const titleTranslate = scrollX.interpolate({ inputRange, outputRange: [20, 0, -20], extrapolate: 'clamp' });
+              const isActive = i === onboardingIndex;
               return (
                 <View key={i} style={{ width, height, paddingHorizontal: 24, paddingTop: 48, alignItems: 'center' }}>
-                  <Animated.View style={{ width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(99,102,241,0.15)', alignItems: 'center', justifyContent: 'center', marginBottom: 24, transform: [{ scale: emojiScale }] }}>
+                  <Animated.View style={{ width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(99,102,241,0.15)', alignItems: 'center', justifyContent: 'center', marginBottom: 24, transform: [ { translateY: emojiParallax }, ...(isActive ? [{ scale: pulseScale }, { rotate: pulseRotate }] : []) ] }}>
                     <Text style={{ fontSize: 56 }}>{s.emoji}</Text>
                   </Animated.View>
                   <Animated.Text style={{ fontSize: 28, fontWeight: '800', color: 'white', textAlign: 'center', marginBottom: 12, transform: [{ translateY: titleTranslate }] }}>{s.title}</Animated.Text>
-                  <Text style={{ fontSize: 16, color: '#cbd5e1', textAlign: 'center', lineHeight: 22, paddingHorizontal: 12 }}>{s.body}</Text>
+                  <Animated.Text style={{ fontSize: 16, color: '#cbd5e1', textAlign: 'center', lineHeight: 22, paddingHorizontal: 12, opacity: isActive ? bodyOpacity : 0.6, transform: isActive ? [{ translateY: bodyTranslate }] : [] }}>{s.body}</Animated.Text>
                 </View>
               );
             })}
@@ -372,13 +445,17 @@ function App() {
               {onboardingIndex === 0 ? (
                 <View style={{ paddingVertical: 12, paddingHorizontal: 18, borderRadius: 12, backgroundColor: 'transparent' }} />
               ) : (
-                <TouchableOpacity onPress={() => onboardingIndex > 0 && setOnboardingIndex(onboardingIndex - 1)} style={{ paddingVertical: 12, paddingHorizontal: 18, borderRadius: 12, backgroundColor: '#111827' }}>
-                  <Text style={{ color: '#cbd5e1', fontSize: 15 }}>Back</Text>
-                </TouchableOpacity>
+                <Animated.View style={{ transform: [{ scale: ctaScale }] }}>
+                  <TouchableOpacity onPress={() => onboardingIndex > 0 && setOnboardingIndex(onboardingIndex - 1)} style={{ paddingVertical: 12, paddingHorizontal: 18, borderRadius: 12, backgroundColor: '#111827' }}>
+                    <Text style={{ color: '#cbd5e1', fontSize: 15 }}>Back</Text>
+                  </TouchableOpacity>
+                </Animated.View>
               )}
-              <TouchableOpacity onPress={() => { if (onboardingIndex < slides.length - 1) setOnboardingIndex(onboardingIndex + 1); else finishOnboarding(); }} style={{ paddingVertical: 12, paddingHorizontal: 18, borderRadius: 12, backgroundColor: '#2563EB' }}>
-                <Text style={{ color: 'white', fontSize: 15 }}>{onboardingIndex < slides.length - 1 ? 'Continue' : 'Finish'}</Text>
-              </TouchableOpacity>
+              <Animated.View style={{ transform: [{ scale: ctaScale }] }}>
+                <TouchableOpacity onPress={() => { if (onboardingIndex < slides.length - 1) setOnboardingIndex(onboardingIndex + 1); else finishOnboarding(); }} style={{ paddingVertical: 12, paddingHorizontal: 18, borderRadius: 12, backgroundColor: '#2563EB' }}>
+                  <Text style={{ color: 'white', fontSize: 15 }}>{onboardingIndex < slides.length - 1 ? 'Continue' : 'Finish'}</Text>
+                </TouchableOpacity>
+              </Animated.View>
             </View>
           </View>
         </SafeAreaView>
@@ -386,20 +463,17 @@ function App() {
     );
   };
 
-  // PTR overlay (GitHub-like)
+  // PTR overlay (GitHub-like) — only on Feed and Notifications
   const renderPtrOverlay = () => {
-    const opacity = (ptrVisible || ptrLoading) ? 1 : 0;
-    const rotateDeg = `${Math.min(ptrProgress, 1) * 180}deg`;
+    if (!isPTRPage) return null;
+    const translateY = ptrAnim.interpolate({ inputRange: [0, 1], outputRange: [-28, 10] });
+    const opacity = ptrAnim;
     return (
-      <View pointerEvents="none" style={{ position: 'absolute', top: 8, left: 0, right: 0, alignItems: 'center', opacity }}>
+      <Animated.View pointerEvents="none" style={{ position: 'absolute', top: 8, left: 0, right: 0, alignItems: 'center', transform: [{ translateY }], opacity }}>
         <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center' }}>
-          {ptrLoading ? (
-            <ActivityIndicator color="#fff" size="small" />
-          ) : (
-            <Text style={{ color: '#fff', fontSize: 18, transform: [{ rotate: rotateDeg }] }}>↓</Text>
-          )}
+          <ActivityIndicator color="#fff" size="small" animating={ptrVisible || ptrLoading} />
         </View>
-      </View>
+      </Animated.View>
     );
   };
 
@@ -410,8 +484,8 @@ function App() {
         ref={webRef}
         source={{ uri: WEB_URL }}
         originWhitelist={originWhitelist}
-        onLoadStart={() => { setLoading(true); setPtrLoading(false); setPtrVisible(false); setPtrProgress(0); }}
-        onLoadEnd={() => { setLoading(false); setWebReady(true); if (pendingDeepLinkRef.current) { forwardDeepLinkToWeb(pendingDeepLinkRef.current); pendingDeepLinkRef.current = ''; } injectAuthProbe(); }}
+        onLoadStart={() => { setLoading(true); setPtrLoading(false); setPtrVisible(false); setPtrProgress(0); Animated.timing(ptrAnim, { toValue: 0, duration: 200, useNativeDriver: true }).start(); }}
+        onLoadEnd={() => { setLoading(false); setWebReady(true); if (pendingDeepLinkRef.current) { forwardDeepLinkToWeb(pendingDeepLinkRef.current); pendingDeepLinkRef.current = ''; } injectAuthProbe(); setTimeout(() => { setPtrLoading(false); setPtrVisible(false); Animated.timing(ptrAnim, { toValue: 0, duration: 250, useNativeDriver: true }).start(); }, 250); }}
         onShouldStartLoadWithRequest={onShouldStartLoadWithRequest}
         onMessage={onMessage}
         pullToRefreshEnabled={false}
