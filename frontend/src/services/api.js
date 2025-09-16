@@ -73,9 +73,15 @@ api.interceptors.response.use(
       originalRequest.headers.Authorization = `Bearer ${newToken}`;
       return api(originalRequest);
     } catch (refreshErr) {
-      localStorage.removeItem('token');
+      // On refresh failure, clear token and avoid infinite reload loops
+      try { localStorage.removeItem('token'); } catch {}
+      try { delete api.defaults.headers.common.Authorization; } catch {}
       processQueue(refreshErr, null);
-      window.location.href = '/auth';
+      // Only navigate if not already on auth, and do it once
+      try {
+        const onAuth = window.location.pathname.startsWith('/auth');
+        if (!onAuth) window.location.assign('/auth');
+      } catch {}
       return Promise.reject(refreshErr);
     } finally {
       isRefreshing = false;

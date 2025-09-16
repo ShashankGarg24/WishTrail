@@ -334,8 +334,8 @@ const useApiStore = create(
           set({ user, isAuthenticated: true });
           return { success: true, user };
         } catch (error) {
+          // Do not hard-logout on transient 401 from /me; allow refresh flow to handle
           const errorMessage = handleApiError(error);
-          set({ isAuthenticated: false, user: null });
           return { success: false, error: errorMessage };
         }
       },

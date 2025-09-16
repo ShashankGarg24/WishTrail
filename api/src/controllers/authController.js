@@ -19,11 +19,12 @@ const register = async (req, res, next) => {
     const result = await authService.register(req.body);
 
     // Set refresh token as httpOnly cookie
+    const isProd = process.env.NODE_ENV === 'production';
     res.cookie('refreshToken', result.refreshToken, {
       httpOnly: true,
-      secure: true,
-      sameSite: 'none',
-      partitioned: true,
+      secure: isProd,
+      sameSite: isProd ? 'none' : 'lax',
+      partitioned: isProd ? true : false,
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
 
@@ -68,11 +69,12 @@ const login = async (req, res, next) => {
     }
 
     // Set refresh token as httpOnly cookie (used by web)
+    const isProdLogin = process.env.NODE_ENV === 'production';
     res.cookie('refreshToken', result.refreshToken, {
       httpOnly: true,
-      secure: true,
-      sameSite: 'none',
-      partitioned: true,
+      secure: isProdLogin,
+      sameSite: isProdLogin ? 'none' : 'lax',
+      partitioned: isProdLogin ? true : false,
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
 
@@ -210,11 +212,12 @@ const refreshToken = async (req, res, next) => {
 
     // Set new refresh token as httpOnly cookie
     try {
+      const isProdRefresh = process.env.NODE_ENV === 'production';
       res.cookie('refreshToken', result.refreshToken, {
         httpOnly: true,
-        secure: true,
-        sameSite: 'none',
-        partitioned: true,
+        secure: isProdRefresh,
+        sameSite: isProdRefresh ? 'none' : 'lax',
+        partitioned: isProdRefresh ? true : false,
         maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
       });
     } catch (_) {}

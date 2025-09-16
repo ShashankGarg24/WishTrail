@@ -106,7 +106,7 @@ const FeedbackButton = () => {
     <>
       <motion.button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-24 sm:bottom-8 right-6 z-[55] btn-primary shadow-lg rounded-full px-4 py-3 flex items-center gap-2"
+        className="fixed bottom-16 sm:bottom-6 right-6 z-[55] btn-primary shadow-lg rounded-full px-4 py-3 flex items-center gap-2"
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
       >

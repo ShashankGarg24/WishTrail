@@ -54,6 +54,12 @@ class AuthService {
     if (interests && interests.length > 0) userData.interests = interests;
     if (location) userData.location = location;
 
+    // Initialize dashboard years with current year
+    try {
+      const currentYear = new Date().getFullYear();
+      userData.dashboardYears = [currentYear];
+    } catch (_) {}
+
     const user = await User.create(userData);
 
     // Generate tokens
