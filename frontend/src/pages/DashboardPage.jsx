@@ -25,6 +25,7 @@ const DashboardPage = () => {
   const [initialHabitData, setInitialHabitData] = useState(null)
   const [isSuggestionsOpen, setIsSuggestionsOpen] = useState(false)
   const [isHabitIdeasOpen, setIsHabitIdeasOpen] = useState(false)
+  const [page, setPage] = useState(1)
 
   const { 
     isAuthenticated, 
@@ -245,7 +246,6 @@ const DashboardPage = () => {
   const completedGoals = goalsForYear.filter(g => g.completed)
   const orderedGoals = [...incompleteGoals, ...completedGoals]
   const pageSize = 8
-  const [page, setPage] = useState(1)
   const totalPages = Math.max(1, Math.ceil(orderedGoals.length / pageSize))
   const visibleGoals = orderedGoals.slice((page - 1) * pageSize, page * pageSize)
 
