@@ -80,6 +80,8 @@ const useApiStore = create(
       cacheHabitAnalyticsTs: 0,
       // UI state
       settingsModalOpen: false,
+      // Dashboard years (client cache)
+      dashboardYears: [],
       cacheTTLs: {
         activityFeed: 15 * 60 * 1000,   // 15 minutes
         users: 30 * 60 * 1000,          // 30 minutes
@@ -352,6 +354,18 @@ const useApiStore = create(
         } catch (error) {
           const errorMessage = handleApiError(error);
           set({ loading: false, error: errorMessage });
+          return { success: false, error: errorMessage };
+        }
+      },
+
+      addDashboardYear: async (year) => {
+        try {
+          const res = await usersAPI.addDashboardYear(year);
+          const years = res?.data?.data?.years || [];
+          set({ dashboardYears: years });
+          return { success: true, years };
+        } catch (error) {
+          const errorMessage = handleApiError(error);
           return { success: false, error: errorMessage };
         }
       },

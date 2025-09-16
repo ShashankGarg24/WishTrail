@@ -26,6 +26,8 @@ const DashboardPage = () => {
   const [isSuggestionsOpen, setIsSuggestionsOpen] = useState(false)
   const [isHabitIdeasOpen, setIsHabitIdeasOpen] = useState(false)
   const [page, setPage] = useState(1)
+  const [extraYears, setExtraYears] = useState([])
+  const [isAddYearOpen, setIsAddYearOpen] = useState(false)
 
   const { 
     isAuthenticated, 
@@ -39,6 +41,7 @@ const DashboardPage = () => {
     createGoal,
     toggleGoalCompletion,
     deleteGoal,
+    addDashboardYear,
   } = useApiStore()
 
   const [openGoalId, setOpenGoalId] = useState(null)
@@ -52,24 +55,40 @@ const DashboardPage = () => {
   const currentYear = new Date().getFullYear()
 
   const availableYears = useMemo(() => {
-    if ((yearsInData || []).length === 0) {
-      return [currentYear]
-    }
-    return yearsInData
-  }, [yearsInData, currentYear])
+    const combined = Array.from(new Set([...(yearsInData || []), ...(extraYears || [])]))
+    if (combined.length === 0) return [currentYear]
+    return combined.sort((a, b) => a - b)
+  }, [yearsInData, extraYears, currentYear])
 
-  const canAddYear = useMemo(() => {
-    const maxYear = currentYear + 5
-    const maxPresent = Math.max(...availableYears)
-    return maxPresent < maxYear
+  const candidateYears = useMemo(() => {
+    const present = new Set(availableYears)
+    const list = []
+    for (let y = currentYear; y <= currentYear + 5; y++) {
+      if (!present.has(y)) list.push(y)
+    }
+    return list
   }, [availableYears, currentYear])
 
-  const addNextYear = () => {
-    const maxPresent = Math.max(...availableYears)
-    const next = maxPresent + 1
-    if (next > currentYear + 5) return
-    setSelectedYear(next)
-    getGoals({ year: next })
+  const canAddYear = candidateYears.length > 0
+
+  const openAddYear = () => setIsAddYearOpen(true)
+  const chooseYear = async (y) => {
+    if (!availableYears.includes(y)) {
+      setExtraYears((prev) => Array.from(new Set([...(prev || []), y])).sort((a, b) => a - b))
+    }
+    setSelectedYear(y)
+    getGoals({ year: y })
+    // Persist only when user explicitly clicks Add (the button below)
+    setPendingAddYear(y)
+  }
+
+  const [pendingAddYear, setPendingAddYear] = useState(null)
+  const handleConfirmAddYear = async () => {
+    if (typeof pendingAddYear !== 'number') { setIsAddYearOpen(false); return }
+    const res = await addDashboardYear(pendingAddYear)
+    setIsAddYearOpen(false)
+    setPendingAddYear(null)
+    // Optionally refresh goals for that year (already loaded) and maybe pull updated profile
   }
 
   // Load dashboard data on mount
@@ -264,7 +283,7 @@ const DashboardPage = () => {
               </button>
             ))}
             {canAddYear && (
-              <button onClick={addNextYear} className="px-4 py-2 rounded-lg font-medium transition-all glass-card hover:bg-white/20 text-gray-700 dark:text-gray-300">
+              <button onClick={openAddYear} className="px-4 py-2 rounded-lg font-medium transition-all glass-card hover:bg-white/20 text-gray-700 dark:text-gray-300">
                 <Calendar className="h-4 w-4 inline mr-2" />Add year
               </button>
             )}
@@ -356,6 +375,33 @@ const DashboardPage = () => {
           </motion.div>
         </div>
       </div>
+
+      {/* Add Year Modal */}
+      {isAddYearOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setIsAddYearOpen(false)} />
+          <div className="relative bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-full max-w-md mx-4 p-6 border border-gray-200 dark:border-gray-800">
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">Add Year</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Choose a year to add to your dashboard.</p>
+            {candidateYears.length === 0 ? (
+              <div className="text-sm text-gray-600 dark:text-gray-400">You have all years up to {currentYear + 5} already.</div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3 max-h-[300px] overflow-auto pr-1">
+                {candidateYears.map((y) => (
+                  <button key={y} onClick={() => chooseYear(y)} className={`p-3 rounded-xl border border-gray-200 dark:border-gray-700 text-left hover:border-primary-400 ${(pendingAddYear === y) ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-300' : 'bg-gray-50/80 dark:bg-gray-800/40'}`}>
+                    <div className="font-semibold text-gray-900 dark:text-white">{y}</div>
+                    <div className="text-xs text-gray-600 dark:text-gray-400">Tap to select</div>
+                  </button>
+                ))}
+              </div>
+            )}
+            <div className="flex items-center justify-end mt-4 gap-2">
+              <button onClick={() => setIsAddYearOpen(false)} className="px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200">Close</button>
+              <button disabled={typeof pendingAddYear !== 'number'} onClick={handleConfirmAddYear} className="px-4 py-2 rounded-lg bg-primary-500 text-white disabled:opacity-60">Add</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Create Goal Modal */}
       {isCreateModalOpen && (

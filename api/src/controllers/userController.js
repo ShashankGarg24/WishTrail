@@ -87,6 +87,29 @@ const getProfileSummary = async (req, res, next) => {
   }
 };
 
+// @desc    Add a dashboard year to the current user
+// @route   POST /api/v1/users/dashboard/years
+// @access  Private
+const addDashboardYear = async (req, res, next) => {
+  try {
+    const { year } = req.body || {}
+    const y = parseInt(year)
+    if (!y || Number.isNaN(y)) {
+      return res.status(400).json({ success: false, message: 'Provide valid year' })
+    }
+    const currentYear = new Date().getFullYear()
+    if (y < currentYear || y > currentYear + 5) {
+      return res.status(400).json({ success: false, message: `Year must be between ${currentYear} and ${currentYear + 5}` })
+    }
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { $addToSet: { dashboardYears: y } },
+      { new: true }
+    ).select('_id dashboardYears')
+    return res.status(200).json({ success: true, data: { years: user.dashboardYears || [] } })
+  } catch (error) { next(error) }
+}
+
 // @desc    Get suggested users
 // @route   GET /api/v1/users/suggestions
 // @access  Private
@@ -368,5 +391,6 @@ module.exports = {
   updatePrivacy,
   deleteUser,
   listInterests,
-  updateTimezone
+  updateTimezone,
+  addDashboardYear
 }; 

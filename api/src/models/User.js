@@ -126,6 +126,11 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  // Dashboard preferences
+  dashboardYears: {
+    type: [Number],
+    default: []
+  },
   // Notification preferences
   notificationSettings: {
     inAppEnabled: { type: Boolean, default: true },

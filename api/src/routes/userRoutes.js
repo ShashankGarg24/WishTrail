@@ -12,6 +12,7 @@ router.get('/', userController.getUsers);
 router.get('/dashboard', userController.getDashboardStats);
 router.get('/profile', userController.getProfileSummary);
 router.post('/timezone', userController.updateTimezone);
+router.post('/dashboard/years', userController.addDashboardYear);
 router.get('/suggestions', userController.getSuggestedUsers);
 router.get('/interests', userController.listInterests);
 router.get('/search', userController.searchUsers);
