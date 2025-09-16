@@ -12,7 +12,7 @@ const dayOptions = [
   { label: 'Sat', value: 6 },
 ];
 
-export default function CreateHabitModal({ isOpen, onClose, onCreated }) {
+export default function CreateHabitModal({ isOpen, onClose, onCreated, initialData }) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [frequency, setFrequency] = useState('daily');
@@ -27,6 +27,14 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated }) {
     lockBodyScroll();
     return () => unlockBodyScroll();
   }, []);
+
+  useEffect(() => {
+    if (!initialData) return;
+    if (typeof initialData.name === 'string') setName(initialData.name);
+    if (typeof initialData.description === 'string') setDescription(initialData.description);
+    if (typeof initialData.frequency === 'string') setFrequency(initialData.frequency);
+    if (Array.isArray(initialData.daysOfWeek)) setDaysOfWeek(initialData.daysOfWeek);
+  }, [initialData]);
 
   const toggleDay = (v) => {
     setDaysOfWeek(prev => prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v]);
