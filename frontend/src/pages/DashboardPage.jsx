@@ -73,12 +73,7 @@ const DashboardPage = () => {
 
   const openAddYear = () => setIsAddYearOpen(true)
   const chooseYear = async (y) => {
-    if (!availableYears.includes(y)) {
-      setExtraYears((prev) => Array.from(new Set([...(prev || []), y])).sort((a, b) => a - b))
-    }
-    setSelectedYear(y)
-    getGoals({ year: y })
-    // Persist only when user explicitly clicks Add (the button below)
+    // Only mark pending selection; do not modify list or switch year yet
     setPendingAddYear(y)
   }
 
@@ -86,9 +81,15 @@ const DashboardPage = () => {
   const handleConfirmAddYear = async () => {
     if (typeof pendingAddYear !== 'number') { setIsAddYearOpen(false); return }
     const res = await addDashboardYear(pendingAddYear)
+    // Add locally and switch now only after successful confirmation
+    const y = pendingAddYear
+    if (!availableYears.includes(y)) {
+      setExtraYears((prev) => Array.from(new Set([...(prev || []), y])).sort((a, b) => a - b))
+    }
+    setSelectedYear(y)
+    getGoals({ year: y })
     setIsAddYearOpen(false)
     setPendingAddYear(null)
-    // Optionally refresh goals for that year (already loaded) and maybe pull updated profile
   }
 
   // Load dashboard data on mount
@@ -379,7 +380,7 @@ const DashboardPage = () => {
       {/* Add Year Modal */}
       {isAddYearOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setIsAddYearOpen(false)} />
+          <div className="absolute inset-0 bg-black/50" onClick={() => { setPendingAddYear(null); setIsAddYearOpen(false) }} />
           <div className="relative bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-full max-w-md mx-4 p-6 border border-gray-200 dark:border-gray-800">
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">Add Year</h3>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Choose a year to add to your dashboard.</p>
@@ -396,7 +397,7 @@ const DashboardPage = () => {
               </div>
             )}
             <div className="flex items-center justify-end mt-4 gap-2">
-              <button onClick={() => setIsAddYearOpen(false)} className="px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200">Close</button>
+              <button onClick={() => { setPendingAddYear(null); setIsAddYearOpen(false) }} className="px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200">Close</button>
               <button disabled={typeof pendingAddYear !== 'number'} onClick={handleConfirmAddYear} className="px-4 py-2 rounded-lg bg-primary-500 text-white disabled:opacity-60">Add</button>
             </div>
           </div>

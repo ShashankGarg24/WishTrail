@@ -63,7 +63,7 @@ function App() {
       </div>
 
       {/* Main content */}
-      <div className="relative min-h-screen">
+      <div className="relative min-h-screen pb-20">
         <Header />
         <main className="pt-20">
           <Routes>
@@ -90,7 +90,11 @@ function App() {
         {!inNativeApp && (
           <Footer />
         )}
-        <FeedbackButton />
+        <div className="pointer-events-none">
+          <div className="pointer-events-auto">
+            <FeedbackButton />
+          </div>
+        </div>
       </div>
       <SpeedInsights />
     </div>

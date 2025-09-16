@@ -88,17 +88,21 @@ function App() {
               window.addEventListener('popstate', postPath);
             })();
             if (window.__wtPullAttached) return; window.__wtPullAttached = true;
-            var startY = 0, pulling = false, progress = 0, threshold = 100;
+            var startY = 0, pulling = false, progress = 0, threshold = 140;
             function path() { try { return (window.location && window.location.pathname) || '/'; } catch(_) { return '/'; } }
             function eligible(){ try { var p = String(path()||''); return p.startsWith('/feed') || p.startsWith('/notifications'); } catch(_) { return false; } }
             window.addEventListener('touchstart', function(e){
               try {
                 if (!eligible()) return;
+                var t = e.target;
+                var tag = (t && t.tagName) ? t.tagName.toLowerCase() : '';
+                var interactive = ['button','a','input','select','textarea','label'].includes(tag) || (t && t.closest && t.closest('button,a,[role="button"],[data-action]'));
+                if (interactive) { pulling = false; return; }
                 startY = (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
                 pulling = (window.scrollY <= 0);
                 progress = 0;
                 if (pulling) { window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'WT_PTR_VISIBLE', visible: true })); }
-              } catch(_){}
+              } catch(_){ }
             }, { passive: true });
             window.addEventListener('touchmove', function(e){
               try {
@@ -108,7 +112,7 @@ function App() {
                 if (dy <= 0) { progress = 0; window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'WT_PTR_PROGRESS', progress: 0 })); return; }
                 progress = Math.min(dy/threshold, 1);
                 window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'WT_PTR_PROGRESS', progress: progress }));
-              } catch(_){}
+              } catch(_){ }
             }, { passive: true });
             window.addEventListener('touchend', function(){
               try {
@@ -119,7 +123,7 @@ function App() {
                   window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'WT_PTR_HIDE' }));
                 }
                 pulling = false; progress = 0;
-              } catch(_){}
+              } catch(_){ }
             }, { passive: true });
           } catch(e){}
         })(); true;
@@ -466,10 +470,10 @@ function App() {
   // PTR overlay (GitHub-like) — only on Feed and Notifications
   const renderPtrOverlay = () => {
     if (!isPTRPage) return null;
-    const translateY = ptrAnim.interpolate({ inputRange: [0, 1], outputRange: [-28, 10] });
+    const translateY = ptrAnim.interpolate({ inputRange: [0, 1], outputRange: [-28, 52] });
     const opacity = ptrAnim;
     return (
-      <Animated.View pointerEvents="none" style={{ position: 'absolute', top: 8, left: 0, right: 0, alignItems: 'center', transform: [{ translateY }], opacity }}>
+      <Animated.View pointerEvents="none" style={{ position: 'absolute', top: 44, left: 0, right: 0, alignItems: 'center', transform: [{ translateY }], opacity }}>
         <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center' }}>
           <ActivityIndicator color="#fff" size="small" animating={ptrVisible || ptrLoading} />
         </View>
