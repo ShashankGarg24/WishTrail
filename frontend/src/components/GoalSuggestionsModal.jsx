@@ -6,19 +6,20 @@ import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
 
 const GoalSuggestionsModal = ({ isOpen, onClose, interests = [], onSelect, limit = 6, title = 'Goal Suggestions' }) => {
   useEffect(() => {
+    if (!isOpen) return
     const handler = (e) => {
       if (e.key === 'Escape') onClose?.()
     }
-    if (isOpen) window.addEventListener('keydown', handler)
+    window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
   }, [isOpen, onClose])
 
   const [shuffleVersion, setShuffleVersion] = useState(0)
   const handleShuffle = () => setShuffleVersion((v) => v + 1)
 
-  if (!isOpen) return null
+  useEffect(() => { if (isOpen) { lockBodyScroll(); return () => unlockBodyScroll(); } }, [isOpen])
 
-  useEffect(() => { lockBodyScroll(); return () => unlockBodyScroll(); }, [])
+  if (!isOpen) return null
 
   return (
     <AnimatePresence>

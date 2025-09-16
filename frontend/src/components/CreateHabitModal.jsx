@@ -21,20 +21,21 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
-  if (!isOpen) return null;
-
   useEffect(() => {
+    if (!isOpen) return;
     lockBodyScroll();
     return () => unlockBodyScroll();
-  }, []);
+  }, [isOpen]);
 
   useEffect(() => {
-    if (!initialData) return;
+    if (!isOpen || !initialData) return;
     if (typeof initialData.name === 'string') setName(initialData.name);
     if (typeof initialData.description === 'string') setDescription(initialData.description);
     if (typeof initialData.frequency === 'string') setFrequency(initialData.frequency);
     if (Array.isArray(initialData.daysOfWeek)) setDaysOfWeek(initialData.daysOfWeek);
-  }, [initialData]);
+  }, [isOpen, initialData]);
+
+  if (!isOpen) return null;
 
   const toggleDay = (v) => {
     setDaysOfWeek(prev => prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v]);
