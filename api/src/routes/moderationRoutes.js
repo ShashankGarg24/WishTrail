@@ -9,6 +9,7 @@ router.use(protect);
 router.post('/report', moderationController.reportContent);
 router.post('/block/:userId', moderationController.blockUser);
 router.delete('/block/:userId', moderationController.unblockUser);
+router.get('/blocked', moderationController.listBlocked);
 
 module.exports = router;
 

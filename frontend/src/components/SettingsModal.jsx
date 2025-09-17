@@ -1,12 +1,12 @@
 import { useEffect, useState, useRef } from 'react';
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock';
 import { motion } from 'framer-motion';
-import { X, Lock, Eye, EyeOff, Shield, Settings, Bell } from 'lucide-react';
+import { X, Lock, Eye, EyeOff, Shield, Settings, Bell, UserX } from 'lucide-react';
 import useApiStore from '../store/apiStore';
 import { useNavigate } from 'react-router-dom';
 
 const SettingsModal = ({ isOpen, onClose }) => {
-  const { user, updateUserPrivacy, updatePassword, logout, notificationSettings, loadNotificationSettings, updateNotificationSettings } = useApiStore();
+  const { user, updateUserPrivacy, updatePassword, logout, notificationSettings, loadNotificationSettings, updateNotificationSettings, listBlockedUsers, unblockUser } = useApiStore();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('privacy');
   const [notif, setNotif] = useState(null);
@@ -24,6 +24,8 @@ const SettingsModal = ({ isOpen, onClose }) => {
   const [openMotivationDd, setOpenMotivationDd] = useState(false);
   const journalDdRef = useRef(null);
   const motivationDdRef = useRef(null);
+  const [blockedList, setBlockedList] = useState([]);
+  const [blockedLoading, setBlockedLoading] = useState(false);
 
   // Autosave helper for notification settings
   const saveNotifSettings = async (next) => {
@@ -47,6 +49,20 @@ const SettingsModal = ({ isOpen, onClose }) => {
       })();
     }
   }, [isOpen]);
+
+  // Load blocked users when switching to the tab
+  useEffect(() => {
+    const loadBlocked = async () => {
+      try {
+        setBlockedLoading(true);
+        const res = await listBlockedUsers();
+        if (res?.success) setBlockedList(res.users || []);
+      } catch (_) {
+        setBlockedList([]);
+      } finally { setBlockedLoading(false); }
+    };
+    if (isOpen && activeTab === 'blocked') loadBlocked();
+  }, [isOpen, activeTab, listBlockedUsers]);
 
   // Close dropdowns on outside click
   useEffect(() => {
@@ -175,6 +191,40 @@ const SettingsModal = ({ isOpen, onClose }) => {
               <li>• {isPrivate ? 'Only followers' : 'Everyone'} can see your goals</li>
             </ul>
           </div>
+        </div>
+      )
+    },
+    {
+      id: 'blocked',
+      label: 'Blocked',
+      icon: UserX,
+      component: (
+        <div className="space-y-4">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white">Blocked users</h3>
+          <p className="text-sm text-gray-600 dark:text-gray-400">Users you’ve blocked won’t be able to follow or interact with you. Unblock them here if you change your mind.</p>
+          {blockedLoading ? (
+            <div className="text-sm text-gray-500 dark:text-gray-400">Loading…</div>
+          ) : (blockedList.length === 0 ? (
+            <div className="text-sm text-gray-500 dark:text-gray-400">You haven’t blocked anyone.</div>
+          ) : (
+            <div className="divide-y divide-gray-200 dark:divide-gray-700 rounded-lg border border-gray-200 dark:border-gray-700">
+              {blockedList.map((u) => (
+                <div key={u._id} className="flex items-center justify-between p-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <img src={u.avatar || '/api/placeholder/40/40'} alt={u.name} className="w-8 h-8 rounded-full object-cover" />
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium text-gray-900 dark:text-white truncate">{u.name || 'User'}</div>
+                      {u.username && <div className="text-xs text-gray-500 truncate">@{u.username}</div>}
+                    </div>
+                  </div>
+                  <button
+                    onClick={async () => { await unblockUser(u._id); setBlockedList(prev => prev.filter(x => x._id !== u._id)); }}
+                    className="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 text-xs"
+                  >Unblock</button>
+                </div>
+              ))}
+            </div>
+          ))}
         </div>
       )
     },

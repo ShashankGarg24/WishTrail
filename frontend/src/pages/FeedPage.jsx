@@ -35,10 +35,20 @@ const FeedPage = () => {
 
   const [likePending, setLikePending] = useState({})
   const [openActivityMenuId, setOpenActivityMenuId] = useState(null)
+  useEffect(() => {
+    const onDocClick = (e) => {
+      // Close 3-dot menu when clicking outside
+      setOpenActivityMenuId(null)
+    }
+    document.addEventListener('mousedown', onDocClick)
+    return () => document.removeEventListener('mousedown', onDocClick)
+  }, [])
   const [reportOpen, setReportOpen] = useState(false)
-  const [reportTarget, setReportTarget] = useState({ type: null, id: null, label: '' })
+  const [reportTarget, setReportTarget] = useState({ type: null, id: null, label: '', username: '', userId: null })
   const [blockOpen, setBlockOpen] = useState(false)
   const [blockUserId, setBlockUserId] = useState(null)
+  const [blockUsername, setBlockUsername] = useState('')
+  
 
   const [goalModalOpen, setGoalModalOpen] = useState(false)
   const [goalModalData, setGoalModalData] = useState(null)
@@ -490,7 +500,7 @@ const FeedPage = () => {
 
                         {/* Media/Content */}
                         <div className="px-4 pb-4 cursor-pointer" onClick={() => openGoalModal(activity?.data?.goalId?._id)}>
-                          <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-4 border border-gray-100 dark:border-gray-800 h-[280px] md:h-[320px] overflow-hidden">
+                        <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-4 border border-gray-100 dark:border-gray-800">
                              {(activity.type === 'goal_completed' || activity.type === 'goal_created') ? (
                                <>
                                 <h4 className="font-semibold text-gray-900 dark:text-white mb-2">
@@ -507,25 +517,25 @@ const FeedPage = () => {
                                    const sharedImage = activity?.data?.metadata?.completionAttachmentUrl || activity?.data?.completionAttachmentUrl || ''
                                    if (!sharedNote && !sharedImage) return null
                                    return (
-                                        <div className="mt-3 space-y-3 cursor-pointer" onClick={() => openGoalModal(activity?.data?.goalId?._id)}>
-                                          {sharedImage && (
-                                            <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700 h-[160px] md:h-[200px]">
-                                               <img
-                                                 src={sharedImage}
-                                                 alt="Completion attachment"
-                                                 className="w-full h-full object-cover hover:scale-[1.01] transition-transform duration-200 cursor-zoom-in"
-                                                 onClick={() => openLightbox(sharedImage)}
-                                               />
-                                             </div>
-                                           )}
-                                           {sharedNote && (
-                                             <div className="bg-white/80 dark:bg-gray-900/40 rounded-xl p-3 border border-gray-200 dark:border-gray-700">
-                                               <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line line-clamp-4">
-                                                 {sharedNote}
-                                               </p>
-                                             </div>
-                                           )}
-                                         </div>
+                                    <div className="mt-3 space-y-3 cursorcursor-pointer" onClick={() => openGoalModal(activity?.data?.goalId?._id)}>
+                                    {sharedImage && (
+                                      <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700">
+                                         <img
+                                           src={sharedImage}
+                                           alt="Completion attachment"
+                                           className="w-full max-h-96 object-cover hover:scale-[1.01] transition-transform duration-200 cursor-zoom-in"
+                                           onClick={() => openLightbox(sharedImage)}
+                                         />
+                                       </div>
+                                     )}
+                                     {sharedNote && (
+                                       <div className="bg-white/80 dark:bg-gray-900/40 rounded-xl p-3 border border-gray-200 dark:border-gray-700">
+                                         <p className="text_sm text-gray-700 dark:text-gray-300 whitespace-pre-line">
+                                           {sharedNote}
+                                         </p>
+                                       </div>
+                                     )}
+                                   </div>
                                     )
                                   })()}
                                 </>
@@ -591,7 +601,7 @@ const FeedPage = () => {
                         >
                           <button
                             className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
-                            onClick={() => { setReportTarget({ type: 'activity', id: activity._id, label: 'activity' }); setReportOpen(true); setOpenActivityMenuId(null); }}
+                            onClick={() => { setReportTarget({ type: 'activity', id: activity._id, label: 'activity', username: activity?.user?.username || '', userId: activity?.user?._id || null }); setReportOpen(true); setOpenActivityMenuId(null); }}
                           >Report</button>
                           {activity.user?._id && (
                             <button
@@ -602,7 +612,7 @@ const FeedPage = () => {
                           {activity.user?._id && (
                             <button
                               className="w-full text-left px-3 py-2 text-sm hover:bg_gray-100 dark:hover:bg-gray-700"
-                              onClick={() => { setBlockUserId(activity.user._id); setBlockOpen(true); setOpenActivityMenuId(null); }}
+                              onClick={() => { setBlockUserId(activity.user._id); setBlockUsername(activity?.user?.username || ''); setBlockOpen(true); setOpenActivityMenuId(null); }}
                             >Block user</button>
                           )}
                         </div>
@@ -634,13 +644,19 @@ const FeedPage = () => {
           isOpen={reportOpen}
           onClose={() => setReportOpen(false)}
           targetLabel={reportTarget.label}
-          onSubmit={async ({ reason, description }) => { await report({ targetType: reportTarget.type, targetId: reportTarget.id, reason, description }); }}
+          onSubmit={async ({ reason, description }) => { 
+            await report({ targetType: reportTarget.type, targetId: reportTarget.id, reason, description });
+            // After reporting, offer to block the user
+            const uid = reportTarget.userId || null;
+            if (uid) { setBlockUserId(uid); setBlockUsername(reportTarget.username || ''); setBlockOpen(true); }
+            setReportOpen(false);
+          }}
           onReportAndBlock={reportTarget.type === 'user' ? async () => { if (reportTarget.id) { await blockUser(reportTarget.id); } } : undefined}
         />
         <BlockModal
           isOpen={blockOpen}
           onClose={() => setBlockOpen(false)}
-          username={''}
+          username={blockUsername || ''}
           onConfirm={async () => { if (blockUserId) { await blockUser(blockUserId); setBlockOpen(false); } }}
         />
 
@@ -655,10 +671,13 @@ const FeedPage = () => {
         {goalModalOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center">
             <div className="absolute inset-0 bg-black/50" onClick={closeGoalModal} />
-            <div className={`relative w-full ${(!goalModalData?.share?.image) ? 'max-w-3xl' : 'max-w-6xl'} mx-auto bg-white dark:bg-gray-900 rounded-2xl shadow-2xl ${isMobile ? 'overflow-y-auto' : 'overflow-hidden'} border border-gray-200 dark:border-gray-800 max-h-[85vh]`}> 
-              {goalModalLoading || !goalModalData ? (
-                <div className="p-10 text-center text-gray-500 dark:text-gray-400">Loading...</div>
-              ) : (
+            {goalModalLoading || !goalModalData ? (
+              <div className="relative z-10 flex items-center justify-center">
+                <div className="animate-spin rounded-full h-10 w-10 border-4 border-gray-300 dark:border-gray-700 border-t-blue-600" />
+              </div>
+            ) : null}
+            <div className={`relative w-full ${(!goalModalData?.share?.image) ? 'max-w-3xl' : 'max-w-6xl'} mx-auto bg-white dark:bg-gray-900 rounded-2xl shadow-2xl ${isMobile ? 'overflow-y-auto' : 'overflow-hidden'} border border-gray-200 dark:border-gray-800 max-h-[85vh] ${(goalModalLoading || !goalModalData) ? 'hidden' : ''}`}> 
+              {!(goalModalLoading || !goalModalData) && (
                 goalModalData?.share?.image ? (
                   <div className="grid grid-cols-1 md:[grid-template-columns:minmax(0,1fr)_420px] items-stretch min-h-0">
                     {/* Left: Media */}
@@ -666,7 +685,7 @@ const FeedPage = () => {
                       <img src={goalModalData.share.image} alt="Completion" className="h-full w-auto max-w-full object-contain" />
                     </div>
                     {/* Right: Details with toggleable comments */}
-                    <div className="flex flex-col md:w-[420px] md:flex-shrink-0 min-h-[320px] md:min-h-[520px] md:max-h-[85vh] min-h-0">
+                    <div className="flex flex-col md:w-[420px] md:flex-shrink-0 min-h-[320px] md:min-h-[520px] md:max-h-[85vh] min_h-0">
                       <div className="flex items-center gap-3 p-4 border-b border-gray-200 dark:border-gray-800">
                         <img src={goalModalData?.user?.avatar || '/api/placeholder/40/40'} className="w-10 h-10 rounded-full" />
                         <div className="flex-1 min-w-0">
@@ -768,15 +787,17 @@ const FeedPage = () => {
                       )}
                     </div>
                     <div className="mt-auto border-t border-gray-200 dark:border-gray-800 p-4 flex items-center gap-4 sticky bottom-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur">
-                      <div className="text-sm text-gray-700 dark:text-gray-300">❤️ {goalModalData?.social?.likeCount || 0}</div>
+                      <div className="text-sm text_gray-700 dark:text-gray-300">❤️ {goalModalData?.social?.likeCount || 0}</div>
                       <button onClick={openGoalCommentsForModal} className="text-sm text-gray-700 dark:text-gray-300 hover:text-blue-600">💬 {goalModalData?.social?.commentCount || 0}</button>
                     </div>
                   </div>
                 )
               )}
             </div>
+            
           </div>
         )}
+        {/* End Goal Post Modal */}
       </div>
     </div>
   )

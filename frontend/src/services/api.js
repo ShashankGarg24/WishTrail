@@ -146,7 +146,8 @@ export const usersAPI = {
 export const moderationAPI = {
   report: (payload) => api.post('/moderation/report', payload),
   blockUser: (userId) => api.post(`/moderation/block/${userId}`),
-  unblockUser: (userId) => api.delete(`/moderation/block/${userId}`)
+  unblockUser: (userId) => api.delete(`/moderation/block/${userId}`),
+  listBlocked: () => api.get('/moderation/blocked')
 };
 
 // Social API

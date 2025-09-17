@@ -943,6 +943,12 @@ const useApiStore = create(
         try {
           await moderationAPI.blockUser(userId);
           set(state => ({ blockedUsers: [...state.blockedUsers, userId] }));
+          // Clear follow state both ways in local caches
+          set(state => ({
+            users: (state.users || []).map(u => u._id === userId ? { ...u, isFollowing: false, isRequested: false } : u),
+            leaderboard: (state.leaderboard || []).map(u => u._id === userId ? { ...u, isFollowing: false } : u),
+            followedUsers: (state.followedUsers || []).filter(id => id !== userId)
+          }));
           return { success: true };
         } catch (error) {
           const errorMessage = handleApiError(error);
@@ -957,6 +963,15 @@ const useApiStore = create(
         } catch (error) {
           const errorMessage = handleApiError(error);
           return { success: false, error: errorMessage };
+        }
+      },
+      listBlockedUsers: async () => {
+        try {
+          const res = await moderationAPI.listBlocked();
+          const users = res?.data?.data?.users || [];
+          return { success: true, users };
+        } catch (error) {
+          return { success: false, error: handleApiError(error), users: [] };
         }
       },
       
