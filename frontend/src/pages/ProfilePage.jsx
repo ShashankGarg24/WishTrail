@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Calendar, Target, TrendingUp, Star, Edit2, ExternalLink, Youtube, Instagram, MapPin, Globe, Trophy, BookOpen, Clock, CheckCircle, Circle, User, UserPlus, UserCheck, ArrowLeft, Lock, Sparkles, Download } from "lucide-react";
 import FollowListModal from "../components/FollowListModal";
@@ -32,6 +32,7 @@ const ProfilePage = () => {
   const [reportOpen, setReportOpen] = useState(false);
   const [blockOpen, setBlockOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const profileMenuRef = useRef(null);
   const [followModalOpen, setFollowModalOpen] = useState(false);
   const [followModalTab, setFollowModalTab] = useState('followers');
   const [followers, setFollowers] = useState([]);
@@ -96,6 +97,20 @@ const ProfilePage = () => {
     }
   }, [isAuthenticated, userIdParam, usernameParam]);
 
+  // Outside click to close profile 3-dot menu
+  useEffect(() => {
+    const onDocMouseDown = (e) => {
+      if (!profileMenuOpen) return;
+      const target = e.target;
+      const inside = target?.closest?.('[data-profile-menu="true"]') || target?.closest?.('[data-profile-menu-btn="true"]');
+      if (inside) return;
+      setProfileMenuOpen(false);
+    };
+    document.addEventListener('mousedown', onDocMouseDown);
+    return () => document.removeEventListener('mousedown', onDocMouseDown);
+  }, [profileMenuOpen]);
+
+    
   // Open Journal modal directly if ?journal=1 and viewing own profile
   useEffect(() => {
     try {
@@ -363,13 +378,13 @@ const ProfilePage = () => {
             : "bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-8 border border-gray-200 dark:border-gray-700/50 mb-8"
           }
         >
-          <div className="flex flex-col md:flex-row items-start space-y-6 md:space-y-0 md:space-x-8">
-            {/* Profile Picture */}
+          <div className="flex flex-row items-start gap-4 md:gap-8">
+          {/* Profile Picture */}
             <div className="relative">
               <img
                 src={displayUser.avatar || '/api/placeholder/150/150'}
                 alt={displayUser.name}
-                className="w-36 h-36 rounded-full border-4 border-gray-300 dark:border-gray-600 object-cover"
+                className="w-20 h-20 md:w-36 md:h-36 rounded-full border-4 border-gray-300 dark:border-gray-600 object-cover"
               />
               {isOwnProfile ? (
                 <div className="absolute -bottom-2 -right-2 bg-primary-500 text-white rounded-full p-2">
@@ -386,8 +401,8 @@ const ProfilePage = () => {
 
             {/* Profile Info */}
             <div className="flex-1">
-              {/* Name and Username Row */}
-              <div className="flex flex-col md:flex-row md:items-center md:space-x-4 mb-4">
+              {/* Name and Username Row (desktop) */}
+              <div className="hidden md:flex md:flex-row md:items-center md:space-x-4 mb-4">
                 <div className="flex items-center space-x-3 mb-3 md:mb-0">
                   <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
                     {displayUser.name}
@@ -400,9 +415,9 @@ const ProfilePage = () => {
                 </p>
                 {/* 3-dots menu for profile actions (aligned right) */}
                 <div className="relative inline-block">
-                  <button onClick={() => setProfileMenuOpen(v => !v)} className="px-2 py-1 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800">⋯</button>
-                  {profileMenuOpen && (
-                    <div className="absolute right-0 top-full mt-2 w-44 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-40">
+                <button data-profile-menu-btn="true" onClick={() => setProfileMenuOpen(v => !v)} className="px-2 py-1 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800">⋯</button>
+                {profileMenuOpen && (
+                    <div ref={profileMenuRef} data-profile-menu="true" className="absolute right-0 top-full mt-2 w-44 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-40">
                       {isOwnProfile ? (
                         <button
                           className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -425,8 +440,14 @@ const ProfilePage = () => {
                 </div>
               </div>
 
+              {/* Mobile name/username under stats */}
+              <div className="md:hidden mt-2 mb-2">
+                <div className="text-lg font-semibold text-gray-900 dark:text-white">{displayUser.name}</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">@{displayUser.username}</div>
+              </div>
+
               {/* Stats Row */}
-              <div className="flex items-center space-x-8 mb-4">
+              <div className="hidden md:flex items-center space-x-8 mb-4">
                 <button className="text-center" onClick={() => {
                   try { const el = document.getElementById('profile-goals-section'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch {}
                 }}>
@@ -463,6 +484,22 @@ const ProfilePage = () => {
                 </button>
               </div>
 
+              {/* Mobile stats inline with avatar (already shown next to avatar) */}
+              <div className="md:hidden flex items-center justify-around gap-4 mb-2">
+                <button className="text-center" onClick={() => { try { const el = document.getElementById('profile-goals-section'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch {} }}>
+                  <div className="text-xl font-bold text-gray-900 dark:text-white">{isOwnProfile ? (displayUser.totalGoals || 0) : (userStats?.totalGoals || 0)}</div>
+                  <div className="text-gray-600 dark:text-gray-400 text-sm">Goals</div>
+                </button>
+                <button className="text-center" onClick={async () => { setFollowModalTab('followers'); setFollowModalOpen(true); setLoadingFollows(true); try { const uid = isOwnProfile ? currentUser?._id : (profileUser?._id || profileUser?.id); const res = await getFollowers(uid); if (res?.success) setFollowers(res.followers || []); } finally { setLoadingFollows(false); } }}>
+                  <div className="text-xl font-bold text-gray-900 dark:text-white">{isOwnProfile ? (displayUser.followerCount || 0) : (userStats?.followers || 0)}</div>
+                  <div className="text-gray-600 dark:text-gray-400 text-sm">Followers</div>
+                </button>
+                <button className="text-center" onClick={async () => { setFollowModalTab('following'); setFollowModalOpen(true); setLoadingFollows(true); try { const uid = isOwnProfile ? currentUser?._id : (profileUser?._id || profileUser?.id); const res = await getFollowing(uid); if (res?.success) setFollowing(res.following || []); } finally { setLoadingFollows(false); } }}>
+                  <div className="text-xl font-bold text-gray-900 dark:text-white">{isOwnProfile ? (displayUser.followingCount || 0) : (userStats?.followings || 0)}</div>
+                  <div className="text-gray-600 dark:text-gray-400 text-sm">Following</div>
+                </button>
+              </div>
+              
               {/* Bio */}
               {displayUser.bio && (
                 <p className="text-gray-700 dark:text-gray-300 mb-4 leading-relaxed">
