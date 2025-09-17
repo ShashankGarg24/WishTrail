@@ -1026,6 +1026,8 @@ const ProfilePage = () => {
             if (!displayUser?._id) return;
             await report({ targetType: 'user', targetId: displayUser._id, reason, description });
           } finally {
+            // Offer to block after report
+            try { if (displayUser?._id) { setBlockOpen(true); } } catch {}
             setReportOpen(false);
           }
         }}

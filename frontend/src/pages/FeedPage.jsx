@@ -36,13 +36,16 @@ const FeedPage = () => {
   const [likePending, setLikePending] = useState({})
   const [openActivityMenuId, setOpenActivityMenuId] = useState(null)
   useEffect(() => {
-    const onDocClick = (e) => {
-      // Close 3-dot menu when clicking outside
-      setOpenActivityMenuId(null)
+    const onDocMouseDown = (e) => {
+      if (!openActivityMenuId) return;
+      const target = e.target;
+      const inside = target?.closest?.('[data-activity-menu="true"]') || target?.closest?.('[data-activity-menu-btn="true"]');
+      if (inside) return;
+      setOpenActivityMenuId(null);
     }
-    document.addEventListener('mousedown', onDocClick)
-    return () => document.removeEventListener('mousedown', onDocClick)
-  }, [])
+    document.addEventListener('mousedown', onDocMouseDown)
+    return () => document.removeEventListener('mousedown', onDocMouseDown)
+  }, [openActivityMenuId])
   const [reportOpen, setReportOpen] = useState(false)
   const [reportTarget, setReportTarget] = useState({ type: null, id: null, label: '', username: '', userId: null })
   const [blockOpen, setBlockOpen] = useState(false)
@@ -591,11 +594,13 @@ const FeedPage = () => {
                   <div className="absolute right-2 top-2 z-30">
                     <div className="relative">
                       <button
+                        data-activity-menu-btn="true"
                         onClick={(e) => { e.stopPropagation(); setOpenActivityMenuId(prev => prev === activity._id ? null : activity._id); }}
                         className="px-2 py-1 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
                       >⋯</button>
                       {openActivityMenuId === activity._id && (
                         <div
+                          data-activity-menu="true"
                           onClick={(e) => e.stopPropagation()}
                           className="absolute right-0 mt-2 w-44 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-30"
                         >

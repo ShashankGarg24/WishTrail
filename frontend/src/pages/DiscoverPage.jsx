@@ -65,9 +65,10 @@ const DiscoverPage = () => {
   const [detailsExpanded, setDetailsExpanded] = useState(false)
   const [goalCommentText, setGoalCommentText] = useState('')
   const [reportOpen, setReportOpen] = useState(false)
-  const [reportTarget, setReportTarget] = useState({ type: null, id: null, label: '' })
+  const [reportTarget, setReportTarget] = useState({ type: null, id: null, label: '', username: '', userId: null })
   const [blockOpen, setBlockOpen] = useState(false)
   const [blockUserId, setBlockUserId] = useState(null)
+  const [blockUsername, setBlockUsername] = useState('')
   const { goalId } = useParams();
   const [inNativeApp, setInNativeApp] = useState(false)
 
@@ -77,6 +78,19 @@ const DiscoverPage = () => {
     window.addEventListener('resize', compute);
     return () => window.removeEventListener('resize', compute);
   }, []);
+
+  // Outside click for user menu
+  useEffect(() => {
+    const onDocMouseDown = (e) => {
+      if (!openUserMenuId) return;
+      const target = e.target;
+      const inside = target?.closest?.('[data-user-menu="true"]') || target?.closest?.('[data-user-menu-btn="true"]');
+      if (inside) return;
+      setOpenUserMenuId(null);
+    };
+    document.addEventListener('mousedown', onDocMouseDown);
+    return () => document.removeEventListener('mousedown', onDocMouseDown);
+  }, [openUserMenuId]);
 
   useEffect(() => {
     try { if (typeof window !== 'undefined' && window.ReactNativeWebView) setInNativeApp(true) } catch {}
@@ -660,21 +674,23 @@ const DiscoverPage = () => {
                             <div className="absolute right-2 top-2 z-30">
                               <div className="relative">
                                 <button
+                                  data-user-menu-btn="true"
                                   onClick={(e) => { e.stopPropagation(); setOpenUserMenuId(prev => prev === userItem._id ? null : userItem._id); }}
                                   className="px-2 py-1 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
                                 >⋯</button>
                                 {openUserMenuId === userItem._id && (
                                   <div
+                                    data-user-menu="true"
                                     onClick={(e) => e.stopPropagation()}
                                     className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-30"
                                   >
                                     <button
                                       className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
-                                      onClick={() => { setReportTarget({ type: 'user', id: userItem._id, label: 'user' }); setReportOpen(true); setOpenUserMenuId(null); }}
+                                      onClick={() => { setReportTarget({ type: 'user', id: userItem._id, userId: userItem._id, username: userItem.username || '', label: userItem.username ? `@${userItem.username}` : 'user' }); setReportOpen(true); setOpenUserMenuId(null); }}
                                     >Report</button>
                                     <button
                                       className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
-                                      onClick={() => { setBlockUserId(userItem._id); setBlockOpen(true); setOpenUserMenuId(null); }}
+                                      onClick={() => { setBlockUserId(userItem._id); setBlockUsername(userItem.username || ''); setBlockOpen(true); setOpenUserMenuId(null); }}
                                     >Block</button>
                                   </div>
                                 )}
@@ -916,13 +932,17 @@ const DiscoverPage = () => {
         isOpen={reportOpen}
         onClose={() => setReportOpen(false)}
         targetLabel={reportTarget.label}
-        onSubmit={async ({ reason, description }) => { await report({ targetType: reportTarget.type, targetId: reportTarget.id, reason, description }); }}
-        onReportAndBlock={reportTarget.type === 'user' ? async () => { if (reportTarget.id) { await blockUser(reportTarget.id); } } : undefined}
+    onSubmit={async ({ reason, description }) => { 
+      await report({ targetType: reportTarget.type, targetId: reportTarget.id, reason, description }); 
+      if (reportTarget.userId) { setBlockUserId(reportTarget.userId); setBlockUsername(reportTarget.username || ''); setBlockOpen(true); }
+      setReportOpen(false);
+    }}
+    onReportAndBlock={reportTarget.type === 'user' ? async () => { if (reportTarget.id) { await blockUser(reportTarget.id); } } : undefined}
       />
       <BlockModal
         isOpen={blockOpen}
         onClose={() => setBlockOpen(false)}
-        username={''}
+    username={blockUsername || ''}
         onConfirm={async () => { if (blockUserId) { await blockUser(blockUserId); setBlockOpen(false); } }}
       />
     </div>
