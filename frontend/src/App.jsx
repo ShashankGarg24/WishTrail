@@ -2,6 +2,7 @@ import { Routes, Route, useLocation, useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import useApiStore from './store/apiStore'
 import Header from './components/Header'
+import ScrollMemory from './components/ScrollMemory'
 import BottomTabBar from './components/BottomTabBar'
 import Footer from './components/Footer'
 import HomePage from './pages/HomePage'
@@ -66,6 +67,7 @@ function App() {
       <div className="relative min-h-screen pb-16 sm:pb-16">
         <Header />
         <main className="pt-20">
+          <ScrollMemory />
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/auth" element={<AuthPage />} />
