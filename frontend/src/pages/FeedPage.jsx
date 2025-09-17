@@ -289,22 +289,7 @@ const FeedPage = () => {
       if (resp?.success) {
         setGoalModalData(resp.data);
         // Do not change URL when opening from Explore; keep deep-link support only when URL already has goalId
-        // Preload comments if activityId present
-        const aid = resp?.data?.social?.activityId;
-        if (aid) {
-          try {
-            setGoalCommentsLoading(true);
-            const r = await activitiesAPI.getComments(aid, { page: 1, limit: 20 });
-            const comments = r?.data?.data?.comments || [];
-            const pagination = r?.data?.data?.pagination || null;
-            setGoalComments(comments);
-            setGoalCommentsPagination(pagination);
-          } catch (_) { setGoalComments([]); setGoalCommentsPagination(null); setShowComments(false); }
-          finally { setGoalCommentsLoading(false); }
-        } else {
-          setGoalComments([]);
-          setGoalCommentsPagination(null);
-        }
+        // Comments will be loaded by the embedded comments component when rendered
       }
     } catch (_) {
     } finally {

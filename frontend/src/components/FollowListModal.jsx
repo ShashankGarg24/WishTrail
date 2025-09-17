@@ -4,19 +4,16 @@ import { X, Users } from 'lucide-react'
 
 const ListItem = ({ user, onOpenProfile }) => {
   const name = user?.name || 'Unknown'
-  const username = user?.username ? `@${user.username}` : ''
   const phone = user?.phone || user?.phoneNumber || '—'
   const avatar = user?.avatar || ''
-  const idOrHandle = user?.username ? `@${user.username}` : (user?._id || user?.id)
 
   return (
     <button onClick={() => onOpenProfile?.(user)} className="w-full text-left p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center gap-3">
       <img src={avatar} alt={name} className="w-10 h-10 rounded-full object-cover bg-gray-200" />
       <div className="min-w-0 flex-1">
         <div className="font-medium text-gray-900 dark:text-white truncate">{name}</div>
-        <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{username} · {phone}</div>
+        <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{phone}</div>
       </div>
-      <div className="text-xs text-gray-400 truncate max-w-[120px]">{idOrHandle}</div>
     </button>
   )
 }
@@ -69,8 +66,11 @@ const FollowListModal = ({ isOpen, onClose, activeTab = 'followers', onTabChange
             {!loading && list.length > 0 && (
               <div className="space-y-2">
                 {list.map((item, idx) => {
-                  const user = item?.followerId || item?.followingId || item
-                  return <ListItem key={user?._id || user?.id || idx} user={user} onOpenProfile={onOpenProfile} />
+                  const user = activeTab === 'followers'
+                    ? (typeof item?.followerId === 'object' ? item?.followerId : item)
+                    : (typeof item?.followingId === 'object' ? item?.followingId : item)
+                  const key = (user && (user._id || user.id)) || item?._id || item?.id || idx
+                  return <ListItem key={key} user={user} onOpenProfile={onOpenProfile} />
                 })}
               </div>
             )}

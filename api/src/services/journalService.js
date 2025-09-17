@@ -389,6 +389,16 @@ function minutesOfDayInTimezone(timezone) {
   }
 }
 
+function localDateKeyInTimezone(timezone) {
+  try {
+    // en-CA yields ISO-like YYYY-MM-DD
+    const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: timezone || 'UTC', year: 'numeric', month: '2-digit', day: '2-digit' });
+    return fmt.format(new Date());
+  } catch {
+    return new Date().toISOString().slice(0,10);
+  }
+}
+
 function parseHHmmToMinutes(text) {
   try {
     const [hh, mm] = String(text || '').split(':');
@@ -407,16 +417,19 @@ async function notifyDailyPrompt(windowMinutes = 30, targetHHmm = '20:00') {
   for (const u of users) {
     const ns = u.notificationSettings || {};
     if (ns.journal && ns.journal.enabled === false) continue;
-    const localMin = minutesOfDayInTimezone(u.timezone || 'UTC');
+    const tz = u.timezone || 'UTC';
+    const localMin = minutesOfDayInTimezone(tz);
     // Send once any time after the target time (20:00) the same day
     if (localMin < targetMin) continue;
     // Idempotency: one per day per user
     try {
-      const today = new Date(); today.setHours(0,0,0,0);
-      const key = `journal:promptSent:${today.toISOString().slice(0,10)}:${String(u._id)}`;
+      const dateKey = localDateKeyInTimezone(tz);
+      const key = `journal:promptSent:${dateKey}:${String(u._id)}`;
       const seen = await redis.get(key);
       if (seen) continue;
-      await redis.set(key, '1', { ex: 36 * 60 * 60 });
+      // TTL until next local midnight + 1h buffer
+      const ttlSeconds = Math.max(60, ((24 * 60 - localMin) * 60) + 3600);
+      await redis.set(key, '1', { ex: ttlSeconds });
     } catch {}
     jobs.push(Notification.createNotification({
       userId: u._id,

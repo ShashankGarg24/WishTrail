@@ -22,8 +22,8 @@ const Header = () => {
       ? [
           { name: 'Feed', href: '/feed' },
           { name: 'Discover', href: '/discover' },
-          { name: 'Leaderboard', href: '/leaderboard?tab=global' },
           { name: 'Dashboard', href: '/dashboard' },
+          { name: 'Leaderboard', href: '/leaderboard?tab=global' },
         ]
       : []),
   ]
