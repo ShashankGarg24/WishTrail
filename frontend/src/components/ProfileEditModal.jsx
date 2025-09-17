@@ -470,7 +470,7 @@ const ProfileEditModal = ({ isOpen, onClose }) => {
                   </>
                 ) : (
                   <>
-                    Save Changes
+                    Save
                   </>
                 )}
               </button>
