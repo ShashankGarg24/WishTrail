@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Calendar, Target, TrendingUp, Star, Edit2, ExternalLink, Youtube, Instagram, MapPin, Globe, Trophy, BookOpen, Clock, CheckCircle, Circle, User, UserPlus, UserCheck, ArrowLeft, Lock, Sparkles, Download } from "lucide-react";
+import FollowListModal from "../components/FollowListModal";
 import { motion } from "framer-motion";
 import useApiStore from "../store/apiStore";
 import { journalsAPI } from "../services/api";
@@ -31,6 +32,11 @@ const ProfilePage = () => {
   const [reportOpen, setReportOpen] = useState(false);
   const [blockOpen, setBlockOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [followModalOpen, setFollowModalOpen] = useState(false);
+  const [followModalTab, setFollowModalTab] = useState('followers');
+  const [followers, setFollowers] = useState([]);
+  const [following, setFollowing] = useState([]);
+  const [loadingFollows, setLoadingFollows] = useState(false);
 
   const { 
     user: currentUser, 
@@ -48,7 +54,9 @@ const ProfilePage = () => {
     getUserJournalStats,
     journalHighlights,
     journalEntries,
-    journalStats
+    journalStats,
+    getFollowers,
+    getFollowing
   } = useApiStore();
 
   // Determine if viewing own profile or another user's profile
@@ -419,24 +427,40 @@ const ProfilePage = () => {
 
               {/* Stats Row */}
               <div className="flex items-center space-x-8 mb-4">
-                <div className="text-center">
+                <button className="text-center" onClick={() => {
+                  try { const el = document.getElementById('profile-goals-section'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch {}
+                }}>
                   <div className="text-xl font-bold text-gray-900 dark:text-white">
                     {isOwnProfile ? (displayUser.totalGoals || 0) : (userStats?.totalGoals || 0)}
                   </div>
                   <div className="text-gray-600 dark:text-gray-400 text-sm">Goals</div>
-                </div>
-                <div className="text-center">
+                </button>
+                <button className="text-center" onClick={async () => {
+                  setFollowModalTab('followers'); setFollowModalOpen(true); setLoadingFollows(true);
+                  try {
+                    const uid = isOwnProfile ? currentUser?._id : (profileUser?._id || profileUser?.id);
+                    const res = await getFollowers(uid);
+                    if (res?.success) setFollowers(res.followers || []);
+                  } finally { setLoadingFollows(false); }
+                }}>
                   <div className="text-xl font-bold text-gray-900 dark:text-white">
-                    {isOwnProfile ? (displayUser.followersCount || 0) : (userStats?.followers || 0)}
+                    {isOwnProfile ? (displayUser.followerCount || 0) : (userStats?.followers || 0)}
                   </div>
                   <div className="text-gray-600 dark:text-gray-400 text-sm">Followers</div>
-                </div>
-                <div className="text-center">
+                </button>
+                <button className="text-center" onClick={async () => {
+                  setFollowModalTab('following'); setFollowModalOpen(true); setLoadingFollows(true);
+                  try {
+                    const uid = isOwnProfile ? currentUser?._id : (profileUser?._id || profileUser?.id);
+                    const res = await getFollowing(uid);
+                    if (res?.success) setFollowing(res.following || []);
+                  } finally { setLoadingFollows(false); }
+                }}>
                   <div className="text-xl font-bold text-gray-900 dark:text-white">
                     {isOwnProfile ? (displayUser.followingCount || 0) : (userStats?.followings || 0)}
                   </div>
                   <div className="text-gray-600 dark:text-gray-400 text-sm">Following</div>
-                </div>
+                </button>
               </div>
 
               {/* Bio */}
@@ -459,6 +483,9 @@ const ProfilePage = () => {
                   <span className="text-sm">Joined {formatDate(displayUser.createdAt || displayUser.joinedDate)}</span>
                 </div>
               </div>
+
+              {/* Goals Anchor for smooth scroll */}
+              <div id="profile-goals-section" />
 
               {/* Social Links - only for own profile */}
               {isOwnProfile && (displayUser.website || displayUser.youtube || displayUser.instagram) && (
@@ -504,6 +531,38 @@ const ProfilePage = () => {
                 </div>
               )}
 
+          {/* Follow List Modal */}
+          <FollowListModal
+            isOpen={followModalOpen}
+            onClose={() => setFollowModalOpen(false)}
+            activeTab={followModalTab}
+            onTabChange={async (tab) => {
+              setFollowModalTab(tab)
+              setLoadingFollows(true)
+              try {
+                const uid = isOwnProfile ? currentUser?._id : (profileUser?._id || profileUser?.id)
+                if (tab === 'followers') {
+                  const res = await getFollowers(uid)
+                  if (res?.success) setFollowers(res.followers || [])
+                } else {
+                  const res = await getFollowing(uid)
+                  if (res?.success) setFollowing(res.following || [])
+                }
+              } finally { setLoadingFollows(false) }
+            }}
+            followers={followers}
+            following={following}
+            followersCount={isOwnProfile ? (displayUser?.followerCount || 0) : (userStats?.followers || 0)}
+            followingCount={isOwnProfile ? (displayUser?.followingCount || 0) : (userStats?.followings || 0)}
+            loading={loadingFollows}
+            onOpenProfile={(u) => {
+              try {
+                const path = u?.username ? `/profile/@${u.username}` : (`/profile/${u?._id || u?.id}`)
+                if (path) navigate(path)
+                setFollowModalOpen(false)
+              } catch {}
+            }}
+          />
               {/* Action Button - Mobile */}
               <div className="block md:hidden">
                 {isOwnProfile ? (
@@ -778,7 +837,7 @@ const ProfilePage = () => {
                 </div>
               )}
               {activeTab === 'goals' && (
-                <div className={isOwnProfile 
+                <div id="profile-goals-section" className={isOwnProfile 
                   ? "bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg"
                   : "bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50"
                 }>
@@ -990,6 +1049,9 @@ const ProfilePage = () => {
 };
 
 export default ProfilePage; 
+// Follow List Modal Mount
+// (placed after default export to avoid interfering with main export)
+
 
 // Modals
 // Placed at end to avoid cluttering main JSX; render conditionally near root if needed
