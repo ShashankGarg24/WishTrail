@@ -17,7 +17,7 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
     const fetchComments = async () => {
       setLoading(true)
       try {
-        const res = await activitiesAPI.getComments(activity._id, { page: 1, limit: 30 })
+        const res = await activitiesAPI.getComments(activity._id, { page: 1, limit: 10 })
         const list = res.data?.data?.comments || []
         setComments(list)
       } catch (e) {

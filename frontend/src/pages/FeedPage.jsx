@@ -490,7 +490,7 @@ const FeedPage = () => {
 
                         {/* Media/Content */}
                         <div className="px-4 pb-4 cursor-pointer" onClick={() => openGoalModal(activity?.data?.goalId?._id)}>
-                          <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-4 border border-gray-100 dark:border-gray-800">
+                          <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-4 border border-gray-100 dark:border-gray-800 h-[280px] md:h-[320px] overflow-hidden">
                              {(activity.type === 'goal_completed' || activity.type === 'goal_created') ? (
                                <>
                                 <h4 className="font-semibold text-gray-900 dark:text-white mb-2">
@@ -507,25 +507,25 @@ const FeedPage = () => {
                                    const sharedImage = activity?.data?.metadata?.completionAttachmentUrl || activity?.data?.completionAttachmentUrl || ''
                                    if (!sharedNote && !sharedImage) return null
                                    return (
-                                     <div className="mt-3 space-y-3 cursorcursor-pointer" onClick={() => openGoalModal(activity?.data?.goalId?._id)}>
-                                       {sharedImage && (
-                                         <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700">
-                                            <img
-                                              src={sharedImage}
-                                              alt="Completion attachment"
-                                              className="w-full max-h-96 object-cover hover:scale-[1.01] transition-transform duration-200 cursor-zoom-in"
-                                              onClick={() => openLightbox(sharedImage)}
-                                            />
-                                          </div>
-                                        )}
-                                        {sharedNote && (
-                                          <div className="bg-white/80 dark:bg-gray-900/40 rounded-xl p-3 border border-gray-200 dark:border-gray-700">
-                                            <p className="text_sm text-gray-700 dark:text-gray-300 whitespace-pre-line">
-                                              {sharedNote}
-                                            </p>
-                                          </div>
-                                        )}
-                                      </div>
+                                        <div className="mt-3 space-y-3 cursor-pointer" onClick={() => openGoalModal(activity?.data?.goalId?._id)}>
+                                          {sharedImage && (
+                                            <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700 h-[160px] md:h-[200px]">
+                                               <img
+                                                 src={sharedImage}
+                                                 alt="Completion attachment"
+                                                 className="w-full h-full object-cover hover:scale-[1.01] transition-transform duration-200 cursor-zoom-in"
+                                                 onClick={() => openLightbox(sharedImage)}
+                                               />
+                                             </div>
+                                           )}
+                                           {sharedNote && (
+                                             <div className="bg-white/80 dark:bg-gray-900/40 rounded-xl p-3 border border-gray-200 dark:border-gray-700">
+                                               <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line line-clamp-4">
+                                                 {sharedNote}
+                                               </p>
+                                             </div>
+                                           )}
+                                         </div>
                                     )
                                   })()}
                                 </>
