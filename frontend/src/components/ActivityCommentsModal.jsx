@@ -75,6 +75,13 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
     } catch (e) {}
   }
 
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handlePost();
+    }
+  }
+
   const toggleCommentLike = async (commentId) => {
     try {
       const res = await activitiesAPI.toggleCommentLike(activity._id, commentId)
@@ -130,6 +137,7 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
                           <input
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
+                            onKeyDown={handleKeyDown}
                             placeholder={`Replying to ${replyTo.userName}`}
                             className="flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                           />
@@ -142,7 +150,7 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
                     </div>
                   </div>
                   {expandedReplies[c._id] && replyCount > 0 && (
-                    <div className="mt-2 pl-11 space-y-2">
+                    <div className="mt-3 pt-2 pl-11 space-y-3 border-t border-gray-200 dark:border-gray-800">
                       {(c.replies || []).map((r) => (
                         <div key={r._id}>
                           <div className="flex items-start gap-3">
@@ -173,6 +181,7 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
               placeholder={'Add a comment'}
               className="flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
             />
@@ -233,6 +242,7 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
                           <input
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
+                            onKeyDown={handleKeyDown}
                             placeholder={`Replying to ${replyTo.userName}`}
                             className="flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                           />
@@ -245,7 +255,7 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
                     </div>
                   </div>
                   {expandedReplies[c._id] && replyCount > 0 && (
-                    <div className="mt-2 pl-11 space-y-2">
+                    <div className="mt-3 pt-2 pl-11 space-y-3 border-t border-gray-200 dark:border-gray-800">
                       {(c.replies || []).map((r) => (
                         <div key={r._id}>
                           <div className="flex items-start gap-3">
@@ -277,6 +287,7 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
               placeholder={'Add a comment'}
               className="flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
             />

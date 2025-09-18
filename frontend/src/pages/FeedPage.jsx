@@ -527,7 +527,6 @@ const FeedPage = () => {
                                            src={sharedImage}
                                            alt="Completion attachment"
                                            className="w-full max-h-96 object-cover hover:scale-[1.01] transition-transform duration-200 cursor-zoom-in"
-                                           onClick={() => openLightbox(sharedImage)}
                                          />
                                        </div>
                                      )}
@@ -582,10 +581,10 @@ const FeedPage = () => {
                               <span>{activity.likeCount || 0}</span>
                             </button>
                             <button
-                              onClick={(e) => { e.stopPropagation(); if (isMobile) { setCommentsOpenActivityId(activity._id); } else { setScrollCommentsOnOpen(true); } }}
-                              className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm transition-colors bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700`}
+                              onClick={(e) => { e.stopPropagation(); if (isMobile) { setCommentsOpenActivityId(activity._id); } else { setScrollCommentsOnOpen(true); openGoalModal(activity?.data?.goalId?._id); } }}
+                              className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm transition-colors ${scrollCommentsOnOpen ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
                             >
-                              <MessageCircle className="h-4 w-4" />
+                              <MessageCircle className={`h-4 w-4 ${scrollCommentsOnOpen ? 'text-blue-600' : ''}`} />
                               <span>{(activity.commentCount || 0)}</span>
                             </button>
                            </div>
@@ -681,16 +680,21 @@ const FeedPage = () => {
                 <div className="animate-spin rounded-full h-10 w-10 border-4 border-gray-300 dark:border-gray-700 border-t-blue-600" />
               </div>
             ) : null}
-            <div className={`relative w-full ${(!goalModalData?.share?.image) ? 'max-w-3xl' : 'max-w-6xl'} mx-auto bg-white dark:bg-gray-900 rounded-2xl shadow-2xl ${isMobile ? 'overflow-y-auto' : 'overflow-hidden'} border border-gray-200 dark:border-gray-800 max-h-[85vh] ${(goalModalLoading || !goalModalData) ? 'hidden' : ''}`}> 
+            <div className={`relative w-full ${(!goalModalData?.share?.image) ? 'max-w-3xl' : 'max-w-6xl'} 
+                mx-auto bg-white dark:bg-gray-900 rounded-2xl shadow-2xl 
+                ${isMobile ? 'overflow-y-auto' : 'overflow-hidden'} 
+                border border-gray-200 dark:border-gray-800
+                ${(!goalModalData?.share?.image) ? 'h-[55vh] ' : 'h-[85vh] '}
+                ${(goalModalLoading || !goalModalData) ? 'hidden' : ''}`}> 
               {!(goalModalLoading || !goalModalData) && (
                 goalModalData?.share?.image ? (
-                  <div className="grid grid-cols-1 md:[grid-template-columns:minmax(0,1fr)_420px] items-stretch min-h-0">
+                  <div className="grid grid-cols-1 md:[grid-template-columns:minmax(0,1fr)_420px] items-stretch h-full min-h-0">
                     {/* Left: Media */}
-                    <div className="bg-black flex items-center justify-center min-h-[65vh] h-[65vh] md:min-h-[520px]">
+                    <div className="bg-black flex items-center justify-center h-full">
                       <img src={goalModalData.share.image} alt="Completion" className="h-full w-auto max-w-full object-contain" />
                     </div>
                     {/* Right: Details with toggleable comments */}
-                    <div className="flex flex-col md:w-[420px] md:flex-shrink-0 min-h-[320px] md:min-h-[520px] md:max-h-[85vh] min_h-0">
+                    <div className="flex flex-col md:w-[420px] md:flex-shrink-0 h-full min-h-0">
                       <div className="flex items-center gap-3 p-4 border-b border-gray-200 dark:border-gray-800">
                         <img src={goalModalData?.user?.avatar || '/api/placeholder/40/40'} className="w-10 h-10 rounded-full" />
                         <div className="flex-1 min-w-0">
@@ -699,7 +703,7 @@ const FeedPage = () => {
                         </div>
                         <button onClick={closeGoalModal} className="px-3 py-1.5 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800">✕</button>
                       </div>
-                      <div ref={rightPanelScrollRef} className={`flex-1 min-h-0 ${isMobile ? '' : 'overflow-auto'} px-6 pb-0`}>
+                      <div ref={rightPanelScrollRef} className={`flex-1 min-h-0 overflow-auto px-6 pb-0`}>
                         <div className="py-6 space-y-4">
                           <div>
                             <div className="h-1.5 w-14 rounded-full mb-2" style={{ background: 'linear-gradient(90deg, rgba(99,102,241,0.8), rgba(147,197,253,0.8))' }} />
@@ -744,7 +748,7 @@ const FeedPage = () => {
                     </div>
                   </div>
                 ) : (
-                  <div className="flex flex-col min-h-[320px] md:min-h-[520px] md:max-w-[420px] md:mx-auto md:max-h-[85vh] min-h-0">
+                  <div className="flex flex-col h-full w-full min-h-0">
                     <div className="flex items-center gap-3 p-4 border-b border-gray-200 dark:border-gray-800">
                       <img src={goalModalData?.user?.avatar || '/api/placeholder/40/40'} className="w-10 h-10 rounded-full" />
                       <div className="flex-1 min-w-0">
@@ -753,11 +757,16 @@ const FeedPage = () => {
                       </div>
                       <button onClick={closeGoalModal} className="px-3 py-1.5 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800">✕</button>
                     </div>
-                    <div ref={rightPanelScrollRef} className={`flex-1 min-h-0 ${isMobile ? '' : 'overflow-auto'}` }>
+                    <div ref={rightPanelScrollRef} className={`flex-1 min-h-0 overflow-auto` }>
                       <div className="p-6 space-y-4">
                         <div>
                           <div className="h-1.5 w-14 rounded-full mb-2" style={{ background: 'linear-gradient(90deg, rgba(99,102,241,0.8), rgba(147,197,253,0.8))' }} />
                           <div className="inline-block px-2 py-1 rounded-full text-xs font-medium text-white bg-blue-500">{goalModalData?.goal?.category}</div>
+                          {goalModalData?.share?.note && (
+                            <div className="mt-3 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap line-clamp-3">
+                              {goalModalData.share.note}
+                            </div>
+                          )}
                         </div>
                         <div>
                           <div className="text-xs text-gray-500">Title</div>
@@ -773,7 +782,7 @@ const FeedPage = () => {
                         <div className="grid grid-cols-2 gap-3">
                           <div>
                             <div className="text-xs text-gray-500">Completed</div>
-                            <div className="text-gray-800 dark:text_gray-200">{goalModalData?.goal?.completedAt ? new Date(goalModalData.goal.completedAt).toLocaleString() : '—'}</div>
+                            <div className="text-gray-800 dark:text-gray-200">{goalModalData?.goal?.completedAt ? new Date(goalModalData.goal.completedAt).toLocaleString(undefined, { year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—'}</div>
                           </div>
                           <div>
                             <div className="text-xs text_gray-500">Points</div>
