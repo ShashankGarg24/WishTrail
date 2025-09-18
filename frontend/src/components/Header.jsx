@@ -62,13 +62,6 @@ const Header = () => {
     navigate('/')
   }
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      // Prefetch first page to get unread count
-      getNotifications({ page: 1, limit: 1 }).catch(() => {})
-    }
-  }, [isAuthenticated, getNotifications])
-
   // On focus, ping backend to record lastActiveAt (rate-limited server-side)
   useEffect(() => {
     const onFocus = () => { if (isAuthenticated) { notificationsAPI.ping().catch(() => {}); } };
