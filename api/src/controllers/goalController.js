@@ -64,8 +64,13 @@ const getGoalPost = async (req, res, next) => {
     const Like = require('../models/Like');
     const ActivityComment = require('../models/ActivityComment');
 
-    // Try to find corresponding completion activity to compute comments/likes cohesively
-    const activity = await Activity.findOne({ 'data.goalId': goal._id, type: 'goal_completed', userId: goal.userId._id }).sort({ createdAt: -1 }).lean();
+    // Try to find corresponding activity for this goal
+    // Prefer a completion activity; if not present yet, fall back to creation activity
+    const activity = await Activity.findOne({
+      'data.goalId': goal._id,
+      userId: goal.userId._id,
+      type: { $in: ['goal_completed', 'goal_created'] }
+    }).sort({ createdAt: -1 }).lean();
     let likeCount = goal.likeCount || 0;
     let isLiked = false;
     let commentCount = 0;
