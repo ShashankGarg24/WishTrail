@@ -163,8 +163,14 @@ export const socialAPI = {
   getActivityFeed: (params) => api.get('/social/feed', { params }),
   getPopularUsers: (params) => api.get('/social/popular', { params }),
   getFollowRequests: (params) => api.get('/social/follow/requests', { params }),
-  acceptFollowRequest: (followerId) => api.post(`/social/follow/requests/${followerId}/accept`),
-  rejectFollowRequest: (followerId) => api.post(`/social/follow/requests/${followerId}/reject`),
+  acceptFollowRequest: (followerId) => {
+    const id = (followerId && typeof followerId === 'object') ? (followerId._id || followerId.id) : followerId;
+    return api.post(`/social/follow/requests/${id}/accept`);
+  },
+  rejectFollowRequest: (followerId) => {
+    const id = (followerId && typeof followerId === 'object') ? (followerId._id || followerId.id) : followerId;
+    return api.post(`/social/follow/requests/${id}/reject`);
+  },
   cancelFollowRequest: (userId) => api.delete(`/social/follow/requests/${userId}`),
 };
 

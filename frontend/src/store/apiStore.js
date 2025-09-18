@@ -1043,8 +1043,12 @@ const useApiStore = create(
       },
       acceptFollowRequest: async (followerId) => {
         try {
-          await socialAPI.acceptFollowRequest(followerId);
-          set(state => ({ followRequests: state.followRequests.filter(r => r.followerId._id !== followerId) }));
+          const id = (followerId && typeof followerId === 'object') ? (followerId._id || followerId.id) : followerId;
+          await socialAPI.acceptFollowRequest(id);
+          set(state => ({ followRequests: (state.followRequests || []).filter(r => {
+            const rid = r?.followerId?._id || r?.followerId || r?._id;
+            return String(rid) !== String(id);
+          }) }));
           return { success: true };
         } catch (error) {
           const errorMessage = handleApiError(error);
@@ -1053,8 +1057,12 @@ const useApiStore = create(
       },
       rejectFollowRequest: async (followerId) => {
         try {
-          await socialAPI.rejectFollowRequest(followerId);
-          set(state => ({ followRequests: state.followRequests.filter(r => r.followerId._id !== followerId) }));
+          const id = (followerId && typeof followerId === 'object') ? (followerId._id || followerId.id) : followerId;
+          await socialAPI.rejectFollowRequest(id);
+          set(state => ({ followRequests: (state.followRequests || []).filter(r => {
+            const rid = r?.followerId?._id || r?.followerId || r?._id;
+            return String(rid) !== String(id);
+          }) }));
           return { success: true };
         } catch (error) {
           const errorMessage = handleApiError(error);

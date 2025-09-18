@@ -25,7 +25,6 @@ const ReportModal = ({ isOpen, onClose, onSubmit, targetLabel = 'content', onRep
       await onSubmit({ reason, description })
       if (onReportAndBlock) {
         // Ask if they also want to block
-        const confirmBlock = window.confirm('Report submitted. Also block this user to stop seeing their activity?')
         if (confirmBlock) {
           await onReportAndBlock()
         }
