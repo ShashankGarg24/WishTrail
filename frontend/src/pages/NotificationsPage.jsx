@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { Bell, RefreshCw, Check, X } from 'lucide-react'
 import useApiStore from '../store/apiStore'
 import SkeletonList from '../components/loader/SkeletonList'
+import SkeletonNotifications from '../components/loader/SkeletonNotifications'
 import { useNavigate } from 'react-router-dom'
 
 const NotificationsPage = () => {
@@ -30,7 +31,7 @@ const NotificationsPage = () => {
 
   useEffect(() => {
     if (!isAuthenticated) return
-    getNotifications({ page: 1, limit: 20, scope: 'social' }).catch(() => {})
+    fetchInitialData().catch(() => {})
   }, [isAuthenticated])
 
   const openGoalModal = async (goalId) => {
@@ -119,7 +120,7 @@ const NotificationsPage = () => {
       )}
 
       {loading ? (
-        <SkeletonList count={6} grid={false} avatar lines={3} />
+        <SkeletonNotifications count={6} />
       ) : (notifications || []).length > 0 ? (
         <>
           <div className="space-y-3">

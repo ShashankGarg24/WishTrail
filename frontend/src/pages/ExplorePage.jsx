@@ -22,6 +22,7 @@ import {
 import useApiStore from '../store/apiStore';
 import { activitiesAPI } from '../services/api';
 import SkeletonList from '../components/loader/SkeletonList'
+import SkeletonNotifications from '../components/loader/SkeletonNotifications'
 import ActivityCommentsModal from '../components/ActivityCommentsModal'
 import ReportModal from '../components/ReportModal'
 import BlockModal from '../components/BlockModal'
@@ -1201,7 +1202,7 @@ const ExplorePage = () => {
                 </div>
 
                 {loading ? (
-                  <SkeletonList count={6} grid={false} avatar lines={3} />
+                  <SkeletonNotifications count={6} />
                 ) : (notifications || []).length > 0 ? (
                   <>
                     <div className="space-y-3">
