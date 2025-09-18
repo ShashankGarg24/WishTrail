@@ -1226,6 +1226,14 @@ const ExplorePage = () => {
                             {items.map((n) => {
                               const actorName = n.data?.actorName || n.data?.followerName || n.data?.likerName || 'Someone';
                               const actorAvatar = n.data?.actorAvatar || n.data?.followerAvatar || n.data?.likerAvatar;
+                              const messageWithoutActor = (() => {
+                                const m = n?.message || '';
+                                const name = actorName || '';
+                                if (name && m.toLowerCase().startsWith(name.toLowerCase())) {
+                                  return m.slice(name.length).replace(/^\s*,?\s*/, '');
+                                }
+                                return m;
+                              })();
                               const isUnread = !n.isRead;
                               const baseClass = isUnread ? 'bg-blue-50 dark:bg-gray-800/60 border-blue-200 dark:border-gray-700' : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800';
                               return (
@@ -1248,7 +1256,7 @@ const ExplorePage = () => {
                                       >
                                         {actorName}
                                       </button>
-                                      <span className="text-gray-600 dark:text-gray-400"> {n.message}</span>
+                                      <span className="text-gray-600 dark:text-gray-400"> {messageWithoutActor}</span>
                                     </div>
                                     <div className="text-xs text-gray-500 dark:text-gray-400">{formatTimeAgo(n.createdAt)}</div>
                                   </div>
@@ -1259,12 +1267,7 @@ const ExplorePage = () => {
                                         <button onClick={async () => { await rejectFollowRequest(n.data.followerId?._id || n.data.followerId); await markNotificationRead(n._id); }} className="px-3 py-1.5 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-xs inline-flex items-center gap-1"><X className="w-4 h-4" />Reject</button>
                                       </>
                                     )}
-                                    {n.type === 'follow_request_accepted' && n.data?.actorId && (
-                                      <button
-                                        onClick={async () => { await followUser(n.data.actorId); await markNotificationRead(n._id); }}
-                                        className="px-3 py-1.5 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-xs"
-                                      >Follow back</button>
-                                    )}
+                                    {/* No follow back on acceptance; already following */}
                                     {(n.data?.activityId) && (
                                       <button
                                         onClick={() => openGoalModal(n?.data?.goalId?._id)}
