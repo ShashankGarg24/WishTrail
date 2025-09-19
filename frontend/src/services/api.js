@@ -193,7 +193,6 @@ export const activitiesAPI = {
 export const leaderboardAPI = {
   getGlobalLeaderboard: (params) => api.get('/leaderboard/', { params }),
   getCategoryLeaderboard: (category, params) => api.get(`/leaderboard/category/${category}`, { params }),
-  getAchievementLeaderboard: (params) => api.get('/leaderboard/achievements', { params }),
   getFriendsLeaderboard: (params) => api.get('/leaderboard/friends', { params }),
   getLeaderboardStats: () => api.get('/leaderboard/stats'),
 };

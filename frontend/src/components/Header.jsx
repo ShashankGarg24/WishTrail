@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { motion } from 'framer-motion'
-import { Moon, Sun, Menu, X, Star, User, BarChart3, LogOut, Settings, Bell } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Moon, Sun, Menu, X, Star, User, BarChart3, LogOut, Settings, Bell, CheckCircle } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
 import useApiStore from '../store/apiStore'
 import SettingsModal from './SettingsModal'
@@ -13,6 +13,8 @@ const Header = () => {
   const location = useLocation()
   const menuRef = useRef(null)
   const navigate = useNavigate();
+  const [toast, setToast] = useState(null)
+  const toastTimerRef = useRef(null)
 
   // Main navigation tabs in specified order
   // Replace single Explore with standalone Feed and Discover pages
@@ -68,6 +70,25 @@ const Header = () => {
     window.addEventListener('focus', onFocus);
     return () => window.removeEventListener('focus', onFocus);
   }, [isAuthenticated]);
+
+  // Global toast listener (use window.dispatchEvent(new CustomEvent('wt_toast', { detail: { message, type } })))
+  useEffect(() => {
+    const handler = (evt) => {
+      try {
+        const d = evt?.detail || {};
+        const message = d.message || 'Link copied to clipboard';
+        const type = d.type || 'success';
+        setToast({ message, type });
+        if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+        toastTimerRef.current = setTimeout(() => setToast(null), Math.max(1500, Math.min(5000, d.duration || 2600)));
+      } catch {}
+    };
+    window.addEventListener('wt_toast', handler);
+    return () => {
+      window.removeEventListener('wt_toast', handler);
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    };
+  }, [])
 
   // Listen for native push forwarded from the app WebView (wt_push) to refresh unread badge
   useEffect(() => {
@@ -292,6 +313,22 @@ const Header = () => {
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
       />
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ x: 40, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: 40, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 500, damping: 35, mass: 0.6 }}
+            className="fixed top-6 right-6 z-[11000]"
+          >
+            <div className={`px-4 py-3 rounded-lg shadow-lg border flex items-center gap-2 ${toast.type === 'success' ? 'bg-white text-gray-800 border-green-200 dark:bg-gray-800 dark:text-gray-100 dark:border-green-700' : 'bg-white text-gray-800 border-gray-200 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-700'}`}>
+              <CheckCircle className={`h-4 w-4 ${toast.type === 'success' ? 'text-green-600' : 'text-gray-500'}`} />
+              <span className="text-sm font-medium">{toast.message}</span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   )
 }

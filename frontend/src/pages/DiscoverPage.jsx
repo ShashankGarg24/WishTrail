@@ -831,7 +831,7 @@ const DiscoverPage = () => {
                               <button className="mt-1 text-xs text-blue-600" onClick={() => setDetailsExpanded((v) => !v)}>{detailsExpanded ? 'Show less' : 'More'}</button>
                             )}
                           </div>
-                          <div className="grid grid-cols-2 gap-3">
+                          {goalModalData?.goal?.completedAt && goalModalData?.goal?.points && (<div className="grid grid-cols-2 gap-3">
                             <div>
                               <div className="text-xs text-gray-500">Completed</div>
                               <div className="text-gray-800 dark:text-gray-200">{goalModalData?.goal?.completedAt ? new Date(goalModalData.goal.completedAt).toLocaleString() : '—'}</div>
@@ -840,7 +840,7 @@ const DiscoverPage = () => {
                               <div className="text-xs text-gray-500">Points</div>
                               <div className="text-gray-800 dark:text-gray-200">{goalModalData?.goal?.pointsEarned ?? 0}</div>
                             </div>
-                          </div>
+                          </div>)}
                           {goalModalData?.share?.note && (
                             <div className="bg-gray-50 dark:bg-gray-800/40 rounded-xl p-3 border border-gray-200 dark:border-gray-700">
                               <div className="text-xs text-gray-500 mb-1">Completion note</div>
@@ -895,7 +895,7 @@ const DiscoverPage = () => {
                             <button className="mt-1 text-xs text-blue-600" onClick={() => setDetailsExpanded((v) => !v)}>{detailsExpanded ? 'Show less' : 'More'}</button>
                           )}
                         </div>
-                        <div className="grid grid-cols-2 gap-3">
+                        {goalModalData?.goal?.completedAt && goalModalData?.goal?.points && (<div className="grid grid-cols-2 gap-3">
                           <div>
                             <div className="text-xs text-gray-500">Completed</div>
                             <div className="text-gray-800 dark:text-gray-200">{goalModalData?.goal?.completedAt ? new Date(goalModalData.goal.completedAt).toLocaleString() : '—'}</div>
@@ -904,7 +904,7 @@ const DiscoverPage = () => {
                             <div className="text-xs text-gray-500">Points</div>
                             <div className="text-gray-800 dark:text-gray-200">{goalModalData?.goal?.pointsEarned ?? 0}</div>
                           </div>
-                        </div>
+                        </div>)}
                       </div>
                       {!isMobile && (
                         <div ref={commentsAnchorRef} className="px-6 pb-6">

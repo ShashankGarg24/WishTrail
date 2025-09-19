@@ -213,11 +213,6 @@ class CacheService {
     return await this.set(key, data, this.CACHE_TTL.TEN_MINUTES);
   }
 
-  async getAchievementLeaderboard(params = {}) {
-    const key = this.generateKey(this.CACHE_KEYS.ACHIEVEMENT_LEADERBOARD, params);
-    return await this.get(key);
-  }
-
   async setAchievementLeaderboard(data, params = {}) {
     const key = this.generateKey(this.CACHE_KEYS.ACHIEVEMENT_LEADERBOARD, params);
     return await this.set(key, data, this.CACHE_TTL.TEN_MINUTES);

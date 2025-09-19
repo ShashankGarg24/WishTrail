@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Send } from 'lucide-react'
 import { activitiesAPI } from '../services/api'
+import useApiStore from '../store/apiStore'
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
 
 const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embedded = false }) => {
@@ -72,6 +73,7 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
       }
       setInput('')
       setReplyTo(null)
+      try { useApiStore.getState().invalidateGoalPostByActivity?.(activity._id) } catch {}
     } catch (e) {}
   }
 
@@ -87,6 +89,7 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
       const res = await activitiesAPI.toggleCommentLike(activity._id, commentId)
       const { likeCount, isLiked } = res.data?.data || {}
       setComments(prev => prev.map(c => c._id === commentId ? { ...c, likeCount, isLiked } : { ...c, replies: (c.replies||[]).map(r => r._id === commentId ? { ...r, likeCount, isLiked } : r) }))
+      try { useApiStore.getState().invalidateGoalPostByActivity?.(activity._id) } catch {}
     } catch {}
   }
 
@@ -177,7 +180,7 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
         </div>
 
         {!replyTo && (
-          <div className="flex items-center gap-2 mt-4 pt-3 border-t border-gray-200 dark:border-gray-800 sticky bottom-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur supports-[backdrop-filter]:bg-white/70 supports-[backdrop-filter]:dark:bg-gray-900/70 z-10">
+          <div className="flex items-center gap-2 mt-4 pt-3 border-t border-gray-200 dark:border-gray-800 sticky bottom-2 bg-white/95 dark:bg-gray-900/95 backdrop-blur supports-[backdrop-filter]:bg-white/70 supports-[backdrop-filter]:dark:bg-gray-900/70 z-10">
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}

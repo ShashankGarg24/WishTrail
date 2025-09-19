@@ -72,6 +72,7 @@ const useApiStore = create(
       cacheUsers: {},        // key -> { data, ts }
       cacheNotifications: {},// key -> { data, ts }
       cacheGoals: {},        // key -> { data, ts }
+      cacheGoalPosts: {},    // key -> { data, ts } (goal:<id> or activity:<id>)
       cacheDashboardStats: null, // { data, ts }
       // Habits cache
       habits: [],
@@ -89,13 +90,15 @@ const useApiStore = create(
         goals: Number.POSITIVE_INFINITY, // cache until explicitly invalidated
         dashboardStats: Number.POSITIVE_INFINITY,
         habits: 2 * 60 * 1000,          // 2 minutes
-        habitAnalytics: 5 * 60 * 1000   // 5 minutes
+        habitAnalytics: 5 * 60 * 1000,  // 5 minutes
+        goalPosts: 2 * 60 * 1000        // 2 minutes (goal post detail)
       },
       maxCacheEntries: {
         activityFeed: 8,
         users: 8,
         notifications: 5,
         goals: 8,
+        goalPosts: 24
       },
       openSettingsModal: () => set({ settingsModalOpen: true }),
       closeSettingsModal: () => set({ settingsModalOpen: false }),
@@ -114,6 +117,8 @@ const useApiStore = create(
           ? 'users'
           : bucketName === 'cacheGoals'
           ? 'goals'
+          : bucketName === 'cacheGoalPosts'
+          ? 'goalPosts'
           : 'notifications';
         const limit = get().maxCacheEntries[which];
         const keys = Object.keys(bucket);
@@ -126,6 +131,17 @@ const useApiStore = create(
         }
         set({ [bucketName]: bucket });
       },
+      invalidateGoalPostCache: ({ goalId, activityId } = {}) => {
+        try {
+          const prev = get().cacheGoalPosts || {};
+          const next = { ...prev };
+          if (goalId !== undefined && goalId !== null) delete next[`goal:${String(goalId)}`];
+          if (activityId !== undefined && activityId !== null) delete next[`activity:${String(activityId)}`];
+          set({ cacheGoalPosts: next });
+        } catch {}
+      },
+      invalidateGoalPostByGoal: (id) => { try { get().invalidateGoalPostCache({ goalId: id }); } catch {} },
+      invalidateGoalPostByActivity: (id) => { try { get().invalidateGoalPostCache({ activityId: id }); } catch {} },
       
       // Leaderboard
       leaderboard: [],
@@ -608,6 +624,8 @@ const useApiStore = create(
             Object.keys(newCache).forEach(k => { delete newCache[k]; });
           }
           set({ cacheGoals: newCache, cacheDashboardStats: null });
+          // Invalidate goal post detail cache for this goal
+          try { get().invalidateGoalPostByGoal?.(goal?._id); } catch {}
           
           return { success: true, goal };
         } catch (error) {
@@ -637,6 +655,8 @@ const useApiStore = create(
             Object.keys(newCache).forEach(k => { if (k.includes(`year=${yearToInvalidate}`)) delete newCache[k]; });
           }
           set({ cacheGoals: newCache, cacheDashboardStats: null });
+          // Invalidate goal post detail cache for this goal
+          try { get().invalidateGoalPostByGoal?.(id); } catch {}
           // Trigger a forced stats refresh since edits can change totals/points
           try { await get().getDashboardStats({ force: true }); } catch {}
           
@@ -661,6 +681,8 @@ const useApiStore = create(
 
           // Invalidate all goal caches (unknown year) and dashboard stats
           set({ cacheGoals: {}, cacheDashboardStats: null });
+          // Invalidate goal post detail cache for this goal
+          try { get().invalidateGoalPostByGoal?.(id); } catch {}
           
           return { success: true };
         } catch (error) {
@@ -688,6 +710,8 @@ const useApiStore = create(
             Object.keys(newCache).forEach(k => { if (k.includes(`year=${yearToInvalidate}`)) delete newCache[k]; });
           }
           set({ cacheGoals: newCache, cacheDashboardStats: null });
+          // Invalidate goal post detail cache for this goal
+          try { get().invalidateGoalPostByGoal?.(id); } catch {}
           try { await get().getDashboardStats({ force: true }); } catch {}
           
           return { success: true, goal };
@@ -712,6 +736,8 @@ const useApiStore = create(
             )
           }));
           
+          // Invalidate goal post detail cache for this goal
+          try { get().invalidateGoalPostByGoal?.(id); } catch {}
           return { success: true, isLiked, likeCount };
         } catch (error) {
           const errorMessage = handleApiError(error);
@@ -771,10 +797,41 @@ const useApiStore = create(
         return goalsAPI.getOGImageUrl(id);
       },
 
-      getGoalPost: async (id) => {
+      getGoalPost: async (id, opts = {}) => {
         try {
+          const force = !!opts.force;
+          const ttlMs = get().cacheTTLs?.goalPosts || 2 * 60 * 1000; // 2 minutes
+          const bucket = get().cacheGoalPosts || {};
+          const keysToCheck = [];
+          if (id !== undefined && id !== null) {
+            const sid = String(id);
+            keysToCheck.push(`goal:${sid}`);
+            keysToCheck.push(`activity:${sid}`);
+          }
+          if (!force) {
+            for (const key of keysToCheck) {
+              const entry = bucket[key];
+              if (entry && typeof entry.ts === 'number' && Date.now() - entry.ts < ttlMs) {
+                return { success: true, ...entry.data };
+              }
+            }
+          }
           const response = await goalsAPI.getGoalPost(id);
-          return { success: true, ...response.data };
+          const resp = response?.data || {};
+          // Cache by both goal and activity identifiers if present
+          try {
+            const goalId = resp?.data?.goal?._id;
+            const activityId = resp?.data?.social?.activityId;
+            const now = Date.now();
+            const current = get().cacheGoalPosts || {};
+            const next = { ...current };
+            if (goalId) next[`goal:${String(goalId)}`] = { data: resp, ts: now };
+            if (activityId) next[`activity:${String(activityId)}`] = { data: resp, ts: now };
+            // Also cache the request id if not one of the above
+            if (id && !goalId && !activityId) next[`goal:${String(id)}`] = { data: resp, ts: now };
+            set({ cacheGoalPosts: next });
+          } catch {}
+          return { success: true, ...resp };
         } catch (error) {
           const errorMessage = handleApiError(error);
           return { success: false, error: errorMessage };
@@ -1301,6 +1358,8 @@ const useApiStore = create(
             )
           }));
           
+          // Invalidate cached goal post for this activity
+          try { get().invalidateGoalPostByActivity?.(activityId); } catch {}
           return { success: true, isLiked, likeCount };
         } catch (error) {
           const errorMessage = handleApiError(error);
@@ -1327,6 +1386,8 @@ const useApiStore = create(
             )
           }));
           
+          // Invalidate cached goal post for this activity
+          try { get().invalidateGoalPostByActivity?.(activityId); } catch {}
           return { success: true, isLiked, likeCount };
         } catch (error) {
           const errorMessage = handleApiError(error);
@@ -1356,20 +1417,6 @@ const useApiStore = create(
         try {
           set({ loading: true, error: null });
           const response = await leaderboardAPI.getCategoryLeaderboard(category, params);
-          const { leaderboard } = response.data.data;
-          set({ leaderboard, loading: false });
-          return { success: true, leaderboard };
-        } catch (error) {
-          const errorMessage = handleApiError(error);
-          set({ loading: false, error: errorMessage });
-          return { success: false, error: errorMessage };
-        }
-      },
-      
-      getAchievementLeaderboard: async (params = {}) => {
-        try {
-          set({ loading: true, error: null });
-          const response = await leaderboardAPI.getAchievementLeaderboard(params);
           const { leaderboard } = response.data.data;
           set({ leaderboard, loading: false });
           return { success: true, leaderboard };

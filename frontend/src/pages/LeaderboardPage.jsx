@@ -3,14 +3,9 @@ import { motion } from 'framer-motion';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   Trophy, 
-  Star, 
   Target, 
-  TrendingUp, 
   Users, 
-  Filter,
   Crown,
-  Award,
-  Zap,
   Clock
 } from 'lucide-react';
 import useApiStore from '../store/apiStore';
@@ -22,7 +17,7 @@ const LeaderboardPage = () => {
   const [activeTab, setActiveTab] = useState(initialTab);
   const [leaderboardType, setLeaderboardType] = useState('points');
   const [timeframe, setTimeframe] = useState('all');
-  const [selectedCategory, setSelectedCategory] = useState('Health & Fitness');
+  const [selectedCategory, setSelectedCategory] = useState('');
   
   const {
     isAuthenticated,
@@ -30,8 +25,6 @@ const LeaderboardPage = () => {
     error,
     leaderboard,
     getGlobalLeaderboard,
-    getCategoryLeaderboard,
-    getAchievementLeaderboard,
     getFriendsLeaderboard,
     initializeFollowingStatus
   } = useApiStore();
@@ -61,36 +54,11 @@ const LeaderboardPage = () => {
   };
 
   const loadLeaderboard = async () => {
-    switch (activeTab) {
-      case 'global':
-        await getGlobalLeaderboard({ type: leaderboardType, timeframe });
-        break;
-      case 'category':
-        await getCategoryLeaderboard(selectedCategory, { timeframe });
-        break;
-      case 'achievements':
-        await getAchievementLeaderboard();
-        break;
-      case 'friends':
-        await getFriendsLeaderboard({ type: leaderboardType });
-        break;
-      default:
-        await getGlobalLeaderboard({ type: leaderboardType, timeframe });
-    }
-  };
-
-  const getTypeIcon = (type) => {
-    switch (type) {
-      case 'points':
-        return <Star className="h-5 w-5" />;
-      case 'goals':
-        return <Target className="h-5 w-5" />;
-      case 'streak':
-        return <Zap className="h-5 w-5" />;
-      case 'level':
-        return <TrendingUp className="h-5 w-5" />;
-      default:
-        return <Star className="h-5 w-5" />;
+    const category = selectedCategory && selectedCategory !== '' ? selectedCategory : undefined;
+    if (activeTab === 'friends') {
+      await getFriendsLeaderboard({ type: leaderboardType, timeframe, category });
+    } else {
+      await getGlobalLeaderboard({ type: leaderboardType, timeframe, category });
     }
   };
 
@@ -100,10 +68,6 @@ const LeaderboardPage = () => {
         return 'Points';
       case 'goals':
         return 'Goals Completed';
-      case 'streak':
-        return 'Current Streak';
-      case 'level':
-        return 'Level';
       default:
         return 'Points';
     }
@@ -122,13 +86,6 @@ const LeaderboardPage = () => {
       default:
         return user.totalPoints || 0;
     }
-  };
-
-  const getRankIcon = (rank) => {
-    if (rank === 1) return '🏆';
-    if (rank === 2) return '🥈';
-    if (rank === 3) return '🥉';
-    return `#${rank}`;
   };
 
   const getRankColor = (rank) => {
@@ -200,8 +157,6 @@ const LeaderboardPage = () => {
             <div className="flex space-x-2 bg-white dark:bg-gray-800 rounded-2xl p-2 shadow-lg overflow-x-auto whitespace-nowrap">
               {[
                 { id: 'global', label: 'Global', icon: Trophy },
-                { id: 'category', label: 'Category', icon: Filter },
-                { id: 'achievements', label: 'Achievements', icon: Award },
                 { id: 'friends', label: 'Friends', icon: Users }
               ].map((tab) => (
                 <button
@@ -239,12 +194,11 @@ const LeaderboardPage = () => {
                 <option value="points">🌟 Points</option>
                 <option value="goals">🎯 Goals Completed</option>
                 <option value="streak">⚡ Current Streak</option>
-                <option value="level">📈 Level</option>
               </select>
             )}
 
             {/* Timeframe Filter */}
-            {(activeTab === 'global' || activeTab === 'category') && (
+            {(activeTab === 'global' || activeTab === 'friends') && (
               <select
                 value={timeframe}
                 onChange={(e) => setTimeframe(e.target.value)}
@@ -257,13 +211,14 @@ const LeaderboardPage = () => {
               </select>
             )}
 
-            {/* Category Filter */}
-            {activeTab === 'category' && (
+            {/* Category Filter for Global and Friends */}
+            {(activeTab === 'global' || activeTab === 'friends') && (
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
                 className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               >
+                <option value="">All Categories</option>
                 <option value="Health & Fitness">💪 Health & Fitness</option>
                 <option value="Education & Learning">📚 Education & Learning</option>
                 <option value="Career & Business">💼 Career & Business</option>
@@ -300,7 +255,7 @@ const LeaderboardPage = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.3 }}
-            className="mb-12"
+            className="mb-12 hidden md:block"
           >
             <div className="flex justify-center items-end space-x-4 mb-8">
               {/* Second Place */}
@@ -313,7 +268,7 @@ const LeaderboardPage = () => {
                 >
                   <div 
                     onClick={() => handleUserClick(topThree[1].username)}
-                    className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-xl border-4 border-gray-300 dark:border-gray-600 h-48 flex flex-col justify-between cursor-pointer hover:shadow-2xl transition-shadow duration-200"
+                    className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-xl border-4 border-gray-300 dark:border-gray-600 h-56 flex flex-col justify-between cursor-pointer hover:shadow-2xl transition-shadow duration-200"
                   >
                     <div>
                       <div className="text-4xl mb-2">🥈</div>
@@ -346,11 +301,8 @@ const LeaderboardPage = () => {
                 >
                   <div 
                     onClick={() => handleUserClick(topThree[0].username)}
-                    className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-xl border-4 border-yellow-400 h-56 flex flex-col justify-between relative cursor-pointer hover:shadow-2xl transition-shadow duration-200"
+                    className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-xl border-4 border-yellow-400 h-64 flex flex-col justify-between relative cursor-pointer hover:shadow-2xl transition-shadow duration-200"
                   >
-                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                      <Crown className="h-8 w-8 text-yellow-500" />
-                    </div>
                     <div>
                       <div className="text-5xl mb-2">🏆</div>
                       <img
@@ -382,7 +334,7 @@ const LeaderboardPage = () => {
                 >
                   <div 
                     onClick={() => handleUserClick(topThree[2].username)}
-                    className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-xl border-4 border-orange-400 h-44 flex flex-col justify-between cursor-pointer hover:shadow-2xl transition-shadow duration-200"
+                    className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-xl border-4 border-orange-400 h-52 flex flex-col justify-between cursor-pointer hover:shadow-2xl transition-shadow duration-200"
                   >
                     <div>
                       <div className="text-3xl mb-2">🥉</div>
@@ -409,12 +361,82 @@ const LeaderboardPage = () => {
         )}
 
         {/* Remaining Users List */}
+        {/* Mobile: show full list including top 3 with medals */}
+        {leaderboard && leaderboard.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.5 }}
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden md:hidden"
+          >
+            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                Rankings
+              </h2>
+            </div>
+            <div className="divide-y divide-gray-200 dark:divide-gray-700">
+              {leaderboard.map((user, index) => {
+                const rank = index + 1;
+                const isCurrentUser = user._id === user?.id;
+                const bubble = rank === 1 ? '🏆' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank;
+                return (
+                  <motion.div
+                    key={user._id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.5, delay: 0.05 * index }}
+                    className={`p-6 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer ${
+                      isCurrentUser ? 'bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500' : ''
+                    }`}
+                    onClick={() => !isCurrentUser && handleUserClick(user.username)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-4">
+                        <div className={`w-12 h-12 rounded-full bg-gradient-to-r ${getRankColor(rank)} flex items-center justify-center text-white font-bold text-lg`}>
+                          {bubble}
+                        </div>
+                        <img
+                          src={user.avatar || '/api/placeholder/48/48'}
+                          alt={user.name}
+                          className="w-12 h-12 rounded-full border-2 border-gray-200 dark:border-gray-600"
+                        />
+                        <div>
+                          <h3 className="font-semibold text-gray-900 dark:text-white">
+                            {user.name}
+                            {isCurrentUser && (
+                              <span className="ml-2 text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded-full">
+                                You
+                              </span>
+                            )}
+                          </h3>
+                          <p className="text-gray-600 dark:text-gray-400 text-sm">
+                            {(user.completedGoals || 0)} completed • {(user.totalGoals ?? 0)} total • {(user.currentStreak || 0)}-day streak
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-4">
+                        <div className="text-right">
+                          <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                            {getTypeValue(user, leaderboardType)}
+                          </p>
+                          <p className="text-sm text-gray-500">{getTypeLabel(leaderboardType)}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+
+        {/* Desktop: remaining users list (ranks 4+) */}
         {remainingUsers.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.7 }}
-            className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden"
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden hidden md:block"
           >
             <div className="p-6 border-b border-gray-200 dark:border-gray-700">
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
@@ -457,7 +479,7 @@ const LeaderboardPage = () => {
                             )}
                           </h3>
                           <p className="text-gray-600 dark:text-gray-400 text-sm">
-                            Level {user.level} • {user.completedGoals || 0} goals completed
+                            {(user.completedGoals || 0)} completed • {(user.totalGoals ?? 0)} total • {(user.currentStreak || 0)}-day streak
                           </p>
                         </div>
                       </div>

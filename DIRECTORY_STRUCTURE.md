@@ -80,7 +80,6 @@ frontend/
 │   ├── pages/                  # Page components
 │   │   ├── AuthPage.jsx        # Authentication page
 │   │   ├── DashboardPage.jsx   # User dashboard
-│   │   ├── ExplorePage.jsx     # Explore/discover page
 │   │   ├── HomePage.jsx        # Landing page
 │   │   ├── LeaderboardPage.jsx # Leaderboard page
 │   │   ├── ProfilePage.jsx     # User profile page

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Activity, Heart, MessageCircle, RefreshCw, Compass, ArrowRightCircle } from 'lucide-react'
+import { Activity, Heart, MessageCircle, RefreshCw, Compass, ArrowRightCircle, Send } from 'lucide-react'
 import useApiStore from '../store/apiStore'
 import { activitiesAPI } from '../services/api'
 import SkeletonList from '../components/loader/SkeletonList'
@@ -398,7 +398,7 @@ const FeedPage = () => {
         )}
 
         {/* Stories bar: inspiring + trending goals */}
-        <div className="mb-6">
+        <div className="mb-2">
           <div className="relative">
             <div className="flex gap-4 overflow-x-auto no-scrollbar pr-12 items-start">
               {/* Explore pill at the end (but visually kept in view with sticky gradient) */}
@@ -424,20 +424,12 @@ const FeedPage = () => {
                     <div className="h-full w-full rounded-full bg-white dark:bg-gray-900 p-[2px]">
                       <img src={g.user?.avatar || '/api/placeholder/40/40'} className="h-full w-full rounded-full object-cover" />
                     </div>
-                    {typeof g.likeCount === 'number' && g.likeCount > 0 && (
-                      <div className="absolute -bottom-1 -right-1 px-1.5 py-[2px] rounded-full text-[10px] font-medium bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-200 shadow border border-gray-200 dark:border-gray-800">
-                        ❤️ {g.likeCount}
-                      </div>
-                    )}
                   </div>
                   <div className="mt-2 w-full text-center">
                     <div className="h-[28px] overflow-hidden leading-[14px]">
-                      <div className="text-[11px] text-gray-800 dark:text-gray-200 leading-[14px] line-clamp-2">
+                      <div className="text-[11px] text-gray-800 dark:text-gray-200 leading-[14px] line-clamp-1">
                         {g.title}
                       </div>
-                    </div>
-                    <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 truncate">
-                      {g.category}
                     </div>
                   </div>
                 </button>
@@ -459,9 +451,6 @@ const FeedPage = () => {
             </div>
             <div className="pointer-events-none absolute right-0 top-0 h-full w-12 bg-gradient-to-l from-white/90 dark:from-gray-900/90 to-transparent rounded-r-2xl" />
           </div>
-          {stories && stories.length > 0 && (
-            <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">Inspiring for you • updates hourly</div>
-          )}
         </div>
 
         {loading ? (
@@ -741,9 +730,17 @@ const FeedPage = () => {
                           </div>
                         )}
                       </div>
-                      <div className="mt-auto border-t border-gray-200 dark:border-gray-800 p-4 flex items-center gap-4 sticky bottom-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur">
-                        <div className="text-sm text-gray-700 dark:text-gray-300">❤️ {goalModalData?.social?.likeCount || 0}</div>
-                        <button onClick={openGoalCommentsForModal} className="text-sm text-gray-700 dark:text-gray-300 hover:text-blue-600">💬 {goalModalData?.social?.commentCount || 0}</button>
+                      <div className="mt-auto border-t border-gray-200 dark:border-gray-800 p-4 flex items-center gap-3 sticky bottom-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur">
+                        <div className="inline-flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-300"><Heart className="h-4 w-4" />{goalModalData?.social?.likeCount || 0}</div>
+                        <button onClick={openGoalCommentsForModal} className="inline-flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-300 hover:text-blue-600"><MessageCircle className="h-4 w-4" />{goalModalData?.social?.commentCount || 0}</button>
+                        <button onClick={() => {
+                          try {
+                            const id = goalModalData?.social?.activityId || goalModalData?.goal?._id;
+                            const url = id ? `${window.location.origin}/feed?goalId=${goalModalData?.goal?._id}` : window.location.href;
+                            navigator.clipboard.writeText(url);
+                          window.dispatchEvent(new CustomEvent('wt_toast', { detail: { message: 'Link copied to clipboard', type: 'success', duration: 2000 } }));
+                          } catch {}
+                        }} className="inline-flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-300 hover:text-blue-600"><Send className="h-4 w-4 -rotate-80"/></button>
                       </div>
                     </div>
                   </div>
@@ -779,7 +776,7 @@ const FeedPage = () => {
                             <button className="mt-1 text-xs text-blue-600" onClick={() => setDetailsExpanded((v) => !v)}>{detailsExpanded ? 'Show less' : 'More'}</button>
                           )}
                         </div>
-                        <div className="grid grid-cols-2 gap-3">
+                        {goalModalData?.goal?.completedAt && goalModalData?.goal?.points && (<div className="grid grid-cols-2 gap-3">
                           <div>
                             <div className="text-xs text-gray-500">Completed</div>
                             <div className="text-gray-800 dark:text-gray-200">{goalModalData?.goal?.completedAt ? new Date(goalModalData.goal.completedAt).toLocaleString(undefined, { year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—'}</div>
@@ -788,7 +785,7 @@ const FeedPage = () => {
                             <div className="text-xs text_gray-500">Points</div>
                             <div className="text_gray-800 dark:text-gray-200">{goalModalData?.goal?.pointsEarned ?? 0}</div>
                           </div>
-                        </div>
+                        </div>)}
                       </div>
                       {!isMobile && (
                         <div ref={commentsAnchorRef} className="px-6 pb-6">
@@ -800,9 +797,17 @@ const FeedPage = () => {
                         </div>
                       )}
                     </div>
-                    <div className="mt-auto border-t border-gray-200 dark:border-gray-800 p-4 flex items-center gap-4 sticky bottom-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur">
-                      <div className="text-sm text_gray-700 dark:text-gray-300">❤️ {goalModalData?.social?.likeCount || 0}</div>
-                      <button onClick={openGoalCommentsForModal} className="text-sm text-gray-700 dark:text-gray-300 hover:text-blue-600">💬 {goalModalData?.social?.commentCount || 0}</button>
+                    <div className="mt-auto border-t border-gray-200 dark:border-gray-800 p-4 flex items-center gap-3 sticky bottom-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur">
+                      <div className="inline-flex items-center gap-1.5 text-sm text_gray-700 dark:text-gray-300"><Heart className="h-4 w-4" />{goalModalData?.social?.likeCount || 0}</div>
+                      <button onClick={openGoalCommentsForModal} className="inline-flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-300 hover:text-blue-600"><MessageCircle className="h-4 w-4" />{goalModalData?.social?.commentCount || 0}</button>
+                      <button onClick={() => {
+                        try {
+                          const id = goalModalData?.social?.activityId || goalModalData?.goal?._id;
+                          const url = id ? `${window.location.origin}/feed?goalId=${goalModalData?.goal?._id}` : window.location.href;
+                          navigator.clipboard.writeText(url);
+                          window.dispatchEvent(new CustomEvent('wt_toast', { detail: { message: 'Link copied to clipboard', type: 'success', duration: 2000 } }));
+                        } catch {}
+                      }} className="inline-flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-300 hover:text-blue-600"><Send className="h-4 w-4 -rotate-80" /></button>
                     </div>
                   </div>
                 )

@@ -272,62 +272,6 @@ userAchievementSchema.statics.getUserAchievementProgress = async function(userId
   };
 };
 
-// Static method to get achievement leaderboard
-userAchievementSchema.statics.getAchievementLeaderboard = function(limit = 10) {
-  return this.aggregate([
-    {
-      $group: {
-        _id: '$userId',
-        achievementCount: { $sum: 1 },
-        latestAchievement: { $max: '$earnedAt' },
-        rareAchievements: {
-          $sum: {
-            $cond: [
-              { $in: ['$achievementId.rarity', ['rare', 'epic', 'legendary']] },
-              1,
-              0
-            ]
-          }
-        }
-      }
-    },
-    {
-      $sort: { 
-        achievementCount: -1, 
-        rareAchievements: -1,
-        latestAchievement: -1 
-      }
-    },
-    {
-      $limit: limit
-    },
-    {
-      $lookup: {
-        from: 'users',
-        localField: '_id',
-        foreignField: '_id',
-        as: 'user'
-      }
-    },
-    {
-      $unwind: '$user'
-    },
-    {
-      $project: {
-        userId: '$_id',
-        achievementCount: 1,
-        rareAchievements: 1,
-        latestAchievement: 1,
-        user: {
-          name: 1,
-          avatar: 1,
-          level: 1
-        }
-      }
-    }
-  ]);
-};
-
 // Static method to get trending achievements
 userAchievementSchema.statics.getTrendingAchievements = function(timeFrame = 'week', limit = 10) {
   const timeFrames = {

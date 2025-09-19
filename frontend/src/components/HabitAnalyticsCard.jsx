@@ -68,11 +68,11 @@ export default function HabitAnalyticsCard({ days = 30, embedded = false }) {
         </div>
         <div className="p-4 bg-gray-50 dark:bg-gray-800/40 rounded-xl text-center">
           <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{totals.skipped}</div>
-          <div className="text-sm text-gray-600 dark:text-gray-400 inline-flex items-center gap-1 justify-center"><SkipForward className="h-4 w-4"/> Skipped</div>
+          <div className="text-sm text-gray-600 dark:text-gray-400 inline-flex items-center gap-1 justify-center"><SkipForward className="h-4 w-4"/> Skip</div>
         </div>
         <div className="p-4 bg-gray-50 dark:bg-gray-800/40 rounded-xl text-center">
           <div className="text-2xl font-bold text-red-600 dark:text-red-400">{totals.missed}</div>
-          <div className="text-sm text-gray-600 dark:text-gray-400 inline-flex items-center gap-1 justify-center"><XCircle className="h-4 w-4"/> Missed</div>
+          <div className="text-sm text-gray-600 dark:text-gray-400 inline-flex items-center gap-1 justify-center"><XCircle className="h-4 w-4"/> Miss</div>
         </div>
       </div>
       {top.length > 0 && (

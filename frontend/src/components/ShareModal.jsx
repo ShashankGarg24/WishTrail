@@ -93,6 +93,7 @@ const ShareModal = ({ isOpen, onClose, goal, user }) => {
     try {
       await navigator.clipboard.writeText(shareText)
       setCopied(true)
+      try { window.dispatchEvent(new CustomEvent('wt_toast', { detail: { message: 'Copied to clipboard', type: 'success', duration: 2000 } })); } catch {}
       setTimeout(() => setCopied(false), 2000)
     } catch (error) {
       console.error('Failed to copy to clipboard:', error)

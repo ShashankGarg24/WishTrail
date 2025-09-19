@@ -9,7 +9,6 @@ router.get('/', optionalAuth, leaderboardController.getGlobalLeaderboard);
 
 // Routes that require login
 router.get('/category/:category', protect, leaderboardController.getCategoryLeaderboard);
-router.get('/achievements', protect, leaderboardController.getAchievementLeaderboard);
 router.get('/friends',  protect,leaderboardController.getFriendsLeaderboard);
 router.get('/stats', protect, leaderboardController.getLeaderboardStats);
 
