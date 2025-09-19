@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState, useCallback, useEffect } from 'react';
-import { Platform, SafeAreaView, StatusBar, View, RefreshControl, Linking, AppState, Text, TouchableOpacity, Dimensions, ScrollView, ActivityIndicator, Animated } from 'react-native';
+import { Platform, SafeAreaView, StatusBar, View, RefreshControl, Linking, AppState, Text, TouchableOpacity, Dimensions, ScrollView, ActivityIndicator, Animated, PermissionsAndroid } from 'react-native';
 import { WebView } from 'react-native-webview';
 import Constants from 'expo-constants';
 import { registerRootComponent } from 'expo';
@@ -149,6 +149,7 @@ function App() {
 
   const finishOnboarding = useCallback(async () => {
     await completeOnboarding();
+    try { await askPushPermissionOnce(); } catch {}
     try { webRef.current?.injectJavaScript("try{ window.location.replace('/'); }catch(e){} true;"); } catch {}
   }, [completeOnboarding]);
 
@@ -378,6 +379,31 @@ function App() {
       }
     } catch {}
   }, [isPTRPage, ptrAnim]);
+
+  // Ask for push notification permission once on first launch (after onboarding or immediately if onboarding was already seen)
+  const askPushPermissionOnce = useCallback(async () => {
+    try {
+      if (!AsyncStorage) return;
+      const KEY = 'wt_push_perm_asked';
+      const asked = await AsyncStorage.getItem(KEY);
+      if (asked) return;
+      if (Platform.OS === 'android' && Platform.Version >= 33) {
+        try { await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS); } catch {}
+      } else if (Platform.OS === 'ios') {
+        try {
+          let messaging; try { const mod = require('@react-native-firebase/messaging'); messaging = mod?.default || mod; } catch {}
+          if (messaging) { try { await messaging().requestPermission(); } catch {} }
+        } catch {}
+      }
+      try { await AsyncStorage.setItem(KEY, '1'); } catch {}
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    if (!showOnboarding) {
+      askPushPermissionOnce().catch(() => {});
+    }
+  }, [showOnboarding, askPushPermissionOnce]);
 
   // Full-screen onboarding carousel (animated)
   const renderOnboarding = () => {
