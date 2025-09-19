@@ -28,6 +28,7 @@ function isTrackedPath(pathname) {
     pathname.startsWith('/feed') ||
     pathname.startsWith('/discover') ||
     pathname.startsWith('/dashboard') ||
+    pathname.startsWith('/dashboardv2') ||
     pathname.startsWith('/profile') ||
     pathname.startsWith('/leaderboard') ||
     pathname.startsWith('/notifications') ||

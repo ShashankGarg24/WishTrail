@@ -37,6 +37,9 @@ const AccountMenuSheet = ({ open, onClose }) => {
             <button onClick={() => { navigate('/dashboard'); onClose(); }} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">
               <BarChart3 className="h-5 w-5" /> Dashboard
             </button>
+            <button onClick={() => { navigate('/dashboardv2'); onClose(); }} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">
+              <BarChart3 className="h-5 w-5" /> Dashboard V2
+            </button>
             <button onClick={() => { window.dispatchEvent(new CustomEvent('wt_open_settings')); onClose(); }} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">
               <Settings className="h-5 w-5" /> Settings
             </button>
