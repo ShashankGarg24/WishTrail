@@ -38,6 +38,18 @@ const getGlobalLeaderboard = async (req, res, next) => {
           })
         );
       }
+      // Ensure username exists even for legacy cached entries
+      try {
+        const missing = (leaderboard || []).filter(u => !u.username && u?._id).map(u => u._id);
+        if (missing.length > 0) {
+          const users = await User.find({ _id: { $in: missing } }).select('username');
+          const idToUsername = new Map(users.map(u => [u._id.toString(), u.username]));
+          leaderboard = leaderboard.map(u => ({
+            ...u,
+            username: u.username || idToUsername.get(u?._id?.toString()) || null
+          }));
+        }
+      } catch {}
       fromCache = true;
       // Map to minimal field set
       const minimal = leaderboard.map(u => ({
@@ -466,15 +478,32 @@ const getFriendsLeaderboard = async (req, res, next) => {
 
     if (cachedData) {
       fromCache = true;
-      
-      return res.status(200).json({
-        success: true,
-        data: {
-          leaderboard: cachedData.leaderboard,
-          type
-        },
-        fromCache
-      });
+      let leaderboard = cachedData.leaderboard || [];
+      // Ensure username exists for legacy cached entries
+      try {
+        const missing = (leaderboard || []).filter(u => !u.username && u?._id).map(u => u._id);
+        if (missing.length > 0) {
+          const users = await User.find({ _id: { $in: missing } }).select('username');
+          const idToUsername = new Map(users.map(u => [u._id.toString(), u.username]));
+          leaderboard = leaderboard.map(u => ({
+            ...u,
+            username: u.username || idToUsername.get(u?._id?.toString()) || null
+          }));
+        }
+      } catch {}
+      // Normalize minimal field set
+      const minimal = leaderboard.map(u => ({
+        avatar: u.avatar,
+        completedGoals: u.completedGoals,
+        totalGoals: u.totalGoals,
+        currentStreak: u.currentStreak,
+        isFollowing: u._id?.toString && u._id.toString() !== req.user.id.toString() ? true : null,
+        name: u.name,
+        rank: u.rank,
+        totalPoints: u.totalPoints,
+        username: u.username
+      }));
+      return res.status(200).json({ success: true, data: { leaderboard: minimal }, fromCache });
     }
 
     // Cache miss - fetch from database
