@@ -26,7 +26,8 @@ const LeaderboardPage = () => {
     leaderboard,
     getGlobalLeaderboard,
     getFriendsLeaderboard,
-    initializeFollowingStatus
+    initializeFollowingStatus,
+    user: currentUser
   } = useApiStore();
 
   // Navigate to user profile
@@ -377,7 +378,7 @@ const LeaderboardPage = () => {
             <div className="divide-y divide-gray-200 dark:divide-gray-700">
               {leaderboard.map((user, index) => {
                 const rank = index + 1;
-                const isCurrentUser = user._id === user?.id;
+                const isCurrentUser = !!(currentUser && user && user.username && currentUser.username && String(user.username).toLowerCase() === String(currentUser.username).toLowerCase());
                 const bubble = rank === 1 ? '🏆' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank;
                 return (
                   <motion.div
@@ -446,7 +447,7 @@ const LeaderboardPage = () => {
             <div className="divide-y divide-gray-200 dark:divide-gray-700">
               {remainingUsers.map((user, index) => {
                 const rank = index + 4;
-                const isCurrentUser = user._id === user?.id;
+                const isCurrentUser = !!(currentUser && user && user.username && currentUser.username && String(user.username).toLowerCase() === String(currentUser.username).toLowerCase());
                 
                 return (
                   <motion.div
