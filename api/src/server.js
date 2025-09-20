@@ -149,3 +149,22 @@ const createApp = async () => {
 };
 
 module.exports = createApp;
+
+
+// If this file is executed directly (not imported), start the HTTP server.
+if (require.main === module) {
+  (async () => {
+    try {
+      const app = await createApp();
+      const port = parseInt(process.env.PORT || process.env.API_PORT || '3001', 10);
+      const host = '0.0.0.0';
+      app.listen(port, host, () => {
+        console.log(`🚀 WishTrail API listening on http://${host}:${port} (env=${process.env.NODE_ENV || 'development'})`);
+        console.log(`   Health check: /api/${process.env.API_VERSION || 'v1'}/health`);
+      });
+    } catch (err) {
+      console.error('❌ Failed to start server', err);
+      process.exit(1);
+    }
+  })();
+}

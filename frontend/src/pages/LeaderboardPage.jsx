@@ -184,17 +184,17 @@ const LeaderboardPage = () => {
           transition={{ duration: 0.5, delay: 0.2 }}
           className="mb-8"
         >
-          <div className="flex flex-wrap justify-center gap-4">
+          <div className="flex flex-nowrap overflow-x-auto no-scrollbar gap-3 -mx-1 px-1 md:flex-wrap md:justify-center md:overflow-visible">
             {/* Type Filter */}
             {(activeTab === 'global' || activeTab === 'friends') && (
               <select
                 value={leaderboardType}
                 onChange={(e) => setLeaderboardType(e.target.value)}
-                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="shrink-0 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               >
-                <option value="points">🌟 Points</option>
-                <option value="goals">🎯 Goals Completed</option>
-                <option value="streak">⚡ Current Streak</option>
+                <option value="points">Points</option>
+                <option value="goals">Goals</option>
+                <option value="streak">Streak</option>
               </select>
             )}
 
@@ -203,12 +203,12 @@ const LeaderboardPage = () => {
               <select
                 value={timeframe}
                 onChange={(e) => setTimeframe(e.target.value)}
-                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="shrink-0 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               >
-                <option value="all">🏆 All Time</option>
-                <option value="year">📅 This Year</option>
-                <option value="month">🗓️ This Month</option>
-                <option value="week">📍 This Week</option>
+                <option value="all">All Time</option>
+                <option value="year">Year</option>
+                <option value="month">Month</option>
+                <option value="week">Week</option>
               </select>
             )}
 
@@ -217,19 +217,19 @@ const LeaderboardPage = () => {
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
-                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="shrink-0 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               >
                 <option value="">All Categories</option>
-                <option value="Health & Fitness">💪 Health & Fitness</option>
-                <option value="Education & Learning">📚 Education & Learning</option>
-                <option value="Career & Business">💼 Career & Business</option>
-                <option value="Personal Development">🌱 Personal Development</option>
-                <option value="Financial Goals">💰 Financial Goals</option>
-                <option value="Creative Projects">🎨 Creative Projects</option>
-                <option value="Travel & Adventure">✈️ Travel & Adventure</option>
-                <option value="Relationships">❤️ Relationships</option>
-                <option value="Family & Friends">👨‍👩‍👧‍👦 Family & Friends</option>
-                <option value="Other">🔗 Other</option>
+                <option value="Health & Fitness">Health & Fitness</option>
+                <option value="Education & Learning">Education & Learning</option>
+                <option value="Career & Business">Career & Business</option>
+                <option value="Personal Development">Personal Development</option>
+                <option value="Financial Goals">Financial Goals</option>
+                <option value="Creative Projects">Creative Projects</option>
+                <option value="Travel & Adventure">Travel & Adventure</option>
+                <option value="Relationships">Relationships</option>
+                <option value="Family & Friends">Family & Friends</option>
+                <option value="Other">Other</option>
               </select>
             )}
           </div>
@@ -410,9 +410,6 @@ const LeaderboardPage = () => {
                               </span>
                             )}
                           </h3>
-                          <p className="text-gray-600 dark:text-gray-400 text-sm">
-                            {(user.completedGoals || 0)} completed • {(user.totalGoals ?? 0)} total • {(user.currentStreak || 0)}-day streak
-                          </p>
                         </div>
                       </div>
                       <div className="flex items-center space-x-4">
