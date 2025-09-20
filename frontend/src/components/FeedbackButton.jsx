@@ -26,6 +26,24 @@ const FeedbackButton = () => {
 
   if (!isAuthenticated) return null
 
+  const openModal = () => {
+    try { if (previewUrl) URL.revokeObjectURL(previewUrl) } catch {}
+    setTitle('')
+    setDescription('')
+    setScreenshotFile(null)
+    setPreviewUrl('')
+    setSizeWarning('')
+    setError('')
+    setSuccess('')
+    setIsOpen(true)
+  }
+
+  const handleClose = () => {
+    setIsOpen(false)
+    setSuccess('')
+    setError('')
+  }
+
   const countWords = (text) => (text || '').trim().split(/\s+/).filter(Boolean).length
 
   const handleFileChange = (e) => {
@@ -90,8 +108,6 @@ const FeedbackButton = () => {
         if (previewUrl) URL.revokeObjectURL(previewUrl)
         setPreviewUrl('')
         setScreenshotFile(null)
-        // Show thank-you state for a moment before closing
-        setTimeout(() => setIsOpen(false), 1400)
       } else {
         setError(res.data?.message || 'Failed to submit feedback')
       }
@@ -104,15 +120,17 @@ const FeedbackButton = () => {
 
   return (
     <>
-      <motion.button
-        onClick={() => setIsOpen(true)}
-        className="fixed bottom-16 sm:bottom-6 right-6 z-[55] btn-primary shadow-lg rounded-full px-4 py-3 flex items-center gap-2"
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-      >
-        <MessageSquarePlus className="h-5 w-5" />
-        Feedback
-      </motion.button>
+      {!isOpen && (
+        <motion.button
+          onClick={openModal}
+          className="fixed bottom-16 sm:bottom-6 right-6 z-[55] btn-primary shadow-lg rounded-full px-4 py-3 flex items-center gap-2"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          <MessageSquarePlus className="h-5 w-5" />
+          Feedback
+        </motion.button>
+      )}
 
       <AnimatePresence>
         {isOpen && (
@@ -121,7 +139,7 @@ const FeedbackButton = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
-            onClick={() => setIsOpen(false)}
+            onClick={handleClose}
           >
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
@@ -134,7 +152,7 @@ const FeedbackButton = () => {
               <ScrollLockGuard />
               <div className="flex items-center justify-between mb-1">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Send Feedback</h3>
-                <button onClick={() => setIsOpen(false)} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800">
+                <button onClick={handleClose} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800">
                   <X className="h-5 w-5 text-gray-500" />
                 </button>
               </div>
@@ -189,7 +207,7 @@ const FeedbackButton = () => {
                 {success && <div className="text-sm text-green-600">{success}</div>}
 
                 <div className="flex justify-end gap-3 pt-2">
-                  <button type="button" onClick={() => setIsOpen(false)} className="px-4 py-2 border rounded-lg">Cancel</button>
+                  <button type="button" onClick={handleClose} className="px-4 py-2 border rounded-lg">Cancel</button>
                   <button type="submit" disabled={submitting} className="btn-primary disabled:opacity-60">
                     {submitting ? 'Submitting...' : 'Submit Feedback'}
                   </button>
@@ -203,8 +221,8 @@ const FeedbackButton = () => {
                   <div className="text-green-700 dark:text-green-300 whitespace-pre-line text-sm">
                     {success}
                   </div>
-                  <div className="mt-4">
-                    <button onClick={() => setIsOpen(false)} className="btn-primary">Close</button>
+                  <div className="mt-4 flex items-center justify-center gap-3">
+                    <button onClick={() => { setSuccess(''); setError(''); setTitle(''); setDescription(''); setScreenshotFile(null); try{ if (previewUrl) URL.revokeObjectURL(previewUrl) } catch {}; setPreviewUrl(''); }} className="btn-primary">Submit another</button>
                   </div>
                 </div>
               )}
