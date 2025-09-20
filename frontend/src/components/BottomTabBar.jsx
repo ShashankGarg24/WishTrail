@@ -54,12 +54,6 @@ const BottomTabBar = () => {
                 onClick={() => navigate('/dashboard')}
               />
               <TabButton
-                active={path.startsWith('/dashboardv2')}
-                label="Dashboard V2"
-                Icon={BarChart3}
-                onClick={() => navigate('/dashboardv2')}
-              />
-              <TabButton
                 active={path.startsWith('/leaderboard')}
                 label="Leaderboard"
                 Icon={Target}

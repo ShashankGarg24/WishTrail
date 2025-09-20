@@ -543,48 +543,4 @@ achievementSchema.statics.getUserAchievements = async function(userId) {
     .sort({ earnedAt: -1 });
 };
 
-// Static method to get achievement leaderboard
-achievementSchema.statics.getAchievementLeaderboard = async function(limit = 10) {
-  const UserAchievement = mongoose.model('UserAchievement');
-  
-  return UserAchievement.aggregate([
-    {
-      $group: {
-        _id: '$userId',
-        achievementCount: { $sum: 1 },
-        latestAchievement: { $max: '$earnedAt' }
-      }
-    },
-    {
-      $sort: { achievementCount: -1, latestAchievement: -1 }
-    },
-    {
-      $limit: limit
-    },
-    {
-      $lookup: {
-        from: 'users',
-        localField: '_id',
-        foreignField: '_id',
-        as: 'user'
-      }
-    },
-    {
-      $unwind: '$user'
-    },
-    {
-      $project: {
-        userId: '$_id',
-        achievementCount: 1,
-        latestAchievement: 1,
-        user: {
-          name: 1,
-          avatar: 1,
-          level: 1
-        }
-      }
-    }
-  ]);
-};
-
 module.exports = mongoose.model('Achievement', achievementSchema); 

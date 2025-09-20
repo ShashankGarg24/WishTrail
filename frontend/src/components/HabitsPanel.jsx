@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle, Circle, Plus, Clock, Flame, Sparkles } from 'lucide-react';
+import {Clock, Sparkles } from 'lucide-react';
 import useApiStore from '../store/apiStore';
-import { habitsAPI } from '../services/api';
 
 const weekdayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
@@ -29,6 +28,7 @@ export default function HabitsPanel({ onCreate, onOpenHabit, scrollable = false,
     return () => { active = false; };
   }, [storeHabits?.length]);
 
+  
   const isScheduledToday = (habit) => {
     if (!habit) return false;
     if (habit.frequency === 'daily') return true;
@@ -88,12 +88,6 @@ export default function HabitsPanel({ onCreate, onOpenHabit, scrollable = false,
 
   return (
     <div className="glass-card-hover p-6 rounded-xl">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Habits</h3>
-        <button onClick={onCreate} className="btn-primary">
-          <Plus className="h-4 w-4 mr-1" /> New Habit
-        </button>
-      </div>
       {error && <div className="text-sm text-red-600 dark:text-red-400 mb-3">{error}</div>}
       {habits.length === 0 ? (
         <div className="text-center py-8 text-gray-600 dark:text-gray-400">No habits yet. Create your first habit!</div>

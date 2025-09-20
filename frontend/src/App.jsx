@@ -8,7 +8,6 @@ import Footer from './components/Footer'
 import HomePage from './pages/HomePage'
 import AuthPage from './pages/AuthPage'
 import DashboardPage from './pages/DashboardPage'
-import DashboardPageV2 from './pages/DashboardPageV2'
 import ProfilePage from './pages/ProfilePage'
 import InspirationPage from './pages/InspirationPage'
 import FeedPage from './pages/FeedPage'
@@ -74,7 +73,6 @@ function App() {
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/dashboardv2" element={<DashboardPageV2 />} />
             <Route path="/feed" element={<FeedPage />} />
             <Route path="/discover" element={<DiscoverPage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
