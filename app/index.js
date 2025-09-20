@@ -31,6 +31,8 @@ function App() {
   const appState = useRef(AppState.currentState);
   const [authToken, setAuthToken] = useState(null);
   const [userId, setUserId] = useState(null);
+  const [initialUri, setInitialUri] = useState(WEB_URL);
+  const [initialResolved, setInitialResolved] = useState(false);
   // Expo push removed
   const authProbeTries = useRef(0);
   const authProbeTimer = useRef(null);
@@ -150,7 +152,10 @@ function App() {
   const finishOnboarding = useCallback(async () => {
     await completeOnboarding();
     try { await askPushPermissionOnce(); } catch {}
-    try { webRef.current?.injectJavaScript("try{ window.location.replace('/'); }catch(e){} true;"); } catch {}
+    try {
+      const pathAfter = authToken ? '/dashboard' : '/';
+      webRef.current?.injectJavaScript(`try{ window.location.replace(${JSON.stringify(pathAfter)}); }catch(e){} true;`);
+    } catch {}
   }, [completeOnboarding]);
 
   const onRefresh = useCallback(() => {
@@ -339,9 +344,11 @@ function App() {
         const t = (data.token || '').trim();
         if (t && t.length > 0) {
           setAuthToken(t);
+          try { AsyncStorage && AsyncStorage.setItem('wt_native_authed', '1'); } catch {}
         } else {
           setAuthToken(null);
           setUserId(null);
+          try { AsyncStorage && AsyncStorage.removeItem('wt_native_authed'); } catch {}
         }
       } else if (data?.type === 'WT_USER') {
         const uid = (data.userId || '').trim();
@@ -379,6 +386,32 @@ function App() {
       }
     } catch {}
   }, [isPTRPage, ptrAnim]);
+
+  // Resolve initial URL: dashboard if authed, home otherwise; override with notification deeplink
+  useEffect(() => {
+    (async () => {
+      let target = WEB_URL;
+      try {
+        const authed = AsyncStorage ? await AsyncStorage.getItem('wt_native_authed') : null;
+        if (authed === '1') {
+          target = `${WEB_URL.replace(/\/$/, '')}/dashboard`;
+        }
+      } catch {}
+      try {
+        let messaging;
+        try { const mod = require('@react-native-firebase/messaging'); messaging = mod?.default || mod; } catch { messaging = null; }
+        if (messaging) {
+          const initial = await messaging().getInitialNotification();
+          const url = initial?.data?.url || '';
+          if (url) {
+            target = `${WEB_URL.replace(/\/$/, '')}?url=${encodeURIComponent(url)}`;
+          }
+        }
+      } catch {}
+      setInitialUri(target);
+      setInitialResolved(true);
+    })();
+  }, []);
 
   // Ask for push notification permission once on first launch (after onboarding or immediately if onboarding was already seen)
   const askPushPermissionOnce = useCallback(async () => {
@@ -507,12 +540,23 @@ function App() {
     );
   };
 
+  if (!initialResolved) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#ffffff' }}>
+        <StatusBar barStyle={Platform.OS === 'ios' ? 'light-content' : 'default'} />
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <ActivityIndicator />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#ffffff' }}>
       <StatusBar barStyle={Platform.OS === 'ios' ? 'light-content' : 'default'} />
       <WebView
         ref={webRef}
-        source={{ uri: WEB_URL }}
+        source={{ uri: initialUri }}
         originWhitelist={originWhitelist}
         onLoadStart={() => { setLoading(true); setPtrLoading(false); setPtrVisible(false); setPtrProgress(0); Animated.timing(ptrAnim, { toValue: 0, duration: 200, useNativeDriver: true }).start(); }}
         onLoadEnd={() => { setLoading(false); setWebReady(true); if (pendingDeepLinkRef.current) { forwardDeepLinkToWeb(pendingDeepLinkRef.current); pendingDeepLinkRef.current = ''; } injectAuthProbe(); setTimeout(() => { setPtrLoading(false); setPtrVisible(false); Animated.timing(ptrAnim, { toValue: 0, duration: 250, useNativeDriver: true }).start(); }, 250); }}
