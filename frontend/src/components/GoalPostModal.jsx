@@ -138,7 +138,9 @@ export default function GoalPostModal({ isOpen, goalId, onClose, autoOpenComment
                     navigator.clipboard.writeText(url);
                     window.dispatchEvent(new CustomEvent('wt_toast', { detail: { message: 'Link copied to clipboard', type: 'success', duration: 2000 } }));
                   } catch {}
-                }} className="inline-flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-300 hover:text-blue-600"><Send className="h-4 w-4 -rotate-80"/></button>
+                }} className="inline-flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-300 hover:text-blue-600">
+                  <Send className="h-4 w-4 -rotate-80"/>
+                </button>
               </div>
             </div>
           </div>
@@ -204,7 +206,9 @@ export default function GoalPostModal({ isOpen, goalId, onClose, autoOpenComment
                   navigator.clipboard.writeText(url);
                   window.dispatchEvent(new CustomEvent('wt_toast', { detail: { message: 'Link copied to clipboard', type: 'success', duration: 2000 } }));
                 } catch {}
-              }} className="inline-flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-300 hover:text-blue-600"><Send className="h-4 w-4 -rotate-80" /></button>
+              }} className="inline-flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-300 hover:text-blue-600">
+                <Send className="h-4 w-4 -rotate-80" />
+                </button>
             </div>
           </div>
           )

@@ -3,13 +3,13 @@ import { motion } from 'framer-motion'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Activity, Heart, MessageCircle, RefreshCw, Compass, ArrowRightCircle, Send } from 'lucide-react'
 import useApiStore from '../store/apiStore'
-import { activitiesAPI } from '../services/api'
 import SkeletonList from '../components/loader/SkeletonList'
 import ActivityCommentsModal from '../components/ActivityCommentsModal'
 import ReportModal from '../components/ReportModal'
 import BlockModal from '../components/BlockModal'
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
 import GoalPostModal from '../components/GoalPostModal'
+import ShareSheet from '../components/ShareSheet'
 
 const FeedPage = () => {
   const navigate = useNavigate()
@@ -61,6 +61,8 @@ const FeedPage = () => {
   const [isMobile, setIsMobile] = useState(false);
   const [commentsOpenActivityId, setCommentsOpenActivityId] = useState(null);
   const [inNativeApp, setInNativeApp] = useState(false)
+  const [shareSheetOpen, setShareSheetOpen] = useState(false)
+  const shareUrlRef = useRef('')
 
   // Stories (trending/inspiring goals) state
   const [stories, setStories] = useState([])
@@ -528,6 +530,23 @@ const FeedPage = () => {
                               <MessageCircle className={`h-4 w-4 ${scrollCommentsOnOpen ? 'text-blue-600' : ''}`} />
                               <span>{(activity.commentCount || 0)}</span>
                             </button>
+                            <button onClick={(e) => {
+                              e.stopPropagation();
+                              try {
+                                const gid = activity?.data?.goalId?._id || activity?.data?.goalId;
+                                const url = gid ? `${window.location.origin}/feed?goalId=${gid}` : window.location.href;
+                                if (isMobile) {
+                                  shareUrlRef.current = url
+                                  setShareSheetOpen(true)
+                                } else {
+                                  Promise.resolve(navigator.clipboard.writeText(url))
+                                    .then(() => { try { window.dispatchEvent(new CustomEvent('wt_toast', { detail: { message: 'Link copied to clipboard', type: 'success', duration: 2000 } })); } catch {} })
+                                    .catch(() => {})
+                                }
+                              } catch {}
+                            }} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm transition-colors bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700">
+                              <Send className="h-4 w-4 -rotate-80"/>
+                            </button>
                            </div>
                          </div>
 
@@ -621,6 +640,13 @@ const FeedPage = () => {
             onClose={closeGoalModal}
           />
         )}
+        {/* Share Sheet (mobile) */}
+        <ShareSheet
+          isOpen={shareSheetOpen}
+          onClose={() => setShareSheetOpen(false)}
+          url={shareUrlRef.current}
+          title="WishTrail Goal"
+        />
       </div>
     </div>
   )
