@@ -11,6 +11,8 @@ import GoalSuggestionsModal from '../components/GoalSuggestionsModal'
 import HabitSuggestionsModal from '../components/HabitSuggestionsModal'
 import { API_CONFIG } from '../config/api'
 import GoalPostModal from '../components/GoalPostModal'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
 
 const DashboardPage = () => {
   const [activeTab, setActiveTab] = useState('goals')
@@ -48,6 +50,9 @@ const DashboardPage = () => {
   } = useApiStore()
 
   const [openGoalId, setOpenGoalId] = useState(null)
+  const [scrollCommentsOnOpen, setScrollCommentsOnOpen] = useState(false)
+  const location = useLocation()
+  const navigate = useNavigate()
 
   // Collect user years present in goals
   const yearsInData = useMemo(() => {
@@ -119,6 +124,24 @@ const DashboardPage = () => {
       try { loadHabitAnalytics({}).catch(()=>{}) } catch {}
     }
   }, [activeTab, isAuthenticated])
+
+  // Deep link open via ?goalId=
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(location.search)
+      const gid = params.get('goalId')
+      if (gid) setOpenGoalId(gid)
+    } catch {}
+  }, [location.search])
+
+  // Lock body scroll when goal modal open
+  useEffect(() => {
+    if (openGoalId) {
+      lockBodyScroll()
+      return () => unlockBodyScroll()
+    }
+    return undefined
+  }, [openGoalId])
 
   const userInterests = Array.isArray(user?.interests) ? user.interests : []
 
@@ -209,6 +232,15 @@ const DashboardPage = () => {
       getGoals({ year: selectedYear }, { force: true })
     }
     return result
+  }
+
+  const closeGoalModal = () => {
+    setOpenGoalId(null)
+    setScrollCommentsOnOpen(false)
+    try {
+      const params = new URLSearchParams(location.search)
+      if (params.get('goalId')) navigate(-1)
+    } catch {}
   }
 
   if (!isAuthenticated) {
@@ -548,7 +580,12 @@ const DashboardPage = () => {
 
       {/* Goal Post Modal (shared with Feed) */}
       {openGoalId && (
-        <GoalPostModal isOpen={!!openGoalId} goalId={openGoalId} onClose={() => setOpenGoalId(null)} />
+        <GoalPostModal
+          isOpen={!!openGoalId}
+          goalId={openGoalId}
+          autoOpenComments={scrollCommentsOnOpen}
+          onClose={closeGoalModal}
+        />
       )}
     </div>
   )

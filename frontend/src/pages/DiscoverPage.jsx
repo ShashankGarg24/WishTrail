@@ -3,11 +3,11 @@ import { motion } from 'framer-motion'
 import { Users, Target, RefreshCw, ChevronsDown, TrendingUp, Flame, UserPlus, UserCheck, Compass } from 'lucide-react'
 import useApiStore from '../store/apiStore'
 import SkeletonList from '../components/loader/SkeletonList'
-import { useNavigate, useParams } from 'react-router-dom';
-import { activitiesAPI } from '../services/api'
-import ActivityCommentsModal from '../components/ActivityCommentsModal'
+import { useNavigate, useLocation } from 'react-router-dom';
+import GoalPostModal from '../components/GoalPostModal'
 import ReportModal from '../components/ReportModal'
 import BlockModal from '../components/BlockModal'
+import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
 
 const DiscoverPage = () => {
   const {
@@ -52,32 +52,16 @@ const DiscoverPage = () => {
   const [loadingMoreGoalSearch, setLoadingMoreGoalSearch] = useState(false);
   const [goalSearchHasMore, setGoalSearchHasMore] = useState(true);
   const [goalResults, setGoalResults] = useState([])
-  const [goalModalOpen, setGoalModalOpen] = useState(false);
-  const [goalModalData, setGoalModalData] = useState(null);
-  const [goalModalLoading, setGoalModalLoading] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-  const rightPanelScrollRef = useRef(null)
-  const commentsAnchorRef = useRef(null)
-  const [goalComments, setGoalComments] = useState([])
-  const [goalCommentsPagination, setGoalCommentsPagination] = useState(null)
-  const [goalCommentsLoading, setGoalCommentsLoading] = useState(false)
-  const [showComments, setShowComments] = useState(false)
-  const [detailsExpanded, setDetailsExpanded] = useState(false)
-  const [goalCommentText, setGoalCommentText] = useState('')
+  const [goalModalOpen, setGoalModalOpen] = useState(false)
+  const [openGoalId, setOpenGoalId] = useState(null)
+  const [scrollCommentsOnOpen, setScrollCommentsOnOpen] = useState(false)
   const [reportOpen, setReportOpen] = useState(false)
   const [reportTarget, setReportTarget] = useState({ type: null, id: null, label: '', username: '', userId: null })
   const [blockOpen, setBlockOpen] = useState(false)
   const [blockUserId, setBlockUserId] = useState(null)
   const [blockUsername, setBlockUsername] = useState('')
-  const { goalId } = useParams();
+  const location = useLocation();
   const [inNativeApp, setInNativeApp] = useState(false)
-
-  useEffect(() => {
-    const compute = () => setIsMobile(window.innerWidth < 768);
-    compute();
-    window.addEventListener('resize', compute);
-    return () => window.removeEventListener('resize', compute);
-  }, []);
 
   // Outside click for user menu
   useEffect(() => {
@@ -95,6 +79,17 @@ const DiscoverPage = () => {
   useEffect(() => {
     try { if (typeof window !== 'undefined' && window.ReactNativeWebView) setInNativeApp(true) } catch {}
   }, [])
+
+  // Deep link: open via ?goalId=
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(location.search)
+      const gid = params.get('goalId')
+      if (gid) {
+        openGoalModal(gid)
+      }
+    } catch {}
+  }, [location.search])
 
   useEffect(() => {
     if (!isAuthenticated) return
@@ -171,65 +166,30 @@ const DiscoverPage = () => {
     }
   }
 
-  const openGoalModal = async (goalId) => {
-    if (!goalId) return;
-    try {
-      // Open immediately and show loading spinner
-      setGoalModalLoading(true);
-      setGoalModalOpen(true);
-      setGoalModalData(null);
-      const resp = await useApiStore.getState().getGoalPost(goalId);
-      if (resp?.success) {
-        setGoalModalData(resp.data);
-        // Do not change URL when opening from Explore; keep deep-link support only when URL already has goalId
-        // Preload comments if activityId present
-        const aid = resp?.data?.social?.activityId;
-        if (aid) {
-          try {
-            setGoalCommentsLoading(true);
-            const r = await activitiesAPI.getComments(aid, { page: 1, limit: 20 });
-            const comments = r?.data?.data?.comments || [];
-            const pagination = r?.data?.data?.pagination || null;
-            setGoalComments(comments);
-            setGoalCommentsPagination(pagination);
-            setShowComments(true);
-          } catch (_) { setGoalComments([]); setGoalCommentsPagination(null); setShowComments(false); }
-          finally { setGoalCommentsLoading(false); }
-        } else {
-          setShowComments(false);
-          setGoalComments([]);
-          setGoalCommentsPagination(null);
-        }
-      }
-    } catch (_) {
-    } finally {
-      setGoalModalLoading(false);
-    }
-  };
+  const openGoalModal = (gid) => {
+    if (!gid) return
+    setOpenGoalId(gid)
+    setGoalModalOpen(true)
+  }
 
   const closeGoalModal = () => {
-    setGoalModalOpen(false); setGoalModalData(null);
-    setShowComments(false);
-    setDetailsExpanded(false);
-    // If opened via /goal/:goalId, go back to previous page
-    try { if (goalId) navigate(-1); } catch (_) {}
-  };
+    setGoalModalOpen(false)
+    setOpenGoalId(null)
+    setScrollCommentsOnOpen(false)
+    try {
+      const params = new URLSearchParams(location.search)
+      if (params.get('goalId')) navigate(-1)
+    } catch {}
+  }
 
-  const openGoalCommentsForModal = () => {
-    const aid = goalModalData?.social?.activityId;
-    if (!aid) return;
-    // Scroll the embedded comments into view inside the modal
-    setTimeout(() => {
-      try {
-        const scroller = rightPanelScrollRef.current;
-        const anchor = commentsAnchorRef.current;
-        if (scroller && anchor) {
-          const top = anchor.offsetTop - 8;
-          scroller.scrollTo({ top, behavior: 'smooth' });
-        }
-      } catch (_) {}
-    }, 0);
-  };
+  // Lock body scroll when modal open
+  useEffect(() => {
+    if (goalModalOpen) {
+      lockBodyScroll()
+      return () => unlockBodyScroll()
+    }
+    return undefined
+  }, [goalModalOpen])
 
     
   const mergeUniqueById = (prev, next) => {
@@ -790,143 +750,17 @@ const DiscoverPage = () => {
                     )
                   )
                 )}
-                        {/* Goal Post Modal */}
+        {/* Goal Post Modal */}
         {goalModalOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center">
-            <div className="absolute inset-0 bg-black/50" onClick={closeGoalModal} />
-            <div className={`relative w-full ${(!goalModalData?.share?.image) ? 'max-w-3xl' : 'max-w-6xl'} mx-auto bg-white dark:bg-gray-900 rounded-2xl shadow-2xl ${isMobile ? 'overflow-y-auto' : 'overflow-hidden'} border border-gray-200 dark:border-gray-800 max-h-[85vh]`}> 
-              {goalModalLoading || !goalModalData ? (
-                <div className="p-10 text-center text-gray-500 dark:text-gray-400">Loading...</div>
-              ) : (
-                goalModalData?.share?.image ? (
-                  <div className="grid grid-cols-1 md:[grid-template-columns:minmax(0,1fr)_420px] items-stretch min-h-0">
-                    {/* Left: Media */}
-                    <div className="bg-black flex items-center justify-center min-h-[65vh] h-[65vh] md:min-h-[520px]">
-                      <img src={goalModalData.share.image} alt="Completion" className="h-full w-auto max-w-full object-contain" />
-                    </div>
-                    {/* Right: Details with toggleable comments */}
-                    <div className="flex flex-col md:w-[420px] md:flex-shrink-0 min-h-[320px] md:min-h-[520px] md:max-h-[85vh] min-h-0">
-                      <div className="flex items-center gap-3 p-4 border-b border-gray-200 dark:border-gray-800">
-                        <img src={goalModalData?.user?.avatar || '/api/placeholder/40/40'} className="w-10 h-10 rounded-full" />
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{goalModalData?.user?.name}</div>
-                          {goalModalData?.user?.username && (<div className="text-xs text-gray-500">@{goalModalData.user.username}</div>)}
-                        </div>
-                        <button onClick={closeGoalModal} className="px-3 py-1.5 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800">✕</button>
-                      </div>
-                      <div ref={rightPanelScrollRef} className={`flex-1 min-h-0 ${isMobile ? '' : 'overflow-auto'} px-6 pb-0`}>
-                        <div className="py-6 space-y-4">
-                          <div>
-                            <div className="h-1.5 w-14 rounded-full mb-2" style={{ background: 'linear-gradient(90deg, rgba(99,102,241,0.8), rgba(147,197,253,0.8))' }} />
-                            <div className="inline-block px-2 py-1 rounded-full text-xs font-medium text-white bg-blue-500">{goalModalData?.goal?.category}</div>
-                          </div>
-                          <div>
-                            <div className="text-xs text-gray-500">Title</div>
-                            <div className="text-gray-900 dark:text-gray-100 font-semibold text-lg leading-snug">{goalModalData?.goal?.title}</div>
-                          </div>
-                          <div>
-                            <div className="text-xs text-gray-500">Description</div>
-                            <div className={`text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed ${detailsExpanded ? '' : 'line-clamp-5'}`}>{goalModalData?.goal?.description || '—'}</div>
-                            {String(goalModalData?.goal?.description || '').length > 200 && (
-                              <button className="mt-1 text-xs text-blue-600" onClick={() => setDetailsExpanded((v) => !v)}>{detailsExpanded ? 'Show less' : 'More'}</button>
-                            )}
-                          </div>
-                          {goalModalData?.goal?.completedAt && goalModalData?.goal?.points && (<div className="grid grid-cols-2 gap-3">
-                            <div>
-                              <div className="text-xs text-gray-500">Completed</div>
-                              <div className="text-gray-800 dark:text-gray-200">{goalModalData?.goal?.completedAt ? new Date(goalModalData.goal.completedAt).toLocaleString() : '—'}</div>
-                            </div>
-                            <div>
-                              <div className="text-xs text-gray-500">Points</div>
-                              <div className="text-gray-800 dark:text-gray-200">{goalModalData?.goal?.pointsEarned ?? 0}</div>
-                            </div>
-                          </div>)}
-                          {goalModalData?.share?.note && (
-                            <div className="bg-gray-50 dark:bg-gray-800/40 rounded-xl p-3 border border-gray-200 dark:border-gray-700">
-                              <div className="text-xs text-gray-500 mb-1">Completion note</div>
-                              <div className={`text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap ${detailsExpanded ? '' : 'line-clamp-6'}`}>{goalModalData.share.note}</div>
-                              {String(goalModalData.share.note || '').length > 240 && (
-                                <button className="mt-1 text-xs text-blue-600" onClick={() => setDetailsExpanded((v) => !v)}>{detailsExpanded ? 'Show less' : 'More'}</button>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                        {!isMobile && (
-                          <div className="pb-6">
-                            <div ref={commentsAnchorRef} className="pt-2 border-t border-gray-200 dark:border-gray-800" />
-                            {goalModalData?.social?.activityId ? (
-                              <ActivityCommentsModal embedded activity={{ _id: goalModalData.social.activityId, commentCount: goalModalData?.social?.commentCount }} />
-                            ) : (
-                              <div className="text-sm text-gray-500 py-4">Comments unavailable</div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                      <div className="mt-auto border-t border-gray-200 dark:border-gray-800 p-4 flex items-center gap-4 sticky bottom-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur">
-                        <div className="text-sm text-gray-700 dark:text-gray-300">❤️ {goalModalData?.social?.likeCount || 0}</div>
-                        <button onClick={openGoalCommentsForModal} className="text-sm text-gray-700 dark:text-gray-300 hover:text-blue-600">💬 {goalModalData?.social?.commentCount || 0}</button>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex flex-col min-h-[320px] md:min-h-[520px] md:max-w-[420px] md:mx-auto md:max-h-[85vh] min-h-0">
-                    <div className="flex items-center gap-3 p-4 border-b border-gray-200 dark:border-gray-800">
-                      <img src={goalModalData?.user?.avatar || '/api/placeholder/40/40'} className="w-10 h-10 rounded-full" />
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{goalModalData?.user?.name}</div>
-                        {goalModalData?.user?.username && (<div className="text-xs text-gray-500">@{goalModalData.user.username}</div>)}
-                      </div>
-                      <button onClick={closeGoalModal} className="px-3 py-1.5 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800">✕</button>
-                    </div>
-                    <div ref={rightPanelScrollRef} className={`flex-1 min-h-0 ${isMobile ? '' : 'overflow-auto'}` }>
-                      <div className="p-6 space-y-4">
-                        <div>
-                          <div className="h-1.5 w-14 rounded-full mb-2" style={{ background: 'linear-gradient(90deg, rgba(99,102,241,0.8), rgba(147,197,253,0.8))' }} />
-                          <div className="inline-block px-2 py-1 rounded-full text-xs font-medium text-white bg-blue-500">{goalModalData?.goal?.category}</div>
-                        </div>
-                        <div>
-                          <div className="text-xs text-gray-500">Title</div>
-                          <div className="text-gray-900 dark:text-gray-100 font-semibold text-lg leading-snug">{goalModalData?.goal?.title}</div>
-                        </div>
-                        <div>
-                          <div className="text-xs text-gray-500">Description</div>
-                          <div className={`text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed ${detailsExpanded ? '' : 'line-clamp-6'}`}>{goalModalData?.goal?.description || '—'}</div>
-                          {String(goalModalData?.goal?.description || '').length > 200 && (
-                            <button className="mt-1 text-xs text-blue-600" onClick={() => setDetailsExpanded((v) => !v)}>{detailsExpanded ? 'Show less' : 'More'}</button>
-                          )}
-                        </div>
-                        {goalModalData?.goal?.completedAt && goalModalData?.goal?.points && (<div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <div className="text-xs text-gray-500">Completed</div>
-                            <div className="text-gray-800 dark:text-gray-200">{goalModalData?.goal?.completedAt ? new Date(goalModalData.goal.completedAt).toLocaleString() : '—'}</div>
-                          </div>
-                          <div>
-                            <div className="text-xs text-gray-500">Points</div>
-                            <div className="text-gray-800 dark:text-gray-200">{goalModalData?.goal?.pointsEarned ?? 0}</div>
-                          </div>
-                        </div>)}
-                      </div>
-                      {!isMobile && (
-                        <div ref={commentsAnchorRef} className="px-6 pb-6">
-                          {goalModalData?.social?.activityId ? (
-                            <ActivityCommentsModal embedded activity={{ _id: goalModalData.social.activityId, commentCount: goalModalData?.social?.commentCount }} />
-                          ) : (
-                            <div className="text-sm text-gray-500">Comments unavailable</div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                    <div className="mt-auto border-t border-gray-200 dark:border-gray-800 p-4 flex items-center gap-4 sticky bottom-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur">
-                      <div className="text-sm text-gray-700 dark:text-gray-300">❤️ {goalModalData?.social?.likeCount || 0}</div>
-                      <button onClick={openGoalCommentsForModal} className="text-sm text-gray-700 dark:text-gray-300 hover:text-blue-600">💬 {goalModalData?.social?.commentCount || 0}</button>
-                    </div>
-                  </div>
-                )
-              )}
-            </div>
-          </div>
+          <GoalPostModal
+            isOpen={goalModalOpen}
+            goalId={openGoalId}
+            autoOpenComments={scrollCommentsOnOpen}
+            onClose={closeGoalModal}
+          />
         )}
       </div>
+      
       {/* Report & Block Modals */}
       <ReportModal
         isOpen={reportOpen}
