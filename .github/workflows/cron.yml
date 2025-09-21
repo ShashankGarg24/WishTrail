@@ -21,7 +21,7 @@ jobs:
         run: |
           curl -fsS -X POST "$API_BASE/cron/nightly-quotes?key=$CRON_SECRET"
         env:
-          API_BASE: https://wishtrail-backend.vercel.app/api/v1
+          API_BASE: https://wishtrail-web.onrender.com/api/v1
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
 
   morning-quotes:
@@ -32,7 +32,7 @@ jobs:
         run: |
           curl -fsS -X POST "$API_BASE/cron/morning-quotes?key=$CRON_SECRET"
         env:
-          API_BASE: https://wishtrail-backend.vercel.app/api/v1
+          API_BASE: https://wishtrail-web.onrender.com/api/v1
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
 
   journal-prompts:
@@ -43,7 +43,7 @@ jobs:
         run: |
           curl -fsS -X POST "$API_BASE/cron/journal-prompts?key=$CRON_SECRET"
         env:
-          API_BASE: https://wishtrail-backend.vercel.app/api/v1
+          API_BASE: https://wishtrail-web.onrender.com/api/v1
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
 
   inactivity-reminders:
@@ -54,7 +54,7 @@ jobs:
         run: |
           curl -fsS -X POST "$API_BASE/cron/inactivity-reminders?key=$CRON_SECRET"
         env:
-          API_BASE: https://wishtrail-backend.vercel.app/api/v1
+          API_BASE: https://wishtrail-web.onrender.com/api/v1
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
 
   habit-reminders:
@@ -66,7 +66,7 @@ jobs:
         run: |
           curl -fsS -X POST "$API_BASE/cron/habit-reminders?window=10&key=$CRON_SECRET"
         env:
-          API_BASE: https://wishtrail-backend.vercel.app/api/v1
+          API_BASE: https://wishtrail-web.onrender.com/api/v1
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
 
 
