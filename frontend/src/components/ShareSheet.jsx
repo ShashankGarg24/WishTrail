@@ -29,20 +29,29 @@ export default function ShareSheet({ isOpen, onClose, url, title = 'WishTrail' }
 
   const handleWhatsApp = () => {
     const text = encodeURIComponent(`${title}\n${url}`)
-    openNew(`https://wa.me/?text=${text}`)
+    // Try app first
+    openNew(`whatsapp://send?text=${text}`)
+    // Fallback for desktop browsers
+    setTimeout(() => openNew(`https://wa.me/?text=${text}`), 800)
     onClose?.()
   }
 
   const handleTwitter = () => {
     const u = encodeURIComponent(url)
     const t = encodeURIComponent(title)
-    openNew(`https://twitter.com/intent/tweet?url=${u}&text=${t}`)
+    // App deep link
+    openNew(`twitter://post?message=${t}%20${u}`)
+    // Fallback web
+    setTimeout(() => openNew(`https://twitter.com/intent/tweet?url=${u}&text=${t}`), 800)
     onClose?.()
   }
 
   const handleFacebook = () => {
     const u = encodeURIComponent(url)
-    openNew(`https://www.facebook.com/sharer/sharer.php?u=${u}`)
+    // App deep link
+    openNew(`fb://faceweb/f?href=https://www.facebook.com/sharer/sharer.php?u=${u}`)
+    // Fallback web
+    setTimeout(() => openNew(`https://www.facebook.com/sharer/sharer.php?u=${u}`), 800)
     onClose?.()
   }
 
@@ -51,8 +60,12 @@ export default function ShareSheet({ isOpen, onClose, url, title = 'WishTrail' }
       await navigator.clipboard.writeText(url)
       window.dispatchEvent(new CustomEvent('wt_toast', { detail: { message: 'Link copied. Open Instagram to paste.', type: 'success', duration: 2500 } }))
     } catch {}
+  
+    // Try app
     try { window.location.href = 'instagram://app' } catch {}
-    setTimeout(() => { try { openNew('https://www.instagram.com/') } catch {} }, 600)
+  
+    // Fallback
+    setTimeout(() => { try { openNew('https://www.instagram.com/') } catch {} }, 800)
     onClose?.()
   }
 
