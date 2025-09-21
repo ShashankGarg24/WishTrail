@@ -56,16 +56,52 @@ export default function ShareSheet({ isOpen, onClose, url, title = 'WishTrail' }
   }
 
   const handleInstagram = async () => {
+    // Best user experience: use native share if available (lets user pick Instagram)
+    // try {
+    //   if (typeof navigator !== 'undefined' && navigator.share) {
+    //     await navigator.share({ title, url })
+    //     onClose?.();
+    //     return
+    //   }
+    // } catch {}
+
+    // Copy the link so user can paste into IG
     try {
       await navigator.clipboard.writeText(url)
       window.dispatchEvent(new CustomEvent('wt_toast', { detail: { message: 'Link copied. Open Instagram to paste.', type: 'success', duration: 2500 } }))
     } catch {}
-  
+
+      
     // Try app
     try { window.location.href = 'instagram://app' } catch {}
   
     // Fallback
     setTimeout(() => { try { openNew('https://www.instagram.com/') } catch {} }, 800)
+    // // Avoid unknown scheme errors inside some WebViews
+    // const ua = (navigator.userAgent || '').toLowerCase()
+    // const isAndroid = /android/i.test(ua)
+    // const isIOS = /iphone|ipad|ipod/i.test(ua)
+    // const isRNWebView = typeof window !== 'undefined' && !!window.ReactNativeWebView
+
+    // if (!isRNWebView) {
+    //   try {
+    //     if (isAndroid) {
+    //       // Chrome intent to launch the app; falls back to web if not installed
+    //       const fallback = encodeURIComponent('https://www.instagram.com/')
+    //       window.location.href = `intent://instagram.com/#Intent;package=com.instagram.android;scheme=https;S.browser_fallback_url=${fallback};end`
+    //     } else if (isIOS) {
+    //       window.location.href = 'instagram://app'
+    //       setTimeout(() => openNew('https://www.instagram.com/'), 800)
+    //     } else {
+    //       openNew('https://www.instagram.com/')
+    //     }
+    //   } catch {
+    //     openNew('https://www.instagram.com/')
+    //   }
+    // } else {
+    //   // In RN WebView, deep links often error. Keep it simple: open web fallback.
+    //   openNew('https://www.instagram.com/')
+    // }
     onClose?.()
   }
 

@@ -168,13 +168,16 @@ function App() {
 
   const onShouldStartLoadWithRequest = (event) => {
     try {
-      const isHttp = /^https?:\/\//i.test(event.url);
-      const isSameOrigin = event.url.startsWith(WEB_URL);
-      if (isHttp && !isSameOrigin) {
-        Linking.openURL(event.url);
-        return false;
-      }
-      return true;
+      const url = String(event.url || '');
+      const isHttp = /^https?:\/\//i.test(url);
+      const isSameOrigin = url.startsWith(WEB_URL);
+      // Allow internal HTTP navigation
+      if (isHttp && isSameOrigin) return true;
+      // For external HTTP links, open system browser
+      if (isHttp && !isSameOrigin) { Linking.openURL(url).catch(()=>{}); return false; }
+      // Block unknown/custom schemes inside WebView; try to open externally
+      Linking.canOpenURL(url).then((can) => { if (can) Linking.openURL(url); }).catch(()=>{});
+      return false;
     } catch {
       return true;
     }
