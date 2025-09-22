@@ -4,6 +4,7 @@ import { Plus, Calendar, Target, CheckCircle, Circle, Star, Award, Lightbulb, Cl
 import HabitsPanel from '../components/HabitsPanel'
 import HabitDetailModal from '../components/HabitDetailModal'
 import CreateHabitModal from '../components/CreateHabitModal'
+import EditHabitModal from '../components/EditHabitModal'
 import useApiStore from '../store/apiStore'
 import CreateWishModal from '../components/CreateWishModal'
 import WishCard from '../components/WishCard'
@@ -113,7 +114,7 @@ const DashboardPage = () => {
 
   useEffect(() => {
     if (!isAuthenticated) return
-    getGoals({ year: selectedYear })
+    getGoals({ year: selectedYear, includeProgress: true })
   }, [selectedYear])
 
   // Load habits on first visit to Habits tab
@@ -572,6 +573,24 @@ const DashboardPage = () => {
       {isHabitModalOpen && (
         <CreateHabitModal isOpen={isHabitModalOpen} onClose={() => { setIsHabitModalOpen(false); setInitialHabitData(null) }} onCreated={handleHabitCreated} initialData={initialHabitData} />
       )}
+
+      {/* Edit Habit Modal */}
+      {isEditHabitOpen && (
+        <EditHabitModal
+          isOpen={isEditHabitOpen}
+          habit={selectedHabit}
+          onClose={() => setIsEditHabitOpen(false)}
+          onSave={async (payload) => {
+            const res = await useApiStore.getState().updateHabit(selectedHabit._id, payload)
+            if (res?.success) {
+              try { setSelectedHabit(prev => (prev ? { ...prev, ...res.habit } : prev)) } catch {}
+              return res
+            }
+            throw new Error(res?.error || 'Failed to update habit')
+          }}
+        />
+      )}
+
 
       {/* Habit Detail Modal */}
       {selectedHabit && (

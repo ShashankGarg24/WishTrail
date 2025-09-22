@@ -93,7 +93,6 @@ export default function GoalPostModal({ isOpen, goalId, onClose, autoOpenComment
               <div ref={rightPanelScrollRef} className={`flex-1 min-h-0 overflow-auto px-6 pb-0`}>
                 <div className="py-6 space-y-4">
                   <div>
-                    <div className="h-1.5 w-14 rounded-full mb-2" style={{ background: 'linear-gradient(90deg, rgba(99,102,241,0.8), rgba(147,197,253,0.8))' }} />
                     <div className="inline-block px-2 py-1 rounded-full text-xs font-medium text-white bg-blue-500">{data?.goal?.category}</div>
                   </div>
                   <div>

@@ -54,6 +54,9 @@ const goalSchema = new mongoose.Schema({
   },
   
   // Time Management
+  startDate: {
+    type: Date,
+  },
   targetDate: {
     type: Date,
     validate: {
@@ -93,6 +96,58 @@ const goalSchema = new mongoose.Schema({
     min: 2020,
     max: 2030
   },
+  
+  // Goal Division: Sub-Goals (binary) and Habit Links (progressive)
+  subGoals: [{
+    title: {
+      type: String,
+      // Optional when linkedGoalId is provided
+      trim: true,
+      maxlength: 200
+    },
+    linkedGoalId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Goal',
+      default: undefined
+    },
+    weight: {
+      type: Number,
+      required: true,
+      min: 0,
+      max: 100
+    },
+    completed: {
+      type: Boolean,
+      default: false
+    },
+    completedAt: {
+      type: Date
+    },
+    note: {
+      type: String,
+      trim: true,
+      maxlength: 500,
+      default: ''
+    }
+  }],
+  habitLinks: [{
+    habitId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Habit',
+      required: true,
+      index: true
+    },
+    weight: {
+      type: Number,
+      required: true,
+      min: 0,
+      max: 100
+    },
+    // Optional override for this habit's contribution window end
+    endDate: {
+      type: Date
+    }
+  }],
   
   // Completion Information
   completed: {
@@ -185,6 +240,9 @@ goalSchema.index({ category: 1 });
 goalSchema.index({ completed: 1, completedAt: -1 });
 goalSchema.index({ createdAt: -1 });
 goalSchema.index({ targetDate: 1 });
+goalSchema.index({ 'subGoals.completed': 1 });
+goalSchema.index({ 'subGoals.linkedGoalId': 1 });
+goalSchema.index({ 'habitLinks.habitId': 1 });
 goalSchema.index({ completed: 1, isDiscoverable: 1, titleLower: 1, category: 1 });
 // Optimized indexes for trending queries (public, active, completed, by likes)
 goalSchema.index({ isPublic: 1, isActive: 1, completed: 1, likeCount: -1, completedAt: -1 });

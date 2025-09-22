@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { motion } from 'framer-motion'
-import { CheckCircle, Circle, Edit2, Trash2, Calendar, Tag, Clock, Star, Heart, Lock, Share2 } from 'lucide-react'
+import { CheckCircle, Circle, Edit2, Trash2, Calendar, Tag, Clock, Star, Heart, Lock, Share2, Wrench } from 'lucide-react'
 import useApiStore from '../store/apiStore'
 import CompletionModal from './CompletionModal'
 import EditWishModal from './EditWishModal'
 import ShareModal from './ShareModal'
+import GoalDivisionEditor from './GoalDivisionEditor'
 
 const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewingOwnGoals = true, onOpenGoal }) => {
   const { 
@@ -14,12 +15,14 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
     likeGoal,
     user,
     isAuthenticated,
-    loading
+    loading,
+    loadHabits
   } = useApiStore()
   
   const [isCompletionModalOpen, setIsCompletionModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isShareModalOpen, setIsShareModalOpen] = useState(false)
+  const [isDivisionOpen, setIsDivisionOpen] = useState(false)
 
   const handleToggle = () => {
     if (wish.completed) {
@@ -131,12 +134,14 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
     return !wish.completed && !wish.isLocked
   }
 
+  const progressPercent = typeof wish?.progress?.percent === 'number' ? Math.max(0, Math.min(100, wish.progress.percent)) : null
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: index * 0.1 }}
-      onClick={() => onOpenGoal?.(wish?._id)}
+      onClick={() => { if (!isDivisionOpen) onOpenGoal?.(wish?._id) }}
       className={`glass-card-hover p-6 rounded-xl theme-transition ${onOpenGoal ? 'cursor-pointer' : ''} ${
         wish.completed ? 'bg-green-50/50 dark:bg-green-900/10' : ''
       } ${isOverdue() ? 'ring-2 ring-red-200 dark:ring-red-800' : ''}`}
@@ -200,6 +205,17 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
               <Edit2 className="h-4 w-4 text-gray-400 hover:text-primary-500" />
             </button>
           )}
+          {/* Division editor button */}
+          {!wish.completed && (
+            <button
+              onClick={async (e) => { e.stopPropagation(); try { await loadHabits({}).catch(()=>{}) } catch {} setIsDivisionOpen(true); }}
+              className="p-1 rounded-full hover:bg-white/10 transition-colors"
+              disabled={loading}
+              title="Edit goal breakdown"
+            >
+              <Wrench className="h-4 w-4 text-gray-400 hover:text-primary-500" />
+            </button>
+          )}
           {isViewingOwnGoals && wish.completed && (
             <button
               onClick={(e) => { e.stopPropagation(); handleShare(); }}
@@ -228,6 +244,19 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
       }`}>
         {wish.description}
       </p>
+
+      {/* Inline compact progress bar (incomplete goals) */}
+      {!wish.completed && progressPercent !== null && (
+        <div className="mb-4">
+          <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400 mb-1">
+            <span>Progress</span>
+            <span>{Math.round(progressPercent * 100) / 100}%</span>
+          </div>
+          <div className="w-full h-2 rounded-full bg-gray-200 dark:bg-gray-700">
+            <div className="h-2 rounded-full bg-primary-500" style={{ width: `${progressPercent}%` }} />
+          </div>
+        </div>
+      )}
 
       {/* Tags */}
       <div className="flex flex-wrap gap-2 mb-4">
@@ -321,15 +350,13 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
         )}
       </div>
 
-      {/* Progress indicator */}
+      {/* Completion state */}
       {wish.completed && (
         <div className="mt-4 p-3 bg-green-100 dark:bg-green-900/20 rounded-lg">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center space-x-2">
               <CheckCircle className="h-4 w-4 text-green-500" />
-              <span className="text-sm font-medium text-green-700 dark:text-green-300">
-                Completed!
-              </span>
+              <span className="text-sm font-medium text-green-700 dark:text-green-300">Completed!</span>
               {wish.completedAt && (
                 <span className="text-xs text-green-600 dark:text-green-400">
                   {new Date(wish.completedAt).toLocaleDateString()}
@@ -395,6 +422,15 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
           onClose={() => setIsEditModalOpen(false)}
           goal={wish}
           year={year}
+        />,
+        document.body
+      )}
+      {/* Division Editor Modal */}
+      {isDivisionOpen && createPortal(
+        <GoalDivisionEditor
+          goal={wish}
+          habits={useApiStore.getState().habits}
+          onClose={() => setIsDivisionOpen(false)}
         />,
         document.body
       )}

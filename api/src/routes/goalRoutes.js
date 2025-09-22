@@ -72,6 +72,12 @@ router.put('/:id', goalValidation, goalController.updateGoal);
 router.delete('/:id', goalController.deleteGoal);
 router.patch('/:id/like', goalController.toggleGoalLike);
 
+// Goal Division endpoints
+router.get('/:id/progress', goalController.getProgress);
+router.put('/:id/subgoals', goalController.setSubGoals);
+router.patch('/:id/subgoals/:index', goalController.toggleSubGoal);
+router.put('/:id/habits', goalController.setHabitLinks);
+
 // Complete/uncomplete goal with optional image attachment
 router.patch('/:id/toggle', upload.single('attachment'), async (req, res, next) => {
   try {

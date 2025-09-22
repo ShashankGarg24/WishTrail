@@ -601,6 +601,49 @@ const useApiStore = create(
           return { success: false, error: errorMessage };
         }
       },
+
+      // Goal Division actions
+      getGoalProgress: async (goalId) => {
+        try {
+          const res = await goalsAPI.getProgress(goalId);
+          const data = res?.data?.data || { percent: 0 };
+          // Update goal object in state with progress if present
+          set(state => ({ goals: (state.goals || []).map(g => g._id === goalId ? { ...g, progress: data } : g) }));
+          return { success: true, progress: data };
+        } catch (error) {
+          return { success: false, error: handleApiError(error) };
+        }
+      },
+      setSubGoals: async (goalId, subGoals) => {
+        try {
+          const res = await goalsAPI.setSubGoals(goalId, subGoals);
+          const goal = res?.data?.data?.goal;
+          if (goal) set(state => ({ goals: (state.goals || []).map(g => g._id === goalId ? { ...g, ...goal } : g) }));
+          return { success: true, goal };
+        } catch (error) {
+          return { success: false, error: handleApiError(error) };
+        }
+      },
+      toggleSubGoalItem: async (goalId, index, completed, note) => {
+        try {
+          const res = await goalsAPI.toggleSubGoal(goalId, index, completed, note);
+          const goal = res?.data?.data?.goal;
+          if (goal) set(state => ({ goals: (state.goals || []).map(g => g._id === goalId ? { ...g, ...goal } : g) }));
+          return { success: true, goal };
+        } catch (error) {
+          return { success: false, error: handleApiError(error) };
+        }
+      },
+      setHabitLinks: async (goalId, habitLinks) => {
+        try {
+          const res = await goalsAPI.setHabitLinks(goalId, habitLinks);
+          const goal = res?.data?.data?.goal;
+          if (goal) set(state => ({ goals: (state.goals || []).map(g => g._id === goalId ? { ...g, ...goal } : g) }));
+          return { success: true, goal };
+        } catch (error) {
+          return { success: false, error: handleApiError(error) };
+        }
+      },
       
       createGoal: async (goalData) => {
         try {

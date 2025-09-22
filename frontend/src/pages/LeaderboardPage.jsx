@@ -382,7 +382,7 @@ const LeaderboardPage = () => {
                 const bubble = rank === 1 ? '🏆' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank;
                 return (
                   <motion.div
-                    key={user._id}
+                    key={user._id || user.username || `${index}`}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.5, delay: 0.05 * index }}
@@ -448,7 +448,7 @@ const LeaderboardPage = () => {
                 
                 return (
                   <motion.div
-                    key={user._id}
+                    key={user._id || user.username || `${index}`}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.5, delay: 0.1 * index }}

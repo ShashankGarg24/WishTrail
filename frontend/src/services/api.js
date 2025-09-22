@@ -112,7 +112,7 @@ export const authAPI = {
 // Goals API
 export const goalsAPI = {
   getGoals: (params) => api.get('/goals', { params }),
-  getGoal: (id) => api.get(`/goals/${id}`),
+  getGoal: (id, params) => api.get(`/goals/${id}`, { params }),
   getTrendingGoals: (params) => api.get('/goals/trending', { params }),
   createGoal: (goalData) => api.post('/goals', goalData),
   updateGoal: (id, goalData) => api.put(`/goals/${id}`, goalData),
@@ -125,6 +125,11 @@ export const goalsAPI = {
   getOGImageUrl: (id) => `${api.defaults.baseURL}/goals/${id}/og-image`,
   searchGoals: (params) => api.get('/goals/search', { params }),
   getGoalPost: (id) => api.get(`/goals/${id}/post`),
+  // Goal Division
+  getProgress: (id) => api.get(`/goals/${id}/progress`),
+  setSubGoals: (id, subGoals) => api.put(`/goals/${id}/subgoals`, { subGoals }),
+  toggleSubGoal: (id, index, completed, note) => api.patch(`/goals/${id}/subgoals/${index}`, { completed, note }),
+  setHabitLinks: (id, habitLinks) => api.put(`/goals/${id}/habits`, { habitLinks })
 };
 
 // Users API

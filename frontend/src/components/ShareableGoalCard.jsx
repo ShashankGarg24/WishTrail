@@ -54,10 +54,9 @@ const ShareableGoalCard = forwardRef(({ goal, user, onClose }, ref) => {
   return (
     <motion.div
       ref={ref}
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      className="relative bg-gradient-to-br from-white to-blue-50 dark:from-gray-800 dark:to-gray-900 rounded-3xl p-8 shadow-2xl border border-blue-100 dark:border-gray-700 max-w-lg mx-auto"
-      style={{ minHeight: '600px' }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="relative box-border w-[600px] h-[800px] bg-gradient-to-br from-white to-blue-50 dark:from-gray-800 dark:to-gray-900 rounded-3xl p-8 shadow-2xl border border-blue-100 dark:border-gray-700 overflow-hidden mx-auto"
     >
       {/* Background Pattern */}
       <div className="absolute inset-0 opacity-5 dark:opacity-10">
@@ -99,19 +98,19 @@ const ShareableGoalCard = forwardRef(({ goal, user, onClose }, ref) => {
               {goal.category}
             </span>
           </div>
-          <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
+          {/* <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
           <span className="text-sm text-gray-600 dark:text-gray-400 capitalize">
             {goal.priority} priority
-          </span>
+          </span> */}
         </div>
 
         {/* Duration */}
-        <div className="flex items-center justify-center space-x-2">
+        {/* <div className="flex items-center justify-center space-x-2">
           <Target className="h-4 w-4 text-gray-500" />
           <span className="text-sm text-gray-600 dark:text-gray-400">
             {getDurationLabel(goal.duration)} goal
           </span>
-        </div>
+        </div> */}
 
         {/* Completion Date */}
         <div className="flex items-center justify-center space-x-2">

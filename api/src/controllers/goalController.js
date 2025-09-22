@@ -37,6 +37,7 @@ const { createCanvas, loadImage, registerFont } = require('canvas');
 const Notification = require('../models/Notification');
 const path = require('path');
 const fs = require('fs');
+const goalDivisionService = require('../services/goalDivisionService');
 // @desc    Get goal post details for modal (Instagram-like)
 // @route   GET /api/v1/goals/:id/post
 // @access  Private (visible per visibility rules)
@@ -119,7 +120,7 @@ const getGoalPost = async (req, res, next) => {
 // @access  Private
 const getGoals = async (req, res, next) => {
   try {
-    const { year, category, status, page = 1, limit = 10 } = req.query;
+    const { year, category, status, page = 1, limit = 10, includeProgress } = req.query;
     
     const query = { userId: req.user.id };
     
@@ -134,8 +135,22 @@ const getGoals = async (req, res, next) => {
       .limit(limit * 1)
       .skip((page - 1) * limit);
 
-    //add virtual fields to the goals (isLocked)
-    const goals = rawGoals.map(goal => goal.toJSON()); 
+    // add virtual fields and optional computed progress
+    const goals = [];
+    const wantProgress = String(includeProgress) === 'true';
+    if (wantProgress) {
+      // Compute in sequence to avoid overwhelming DB; can optimize later with batching
+      for (const g of rawGoals) {
+        const obj = g.toJSON();
+        try {
+          const progress = await goalDivisionService.computeGoalProgress(g._id, req.user.id);
+          obj.progress = progress;
+        } catch (_) { obj.progress = { percent: 0, breakdown: { subGoals: [], habits: [] } }; }
+        goals.push(obj);
+      }
+    } else {
+      for (const g of rawGoals) goals.push(g.toJSON());
+    }
     const total = await Goal.countDocuments(query);
     
     res.status(200).json({
@@ -181,10 +196,12 @@ const getGoal = async (req, res, next) => {
       }
     }
     
-    res.status(200).json({
-      success: true,
-      data: { goal }
-    });
+    const wantProgress = String(req.query.includeProgress) === 'true';
+    let progress = undefined;
+    if (wantProgress) {
+      try { progress = await goalDivisionService.computeGoalProgress(goal._id, req.user.id); } catch (_) { /* ignore */ }
+    }
+    res.status(200).json({ success: true, data: { goal, progress } });
   } catch (error) {
     next(error);
   }
@@ -910,6 +927,39 @@ module.exports = {
   generateOGImage,
   searchGoals,
   getGoalPost,
+  // Goal Division: sub-goals and habit links
+  async setSubGoals(req, res, next) {
+    try {
+      const goalId = req.params.id;
+      const subGoals = Array.isArray(req.body?.subGoals) ? req.body.subGoals : [];
+      const updated = await goalDivisionService.setSubGoals(goalId, req.user.id, subGoals);
+      return res.status(200).json({ success: true, data: { goal: updated } });
+    } catch (err) { next(err); }
+  },
+  async toggleSubGoal(req, res, next) {
+    try {
+      const goalId = req.params.id;
+      const idx = req.params.index;
+      const { completed, note } = req.body || {};
+      const updated = await goalDivisionService.toggleSubGoal(goalId, req.user.id, idx, completed, note);
+      return res.status(200).json({ success: true, data: { goal: updated } });
+    } catch (err) { next(err); }
+  },
+  async setHabitLinks(req, res, next) {
+    try {
+      const goalId = req.params.id;
+      const links = Array.isArray(req.body?.habitLinks) ? req.body.habitLinks : [];
+      const updated = await goalDivisionService.setHabitLinks(goalId, req.user.id, links);
+      return res.status(200).json({ success: true, data: { goal: updated } });
+    } catch (err) { next(err); }
+  },
+  async getProgress(req, res, next) {
+    try {
+      const goalId = req.params.id;
+      const result = await goalDivisionService.computeGoalProgress(goalId, req.user.id);
+      return res.status(200).json({ success: true, data: result });
+    } catch (err) { next(err); }
+  },
   // @desc    Get trending goals (supports strategy: global | category | personalized)
   // @route   GET /api/v1/goals/trending?strategy=&category=&page=&limit=
   // @access  Private

@@ -60,10 +60,14 @@ const ShareModal = ({ isOpen, onClose, goal, user }) => {
     setIsGenerating(true)
     
     try {
+      const rect = cardRef.current.getBoundingClientRect()
+      const targetWidth = Math.round(rect.width || cardRef.current.offsetWidth || 600)
+      const targetHeight = Math.round(rect.height || cardRef.current.offsetHeight || 800)
+
       const canvas = await html2canvas(cardRef.current, {
         backgroundColor: '#ffffff',
-        width: 600,
-        height: 800,
+        width: targetWidth,
+        height: targetHeight,
         scale: 2,
         allowTaint: true,
         useCORS: true,
@@ -236,13 +240,11 @@ const ShareModal = ({ isOpen, onClose, goal, user }) => {
         <div className="p-6">
           {/* Shareable Card */}
           <div className="mb-6 flex justify-center">
-            <div className="scale-75 origin-top">
-              <ShareableGoalCard
-                ref={cardRef}
-                goal={goal}
-                user={user}
-              />
-            </div>
+            <ShareableGoalCard
+              ref={cardRef}
+              goal={goal}
+              user={user}
+            />
           </div>
 
           {/* Action Buttons */}
