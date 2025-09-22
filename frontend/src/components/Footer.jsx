@@ -18,12 +18,6 @@ const Footer = () => {
       href: 'https://instagram.com/thewishtrail',
       icon: Instagram,
       color: 'hover:text-pink-500'
-    },
-    {
-      name: 'Blog',
-      href: 'https://blooggerr.netlify.app/',
-      icon: ExternalLink,
-      color: 'hover:text-blue-500'
     }
   ]
 

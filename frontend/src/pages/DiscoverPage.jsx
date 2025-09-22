@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { Users, Target, RefreshCw, ChevronsDown, TrendingUp, Flame, UserPlus, UserCheck, Compass } from 'lucide-react'
+import { communitiesAPI } from '../services/api'
 import useApiStore from '../store/apiStore'
 import SkeletonList from '../components/loader/SkeletonList'
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -52,6 +53,8 @@ const DiscoverPage = () => {
   const [loadingMoreGoalSearch, setLoadingMoreGoalSearch] = useState(false);
   const [goalSearchHasMore, setGoalSearchHasMore] = useState(true);
   const [goalResults, setGoalResults] = useState([])
+  const [communities, setCommunities] = useState([])
+  const [communityResults, setCommunityResults] = useState([])
   const [goalModalOpen, setGoalModalOpen] = useState(false)
   const [openGoalId, setOpenGoalId] = useState(null)
   const [scrollCommentsOnOpen, setScrollCommentsOnOpen] = useState(false)
@@ -109,8 +112,9 @@ const DiscoverPage = () => {
     } else if (!selectedInterest) {
       setSearchResults([]);
       setIsSearching(false);
+      if (activeDiscoverSubtab === 'communities') setCommunityResults(communities);
     }
-  }, [searchTerm, selectedInterest]);
+  }, [searchTerm, selectedInterest, activeDiscoverSubtab, communities]);
 
   useEffect(() => {
     if (selectedInterest && (!searchTerm || searchTerm.trim().length < 2)) {
@@ -132,6 +136,20 @@ const DiscoverPage = () => {
           setDiscoverHasMore(1 < totalPages)
         } else {
           setUsers([])
+        }
+      } else if (activeDiscoverSubtab === 'communities') {
+        try {
+          const resp = await communitiesAPI.discover({ interests: selectedInterest ? selectedInterest : '', limit: 30 });
+          const data = resp?.data?.data || [];
+          setCommunities(data);
+          if (searchTerm.trim()) {
+            const q = searchTerm.trim().toLowerCase();
+            setCommunityResults(data.filter(c => (c.name||'').toLowerCase().includes(q)));
+          } else {
+            setCommunityResults(data);
+          }
+        } catch (_) {
+          setCommunities([]); setCommunityResults([]);
         }
       } else 
       // Goals subtab: either refresh search or fetch trending list
@@ -341,12 +359,14 @@ const DiscoverPage = () => {
     if (!t && !interestValue) {
       setSearchResults([]);
       setGoalResults([]);
+      setCommunityResults(communities);
       setIsSearching(false);
       return;
     }
     if (t && t.length < 2 && !interestValue) {
       setSearchResults([]);
       setGoalResults([]);
+      setCommunityResults(communities);
       setIsSearching(false);
       return;
     }
@@ -363,17 +383,24 @@ const DiscoverPage = () => {
         setSearchResults(filteredResults);
         const totalPages = pagination?.pages || 1;
         setUserSearchHasMore(1 < totalPages);
-      } else {
+      } else if (activeDiscoverSubtab === 'goals') {
         setLoadingGoals(true);
         const { goals, pagination } = await useApiStore.getState().searchGoals({ q: t, interest: interestValue, page: 1, limit: 18 });
         setGoalResults(goals || []);
         const totalPages = pagination?.pages || 1;
         setGoalSearchHasMore(1 < totalPages);
+      } else if (activeDiscoverSubtab === 'communities') {
+        const resp = await communitiesAPI.discover({ interests: interestValue || '', limit: 50 });
+        const data = resp?.data?.data || [];
+        setCommunities(data);
+        const q = t.toLowerCase();
+        setCommunityResults(q ? data.filter(c => (c.name||'').toLowerCase().includes(q)) : data);
       }
     } catch (error) {
       console.error('Error searching:', error);
       setSearchResults([]);
       setGoalResults([]);
+      setCommunityResults([]);
     } finally {
       setIsSearching(false);
       setLoadingGoals(false);
@@ -454,7 +481,7 @@ const DiscoverPage = () => {
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }} className="relative max-w-3xl mx-auto mb-8">
           <div className="relative">
-            <input type="text" placeholder={activeDiscoverSubtab === 'users' ? 'Search users by name or username...' : 'Search goals by title...'}
+            <input type="text" placeholder={activeDiscoverSubtab === 'users' ? 'Search users by name or username...' : (activeDiscoverSubtab === 'goals' ? 'Search goals by title...' : 'Search communities by name...')}
              value={searchTerm} 
              onChange={(e) => setSearchTerm(e.target.value)} 
              className="w-full pl-4 pr-36 py-4 bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg border border-gray-200 dark:border-gray-700/50 rounded-2xl text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-lg" />
@@ -468,6 +495,11 @@ const DiscoverPage = () => {
               aria-selected={activeDiscoverSubtab === 'goals'} 
               className={`ml-1 px-2.5 py-1.5 rounded-lg text-xs font-medium ${activeDiscoverSubtab === 'goals' ? 'bg-blue-500 text-white' : 'text-gray-700 dark:text-gray-300'}`} 
               onClick={() => { setActiveDiscoverSubtab('goals'); setUsers([]); fetchInitial(); }}>Goals</button>
+              <button 
+              role="tab" 
+              aria-selected={activeDiscoverSubtab === 'communities'} 
+              className={`ml-1 px-2.5 py-1.5 rounded-lg text-xs font-medium ${activeDiscoverSubtab === 'communities' ? 'bg-blue-500 text-white' : 'text-gray-700 dark:text-gray-300'}`} 
+              onClick={() => { setActiveDiscoverSubtab('communities'); setUsers([]); setTrending([]); fetchInitial(); }}>Communities</button>
             </div>
           </div>
           <div className="mt-3">
@@ -677,7 +709,7 @@ const DiscoverPage = () => {
                       </p>
                     </div>
                   )
-                ) : (
+                ) : activeDiscoverSubtab === 'goals' ? (
                   (searchTerm.trim() || selectedInterest)
                   ? (goalResults && goalResults.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -749,7 +781,44 @@ const DiscoverPage = () => {
                       </div>
                     )
                   )
-                )}
+                ) : (
+                  communityResults && communityResults.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {communityResults.map((c, idx) => (
+                        <motion.div
+                          key={`${c._id || idx}`}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.5, delay: 0.05 * idx }}
+                          className="bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-5 border border-gray-200 dark:border-gray-700/50 hover:border-gray-300 dark:hover:border-gray-600/50 transition-all duration-200 shadow-lg hover:shadow-xl"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 text-white flex items-center justify-center text-sm font-semibold">
+                              {c.name?.slice(0,2).toUpperCase()}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="font-semibold truncate">{c.name}</div>
+                              <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{c.description || '—'}</div>
+                            </div>
+                          </div>
+                          <div className="mt-3 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                            <span>{c.stats?.memberCount || 0} members</span>
+                            <span className="px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800">{c.visibility}</span>
+                          </div>
+                          <div className="mt-3 flex items-center gap-2">
+                            <button className="flex-1 px-3 py-2 rounded-lg bg-blue-600 text-white" onClick={() => navigate(`/communities/${c._id}`)}>View</button>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12">
+                      <Users className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-600 dark:text-gray-400 text-lg">No communities found.</p>
+                    </div>
+                  )
+                )
+        }
         {/* Goal Post Modal */}
         {goalModalOpen && (
           <GoalPostModal

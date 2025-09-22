@@ -220,6 +220,7 @@ export const communitiesAPI = {
   listMine: () => api.get('/communities/mine'),
   discover: (params) => api.get('/communities/discover', { params }),
   create: (payload) => api.post('/communities', payload),
+  update: (id, payload) => api.patch(`/communities/${id}`, payload),
   get: (id) => api.get(`/communities/${id}`),
   dashboard: (id) => api.get(`/communities/${id}/dashboard`),
   feed: (id, params) => api.get(`/communities/${id}/feed`, { params }),

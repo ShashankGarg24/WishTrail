@@ -10,6 +10,7 @@ router.get('/discover', protect, controller.discoverCommunities);
 
 // Create
 router.post('/', protect, controller.createCommunity);
+router.patch('/:id', protect, controller.updateCommunity);
 
 // Detail
 router.get('/:id', protect, controller.getCommunity);

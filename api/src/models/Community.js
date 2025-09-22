@@ -47,7 +47,8 @@ const communitySchema = new mongoose.Schema({
     notifications: {
       milestones: { type: Boolean, default: true },
       announcements: { type: Boolean, default: true }
-    }
+    },
+    memberLimit: { type: Number, default: 0, min: 0 } // 0 = unlimited (subject to server cap)
   },
   stats: {
     memberCount: { type: Number, default: 1, min: 0, index: true },

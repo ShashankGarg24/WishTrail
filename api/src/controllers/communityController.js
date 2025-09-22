@@ -25,6 +25,14 @@ module.exports = {
       res.status(201).json({ success: true, data: created });
     } catch (e) { next(e); }
   },
+  async updateCommunity(req, res, next) {
+    try {
+      const { id } = req.params;
+      const payload = req.body || {};
+      const data = await communityService.updateCommunity(req.user.id, id, payload);
+      res.status(200).json({ success: true, data });
+    } catch (e) { next(e); }
+  },
   async getCommunity(req, res, next) {
     try {
       const { community, role, isMember } = await communityService.getCommunitySummary(req.params.id, req.user.id);

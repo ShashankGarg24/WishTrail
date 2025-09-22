@@ -31,7 +31,7 @@ export default function CommunitiesPage() {
   const [discover, setDiscover] = useState([])
   const [query, setQuery] = useState('')
   const [showCreate, setShowCreate] = useState(false)
-  const [form, setForm] = useState({ name: '', description: '', visibility: 'public' })
+  const [form, setForm] = useState({ name: '', description: '', visibility: 'public', interests: [], memberLimit: 0 })
 
   useEffect(() => {
     let active = true
@@ -92,27 +92,7 @@ export default function CommunitiesPage() {
         )}
       </div>
 
-      <div className="mb-4 flex items-center gap-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search communities" className="w-full pl-9 pr-3 py-2 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900" />
-        </div>
-      </div>
-
-      <div className="mb-8">
-        <h2 className="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-3">Discover</h2>
-        {loading && discover.length === 0 ? (
-          <div className="text-sm text-gray-500">Loading…</div>
-        ) : filteredDiscover.length === 0 ? (
-          <div className="text-sm text-gray-500">No communities found.</div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredDiscover.map(c => (
-              <CommunityCard key={c._id} community={c} onClick={() => (window.location.href = `/communities/${c._id}`)} />
-            ))}
-          </div>
-        )}
-      </div>
+      {/* Discover moved to DiscoverPage */}
 
       {showCreate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -135,6 +115,15 @@ export default function CommunitiesPage() {
                   <option value="private">Private</option>
                   <option value="invite-only">Invite-only</option>
                 </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium mb-1">Interests (comma separated)</label>
+                <input value={form._interests || ''} onChange={e => setForm({ ...form, _interests: e.target.value, interests: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium mb-1">Member limit (0 for unlimited)</label>
+                <input type="number" min={0} value={form.memberLimit} onChange={e => setForm({ ...form, memberLimit: parseInt(e.target.value || '0') })} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900" />
+                <div className="text-[10px] text-gray-500 mt-1">We cap large communities server-side for performance.</div>
               </div>
               <div className="flex justify-end gap-2 pt-2">
                 <button onClick={() => setShowCreate(false)} className="px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-800">Cancel</button>

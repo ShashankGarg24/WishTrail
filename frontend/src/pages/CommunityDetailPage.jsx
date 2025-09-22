@@ -212,6 +212,32 @@ export default function CommunityDetailPage() {
         <div className="rounded-xl border border-gray-200 dark:border-gray-800 p-4 bg-white dark:bg-gray-900">
           {['admin','moderator'].includes(role) ? (
             <div className="space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium mb-1">Avatar URL</label>
+                  <input defaultValue={community.avatarUrl || ''} onBlur={async (e) => { await communitiesAPI.update(community._id, { avatarUrl: e.target.value }); }} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium mb-1">Banner URL</label>
+                  <input defaultValue={community.bannerUrl || ''} onBlur={async (e) => { await communitiesAPI.update(community._id, { bannerUrl: e.target.value }); }} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium mb-1">Interests (comma separated)</label>
+                  <input defaultValue={(community.interests||[]).join(', ')} onBlur={async (e) => { const interests = e.target.value.split(',').map(s => s.trim()).filter(Boolean); await communitiesAPI.update(community._id, { interests }); }} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium mb-1">Member limit (0 for unlimited)</label>
+                  <input type="number" min={0} defaultValue={community.settings?.memberLimit || 0} onBlur={async (e) => { const memberLimit = parseInt(e.target.value||'0'); await communitiesAPI.update(community._id, { memberLimit }); }} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900" />
+                </div>
+              </div>
+              <div className="text-xs text-gray-500">Server enforces an upper cap regardless of this value.</div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-semibold">Invite link</div>
+                  <div className="text-xs text-gray-500">Share this link to invite people</div>
+                </div>
+                <button className="px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-800" onClick={() => { navigator.clipboard?.writeText(window.location.origin + `/communities/${community._id}`) }}>Copy</button>
+              </div>
               <div>
                 <div className="text-sm font-semibold mb-2">Pending Member Requests</div>
                 <PendingMembers communityId={community._id} />

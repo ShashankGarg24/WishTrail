@@ -14,6 +14,9 @@ async function createCommunity(ownerId, payload) {
   const session = await mongoose.startSession();
   let created = null;
   await session.withTransaction(async () => {
+    const serverCap = Math.max(50, parseInt(process.env.COMMUNITY_MEMBER_CAP || '500'));
+    const requestedLimit = Math.max(0, parseInt(payload.memberLimit || 0));
+    const memberLimit = requestedLimit > 0 ? Math.min(requestedLimit, serverCap) : 0;
     const doc = await Community.create([{
       name: payload.name,
       description: payload.description || '',
@@ -21,7 +24,8 @@ async function createCommunity(ownerId, payload) {
       avatarUrl: payload.avatarUrl || '',
       bannerUrl: payload.bannerUrl || '',
       visibility: payload.visibility || 'public',
-      interests: Array.isArray(payload.interests) ? payload.interests : []
+      interests: Array.isArray(payload.interests) ? payload.interests : [],
+      settings: { memberLimit }
     }], { session });
     created = doc[0];
     await CommunityMember.create([{ communityId: created._id, userId: ownerId, role: 'admin', status: 'active' }], { session });
@@ -56,6 +60,26 @@ async function getCommunitySummary(communityId, userId) {
   const role = membership?.role || null;
   const isMember = !!membership && membership.status === 'active';
   return { community, role, isMember };
+}
+
+async function updateCommunity(requesterId, communityId, payload) {
+  const mem = await CommunityMember.findOne({ communityId, userId: requesterId, status: 'active' }).lean();
+  if (!mem || !['admin','moderator'].includes(mem.role)) {
+    throw Object.assign(new Error('Forbidden'), { statusCode: 403 });
+  }
+  const set = {};
+  ['name','description','visibility','avatarUrl','bannerUrl'].forEach(k => {
+    if (typeof payload[k] !== 'undefined') set[k] = payload[k];
+  });
+  if (Array.isArray(payload.interests)) set.interests = payload.interests;
+  if (payload.memberLimit !== undefined) {
+    const serverCap = Math.max(50, parseInt(process.env.COMMUNITY_MEMBER_CAP || '500'));
+    const requested = Math.max(0, parseInt(payload.memberLimit || 0));
+    set['settings.memberLimit'] = requested > 0 ? Math.min(requested, serverCap) : 0;
+  }
+  const updated = await Community.findByIdAndUpdate(communityId, { $set: set }, { new: true, runValidators: true });
+  if (!updated) throw Object.assign(new Error('Community not found'), { statusCode: 404 });
+  return updated;
 }
 
 async function getCommunityDashboard(communityId) {
@@ -164,6 +188,12 @@ async function getItemProgress(userId, communityId, itemId) {
 async function joinCommunity(userId, communityId) {
   const community = await Community.findById(communityId);
   if (!community || !community.isActive) throw Object.assign(new Error('Community not found'), { statusCode: 404 });
+  // Enforce server cap & community memberLimit (if > 0)
+  const serverCap = Math.max(50, parseInt(process.env.COMMUNITY_MEMBER_CAP || '500'));
+  const effectiveCap = Math.min(serverCap, Math.max(0, community.settings?.memberLimit || 0) || serverCap);
+  if ((community.stats?.memberCount || 0) >= effectiveCap) {
+    throw Object.assign(new Error('Community member limit reached'), { statusCode: 400 });
+  }
   const existing = await CommunityMember.findOne({ communityId, userId });
   if (existing && existing.status === 'active') return existing;
   const requiresApproval = community.visibility !== 'public' || community.settings?.membershipApprovalRequired;
@@ -250,6 +280,7 @@ module.exports = {
   getItemProgress,
   joinCommunity,
   leaveCommunity,
+  updateCommunity,
   listPendingMembers,
   decideMembership,
   listMembers,
