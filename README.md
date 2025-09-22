@@ -16,6 +16,7 @@ A social goal-tracking app to create goals, complete them with proof, and stay m
   - Avatar upload
   - Privacy: public, friends‑only, private
   - Follower/following counts and recent goals
+  - Journaling with AI motivation
 
 - **Goals (Wishes)**
   - CRUD with validation; yearly partitioning and filters
@@ -34,11 +35,11 @@ A social goal-tracking app to create goals, complete them with proof, and stay m
   - Create habits linked to a goal or standalone
   - Scheduling: daily, weekly, custom days (`daysOfWeek`)
   - Timezone‑aware reminders (HH:mm) with per‑minute matching and 10‑minute window
-  - Logs with statuses: done, skipped, missed; optional note/mood/journal link
+  - Logs with statuses: done, skipped;
   - Streaks: current, longest; total completions; last logged date key
   - Streak milestones (1/7/30/100) activity surfacing; optional 30‑day OG share image
-  - Archive/unarchive, delete
-  - Analytics: 30/90‑day aggregates, top streaks, heatmap API
+  - delete
+  - Analytics: 30/90‑day aggregates, top streaks
 
 - **Dashboard**
   - Headline metrics: total goals, completed, in‑progress, today’s completions/limit, total points, level

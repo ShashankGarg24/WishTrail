@@ -36,7 +36,14 @@ const notificationSchema = new mongoose.Schema({
       'comment_reply',
       'mention',
       'activity_liked',
-      'comment_liked'
+      'comment_liked',
+      // Community notifications
+      'community_milestone',
+      'community_announcement',
+      'community_suggestion',
+      'community_role_update',
+      'community_join_request',
+      'community_join_approved'
     ],
     index: true
   },
@@ -127,6 +134,11 @@ const notificationSchema = new mongoose.Schema({
       of: mongoose.Schema.Types.Mixed
     }
   },
+  // Community context
+  communityId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Community'
+  },
   
   // Notification status
   isRead: {
@@ -187,6 +199,7 @@ const notificationSchema = new mongoose.Schema({
 // Indexes for performance
 notificationSchema.index({ userId: 1, isRead: 1, createdAt: -1 });
 notificationSchema.index({ userId: 1, type: 1, createdAt: -1 });
+notificationSchema.index({ userId: 1, communityId: 1, createdAt: -1 });
 notificationSchema.index({ userId: 1, priority: 1, createdAt: -1 });
 notificationSchema.index({ createdAt: -1 });
 notificationSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 }); // TTL index

@@ -48,6 +48,12 @@ const BottomTabBar = () => {
                 onClick={() => navigate('/discover')}
               />
               <TabButton
+                active={path.startsWith('/communities')}
+                label="Communities"
+                Icon={Target}
+                onClick={() => navigate('/communities')}
+              />
+              <TabButton
                 active={path.startsWith('/dashboard')}
                 label="Dashboard"
                 Icon={BarChart3}
@@ -56,7 +62,7 @@ const BottomTabBar = () => {
               <TabButton
                 active={path.startsWith('/leaderboard')}
                 label="Leaderboard"
-                Icon={Target}
+                Icon={Users}
                 onClick={() => navigate('/leaderboard')}
               />
               <TabButton

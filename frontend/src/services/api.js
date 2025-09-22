@@ -215,6 +215,30 @@ export const notificationsAPI = {
   ping: () => api.post('/notifications/ping')
 };
 
+// Communities API
+export const communitiesAPI = {
+  listMine: () => api.get('/communities/mine'),
+  discover: (params) => api.get('/communities/discover', { params }),
+  create: (payload) => api.post('/communities', payload),
+  get: (id) => api.get(`/communities/${id}`),
+  dashboard: (id) => api.get(`/communities/${id}/dashboard`),
+  feed: (id, params) => api.get(`/communities/${id}/feed`, { params }),
+  items: (id) => api.get(`/communities/${id}/items`),
+  pendingItems: (id) => api.get(`/communities/${id}/items/pending`),
+  suggestItem: (id, payload) => api.post(`/communities/${id}/items`, payload),
+  approveItem: (id, itemId, approve = true) => api.post(`/communities/${id}/items/${itemId}/approve`, { approve }),
+  join: (id) => api.post(`/communities/${id}/join`),
+  leave: (id) => api.post(`/communities/${id}/leave`),
+  members: (id) => api.get(`/communities/${id}/members`),
+  // New per-item endpoints
+  joinItem: (id, itemId) => api.post(`/communities/${id}/items/${itemId}/join`),
+  leaveItem: (id, itemId) => api.post(`/communities/${id}/items/${itemId}/leave`),
+  itemProgress: (id, itemId) => api.get(`/communities/${id}/items/${itemId}/progress`),
+  // Membership moderation
+  pendingMembers: (id) => api.get(`/communities/${id}/members/pending`),
+  approveMember: (id, userId, approve = true) => api.post(`/communities/${id}/members/${userId}/approve`, { approve }),
+};
+
 // Journals API
 export const journalsAPI = {
   getPrompt: () => api.get('/journals/prompt'),

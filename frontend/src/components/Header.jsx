@@ -25,6 +25,7 @@ const Header = () => {
           { name: 'Feed', href: '/feed' },
           { name: 'Discover', href: '/discover' },
           { name: 'Dashboard', href: '/dashboard' },
+          { name: 'Communities', href: '/communities' },
           { name: 'Leaderboard', href: '/leaderboard?tab=global' },
         ]
       : []),

@@ -14,6 +14,8 @@ import FeedPage from './pages/FeedPage'
 import DiscoverPage from './pages/DiscoverPage'
 import NotificationsPage from './pages/NotificationsPage'
 import LeaderboardPage from './pages/LeaderboardPage'
+import CommunitiesPage from './pages/CommunitiesPage'
+import CommunityDetailPage from './pages/CommunityDetailPage'
 import ResetPasswordPage from './pages/ResetPasswordPage'
 import NotFoundPage from './pages/NotFoundPage'
 import { SpeedInsights } from '@vercel/speed-insights/react';
@@ -81,6 +83,8 @@ function App() {
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/inspiration" element={<InspirationPage />} />
             <Route path="/leaderboard" element={<LeaderboardPage />} />
+            <Route path="/communities" element={<CommunitiesPage />} />
+            <Route path="/communities/:id" element={<CommunityDetailPage />} />
             {/* Goal deeplink opens modal within feed/discover */}
             <Route path="/goal/:goalId" element={<FeedPage />} />
             <Route path="*" element={<NotFoundPage />} />

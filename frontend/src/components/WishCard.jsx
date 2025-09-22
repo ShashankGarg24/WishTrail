@@ -135,6 +135,7 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
   }
 
   const progressPercent = typeof wish?.progress?.percent === 'number' ? Math.max(0, Math.min(100, wish.progress.percent)) : null
+  const hasDivision = ((wish?.subGoals?.length || 0) + (wish?.habitLinks?.length || 0)) > 0
 
   return (
     <motion.div
@@ -246,7 +247,7 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
       </p>
 
       {/* Inline compact progress bar (incomplete goals) */}
-      {!wish.completed && progressPercent !== null && (
+      {!wish.completed && hasDivision && progressPercent !== null && (
         <div className="mb-4">
           <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400 mb-1">
             <span>Progress</span>
