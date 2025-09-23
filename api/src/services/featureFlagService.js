@@ -71,8 +71,16 @@ async function getAllFlags({ bypassCache = false } = {}) {
     const cached = await getFromCache();
     if (cached) return cached;
   }
-  await syncDbWithDefaults();
-  const flags = await loadFromDb();
+  let flags = {};
+  try {
+    await syncDbWithDefaults();
+    flags = await loadFromDb();
+  } catch (_) {
+    // Fallback to in-memory defaults when DB is unavailable
+    for (const [k, v] of Object.entries(FEATURE_DEFAULTS)) {
+      flags[k] = { app: !!v.app, web: !!v.web, description: v.description || '' };
+    }
+  }
   await saveToCache(flags);
   return flags;
 }

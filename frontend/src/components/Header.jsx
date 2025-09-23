@@ -7,7 +7,8 @@ import SettingsModal from './SettingsModal'
 import { notificationsAPI } from '../services/api'
 
 const Header = () => {
-  const { isDarkMode, toggleTheme, isAuthenticated, logout, unreadNotifications, getNotifications, isFeatureEnabled } = useApiStore()
+  const { isDarkMode, toggleTheme, isAuthenticated, logout, unreadNotifications, getNotifications, isFeatureEnabled, features } = useApiStore()
+  const featuresReady = !!features
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const location = useLocation()
@@ -138,27 +139,34 @@ const Header = () => {
               </motion.div>
             </Link>
             {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center space-x-8">
-              {mainNavigation.map((item) => (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  className={`relative px-3 py-2 text-sm font-medium transition-colors ${
-                    isActive(item.href)
-                      ? 'text-primary-600 dark:text-primary-400'
-                      : 'text-gray-700 hover:text-primary-600 dark:text-gray-300 dark:hover:text-primary-400'
-                  }`}
-                >
-                  {item.name}
-                  {isActive(item.href) && (
-                    <motion.div
-                      layoutId="activeTab"
-                      className="absolute -bottom-1 left-0 right-0 h-0.5 bg-primary-600 dark:bg-primary-400"
-                    />
-                  )}
-                </Link>
-              ))}
-            </nav>
+            {featuresReady ? (
+              <nav className="hidden md:flex items-center space-x-8">
+                {mainNavigation.map((item) => (
+                  <Link
+                    key={item.name}
+                    to={item.href}
+                    className={`relative px-3 py-2 text-sm font-medium transition-colors ${
+                      isActive(item.href)
+                        ? 'text-primary-600 dark:text-primary-400'
+                        : 'text-gray-700 hover:text-primary-600 dark:text-gray-300 dark:hover:text-primary-400'
+                    }`}
+                  >
+                    {item.name}
+                    {isActive(item.href) && (
+                      <motion.div
+                        layoutId="activeTab"
+                        className="absolute -bottom-1 left-0 right-0 h-0.5 bg-primary-600 dark:bg-primary-400"
+                      />
+                    )}
+                  </Link>
+                ))}
+              </nav>
+            ) : (
+              <nav className="hidden md:flex items-center space-x-8">
+                <div className="h-4 w-16 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+                <div className="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+              </nav>
+            )}
           {/* Right side */}
             <div className="flex items-center space-x-4">
               {/* Notifications */}
@@ -238,20 +246,27 @@ const Header = () => {
                     <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
                       Navigation
                     </div>
-                    {mainNavigation.map((item) => (
-                      <Link
-                        key={item.name}
-                        to={item.href}
-                        onClick={() => setIsMenuOpen(false)}
-                        className={`flex items-center px-3 py-2 text-base font-medium rounded-lg transition-colors ${
-                          isActive(item.href)
-                            ? 'text-primary-600 bg-primary-50 dark:text-primary-400 dark:bg-primary-900/30'
-                            : 'text-gray-700 hover:text-primary-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:text-primary-400 dark:hover:bg-gray-800'
-                        }`}
-                      >
-                        {item.name}
-                      </Link>
-                    ))}
+                    {featuresReady ? (
+                      mainNavigation.map((item) => (
+                        <Link
+                          key={item.name}
+                          to={item.href}
+                          onClick={() => setIsMenuOpen(false)}
+                          className={`flex items-center px-3 py-2 text-base font-medium rounded-lg transition-colors ${
+                            isActive(item.href)
+                              ? 'text-primary-600 bg-primary-50 dark:text-primary-400 dark:bg-primary-900/30'
+                              : 'text-gray-700 hover:text-primary-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:text-primary-400 dark:hover:bg-gray-800'
+                          }`}
+                        >
+                          {item.name}
+                        </Link>
+                      ))
+                    ) : (
+                      <>
+                        <div className="h-4 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-2" />
+                        <div className="h-4 w-28 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+                      </>
+                    )}
                   </div>
                  {/* User Menu */}
                   {isAuthenticated ? (

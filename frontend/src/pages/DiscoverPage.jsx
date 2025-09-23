@@ -23,7 +23,8 @@ const DiscoverPage = () => {
     followUser,
     unfollowUser,
     report,
-    blockUser
+    blockUser,
+    isFeatureEnabled
   } = useApiStore()
 
   const DISCOVER_PAGE_SIZE = 9
@@ -137,7 +138,7 @@ const DiscoverPage = () => {
         } else {
           setUsers([])
         }
-      } else if (activeDiscoverSubtab === 'communities') {
+      } else if (activeDiscoverSubtab === 'communities' && isFeatureEnabled('community')) {
         try {
           const resp = await communitiesAPI.discover({ interests: selectedInterest ? selectedInterest : '', limit: 30 });
           const data = resp?.data?.data || [];
@@ -389,7 +390,7 @@ const DiscoverPage = () => {
         setGoalResults(goals || []);
         const totalPages = pagination?.pages || 1;
         setGoalSearchHasMore(1 < totalPages);
-      } else if (activeDiscoverSubtab === 'communities') {
+      } else if (activeDiscoverSubtab === 'communities' && isFeatureEnabled('community')) {
         const resp = await communitiesAPI.discover({ interests: interestValue || '', limit: 50 });
         const data = resp?.data?.data || [];
         setCommunities(data);
@@ -495,11 +496,13 @@ const DiscoverPage = () => {
               aria-selected={activeDiscoverSubtab === 'goals'} 
               className={`ml-1 px-2.5 py-1.5 rounded-lg text-xs font-medium ${activeDiscoverSubtab === 'goals' ? 'bg-blue-500 text-white' : 'text-gray-700 dark:text-gray-300'}`} 
               onClick={() => { setActiveDiscoverSubtab('goals'); setUsers([]); fetchInitial(); }}>Goals</button>
-              <button 
-              role="tab" 
-              aria-selected={activeDiscoverSubtab === 'communities'} 
-              className={`ml-1 px-2.5 py-1.5 rounded-lg text-xs font-medium ${activeDiscoverSubtab === 'communities' ? 'bg-blue-500 text-white' : 'text-gray-700 dark:text-gray-300'}`} 
-              onClick={() => { setActiveDiscoverSubtab('communities'); setUsers([]); setTrending([]); fetchInitial(); }}>Communities</button>
+              {
+                isFeatureEnabled('community') && <button 
+                role="tab" 
+                aria-selected={activeDiscoverSubtab === 'communities'} 
+                className={`ml-1 px-2.5 py-1.5 rounded-lg text-xs font-medium ${activeDiscoverSubtab === 'communities' ? 'bg-blue-500 text-white' : 'text-gray-700 dark:text-gray-300'}`} 
+                onClick={() => { setActiveDiscoverSubtab('communities'); setUsers([]); setTrending([]); fetchInitial(); }}>Communities</button>
+              }
             </div>
           </div>
           <div className="mt-3">

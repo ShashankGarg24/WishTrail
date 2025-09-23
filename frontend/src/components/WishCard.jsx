@@ -16,7 +16,8 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
     user,
     isAuthenticated,
     loading,
-    loadHabits
+    loadHabits,
+    isFeatureEnabled
   } = useApiStore()
   
   const [isCompletionModalOpen, setIsCompletionModalOpen] = useState(false)
@@ -207,7 +208,7 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
             </button>
           )}
           {/* Division editor button */}
-          {!wish.completed && (
+          {isFeatureEnabled('goal_division') && !wish.completed && (
             <button
               onClick={async (e) => { e.stopPropagation(); try { await loadHabits({}).catch(()=>{}) } catch {} setIsDivisionOpen(true); }}
               className="p-1 rounded-full hover:bg-white/10 transition-colors"
