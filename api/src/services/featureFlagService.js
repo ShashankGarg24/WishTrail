@@ -103,7 +103,6 @@ module.exports = {
   normalizeKey,
   getAllFlags,
   isEnabled,
-  updateFlags,
   platformFromRequest
 };
 
