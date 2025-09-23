@@ -22,7 +22,7 @@ import { SpeedInsights } from '@vercel/speed-insights/react';
 import FeedbackButton from './components/FeedbackButton'
 
 function App() {
-  const { isDarkMode, initializeAuth, isAuthenticated } = useApiStore()
+  const { isDarkMode, initializeAuth, isAuthenticated, loadFeatures, isFeatureEnabled } = useApiStore()
   const location = useLocation()
   const navigate = useNavigate()
   const [inNativeApp, setInNativeApp] = useState(false)
@@ -30,6 +30,8 @@ function App() {
   useEffect(() => {
     // Initialize authentication state
     initializeAuth();
+    // Load feature flags early
+    loadFeatures();
     
     if (isDarkMode) {
       document.documentElement.classList.add('dark')
@@ -82,9 +84,9 @@ function App() {
             <Route path="/profile/@:username" element={<ProfilePage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/inspiration" element={<InspirationPage />} />
-            <Route path="/leaderboard" element={<LeaderboardPage />} />
-            <Route path="/communities" element={<CommunitiesPage />} />
-            <Route path="/communities/:id" element={<CommunityDetailPage />} />
+            {isFeatureEnabled('leaderboard') && <Route path="/leaderboard" element={<LeaderboardPage />} />}
+            {isFeatureEnabled('community') && <Route path="/communities" element={<CommunitiesPage />} />}
+            {isFeatureEnabled('community') && <Route path="/communities/:id" element={<CommunityDetailPage />} />}
             {/* Goal deeplink opens modal within feed/discover */}
             <Route path="/goal/:goalId" element={<FeedPage />} />
             <Route path="*" element={<NotFoundPage />} />

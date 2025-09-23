@@ -44,6 +44,7 @@ const communitySchema = new mongoose.Schema({
   settings: {
     membershipApprovalRequired: { type: Boolean, default: false },
     itemApprovalRequired: { type: Boolean, default: true },
+    onlyAdminsCanAddItems: { type: Boolean, default: true },
     notifications: {
       milestones: { type: Boolean, default: true },
       announcements: { type: Boolean, default: true }

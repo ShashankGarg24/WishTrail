@@ -14,7 +14,8 @@ import {
   moderationAPI,
   notificationsAPI,
   journalsAPI,
-  habitsAPI
+  habitsAPI,
+  featuresAPI
 } from '../services/api';
 
 const useApiStore = create(
@@ -81,6 +82,8 @@ const useApiStore = create(
       cacheHabitAnalyticsTs: 0,
       // UI state
       settingsModalOpen: false,
+      // Feature flags (web)
+      features: null,
       // Dashboard years (client cache)
       dashboardYears: [],
       cacheTTLs: {
@@ -1524,6 +1527,8 @@ const useApiStore = create(
           set({ token, isAuthenticated: true });
           // Optionally fetch user data
           get().getMe();
+          // Load feature flags on startup (non-blocking)
+          try { get().loadFeatures?.(); } catch {}
           // Auto-detect timezone and send to backend (fire-and-forget)
           try {
             const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
@@ -1537,6 +1542,30 @@ const useApiStore = create(
               }).catch(() => {});
             }
           } catch {}
+        }
+      }
+      ,
+      // =====================
+      // FEATURES
+      // =====================
+      loadFeatures: async () => {
+        try {
+          const res = await featuresAPI.list();
+          const flags = res?.data?.data?.flags || null;
+          if (flags) set({ features: flags });
+          return flags;
+        } catch (err) {
+          return null;
+        }
+      },
+      isFeatureEnabled: (key) => {
+        try {
+          const k = String(key || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+          const flags = (get().features) || {};
+          // default to true if not present
+          return !!(flags[k] ? flags[k].web !== false : true);
+        } catch {
+          return true;
         }
       }
     }),

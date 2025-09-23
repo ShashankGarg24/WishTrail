@@ -29,6 +29,7 @@ const createApp = async () => {
 
   await connectDB();       
   await bloomFilter.init();
+  try { await require('./services/featureFlagService').getAllFlags(); } catch {}
   require('./cron/bloomFilterJob');
   require('./cron/journalJobs');
   require('./cron/habitReminderJobs');
@@ -138,6 +139,8 @@ const createApp = async () => {
   apiRouter.use('/moderation', require('./routes/moderationRoutes'));
   apiRouter.use('/notifications', require('./routes/notificationRoutes'));
   apiRouter.use('/communities', require('./routes/communityRoutes'));
+  // Feature flags
+  apiRouter.use('/features', require('./routes/featureFlagRoutes'));
   // Cron endpoints for serverless environments; protect with CRON_SECRET
   apiRouter.use('/cron', require('./routes/cronRoutes'));
 

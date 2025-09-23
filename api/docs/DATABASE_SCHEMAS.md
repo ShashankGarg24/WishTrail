@@ -268,6 +268,25 @@ Complete documentation of all database schemas for the WishTrail application.
 
 ## 📋 **MEDIUM PRIORITY SCHEMAS**
 
+### **FeatureFlag Schema**
+
+Collection: `featureflags`  
+Purpose: Centralized feature toggles per platform (web/app)
+
+```javascript
+{
+  key: String (required, unique, lowercase)
+  description: String
+  app: Boolean (default: true)
+  web: Boolean (default: true)
+  rollout: String (enum: ['off','beta','on'], default: 'on')
+  audience: String (enum: ['all','staff','beta','none'], default: 'all')
+  timestamps: true
+}
+```
+
+Initial keys: `journal`, `habits`, `leaderboard`, `community`, `goal_division`, `stories`.
+
 ### **6. Notification Schema**
 
 **Collection**: `notifications`  

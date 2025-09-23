@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Activity, BarChart3, Target, Users, Settings, ThumbsUp, MessageSquare } from 'lucide-react'
-import { communitiesAPI } from '../services/api'
+import { Activity, BarChart3, Target, Users, Settings, ThumbsUp, MessageSquare, Link, Plus } from 'lucide-react'
+import { communitiesAPI, goalsAPI, habitsAPI } from '../services/api'
 
 const Tab = ({ active, label, Icon, onClick }) => (
   <button onClick={onClick} className={`px-4 py-2 rounded-lg text-sm font-medium inline-flex items-center gap-2 ${active ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200'}`}>
@@ -18,6 +18,90 @@ function StatCard({ label, value, accent }) {
   )
 }
 
+function AddItemModal({ open, onClose, communityId }) {
+  const [type, setType] = useState('goal') // 'goal' | 'habit'
+  
+  if (!open) return null
+  const submit = async () => {
+    try {
+      if (mode === 'link') {
+        if (!sourceId) return
+        await communitiesAPI.suggestItem(communityId, { type, sourceId, title })
+      } else {
+        // Open create flow: for now, navigate to a create page or show alert
+        alert('Open Create Goal/Habit flow here, then link back to community')
+      }
+      onClose(true)
+    } catch (_) {
+      onClose(false)
+    }
+  }
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/50" onClick={() => onClose(false)} />
+      <div className="relative z-10 w-full max-w-md rounded-2xl bg-white dark:bg-gray-900 p-6 shadow-xl border border-gray-200 dark:border-gray-800">
+        <div className="text-lg font-semibold mb-4">Add Goal/Habit</div>
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <label className="text-sm">Type</label>
+            <select value={type} onChange={e => setType(e.target.value)} className="px-2 py-1 rounded border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+              <option value="goal">Goal</option>
+              <option value="habit">Habit</option>
+            </select>
+          </div>
+          <div className="pt-2 flex items-center justify-end gap-2">
+            <button className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200"><Link className="h-4 w-4" />Link</button>
+            <button  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 border border-primary-200 dark:border-primary-800"><Plus className="h-4 w-4" />Add New</button>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <button onClick={() => onClose(false)} className="px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-800">Cancel</button>
+            <button onClick={submit} className="px-3 py-2 rounded-lg bg-blue-600 text-white">Submit</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function SuggestItemModal({ open, onClose, communityId }) {
+  const [type, setType] = useState('goal')
+  const [sourceId, setSourceId] = useState('')
+  const [title, setTitle] = useState('')
+  const [note, setNote] = useState('')
+  if (!open) return null
+  const submit = async () => {
+    try {
+      await communitiesAPI.suggestItem(communityId, { type, sourceId, title, note })
+      onClose(true)
+    } catch (_) {
+      onClose(false)
+    }
+  }
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/50" onClick={() => onClose(false)} />
+      <div className="relative z-10 w-full max-w-md rounded-2xl bg-white dark:bg-gray-900 p-6 shadow-xl border border-gray-200 dark:border-gray-800">
+        <div className="text-lg font-semibold mb-4">Suggest Goal/Habit</div>
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <label className="text-sm">Type</label>
+            <select value={type} onChange={e => setType(e.target.value)} className="px-2 py-1 rounded border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+              <option value="goal">Goal</option>
+              <option value="habit">Habit</option>
+            </select>
+          </div>
+          <input placeholder={`Enter ${type} ID (optional)`} value={sourceId} onChange={e => setSourceId(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900" />
+          <input placeholder="Title" value={title} onChange={e => setTitle(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900" />
+          <textarea placeholder="Why should we add this?" value={note} onChange={e => setNote(e.target.value)} rows={3} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900" />
+          <div className="flex justify-end gap-2 pt-2">
+            <button onClick={() => onClose(false)} className="px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-800">Cancel</button>
+            <button onClick={submit} className="px-3 py-2 rounded-lg bg-blue-600 text-white">Submit</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
 export default function CommunityDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -29,6 +113,8 @@ export default function CommunityDetailPage() {
   const [itemProgress, setItemProgress] = useState({})
   const [members, setMembers] = useState([])
   const [dashboard, setDashboard] = useState(null)
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [showSuggestModal, setShowSuggestModal] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -159,6 +245,27 @@ export default function CommunityDetailPage() {
 
       {tab === 'items' && (
         <div className="space-y-3">
+          {(() => {
+            const onlyAdmins = summary?.community?.settings?.onlyAdminsCanAddItems !== false
+            if (onlyAdmins) {
+              return (
+                <div className="flex items-center justify-between p-3 rounded-lg border border-dashed border-gray-300 dark:border-gray-700">
+                  <div className="text-sm text-gray-600 dark:text-gray-300">Add goals/habits to the community</div>
+                  {['admin','moderator'].includes(role) ? (
+                    <button className="px-3 py-1.5 rounded-lg bg-blue-600 text-white" onClick={() => setShowAddModal(true)}>Add</button>
+                  ) : (
+                    <button className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-800" onClick={() => setShowSuggestModal(true)}>Suggest</button>
+                  )}
+                </div>
+              )
+            }
+            return (
+              <div className="flex items-center justify-between p-3 rounded-lg border border-dashed border-gray-300 dark:border-gray-700">
+                <div className="text-sm text-gray-600 dark:text-gray-300">Add goals/habits to the community</div>
+                <button className="px-3 py-1.5 rounded-lg bg-blue-600 text-white" onClick={() => setShowAddModal(true)}>Add</button>
+              </div>
+            )
+          })()}
           {items.map(it => (
             <div key={it._id} className="rounded-xl border border-gray-200 dark:border-gray-800 p-4 bg-white dark:bg-gray-900">
               <div className="flex items-center justify-between">
@@ -188,6 +295,8 @@ export default function CommunityDetailPage() {
             </div>
           ))}
           {items.length === 0 && <div className="text-sm text-gray-500">No shared goals or habits yet.</div>}
+          <AddItemModal open={showAddModal} onClose={(refresh) => { setShowAddModal(false); if (refresh) window.location.reload(); }} communityId={id} />
+          <SuggestItemModal open={showSuggestModal} onClose={(refresh) => { setShowSuggestModal(false); if (refresh) window.location.reload(); }} communityId={id} />
         </div>
       )}
 
@@ -229,8 +338,14 @@ export default function CommunityDetailPage() {
                   <label className="block text-xs font-medium mb-1">Member limit (0 for unlimited)</label>
                   <input type="number" min={0} defaultValue={community.settings?.memberLimit || 0} onBlur={async (e) => { const memberLimit = parseInt(e.target.value||'0'); await communitiesAPI.update(community._id, { memberLimit }); }} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900" />
                 </div>
+                <div className="col-span-1 sm:col-span-2">
+                  <label className="inline-flex items-center gap-2 text-sm">
+                    <input type="checkbox" defaultChecked={community.settings?.onlyAdminsCanAddItems !== false} onChange={async (e) => { await communitiesAPI.update(community._id, { onlyAdminsCanAddItems: e.target.checked }); }} />
+                    Only admins can add goals/habits (others can suggest)
+                  </label>
+                  <div className="text-xs text-gray-500 mt-1">Uncheck to let anyone add goals/habits directly.</div>
+                </div>
               </div>
-              <div className="text-xs text-gray-500">Server enforces an upper cap regardless of this value.</div>
               <div className="flex items-center justify-between">
                 <div>
                   <div className="text-sm font-semibold">Invite link</div>

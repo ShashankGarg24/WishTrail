@@ -4,6 +4,7 @@ const goalController = require('../controllers/goalController');
 const { protect } = require('../middleware/auth');
 const multer = require('multer');
 const cloudinaryService = require('../services/cloudinaryService');
+const { requireFeature } = require('../middleware/featureFlags');
 
 const router = express.Router();
 
@@ -73,10 +74,10 @@ router.delete('/:id', goalController.deleteGoal);
 router.patch('/:id/like', goalController.toggleGoalLike);
 
 // Goal Division endpoints
-router.get('/:id/progress', goalController.getProgress);
-router.put('/:id/subgoals', goalController.setSubGoals);
-router.patch('/:id/subgoals/:index', goalController.toggleSubGoal);
-router.put('/:id/habits', goalController.setHabitLinks);
+router.get('/:id/progress', requireFeature('goal_division'), goalController.getProgress);
+router.put('/:id/subgoals', requireFeature('goal_division'), goalController.setSubGoals);
+router.patch('/:id/subgoals/:index', requireFeature('goal_division'), goalController.toggleSubGoal);
+router.put('/:id/habits', requireFeature('goal_division'), goalController.setHabitLinks);
 
 // Complete/uncomplete goal with optional image attachment
 router.patch('/:id/toggle', upload.single('attachment'), async (req, res, next) => {

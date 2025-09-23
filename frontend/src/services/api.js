@@ -7,6 +7,9 @@ const API_BASE_URL = API_CONFIG.BASE_URL;
 const api = axios.create({
   baseURL: API_BASE_URL,
   withCredentials: true,
+  headers: {
+    'X-Client-Platform': 'web'
+  }
 });
 
 // Request interceptor to add auth token
@@ -279,6 +282,11 @@ export const uploadAPI = {
 // Feedback API (helper)
 export const feedbackAPI = {
   submit: (formData) => api.post('/feedback', formData)
+}
+
+// Features API
+export const featuresAPI = {
+  list: () => api.get('/features')
 }
 
 // Utility functions

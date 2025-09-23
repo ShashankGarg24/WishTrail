@@ -24,7 +24,7 @@ const TabButton = ({ active, label, Icon, onClick, badge }) => (
 const BottomTabBar = () => {
   const location = useLocation()
   const navigate = useNavigate()
-  const { isAuthenticated, unreadNotifications } = useApiStore()
+  const { isAuthenticated, unreadNotifications, isFeatureEnabled } = useApiStore()
   const [accountOpen, setAccountOpen] = useState(false)
 
   const path = location.pathname
@@ -47,24 +47,28 @@ const BottomTabBar = () => {
                 Icon={Users}
                 onClick={() => navigate('/discover')}
               />
-              <TabButton
-                active={path.startsWith('/communities')}
-                label="Communities"
-                Icon={Target}
-                onClick={() => navigate('/communities')}
-              />
+              {isFeatureEnabled('community') && (
+                <TabButton
+                  active={path.startsWith('/communities')}
+                  label="Communities"
+                  Icon={Target}
+                  onClick={() => navigate('/communities')}
+                />
+              )}
               <TabButton
                 active={path.startsWith('/dashboard')}
                 label="Dashboard"
                 Icon={BarChart3}
                 onClick={() => navigate('/dashboard')}
               />
-              <TabButton
-                active={path.startsWith('/leaderboard')}
-                label="Leaderboard"
-                Icon={Users}
-                onClick={() => navigate('/leaderboard')}
-              />
+              {isFeatureEnabled('leaderboard') && (
+                <TabButton
+                  active={path.startsWith('/leaderboard')}
+                  label="Leaderboard"
+                  Icon={Users}
+                  onClick={() => navigate('/leaderboard')}
+                />
+              )}
               <TabButton
                 active={false}
                 label={isAuthenticated ? 'Account' : 'Login'}

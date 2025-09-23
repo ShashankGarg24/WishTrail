@@ -2,12 +2,14 @@ const express = require('express');
 const router = express.Router();
 const { protect } = require('../middleware/auth');
 const habitController = require('../controllers/habitController');
+const { requireFeature } = require('../middleware/featureFlags');
 
 // Public route (no auth)
-router.get('/:id/og-image', habitController.generateStreakOGImage);
+router.get('/:id/og-image', requireFeature('habits'), habitController.generateStreakOGImage);
 
 // Authenticated routes
 router.use(protect);
+router.use(requireFeature('habits'));
 
 // CRUD
 router.get('/', habitController.listHabits);

@@ -3,6 +3,7 @@ const router = express.Router();
 
 const { sendReminderNotifications } = require('../services/habitService');
 const { notifyDailyPrompt } = require('../services/journalService');
+const { isEnabled } = require('../services/featureFlagService');
 const { sendMorningQuotes, generateNightlyQuotes } = require('../services/motivationService');
 const { sendDueInactivityReminders } = require('../services/inactivityService');
 
@@ -16,6 +17,7 @@ function verifyCronKey(req, res, next) {
 
 router.post('/habit-reminders', verifyCronKey, async (req, res) => {
   try {
+    if (!(await isEnabled('habits', 'app'))) return res.json({ success: true, skipped: true, reason: 'habits disabled' });
     const windowMinutes = Math.max(1, Math.min(30, Number(req.query.window || 10)));
     const startedAt = Date.now();
     const result = await sendReminderNotifications({ windowMinutes });
@@ -29,6 +31,7 @@ router.post('/habit-reminders', verifyCronKey, async (req, res) => {
 
 router.post('/journal-prompts', verifyCronKey, async (req, res) => {
   try {
+    if (!(await isEnabled('journal', 'app'))) return res.json({ success: true, skipped: true, reason: 'journal disabled' });
     const startedAt = Date.now();
     await notifyDailyPrompt();
     const durationMs = Date.now() - startedAt;

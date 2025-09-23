@@ -7,7 +7,7 @@ import SettingsModal from './SettingsModal'
 import { notificationsAPI } from '../services/api'
 
 const Header = () => {
-  const { isDarkMode, toggleTheme, isAuthenticated, logout, unreadNotifications, getNotifications } = useApiStore()
+  const { isDarkMode, toggleTheme, isAuthenticated, logout, unreadNotifications, getNotifications, isFeatureEnabled } = useApiStore()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const location = useLocation()
@@ -25,8 +25,8 @@ const Header = () => {
           { name: 'Feed', href: '/feed' },
           { name: 'Discover', href: '/discover' },
           { name: 'Dashboard', href: '/dashboard' },
-          { name: 'Communities', href: '/communities' },
-          { name: 'Leaderboard', href: '/leaderboard?tab=global' },
+          ...(isFeatureEnabled('community') ? [{ name: 'Communities', href: '/communities' }] : []),
+          ...(isFeatureEnabled('leaderboard') ? [{ name: 'Leaderboard', href: '/leaderboard?tab=global' }] : []),
         ]
       : []),
   ]

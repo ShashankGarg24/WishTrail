@@ -77,6 +77,9 @@ async function updateCommunity(requesterId, communityId, payload) {
     const requested = Math.max(0, parseInt(payload.memberLimit || 0));
     set['settings.memberLimit'] = requested > 0 ? Math.min(requested, serverCap) : 0;
   }
+  if (typeof payload.onlyAdminsCanAddItems !== 'undefined') {
+    set['settings.onlyAdminsCanAddItems'] = !!payload.onlyAdminsCanAddItems;
+  }
   const updated = await Community.findByIdAndUpdate(communityId, { $set: set }, { new: true, runValidators: true });
   if (!updated) throw Object.assign(new Error('Community not found'), { statusCode: 404 });
   return updated;
@@ -109,6 +112,10 @@ async function listPendingItems(communityId, requesterId) {
 }
 
 async function suggestCommunityItem(communityId, userId, payload) {
+  // Check policy: if onlyAdminsCanAddItems is false, suggestions auto-approve when policy allows anyone
+  const community = await Community.findById(communityId).select('settings').lean();
+  if (!community) throw Object.assign(new Error('Community not found'), { statusCode: 404 });
+  const allowAnyone = community?.settings?.onlyAdminsCanAddItems === false;
   const item = new CommunityItem({
     communityId,
     type: payload.type,
@@ -116,7 +123,7 @@ async function suggestCommunityItem(communityId, userId, payload) {
     title: payload.title || '',
     description: payload.description || '',
     createdBy: userId,
-    status: 'pending'
+    status: allowAnyone ? 'approved' : 'pending'
   });
   await item.save();
   return item;

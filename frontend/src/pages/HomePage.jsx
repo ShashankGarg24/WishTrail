@@ -7,7 +7,7 @@ import useApiStore from '../store/apiStore'
 
 const HomePage = () => {
 
-  const { isAuthenticated } = useApiStore();
+  const { isAuthenticated, isFeatureEnabled } = useApiStore();
 
   const getRedirectUrl = () => {
     if (!isAuthenticated) return '/auth';
@@ -57,6 +57,11 @@ const HomePage = () => {
       to: isAuthenticated ? '/leaderboard' : '/auth'
     },
   ]
+  .filter((f) => {
+    if (f.title === 'Daily Journal') return isFeatureEnabled('journal');
+    if (f.title === 'Leaderboards') return isFeatureEnabled('leaderboard');
+    return true;
+  })
 
   const stats = [
     { number: '1000+', label: 'Goals Achieved' },

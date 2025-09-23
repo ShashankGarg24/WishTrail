@@ -57,7 +57,8 @@ const ProfilePage = () => {
     journalEntries,
     journalStats,
     getFollowers,
-    getFollowing
+    getFollowing,
+    isFeatureEnabled
   } = useApiStore();
 
   // Determine if viewing own profile or another user's profile
@@ -706,7 +707,7 @@ const ProfilePage = () => {
                   <Target className="h-5 w-5" />
                   <span className="font-medium">Goals</span>
                 </button>
-                <button
+                {isFeatureEnabled('journal') && <button
                   onClick={() => handleTabChange('journal')}
                   className={`flex items-center space-x-2 px-6 py-3 rounded-xl transition-all duration-200 shrink-0 ${
                     activeTab === 'journal'
@@ -716,7 +717,7 @@ const ProfilePage = () => {
                 >
                   <BookOpen className="h-5 w-5" />
                   <span className="font-medium">Journal</span>
-                </button>
+                </button>}
               </div>
             </motion.div>
             {/* Tab Content */}
