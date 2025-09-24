@@ -129,6 +129,104 @@ async function suggestCommunityItem(communityId, userId, payload) {
   return item;
 }
 
+// Create new community-owned goal/habit from fields (fresh progress)
+async function createCommunityOwnedItem(communityId, creatorId, payload) {
+  const community = await Community.findById(communityId).select('settings').lean();
+  if (!community) throw Object.assign(new Error('Community not found'), { statusCode: 404 });
+  // Enforce admin-only toggle
+  if (community.settings?.onlyAdminsCanAddItems !== false) {
+    const mem = await CommunityMember.findOne({ communityId, userId: creatorId, status: 'active' }).lean();
+    if (!mem || !['admin','moderator'].includes(mem.role)) {
+      throw Object.assign(new Error('Forbidden'), { statusCode: 403 });
+    }
+  }
+  if (payload.type === 'goal') {
+    // Create a minimal Goal document owned by a virtual community owner (store userId=creatorId to attribute)
+    const g = new Goal({
+      userId: creatorId,
+      title: payload.title,
+      description: payload.description || '',
+      category: payload.category,
+      priority: payload.priority || 'medium',
+      duration: payload.duration || 'medium-term',
+      targetDate: payload.targetDate || null,
+      year: new Date().getFullYear(),
+      isPublic: true,
+      isActive: true,
+    });
+    await g.save();
+    const item = new CommunityItem({ communityId, type: 'goal', sourceId: g._id, title: g.title, description: g.description, createdBy: creatorId, status: 'approved' });
+    await item.save();
+    return item;
+  } else {
+    const h = new Habit({
+      userId: creatorId,
+      name: payload.title,
+      description: payload.description || '',
+      frequency: payload.frequency || 'daily',
+      daysOfWeek: Array.isArray(payload.daysOfWeek) ? payload.daysOfWeek : undefined,
+      timezone: payload.timezone || 'UTC',
+      reminders: Array.isArray(payload.reminders) ? payload.reminders : [],
+      isPublic: true,
+      isActive: true,
+    });
+    await h.save();
+    const item = new CommunityItem({ communityId, type: 'habit', sourceId: h._id, title: h.name, description: h.description, createdBy: creatorId, status: 'approved' });
+    await item.save();
+    return item;
+  }
+}
+
+// Copy content from a personal goal/habit into a fresh community-owned copy (no progress)
+async function copyFromPersonalToCommunity(communityId, creatorId, { type, sourceId }) {
+  const community = await Community.findById(communityId).select('settings').lean();
+  if (!community) throw Object.assign(new Error('Community not found'), { statusCode: 404 });
+  if (community.settings?.onlyAdminsCanAddItems !== false) {
+    const mem = await CommunityMember.findOne({ communityId, userId: creatorId, status: 'active' }).lean();
+    if (!mem || !['admin','moderator'].includes(mem.role)) {
+      throw Object.assign(new Error('Forbidden'), { statusCode: 403 });
+    }
+  }
+  if (type === 'goal') {
+    const src = await Goal.findById(sourceId).lean();
+    if (!src) throw Object.assign(new Error('Source goal not found'), { statusCode: 404 });
+    const g = new Goal({
+      userId: creatorId,
+      title: src.title,
+      description: src.description || '',
+      category: src.category,
+      priority: src.priority || 'medium',
+      duration: src.duration || 'medium-term',
+      targetDate: null,
+      year: new Date().getFullYear(),
+      isPublic: true,
+      isActive: true,
+    });
+    await g.save();
+    const item = new CommunityItem({ communityId, type: 'goal', sourceId: g._id, title: g.title, description: g.description, createdBy: creatorId, status: 'approved' });
+    await item.save();
+    return item;
+  } else {
+    const src = await Habit.findById(sourceId).lean();
+    if (!src) throw Object.assign(new Error('Source habit not found'), { statusCode: 404 });
+    const h = new Habit({
+      userId: creatorId,
+      name: src.name,
+      description: src.description || '',
+      frequency: src.frequency || 'daily',
+      daysOfWeek: Array.isArray(src.daysOfWeek) ? src.daysOfWeek : undefined,
+      timezone: src.timezone || 'UTC',
+      reminders: Array.isArray(src.reminders) ? src.reminders : [],
+      isPublic: true,
+      isActive: true,
+    });
+    await h.save();
+    const item = new CommunityItem({ communityId, type: 'habit', sourceId: h._id, title: h.name, description: h.description, createdBy: creatorId, status: 'approved' });
+    await item.save();
+    return item;
+  }
+}
+
 async function approveCommunityItem(communityId, itemId, approverId, approve = true) {
   // Only admins/moderators may approve
   const mem = await CommunityMember.findOne({ communityId, userId: approverId, status: 'active' }).lean();
@@ -282,6 +380,8 @@ module.exports = {
   listPendingItems,
   suggestCommunityItem,
   approveCommunityItem,
+  createCommunityOwnedItem,
+  copyFromPersonalToCommunity,
   joinItem,
   leaveItem,
   getItemProgress,

@@ -21,6 +21,8 @@ router.get('/:id/items', protect, requireFeature('community'), controller.listIt
 router.get('/:id/items/pending', protect, requireFeature('community'), controller.listPendingItems);
 router.post('/:id/items', protect, requireFeature('community'), controller.suggestItem);
 router.post('/:id/items/:itemId/approve', protect, requireFeature('community'), controller.approveItem);
+router.post('/:id/items/create', protect, requireFeature('community'), controller.createNewItem);
+router.post('/:id/items/copy', protect, requireFeature('community'), controller.copyFromPersonal);
 router.post('/:id/items/:itemId/join', protect, requireFeature('community'), controller.joinItem);
 router.post('/:id/items/:itemId/leave', protect, requireFeature('community'), controller.leaveItem);
 router.get('/:id/items/:itemId/progress', protect, requireFeature('community'), controller.getItemProgress);

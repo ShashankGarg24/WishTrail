@@ -2,6 +2,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Activity, BarChart3, Target, Users, Settings, ThumbsUp, MessageSquare, Link, Plus } from 'lucide-react'
 import { communitiesAPI, goalsAPI, habitsAPI } from '../services/api'
+import useApiStore from '../store/apiStore'
+import CreateWishModal from '../components/CreateWishModal'
+import CreateHabitModal from '../components/CreateHabitModal'
 
 const Tab = ({ active, label, Icon, onClick }) => (
   <button onClick={onClick} className={`px-4 py-2 rounded-lg text-sm font-medium inline-flex items-center gap-2 ${active ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200'}`}>
@@ -20,21 +23,55 @@ function StatCard({ label, value, accent }) {
 
 function AddItemModal({ open, onClose, communityId }) {
   const [type, setType] = useState('goal') // 'goal' | 'habit'
-  
+  const [mode, setMode] = useState('link')
+  const [sourceId, setSourceId] = useState('')
+  const [title, setTitle] = useState('')
+  const [showCreateGoalModal, setShowCreateGoalModal] = useState(false)
+  const [showCreateHabitModal, setShowCreateHabitModal] = useState(false)
+  const [myGoals, setMyGoals] = useState([])
+  const [myHabits, setMyHabits] = useState([])
+  const [filter, setFilter] = useState('')
+  const { getGoals, loadHabits } = useApiStore()
+
+  useEffect(() => {
+    let active = true
+    const load = async () => {
+      try {
+        if (mode === 'link') {
+          if (type === 'goal') {
+            const res = await getGoals({ page: 1, limit: 50 })
+            if (!active) return
+            setMyGoals(res?.goals || [])
+          } else {
+            const res = await loadHabits({ force: true })
+            if (!active) return
+            setMyHabits(res?.habits || res?.data || useApiStore.getState().habits || [])
+          }
+        }
+      } catch {}
+    }
+    load()
+    return () => { active = false }
+  }, [open, mode, type, getGoals, loadHabits])
+
   if (!open) return null
+
   const submit = async () => {
     try {
       if (mode === 'link') {
         if (!sourceId) return
-        await communitiesAPI.suggestItem(communityId, { type, sourceId, title })
+        await communitiesAPI.copyCommunityItem(communityId, { type, sourceId })
       } else {
-        // Open create flow: for now, navigate to a create page or show alert
-        alert('Open Create Goal/Habit flow here, then link back to community')
+        if (type === 'goal') {
+          setShowCreateGoalModal(true)
+          return
+        } else {
+          setShowCreateHabitModal(true)
+          return
+        }
       }
       onClose(true)
-    } catch (_) {
-      onClose(false)
-    }
+    } catch (_) { onClose(false) }
   }
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -50,15 +87,74 @@ function AddItemModal({ open, onClose, communityId }) {
             </select>
           </div>
           <div className="pt-2 flex items-center justify-end gap-2">
-            <button className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200"><Link className="h-4 w-4" />Link</button>
-            <button  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 border border-primary-200 dark:border-primary-800"><Plus className="h-4 w-4" />Add New</button>
+            <button onClick={() => setMode('link')} className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg ${mode==='link'?'bg-gray-200 dark:bg-gray-700':'bg-gray-100 dark:bg-gray-800'} text-gray-800 dark:text-gray-200`}><Link className="h-4 w-4" />Link</button>
+            <button onClick={() => setMode('create')} className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg ${mode==='create'?'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800':'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 border border-primary-200 dark:border-primary-800'}`}><Plus className="h-4 w-4" />Add New</button>
           </div>
+          {mode === 'link' ? (
+            <div className="space-y-2">
+              <input placeholder={`Search my ${type === 'goal' ? 'goals' : 'habits'}`} value={filter} onChange={e => setFilter(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900" />
+              <div className="max-h-56 overflow-auto rounded-lg border border-gray-200 dark:border-gray-800">
+                {(type === 'goal' ? myGoals : myHabits)
+                  .filter(item => {
+                    const q = filter.trim().toLowerCase()
+                    if (!q) return true
+                    const t = (type === 'goal' ? item.title : item.name) || ''
+                    return t.toLowerCase().includes(q)
+                  })
+                  .map(item => (
+                    <button key={item._id} onClick={() => setSourceId(item._id)} className={`w-full text-left px-3 py-2 text-sm border-b border-gray-100 dark:border-gray-800 ${sourceId === item._id ? 'bg-blue-50 dark:bg-blue-900/20' : 'hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
+                      {(type === 'goal' ? item.title : item.name) || 'Untitled'}
+                    </button>
+                  ))}
+                {((type === 'goal' ? myGoals : myHabits).length === 0) && (
+                  <div className="px-3 py-2 text-xs text-gray-500">No items found.</div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <input placeholder={`Enter ${type === 'goal' ? 'goal title' : 'habit name'}`} value={title} onChange={e => setTitle(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900" />
+          )}
           <div className="flex justify-end gap-2 pt-2">
             <button onClick={() => onClose(false)} className="px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-800">Cancel</button>
             <button onClick={submit} className="px-3 py-2 rounded-lg bg-blue-600 text-white">Submit</button>
           </div>
         </div>
       </div>
+      {/* Use existing Create Goal modal; on save, first create personal goal then publish community copy */}
+      {showCreateGoalModal && (
+        <CreateWishModal
+          isOpen={showCreateGoalModal}
+          onClose={() => setShowCreateGoalModal(false)}
+          onSave={async (goalData) => {
+            try {
+              const res = await goalsAPI.createGoal(goalData)
+              const created = res?.data?.data?.goal
+              if (created?._id) {
+                await communitiesAPI.copyCommunityItem(communityId, { type: 'goal', sourceId: created._id })
+              }
+              onClose(true)
+              return { success: true }
+            } catch (e) {
+              return { success: false }
+            }
+          }}
+          year={new Date().getFullYear()}
+        />
+      )}
+      {showCreateHabitModal && (
+        <CreateHabitModal
+          isOpen={showCreateHabitModal}
+          onClose={() => setShowCreateHabitModal(false)}
+          onCreated={async (habit) => {
+            try {
+              if (habit?._id) {
+                await communitiesAPI.copyCommunityItem(communityId, { type: 'habit', sourceId: habit._id })
+              }
+              onClose(true)
+            } catch { onClose(false) }
+          }}
+        />
+      )}
     </div>
   )
 }
@@ -335,8 +431,8 @@ export default function CommunityDetailPage() {
                   <input defaultValue={(community.interests||[]).join(', ')} onBlur={async (e) => { const interests = e.target.value.split(',').map(s => s.trim()).filter(Boolean); await communitiesAPI.update(community._id, { interests }); }} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900" />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium mb-1">Member limit (0 for unlimited)</label>
-                  <input type="number" min={0} defaultValue={community.settings?.memberLimit || 0} onBlur={async (e) => { const memberLimit = parseInt(e.target.value||'0'); await communitiesAPI.update(community._id, { memberLimit }); }} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900" />
+                  <label className="block text-xs font-medium mb-1">Member limit (max 100)</label>
+                  <input type="number" min={1} defaultValue={community.settings?.memberLimit || 1} onBlur={async (e) => { const memberLimit = parseInt(e.target.value||'0'); await communitiesAPI.update(community._id, { memberLimit }); }} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900" />
                 </div>
                 <div className="col-span-1 sm:col-span-2">
                   <label className="inline-flex items-center gap-2 text-sm">

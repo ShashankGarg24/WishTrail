@@ -1,13 +1,12 @@
 import { useEffect, useState, useRef } from 'react';
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock';
 import { motion } from 'framer-motion';
-import { X, Lock, Eye, EyeOff, Shield, Settings, Bell, UserX } from 'lucide-react';
+import { X, Lock, Eye, EyeOff, Shield, Settings, Bell, UserX, Moon, Sun, Palette } from 'lucide-react';
 import useApiStore from '../store/apiStore';
-import { useNavigate } from 'react-router-dom';
 
 const SettingsModal = ({ isOpen, onClose }) => {
-  const { user, updateUserPrivacy, updatePassword, logout, notificationSettings, loadNotificationSettings, updateNotificationSettings, listBlockedUsers, unblockUser } = useApiStore();
-  const navigate = useNavigate();
+  const { user, updateUserPrivacy, updatePassword, logout, notificationSettings, loadNotificationSettings, 
+    updateNotificationSettings, listBlockedUsers, unblockUser, toggleTheme,isDarkMode } = useApiStore();
   const [activeTab, setActiveTab] = useState('privacy');
   const [notif, setNotif] = useState(null);
   const [isPrivate, setIsPrivate] = useState(user?.isPrivate || false);
@@ -190,6 +189,44 @@ const SettingsModal = ({ isOpen, onClose }) => {
               <li>• {isPrivate ? 'Only followers' : 'Everyone'} can see your activities</li>
               <li>• {isPrivate ? 'Only followers' : 'Everyone'} can see your goals</li>
             </ul>
+          </div>
+        </div>
+      )
+    },
+    {
+      id: 'theme',
+      label: 'Theme',
+      icon: Palette,
+      component: (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white">Theme</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                {'You are currently using the '}
+                {isDarkMode ? 'dark' : 'light'}
+                {' theme. Toggle to switch between them.'}
+              </p>
+            </div>
+            {/* Theme Toggle */}
+            <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={toggleTheme}
+                className="relative p-3 rounded-xl bg-white/10 hover:bg-white/20 dark:hover:bg-white/10 border border-white/20 dark:border-white/10 transition-all duration-300 group"
+              >
+              <div className="relative w-5 h-5">
+                <Sun className={`absolute inset-0 h-5 w-5 text-yellow-500 transition-all duration-300 ${
+                  isDarkMode ? 'opacity-0 rotate-90 scale-0' : 'opacity-100 rotate-0 scale-100'
+                }`} />
+                <Moon className={`absolute inset-0 h-5 w-5 text-blue-400 transition-all duration-300 ${
+                  isDarkMode ? 'opacity-100 rotate-0 scale-100' : 'opacity-0 -rotate-90 scale-0'
+                }`} />
+              </div>
+                
+              {/* Glow effect */}
+              <div className="absolute inset-0 rounded-xl bg-yellow-400/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            </motion.button>
           </div>
         </div>
       )

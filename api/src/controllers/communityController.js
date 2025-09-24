@@ -71,6 +71,18 @@ module.exports = {
       res.status(200).json({ success: true, data: item });
     } catch (e) { next(e); }
   },
+  async createNewItem(req, res, next) {
+    try {
+      const item = await communityService.createCommunityOwnedItem(req.params.id, req.user.id, req.body || {});
+      res.status(201).json({ success: true, data: item });
+    } catch (e) { next(e); }
+  },
+  async copyFromPersonal(req, res, next) {
+    try {
+      const item = await communityService.copyFromPersonalToCommunity(req.params.id, req.user.id, req.body || {});
+      res.status(201).json({ success: true, data: item });
+    } catch (e) { next(e); }
+  },
   async joinItem(req, res, next) {
     try {
       const doc = await communityService.joinItem(req.user.id, req.params.id, req.params.itemId);

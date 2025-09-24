@@ -48,7 +48,7 @@ export default function GoalDivisionEditor({ goal, habits, onClose }) {
   const addSubGoal = () => setLocalSubGoals(prev => [...prev, { title: '', linkedGoalId: '', weight: 0, completed: false, note: '' }])
   const addHabitLink = () => setLocalHabitLinks(prev => [...prev, { habitId: '', weight: 0, endDate: '' }])
   const addHabitInline = () => setIsCreateHabitOpen(true)
-  const addAndCreateGoal = () => {
+  const createGoal = () => {
     const idx = localSubGoals.length
     setPendingLinkIndex(idx)
     setIsCreateGoalOpen(true)
@@ -165,7 +165,7 @@ export default function GoalDivisionEditor({ goal, habits, onClose }) {
             {localSubGoals.length === 0 && <div className="text-sm text-gray-500 dark:text-gray-400">No sub-goals added.</div>}
             <div className="pt-2 flex items-center justify-end gap-2">
               <button onClick={addSubGoal} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200"><Link className="h-4 w-4" />Link</button>
-              <button onClick={addAndCreateGoal} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 border border-primary-200 dark:border-primary-800"><Plus className="h-4 w-4" />Add New</button>
+              <button onClick={createGoal} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 border border-primary-200 dark:border-primary-800"><Plus className="h-4 w-4" />Add New</button>
             </div>
           </div>
           )}

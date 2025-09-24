@@ -231,6 +231,8 @@ export const communitiesAPI = {
   pendingItems: (id) => api.get(`/communities/${id}/items/pending`),
   suggestItem: (id, payload) => api.post(`/communities/${id}/items`, payload),
   approveItem: (id, itemId, approve = true) => api.post(`/communities/${id}/items/${itemId}/approve`, { approve }),
+  createCommunityItem: (id, payload) => api.post(`/communities/${id}/items/create`, payload),
+  copyCommunityItem: (id, payload) => api.post(`/communities/${id}/items/copy`, payload),
   join: (id) => api.post(`/communities/${id}/join`),
   leave: (id) => api.post(`/communities/${id}/leave`),
   members: (id) => api.get(`/communities/${id}/members`),

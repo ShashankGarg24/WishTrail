@@ -121,9 +121,8 @@ export default function CommunitiesPage() {
                 <input value={form._interests || ''} onChange={e => setForm({ ...form, _interests: e.target.value, interests: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900" />
               </div>
               <div>
-                <label className="block text-xs font-medium mb-1">Member limit (0 for unlimited)</label>
-                <input type="number" min={0} value={form.memberLimit} onChange={e => setForm({ ...form, memberLimit: parseInt(e.target.value || '0') })} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900" />
-                <div className="text-[10px] text-gray-500 mt-1">We cap large communities server-side for performance.</div>
+                <label className="block text-xs font-medium mb-1">Member limit (max 100)</label>
+                <input type="number" min={1} value={form.memberLimit} onChange={e => setForm({ ...form, memberLimit: parseInt(e.target.value || '1') })} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900" />
               </div>
               <div className="flex justify-end gap-2 pt-2">
                 <button onClick={() => setShowCreate(false)} className="px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-800">Cancel</button>
