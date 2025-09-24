@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Menu, X, Star, User, BarChart3, LogOut, Settings, Bell, CheckCircle } from 'lucide-react'
+import { Menu, X, Star, User, BarChart3, LogOut, Settings, Bell, CheckCircle, Search } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
 import useApiStore from '../store/apiStore'
 import SettingsModal from './SettingsModal'
@@ -24,7 +24,6 @@ const Header = () => {
     ...(isAuthenticated
       ? [
           { name: 'Feed', href: '/feed' },
-          { name: 'Discover', href: '/discover' },
           { name: 'Dashboard', href: '/dashboard' },
           ...(isFeatureEnabled('community') ? [{ name: 'Communities', href: '/communities' }] : []),
           ...(isFeatureEnabled('leaderboard') ? [{ name: 'Leaderboard', href: '/leaderboard?tab=global' }] : []),
@@ -169,11 +168,29 @@ const Header = () => {
             )}
           {/* Right side */}
             <div className="flex items-center space-x-4">
+              {/* Search */}
+              {isAuthenticated && (
+                <button
+                  onClick={() => navigate('/discover')}
+                  className={`flex items-center px-3 py-2 text-base font-medium rounded-lg transition-colors ${
+                    isActive('/discover')
+                      ? 'text-primary-600 bg-primary-50 dark:text-primary-400 dark:bg-primary-900/30'
+                      : 'text-gray-700 hover:text-primary-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:text-primary-400 dark:hover:bg-gray-800'
+                  }`}
+                    aria-label="Discover"
+                  >
+                  <Search className="h-5 w-5" />
+                </button>
+              )}
               {/* Notifications */}
               {isAuthenticated && (
                 <button
                   onClick={() => navigate('/notifications')}
-                  className="relative p-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 dark:border-white/10 transition-all duration-300"
+                  className={`relative p-3 rounded-xl py-2 text-base font-medium rounded-lg transition-colors ${
+                    isActive('/notifications')
+                      ? 'text-primary-600 bg-primary-50 dark:text-primary-400 dark:bg-primary-900/30'
+                      : 'text-gray-700 hover:text-primary-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:text-primary-400 dark:hover:bg-gray-800'
+                  }`}
                   aria-label="Notifications"
                 >
                   <Bell className="h-5 w-5" />
@@ -210,7 +227,7 @@ const Header = () => {
               )}
             </div>
           </div>
-{/* Mobile/Hamburger Menu */}
+          {/* Mobile/Hamburger Menu */}
           {isMenuOpen && (
             <motion.div
               ref={menuRef}

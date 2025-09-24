@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { Activity, Users, Target, BarChart3, User } from 'lucide-react'
+import { Activity, Users, Trophy, BarChart3, User, Newspaper } from 'lucide-react'
 import useApiStore from '../store/apiStore'
 import AccountMenuSheet from './account/AccountMenuSheet'
 
@@ -38,20 +38,14 @@ const BottomTabBar = () => {
               <TabButton
                 active={path.startsWith('/feed') || path === '/'}
                 label="Feed"
-                Icon={Activity}
+                Icon={Newspaper}
                 onClick={() => navigate('/feed')}
-              />
-              <TabButton
-                active={path.startsWith('/discover')}
-                label="Discover"
-                Icon={Users}
-                onClick={() => navigate('/discover')}
               />
               {isFeatureEnabled('community') && (
                 <TabButton
                   active={path.startsWith('/communities')}
                   label="Communities"
-                  Icon={Target}
+                  Icon={Users}
                   onClick={() => navigate('/communities')}
                 />
               )}
@@ -65,7 +59,7 @@ const BottomTabBar = () => {
                 <TabButton
                   active={path.startsWith('/leaderboard')}
                   label="Leaderboard"
-                  Icon={Users}
+                  Icon={Trophy}
                   onClick={() => navigate('/leaderboard')}
                 />
               )}
