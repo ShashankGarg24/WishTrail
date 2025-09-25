@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Activity, Heart, MessageCircle, RefreshCw, Compass, ArrowRightCircle, Send } from 'lucide-react'
+import { Activity, Heart, MessageCircle, RefreshCw, Compass, ArrowRightCircle, Send, Newspaper } from 'lucide-react'
 import useApiStore from '../store/apiStore'
 import SkeletonList from '../components/loader/SkeletonList'
 import ActivityCommentsModal from '../components/ActivityCommentsModal'
@@ -335,7 +335,7 @@ const FeedPage = () => {
         {!inNativeApp && (
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
-              <Activity className="h-6 w-6 mr-2 text-green-500" />
+              <Newspaper className="h-6 w-6 mr-2 text-green-500" />
               Feed
             </h2>
             <div className="flex items-center gap-2">
@@ -354,7 +354,7 @@ const FeedPage = () => {
         {/* Stories bar: inspiring + trending goals */}
         <div className="mb-2">
           <div className="relative">
-            <div className="flex gap-4 overflow-x-auto no-scrollbar pr-12 items-start">
+            <div className="flex gap-1 overflow-x-auto no-scrollbar pr-12 items-start">
               {/* Explore pill at the end (but visually kept in view with sticky gradient) */}
               {storiesLoading && (
                 <div className="flex items-center gap-4">

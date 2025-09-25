@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion'
 import { useRef } from 'react'
 import { Link } from 'react-router-dom'
-import { Star, ArrowRight, Play, Users, Youtube, Instagram, Activity, BarChart3, Trophy, BookOpen, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Star, ArrowRight, Play, Users, Youtube, Instagram, Activity, BarChart3, Trophy, BookOpen, ChevronLeft, ChevronRight, Newspaper, Search } from 'lucide-react'
 import VideoEmbedGrid from '../components/VideoEmbedGrid'
 import useApiStore from '../store/apiStore'
 
@@ -33,13 +33,19 @@ const HomePage = () => {
       to: isAuthenticated ? '/dashboard' : '/auth'
     },
     {
-      icon: Activity,
+      icon: Newspaper,
       title: 'Social Feed',
       description: 'See goal updates from people you follow. Like and comment instantly.',
       to: isAuthenticated ? '/feed' : '/auth'
     },
     {
       icon: Users,
+      title: 'Communities',
+      description: 'Form groups and compete for goals with your friends.',
+      to: isAuthenticated ? '/communities' : '/auth'
+    },
+    {
+      icon: Search,
       title: 'Discover People & Goals',
       description: 'Find inspiring users and trending goals tailored to your interests.',
       to: isAuthenticated ? '/discover' : '/auth'

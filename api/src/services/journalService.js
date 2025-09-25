@@ -46,9 +46,10 @@ async function generateMotivationLLM({ content, promptKey }) {
   try {
     const userPrompt = `You are an encouraging coach.
 Read the user's short daily journal below. If it is inappropriate or harmful, respond with motivation: "Thanks for sharing. Please keep entries respectful and safe.".
-Otherwise, produce a concise, emotionally supportive message (30-50 words) celebrating their effort.
+Otherwise, produce a concise, emotionally supportive message (50-70 words) celebrating their effort. Add a little bit of encouragement or motivation to keep them going (if needed).
 
 Also perform sentiment analysis to classify the user's overall mood as EXACTLY ONE of the following strings: "very_negative", "negative", "neutral", "positive", or "very_positive".
+The Sentiment analysis should be very accurate and precise.
 
 Also extract counts of emotional aspects present in the journal:
 - helpedCount: number of times they helped someone

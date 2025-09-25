@@ -83,16 +83,21 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal }) => {
       form.append('shareCompletionNote', String(shareCompletionNote))
       if (attachmentFile) form.append('attachment', attachmentFile)
 
-      await onComplete(form)
-      setCompletionNote('')
-      setShareCompletionNote(true)
-      setAttachmentFile(null)
-      setAttachmentError('')
-      if (attachmentPreview) URL.revokeObjectURL(attachmentPreview)
-      setAttachmentPreview('')
-      setError('')
-      setTimeout(() => {
-        setShowCelebration(true)}, 500)
+      const result = await onComplete(form)
+
+      if (result.success) {
+        setCompletionNote('')
+        setShareCompletionNote(true)
+        setAttachmentFile(null)
+        setAttachmentError('')
+        if (attachmentPreview) URL.revokeObjectURL(attachmentPreview)
+        setAttachmentPreview('')
+        setError('')
+        setTimeout(() => {
+          setShowCelebration(true)}, 500)
+      } else {
+        setError(result?.data?.message || 'Failed to complete goal. Please try again.')
+      }
     } catch (err) {
       setError(err?.response?.data?.message || 'Failed to complete goal. Please try again.')
     }

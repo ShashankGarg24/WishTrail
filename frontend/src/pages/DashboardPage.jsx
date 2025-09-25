@@ -369,7 +369,7 @@ const DashboardPage = () => {
               </div>
             </motion.div>
 
-            {/* Daily Limit Notification */}
+            {/* Daily Limit Notification
             {dashboardStats && (dashboardStats.todayCompletions || 0) >= (dashboardStats.dailyLimit || 3) && (
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.15 }} className="glass-card p-4 rounded-xl mb-6 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-700">
                 <div className="flex items-center space-x-3">
@@ -380,7 +380,7 @@ const DashboardPage = () => {
                   </div>
                 </div>
               </motion.div>
-            )}
+            )} */}
 
             {/* Analytics (Stats Grid) */}
             {dashboardStats && (
@@ -541,7 +541,6 @@ const DashboardPage = () => {
                 {candidateYears.map((y) => (
                   <button key={y} onClick={() => chooseYear(y)} className={`p-3 rounded-xl border border-gray-200 dark:border-gray-700 text-left hover:border-primary-400 ${(pendingAddYear === y) ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-300' : 'bg-gray-50/80 dark:bg-gray-800/40'}`}>
                     <div className="font-semibold text-gray-900 dark:text-white">{y}</div>
-                    <div className="text-xs text-gray-600 dark:text-gray-400">Tap to select</div>
                   </button>
                 ))}
               </div>

@@ -5,7 +5,7 @@ import { journalsAPI } from '../services/api'
 
 export default function JournalExportModal({ isOpen, onClose }) {
   const [format, setFormat] = useState('pdf') // pdf | text
-  const [style, setStyle] = useState('diary') // diary | simple
+  const [style, setStyle] = useState('simple') // diary | simple
   const [includeMotivation, setIncludeMotivation] = useState(true)
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
@@ -14,7 +14,7 @@ export default function JournalExportModal({ isOpen, onClose }) {
   useEffect(() => {
     if (isOpen) {
       setFormat('pdf')
-      setStyle('diary')
+      setStyle('simple')
       setIncludeMotivation(true)
       setLoading(false)
     }
@@ -65,14 +65,14 @@ export default function JournalExportModal({ isOpen, onClose }) {
               </div>
             </div>
 
-            {/* Style */}
+            {/* Style
             <div>
               <div className="text-sm text-gray-600 dark:text-gray-300 mb-2">Style</div>
               <div className="flex gap-2">
                 <button onClick={() => setStyle('diary')} className={`flex-1 px-3 py-2 rounded-xl border ${style==='diary' ? 'bg-indigo-500 text-white border-indigo-500' : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200'}`}><BookOpen className="h-4 w-4 inline mr-2"/> Digital Diary</button>
                 <button onClick={() => setStyle('simple')} className={`flex-1 px-3 py-2 rounded-xl border ${style==='simple' ? 'bg-indigo-500 text-white border-indigo-500' : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200'}`}><FileText className="h-4 w-4 inline mr-2"/> Simple Text</button>
               </div>
-            </div>
+            </div> */}
 
             {/* Options */}
             <div>

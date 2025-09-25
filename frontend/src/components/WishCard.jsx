@@ -10,7 +10,6 @@ import GoalDivisionEditor from './GoalDivisionEditor'
 
 const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewingOwnGoals = true, onOpenGoal }) => {
   const { 
-    completeGoal, 
     deleteGoal, 
     likeGoal,
     user,
