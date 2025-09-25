@@ -103,6 +103,13 @@ const DiscoverPage = () => {
     }
   }, [isAuthenticated])
 
+    // Trigger fresh fetch whenever tab changes
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    fetchInitial();
+  }, [activeDiscoverSubtab, isAuthenticated]);
+
+
   useEffect(() => {
     // Only trigger search if there's a valid search term
     if (searchTerm.trim() && searchTerm.trim().length >= 2) {
@@ -490,18 +497,18 @@ const DiscoverPage = () => {
               <button role="tab" 
               aria-selected={activeDiscoverSubtab === 'users'} 
               className={`px-2.5 py-1.5 rounded-lg text-xs font-medium ${activeDiscoverSubtab === 'users' ? 'bg-blue-500 text-white' : 'text-gray-700 dark:text-gray-300'}`} 
-              onClick={() => { setActiveDiscoverSubtab('users'); setTrending([]); fetchInitial(); }}>Users</button>
+              onClick={() => { setActiveDiscoverSubtab('users'); setTrending([]);}}>Users</button>
               <button 
               role="tab" 
               aria-selected={activeDiscoverSubtab === 'goals'} 
               className={`ml-1 px-2.5 py-1.5 rounded-lg text-xs font-medium ${activeDiscoverSubtab === 'goals' ? 'bg-blue-500 text-white' : 'text-gray-700 dark:text-gray-300'}`} 
-              onClick={() => { setActiveDiscoverSubtab('goals'); setUsers([]); fetchInitial(); }}>Goals</button>
+              onClick={() => { setActiveDiscoverSubtab('goals'); setUsers([]);}}>Goals</button>
               {
                 isFeatureEnabled('community') && <button 
                 role="tab" 
                 aria-selected={activeDiscoverSubtab === 'communities'} 
                 className={`ml-1 px-2.5 py-1.5 rounded-lg text-xs font-medium ${activeDiscoverSubtab === 'communities' ? 'bg-blue-500 text-white' : 'text-gray-700 dark:text-gray-300'}`} 
-                onClick={() => { setActiveDiscoverSubtab('communities'); setUsers([]); setTrending([]); fetchInitial(); }}>Communities</button>
+                onClick={() => { setActiveDiscoverSubtab('communities'); setUsers([]); setTrending([]);}}>Communities</button>
               }
             </div>
           </div>

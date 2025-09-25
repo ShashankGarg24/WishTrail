@@ -437,9 +437,32 @@ export default function CommunityDetailPage() {
                 <div className="col-span-1 sm:col-span-2">
                   <label className="inline-flex items-center gap-2 text-sm">
                     <input type="checkbox" defaultChecked={community.settings?.onlyAdminsCanAddItems !== false} onChange={async (e) => { await communitiesAPI.update(community._id, { onlyAdminsCanAddItems: e.target.checked }); }} />
-                    Only admins can add goals/habits (others can suggest)
+                    Only admins can add goals (others can suggest)
                   </label>
-                  <div className="text-xs text-gray-500 mt-1">Uncheck to let anyone add goals/habits directly.</div>
+                </div>
+                <div className="col-span-1 sm:col-span-2">
+                  <label className="inline-flex items-center gap-2 text-sm">
+                    <input type="checkbox" defaultChecked={community.settings?.onlyAdminsCanAddItems !== false} onChange={async (e) => { await communitiesAPI.update(community._id, { onlyAdminsCanAddItems: e.target.checked }); }} />
+                    Only admins can add habits (others can suggest)
+                  </label>
+                </div>
+                <div className="col-span-1 sm:col-span-2">
+                  <label className="inline-flex items-center gap-2 text-sm">
+                    <input type="checkbox" defaultChecked={community.settings?.onlyAdminsCanAddItems !== false} onChange={async (e) => { await communitiesAPI.update(community._id, { onlyAdminsCanAddItems: e.target.checked }); }} />
+                    Only admins can change profile and background image
+                  </label>
+                </div>
+                <div className="col-span-1 sm:col-span-2">
+                  <label className="inline-flex items-center gap-2 text-sm">
+                    <input type="checkbox" defaultChecked={community.settings?.onlyAdminsCanAddItems !== false} onChange={async (e) => { await communitiesAPI.update(community._id, { onlyAdminsCanAddItems: e.target.checked }); }} />
+                    Only admins can add members (others can invite)
+                  </label>
+                </div>
+                <div className="col-span-1 sm:col-span-2">
+                  <label className="inline-flex items-center gap-2 text-sm">
+                    <input type="checkbox" defaultChecked={community.settings?.onlyAdminsCanAddItems !== false} onChange={async (e) => { await communitiesAPI.update(community._id, { onlyAdminsCanAddItems: e.target.checked }); }} />
+                    Only admins can remove members
+                  </label>
                 </div>
               </div>
               <div className="flex items-center justify-between">

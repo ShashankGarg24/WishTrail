@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
-import { Plus, Calendar, Target, CheckCircle, Circle, Star, Award, Lightbulb, Clock } from 'lucide-react'
+import { Plus, Calendar, Target, CheckCircle, Circle, Star, Award, Lightbulb, Clock, XCircle, SkipForward } from 'lucide-react'
 import HabitsPanel from '../components/HabitsPanel'
 import HabitDetailModal from '../components/HabitDetailModal'
 import CreateHabitModal from '../components/CreateHabitModal'
@@ -308,8 +308,8 @@ const DashboardPage = () => {
 
   const habitStats = habitAnalytics?.analytics?.totals ? [
     { label: 'Done', value: habitAnalytics.analytics.totals.done, icon: CheckCircle, color: 'text-green-500' },
-    { label: 'Skipped', value: habitAnalytics.analytics.totals.skipped, icon: CheckCircle, color: 'text-green-500' },
-    { label: 'Missed', value: habitAnalytics.analytics.totals.missed, icon: Circle, color: 'text-yellow-500' }
+    { label: 'Skipped', value: habitAnalytics.analytics.totals.skipped, icon: SkipForward, color: 'text-yellow-500' },
+    { label: 'Missed', value: habitAnalytics.analytics.totals.missed, icon: XCircle, color: 'text-red-500' }
   ] : []
 
 
