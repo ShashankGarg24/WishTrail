@@ -12,7 +12,7 @@ class AuthService {
   /**
    * Create user
    */
-  async register({ email, name, password, username, dateOfBirth, interests, location, gender }) {
+  async register({ email, name, password, username, dateOfBirth, interests, location, gender, deviceType}) {
     // Check if OTP was verified (you might want to implement a temporary verification token)
     const recentVerifiedOTP = await OTP.findOne({
       email,
@@ -66,7 +66,7 @@ class AuthService {
     const { accessToken, refreshToken } = this.generateTokens(user._id);
     
     // Save refresh token
-    user.refreshToken = refreshToken;
+    deviceType === 'app' ? user.refreshTokens.app = refreshToken : user.refreshTokens.web = refreshToken;
     await user.save();
 
     // Send welcome email
@@ -100,7 +100,7 @@ class AuthService {
   /**
    * Login user
    */
-  async login(email, password) {
+  async login(email, password, deviceType) {
     // Find user and include password for comparison
     const user = await User.findOne({ email, isActive: true }).select('+password');
     
@@ -122,13 +122,14 @@ class AuthService {
     const { accessToken, refreshToken } = this.generateTokens(user._id);
     
     // Save refresh token
-    user.refreshToken = refreshToken;
+    deviceType === 'app' ? user.refreshTokens.app = refreshToken : user.refreshTokens.web = refreshToken;
     await user.save();
     
     // Remove password from response
     const userResponse = user.toObject();
     delete userResponse.password;
-    delete userResponse.refreshToken;
+    delete userResponse.refreshTokens.app;
+    delete userResponse.refreshTokens.web;
     
     return {
       user: userResponse,
@@ -140,12 +141,21 @@ class AuthService {
   /**
    * Logout user
    */
-  async logout(userId) {
-    await User.findByIdAndUpdate(userId, {
-      $unset: { refreshToken: 1 }
-    });
-    
-    return { message: 'Logged out successfully' };
+  async logout(userId, deviceType) {
+    if (!['app', 'web'].includes(deviceType)) {
+      throw new Error('Invalid device type');
+    }
+  
+    // Clear the specific token
+    await User.findByIdAndUpdate(
+      userId,
+      {
+        $set: { [`refreshTokens.${deviceType}`]: null }
+      },
+      { new: true }
+    );
+  
+    return { message: `${deviceType} logged out successfully` };
   }
   
   /**
@@ -253,7 +263,7 @@ class AuthService {
   /**
    * Refresh access token
    */
-  async refreshToken(refreshToken) {
+  async refreshToken(refreshToken, deviceType) {
     try {
       const decoded = jwt.verify(
         refreshToken,
@@ -265,7 +275,7 @@ class AuthService {
       }
       
       const user = await User.findById(decoded.userId);
-      if (!user || !user.isActive || user.refreshToken !== refreshToken) {
+      if (!user || !user.isActive || user.refreshTokens[deviceType] !== refreshToken) {
         throw new Error('Invalid refresh token');
       }
       
@@ -273,11 +283,12 @@ class AuthService {
       const tokens = this.generateTokens(user._id);
       
       // Update refresh token
-      user.refreshToken = tokens.refreshToken;
+      deviceType === 'app' ? user.refreshTokens.app = refreshToken : user.refreshTokens.web = refreshToken;
       await user.save();
       
       return tokens;
     } catch (error) {
+      console.error('Invalid refresh token:', error.message);
       throw new Error('Invalid refresh token');
     }
   }

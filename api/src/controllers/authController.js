@@ -15,8 +15,8 @@ const register = async (req, res, next) => {
         errors: errors.array()
       });
     }
-
-    const result = await authService.register(req.body);
+    const deviceType = getDeviceType(req);
+    const result = await authService.register(req.body, deviceType);
 
     // Set refresh token as httpOnly cookie
     const isProd = process.env.NODE_ENV === 'production';
@@ -56,8 +56,8 @@ const login = async (req, res, next) => {
     }
 
     const { email, password, deviceToken, platform } = req.body;
-
-    const result = await authService.login(email, password);
+    const deviceType = getDeviceType(req);
+    const result = await authService.login(email, password, deviceType);
 
     // ✅ Store Expo push token if login is from app
     if (deviceToken) {
@@ -97,8 +97,9 @@ const login = async (req, res, next) => {
 const logout = async (req, res, next) => {
   try {
     const { deviceToken } = req.body;
+    const deviceType = getDeviceType(req);
 
-    await authService.logout(req.user.id);
+    await authService.logout(req.user.id, deviceType);
 
     if (deviceToken) {
       await DeviceToken.updateOne(
@@ -197,6 +198,8 @@ const refreshToken = async (req, res, next) => {
   try {
     // Prefer header or body when cookies are unavailable (e.g., mobile clients)
     const headerToken = (req.headers['x-refresh-token'] || '').trim();
+    const deviceType = getDeviceType(req);
+
     const bodyToken = (req.body && req.body.refreshToken) ? String(req.body.refreshToken).trim() : '';
     const cookieToken = (req.cookies && req.cookies.refreshToken) ? String(req.cookies.refreshToken).trim() : '';
     const token = headerToken || bodyToken || cookieToken;
@@ -208,7 +211,7 @@ const refreshToken = async (req, res, next) => {
       });
     }
 
-    const result = await authService.refreshToken(token);
+    const result = await authService.refreshToken(token, deviceType);
 
     // Set new refresh token as httpOnly cookie
     try {
@@ -398,6 +401,9 @@ const resendOTP = async (req, res, next) => {
   }
 };
 
+const getDeviceType = (req) => {
+  return req.get("X-Client-Platform") || (req.get("User-Agent")?.includes("WishTrailApp") ? "app" : "web");
+};
 
 module.exports = {
   register,

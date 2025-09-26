@@ -18,6 +18,7 @@ const userSchema = new mongoose.Schema({
   username: {
     type: String,
     unique: true,
+    required: [true, 'Username is required'],
     trim: true,
     lowercase: true,
     minlength: [3, 'Username must be at least 3 characters'],
@@ -25,8 +26,7 @@ const userSchema = new mongoose.Schema({
     match: [
       /^[a-zA-Z0-9._-]+$/,
       'Username can only contain letters, numbers, dots, hyphens, and underscores'
-    ],
-    sparse: true // Allow null/undefined values for partial creation
+    ]
   },
   
   email: {
@@ -277,6 +277,11 @@ const userSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   },
+  refreshTokens: {
+    app: { type: String, default: null, select: false },
+    web: { type: String, default: null, select: false }
+  },
+  
   
   // Password Reset
   passwordResetToken: String,
@@ -285,6 +290,7 @@ const userSchema = new mongoose.Schema({
   // Email Verification
   emailVerificationToken: String,
   emailVerificationExpires: Date,
+  
   
 }, {
   timestamps: true,

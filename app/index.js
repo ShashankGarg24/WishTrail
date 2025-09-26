@@ -559,7 +559,7 @@ function App() {
       <StatusBar barStyle={Platform.OS === 'ios' ? 'light-content' : 'default'} />
       <WebView
         ref={webRef}
-        source={{ uri: initialUri }}
+        userAgent="WishTrailApp"
         originWhitelist={originWhitelist}
         onLoadStart={() => { setLoading(true); setPtrLoading(false); setPtrVisible(false); setPtrProgress(0); Animated.timing(ptrAnim, { toValue: 0, duration: 200, useNativeDriver: true }).start(); }}
         onLoadEnd={() => { setLoading(false); setWebReady(true); if (pendingDeepLinkRef.current) { forwardDeepLinkToWeb(pendingDeepLinkRef.current); pendingDeepLinkRef.current = ''; } injectAuthProbe(); setTimeout(() => { setPtrLoading(false); setPtrVisible(false); Animated.timing(ptrAnim, { toValue: 0, duration: 250, useNativeDriver: true }).start(); }, 250); }}
