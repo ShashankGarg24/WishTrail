@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Send } from 'lucide-react'
 import { activitiesAPI } from '../services/api'
@@ -11,6 +12,7 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
   const [input, setInput] = useState('')
   const [replyTo, setReplyTo] = useState(null) // {commentId, userName, userId}
   const [expandedReplies, setExpandedReplies] = useState({}) // {commentId: boolean}
+  const navigate = useNavigate()
 
   useEffect(() => {
     const shouldLoad = (inline || embedded) ? !!activity?._id : (isOpen && !!activity?._id)
@@ -84,6 +86,10 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
     }
   }
 
+  const handleUserClick = (userId) => {
+    navigate(`/profile/${userId}?tab=overview`);
+  };
+
   const toggleCommentLike = async (commentId) => {
     try {
       const res = await activitiesAPI.toggleCommentLike(activity._id, commentId)
@@ -117,11 +123,11 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
               return (
                 <div key={c._id} className="pb-1">
                   <div className="flex items-start gap-3">
-                    <img src={c.userId?.avatar} alt={c.userId?.name} className="w-8 h-8 rounded-full object-cover" />
+                    <img src={c.userId?.avatar} alt={c.userId?.name} className="w-8 h-8 rounded-full object-cover cursor-pointer" onClick={() => handleUserClick(c.userId?.username)}/>
                     <div className="flex-1">
                       <div className="flex items-start justify-between">
                         <div className="text-xs text-gray-500">
-                          <span className="font-semibold text-gray-900 dark:text-white mr-2">{c.userId?.name}</span>
+                          <span className="font-semibold text-gray-900 dark:text-white mr-2 cursor-pointer" onClick={() => handleUserClick(c.userId?.username)}>{c.userId?.name}</span>
                           <span className="text-gray-500">{formatTimeAgo(c.createdAt)}</span>
                         </div>
                         <button onClick={() => toggleCommentLike(c._id)} className={`text-xs hover:text-red-600 ${c.isLiked ? 'text-red-600' : 'text-gray-500'} flex items-center gap-1`}>♥ {c.likeCount || 0}</button>
@@ -157,11 +163,11 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
                       {(c.replies || []).map((r) => (
                         <div key={r._id}>
                           <div className="flex items-start gap-3">
-                            <img src={r.userId?.avatar} alt={r.userId?.name} className="w-7 h-7 rounded-full object-cover" />
+                            <img src={r.userId?.avatar} alt={r.userId?.name} className="w-7 h-7 rounded-full object-cover cursor-pointer" onClick={() => handleUserClick(r.userId?.username)}/>
                             <div className="flex-1">
                               <div className="flex items-start justify-between">
                                 <div className="text-xs text-gray-500">
-                                  <span className="font-semibold text-gray-900 dark:text-white mr-2">{r.userId?.name}</span>
+                                  <span className="font-semibold text-gray-900 dark:text-white mr-2 cursor-pointer" onClick={() => handleUserClick(r.userId?.username)}>{r.userId?.name}</span>
                                   <span className="text-gray-500">{formatTimeAgo(r.createdAt)}</span>
                                 </div>
                                 <button onClick={() => toggleCommentLike(r._id)} className={`text-xs hover:text-red-600 ${r.isLiked ? 'text-red-600' : 'text-gray-500'} flex items-center gap-1`}>♥ {r.likeCount || 0}</button>
@@ -221,12 +227,12 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
               const replyCount = (c.replies || []).length;
               return (
                 <div key={c._id}>
-                  <div className="flex items-start gap-3">
-                    <img src={c.userId?.avatar} alt={c.userId?.name} className="w-8 h-8 rounded-full object-cover" />
+                  <div className="flex items-start gap-3 ">
+                    <img src={c.userId?.avatar} alt={c.userId?.name} className="w-8 h-8 rounded-full object-cover cursor-pointer" onClick={() => handleUserClick(c.userId?.username)}/>
                     <div className="flex-1">
                       <div className="flex items-start justify-between">
                         <div className="text-xs text-gray-500">
-                          <span className="font-semibold text-gray-900 dark:text-white mr-2">{c.userId?.name}</span>
+                          <span className="font-semibold text-gray-900 dark:text-white mr-2 cursor-pointer" onClick={() => handleUserClick(c.userId?.username)}>{c.userId?.name}</span>
                           <span className="text-gray-500">{formatTimeAgo(c.createdAt)}</span>
                         </div>
                         <button onClick={() => toggleCommentLike(c._id)} className={`text-xs hover:text-red-600 ${c.isLiked ? 'text-red-600' : 'text-gray-500'} flex items-center gap-1`}>♥ {c.likeCount || 0}</button>
@@ -262,11 +268,11 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
                       {(c.replies || []).map((r) => (
                         <div key={r._id}>
                           <div className="flex items-start gap-3">
-                            <img src={r.userId?.avatar} alt={r.userId?.name} className="w-7 h-7 rounded-full object-cover" />
+                            <img src={r.userId?.avatar} alt={r.userId?.name} className="w-7 h-7 rounded-full object-cover cursor-pointer" onClick={() => handleUserClick(r.userId?.username)}/>
                             <div className="flex-1">
                               <div className="flex items-start justify-between">
                                 <div className="text-xs text-gray-500">
-                                  <span className="font-semibold text-gray-900 dark:text-white mr-2">{r.userId?.name}</span>
+                                  <span className="font-semibold text-gray-900 dark:text-white mr-2 cursor-pointer" onClick={() => handleUserClick(r.userId?.username)}>{r.userId?.name}</span>
                                   <span className="text-gray-500">{formatTimeAgo(r.createdAt)}</span>
                                 </div>
                                 <button onClick={() => toggleCommentLike(r._id)} className={`text-xs hover:text-red-600 ${r.isLiked ? 'text-red-600' : 'text-gray-500'} flex items-center gap-1`}>♥ {r.likeCount || 0}</button>
@@ -351,11 +357,11 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
                 return (
                   <div key={c._id}>
                     <div className="flex items-start gap-3">
-                      <img src={c.userId?.avatar} alt={c.userId?.name} className="w-8 h-8 rounded-full object-cover" />
+                      <img src={c.userId?.avatar} alt={c.userId?.name} className="w-8 h-8 rounded-full object-cover cursor-pointer" onClick={() => handleUserClick(c.userId?.username)}/>
                       <div className="flex-1">
                         <div className="flex items-start justify-between">
                           <div className="text-xs text-gray-500">
-                            <span className="font-semibold text-gray-900 dark:text-white mr-2">{c.userId?.name}</span>
+                            <span className="font-semibold text-gray-900 dark:text-white mr-2 cursor-pointer" onClick={() => handleUserClick(c.userId?.username)}>{c.userId?.name}</span>
                             <span className="text-gray-500">{formatTimeAgo(c.createdAt)}</span>
                           </div>
                           <button onClick={() => toggleCommentLike(c._id)} className={`text-xs hover:text-red-600 ${c.isLiked ? 'text-red-600' : 'text-gray-500'} flex items-center gap-1`}>♥ {c.likeCount || 0}</button>
@@ -390,11 +396,11 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
                         {(c.replies || []).map((r) => (
                           <div key={r._id}>
                             <div className="flex items-start gap-3">
-                              <img src={r.userId?.avatar} alt={r.userId?.name} className="w-7 h-7 rounded-full object-cover" />
+                              <img src={r.userId?.avatar} alt={r.userId?.name} className="w-7 h-7 rounded-full object-cover cursor-pointer" onClick={() => handleUserClick(r.userId?.username)}/>
                               <div className="flex-1">
                                 <div className="flex items-start justify-between">
                                   <div className="text-xs text-gray-500">
-                                    <span className="font-semibold text-gray-900 dark:text-white mr-2">{r.userId?.name}</span>
+                                    <span className="font-semibold text-gray-900 dark:text-white mr-2 cursor-pointer" onClick={() => handleUserClick(r.userId?.username)}>{r.userId?.name}</span>
                                     <span className="text-gray-500">{formatTimeAgo(r.createdAt)}</span>
                                   </div>
                                   <button onClick={() => toggleCommentLike(r._id)} className={`text-xs hover:text-red-600 ${r.isLiked ? 'text-red-600' : 'text-gray-500'} flex items-center gap-1`}>♥ {r.likeCount || 0}</button>

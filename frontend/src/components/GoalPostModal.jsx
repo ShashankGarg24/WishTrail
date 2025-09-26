@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Heart, MessageCircle, Send } from 'lucide-react'
 import ActivityCommentsModal from './ActivityCommentsModal'
 import useApiStore from '../store/apiStore'
@@ -11,6 +12,7 @@ export default function GoalPostModal({ isOpen, goalId, onClose, autoOpenComment
   const [commentsOpenActivityId, setCommentsOpenActivityId] = useState(null)
   const rightPanelScrollRef = useRef(null)
   const commentsAnchorRef = useRef(null)
+  const navigate = useNavigate()
 
   useEffect(() => {
     const compute = () => setIsMobile(typeof window !== 'undefined' && window.innerWidth < 768)
@@ -59,6 +61,10 @@ export default function GoalPostModal({ isOpen, goalId, onClose, autoOpenComment
     }
   }, [isOpen, autoOpenComments, data])
 
+  const handleUserClick = (userId) => {
+    navigate(`/profile/${userId}?tab=overview`);
+  };
+
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50" onClick={close} />
@@ -78,7 +84,8 @@ export default function GoalPostModal({ isOpen, goalId, onClose, autoOpenComment
           <div className="grid grid-cols-1 md:[grid-template-columns:minmax(0,1fr)_420px] items-stretch h-full min-h-0">
             {/* Left: Media */}
             <div className="bg-black flex items-center justify-center h-full">
-              <img src={data.share.image} alt="Completion" className="h-full w-auto max-w-full object-contain" />
+              <img 
+              src={data.share.image} alt="Completion" className="h-full w-auto max-w-full object-contain" />
             </div>
             {/* Right: Details with toggleable comments */}
             <div className="flex flex-col md:w-[420px] md:flex-shrink-0 h-full min-h-0">
@@ -86,8 +93,10 @@ export default function GoalPostModal({ isOpen, goalId, onClose, autoOpenComment
                 <img 
                 src={data?.user?.avatar || '/api/placeholder/40/40'} 
                 alt={data?.user?.name || 'User'} 
-                className="w-10 h-10 rounded-full" />
-                <div className="flex-1 min-w-0">
+                className="w-10 h-10 rounded-full cursor-pointer" 
+                onClick={() => handleUserClick(data?.user?.username)}/>
+                <div className="flex-1 min-w-0 cursor-pointer"
+                onClick={() => handleUserClick(data?.user?.username)}>
                   <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{data?.user?.name}</div>
                   {data?.user?.username && (<div className="text-xs text-gray-500">@{data.user.username}</div>)}
                 </div>
@@ -152,8 +161,10 @@ export default function GoalPostModal({ isOpen, goalId, onClose, autoOpenComment
               <img 
               src={data?.user?.avatar || '/api/placeholder/40/40'} 
               alt={data?.user?.name || 'User'} 
-              className="w-10 h-10 rounded-full" />
-              <div className="flex-1 min-w-0">
+              className="w-10 h-10 rounded-full cursor-pointer" 
+              onClick={() => handleUserClick(data?.user?.username)}/>
+              <div className="flex-1 min-w-0 cursor-pointer"
+              onClick={() => handleUserClick(data?.user?.username)}>
                 <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{data?.user?.name}</div>
                 {data?.user?.username && (<div className="text-xs text-gray-500">@{data.user.username}</div>)}
               </div>
