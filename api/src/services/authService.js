@@ -238,13 +238,13 @@ class AuthService {
     const accessToken = jwt.sign(
       { userId },
       process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRE || '24h' }
+      { expiresIn: process.env.JWT_ACCESS_EXPIRES || '24h' }
     );
     
     const refreshToken = jwt.sign(
       { userId, type: 'refresh' },
       process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_REFRESH_EXPIRE || '7d' }
+      { expiresIn: process.env.JWT_REFRESH_EXPIRES || '7d' }
     );
     
     return { accessToken, refreshToken };

@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { Star, Youtube, Instagram, ExternalLink } from 'lucide-react'
+import { Star, Youtube, Instagram, ExternalLink, Play } from 'lucide-react'
 import useApiStore from '../store/apiStore'
 
 const Footer = () => {
@@ -18,11 +18,17 @@ const Footer = () => {
       href: 'https://instagram.com/thewishtrail',
       icon: Instagram,
       color: 'hover:text-pink-500'
+    },
+    {
+      name: 'Playstore',
+      href: 'https://play.google.com/store/apps',
+      icon: Play,
+      color: 'hover:text-black-500'
     }
   ]
 
   return (
-    <footer className="relative mt-20 glass-card border-t border-white/10">
+    <footer className="relative mt-10 pb-10 glass-card border-t border-white/10">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Brand */}

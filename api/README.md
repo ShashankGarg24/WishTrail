@@ -34,7 +34,7 @@ Backend API for WishTrail - Dreams. Goals. Progress.
    PORT=5000
    MONGODB_URI=mongodb://localhost:27017/wishtrail
    JWT_SECRET=your-super-secret-jwt-key-here
-   JWT_EXPIRES_IN=7d
+   JWT_ACCESS_EXPIRES=7d
    FRONTEND_URL=http://localhost:3000
    ```
 
@@ -351,7 +351,7 @@ npm test -- authController.test.js
 | `PORT` | Server port | `5000` |
 | `MONGODB_URI` | MongoDB connection string | Required |
 | `JWT_SECRET` | JWT signing secret | Required |
-| `JWT_EXPIRES_IN` | JWT expiration time | `7d` |
+| `JWT_ACCESS_EXPIRES` | JWT expiration time | `7d` |
 | `FRONTEND_URL` | Frontend application URL | Required |
 | `BCRYPT_SALT_ROUNDS` | Password hashing salt rounds | `12` |
 | `DAILY_COMPLETION_LIMIT` | Daily goal completion limit | `3` |

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Plus, Users, Compass, Search } from 'lucide-react'
+import { Plus, Users, Compass, Search, Users2 } from 'lucide-react'
 import { communitiesAPI } from '../services/api'
 import useApiStore from '../store/apiStore'
 
@@ -69,9 +69,12 @@ export default function CommunitiesPage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl px-4">
+    <div className="max-w-7xl mx-auto px-4 py-8">
       <div className="flex items-center justify-between gap-3 mb-6">
-        <h1 className="text-2xl font-bold">Communities</h1>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
+          <Users2 className="h-6 w-6 mr-2 text-blue-500" />
+          Communities
+        </h2>
         <button onClick={() => setShowCreate(true)} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-500 active:scale-[.99]">
           <Plus className="h-4 w-4" /> Create
         </button>

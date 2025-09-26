@@ -362,7 +362,7 @@ userSchema.methods.generateAuthToken = function() {
     },
     process.env.JWT_SECRET,
     { 
-      expiresIn: process.env.JWT_EXPIRES_IN || '7d',
+      expiresIn: process.env.JWT_ACCESS_EXPIRES || '24h',
       issuer: 'wishtrail-api',
       audience: 'wishtrail-app'
     }
