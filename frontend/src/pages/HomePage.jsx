@@ -72,8 +72,8 @@ const HomePage = () => {
   const stats = [
     { number: '1000+', label: 'Goals Achieved' },
     { number: '500+', label: 'Active Users' },
-    { number: '50+', label: 'Success Stories' },
-    { number: '24/7', label: 'Inspiration' }
+    { number: '100+', label: 'Communities' },
+    { number: '50+', label: 'Success Stories' }
   ]
 
   return (

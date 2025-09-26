@@ -577,7 +577,7 @@ const DashboardPage = () => {
 
       {/* Habit Suggestions Modal */}
       {isHabitIdeasOpen && (
-        <HabitSuggestionsModal isOpen={isHabitIdeasOpen} onClose={() => setIsHabitIdeasOpen(false)} interests={userInterests} onSelect={openPrefilledHabitModal} limit={8} title="Habit Suggestions" />
+        <HabitSuggestionsModal isOpen={isHabitIdeasOpen} onClose={() => setIsHabitIdeasOpen(false)} interests={userInterests} onSelect={openPrefilledHabitModal} limit={6} title="Habit Suggestions" />
       )}
 
       {/* Create Habit Modal */}

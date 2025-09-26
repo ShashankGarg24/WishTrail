@@ -7,6 +7,7 @@ import { discoverHabitIdeas } from '../services/habitIdeas'
 const HabitSuggestions = ({ interests = [], onSelect, variant = 'inline', limit = 6, forceExpanded = false, showHeader = true, titleOverride, containerClassName = 'mt-10', innerContainerClassName = 'max-w-5xl mx-auto' }) => {
   const [expanded, setExpanded] = useState(forceExpanded || variant === 'empty')
   const [suggestions, setSuggestions] = useState([])
+  const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
   const regenerate = () => {
     setSuggestions(discoverHabitIdeas(interests, limit))
@@ -84,7 +85,7 @@ const HabitSuggestions = ({ interests = [], onSelect, variant = 'inline', limit 
               <div className="mt-2 text-xs text-gray-500 dark:text-gray-400 flex items-center gap-2">
                 <Calendar className="h-3 w-3" /> {h.frequency === 'weekly' ? 'Weekly' : 'Daily'}
                 {Array.isArray(h.daysOfWeek) && h.daysOfWeek.length > 0 && (
-                  <span>(days: {h.daysOfWeek.join(',')})</span>
+                  <span>(days: {h.daysOfWeek.map(day => WEEKDAYS[day]).join(',')})</span>
                 )}
               </div>
               <div className="mt-3">
