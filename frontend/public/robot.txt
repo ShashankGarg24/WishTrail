@@ -1,0 +1,20 @@
+# robots.txt for WishTrail
+
+User-agent: *
+# Block crawlers from sensitive or non-user facing routes
+Disallow: /api/
+Disallow: /auth/
+Disallow: /reset-password
+Disallow: /dashboard
+Disallow: /notifications
+Disallow: /feed
+Disallow: /communities
+Disallow: /discover
+Disallow: /profile
+
+
+# Allow everything else
+Allow: /
+
+# Point crawlers to sitemap
+Sitemap: https://wishtrail.vercel.app/sitemap.xml
