@@ -49,6 +49,12 @@ api.interceptors.response.use(
     if (response.status !== 401) return Promise.reject(error);
 
     const originalRequest = config;
+
+    // 🚫 If already on /auth page, don't attempt refresh
+    if (window.location.pathname.startsWith('/auth')) {
+      return Promise.reject(error);
+    }
+    
     // If refresh itself failed, logout
     if (originalRequest?.url?.includes('/auth/refresh')) {
       localStorage.removeItem('token');
