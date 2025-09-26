@@ -292,7 +292,7 @@ export default function CommunityDetailPage() {
           {feed.map(a => (
             <div key={a._id} className="rounded-xl border border-gray-200 dark:border-gray-800 p-4 bg-white dark:bg-gray-900">
               <div className="flex items-center gap-3">
-                <img src={a.userId?.avatar} alt="" className="h-8 w-8 rounded-full" />
+                <img src={a.userId?.avatar} alt="User" className="h-8 w-8 rounded-full" />
                 <div className="text-sm"><span className="font-medium">{a.userId?.name}</span> <span className="text-gray-500">{a.message}</span></div>
                 <div className="flex-1" />
                 <div className="text-xs text-gray-500">{new Date(a.createdAt).toLocaleString()}</div>
@@ -329,7 +329,7 @@ export default function CommunityDetailPage() {
               {members.slice(0,6).map((m, idx) => (
                 <div key={m._id} className="p-3 rounded-lg border border-gray-200 dark:border-gray-800 flex items-center gap-3">
                   <div className="text-xs w-5 h-5 rounded-full bg-gray-200 dark:bg-gray-800 flex items-center justify-center">{idx+1}</div>
-                  <img src={m.user?.avatar} className="h-8 w-8 rounded-full" />
+                  <img src={m.user?.avatar} alt="User" className="h-8 w-8 rounded-full" />
                   <div className="text-sm truncate flex-1">{m.user?.name}</div>
                   <div className="text-xs text-gray-500">{m.user?.totalPoints || 0} pts</div>
                 </div>
@@ -401,7 +401,7 @@ export default function CommunityDetailPage() {
           {members.map(m => (
             <div key={m._id} className="rounded-xl border border-gray-200 dark:border-gray-800 p-4 bg-white dark:bg-gray-900">
               <div className="flex items-center gap-3">
-                <img src={m.user?.avatar} alt="" className="h-10 w-10 rounded-full" />
+                <img src={m.user?.avatar} alt="User" className="h-10 w-10 rounded-full" />
                 <div className="min-w-0">
                   <div className="font-medium truncate">{m.user?.name}</div>
                   <div className="text-xs text-gray-500">{m.role}</div>
@@ -504,7 +504,7 @@ function PendingMembers({ communityId }) {
     <div className="space-y-2">
       {list.map(m => (
         <div key={m._id} className="flex items-center gap-3 p-2 rounded-lg border border-gray-200 dark:border-gray-800">
-          <img src={m.userId?.avatar} alt="" className="h-8 w-8 rounded-full" />
+          <img src={m.userId?.avatar} alt="User" className="h-8 w-8 rounded-full" />
           <div className="text-sm flex-1">{m.userId?.name}</div>
           <button onClick={() => decide(m.userId?._id, true)} className="px-2 py-1 rounded bg-green-600 text-white text-xs">Approve</button>
           <button onClick={() => decide(m.userId?._id, false)} className="px-2 py-1 rounded border border-gray-200 dark:border-gray-800 text-xs">Reject</button>
@@ -525,7 +525,7 @@ function PendingSuggestions({ communityId }) {
       {list.map(s => (
         <div key={s._id} className="p-2 rounded-lg border border-gray-200 dark:border-gray-800">
           <div className="flex items-center gap-3">
-            <img src={s.createdBy?.avatar} alt="" className="h-8 w-8 rounded-full" />
+            <img src={s.createdBy?.avatar} alt="User" className="h-8 w-8 rounded-full" />
             <div className="min-w-0">
               <div className="text-sm font-medium truncate">{s.title}</div>
               <div className="text-xs text-gray-500">{s.type} • Suggested by {s.createdBy?.name}</div>

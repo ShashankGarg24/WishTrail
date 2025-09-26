@@ -83,7 +83,10 @@ export default function GoalPostModal({ isOpen, goalId, onClose, autoOpenComment
             {/* Right: Details with toggleable comments */}
             <div className="flex flex-col md:w-[420px] md:flex-shrink-0 h-full min-h-0">
               <div className="flex items-center gap-3 p-4 border-b border-gray-200 dark:border-gray-800">
-                <img src={data?.user?.avatar || '/api/placeholder/40/40'} className="w-10 h-10 rounded-full" />
+                <img 
+                src={data?.user?.avatar || '/api/placeholder/40/40'} 
+                alt={data?.user?.name || 'User'} 
+                className="w-10 h-10 rounded-full" />
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{data?.user?.name}</div>
                   {data?.user?.username && (<div className="text-xs text-gray-500">@{data.user.username}</div>)}
@@ -146,7 +149,10 @@ export default function GoalPostModal({ isOpen, goalId, onClose, autoOpenComment
           ) : (
           <div className="flex flex-col h-full w-full min-h-0">
             <div className="flex items-center gap-3 p-4 border-b border-gray-200 dark:border-gray-800">
-              <img src={data?.user?.avatar || '/api/placeholder/40/40'} className="w-10 h-10 rounded-full" />
+              <img 
+              src={data?.user?.avatar || '/api/placeholder/40/40'} 
+              alt={data?.user?.name || 'User'} 
+              className="w-10 h-10 rounded-full" />
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{data?.user?.name}</div>
                 {data?.user?.username && (<div className="text-xs text-gray-500">@{data.user.username}</div>)}

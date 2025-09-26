@@ -376,7 +376,10 @@ const FeedPage = () => {
                 >
                   <div className={`relative mx-auto h-16 w-16 rounded-full p-[2px] bg-gradient-to-br ${getCategoryGradient(g.category)} transition-transform duration-200 group-hover:scale-105 mb-1`}>
                     <div className="h-full w-full rounded-full bg-white dark:bg-gray-900 p-[2px]">
-                      <img src={g.user?.avatar || '/api/placeholder/40/40'} className="h-full w-full rounded-full object-cover" />
+                      <img 
+                      src={g.user?.avatar || '/api/placeholder/40/40'} 
+                      alt={g.user?.name || 'User'}
+                      className="h-full w-full rounded-full object-cover" />
                     </div>
                   </div>
                   <div className="mt-2 w-full text-center">

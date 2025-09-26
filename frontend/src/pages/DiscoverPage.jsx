@@ -743,7 +743,10 @@ const DiscoverPage = () => {
                           className="bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-5 border border-gray-200 dark:border-gray-700/50 hover:border-gray-300 dark:hover:border-gray-600/50 transition-all duration-200 shadow-lg hover:shadow-xl"
                         >
                           <div className="flex items-center gap-3 mb-3">
-                            <img src={g.user?.avatar || '/api/placeholder/48/48'} className="w-10 h-10 rounded-full" />
+                            <img 
+                            src={g.user?.avatar || '/api/placeholder/48/48'} 
+                            alt={g.user?.name || 'User'}
+                            className="w-10 h-10 rounded-full" />
                             <div className="min-w-0">
                               <div className="text-sm text-gray-700 dark:text-gray-300 truncate">{g.user?.name || 'User'}</div>
                               <div className="text-xs text-gray-400">{g.completedAt ? new Date(g.completedAt).toLocaleDateString() : ''}</div>
@@ -775,7 +778,10 @@ const DiscoverPage = () => {
                             className="bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-5 border border-gray-200 dark:border-gray-700/50 hover:border-gray-300 dark:hover:border-gray-600/50 transition-all duration-200 shadow-lg hover:shadow-xl"
                           >
                             <div className="flex items-center gap-3 mb-3">
-                              <img src={g.user?.avatar || '/api/placeholder/48/48'} className="w-10 h-10 rounded-full" />
+                              <img 
+                              src={g.user?.avatar || '/api/placeholder/48/48'} 
+                              alt={g.user?.name || 'User'}
+                              className="w-10 h-10 rounded-full" />
                               <div className="min-w-0">
                                 <div className="text-sm text-gray-700 dark:text-gray-300 truncate">{g.user?.name || 'User'}</div>
                                 <div className="text-xs text-gray-400">{g.completedAt ? new Date(g.completedAt).toLocaleDateString() : ''}</div>
