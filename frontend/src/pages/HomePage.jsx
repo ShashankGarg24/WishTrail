@@ -234,10 +234,6 @@ const HomePage = () => {
             transition={{ duration: 0.8 }}
             className="text-center mb-16"
           >
-            <div className="flex items-center justify-center space-x-3 mb-6">
-              <Youtube className="h-8 w-8 text-red-500" />
-              <Instagram className="h-8 w-8 text-pink-500" />
-            </div>
             <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-4">
               Daily <span className="text-gradient">Inspiration</span>
             </h2>

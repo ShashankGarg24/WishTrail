@@ -372,11 +372,11 @@ const VideoEmbedGrid = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          {activeTab === 'youtube' ? '🎬 YouTube Content' : '📸 Instagram Reels'}
+          {/* {activeTab === 'youtube' ? '🎬 YouTube Content' : '📸 Instagram Reels'} */}
         </motion.h2>
         <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
           {activeTab === 'youtube' 
-            ? 'Watch our latest videos and tutorials from both channels' 
+            ? 'Watch our latest videos and tutorials' 
             : 'Check out our recent Instagram posts and reels'
           }
         </p>
@@ -463,9 +463,6 @@ const VideoEmbedGrid = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.2 }}
         >
-          <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-            Follow All My {activeTab === 'youtube' ? 'YouTube Channels' : 'Instagram Accounts'}
-          </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {activeTab === 'youtube' ? (
               <>

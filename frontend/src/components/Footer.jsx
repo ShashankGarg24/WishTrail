@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion'
 import { Star, Youtube, Instagram, ExternalLink, Play } from 'lucide-react'
 import useApiStore from '../store/apiStore'
+import { Link } from 'react-router-dom'
 
 const Footer = () => {
   const { isAuthenticated } = useApiStore()
@@ -33,12 +34,14 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Brand */}
           <div className="space-y-4">
+          <Link to="/" className="flex items-center space-x-2">
             <div className="flex items-center space-x-2">
               <Star className="h-8 w-8 text-primary-500" />
               <span className="text-xl font-bold text-gradient">
                 WishTrail
               </span>
             </div>
+            </Link>
             <p className="text-gray-600 dark:text-gray-400 max-w-md">
               Transform your dreams into achievable goals. Track your progress, 
               get inspired, and make every year count.

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Activity, BarChart3, Target, Users, Settings, ThumbsUp, MessageSquare, Link, Plus } from 'lucide-react'
+import { Newspaper, BarChart3, Target, Users, Settings, ThumbsUp, MessageSquare, Link, Plus } from 'lucide-react'
 import { communitiesAPI, goalsAPI, habitsAPI } from '../services/api'
 import useApiStore from '../store/apiStore'
 import CreateWishModal from '../components/CreateWishModal'
@@ -257,7 +257,7 @@ export default function CommunityDetailPage() {
   const { community, role, isMember } = summary
 
   return (
-    <div className="mx-auto max-w-5xl px-4">
+    <div className="max-w-7xl mx-auto px-4 py-8">
       <div className="relative overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-800 mb-6">
         <div className="h-28 sm:h-36 bg-gradient-to-r from-blue-500/20 to-purple-500/20" />
         <div className="p-4 sm:p-6 -mt-8">
@@ -280,7 +280,7 @@ export default function CommunityDetailPage() {
       </div>
 
       <div className="flex flex-wrap gap-2 mb-6">
-        <Tab active={tab==='feed'} label="Feed" Icon={Activity} onClick={() => setTab('feed')} />
+        <Tab active={tab==='feed'} label="Feed" Icon={Newspaper} onClick={() => setTab('feed')} />
         <Tab active={tab==='dashboard'} label="Dashboard" Icon={BarChart3} onClick={() => setTab('dashboard')} />
         <Tab active={tab==='items'} label="Goals & Habits" Icon={Target} onClick={() => setTab('items')} />
         <Tab active={tab==='members'} label="Members" Icon={Users} onClick={() => setTab('members')} />
