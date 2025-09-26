@@ -4,7 +4,7 @@ import { Users, Target, RefreshCw, ChevronsDown, TrendingUp, Flame, UserPlus, Us
 import { communitiesAPI } from '../services/api'
 import useApiStore from '../store/apiStore'
 import SkeletonList from '../components/loader/SkeletonList'
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import GoalPostModal from '../components/GoalPostModal'
 import ReportModal from '../components/ReportModal'
 import BlockModal from '../components/BlockModal'
@@ -29,9 +29,9 @@ const DiscoverPage = () => {
 
   const DISCOVER_PAGE_SIZE = 9
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('users')
+  const [searchParams, setSearchParams] = useSearchParams();
   const [loading, setLoading] = useState(false)
-  const [loadingMore, setLoadingMore] = useState(false)
-  const [activeDiscoverSubtab, setActiveDiscoverSubtab] = useState('users')
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedInterest, setSelectedInterest] = useState('')
   const [users, setUsers] = useState([])
@@ -107,8 +107,19 @@ const DiscoverPage = () => {
   useEffect(() => {
     if (!isAuthenticated) return;
     fetchInitial();
-  }, [activeDiscoverSubtab, isAuthenticated]);
+  }, [activeTab, isAuthenticated]);
 
+  useEffect(() => {
+    const tabFromUrl = searchParams.get('tab') || 'goals';
+    if (tabFromUrl !== activeTab) {
+      setActiveTab(tabFromUrl);
+    }
+  }, [searchParams]);
+
+  const handleTabChange = (tab) => {
+    setSearchParams({ tab });
+    setActiveTab(tab); 
+  };
 
   useEffect(() => {
     // Only trigger search if there's a valid search term
@@ -120,9 +131,9 @@ const DiscoverPage = () => {
     } else if (!selectedInterest) {
       setSearchResults([]);
       setIsSearching(false);
-      if (activeDiscoverSubtab === 'communities') setCommunityResults(communities);
+      if (activeTab === 'communities') setCommunityResults(communities);
     }
-  }, [searchTerm, selectedInterest, activeDiscoverSubtab, communities]);
+  }, [searchTerm, selectedInterest, activeTab, communities]);
 
   useEffect(() => {
     if (selectedInterest && (!searchTerm || searchTerm.trim().length < 2)) {
@@ -133,7 +144,7 @@ const DiscoverPage = () => {
   const fetchInitial = async () => {
     setLoading(true)
     try {
-      if (activeDiscoverSubtab === 'users') {
+      if (activeTab === 'users') {
         setDiscoverPage(1)
         setDiscoverHasMore(true)
         const usersData = await getUsers({ page: 1, limit: DISCOVER_PAGE_SIZE })
@@ -145,7 +156,7 @@ const DiscoverPage = () => {
         } else {
           setUsers([])
         }
-      } else if (activeDiscoverSubtab === 'communities' && isFeatureEnabled('community')) {
+      } else if (activeTab === 'communities' && isFeatureEnabled('community')) {
         try {
           const resp = await communitiesAPI.discover({ interests: selectedInterest ? selectedInterest : '', limit: 30 });
           const data = resp?.data?.data || [];
@@ -346,13 +357,13 @@ const DiscoverPage = () => {
     const observer = new IntersectionObserver((entries) => {
       const entry = entries[0];
       if (entry.isIntersecting) {
-        if ((searchTerm.trim() || selectedInterest) && activeDiscoverSubtab === 'users') {
+        if ((searchTerm.trim() || selectedInterest) && activeTab === 'users') {
           loadMoreUserSearch();
-        } else if ((searchTerm.trim() || selectedInterest) && activeDiscoverSubtab === 'goals') {
+        } else if ((searchTerm.trim() || selectedInterest) && activeTab === 'goals') {
           loadMoreGoalSearch();
-        } else if (activeDiscoverSubtab === 'users') {
+        } else if (activeTab === 'users') {
           loadMoreDiscover();
-        } else if (activeDiscoverSubtab === 'goals') {
+        } else if (activeTab === 'goals') {
           loadMoreTrending();
         }
       }
@@ -360,7 +371,7 @@ const DiscoverPage = () => {
     const target = discoverSentinelRef.current;
     if (target) observer.observe(target);
     return () => observer.disconnect();
-  }, [isAuthenticated, loadMoreDiscover, loadMoreTrending, loadMoreUserSearch, loadMoreGoalSearch, activeDiscoverSubtab, searchTerm, selectedInterest]);
+  }, [isAuthenticated, loadMoreDiscover, loadMoreTrending, loadMoreUserSearch, loadMoreGoalSearch, activeTab, searchTerm, selectedInterest]);
 
   const handleSearch = async (term, interestValue) => {
     const t = term.trim();
@@ -385,19 +396,19 @@ const DiscoverPage = () => {
     setUserSearchHasMore(true);
     setGoalSearchHasMore(true);
     try {
-      if (activeDiscoverSubtab === 'users') {
+      if (activeTab === 'users') {
         const { users: results, pagination } = await searchUsers({ search: t, interest: interestValue, page: 1, limit: 18 });
         const filteredResults = (results || []).filter(u => u && u._id !== user?._id);
         setSearchResults(filteredResults);
         const totalPages = pagination?.pages || 1;
         setUserSearchHasMore(1 < totalPages);
-      } else if (activeDiscoverSubtab === 'goals') {
+      } else if (activeTab === 'goals') {
         setLoadingGoals(true);
         const { goals, pagination } = await useApiStore.getState().searchGoals({ q: t, interest: interestValue, page: 1, limit: 18 });
         setGoalResults(goals || []);
         const totalPages = pagination?.pages || 1;
         setGoalSearchHasMore(1 < totalPages);
-      } else if (activeDiscoverSubtab === 'communities' && isFeatureEnabled('community')) {
+      } else if (activeTab === 'communities' && isFeatureEnabled('community')) {
         const resp = await communitiesAPI.discover({ interests: interestValue || '', limit: 50 });
         const data = resp?.data?.data || [];
         setCommunities(data);
@@ -489,26 +500,26 @@ const DiscoverPage = () => {
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }} className="relative max-w-3xl mx-auto mb-8">
           <div className="relative">
-            <input type="text" placeholder={activeDiscoverSubtab === 'users' ? 'Search users by name or username...' : (activeDiscoverSubtab === 'goals' ? 'Search goals by title...' : 'Search communities by name...')}
+            <input type="text" placeholder={activeTab === 'users' ? 'Search users by name or username...' : (activeTab === 'goals' ? 'Search goals by title...' : 'Search communities by name...')}
              value={searchTerm} 
              onChange={(e) => setSearchTerm(e.target.value)} 
              className="w-full pl-4 pr-36 py-4 bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg border border-gray-200 dark:border-gray-700/50 rounded-2xl text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-lg" />
             <div role="tablist" aria-label="Discover mode" className="flex absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700/50 rounded-xl p-1 shadow-sm">
               <button role="tab" 
-              aria-selected={activeDiscoverSubtab === 'users'} 
-              className={`px-2.5 py-1.5 rounded-lg text-xs font-medium ${activeDiscoverSubtab === 'users' ? 'bg-blue-500 text-white' : 'text-gray-700 dark:text-gray-300'}`} 
-              onClick={() => { setActiveDiscoverSubtab('users'); setTrending([]);}}>Users</button>
+              aria-selected={activeTab === 'users'} 
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-medium ${activeTab === 'users' ? 'bg-blue-500 text-white' : 'text-gray-700 dark:text-gray-300'}`} 
+              onClick={() => { handleTabChange('users'); setTrending([]);}}>Users</button>
               <button 
               role="tab" 
-              aria-selected={activeDiscoverSubtab === 'goals'} 
-              className={`ml-1 px-2.5 py-1.5 rounded-lg text-xs font-medium ${activeDiscoverSubtab === 'goals' ? 'bg-blue-500 text-white' : 'text-gray-700 dark:text-gray-300'}`} 
-              onClick={() => { setActiveDiscoverSubtab('goals'); setUsers([]);}}>Goals</button>
+              aria-selected={activeTab === 'goals'} 
+              className={`ml-1 px-2.5 py-1.5 rounded-lg text-xs font-medium ${activeTab === 'goals' ? 'bg-blue-500 text-white' : 'text-gray-700 dark:text-gray-300'}`} 
+              onClick={() => { handleTabChange('goals'); setUsers([]);}}>Goals</button>
               {
                 isFeatureEnabled('community') && <button 
                 role="tab" 
-                aria-selected={activeDiscoverSubtab === 'communities'} 
-                className={`ml-1 px-2.5 py-1.5 rounded-lg text-xs font-medium ${activeDiscoverSubtab === 'communities' ? 'bg-blue-500 text-white' : 'text-gray-700 dark:text-gray-300'}`} 
-                onClick={() => { setActiveDiscoverSubtab('communities'); setUsers([]); setTrending([]);}}>Communities</button>
+                aria-selected={activeTab === 'communities'} 
+                className={`ml-1 px-2.5 py-1.5 rounded-lg text-xs font-medium ${activeTab === 'communities' ? 'bg-blue-500 text-white' : 'text-gray-700 dark:text-gray-300'}`} 
+                onClick={() => { handleTabChange('communities'); setUsers([]); setTrending([]);}}>Communities</button>
               }
             </div>
           </div>
@@ -580,7 +591,7 @@ const DiscoverPage = () => {
 
         {(loading || isSearching || loadingGoals) ? (
                   <SkeletonList count={9} grid avatar lines={3} />
-                ) : activeDiscoverSubtab === 'users' ? (
+                ) : activeTab === 'users' ? (
                   displayUsers.length > 0 ? (
                     <>
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -719,7 +730,7 @@ const DiscoverPage = () => {
                       </p>
                     </div>
                   )
-                ) : activeDiscoverSubtab === 'goals' ? (
+                ) : activeTab === 'goals' ? (
                   (searchTerm.trim() || selectedInterest)
                   ? (goalResults && goalResults.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

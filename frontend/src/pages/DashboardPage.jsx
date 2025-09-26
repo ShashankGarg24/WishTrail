@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { Plus, Calendar, Target, CheckCircle, Circle, Star, Award, Lightbulb, Clock, XCircle, SkipForward } from 'lucide-react'
-import HabitsPanel from '../components/HabitsPanel'
 import HabitDetailModal from '../components/HabitDetailModal'
 import CreateHabitModal from '../components/CreateHabitModal'
 import EditHabitModal from '../components/EditHabitModal'
@@ -12,11 +11,12 @@ import GoalSuggestionsModal from '../components/GoalSuggestionsModal'
 import HabitSuggestionsModal from '../components/HabitSuggestionsModal'
 import { API_CONFIG } from '../config/api'
 import GoalPostModal from '../components/GoalPostModal'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
 
 const DashboardPage = () => {
   const [activeTab, setActiveTab] = useState('goals')
+  const [searchParams, setSearchParams] = useSearchParams();
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isHabitModalOpen, setIsHabitModalOpen] = useState(false)
@@ -55,6 +55,18 @@ const DashboardPage = () => {
   const location = useLocation()
   const navigate = useNavigate()
 
+  useEffect(() => {
+    const tabFromUrl = searchParams.get('tab') || 'goals';
+    if (tabFromUrl !== activeTab) {
+      setActiveTab(tabFromUrl);
+    }
+  }, [searchParams]);
+
+  const handleTabChange = (tab) => {
+    setSearchParams({ tab });
+    setActiveTab(tab); 
+  };
+  
   // Collect user years present in goals
   const yearsInData = useMemo(() => {
     const ys = new Set((goals || []).map(g => g.year).filter(y => typeof y === 'number'))
@@ -346,8 +358,8 @@ const DashboardPage = () => {
         {/* Tabs */}
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="mb-6">
           <div className="inline-flex rounded-xl overflow-hidden border border-gray-200 dark:border-gray-800">
-            <button onClick={() => setActiveTab('goals')} className={`px-4 py-2 text-sm font-medium ${activeTab === 'goals' ? 'bg-primary-500 text-white' : 'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300'}`}>Goals</button>
-            <button onClick={() => setActiveTab('habits')} className={`px-4 py-2 text-sm font-medium ${activeTab === 'habits' ? 'bg-primary-500 text-white' : 'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300'}`}>Habits</button>
+            <button onClick={() => handleTabChange('goals')} className={`px-4 py-2 text-sm font-medium ${activeTab === 'goals' ? 'bg-primary-500 text-white' : 'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300'}`}>Goals</button>
+            <button onClick={() => handleTabChange('habits')} className={`px-4 py-2 text-sm font-medium ${activeTab === 'habits' ? 'bg-primary-500 text-white' : 'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300'}`}>Habits</button>
           </div>
         </motion.div>
 
