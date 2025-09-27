@@ -99,11 +99,11 @@ const createApp = async () => {
     keyGenerator: (req) => req.ip || req.connection.remoteAddress
   });
 
-  app.use('/api', createRateLimiter(15 * 60 * 1000, 500, 'Too many requests, please try again later.'));
-  app.use(/^\/api\/v\d+\/auth\/login$/, createRateLimiter(15 * 60 * 1000, 15, 'Too many login attempts, try again later.'));
-  app.use(/^\/api\/v\d+\/auth\/signup$/, createRateLimiter(15 * 60 * 1000, 15, 'Too many signup attempts, try again later.'));
-  app.use(/^\/api\/v\d+\/users/, createRateLimiter(60 * 1000, 30, 'Too many user requests, slow down.'));
-  // Explore rate limiter removed
+  // app.use('/api', createRateLimiter(15 * 60 * 1000, 500, 'Too many requests, please try again later.'));
+  // app.use(/^\/api\/v\d+\/auth\/login$/, createRateLimiter(15 * 60 * 1000, 15, 'Too many login attempts, try again later.'));
+  // app.use(/^\/api\/v\d+\/auth\/signup$/, createRateLimiter(15 * 60 * 1000, 15, 'Too many signup attempts, try again later.'));
+  // app.use(/^\/api\/v\d+\/users/, createRateLimiter(60 * 1000, 30, 'Too many user requests, slow down.'));
+  // // Explore rate limiter removed
 
   app.use(compression());
   app.use(morgan(process.env.NODE_ENV === 'development' ? 'dev' : 'combined'));

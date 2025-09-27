@@ -156,7 +156,14 @@ const NotificationsPage = () => {
                     const isUnread = !n.isRead;
                     const baseClass = isUnread ? 'bg-blue-50 dark:bg-gray-800/60 border-blue-200 dark:border-gray-700' : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800';
                     return (
-                      <div key={n._id} className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${baseClass}`}>
+                      <div 
+                        key={n._id} 
+                        className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${baseClass}`}
+                        onClick={() => {
+                          if (n.type === 'follow_request' || n.type === 'new_follower') navigate(`/profile/@${n.data.actorId.username}?tab=overview`)
+                          else if (n.data?.goalId?._id) navigate(`/feed?goalId=${n.data.goalId._id}`)
+                        }}
+                      >
                         <img
                           src={actorAvatar || '/api/placeholder/40/40'}
                           alt={actorName}
@@ -184,23 +191,15 @@ const NotificationsPage = () => {
                         <div className="flex items-center gap-2">
                           {n.type === 'follow_request' && n.data?.followerId && (
                             <>
-                              <button onClick={async () => { await acceptFollowRequest(n.data.followerId?._id || n.data.followerId); await markNotificationRead(n._id); }} className="px-3 py-1.5 rounded-lg bg-green-500 hover:bg-green-600 text-white text-xs inline-flex items-center gap-1"><Check className="w-4 h-4" />Accept</button>
-                              <button onClick={async () => { await rejectFollowRequest(n.data.followerId?._id || n.data.followerId); await markNotificationRead(n._id); }} className="px-3 py-1.5 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-xs inline-flex items-center gap-1"><X className="w-4 h-4" />Reject</button>
+                              <button 
+                                onClick={async () => { await acceptFollowRequest(n.data.followerId?._id || n.data.followerId); await markNotificationRead(n._id); }} 
+                                className="px-3 py-1.5 rounded-lg bg-green-500 hover:bg-green-600 text-white text-xs inline-flex items-center gap-1"
+                                ><Check className="w-4 h-4" />Accept</button>
+                              <button 
+                                onClick={async () => { await rejectFollowRequest(n.data.followerId?._id || n.data.followerId); await markNotificationRead(n._id); }} 
+                                className="px-3 py-1.5 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-xs inline-flex items-center gap-1"
+                              ><X className="w-4 h-4" />Reject</button>
                             </>
-                          )}
-                          {/* No follow back on acceptance; you already follow after acceptance */}
-                          {(n.data?.activityId || n.data?.goalId) && (
-                            <button
-                              onClick={() => {
-                                const gid = n?.data?.goalId && (n.data.goalId._id || n.data.goalId);
-                                if (gid) {
-                                  openGoalModal(gid);
-                                } else if (n?.data?.activityId) {
-                                  navigate('/feed');
-                                }
-                              }}
-                              className="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-xs"
-                            >View</button>
                           )}
                         </div>
                       </div>

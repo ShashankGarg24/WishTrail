@@ -287,6 +287,41 @@ const DashboardPage = () => {
     )
   }
 
+  const handleHabitLog = async (status) => {
+    if (!selectedHabit) return;
+  
+    try {
+      const res = await useApiStore.getState().logHabit(selectedHabit._id, status);
+      if (res.success) {
+        setSelectedHabit((prev) =>
+          prev
+            ? {
+                ...prev,
+                currentStreak: status === 'done' ? (prev.currentStreak || 0) + 1 : 0,
+                longestStreak:
+                  status === 'done'
+                    ? Math.max(prev.longestStreak || 0, (prev.currentStreak || 0) + 1)
+                    : prev.longestStreak,
+                totalCompletions:
+                  status === 'done'
+                    ? (prev.totalCompletions || 0) + 1
+                    : prev.totalCompletions || 0,
+              }
+            : prev
+        );
+      }
+      handleStatusToast(status)
+    } catch (err) {
+      console.error("Failed to log habit:", err);
+    }
+  };
+
+  const handleStatusToast = async (status) => {
+    const msg = status === 'done' ? 'Habit logged successfully' : 'Habit skipped successfully';
+    window.dispatchEvent(new CustomEvent('wt_toast', 
+      { detail: { message: msg, type: 'success', duration: 2000 } }));
+  }
+  
   // Error state
   if (error) {
     return (
@@ -499,7 +534,11 @@ const DashboardPage = () => {
               {Array.isArray(habits) && habits.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {habits.map((h, idx) => (
-                    <div key={h._id || idx} className="glass-card-hover p-5 rounded-2xl border border-gray-200 dark:border-gray-800 flex flex-col gap-2">
+                    <div 
+                    key={h._id || idx} 
+                    onClick={() => setSelectedHabit(h)}
+                    className="glass-card-hover p-5 rounded-2xl border border-gray-200 dark:border-gray-800 flex flex-col gap-2 cursor-pointer"
+                    >
                       <div className="flex items-center justify-between gap-3">
                         <div className="min-w-0">
                           <div className="font-semibold text-gray-900 dark:text-white truncate" title={h.name}>{h.name}</div>
@@ -525,8 +564,18 @@ const DashboardPage = () => {
                         )}
                       </div>
                       <div className="flex items-center justify-end gap-2 pt-2">
-                        <button onClick={() => setSelectedHabit(h)} className="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200">View</button>
-                        <button onClick={async () => { try { await logHabit(h._id, 'done'); } catch {} }} className="px-3 py-1.5 rounded-lg bg-primary-500 text-white">Done</button>
+                        <button
+                          onClick={async (e) => { e.stopPropagation(); handleStatusToast('skipped'); try { await logHabit(h._id, 'skipped'); } catch {} }}
+                          className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-white text-sm ${isScheduledToday ? 'bg-yellow-600/90 hover:bg-yellow-600' : 'bg-gray-300 dark:bg-gray-700 cursor-not-allowed'}`}
+                        >
+                          <SkipForward className="h-4 w-4" /> Skip
+                        </button>
+                        <button
+                          onClick={async (e) => { e.stopPropagation(); handleStatusToast('done'); try { await logHabit(h._id, 'done'); } catch {} }}
+                          className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-white text-sm ${isScheduledToday ? 'bg-green-600/90 hover:bg-green-600' : 'bg-gray-300 dark:bg-gray-700 cursor-not-allowed'}`}
+                        >
+                          <CheckCircle className="h-4 w-4" /> Done
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -605,7 +654,13 @@ const DashboardPage = () => {
 
       {/* Habit Detail Modal */}
       {selectedHabit && (
-        <HabitDetailModal isOpen={!!selectedHabit} habit={selectedHabit} onClose={() => setSelectedHabit(null)} onLog={async (status) => { try { const res = await useApiStore.getState().logHabit(selectedHabit._id, status); if (res.success) { setSelectedHabit(prev => prev ? { ...prev, currentStreak: status === 'done' ? (prev.currentStreak || 0) + 1 : 0, longestStreak: status === 'done' ? Math.max(prev.longestStreak || 0, (prev.currentStreak || 0) + 1) : prev.longestStreak, totalCompletions: status === 'done' ? (prev.totalCompletions || 0) + 1 : (prev.totalCompletions || 0) } : prev) } } catch {} }} onEdit={() => setIsEditHabitOpen(true)} onDelete={async () => { const res = await useApiStore.getState().deleteHabit(selectedHabit._id); if (res.success) { setSelectedHabit(null) } }} />
+        <HabitDetailModal 
+        isOpen={!!selectedHabit}
+        habit={selectedHabit} 
+        onClose={() => setSelectedHabit(null)} 
+        onLog={handleHabitLog} 
+        onEdit={() => setIsEditHabitOpen(true)} 
+        onDelete={async () => { const res = await useApiStore.getState().deleteHabit(selectedHabit._id); if (res.success) { setSelectedHabit(null) } }} />
       )}
 
       {/* Goal Post Modal (shared with Feed) */}
