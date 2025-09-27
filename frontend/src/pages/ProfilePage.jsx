@@ -13,6 +13,7 @@ import JournalPromptModal from "../components/JournalPromptModal";
 import JournalEntryModal from "../components/JournalEntryModal";
 import JournalExportModal from "../components/JournalExportModal";
 import HabitAnalyticsCard from "../components/HabitAnalyticsCard";
+import GoalPostModal from '../components/GoalPostModal'
 
 const ProfilePage = () => {
   const params = useParams();
@@ -77,6 +78,8 @@ const ProfilePage = () => {
   const [exportOpen, setExportOpen] = useState(false);
   const [habitStats, setHabitStats] = useState(null);
   const [myHabits, setMyHabits] = useState([]);
+  const [openGoalId, setOpenGoalId] = useState(null)
+  const [scrollCommentsOnOpen, setScrollCommentsOnOpen] = useState(false)
 
   const isProfileAccessible = () => {
     if (isOwnProfile) return true;
@@ -267,6 +270,15 @@ const ProfilePage = () => {
       console.error('Error unfollowing user:', error);
     }
   };
+
+  const closeGoalModal = () => {
+    setOpenGoalId(null)
+    setScrollCommentsOnOpen(false)
+    try {
+      const params = new URLSearchParams(location.search)
+      if (params.get('goalId')) navigate(-1)
+    } catch {}
+  }
 
   const handleTabChange = (tab) => {
     setSearchParams({ tab });
@@ -839,9 +851,13 @@ const ProfilePage = () => {
                         Current Goals in Progress
                       </h3>
                       {isProfileAccessible() ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 cursor-pointer">
                           {userGoals.filter(goal => !goal.completed).slice(0, 6).map((goal, index) => (
-                            <div key={goal._id} className="p-4 bg-gray-50 dark:bg-gray-700/30 rounded-xl">
+                            <div 
+                            key={goal._id} 
+                            className="p-4 bg-gray-50 dark:bg-gray-700/30 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700/50"
+                            onClick={() => setOpenGoalId(goal._id)}
+                            >
                               <div className="flex items-center justify-between mb-2">
                                 <h4 className="font-medium text-gray-900 dark:text-white">{goal.title}</h4>
                                 <Circle className="h-5 w-5 text-blue-600 dark:text-blue-400" />
@@ -884,13 +900,14 @@ const ProfilePage = () => {
                     {isOwnProfile ? 'All Goals' : 'Goals'}
                   </h3>
                   {isProfileAccessible() ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 cursor-pointer">
                       {userGoals.map((goal, index) => (
                         <motion.div
                           key={goal._id}
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ duration: 0.5, delay: 0.1 * index }}
+                          onClick={() => setOpenGoalId(goal._id)}
                           className="bg-gray-50 dark:bg-gray-700/30 rounded-xl p-6 border border-gray-200 dark:border-gray-600/30 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-all duration-200"
                         >
                           <div className="flex items-center justify-between mb-4">
@@ -1084,6 +1101,15 @@ const ProfilePage = () => {
           }
         }}
       />
+      {/* Goal Post Modal (shared with Feed) */}
+      {openGoalId && (
+        <GoalPostModal
+          isOpen={!!openGoalId}
+          goalId={openGoalId}
+          autoOpenComments={scrollCommentsOnOpen}
+          onClose={closeGoalModal}
+        />
+      )}
     </div>
   );
 };

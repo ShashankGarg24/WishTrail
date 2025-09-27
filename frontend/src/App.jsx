@@ -20,6 +20,7 @@ import ResetPasswordPage from './pages/ResetPasswordPage'
 import NotFoundPage from './pages/NotFoundPage'
 import { SpeedInsights } from '@vercel/speed-insights/react';
 import FeedbackButton from './components/FeedbackButton'
+import SettingsPage from './pages/SettingsPage'
 
 function App() {
   const { isDarkMode, initializeAuth, isAuthenticated, loadFeatures, isFeatureEnabled } = useApiStore()
@@ -85,6 +86,7 @@ function App() {
             <Route path="/profile/@:username" element={<ProfilePage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/inspiration" element={<InspirationPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
             {isFeatureEnabled('leaderboard') && <Route path="/leaderboard" element={<LeaderboardPage />} />}
             {isFeatureEnabled('community') && <Route path="/communities" element={<CommunitiesPage />} />}
             {isFeatureEnabled('community') && <Route path="/communities/:id" element={<CommunityDetailPage />} />}
