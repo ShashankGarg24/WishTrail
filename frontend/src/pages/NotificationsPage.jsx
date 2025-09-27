@@ -202,9 +202,6 @@ const NotificationsPage = () => {
                               className="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-xs"
                             >View</button>
                           )}
-                          {isUnread && (
-                            <button onClick={() => markNotificationRead(n._id)} className="text-xs text-blue-600 hover:underline">Mark read</button>
-                          )}
                         </div>
                       </div>
                     );

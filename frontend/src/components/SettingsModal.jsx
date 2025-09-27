@@ -170,7 +170,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
             <button
               onClick={handlePrivacyToggle}
               disabled={loading}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0 ${
                 isPrivate ? 'bg-primary-600' : 'bg-gray-200 dark:bg-gray-600'
               } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
@@ -285,7 +285,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
                       onClick={() => saveNotifSettings({ ...notif, inAppEnabled: !notif.inAppEnabled })}
                       className={`relative inline-flex h-6 w-11 items-center rounded-full ${notif.inAppEnabled ? 'bg-primary-600' : 'bg-gray-200 dark:bg-gray-600'}`}
                     >
-                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${notif.inAppEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform shrink-0 ${notif.inAppEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
                     </button>
                   </div>
 
@@ -296,7 +296,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
                       onClick={() => { if (!notif.inAppEnabled) return; const next = { ...notif, habits: { ...(notif.habits || {}), enabled: !(notif.habits?.enabled !== false) } }; saveNotifSettings(next); }}
                       className={`relative inline-flex h-6 w-11 items-center rounded-full ${(notif.habits?.enabled !== false) ? 'bg-primary-600' : 'bg-gray-200 dark:bg-gray-600'} ${!notif.inAppEnabled ? 'cursor-not-allowed' : ''}`}
                     >
-                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${(notif.habits?.enabled !== false) ? 'translate-x-6' : 'translate-x-1'}`} />
+                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform shrink-0 ${(notif.habits?.enabled !== false) ? 'translate-x-6' : 'translate-x-1'}`} />
                     </button>
                   </div>
 
@@ -373,7 +373,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
                       onClick={() => { if (!notif.inAppEnabled) return; const next = { ...notif, social: { ...(notif.social || {}), enabled: !(notif.social?.enabled === true) } }; saveNotifSettings(next); }}
                       className={`relative inline-flex h-6 w-11 items-center rounded-full ${(notif.social?.enabled === true) ? 'bg-primary-600' : 'bg-gray-200 dark:bg-gray-600'} ${!notif.inAppEnabled ? 'cursor-not-allowed' : ''}`}
                     >
-                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${(notif.social?.enabled === true) ? 'translate-x-6' : 'translate-x-1'}`} />
+                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform shrink-0 ${(notif.social?.enabled === true) ? 'translate-x-6' : 'translate-x-1'}`} />
                     </button>
                   </div>
                 </div>

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
-import { Plus, Calendar, Target, CheckCircle, Circle, Star, Award, Lightbulb, Clock, XCircle, SkipForward } from 'lucide-react'
+import { Plus, Calendar, Target, CheckCircle, Circle, Star, Award, Lightbulb, Clock, XCircle, SkipForward, Activity } from 'lucide-react'
 import HabitDetailModal from '../components/HabitDetailModal'
 import CreateHabitModal from '../components/CreateHabitModal'
 import EditHabitModal from '../components/EditHabitModal'
@@ -317,11 +317,11 @@ const DashboardPage = () => {
     { label: 'Level', value: dashboardStats.level?.level || 'Novice', icon: Award, color: dashboardStats.level?.color || 'text-gray-500', emoji: dashboardStats.level?.icon }
   ] : []
 
-
   const habitStats = habitAnalytics?.analytics?.totals ? [
-    { label: 'Done', value: habitAnalytics.analytics.totals.done, icon: CheckCircle, color: 'text-green-500' },
-    { label: 'Skipped', value: habitAnalytics.analytics.totals.skipped, icon: SkipForward, color: 'text-yellow-500' },
-    { label: 'Missed', value: habitAnalytics.analytics.totals.missed, icon: XCircle, color: 'text-red-500' }
+    { label: 'Done', value: habitAnalytics.analytics?.totals?.done, icon: CheckCircle, color: 'text-green-500' },
+    { label: 'Skipped', value: habitAnalytics.analytics?.totals?.skipped, icon: SkipForward, color: 'text-yellow-500' },
+    { label: 'Missed', value: habitAnalytics.analytics?.totals?.missed, icon: XCircle, color: 'text-red-500' },
+    { label: 'Longest Streak', value: habitAnalytics.analytics?.totals?.longestStreak, icon: Activity, color: 'text-orange-500' }
   ] : []
 
 
