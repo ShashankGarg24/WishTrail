@@ -14,9 +14,9 @@ async function createCommunity(ownerId, payload) {
   const session = await mongoose.startSession();
   let created = null;
   await session.withTransaction(async () => {
-    const serverCap = Math.max(50, parseInt(process.env.COMMUNITY_MEMBER_CAP || '500'));
-    const requestedLimit = Math.max(0, parseInt(payload.memberLimit || 0));
-    const memberLimit = requestedLimit > 0 ? Math.min(requestedLimit, serverCap) : 0;
+    const requestedLimitRaw = parseInt(payload.memberLimit || '');
+    const requestedLimit = isNaN(requestedLimitRaw) ? 1 : requestedLimitRaw;
+    const memberLimit = Math.max(1, Math.min(100, requestedLimit));
     const doc = await Community.create([{
       name: payload.name,
       description: payload.description || '',
@@ -67,19 +67,38 @@ async function updateCommunity(requesterId, communityId, payload) {
   if (!mem || !['admin','moderator'].includes(mem.role)) {
     throw Object.assign(new Error('Forbidden'), { statusCode: 403 });
   }
+  const community = await Community.findById(communityId).select('settings').lean();
+  if (!community) throw Object.assign(new Error('Community not found'), { statusCode: 404 });
   const set = {};
-  ['name','description','visibility','avatarUrl','bannerUrl'].forEach(k => {
+  ['name','description','visibility'].forEach(k => {
     if (typeof payload[k] !== 'undefined') set[k] = payload[k];
   });
+  // Enforce image change permission if toggled to admin-only
+  const imagesRestricted = community?.settings?.onlyAdminsCanChangeImages !== false;
+  if (typeof payload.avatarUrl !== 'undefined' || typeof payload.bannerUrl !== 'undefined') {
+    if (imagesRestricted && mem.role !== 'admin') {
+      throw Object.assign(new Error('Only admins can change images'), { statusCode: 403 });
+    }
+    if (typeof payload.avatarUrl !== 'undefined') set.avatarUrl = payload.avatarUrl;
+    if (typeof payload.bannerUrl !== 'undefined') set.bannerUrl = payload.bannerUrl;
+  }
   if (Array.isArray(payload.interests)) set.interests = payload.interests;
   if (payload.memberLimit !== undefined) {
-    const serverCap = Math.max(50, parseInt(process.env.COMMUNITY_MEMBER_CAP || '500'));
-    const requested = Math.max(0, parseInt(payload.memberLimit || 0));
-    set['settings.memberLimit'] = requested > 0 ? Math.min(requested, serverCap) : 0;
+    const requestedRaw = parseInt(payload.memberLimit || '');
+    const requested = isNaN(requestedRaw) ? 1 : requestedRaw;
+    set['settings.memberLimit'] = Math.max(1, Math.min(100, requested));
   }
   if (typeof payload.onlyAdminsCanAddItems !== 'undefined') {
     set['settings.onlyAdminsCanAddItems'] = !!payload.onlyAdminsCanAddItems;
   }
+  if (typeof payload.allowContributions !== 'undefined') {
+    set['settings.allowContributions'] = !!payload.allowContributions;
+  }
+  if (typeof payload.onlyAdminsCanAddGoals !== 'undefined') set['settings.onlyAdminsCanAddGoals'] = !!payload.onlyAdminsCanAddGoals;
+  if (typeof payload.onlyAdminsCanAddHabits !== 'undefined') set['settings.onlyAdminsCanAddHabits'] = !!payload.onlyAdminsCanAddHabits;
+  if (typeof payload.onlyAdminsCanChangeImages !== 'undefined') set['settings.onlyAdminsCanChangeImages'] = !!payload.onlyAdminsCanChangeImages;
+  if (typeof payload.onlyAdminsCanAddMembers !== 'undefined') set['settings.onlyAdminsCanAddMembers'] = !!payload.onlyAdminsCanAddMembers;
+  if (typeof payload.onlyAdminsCanRemoveMembers !== 'undefined') set['settings.onlyAdminsCanRemoveMembers'] = !!payload.onlyAdminsCanRemoveMembers;
   const updated = await Community.findByIdAndUpdate(communityId, { $set: set }, { new: true, runValidators: true });
   if (!updated) throw Object.assign(new Error('Community not found'), { statusCode: 404 });
   return updated;
@@ -115,7 +134,12 @@ async function suggestCommunityItem(communityId, userId, payload) {
   // Check policy: if onlyAdminsCanAddItems is false, suggestions auto-approve when policy allows anyone
   const community = await Community.findById(communityId).select('settings').lean();
   if (!community) throw Object.assign(new Error('Community not found'), { statusCode: 404 });
-  const allowAnyone = community?.settings?.onlyAdminsCanAddItems === false;
+  const s = community.settings || {};
+  const allowAnyoneGlobal = s.onlyAdminsCanAddItems === false;
+  const allowAnyoneByType = (payload.type === 'goal')
+    ? s.onlyAdminsCanAddGoals === false
+    : s.onlyAdminsCanAddHabits === false;
+  const allowAnyone = allowAnyoneGlobal || allowAnyoneByType;
   const item = new CommunityItem({
     communityId,
     type: payload.type,
@@ -133,11 +157,17 @@ async function suggestCommunityItem(communityId, userId, payload) {
 async function createCommunityOwnedItem(communityId, creatorId, payload) {
   const community = await Community.findById(communityId).select('settings').lean();
   if (!community) throw Object.assign(new Error('Community not found'), { statusCode: 404 });
-  // Enforce admin-only toggle
-  if (community.settings?.onlyAdminsCanAddItems !== false) {
+  // Enforce admin-only toggle per type (or global)
+  const s = community.settings || {};
+  const restrictedGlobal = s.onlyAdminsCanAddItems !== false;
+  const restrictedByType = (payload.type === 'goal')
+    ? s.onlyAdminsCanAddGoals !== false
+    : s.onlyAdminsCanAddHabits !== false;
+  const restricted = restrictedGlobal && restrictedByType; // if either is open, allow
+  if (restricted) {
     const mem = await CommunityMember.findOne({ communityId, userId: creatorId, status: 'active' }).lean();
-    if (!mem || !['admin','moderator'].includes(mem.role)) {
-      throw Object.assign(new Error('Forbidden'), { statusCode: 403 });
+    if (!mem || mem.role !== 'admin') {
+      throw Object.assign(new Error('Only admins can add this item'), { statusCode: 403 });
     }
   }
   if (payload.type === 'goal') {
@@ -181,10 +211,16 @@ async function createCommunityOwnedItem(communityId, creatorId, payload) {
 async function copyFromPersonalToCommunity(communityId, creatorId, { type, sourceId }) {
   const community = await Community.findById(communityId).select('settings').lean();
   if (!community) throw Object.assign(new Error('Community not found'), { statusCode: 404 });
-  if (community.settings?.onlyAdminsCanAddItems !== false) {
+  const s = community.settings || {};
+  const restrictedGlobal = s.onlyAdminsCanAddItems !== false;
+  const restrictedByType = (type === 'goal')
+    ? s.onlyAdminsCanAddGoals !== false
+    : s.onlyAdminsCanAddHabits !== false;
+  const restricted = restrictedGlobal && restrictedByType;
+  if (restricted) {
     const mem = await CommunityMember.findOne({ communityId, userId: creatorId, status: 'active' }).lean();
-    if (!mem || !['admin','moderator'].includes(mem.role)) {
-      throw Object.assign(new Error('Forbidden'), { statusCode: 403 });
+    if (!mem || mem.role !== 'admin') {
+      throw Object.assign(new Error('Only admins can add this item'), { statusCode: 403 });
     }
   }
   if (type === 'goal') {
@@ -293,9 +329,8 @@ async function getItemProgress(userId, communityId, itemId) {
 async function joinCommunity(userId, communityId) {
   const community = await Community.findById(communityId);
   if (!community || !community.isActive) throw Object.assign(new Error('Community not found'), { statusCode: 404 });
-  // Enforce server cap & community memberLimit (if > 0)
-  const serverCap = Math.max(50, parseInt(process.env.COMMUNITY_MEMBER_CAP || '500'));
-  const effectiveCap = Math.min(serverCap, Math.max(0, community.settings?.memberLimit || 0) || serverCap);
+  // Enforce community member limit 1..100
+  const effectiveCap = Math.max(1, Math.min(100, community.settings?.memberLimit || 1));
   if ((community.stats?.memberCount || 0) >= effectiveCap) {
     throw Object.assign(new Error('Community member limit reached'), { statusCode: 400 });
   }
@@ -314,16 +349,27 @@ async function joinCommunity(userId, communityId) {
 }
 
 async function listPendingMembers(communityId, requesterId) {
-  const mem = await CommunityMember.findOne({ communityId, userId: requesterId, status: 'active' }).lean();
-  if (!mem || !['admin','moderator'].includes(mem.role)) {
+  const [mem, community] = await Promise.all([
+    CommunityMember.findOne({ communityId, userId: requesterId, status: 'active' }).lean(),
+    Community.findById(communityId).select('settings').lean()
+  ]);
+  if (!mem) throw Object.assign(new Error('Forbidden'), { statusCode: 403 });
+  const restrict = community?.settings?.onlyAdminsCanAddMembers !== false;
+  // If restricted, only admin may view pending; else any active member may view
+  if (restrict && mem.role !== 'admin') {
     throw Object.assign(new Error('Forbidden'), { statusCode: 403 });
   }
   return CommunityMember.find({ communityId, status: 'pending' }).populate('userId', 'name avatar username');
 }
 
 async function decideMembership(communityId, targetUserId, approverId, approve = true) {
-  const mem = await CommunityMember.findOne({ communityId, userId: approverId, status: 'active' }).lean();
-  if (!mem || !['admin','moderator'].includes(mem.role)) {
+  const [mem, community] = await Promise.all([
+    CommunityMember.findOne({ communityId, userId: approverId, status: 'active' }).lean(),
+    Community.findById(communityId).select('settings').lean()
+  ]);
+  if (!mem) throw Object.assign(new Error('Forbidden'), { statusCode: 403 });
+  const restrict = community?.settings?.onlyAdminsCanAddMembers !== false;
+  if ((restrict && mem.role !== 'admin') || (!restrict && !['admin','moderator'].includes(mem.role))) {
     throw Object.assign(new Error('Forbidden'), { statusCode: 403 });
   }
   const updated = await CommunityMember.findOneAndUpdate(
@@ -370,6 +416,13 @@ async function getFeed(communityId, { limit = 20 } = {}) {
   return items;
 }
 
+async function deleteCommunity(communityId) {
+  const c = await Community.findById(communityId);
+  if (!c) return false;
+  await Community.updateOne({ _id: communityId }, { $set: { isActive: false } });
+  return true;
+}
+
 module.exports = {
   createCommunity,
   listMyCommunities,
@@ -392,6 +445,7 @@ module.exports = {
   decideMembership,
   listMembers,
   getFeed,
+  deleteCommunity,
 };
 
 

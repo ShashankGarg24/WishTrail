@@ -522,7 +522,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
         </div>
 
         {/* Tabs */}
-        <div className="border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
+        <div className="border-b border-gray-200 dark:border-gray-700 overflow-x-auto no-scrollbar">
           <div className="flex min-w-max">
             {tabs.map((tab) => (
               <button

@@ -45,6 +45,13 @@ const communitySchema = new mongoose.Schema({
     membershipApprovalRequired: { type: Boolean, default: false },
     itemApprovalRequired: { type: Boolean, default: true },
     onlyAdminsCanAddItems: { type: Boolean, default: true },
+    allowContributions: { type: Boolean, default: true },
+    // Granular permissions
+    onlyAdminsCanAddGoals: { type: Boolean, default: true },
+    onlyAdminsCanAddHabits: { type: Boolean, default: true },
+    onlyAdminsCanChangeImages: { type: Boolean, default: true },
+    onlyAdminsCanAddMembers: { type: Boolean, default: true },
+    onlyAdminsCanRemoveMembers: { type: Boolean, default: true },
     notifications: {
       milestones: { type: Boolean, default: true },
       announcements: { type: Boolean, default: true }

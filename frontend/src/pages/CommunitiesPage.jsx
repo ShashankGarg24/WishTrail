@@ -31,7 +31,7 @@ export default function CommunitiesPage() {
   const [discover, setDiscover] = useState([])
   const [query, setQuery] = useState('')
   const [showCreate, setShowCreate] = useState(false)
-  const [form, setForm] = useState({ name: '', description: '', visibility: 'public', interests: [], memberLimit: 0 })
+  const [form, setForm] = useState({ name: '', description: '', visibility: 'public', interests: [], memberLimit: 1 })
 
   useEffect(() => {
     let active = true
@@ -59,12 +59,19 @@ export default function CommunitiesPage() {
 
   const handleCreate = async () => {
     if (!form.name.trim()) return
-    const res = await communitiesAPI.create(form)
+    const payload = {
+      name: form.name.trim(),
+      description: form.description || '',
+      visibility: form.visibility || 'public',
+      interests: Array.isArray(form.interests) ? form.interests : [],
+      memberLimit: Math.max(1, Math.min(100, parseInt(form.memberLimit || '1')))
+    }
+    const res = await communitiesAPI.create(payload)
     const created = res?.data?.data
     if (created) {
       setMine(prev => [created, ...prev])
       setShowCreate(false)
-      setForm({ name: '', description: '', visibility: 'public' })
+      setForm({ name: '', description: '', visibility: 'public', interests: [], memberLimit: 1 })
     }
   }
 
@@ -119,13 +126,10 @@ export default function CommunitiesPage() {
                   <option value="invite-only">Invite-only</option>
                 </select>
               </div>
-              <div>
-                <label className="block text-xs font-medium mb-1">Interests (comma separated)</label>
-                <input value={form._interests || ''} onChange={e => setForm({ ...form, _interests: e.target.value, interests: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900" />
-              </div>
+              <InterestsPicker value={form.interests} onChange={(next) => setForm({ ...form, interests: next })} />
               <div>
                 <label className="block text-xs font-medium mb-1">Member limit (max 100)</label>
-                <input type="number" min={1} value={form.memberLimit} onChange={e => setForm({ ...form, memberLimit: parseInt(e.target.value || '1') })} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900" />
+                <input type="number" min={1} max={100} value={form.memberLimit} onChange={e => setForm({ ...form, memberLimit: Math.max(1, Math.min(100, parseInt(e.target.value || '1'))) })} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900" />
               </div>
               <div className="flex justify-end gap-2 pt-2">
                 <button onClick={() => setShowCreate(false)} className="px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-800">Cancel</button>
@@ -135,6 +139,36 @@ export default function CommunitiesPage() {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+function InterestsPicker({ value = [], onChange }) {
+  const { interestsCatalog, loadInterests } = useApiStore();
+  const [selected, setSelected] = useState(Array.isArray(value) ? value : []);
+  useEffect(() => { if (!interestsCatalog || interestsCatalog.length === 0) loadInterests().catch(() => {}) }, []);
+  useEffect(() => { setSelected(Array.isArray(value) ? value : []) }, [value]);
+  const list = (interestsCatalog && interestsCatalog.length > 0)
+    ? interestsCatalog.map(x => x.interest)
+    : ['fitness','health','travel','education','career','finance','hobbies','relationships','personal_growth','creativity','technology','business','lifestyle','spirituality','sports','music','art','reading','cooking','gaming','nature','volunteering'];
+  const toggle = (i) => {
+    const active = selected.includes(i);
+    const next = active ? selected.filter(v => v !== i) : [...selected, i];
+    setSelected(next);
+    onChange?.(next);
+  };
+  return (
+    <div>
+      <label className="block text-xs font-medium mb-1">Interests</label>
+      <div className="flex flex-wrap gap-2">
+        {list.map((i) => {
+          const active = selected.includes(i);
+          return (
+            <button key={i} onClick={() => toggle(i)} className={`px-2.5 py-1.5 rounded-full text-xs border ${active ? 'bg-blue-600 text-white border-blue-600' : 'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700'}`}>{i.replace(/_/g,' ')}</button>
+          );
+        })}
+      </div>
+      {selected.length > 0 && <div className="text-xs text-gray-500 mt-1">{selected.length} selected</div>}
     </div>
   )
 }

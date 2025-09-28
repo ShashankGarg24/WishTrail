@@ -10,15 +10,12 @@ const NotificationsPage = () => {
   const {
     isAuthenticated,
     getNotifications,
-    loadMoreNotifications,
     notifications,
-    notificationsPagination,
     unreadNotifications,
     markNotificationRead,
     markAllNotificationsRead,
     acceptFollowRequest,
     rejectFollowRequest,
-    followUser
   } = useApiStore()
 
   const [loading, setLoading] = useState(false);
@@ -33,42 +30,6 @@ const NotificationsPage = () => {
     if (!isAuthenticated) return
     fetchInitialData().catch(() => {})
   }, [isAuthenticated])
-
-  const openGoalModal = async (goalId) => {
-    if (!goalId) return;
-    try {
-      // Open immediately and show loading spinner
-      setGoalModalLoading(true);
-      setGoalModalOpen(true);
-      setGoalModalData(null);
-      const resp = await useApiStore.getState().getGoalPost(goalId);
-      if (resp?.success) {
-        setGoalModalData(resp.data);
-        // Do not change URL when opening from Explore; keep deep-link support only when URL already has goalId
-        // Preload comments if activityId present
-        const aid = resp?.data?.social?.activityId;
-        if (aid) {
-          try {
-            setGoalCommentsLoading(true);
-            const r = await activitiesAPI.getComments(aid, { page: 1, limit: 20 });
-            const comments = r?.data?.data?.comments || [];
-            const pagination = r?.data?.data?.pagination || null;
-            setGoalComments(comments);
-            setGoalCommentsPagination(pagination);
-            setShowComments(true);
-          } catch (_) { setGoalComments([]); setGoalCommentsPagination(null); setShowComments(false); }
-          finally { setGoalCommentsLoading(false); }
-        } else {
-          setShowComments(false);
-          setGoalComments([]);
-          setGoalCommentsPagination(null);
-        }
-      }
-    } catch (_) {
-    } finally {
-      setGoalModalLoading(false);
-    }
-  };
 
   const fetchInitialData = async (opts = {}) => {
     setLoading(true);
@@ -162,6 +123,7 @@ const NotificationsPage = () => {
                         onClick={() => {
                           if (n.type === 'follow_request' || n.type === 'new_follower') navigate(`/profile/@${n.data.actorId.username}?tab=overview`)
                           else if (n.data?.goalId?._id) navigate(`/feed?goalId=${n.data.goalId._id}`)
+                          markNotificationRead(n._id)
                         }}
                       >
                         <img

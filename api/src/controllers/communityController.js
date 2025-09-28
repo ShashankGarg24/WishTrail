@@ -113,6 +113,15 @@ module.exports = {
       res.status(200).json({ success: true, data: result });
     } catch (e) { next(e); }
   },
+  async deleteCommunity(req, res, next) {
+    try {
+      const id = req.params.id;
+      const { community, role } = await communityService.getCommunitySummary(id, req.user.id);
+      if (role !== 'admin') return res.status(403).json({ success: false, message: 'Forbidden' });
+      const ok = await communityService.deleteCommunity(id);
+      return res.status(200).json({ success: true, data: { ok: !!ok } });
+    } catch (e) { next(e); }
+  },
   async members(req, res, next) {
     try {
       const data = await communityService.listMembers(req.params.id);

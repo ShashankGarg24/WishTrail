@@ -28,6 +28,7 @@ router.post('/:id/items/:itemId/leave', protect, requireFeature('community'), co
 router.get('/:id/items/:itemId/progress', protect, requireFeature('community'), controller.getItemProgress);
 router.post('/:id/join', protect, requireFeature('community'), controller.join);
 router.post('/:id/leave', protect, requireFeature('community'), controller.leave);
+router.delete('/:id', protect, requireFeature('community'), controller.deleteCommunity);
 router.get('/:id/members', protect, requireFeature('community'), controller.members);
 router.get('/:id/members/pending', protect, requireFeature('community'), controller.pendingMembers);
 router.post('/:id/members/:userId/approve', protect, requireFeature('community'), controller.approveMember);

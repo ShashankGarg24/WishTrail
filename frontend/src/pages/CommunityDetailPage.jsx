@@ -1,7 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Newspaper, BarChart3, Target, Users, Settings, ThumbsUp, MessageSquare, Link, Plus } from 'lucide-react'
-import { communitiesAPI, goalsAPI, habitsAPI } from '../services/api'
+import { Newspaper, BarChart3, Target, Users, Settings, ThumbsUp, MessageSquare } from 'lucide-react'
+import { communitiesAPI, habitsAPI } from '../services/api'
+import CommunityDashboard from '../components/community/CommunityDashboard'
+import CommunityItems from '../components/community/CommunityItems'
+import CommunityMembers from '../components/community/CommunityMembers'
+import CommunitySettings from '../components/community/CommunitySettings'
+import DeleteCommunityModal from '../components/community/DeleteCommunityModal'
 import useApiStore from '../store/apiStore'
 import CreateWishModal from '../components/CreateWishModal'
 import CreateHabitModal from '../components/CreateHabitModal'
@@ -11,15 +16,6 @@ const Tab = ({ active, label, Icon, onClick }) => (
     <Icon className="h-4 w-4" /> {label}
   </button>
 )
-
-function StatCard({ label, value, accent }) {
-  return (
-    <div className="rounded-xl border border-gray-200 dark:border-gray-800 p-4 bg-white dark:bg-gray-900">
-      <div className="text-xs text-gray-500 dark:text-gray-400">{label}</div>
-      <div className={`mt-1 text-2xl font-bold ${accent || ''}`}>{value}</div>
-    </div>
-  )
-}
 
 function AddItemModal({ open, onClose, communityId }) {
   const [type, setType] = useState('goal') // 'goal' | 'habit'
@@ -198,6 +194,37 @@ function SuggestItemModal({ open, onClose, communityId }) {
     </div>
   )
 }
+function InterestsMultiSelect({ community }) {
+  const { interestsCatalog, loadInterests } = useApiStore();
+  const [selected, setSelected] = useState(Array.isArray(community.interests) ? community.interests : []);
+  useEffect(() => { if (!interestsCatalog || interestsCatalog.length === 0) loadInterests().catch(() => {}) }, []);
+  const list = (interestsCatalog && interestsCatalog.length > 0)
+    ? interestsCatalog.map(x => x.interest)
+    : ['fitness','health','travel','education','career','finance','hobbies','relationships','personal_growth','creativity','technology','business','lifestyle','spirituality','sports','music','art','reading','cooking','gaming','nature','volunteering'];
+  const toggle = async (val) => {
+    const active = selected.includes(val);
+    const next = active ? selected.filter(i => i !== val) : [...selected, val];
+    setSelected(next);
+    try { await communitiesAPI.update(community._id, { interests: next }); } catch {}
+  };
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-wrap gap-2">
+        {list.map((i) => {
+          const active = selected.includes(i);
+          const label = i.replace(/_/g,' ');
+          return (
+            <button key={i} onClick={() => toggle(i)} className={`px-2.5 py-1.5 rounded-full text-xs border ${active ? 'bg-blue-600 text-white border-blue-600' : 'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700'}`}>{label}</button>
+          );
+        })}
+      </div>
+      {selected.length > 0 && (
+        <div className="text-xs text-gray-500">{selected.length} selected</div>
+      )}
+    </div>
+  );
+}
+
 export default function CommunityDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -211,6 +238,7 @@ export default function CommunityDetailPage() {
   const [dashboard, setDashboard] = useState(null)
   const [showAddModal, setShowAddModal] = useState(false)
   const [showSuggestModal, setShowSuggestModal] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -284,7 +312,9 @@ export default function CommunityDetailPage() {
         <Tab active={tab==='dashboard'} label="Dashboard" Icon={BarChart3} onClick={() => setTab('dashboard')} />
         <Tab active={tab==='items'} label="Goals & Habits" Icon={Target} onClick={() => setTab('items')} />
         <Tab active={tab==='members'} label="Members" Icon={Users} onClick={() => setTab('members')} />
-        <Tab active={tab==='settings'} label="Settings" Icon={Settings} onClick={() => setTab('settings')} />
+        {role === 'admin' && (
+          <Tab active={tab==='settings'} label="Settings" Icon={Settings} onClick={() => setTab('settings')} />
+        )}
       </div>
 
       {tab === 'feed' && (
@@ -308,183 +338,38 @@ export default function CommunityDetailPage() {
       )}
 
       {tab === 'dashboard' && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard label="Members" value={dashboard?.stats?.memberCount ?? '—'} />
-          <StatCard label="Community Points" value={dashboard?.stats?.totalPoints ?? '—'} />
-          <StatCard label="Weekly Activity" value={dashboard?.stats?.weeklyActivityCount ?? '—'} />
-          <StatCard label="Completion Rate" value={`${dashboard?.stats?.completionRate ?? 0}%`} accent="text-green-600" />
-          <div className="sm:col-span-2 lg:col-span-4 rounded-xl border border-gray-200 dark:border-gray-800 p-4 bg-white dark:bg-gray-900">
-            <div className="text-sm font-semibold mb-2">Weekly Activity (mock)</div>
-            <div className="h-24 grid grid-cols-12 gap-2">
-              {Array.from({ length: 12 }).map((_, i) => (
-                <div key={i} className="bg-blue-500/20 rounded flex items-end">
-                  <div className="w-full bg-blue-600 rounded" style={{ height: `${10 + (i*7)%90}%` }} />
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="sm:col-span-2 lg:col-span-4 rounded-xl border border-gray-200 dark:border-gray-800 p-4 bg-white dark:bg-gray-900">
-            <div className="text-sm font-semibold mb-2">Leaderboard (mock)</div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {members.slice(0,6).map((m, idx) => (
-                <div key={m._id} className="p-3 rounded-lg border border-gray-200 dark:border-gray-800 flex items-center gap-3">
-                  <div className="text-xs w-5 h-5 rounded-full bg-gray-200 dark:bg-gray-800 flex items-center justify-center">{idx+1}</div>
-                  <img src={m.user?.avatar} alt="User" className="h-8 w-8 rounded-full" />
-                  <div className="text-sm truncate flex-1">{m.user?.name}</div>
-                  <div className="text-xs text-gray-500">{m.user?.totalPoints || 0} pts</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+        <CommunityDashboard dashboard={dashboard} members={members} />
       )}
 
       {tab === 'items' && (
-        <div className="space-y-3">
-          {(() => {
-            const onlyAdmins = summary?.community?.settings?.onlyAdminsCanAddItems !== false
-            if (onlyAdmins) {
-              return (
-                <div className="flex items-center justify-between p-3 rounded-lg border border-dashed border-gray-300 dark:border-gray-700">
-                  <div className="text-sm text-gray-600 dark:text-gray-300">Add goals/habits to the community</div>
-                  {['admin','moderator'].includes(role) ? (
-                    <button className="px-3 py-1.5 rounded-lg bg-blue-600 text-white" onClick={() => setShowAddModal(true)}>Add</button>
-                  ) : (
-                    <button className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-800" onClick={() => setShowSuggestModal(true)}>Suggest</button>
-                  )}
-                </div>
-              )
-            }
-            return (
-              <div className="flex items-center justify-between p-3 rounded-lg border border-dashed border-gray-300 dark:border-gray-700">
-                <div className="text-sm text-gray-600 dark:text-gray-300">Add goals/habits to the community</div>
-                <button className="px-3 py-1.5 rounded-lg bg-blue-600 text-white" onClick={() => setShowAddModal(true)}>Add</button>
-              </div>
-            )
-          })()}
-          {items.map(it => (
-            <div key={it._id} className="rounded-xl border border-gray-200 dark:border-gray-800 p-4 bg-white dark:bg-gray-900">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-sm font-semibold">{it.title}</div>
-                  <div className="text-xs text-gray-500">{it.type} • {it.stats?.participantCount || 0} joined</div>
-                  <div className="mt-2 flex items-center gap-4 text-xs">
-                    <div className="w-40">
-                      <div className="text-[10px] text-gray-500">Your progress</div>
-                      <div className="h-2 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
-                        <div className="h-full bg-blue-600" style={{ width: `${itemProgress[it._id]?.personal || 0}%` }} />
-                      </div>
-                    </div>
-                    <div className="w-40">
-                      <div className="text-[10px] text-gray-500">Community avg</div>
-                      <div className="h-2 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
-                        <div className="h-full bg-green-600" style={{ width: `${itemProgress[it._id]?.community || 0}%` }} />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button onClick={async () => { await communitiesAPI.joinItem(id, it._id); const r = await communitiesAPI.itemProgress(id, it._id); setItemProgress(p => ({ ...p, [it._id]: r?.data?.data })); }} className="px-3 py-1.5 rounded-lg bg-blue-600 text-white">Join</button>
-                  <button onClick={async () => { await communitiesAPI.leaveItem(id, it._id); const r = await communitiesAPI.itemProgress(id, it._id); setItemProgress(p => ({ ...p, [it._id]: r?.data?.data })); }} className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-800">Leave</button>
-                </div>
-              </div>
-            </div>
-          ))}
-          {items.length === 0 && <div className="text-sm text-gray-500">No shared goals or habits yet.</div>}
-          <AddItemModal open={showAddModal} onClose={(refresh) => { setShowAddModal(false); if (refresh) window.location.reload(); }} communityId={id} />
-          <SuggestItemModal open={showSuggestModal} onClose={(refresh) => { setShowSuggestModal(false); if (refresh) window.location.reload(); }} communityId={id} />
-        </div>
+        <CommunityItems
+          id={id}
+          role={role}
+          settings={summary?.community?.settings}
+          items={items}
+          itemProgress={itemProgress}
+          onRefreshProgress={(itemId, data) => setItemProgress(p => ({ ...p, [itemId]: data }))}
+        />
       )}
 
       {tab === 'members' && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {members.map(m => (
-            <div key={m._id} className="rounded-xl border border-gray-200 dark:border-gray-800 p-4 bg-white dark:bg-gray-900">
-              <div className="flex items-center gap-3">
-                <img src={m.user?.avatar} alt="User" className="h-10 w-10 rounded-full" />
-                <div className="min-w-0">
-                  <div className="font-medium truncate">{m.user?.name}</div>
-                  <div className="text-xs text-gray-500">{m.role}</div>
-                </div>
-                <div className="ml-auto text-xs text-gray-500">Streak {m.currentStreak || 0}</div>
-              </div>
-            </div>
-          ))}
-        </div>
+        <CommunityMembers id={id} role={role} community={community} members={members} />
       )}
 
       {tab === 'settings' && (
-        <div className="rounded-xl border border-gray-200 dark:border-gray-800 p-4 bg-white dark:bg-gray-900">
-          {['admin','moderator'].includes(role) ? (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-medium mb-1">Avatar URL</label>
-                  <input defaultValue={community.avatarUrl || ''} onBlur={async (e) => { await communitiesAPI.update(community._id, { avatarUrl: e.target.value }); }} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900" />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium mb-1">Banner URL</label>
-                  <input defaultValue={community.bannerUrl || ''} onBlur={async (e) => { await communitiesAPI.update(community._id, { bannerUrl: e.target.value }); }} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900" />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium mb-1">Interests (comma separated)</label>
-                  <input defaultValue={(community.interests||[]).join(', ')} onBlur={async (e) => { const interests = e.target.value.split(',').map(s => s.trim()).filter(Boolean); await communitiesAPI.update(community._id, { interests }); }} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900" />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium mb-1">Member limit (max 100)</label>
-                  <input type="number" min={1} defaultValue={community.settings?.memberLimit || 1} onBlur={async (e) => { const memberLimit = parseInt(e.target.value||'0'); await communitiesAPI.update(community._id, { memberLimit }); }} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900" />
-                </div>
-                <div className="col-span-1 sm:col-span-2">
-                  <label className="inline-flex items-center gap-2 text-sm">
-                    <input type="checkbox" defaultChecked={community.settings?.onlyAdminsCanAddItems !== false} onChange={async (e) => { await communitiesAPI.update(community._id, { onlyAdminsCanAddItems: e.target.checked }); }} />
-                    Only admins can add goals (others can suggest)
-                  </label>
-                </div>
-                <div className="col-span-1 sm:col-span-2">
-                  <label className="inline-flex items-center gap-2 text-sm">
-                    <input type="checkbox" defaultChecked={community.settings?.onlyAdminsCanAddItems !== false} onChange={async (e) => { await communitiesAPI.update(community._id, { onlyAdminsCanAddItems: e.target.checked }); }} />
-                    Only admins can add habits (others can suggest)
-                  </label>
-                </div>
-                <div className="col-span-1 sm:col-span-2">
-                  <label className="inline-flex items-center gap-2 text-sm">
-                    <input type="checkbox" defaultChecked={community.settings?.onlyAdminsCanAddItems !== false} onChange={async (e) => { await communitiesAPI.update(community._id, { onlyAdminsCanAddItems: e.target.checked }); }} />
-                    Only admins can change profile and background image
-                  </label>
-                </div>
-                <div className="col-span-1 sm:col-span-2">
-                  <label className="inline-flex items-center gap-2 text-sm">
-                    <input type="checkbox" defaultChecked={community.settings?.onlyAdminsCanAddItems !== false} onChange={async (e) => { await communitiesAPI.update(community._id, { onlyAdminsCanAddItems: e.target.checked }); }} />
-                    Only admins can add members (others can invite)
-                  </label>
-                </div>
-                <div className="col-span-1 sm:col-span-2">
-                  <label className="inline-flex items-center gap-2 text-sm">
-                    <input type="checkbox" defaultChecked={community.settings?.onlyAdminsCanAddItems !== false} onChange={async (e) => { await communitiesAPI.update(community._id, { onlyAdminsCanAddItems: e.target.checked }); }} />
-                    Only admins can remove members
-                  </label>
-                </div>
-              </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-sm font-semibold">Invite link</div>
-                  <div className="text-xs text-gray-500">Share this link to invite people</div>
-                </div>
-                <button className="px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-800" onClick={() => { navigator.clipboard?.writeText(window.location.origin + `/communities/${community._id}`) }}>Copy</button>
-              </div>
-              <div>
-                <div className="text-sm font-semibold mb-2">Pending Member Requests</div>
-                <PendingMembers communityId={community._id} />
-              </div>
-              <div>
-                <div className="text-sm font-semibold mb-2">Pending Suggestions</div>
-                <PendingSuggestions communityId={community._id} />
-              </div>
-            </div>
-          ) : (
-            <div className="text-sm text-gray-500">No settings available.</div>
+        <CommunitySettings
+          community={community}
+          role={role}
+          showDeleteModal={showDeleteModal}
+          setShowDeleteModal={setShowDeleteModal}
+          DeleteModal={(
+            <DeleteCommunityModal
+              open={showDeleteModal}
+              onClose={() => setShowDeleteModal(false)}
+              onConfirm={async () => { try { await communitiesAPI.remove(community._id); window.location.assign('/communities'); } finally { setShowDeleteModal(false); } }}
+            />
           )}
-        </div>
+        />
       )}
     </div>
   )

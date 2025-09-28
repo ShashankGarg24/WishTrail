@@ -212,3 +212,13 @@ body {
 ::selection {
   @apply bg-primary-200 dark:bg-primary-800;
 } 
+
+/* Hide scrollbar but keep scrolling */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

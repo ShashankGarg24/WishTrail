@@ -230,6 +230,7 @@ export const communitiesAPI = {
   discover: (params) => api.get('/communities/discover', { params }),
   create: (payload) => api.post('/communities', payload),
   update: (id, payload) => api.patch(`/communities/${id}`, payload),
+  remove: (id) => api.delete(`/communities/${id}`),
   get: (id) => api.get(`/communities/${id}`),
   dashboard: (id) => api.get(`/communities/${id}/dashboard`),
   feed: (id, params) => api.get(`/communities/${id}/feed`, { params }),
@@ -286,6 +287,10 @@ export const locationAPI = {
 export const uploadAPI = {
   uploadAvatar: (formData) => api.post('/upload/avatar', formData)
 }
+export const communityUploadAPI = {
+  uploadAvatar: (id, formData) => api.post(`/upload/community/${id}/avatar`, formData),
+  uploadBanner: (id, formData) => api.post(`/upload/community/${id}/banner`, formData),
+};
 
 // Feedback API (helper)
 export const feedbackAPI = {
