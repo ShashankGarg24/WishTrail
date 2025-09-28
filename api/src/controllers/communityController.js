@@ -8,6 +8,12 @@ module.exports = {
       res.status(200).json({ success: true, data });
     } catch (e) { next(e); }
   },
+  async myJoinedItems(req, res, next) {
+    try {
+      const data = await communityService.listMyJoinedItems(req.user.id);
+      res.status(200).json({ success: true, data });
+    } catch (e) { next(e); }
+  },
   async discoverCommunities(req, res, next) {
     try {
       const interests = (req.query.interests || '').split(',').filter(Boolean);
@@ -92,6 +98,12 @@ module.exports = {
   async leaveItem(req, res, next) {
     try {
       const result = await communityService.leaveItem(req.user.id, req.params.id, req.params.itemId);
+      res.status(200).json({ success: true, data: result });
+    } catch (e) { next(e); }
+  },
+  async removeItem(req, res, next) {
+    try {
+      const result = await communityService.removeCommunityItem(req.params.id, req.params.itemId, req.user.id);
       res.status(200).json({ success: true, data: result });
     } catch (e) { next(e); }
   },

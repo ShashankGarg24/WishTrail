@@ -228,6 +228,7 @@ export const notificationsAPI = {
 export const communitiesAPI = {
   listMine: () => api.get('/communities/mine'),
   discover: (params) => api.get('/communities/discover', { params }),
+  listMyJoinedItems: () => api.get('/communities/joined/items'),
   create: (payload) => api.post('/communities', payload),
   update: (id, payload) => api.patch(`/communities/${id}`, payload),
   remove: (id) => api.delete(`/communities/${id}`),
@@ -235,6 +236,7 @@ export const communitiesAPI = {
   dashboard: (id) => api.get(`/communities/${id}/dashboard`),
   feed: (id, params) => api.get(`/communities/${id}/feed`, { params }),
   items: (id) => api.get(`/communities/${id}/items`),
+  removeItem: (id, itemId) => api.delete(`/communities/${id}/items/${itemId}`),
   pendingItems: (id) => api.get(`/communities/${id}/items/pending`),
   suggestItem: (id, payload) => api.post(`/communities/${id}/items`, payload),
   approveItem: (id, itemId, approve = true) => api.post(`/communities/${id}/items/${itemId}/approve`, { approve }),

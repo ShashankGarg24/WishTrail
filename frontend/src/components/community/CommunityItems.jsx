@@ -15,6 +15,7 @@ export function AddItemModal({ open, onClose, communityId }) {
   const [myGoals, setMyGoals] = useState([])
   const [myHabits, setMyHabits] = useState([])
   const [filter, setFilter] = useState('')
+  const [participationType, setParticipationType] = useState('individual') // goals only
   const { getGoals, loadHabits } = useApiStore()
 
   useEffect(() => {
@@ -44,7 +45,7 @@ export function AddItemModal({ open, onClose, communityId }) {
     try {
       if (mode === 'link') {
         if (!sourceId) return
-        await communitiesAPI.copyCommunityItem(communityId, { type, sourceId })
+        await communitiesAPI.copyCommunityItem(communityId, { type, sourceId, ...(type === 'goal' ? { participationType } : {}) })
       } else {
         if (type === 'goal') {
           setShowCreateGoalModal(true)
@@ -70,8 +71,17 @@ export function AddItemModal({ open, onClose, communityId }) {
               <option value="habit">Habit</option>
             </select>
           </div>
+          {type === 'goal' && (
+            <div className="flex items-center gap-2">
+              <label className="text-sm">Participation</label>
+              <select value={participationType} onChange={e => setParticipationType(e.target.value)} className="px-2 py-1 rounded border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+                <option value="individual">Individual</option>
+                <option value="collaborative">Collaborative</option>
+              </select>
+            </div>
+          )}
           <div className="pt-2 flex items-center justify-end gap-2">
-            <button onClick={() => setMode('link')} className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg ${mode==='link'?'bg-gray-200 dark:bg-gray-700':'bg-gray-100 dark:bg-gray-800'} text-gray-800 dark:text-gray-200`}><Link className="h-4 w-4" />Link</button>
+            <button onClick={() => setMode('link')} className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg ${mode==='link'?'bg-gray-200 dark:bg-gray-700':'bg-gray-100 dark:bg-gray-800'} text-gray-800 dark:text-gray-200`}><Link className="h-4 w-4" />Clone/Copy</button>
             <button onClick={() => setMode('create')} className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg ${mode==='create'?'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800':'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 border border-primary-200 dark:border-primary-800'}`}><Plus className="h-4 w-4" />Add New</button>
           </div>
           {mode === 'link' ? (
@@ -113,7 +123,7 @@ export function AddItemModal({ open, onClose, communityId }) {
               const res = await goalsAPI.createGoal(goalData)
               const created = res?.data?.data?.goal
               if (created?._id) {
-                await communitiesAPI.copyCommunityItem(communityId, { type: 'goal', sourceId: created._id })
+                await communitiesAPI.copyCommunityItem(communityId, { type: 'goal', sourceId: created._id, participationType })
               }
               onClose(true)
               return { success: true }
@@ -190,6 +200,9 @@ export default function CommunityItems({ id, role, settings, items, itemProgress
             <div className="flex items-center gap-2">
               <button onClick={async () => { await communitiesAPI.joinItem(id, it._id); const r = await communitiesAPI.itemProgress(id, it._id); onRefreshProgress?.(it._id, r?.data?.data); }} className="px-3 py-1.5 rounded-lg bg-blue-600 text-white">Join</button>
               <button onClick={async () => { await communitiesAPI.leaveItem(id, it._id); const r = await communitiesAPI.itemProgress(id, it._id); onRefreshProgress?.(it._id, r?.data?.data); }} className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-800">Leave</button>
+              {(['admin'].includes(role) || String(it.createdBy?._id || it.createdBy) === String(useApiStore.getState().user?._id)) && (
+                <button onClick={async () => { if (confirm('Remove this item from the community?')) { await communitiesAPI.removeItem(id, it._id); window.location.reload(); } }} className="px-3 py-1.5 rounded-lg border border-red-200 text-red-600">Remove</button>
+              )}
             </div>
           </div>
         </div>

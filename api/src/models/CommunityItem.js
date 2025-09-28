@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const communityItemSchema = new mongoose.Schema({
   communityId: { type: mongoose.Schema.Types.ObjectId, ref: 'Community', required: true, index: true },
   type: { type: String, enum: ['goal', 'habit'], required: true, index: true },
+  participationType: { type: String, enum: ['individual', 'collaborative'], default: 'individual' }, // goals only
   sourceId: { type: mongoose.Schema.Types.ObjectId, required: true, index: true }, // Goal._id or Habit._id
   title: { type: String, trim: true },
   description: { type: String, trim: true },

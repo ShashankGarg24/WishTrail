@@ -8,6 +8,7 @@ const router = express.Router();
 // My communities and discovery
 router.get('/mine', protect, requireFeature('community'), controller.listMyCommunities);
 router.get('/discover', protect, requireFeature('community'), controller.discoverCommunities);
+router.get('/joined/items', protect, requireFeature('community'), controller.myJoinedItems);
 
 // Create
 router.post('/', protect, requireFeature('community'), controller.createCommunity);
@@ -25,6 +26,7 @@ router.post('/:id/items/create', protect, requireFeature('community'), controlle
 router.post('/:id/items/copy', protect, requireFeature('community'), controller.copyFromPersonal);
 router.post('/:id/items/:itemId/join', protect, requireFeature('community'), controller.joinItem);
 router.post('/:id/items/:itemId/leave', protect, requireFeature('community'), controller.leaveItem);
+router.delete('/:id/items/:itemId', protect, requireFeature('community'), controller.removeItem);
 router.get('/:id/items/:itemId/progress', protect, requireFeature('community'), controller.getItemProgress);
 router.post('/:id/join', protect, requireFeature('community'), controller.join);
 router.post('/:id/leave', protect, requireFeature('community'), controller.leave);

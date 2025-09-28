@@ -10,6 +10,7 @@ import WishCard from '../components/WishCard'
 import GoalSuggestionsModal from '../components/GoalSuggestionsModal'
 import HabitSuggestionsModal from '../components/HabitSuggestionsModal'
 import { API_CONFIG } from '../config/api'
+import { communitiesAPI } from '../services/api'
 import GoalPostModal from '../components/GoalPostModal'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
@@ -26,6 +27,7 @@ const DashboardPage = () => {
   const [initialHabitData, setInitialHabitData] = useState(null)
   const [isSuggestionsOpen, setIsSuggestionsOpen] = useState(false)
   const [isHabitIdeasOpen, setIsHabitIdeasOpen] = useState(false)
+  const [communityItems, setCommunityItems] = useState([])
   const [page, setPage] = useState(1)
   const [extraYears, setExtraYears] = useState([])
   const [isAddYearOpen, setIsAddYearOpen] = useState(false)
@@ -121,6 +123,7 @@ const DashboardPage = () => {
       if (initialYear !== selectedYear) setSelectedYear(initialYear)
       getDashboardStats()
       getGoals({ year: initialYear })
+      try { communitiesAPI.listMyJoinedItems().then(r => setCommunityItems(r?.data?.data || [])).catch(()=>{}) } catch {}
     }
   }, [isAuthenticated])
 
@@ -501,6 +504,35 @@ const DashboardPage = () => {
                 </div>
               )}
             </motion.div>
+
+            {/* Community Goals Section */}
+            <div className="mt-10">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Community goals</h3>
+              {communityItems && communityItems.filter(i => i.type === 'goal').length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {communityItems.filter(i => i.type === 'goal').map((it) => (
+                    <div key={it._id} className="p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 relative">
+                      <span className="absolute top-2 right-2 text-[10px] px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-200 border border-purple-200 dark:border-purple-800">Community</span>
+                      <div className="text-sm font-semibold truncate" title={it.title}>{it.title}</div>
+                      <div className="text-xs text-gray-500 mb-2">{it.communityName} • {it.participationType === 'collaborative' ? 'Collaborative' : 'Individual'}</div>
+                      <div className="flex items-center gap-4 text-xs">
+                        <div className="flex-1">
+                          <div className="text-[10px] text-gray-500">Your progress</div>
+                          <div className="h-2 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
+                            <div className="h-full bg-blue-600" style={{ width: `${it.personalPercent || 0}%` }} />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mt-2 text-right">
+                        <a href={`/communities/${it.communityId}`} className="text-sm text-primary-600 hover:underline">Open community</a>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-sm text-gray-500">No community goals joined yet.</div>
+              )}
+            </div>
           </>
         )}
 

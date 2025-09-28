@@ -185,8 +185,15 @@ async function createCommunityOwnedItem(communityId, creatorId, payload) {
       isActive: true,
     });
     await g.save();
-    const item = new CommunityItem({ communityId, type: 'goal', sourceId: g._id, title: g.title, description: g.description, createdBy: creatorId, status: 'approved' });
+    const participationType = payload.participationType === 'collaborative' ? 'collaborative' : 'individual';
+    const item = new CommunityItem({ communityId, type: 'goal', participationType, sourceId: g._id, title: g.title, description: g.description, createdBy: creatorId, status: 'approved' });
     await item.save();
+    // Auto-join creator so it appears in their dashboard
+    await CommunityParticipation.updateOne(
+      { communityId, itemId: item._id, userId: creatorId },
+      { $setOnInsert: { type: 'goal', status: 'joined', progressPercent: 0, lastUpdatedAt: new Date() }, $set: { status: 'joined' } },
+      { upsert: true }
+    );
     return item;
   } else {
     const h = new Habit({
@@ -201,14 +208,19 @@ async function createCommunityOwnedItem(communityId, creatorId, payload) {
       isActive: true,
     });
     await h.save();
-    const item = new CommunityItem({ communityId, type: 'habit', sourceId: h._id, title: h.name, description: h.description, createdBy: creatorId, status: 'approved' });
+    const item = new CommunityItem({ communityId, type: 'habit', participationType: 'individual', sourceId: h._id, title: h.name, description: h.description, createdBy: creatorId, status: 'approved' });
     await item.save();
+    await CommunityParticipation.updateOne(
+      { communityId, itemId: item._id, userId: creatorId },
+      { $setOnInsert: { type: 'habit', status: 'joined', progressPercent: 0, lastUpdatedAt: new Date() }, $set: { status: 'joined' } },
+      { upsert: true }
+    );
     return item;
   }
 }
 
 // Copy content from a personal goal/habit into a fresh community-owned copy (no progress)
-async function copyFromPersonalToCommunity(communityId, creatorId, { type, sourceId }) {
+async function copyFromPersonalToCommunity(communityId, creatorId, { type, sourceId, participationType }) {
   const community = await Community.findById(communityId).select('settings').lean();
   if (!community) throw Object.assign(new Error('Community not found'), { statusCode: 404 });
   const s = community.settings || {};
@@ -239,8 +251,14 @@ async function copyFromPersonalToCommunity(communityId, creatorId, { type, sourc
       isActive: true,
     });
     await g.save();
-    const item = new CommunityItem({ communityId, type: 'goal', sourceId: g._id, title: g.title, description: g.description, createdBy: creatorId, status: 'approved' });
+    const pType = participationType === 'collaborative' ? 'collaborative' : 'individual';
+    const item = new CommunityItem({ communityId, type: 'goal', participationType: pType, sourceId: g._id, title: g.title, description: g.description, createdBy: creatorId, status: 'approved' });
     await item.save();
+    await CommunityParticipation.updateOne(
+      { communityId, itemId: item._id, userId: creatorId },
+      { $setOnInsert: { type: 'goal', status: 'joined', progressPercent: 0, lastUpdatedAt: new Date() }, $set: { status: 'joined' } },
+      { upsert: true }
+    );
     return item;
   } else {
     const src = await Habit.findById(sourceId).lean();
@@ -257,8 +275,13 @@ async function copyFromPersonalToCommunity(communityId, creatorId, { type, sourc
       isActive: true,
     });
     await h.save();
-    const item = new CommunityItem({ communityId, type: 'habit', sourceId: h._id, title: h.name, description: h.description, createdBy: creatorId, status: 'approved' });
+    const item = new CommunityItem({ communityId, type: 'habit', participationType: 'individual', sourceId: h._id, title: h.name, description: h.description, createdBy: creatorId, status: 'approved' });
     await item.save();
+    await CommunityParticipation.updateOne(
+      { communityId, itemId: item._id, userId: creatorId },
+      { $setOnInsert: { type: 'habit', status: 'joined', progressPercent: 0, lastUpdatedAt: new Date() }, $set: { status: 'joined' } },
+      { upsert: true }
+    );
     return item;
   }
 }
@@ -298,6 +321,22 @@ async function leaveItem(userId, communityId, itemId) {
   return { ok: true };
 }
 
+async function removeCommunityItem(communityId, itemId, requesterId) {
+  const [mem, item] = await Promise.all([
+    CommunityMember.findOne({ communityId, userId: requesterId, status: 'active' }).lean(),
+    CommunityItem.findOne({ _id: itemId, communityId, isActive: true })
+  ]);
+  if (!item) return { ok: true };
+  const isAdmin = !!mem && mem.role === 'admin';
+  const isCreator = String(item.createdBy) === String(requesterId);
+  if (!isAdmin && !isCreator) {
+    throw Object.assign(new Error('Forbidden'), { statusCode: 403 });
+  }
+  await CommunityItem.updateOne({ _id: itemId }, { $set: { isActive: false, status: 'rejected' } });
+  await CommunityParticipation.updateMany({ communityId, itemId }, { $set: { status: 'left' } });
+  return { ok: true };
+}
+
 async function getItemProgress(userId, communityId, itemId) {
   const item = await CommunityItem.findOne({ _id: itemId, communityId, status: 'approved', isActive: true }).lean();
   if (!item) throw Object.assign(new Error('Item not found'), { statusCode: 404 });
@@ -305,11 +344,13 @@ async function getItemProgress(userId, communityId, itemId) {
   if (item.type === 'goal') {
     const g = await Goal.findById(item.sourceId).select('completed subGoals habitLinks').lean();
     if (g) {
-      // Simple: completed -> 100 else approximate by subgoals/habits
-      if (g.completed) personal = 100; else {
-        const total = (g.subGoals?.length || 0) + (g.habitLinks?.length || 0) || 1;
-        const done = (g.subGoals || []).filter(s => s.completed).length;
-        personal = Math.round((done / total) * 100);
+      // For individual: personal progress; collaborative: contributions are aggregated below
+      if (item.participationType !== 'collaborative') {
+        if (g.completed) personal = 100; else {
+          const total = (g.subGoals?.length || 0) + (g.habitLinks?.length || 0) || 1;
+          const done = (g.subGoals || []).filter(s => s.completed).length;
+          personal = Math.round((done / total) * 100);
+        }
       }
     }
   } else {
@@ -320,10 +361,45 @@ async function getItemProgress(userId, communityId, itemId) {
     }
   }
   const participants = await CommunityParticipation.find({ communityId, itemId, status: 'joined' }).select('progressPercent').lean();
-  const communityAvg = participants.length === 0 ? 0 : Math.round(participants.reduce((s, p) => s + (p.progressPercent || 0), 0) / participants.length);
-  // Persist personal snapshot
+  let communityProgress = 0;
+  if (item.type === 'goal' && item.participationType === 'collaborative') {
+    // Aggregate contributions for collaborative goals (cap at 100)
+    const sum = participants.reduce((s, p) => s + (p.progressPercent || 0), 0);
+    communityProgress = Math.min(100, Math.round(sum));
+  } else {
+    // Average for individual items
+    communityProgress = participants.length === 0 ? 0 : Math.round(participants.reduce((s, p) => s + (p.progressPercent || 0), 0) / participants.length);
+  }
+  // Persist personal snapshot (for collaborative, this records user's contribution)
   await CommunityParticipation.updateOne({ communityId, itemId, userId }, { $set: { progressPercent: personal, lastUpdatedAt: new Date() } }, { upsert: true });
-  return { personal, community: communityAvg };
+  return { personal, community: communityProgress };
+}
+
+async function listMyJoinedItems(userId) {
+  const parts = await CommunityParticipation.find({ userId, status: 'joined' }).select('communityId itemId type progressPercent').lean();
+  if (parts.length === 0) return [];
+  const itemIds = parts.map(p => p.itemId);
+  const items = await CommunityItem.find({ _id: { $in: itemIds }, isActive: true, status: 'approved' }).select('communityId type participationType title description stats').lean();
+  const itemById = new Map(items.map(i => [String(i._id), i]));
+  const communityIds = Array.from(new Set(items.map(i => String(i.communityId))));
+  const communities = await Community.find({ _id: { $in: communityIds }, isActive: true }).select('name visibility').lean();
+  const communityById = new Map(communities.map(c => [String(c._id), c]));
+  return parts.map(p => {
+    const item = itemById.get(String(p.itemId));
+    const community = item ? communityById.get(String(item.communityId)) : null;
+    if (!item || !community) return null;
+    return {
+      _id: String(p.itemId),
+      communityId: String(item.communityId),
+      communityName: community.name,
+      type: item.type,
+      participationType: item.participationType || 'individual',
+      title: item.title,
+      description: item.description,
+      stats: item.stats || {},
+      personalPercent: p.progressPercent || 0
+    };
+  }).filter(Boolean);
 }
 
 async function joinCommunity(userId, communityId) {
@@ -446,6 +522,8 @@ module.exports = {
   listMembers,
   getFeed,
   deleteCommunity,
+  listMyJoinedItems,
+  removeCommunityItem,
 };
 
 
