@@ -486,7 +486,8 @@ async function listMembers(communityId) {
 async function getFeed(communityId, { limit = 20, filter = 'all', before = null } = {}) {
   const cap = Math.min(100, Math.max(1, limit));
   const beforeClause = before ? { $lt: before } : {};
-  const qUpdates = { communityId, isActive: true, isPublic: true, ...(before ? { createdAt: beforeClause } : {}) };
+  // For now, updates are global public activities (not scoped to community). Chat is community-scoped.
+  const qUpdates = { isActive: true, isPublic: true, ...(before ? { createdAt: beforeClause } : {}) };
   const qChat = { communityId, ...(before ? { createdAt: beforeClause } : {}) };
 
   const projBase = { _id: 1, communityId: 1, userId: 1, name: 1, avatar: 1, createdAt: 1, reactions: 1 };
@@ -531,8 +532,7 @@ async function deleteChatMessage(communityId, requesterId, msgId) {
   ]);
   if (!msg) return { ok: true };
   const isAdmin = !!mem && ['admin','moderator'].includes(mem.role);
-  const isOwner = String(msg.userId) === String(requesterId);
-  if (!isAdmin && !isOwner) throw Object.assign(new Error('Forbidden'), { statusCode: 403 });
+  if (!isAdmin) throw Object.assign(new Error('Forbidden'), { statusCode: 403 });
   await ChatMessage.deleteOne({ _id: msgId });
   return { ok: true };
 }

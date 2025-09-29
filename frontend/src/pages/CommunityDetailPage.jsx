@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Newspaper, BarChart3, Target, Users, Settings, ThumbsUp, MessageSquare } from 'lucide-react'
-import { communitiesAPI } from '../services/api'
+import api, { communitiesAPI } from '../services/api'
 import CommunityDashboard from '../components/community/CommunityDashboard'
 import CommunityItems from '../components/community/CommunityItems'
 import CommunityMembers from '../components/community/CommunityMembers'
@@ -70,8 +70,7 @@ export default function CommunityDetailPage() {
   // Socket.io connect & room join
   const ioUrl = useMemo(() => {
     try {
-      const base = new URL(import.meta.env.VITE_BASE_URL || window.location.origin)
-      // connect to same host as API; adjust if API is on different domain
+      const base = new URL(api.defaults.baseURL || window.location.origin)
       return base.origin
     } catch { return window.location.origin }
   }, [])
@@ -147,7 +146,8 @@ export default function CommunityDetailPage() {
       </div>
 
       {tab === 'feed' && (
-        <div className="space-y-3">
+        <div className="relative" style={{ minHeight: '60vh' }}>
+          <div className="space-y-3 pb-16 max-h-[70vh] overflow-y-auto">
           <div className="flex items-center gap-2 mb-2">
             <select value={filter} onChange={e => setFilter(e.target.value)} className="px-2 py-1 rounded border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-sm">
               <option value="all">All</option>
@@ -155,10 +155,6 @@ export default function CommunityDetailPage() {
               <option value="chat">Chat</option>
             </select>
             <div className="flex-1" />
-            <div className="flex items-center gap-2">
-              <input value={chatText} onChange={e => setChatText(e.target.value)} placeholder="Message…" className="px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-sm w-64" />
-              <button onClick={sendChat} className="px-3 py-2 rounded-lg bg-blue-600 text-white text-sm">Send</button>
-            </div>
           </div>
           {feed.map(a => (
             <div key={a._id} className={`rounded-xl border border-gray-200 dark:border-gray-800 p-4 ${a.kind==='chat' ? 'bg-gray-50 dark:bg-gray-800/60' : 'bg-white dark:bg-gray-900'}`}>
@@ -185,6 +181,13 @@ export default function CommunityDetailPage() {
             </div>
           ))}
           {feed.length === 0 && <div className="text-sm text-gray-500">No activity yet.</div>}
+          </div>
+          <div className="fixed bottom-4 left-1/2 -translate-x-1/2 w-full max-w-4xl px-4">
+            <div className="flex items-center gap-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl px-3 py-2 shadow-sm">
+              <input value={chatText} onChange={e => setChatText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') sendChat() }} placeholder="Message…" className="flex-1 px-2 py-2 rounded-md outline-none bg-transparent text-sm" />
+              <button onClick={sendChat} className="px-3 py-2 rounded-lg bg-blue-600 text-white text-sm">Send</button>
+            </div>
+          </div>
         </div>
       )}
 
