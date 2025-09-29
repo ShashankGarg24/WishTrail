@@ -105,12 +105,15 @@ const useApiStore = create(
       },
       openSettingsModal: () => set({ settingsModalOpen: true }),
       closeSettingsModal: () => set({ settingsModalOpen: false }),
+
       _cacheKeyFromParams: (params = {}) => {
         const entries = Object.entries(params || {}).filter(([, v]) => v !== undefined && v !== null);
         entries.sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
         return entries.map(([k, v]) => `${k}=${String(v)}`).join('&') || 'default';
       },
+
       _isFresh: (ts, ttl) => (typeof ts === 'number' && Date.now() - ts < ttl),
+
       _setCacheWithLimit: (bucketName, key, payload) => {
         const current = get()[bucketName] || {};
         const bucket = { ...current, [key]: { data: payload, ts: Date.now() } };
@@ -134,6 +137,7 @@ const useApiStore = create(
         }
         set({ [bucketName]: bucket });
       },
+
       invalidateGoalPostCache: ({ goalId, activityId } = {}) => {
         try {
           const prev = get().cacheGoalPosts || {};
@@ -143,6 +147,7 @@ const useApiStore = create(
           set({ cacheGoalPosts: next });
         } catch {}
       },
+      
       invalidateGoalPostByGoal: (id) => { try { get().invalidateGoalPostCache({ goalId: id }); } catch {} },
       invalidateGoalPostByActivity: (id) => { try { get().invalidateGoalPostCache({ activityId: id }); } catch {} },
       
@@ -389,7 +394,7 @@ const useApiStore = create(
         }
       },
 
-            updateProfile: async (userData) => {
+      updateProfile: async (userData) => {
         try {
           set({ loading: true, error: null });
           const response = await authAPI.updateProfile(userData);
@@ -516,10 +521,12 @@ const useApiStore = create(
           return { success: false, error: handleApiError(error) };
         }
       },
+
       appendHabit: (habit) => {
         if (!habit) return;
         set(state => ({ habits: [habit, ...(state.habits || [])], cacheHabitsTs: Date.now() }));
       },
+
       logHabit: async (id, status) => {
         try {
           await habitsAPI.log(id, { status });
@@ -539,6 +546,7 @@ const useApiStore = create(
           return { success: false, error: handleApiError(error) };
         }
       },
+
       updateHabit: async (id, payload) => {
         try {
           const res = await habitsAPI.update(id, payload);
@@ -551,6 +559,7 @@ const useApiStore = create(
           return { success: false, error: handleApiError(error) };
         }
       },
+
       deleteHabit: async (id) => {
         try {
           await habitsAPI.remove(id);
@@ -560,6 +569,7 @@ const useApiStore = create(
           return { success: false, error: handleApiError(error) };
         }
       },
+
       loadHabitAnalytics: async (opts = {}) => {
         try {
           const force = !!opts.force;
@@ -617,6 +627,7 @@ const useApiStore = create(
           return { success: false, error: handleApiError(error) };
         }
       },
+      
       setSubGoals: async (goalId, subGoals) => {
         try {
           const res = await goalsAPI.setSubGoals(goalId, subGoals);
@@ -627,6 +638,7 @@ const useApiStore = create(
           return { success: false, error: handleApiError(error) };
         }
       },
+
       toggleSubGoalItem: async (goalId, index, completed, note) => {
         try {
           const res = await goalsAPI.toggleSubGoal(goalId, index, completed, note);
@@ -637,6 +649,7 @@ const useApiStore = create(
           return { success: false, error: handleApiError(error) };
         }
       },
+
       setHabitLinks: async (goalId, habitLinks) => {
         try {
           const res = await goalsAPI.setHabitLinks(goalId, habitLinks);
@@ -1019,6 +1032,7 @@ const useApiStore = create(
           return { success: false, error: errorMessage };
         }
       },
+
       cancelFollowRequest: async (userId) => {
         try {
           await socialAPI.cancelFollowRequest(userId);
@@ -1032,6 +1046,7 @@ const useApiStore = create(
           return { success: false, error: errorMessage };
         }
       },
+
       // Moderation actions
       report: async ({ targetType, targetId, reason, description }) => {
         try {
@@ -1042,6 +1057,7 @@ const useApiStore = create(
           return { success: false, error: errorMessage };
         }
       },
+
       blockUser: async (userId) => {
         try {
           await moderationAPI.blockUser(userId);
@@ -1058,6 +1074,7 @@ const useApiStore = create(
           return { success: false, error: errorMessage };
         }
       },
+
       unblockUser: async (userId) => {
         try {
           await moderationAPI.unblockUser(userId);
@@ -1068,6 +1085,7 @@ const useApiStore = create(
           return { success: false, error: errorMessage };
         }
       },
+
       listBlockedUsers: async () => {
         try {
           const res = await moderationAPI.listBlocked();
@@ -1144,6 +1162,7 @@ const useApiStore = create(
           return { success: false, error: errorMessage };
         }
       },
+
       acceptFollowRequest: async (followerId) => {
         try {
           const id = (followerId && typeof followerId === 'object') ? (followerId._id || followerId.id) : followerId;
@@ -1158,6 +1177,7 @@ const useApiStore = create(
           return { success: false, error: errorMessage };
         }
       },
+
       rejectFollowRequest: async (followerId) => {
         try {
           const id = (followerId && typeof followerId === 'object') ? (followerId._id || followerId.id) : followerId;
@@ -1256,6 +1276,7 @@ const useApiStore = create(
           return null;
         }
       },
+
       updateNotificationSettings: async (settings) => {
         try {
           const res = await notificationsAPI.updateSettings(settings);
@@ -1282,6 +1303,7 @@ const useApiStore = create(
           return null;
         }
       },
+
       createJournalEntry: async ({ content, promptKey, visibility = 'private', mood = 'neutral', tags = [] }) => {
         try {
           const res = await journalsAPI.createEntry({ content, promptKey, visibility, mood, tags });
@@ -1295,6 +1317,7 @@ const useApiStore = create(
           return { success: false, error: errorMessage };
         }
       },
+
       updateJournalEntry: async (id, payload) => {
         try {
           const res = await journalsAPI.updateEntry(id, payload);
@@ -1308,6 +1331,7 @@ const useApiStore = create(
           return { success: false, error: errorMessage };
         }
       },
+
       getMyJournalEntries: async (params = {}) => {
         try {
           const res = await journalsAPI.getMyEntries(params);
@@ -1319,6 +1343,7 @@ const useApiStore = create(
           return [];
         }
       },
+
       getUserJournalHighlights: async (userId, params = {}) => {
         try {
           const res = await journalsAPI.getHighlights(userId, params);
@@ -1330,6 +1355,7 @@ const useApiStore = create(
           return [];
         }
       },
+
       getUserJournalStats: async (userId) => {
         try {
           const res = await journalsAPI.getStats(userId);
@@ -1341,6 +1367,7 @@ const useApiStore = create(
           return null;
         }
       },
+
       loadMoreNotifications: async () => {
         try {
           const { notificationsPagination } = get();
@@ -1355,6 +1382,7 @@ const useApiStore = create(
           get()._setCacheWithLimit('cacheNotifications', key, { notifications: more, pagination, unread: unreadNow });
         } catch {}
       },
+
       markNotificationRead: async (id) => {
         try {
           await notificationsAPI.markAsRead(id);
@@ -1364,6 +1392,7 @@ const useApiStore = create(
           }));
         } catch {}
       },
+
       markAllNotificationsRead: async () => {
         try {
           await notificationsAPI.markAllAsRead();
@@ -1558,6 +1587,7 @@ const useApiStore = create(
           return null;
         }
       },
+
       isFeatureEnabled: (key) => {
         try {
           const k = String(key || '').trim().toLowerCase().replace(/[\s-]+/g, '_');

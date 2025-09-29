@@ -82,7 +82,7 @@ export function AddItemModal({ open, onClose, communityId }) {
           )}
           <div className="pt-2 flex items-center justify-end gap-2">
             <button onClick={() => setMode('link')} className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg ${mode==='link'?'bg-gray-200 dark:bg-gray-700':'bg-gray-100 dark:bg-gray-800'} text-gray-800 dark:text-gray-200`}><Link className="h-4 w-4" />Clone/Copy</button>
-            <button onClick={() => setMode('create')} className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg ${mode==='create'?'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800':'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 border border-primary-200 dark:border-primary-800'}`}><Plus className="h-4 w-4" />Add New</button>
+            <button onClick={() => { if (type === 'goal') setShowCreateGoalModal(true); else setShowCreateHabitModal(true); }} className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 border border-primary-200 dark:border-primary-800`}><Plus className="h-4 w-4" />Add New</button>
           </div>
           {mode === 'link' ? (
             <div className="space-y-2">
@@ -105,9 +105,7 @@ export function AddItemModal({ open, onClose, communityId }) {
                 )}
               </div>
             </div>
-          ) : (
-            <input placeholder={`Enter ${type === 'goal' ? 'goal title' : 'habit name'}`} value={title} onChange={e => setTitle(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900" />
-          )}
+          ) : null}
           <div className="flex justify-end gap-2 pt-2">
             <button onClick={() => onClose(false)} className="px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-800">Cancel</button>
             <button onClick={submit} className="px-3 py-2 rounded-lg bg-blue-600 text-white">Submit</button>

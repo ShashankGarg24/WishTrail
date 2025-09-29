@@ -191,7 +191,7 @@ async function createCommunityOwnedItem(communityId, creatorId, payload) {
     // Auto-join creator so it appears in their dashboard
     await CommunityParticipation.updateOne(
       { communityId, itemId: item._id, userId: creatorId },
-      { $setOnInsert: { type: 'goal', status: 'joined', progressPercent: 0, lastUpdatedAt: new Date() }, $set: { status: 'joined' } },
+    { $setOnInsert: { type: 'goal', progressPercent: 0, lastUpdatedAt: new Date() }, $set: { status: 'joined' } },
       { upsert: true }
     );
     return item;
@@ -212,7 +212,7 @@ async function createCommunityOwnedItem(communityId, creatorId, payload) {
     await item.save();
     await CommunityParticipation.updateOne(
       { communityId, itemId: item._id, userId: creatorId },
-      { $setOnInsert: { type: 'habit', status: 'joined', progressPercent: 0, lastUpdatedAt: new Date() }, $set: { status: 'joined' } },
+    { $setOnInsert: { type: 'habit', progressPercent: 0, lastUpdatedAt: new Date() }, $set: { status: 'joined' } },
       { upsert: true }
     );
     return item;
@@ -256,7 +256,7 @@ async function copyFromPersonalToCommunity(communityId, creatorId, { type, sourc
     await item.save();
     await CommunityParticipation.updateOne(
       { communityId, itemId: item._id, userId: creatorId },
-      { $setOnInsert: { type: 'goal', status: 'joined', progressPercent: 0, lastUpdatedAt: new Date() }, $set: { status: 'joined' } },
+    { $setOnInsert: { type: 'goal', progressPercent: 0, lastUpdatedAt: new Date() }, $set: { status: 'joined' } },
       { upsert: true }
     );
     return item;
@@ -279,7 +279,7 @@ async function copyFromPersonalToCommunity(communityId, creatorId, { type, sourc
     await item.save();
     await CommunityParticipation.updateOne(
       { communityId, itemId: item._id, userId: creatorId },
-      { $setOnInsert: { type: 'habit', status: 'joined', progressPercent: 0, lastUpdatedAt: new Date() }, $set: { status: 'joined' } },
+    { $setOnInsert: { type: 'habit', progressPercent: 0, lastUpdatedAt: new Date() }, $set: { status: 'joined' } },
       { upsert: true }
     );
     return item;
@@ -306,7 +306,7 @@ async function joinItem(userId, communityId, itemId) {
   if (!item) throw Object.assign(new Error('Item not found'), { statusCode: 404 });
   const doc = await CommunityParticipation.findOneAndUpdate(
     { communityId, itemId, userId },
-    { $setOnInsert: { type: item.type, status: 'joined', progressPercent: 0, lastUpdatedAt: new Date() }, $set: { status: 'joined' } },
+    { $setOnInsert: { type: item.type, progressPercent: 0, lastUpdatedAt: new Date() }, $set: { status: 'joined' } },
     { new: true, upsert: true }
   );
   await CommunityItem.updateOne({ _id: itemId }, { $inc: { 'stats.participantCount': 1 } });
