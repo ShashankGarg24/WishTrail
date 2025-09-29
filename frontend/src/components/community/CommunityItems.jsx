@@ -150,7 +150,7 @@ export function AddItemModal({ open, onClose, communityId }) {
   )
 }
 
-export default function CommunityItems({ id, role, settings, items, itemProgress, onRefreshProgress }) {
+export default function CommunityItems({ id, role, settings, items, itemProgress, onRefreshProgress, joinedItems = new Set(), onToggleJoin }) {
   const allowAnyMemberToAdd = (settings?.onlyAdminsCanAddItems === false) || (settings?.onlyAdminsCanAddGoals === false) || (settings?.onlyAdminsCanAddHabits === false)
   const onlyAdmins = !allowAnyMemberToAdd
   const [showAddModal, setShowAddModal] = useState(false)
@@ -174,37 +174,42 @@ export default function CommunityItems({ id, role, settings, items, itemProgress
         </div>
       )}
 
-      {items.map(it => (
-        <div key={it._id} className="rounded-xl border border-gray-200 dark:border-gray-800 p-4 bg-white dark:bg-gray-900">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-sm font-semibold">{it.title}</div>
-              <div className="text-xs text-gray-500">{it.type} • {it.stats?.participantCount || 0} joined</div>
-              <div className="mt-2 flex items-center gap-4 text-xs">
-                <div className="w-40">
-                  <div className="text-[10px] text-gray-500">Your progress</div>
-                  <div className="h-2 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
-                    <div className="h-full bg-blue-600" style={{ width: `${itemProgress[it._id]?.personal || 0}%` }} />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        {items.map(it => (
+          <div key={it._id} className="rounded-xl border border-gray-200 dark:border-gray-800 p-4 bg-white dark:bg-gray-900">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="text-sm font-semibold truncate" title={it.title}>{it.title}</div>
+                <div className="text-xs text-gray-500">{it.type} • {it.stats?.participantCount || 0} joined</div>
+                <div className="mt-2 grid grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <div className="text-[10px] text-gray-500">Your progress</div>
+                    <div className="h-2 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
+                      <div className="h-full bg-blue-600" style={{ width: `${itemProgress[it._id]?.personal || 0}%` }} />
+                    </div>
                   </div>
-                </div>
-                <div className="w-40">
-                  <div className="text-[10px] text-gray-500">Community avg</div>
-                  <div className="h-2 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
-                    <div className="h-full bg-green-600" style={{ width: `${itemProgress[it._id]?.community || 0}%` }} />
+                  <div>
+                    <div className="text-[10px] text-gray-500">Community avg</div>
+                    <div className="h-2 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
+                      <div className="h-full bg-green-600" style={{ width: `${itemProgress[it._id]?.community || 0}%` }} />
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <button onClick={async () => { await communitiesAPI.joinItem(id, it._id); const r = await communitiesAPI.itemProgress(id, it._id); onRefreshProgress?.(it._id, r?.data?.data); }} className="px-3 py-1.5 rounded-lg bg-blue-600 text-white">Join</button>
-              <button onClick={async () => { await communitiesAPI.leaveItem(id, it._id); const r = await communitiesAPI.itemProgress(id, it._id); onRefreshProgress?.(it._id, r?.data?.data); }} className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-800">Leave</button>
-              {(['admin'].includes(role) || String(it.createdBy?._id || it.createdBy) === String(useApiStore.getState().user?._id)) && (
-                <button onClick={async () => { if (confirm('Remove this item from the community?')) { await communitiesAPI.removeItem(id, it._id); window.location.reload(); } }} className="px-3 py-1.5 rounded-lg border border-red-200 text-red-600">Remove</button>
-              )}
+              <div className="flex-shrink-0 flex items-center gap-2">
+                {joinedItems.has(String(it._id)) ? (
+                  <button onClick={async () => { await communitiesAPI.leaveItem(id, it._id); const r = await communitiesAPI.itemProgress(id, it._id); onRefreshProgress?.(it._id, r?.data?.data); onToggleJoin?.(it._id, false); }} className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-800 text-sm">Leave</button>
+                ) : (
+                  <button onClick={async () => { await communitiesAPI.joinItem(id, it._id); const r = await communitiesAPI.itemProgress(id, it._id); onRefreshProgress?.(it._id, r?.data?.data); onToggleJoin?.(it._id, true); }} className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-sm">Join</button>
+                )}
+                {(['admin'].includes(role) || String(it.createdBy?._id || it.createdBy) === String(useApiStore.getState().user?._id)) && (
+                  <button onClick={async () => { if (confirm('Remove this item from the community?')) { await communitiesAPI.removeItem(id, it._id); window.location.reload(); } }} className="px-3 py-1.5 rounded-lg border border-red-200 text-red-600 text-sm">Remove</button>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
       {items.length === 0 && <div className="text-sm text-gray-500">No shared goals or habits yet.</div>}
       <AddItemModal open={showAddModal} onClose={(refresh) => { setShowAddModal(false); if (refresh) window.location.reload(); }} communityId={id} />
       {/* Suggest modal stays in page for brevity; can extract similarly if needed */}

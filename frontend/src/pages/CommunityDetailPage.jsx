@@ -29,6 +29,7 @@ export default function CommunityDetailPage() {
   const [members, setMembers] = useState([])
   const [dashboard, setDashboard] = useState(null)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [joinedItems, setJoinedItems] = useState(new Set())
   const socketRef = useRef(null)
   const seenIdsRef = useRef(new Set())
 
@@ -64,6 +65,13 @@ export default function CommunityDetailPage() {
       setItemProgress(map)
       setMembers(m?.data?.data || [])
       setDashboard(d?.data?.data || null)
+      // Load membership to toggle Join/Leave
+      try {
+        const mine = await communitiesAPI.listMyJoinedItems()
+        const arr = mine?.data?.data || []
+        const set = new Set(arr.filter(x => String(x.communityId) === String(id)).map(x => String(x._id)))
+        setJoinedItems(set)
+      } catch {}
     }
     loadFeed()
   }, [id, filter])
@@ -147,14 +155,16 @@ export default function CommunityDetailPage() {
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2 mb-6">
-        <Tab active={tab==='feed'} label="Feed" Icon={Newspaper} onClick={() => setTab('feed')} />
-        <Tab active={tab==='dashboard'} label="Dashboard" Icon={BarChart3} onClick={() => setTab('dashboard')} />
-        <Tab active={tab==='items'} label="Goals & Habits" Icon={Target} onClick={() => setTab('items')} />
-        <Tab active={tab==='members'} label="Members" Icon={Users} onClick={() => setTab('members')} />
-        {role === 'admin' && (
-          <Tab active={tab==='settings'} label="Settings" Icon={Settings} onClick={() => setTab('settings')} />
-        )}
+      <div className="mb-6 -mx-4 px-4 overflow-x-auto">
+        <div className="flex gap-2 w-max">
+          <Tab active={tab==='feed'} label="Feed" Icon={Newspaper} onClick={() => setTab('feed')} />
+          <Tab active={tab==='dashboard'} label="Dashboard" Icon={BarChart3} onClick={() => setTab('dashboard')} />
+          <Tab active={tab==='items'} label="Goals & Habits" Icon={Target} onClick={() => setTab('items')} />
+          <Tab active={tab==='members'} label="Members" Icon={Users} onClick={() => setTab('members')} />
+          {role === 'admin' && (
+            <Tab active={tab==='settings'} label="Settings" Icon={Settings} onClick={() => setTab('settings')} />
+          )}
+        </div>
       </div>
 
       {tab === 'feed' && (
@@ -215,6 +225,8 @@ export default function CommunityDetailPage() {
           items={items}
           itemProgress={itemProgress}
           onRefreshProgress={(itemId, data) => setItemProgress(p => ({ ...p, [itemId]: data }))}
+          joinedItems={joinedItems}
+          onToggleJoin={(itemId, joined) => setJoinedItems(prev => { const next = new Set(prev); if (joined) next.add(String(itemId)); else next.delete(String(itemId)); return next; })}
         />
       )}
 
