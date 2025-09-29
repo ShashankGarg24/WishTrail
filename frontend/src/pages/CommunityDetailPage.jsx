@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Newspaper, BarChart3, Target, Users, Settings, ThumbsUp, MessageSquare } from 'lucide-react'
 import { communitiesAPI } from '../services/api'
@@ -7,6 +7,7 @@ import CommunityItems from '../components/community/CommunityItems'
 import CommunityMembers from '../components/community/CommunityMembers'
 import CommunitySettings from '../components/community/CommunitySettings'
 import DeleteCommunityModal from '../components/community/DeleteCommunityModal'
+import io from 'socket.io-client'
 
 const Tab = ({ active, label, Icon, onClick }) => (
   <button onClick={onClick} className={`px-4 py-2 rounded-lg text-sm font-medium inline-flex items-center gap-2 ${active ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200'}`}>
@@ -21,11 +22,14 @@ export default function CommunityDetailPage() {
   const [summary, setSummary] = useState(null)
   const [tab, setTab] = useState('feed')
   const [feed, setFeed] = useState([])
+  const [filter, setFilter] = useState('all') // all | updates | chat
+  const [chatText, setChatText] = useState('')
   const [items, setItems] = useState([])
   const [itemProgress, setItemProgress] = useState({})
   const [members, setMembers] = useState([])
   const [dashboard, setDashboard] = useState(null)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const socketRef = useRef(null)
 
   useEffect(() => {
     let active = true
@@ -44,7 +48,7 @@ export default function CommunityDetailPage() {
   useEffect(() => {
     async function loadFeed() {
       const [f, i, m, d] = await Promise.all([
-        communitiesAPI.feed(id, { limit: 20 }),
+        communitiesAPI.feed(id, { limit: 30, filter }),
         communitiesAPI.items(id),
         communitiesAPI.members(id),
         communitiesAPI.dashboard(id)
@@ -61,7 +65,45 @@ export default function CommunityDetailPage() {
       setDashboard(d?.data?.data || null)
     }
     loadFeed()
-  }, [id])
+  }, [id, filter])
+
+  // Socket.io connect & room join
+  const ioUrl = useMemo(() => {
+    try {
+      const base = new URL(import.meta.env.VITE_BASE_URL || window.location.origin)
+      // connect to same host as API; adjust if API is on different domain
+      return base.origin
+    } catch { return window.location.origin }
+  }, [])
+
+  useEffect(() => {
+    const s = io(ioUrl, { transports: ['websocket'], withCredentials: true })
+    socketRef.current = s
+    s.emit('community:join', id)
+    s.on('community:message:new', (msg) => {
+      setFeed((curr) => (filter === 'updates' ? curr : [{ kind: 'chat', ...msg }, ...curr]))
+    })
+    s.on('community:message:deleted', ({ _id }) => {
+      setFeed((curr) => curr.filter((x) => String(x._id) !== String(_id)))
+    })
+    s.on('community:reaction:changed', ({ targetType, targetId, reactions }) => {
+      setFeed((curr) => curr.map((x) => (String(x._id) === String(targetId) && ((targetType === 'chat' && x.kind === 'chat') || (targetType === 'update' && x.kind === 'update')))
+        ? { ...x, reactions }
+        : x))
+    })
+    return () => { try { s.emit('community:leave', id); s.disconnect() } catch {} }
+  }, [id, ioUrl, filter])
+
+  const sendChat = async () => {
+    const text = chatText.trim()
+    if (!text) return
+    try {
+      const res = await communitiesAPI.sendChat(id, text)
+      const msg = res?.data?.data
+      if (msg) setFeed((curr) => [{ kind: 'chat', ...msg }, ...curr])
+      setChatText('')
+    } catch {}
+  }
 
   if (!summary) return (
     <div className="mx-auto max-w-5xl px-4">
@@ -106,17 +148,39 @@ export default function CommunityDetailPage() {
 
       {tab === 'feed' && (
         <div className="space-y-3">
+          <div className="flex items-center gap-2 mb-2">
+            <select value={filter} onChange={e => setFilter(e.target.value)} className="px-2 py-1 rounded border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-sm">
+              <option value="all">All</option>
+              <option value="updates">Updates</option>
+              <option value="chat">Chat</option>
+            </select>
+            <div className="flex-1" />
+            <div className="flex items-center gap-2">
+              <input value={chatText} onChange={e => setChatText(e.target.value)} placeholder="Message…" className="px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-sm w-64" />
+              <button onClick={sendChat} className="px-3 py-2 rounded-lg bg-blue-600 text-white text-sm">Send</button>
+            </div>
+          </div>
           {feed.map(a => (
-            <div key={a._id} className="rounded-xl border border-gray-200 dark:border-gray-800 p-4 bg-white dark:bg-gray-900">
+            <div key={a._id} className={`rounded-xl border border-gray-200 dark:border-gray-800 p-4 ${a.kind==='chat' ? 'bg-gray-50 dark:bg-gray-800/60' : 'bg-white dark:bg-gray-900'}`}>
               <div className="flex items-center gap-3">
-                <img src={a.userId?.avatar} alt="User" className="h-8 w-8 rounded-full" />
-                <div className="text-sm"><span className="font-medium">{a.userId?.name}</span> <span className="text-gray-500">{a.message}</span></div>
+                <img src={a.avatar || a.userId?.avatar} alt="User" className="h-8 w-8 rounded-full" />
+                <div className="text-sm">
+                  <span className="font-medium">{a.name || a.userId?.name}</span>
+                  <span className="text-gray-500"> {a.kind==='chat' ? a.text : a.message}</span>
+                </div>
                 <div className="flex-1" />
                 <div className="text-xs text-gray-500">{new Date(a.createdAt).toLocaleString()}</div>
               </div>
-              <div className="mt-3 flex items-center gap-3 text-sm text-gray-600 dark:text-gray-300">
-                <button className="inline-flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"><ThumbsUp className="h-4 w-4" />Like</button>
-                <button className="inline-flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"><MessageSquare className="h-4 w-4" />Comment</button>
+              <div className="mt-3 flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
+                {['👍','🎉','💯'].map(ej => (
+                  <button key={ej} onClick={async () => { try { const r = await communitiesAPI.react(id, { targetType: a.kind, targetId: a._id, emoji: ej }); setFeed(curr => curr.map(x => x._id===a._id? { ...x, reactions: r?.data?.data?.reactions } : x)) } catch {} }} className="inline-flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">
+                    <span>{ej}</span>
+                    <span className="text-[11px] text-gray-500">{a?.reactions?.[ej]?.count || 0}</span>
+                  </button>
+                ))}
+                {a.kind==='chat' && (
+                  <button onClick={async () => { if (confirm('Delete message?')) { try { await communitiesAPI.deleteChat(id, a._id); setFeed(curr => curr.filter(x => x._id!==a._id)) } catch {} } }} className="ml-2 inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-red-200 text-red-600">Delete</button>
+                )}
               </div>
             </div>
           ))}

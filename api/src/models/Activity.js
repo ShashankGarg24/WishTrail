@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { getFeedConnection } = require('../config/database');
 
 const activitySchema = new mongoose.Schema({
   // User who performed the activity
@@ -84,7 +85,24 @@ const activitySchema = new mongoose.Schema({
     type: Boolean,
     default: true,
     index: true
-  }
+  },
+
+  // Community scope (optional)
+  communityId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Community',
+    index: true
+  },
+
+  // Reactions: emoji -> { count, userIds }
+  reactions: {
+    type: Map,
+    of: new mongoose.Schema({ count: { type: Number, default: 0 }, userIds: [{ type: mongoose.Schema.Types.ObjectId }] }, { _id: false }),
+    default: {}
+  },
+
+  // Optional expiration support (set on write if you want TTL for updates)
+  expiresAt: { type: Date, index: true }
   
 }, {
   timestamps: true,
@@ -98,6 +116,8 @@ activitySchema.index({ userId: 1, createdAt: -1 });
 activitySchema.index({ type: 1, createdAt: -1 });
 activitySchema.index({ isPublic: 1, createdAt: -1 });
 activitySchema.index({ isActive: 1, isPublic: 1, createdAt: -1 });
+activitySchema.index({ communityId: 1, createdAt: -1 });
+activitySchema.index({ expiresAt: 1 });
 
 // Virtual for activity message
 activitySchema.virtual('message').get(function() {
@@ -149,10 +169,7 @@ activitySchema.statics.getRecentActivities = function(limit = 15, userId = null)
   
   return this.find(query)
     .sort({ createdAt: -1 })
-    .limit(limit)
-    .populate('userId', 'name avatar level')
-    .populate('data.goalId', 'title category')
-    .populate('data.targetUserId', 'name avatar');
+    .limit(limit);
 };
 
 // Static method to get user's activity feed
@@ -172,10 +189,8 @@ activitySchema.statics.getFollowingActivities = function(followingIds, limit = 2
     isPublic: true
   })
   .sort({ createdAt: -1 })
-  .limit(limit)
-  .populate('userId', 'name avatar level')
-  .populate('data.goalId', 'title category')
-  .populate('data.targetUserId', 'name avatar');
+  .limit(limit);
 };
 
-module.exports = mongoose.model('Activity', activitySchema); 
+// Bind model to the FEED connection to isolate from primary DB
+module.exports = getFeedConnection().model('Activity', activitySchema);

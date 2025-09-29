@@ -155,7 +155,10 @@ module.exports = {
   },
   async feed(req, res, next) {
     try {
-      const data = await communityService.getFeed(req.params.id, { limit: parseInt(req.query.limit) || 20 });
+      const filter = String(req.query.filter || 'all');
+      const limit = parseInt(req.query.limit) || 20;
+      const before = req.query.before ? new Date(req.query.before) : null;
+      const data = await communityService.getFeed(req.params.id, { limit, filter, before });
       res.status(200).json({ success: true, data });
     } catch (e) { next(e); }
   }

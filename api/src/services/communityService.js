@@ -5,6 +5,7 @@ const CommunityItem = require('../models/CommunityItem');
 const CommunityParticipation = require('../models/CommunityParticipation');
 const CommunityAnnouncement = require('../models/CommunityAnnouncement');
 const Activity = require('../models/Activity');
+const ChatMessage = require('../models/ChatMessage');
 const Notification = require('../models/Notification');
 const User = require('../models/User');
 const Goal = require('../models/Goal');
@@ -482,14 +483,75 @@ async function listMembers(communityId) {
   }));
 }
 
-async function getFeed(communityId, { limit = 20 } = {}) {
-  // For now reuse Activity model; later, can scope to community-specific events
-  const items = await Activity.find({ isActive: true, isPublic: true })
-    .sort({ createdAt: -1 })
-    .limit(Math.min(50, limit))
-    .populate('userId', 'name avatar level')
-    .lean();
-  return items;
+async function getFeed(communityId, { limit = 20, filter = 'all', before = null } = {}) {
+  const cap = Math.min(100, Math.max(1, limit));
+  const beforeClause = before ? { $lt: before } : {};
+  const qUpdates = { communityId, isActive: true, isPublic: true, ...(before ? { createdAt: beforeClause } : {}) };
+  const qChat = { communityId, ...(before ? { createdAt: beforeClause } : {}) };
+
+  const projBase = { _id: 1, communityId: 1, userId: 1, name: 1, avatar: 1, createdAt: 1, reactions: 1 };
+
+  if (filter === 'updates') {
+    const updates = await Activity.find(qUpdates).sort({ createdAt: -1 }).limit(cap).select({ ...projBase, type: 1, data: 1 }).lean({ virtuals: true });
+    return updates.map(u => ({ kind: 'update', ...u }));
+  }
+  if (filter === 'chat') {
+    const chat = await ChatMessage.find(qChat).sort({ createdAt: -1 }).limit(cap).select({ ...projBase, text: 1 }).lean();
+    return chat.map(m => ({ kind: 'chat', ...m }));
+  }
+  // all: fetch both and merge-sort
+  const [updates, chat] = await Promise.all([
+    Activity.find(qUpdates).sort({ createdAt: -1 }).limit(cap).select({ ...projBase, type: 1, data: 1 }).lean({ virtuals: true }),
+    ChatMessage.find(qChat).sort({ createdAt: -1 }).limit(cap).select({ ...projBase, text: 1 }).lean()
+  ]);
+  const merged = [];
+  let i = 0, j = 0;
+  while (merged.length < cap && (i < updates.length || j < chat.length)) {
+    const u = updates[i];
+    const c = chat[j];
+    if (u && (!c || u.createdAt > c.createdAt)) { merged.push({ kind: 'update', ...u }); i += 1; }
+    else if (c) { merged.push({ kind: 'chat', ...c }); j += 1; }
+  }
+  return merged;
+}
+
+async function sendChatMessage(communityId, user, { text }) {
+  if (!text || !String(text).trim()) throw Object.assign(new Error('Message required'), { statusCode: 400 });
+  // Ensure membership
+  const mem = await CommunityMember.findOne({ communityId, userId: user.id, status: 'active' }).lean();
+  if (!mem) throw Object.assign(new Error('Forbidden'), { statusCode: 403 });
+  const msg = await ChatMessage.create({ communityId, userId: user.id, name: user.name, avatar: user.avatar, text: String(text).trim() });
+  return msg.toObject();
+}
+
+async function deleteChatMessage(communityId, requesterId, msgId) {
+  const [mem, msg] = await Promise.all([
+    CommunityMember.findOne({ communityId, userId: requesterId, status: 'active' }).lean(),
+    ChatMessage.findOne({ _id: msgId, communityId })
+  ]);
+  if (!msg) return { ok: true };
+  const isAdmin = !!mem && ['admin','moderator'].includes(mem.role);
+  const isOwner = String(msg.userId) === String(requesterId);
+  if (!isAdmin && !isOwner) throw Object.assign(new Error('Forbidden'), { statusCode: 403 });
+  await ChatMessage.deleteOne({ _id: msgId });
+  return { ok: true };
+}
+
+async function toggleReaction(targetType, targetId, userId, emoji) {
+  const model = targetType === 'chat' ? ChatMessage : Activity;
+  const doc = await model.findById(targetId).select('reactions');
+  if (!doc) throw Object.assign(new Error('Not found'), { statusCode: 404 });
+  const map = doc.reactions || new Map();
+  const key = String(emoji || '').trim();
+  if (!key) throw Object.assign(new Error('Invalid emoji'), { statusCode: 400 });
+  let entry = map.get(key) || { count: 0, userIds: [] };
+  const idx = entry.userIds.findIndex(u => String(u) === String(userId));
+  if (idx >= 0) { entry.userIds.splice(idx, 1); entry.count = Math.max(0, (entry.count || 0) - 1); }
+  else { entry.userIds.push(userId); entry.count = (entry.count || 0) + 1; }
+  map.set(key, entry);
+  doc.reactions = map;
+  await doc.save();
+  return { ok: true, reactions: Object.fromEntries(map) };
 }
 
 async function deleteCommunity(communityId) {

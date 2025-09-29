@@ -11,15 +11,7 @@ const connectDB = require('./config/database');
 const globalErrorHandler = require('./middleware/errorHandler');
 const notFoundHandler = require('./middleware/notFoundHandler');
 
-const authRoutes = require('./routes/authRoutes');
-const userRoutes = require('./routes/userRoutes');
-const goalRoutes = require('./routes/goalRoutes');
-const socialRoutes = require('./routes/socialRoutes');
-const activityRoutes = require('./routes/activityRoutes');
-const leaderboardRoutes = require('./routes/leaderboardRoutes');
-const uploadRoutes = require('./routes/uploadRoutes');
-const locationRoutes = require('./routes/locationRoutes');
-const journalRoutes = require('./routes/journalRoutes');
+// Route modules are required after DB initialization inside createApp
 const bloomFilter = require('./utility/BloomFilterService');
 
 const apiVersion = process.env.API_VERSION || 'v1';
@@ -125,16 +117,17 @@ const createApp = async () => {
     });
   });
 
-  apiRouter.use('/auth', authRoutes);
-  apiRouter.use('/users', userRoutes);
-  apiRouter.use('/goals', goalRoutes);
-  apiRouter.use('/social', socialRoutes);
-  apiRouter.use('/activities', activityRoutes);
-  apiRouter.use('/leaderboard', leaderboardRoutes);
+  // Lazy require routes after DB connections are ready
+  apiRouter.use('/auth', require('./routes/authRoutes'));
+  apiRouter.use('/users', require('./routes/userRoutes'));
+  apiRouter.use('/goals', require('./routes/goalRoutes'));
+  apiRouter.use('/social', require('./routes/socialRoutes'));
+  apiRouter.use('/activities', require('./routes/activityRoutes'));
+  apiRouter.use('/leaderboard', require('./routes/leaderboardRoutes'));
   // Explore routes removed
-  apiRouter.use('/upload', uploadRoutes);
-  apiRouter.use('/location', locationRoutes);
-  apiRouter.use('/journals', journalRoutes);
+  apiRouter.use('/upload', require('./routes/uploadRoutes'));
+  apiRouter.use('/location', require('./routes/locationRoutes'));
+  apiRouter.use('/journals', require('./routes/journalRoutes'));
   apiRouter.use('/feedback', require('./routes/feedbackRoutes'));
   apiRouter.use('/habits', require('./routes/habitRoutes'));
   apiRouter.use('/moderation', require('./routes/moderationRoutes'));
@@ -161,9 +154,42 @@ if (require.main === module) {
   (async () => {
     try {
       const app = await createApp();
+      const http = require('http').createServer(app);
+      // Socket.IO setup with optional Redis adapter
+      const { Server } = require('socket.io');
+      const { createAdapter } = require('@socket.io/redis-adapter');
+      const IORedis = require('ioredis');
+      const io = new Server(http, {
+        cors: { origin: '*', methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'] }
+      });
+      // Redis adapter (optional, requires a TCP Redis URL, not Upstash REST)
+      try {
+        const redisSocketUrl = process.env.REDIS_SOCKET_URL || process.env.REDIS_URL_CHAT;
+        if (redisSocketUrl && /^redis(s)?:\/\//i.test(redisSocketUrl)) {
+          const pubClient = new IORedis(redisSocketUrl);
+          const subClient = pubClient.duplicate();
+          io.adapter(createAdapter(pubClient, subClient));
+          console.log('✅ Socket.IO Redis adapter enabled');
+        } else {
+          console.log('ℹ️ Socket.IO using in-memory adapter (set REDIS_SOCKET_URL for clustering)');
+        }
+      } catch (e) {
+        console.log('ℹ️ Redis adapter not enabled:', e?.message || e);
+      }
+      io.on('connection', (socket) => {
+        socket.on('community:join', (communityId) => {
+          try { socket.join(`community:${communityId}`); } catch {}
+        });
+        socket.on('community:leave', (communityId) => {
+          try { socket.leave(`community:${communityId}`); } catch {}
+        });
+      });
+      app.set('io', io);
+      console.log('✅ Socket.IO initialized');
+
       const port = parseInt(process.env.PORT || process.env.API_PORT || '3001', 10);
       const host = '0.0.0.0';
-      app.listen(port, host, () => {
+      http.listen(port, host, () => {
         console.log(`🚀 WishTrail API listening on http://${host}:${port} (env=${process.env.NODE_ENV || 'development'})`);
         console.log(`   Health check: /api/${process.env.API_VERSION || 'v1'}/health`);
       });
