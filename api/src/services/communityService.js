@@ -6,6 +6,7 @@ const CommunityParticipation = require('../models/CommunityParticipation');
 const CommunityAnnouncement = require('../models/CommunityAnnouncement');
 const Activity = require('../models/Activity');
 const ChatMessage = require('../models/ChatMessage');
+const CommunityActivity = require('../models/CommunityActivity');
 const Notification = require('../models/Notification');
 const User = require('../models/User');
 const Goal = require('../models/Goal');
@@ -493,7 +494,11 @@ async function getFeed(communityId, { limit = 20, filter = 'all', before = null 
   const projBase = { _id: 1, communityId: 1, userId: 1, name: 1, avatar: 1, createdAt: 1, reactions: 1 };
 
   if (filter === 'updates') {
-    const updates = await Activity.find(qUpdates).sort({ createdAt: -1 }).limit(cap).select({ ...projBase, type: 1, data: 1 }).lean({ virtuals: true });
+    const updates = await CommunityActivity.find({ communityId, ...(before ? { createdAt: beforeClause } : {}) })
+      .sort({ createdAt: -1 })
+      .limit(cap)
+      .select({ ...projBase, type: 1, data: 1 })
+      .lean({ virtuals: true });
     return updates.map(u => ({ kind: 'update', ...u }));
   }
   if (filter === 'chat') {
@@ -502,7 +507,11 @@ async function getFeed(communityId, { limit = 20, filter = 'all', before = null 
   }
   // all: fetch both and merge-sort
   const [updates, chat] = await Promise.all([
-    Activity.find(qUpdates).sort({ createdAt: -1 }).limit(cap).select({ ...projBase, type: 1, data: 1 }).lean({ virtuals: true }),
+    CommunityActivity.find({ communityId, ...(before ? { createdAt: beforeClause } : {}) })
+      .sort({ createdAt: -1 })
+      .limit(cap)
+      .select({ ...projBase, type: 1, data: 1 })
+      .lean({ virtuals: true }),
     ChatMessage.find(qChat).sort({ createdAt: -1 }).limit(cap).select({ ...projBase, text: 1 }).lean()
   ]);
   const merged = [];

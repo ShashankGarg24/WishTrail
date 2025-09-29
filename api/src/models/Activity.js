@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-const { getFeedConnection } = require('../config/database');
 
 const activitySchema = new mongoose.Schema({
   // User who performed the activity
@@ -118,6 +117,8 @@ activitySchema.index({ isPublic: 1, createdAt: -1 });
 activitySchema.index({ isActive: 1, isPublic: 1, createdAt: -1 });
 activitySchema.index({ communityId: 1, createdAt: -1 });
 activitySchema.index({ expiresAt: 1 });
+activitySchema.index({ 'data.goalId': 1, createdAt: -1 });
+activitySchema.index({ 'data.metadata.habitId': 1, createdAt: -1 });
 
 // Virtual for activity message
 activitySchema.virtual('message').get(function() {
@@ -140,14 +141,15 @@ activitySchema.virtual('message').get(function() {
 
 
 // Static method to create activity
-activitySchema.statics.createActivity = async function(userId, name, avatar, type, data) {
+activitySchema.statics.createActivity = async function(userId, name, avatar, type, data, options = {}) {
   try {
     const activity = new this({
       userId,
       name,
       avatar,
       type,
-      data
+      data,
+      ...(options && options.communityId ? { communityId: options.communityId } : {})
     });
     
     return await activity.save();
@@ -192,5 +194,31 @@ activitySchema.statics.getFollowingActivities = function(followingIds, limit = 2
   .limit(limit);
 };
 
-// Bind model to the FEED connection to isolate from primary DB
-module.exports = getFeedConnection().model('Activity', activitySchema);
+// Emit to community rooms after save (works for both createActivity and direct saves)
+try {
+  activitySchema.post('save', async function(doc) {
+    try {
+      const io = (global && global.__io) ? global.__io : null;
+      if (!io) return;
+      // If communityId present, emit to that room; otherwise infer from goal/habit community items
+      if (doc.communityId) {
+        io.to(`community:${doc.communityId}`).emit('community:update:new', { kind: 'update', ...doc.toObject({ virtuals: true }) });
+        return;
+      }
+      const CommunityItem = require('./CommunityItem');
+      const sourceGoalId = doc?.data?.goalId || null;
+      const sourceHabitId = doc?.data?.metadata?.habitId || null;
+      const match = [];
+      if (sourceGoalId) match.push({ type: 'goal', sourceId: sourceGoalId });
+      if (sourceHabitId) match.push({ type: 'habit', sourceId: sourceHabitId });
+      if (match.length === 0) return;
+      const items = await CommunityItem.find({ $or: match, isActive: true, status: 'approved' }).select('communityId').lean();
+      for (const it of items) {
+        io.to(`community:${it.communityId}`).emit('community:update:new', { kind: 'update', ...doc.toObject({ virtuals: true }) });
+      }
+    } catch (_) {}
+  });
+} catch (_) {}
+
+// Bind model to the PRIMARY connection for global app feed
+module.exports = mongoose.model('Activity', activitySchema);
