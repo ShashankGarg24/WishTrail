@@ -185,6 +185,7 @@ if (require.main === module) {
         });
       });
       app.set('io', io);
+      try { global.__io = io; } catch {}
       console.log('✅ Socket.IO initialized');
 
       const port = parseInt(process.env.PORT || process.env.API_PORT || '3001', 10);

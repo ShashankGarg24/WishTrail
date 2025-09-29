@@ -30,6 +30,7 @@ export default function CommunityDetailPage() {
   const [dashboard, setDashboard] = useState(null)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const socketRef = useRef(null)
+  const seenIdsRef = useRef(new Set())
 
   useEffect(() => {
     let active = true
@@ -80,7 +81,15 @@ export default function CommunityDetailPage() {
     socketRef.current = s
     s.emit('community:join', id)
     s.on('community:message:new', (msg) => {
-      setFeed((curr) => (filter === 'updates' ? curr : [{ kind: 'chat', ...msg }, ...curr]))
+      setFeed((curr) => {
+        if (filter === 'updates') return curr
+        const exists = curr.some(x => String(x._id) === String(msg._id)) || seenIdsRef.current.has(String(msg._id))
+        if (!exists) {
+          seenIdsRef.current.add(String(msg._id))
+          return [{ kind: 'chat', ...msg }, ...curr]
+        }
+        return curr
+      })
     })
     s.on('community:message:deleted', ({ _id }) => {
       setFeed((curr) => curr.filter((x) => String(x._id) !== String(_id)))
@@ -99,7 +108,10 @@ export default function CommunityDetailPage() {
     try {
       const res = await communitiesAPI.sendChat(id, text)
       const msg = res?.data?.data
-      if (msg) setFeed((curr) => [{ kind: 'chat', ...msg }, ...curr])
+      if (msg && msg._id) {
+        // Mark as seen so when socket echoes it back we don't duplicate
+        seenIdsRef.current.add(String(msg._id))
+      }
       setChatText('')
     } catch {}
   }
@@ -146,8 +158,8 @@ export default function CommunityDetailPage() {
       </div>
 
       {tab === 'feed' && (
-        <div className="relative" style={{ minHeight: '60vh' }}>
-          <div className="space-y-3 pb-16 max-h-[70vh] overflow-y-auto">
+        <div className="relative min-h-[60vh] flex flex-col">
+          <div className="space-y-3 flex-1 overflow-y-auto pr-1">
           <div className="flex items-center gap-2 mb-2">
             <select value={filter} onChange={e => setFilter(e.target.value)} className="px-2 py-1 rounded border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-sm">
               <option value="all">All</option>
@@ -174,7 +186,7 @@ export default function CommunityDetailPage() {
                     <span className="text-[11px] text-gray-500">{a?.reactions?.[ej]?.count || 0}</span>
                   </button>
                 ))}
-                {a.kind==='chat' && (
+                {a.kind==='chat' && (['admin','moderator'].includes(role)) && (
                   <button onClick={async () => { if (confirm('Delete message?')) { try { await communitiesAPI.deleteChat(id, a._id); setFeed(curr => curr.filter(x => x._id!==a._id)) } catch {} } }} className="ml-2 inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-red-200 text-red-600">Delete</button>
                 )}
               </div>
@@ -182,8 +194,8 @@ export default function CommunityDetailPage() {
           ))}
           {feed.length === 0 && <div className="text-sm text-gray-500">No activity yet.</div>}
           </div>
-          <div className="fixed bottom-4 left-1/2 -translate-x-1/2 w-full max-w-4xl px-4">
-            <div className="flex items-center gap-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl px-3 py-2 shadow-sm">
+          <div className="sticky bottom-0 w-full px-0 pt-2 bg-gradient-to-t from-white/90 dark:from-gray-900/90 to-transparent">
+            <div className="flex items-center gap-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl px-3 py-2 shadow-sm mx-0">
               <input value={chatText} onChange={e => setChatText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') sendChat() }} placeholder="Message…" className="flex-1 px-2 py-2 rounded-md outline-none bg-transparent text-sm" />
               <button onClick={sendChat} className="px-3 py-2 rounded-lg bg-blue-600 text-white text-sm">Send</button>
             </div>
