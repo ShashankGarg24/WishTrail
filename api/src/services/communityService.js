@@ -586,6 +586,9 @@ module.exports = {
   deleteCommunity,
   listMyJoinedItems,
   removeCommunityItem,
+  sendChatMessage,
+  deleteChatMessage,
+  toggleReaction,
 };
 
 
