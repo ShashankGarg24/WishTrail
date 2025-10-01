@@ -194,27 +194,57 @@ activitySchema.statics.getFollowingActivities = function(followingIds, limit = 2
   .limit(limit);
 };
 
-// Emit to community rooms after save (works for both createActivity and direct saves)
+// Mirror activities into per-community feed collection and let that model emit real-time events
 try {
   activitySchema.post('save', async function(doc) {
     try {
-      const io = (global && global.__io) ? global.__io : null;
-      if (!io) return;
-      // If communityId present, emit to that room; otherwise infer from goal/habit community items
-      if (doc.communityId) {
-        io.to(`community:${doc.communityId}`).emit('community:update:new', { kind: 'update', ...doc.toObject({ virtuals: true }) });
-        return;
-      }
       const CommunityItem = require('./CommunityItem');
+      const CommunityActivity = require('./CommunityActivity');
+
+      // Determine affected communities
+      const communityIds = new Set();
+      if (doc.communityId) {
+        communityIds.add(String(doc.communityId));
+      }
+
       const sourceGoalId = doc?.data?.goalId || null;
       const sourceHabitId = doc?.data?.metadata?.habitId || null;
       const match = [];
       if (sourceGoalId) match.push({ type: 'goal', sourceId: sourceGoalId });
       if (sourceHabitId) match.push({ type: 'habit', sourceId: sourceHabitId });
-      if (match.length === 0) return;
-      const items = await CommunityItem.find({ $or: match, isActive: true, status: 'approved' }).select('communityId').lean();
-      for (const it of items) {
-        io.to(`community:${it.communityId}`).emit('community:update:new', { kind: 'update', ...doc.toObject({ virtuals: true }) });
+      if (match.length > 0) {
+        const items = await CommunityItem.find({ $or: match, isActive: true, status: 'approved' }).select('communityId').lean();
+        for (const it of items) communityIds.add(String(it.communityId));
+      }
+
+      if (communityIds.size === 0) return;
+
+      // Create per-community activity documents if not already present
+      for (const cid of communityIds) {
+        const existing = await CommunityActivity.findOne({ communityId: cid, sourceActivityId: doc._id }).select('_id');
+        if (existing) {
+          // Optional: keep basic fields in sync without re-emitting
+          try {
+            await CommunityActivity.updateOne(
+              { _id: existing._id },
+              { $set: { name: doc.name, avatar: doc.avatar, type: doc.type, data: doc.data } }
+            );
+          } catch (_) {}
+          continue;
+        }
+        try {
+          await CommunityActivity.create({
+            communityId: cid,
+            sourceActivityId: doc._id,
+            userId: doc.userId,
+            name: doc.name,
+            avatar: doc.avatar,
+            type: doc.type,
+            data: doc.data,
+            reactions: doc.reactions || {},
+            createdAt: doc.createdAt
+          });
+        } catch (_) {}
       }
     } catch (_) {}
   });

@@ -47,6 +47,13 @@ export default function CommunityDetailPage() {
     return () => { active = false }
   }, [id])
 
+  // Ensure non-members don't land on Feed by default
+  useEffect(() => {
+    if (summary && summary.isMember === false && tab === 'feed') {
+      setTab('dashboard')
+    }
+  }, [summary, tab])
+
   useEffect(() => {
     async function loadFeed() {
       const [f, i, m, d] = await Promise.all([
@@ -95,6 +102,17 @@ export default function CommunityDetailPage() {
         if (!exists) {
           seenIdsRef.current.add(String(msg._id))
           return [{ kind: 'chat', ...msg }, ...curr]
+        }
+        return curr
+      })
+    })
+    s.on('community:update:new', (upd) => {
+      setFeed((curr) => {
+        if (filter === 'chat') return curr
+        const exists = curr.some(x => String(x._id) === String(upd._id)) || seenIdsRef.current.has(String(upd._id))
+        if (!exists) {
+          seenIdsRef.current.add(String(upd._id))
+          return [{ kind: 'update', ...upd }, ...curr]
         }
         return curr
       })
@@ -157,7 +175,9 @@ export default function CommunityDetailPage() {
 
       <div className="mb-6 -mx-4 px-4 overflow-x-auto">
         <div className="flex gap-2 w-max">
-          <Tab active={tab==='feed'} label="Feed" Icon={Newspaper} onClick={() => setTab('feed')} />
+          {isMember && (
+            <Tab active={tab==='feed'} label="Feed" Icon={Newspaper} onClick={() => setTab('feed')} />
+          )}
           <Tab active={tab==='dashboard'} label="Dashboard" Icon={BarChart3} onClick={() => setTab('dashboard')} />
           <Tab active={tab==='items'} label="Goals & Habits" Icon={Target} onClick={() => setTab('items')} />
           <Tab active={tab==='members'} label="Members" Icon={Users} onClick={() => setTab('members')} />
@@ -167,7 +187,7 @@ export default function CommunityDetailPage() {
         </div>
       </div>
 
-      {tab === 'feed' && (
+      {tab === 'feed' && isMember && (
         <div className="relative min-h-[60vh] flex flex-col">
           <div className="space-y-3 flex-1 overflow-y-auto pr-1">
           <div className="flex items-center gap-2 mb-2">

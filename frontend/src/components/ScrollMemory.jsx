@@ -1,5 +1,4 @@
-import { useEffect, useRef } from 'react'
-import { useLocation } from 'react-router-dom'
+import React from 'react'
 
 // Remembers and restores window scroll per route (pathname+search)
 // Applies to: '/', '/feed', '/discover', '/dashboard', '/profile*', '/leaderboard'
@@ -32,77 +31,109 @@ function isTrackedPath(pathname) {
     pathname.startsWith('/leaderboard') ||
     pathname.startsWith('/notifications') ||
     pathname.startsWith('/inspiration') ||
-    pathname.startsWith('/auth')
+    pathname.startsWith('/auth') ||
+    pathname.startsWith('/communities')
   )
 }
 
-export default function ScrollMemory() {
-  const location = useLocation()
-  const prevKeyRef = useRef(null)
-  const hasRestoredRef = useRef(false)
+export default class ScrollMemory extends React.Component {
+  constructor(props) {
+    super(props)
+    this.prevKey = null
+    this.timers = []
+    this.origPush = null
+    this.origReplace = null
+    this.onPopState = this.onPopState.bind(this)
+    this.onBeforeUnload = this.onBeforeUnload.bind(this)
+    this.onVisibilityChange = this.onVisibilityChange.bind(this)
+  }
 
-  // Use manual history restoration so the app controls it
-  useEffect(() => {
+  componentDidMount() {
     try { if ('scrollRestoration' in window.history) window.history.scrollRestoration = 'manual' } catch {}
-  }, [])
 
-  // On mount, try to restore current path
-  useEffect(() => {
+    window.addEventListener('popstate', this.onPopState)
+    window.addEventListener('beforeunload', this.onBeforeUnload)
+    document.addEventListener('visibilitychange', this.onVisibilityChange)
+
+    try {
+      this.origPush = window.history.pushState
+      this.origReplace = window.history.replaceState
+      const dispatch = () => { try { window.dispatchEvent(new Event('popstate')) } catch {} }
+      window.history.pushState = (...args) => { const r = this.origPush.apply(window.history, args); dispatch(); return r }
+      window.history.replaceState = (...args) => { const r = this.origReplace.apply(window.history, args); dispatch(); return r }
+    } catch {}
+
+    // Initial restore
+    this.handleRouteChange()
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener('popstate', this.onPopState)
+    window.removeEventListener('beforeunload', this.onBeforeUnload)
+    document.removeEventListener('visibilitychange', this.onVisibilityChange)
+    try {
+      if (this.origPush) window.history.pushState = this.origPush
+      if (this.origReplace) window.history.replaceState = this.origReplace
+    } catch {}
+    for (const t of this.timers) clearTimeout(t)
+    this.timers = []
+  }
+
+  onPopState() {
+    this.handleRouteChange()
+  }
+
+  onBeforeUnload() {
+    this.saveCurrentScroll()
+  }
+
+  onVisibilityChange() {
+    try { if (document.visibilityState === 'hidden') this.saveCurrentScroll() } catch {}
+  }
+
+  saveCurrentScroll() {
+    const key = this.prevKey
+    if (!key) return
+    if (!isTrackedPath((key || '').split('?')[0])) return
     const store = readStore()
-    const key = makeKey(location.pathname, location.search)
-    prevKeyRef.current = key
-    if (!isTrackedPath(location.pathname)) return
-    const y = Number(store[key] ?? 0) || 0
-    // Restore immediately and once more after a tick (content/infinite-list readiness)
-    try { window.scrollTo(0, y) } catch {}
-    const tid = setTimeout(() => { try { window.scrollTo(0, y) } catch {} }, 60)
-    hasRestoredRef.current = true
-    return () => clearTimeout(tid)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+    store[key] = window.scrollY || window.pageYOffset || 0
+    writeStore(store)
+  }
 
-  // On route change: save previous, then restore new
-  useEffect(() => {
-    const newKey = makeKey(location.pathname, location.search)
-    const prevKey = prevKeyRef.current
+  handleRouteChange() {
+    let pathname = '/'
+    let search = ''
+    try {
+      pathname = window.location.pathname || '/'
+      search = window.location.search || ''
+    } catch {}
+
+    const newKey = makeKey(pathname, search)
+
     // Save previous scroll
-    if (prevKey && isTrackedPath(prevKey.split('?')[0])) {
+    if (this.prevKey && isTrackedPath((this.prevKey || '').split('?')[0])) {
       const store = readStore()
-      store[prevKey] = window.scrollY || window.pageYOffset || 0
+      store[this.prevKey] = window.scrollY || window.pageYOffset || 0
       writeStore(store)
     }
-    prevKeyRef.current = newKey
+
+    this.prevKey = newKey
 
     // Restore new route scroll
-    if (isTrackedPath(location.pathname)) {
+    for (const t of this.timers) clearTimeout(t)
+    this.timers = []
+    if (isTrackedPath(pathname)) {
       const store = readStore()
       const y = Number(store[newKey] ?? 0) || 0
       try { window.scrollTo(0, y) } catch {}
-      const t1 = setTimeout(() => { try { window.scrollTo(0, y) } catch {} }, 50)
-      const t2 = setTimeout(() => { try { window.scrollTo(0, y) } catch {} }, 200)
-      return () => { clearTimeout(t1); clearTimeout(t2) }
+      this.timers.push(setTimeout(() => { try { window.scrollTo(0, y) } catch {} }, 50))
+      this.timers.push(setTimeout(() => { try { window.scrollTo(0, y) } catch {} }, 200))
     } else {
-      // Default to top for untracked pages
       try { window.scrollTo(0, 0) } catch {}
     }
-  }, [location.pathname, location.search])
+  }
 
-  // Save on unload/tab hide
-  useEffect(() => {
-    const handler = () => {
-      const key = prevKeyRef.current
-      if (!key) return
-      if (!isTrackedPath((key || '').split('?')[0])) return
-      const store = readStore()
-      store[key] = window.scrollY || window.pageYOffset || 0
-      writeStore(store)
-    }
-    window.addEventListener('beforeunload', handler)
-    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') handler() })
-    return () => { window.removeEventListener('beforeunload', handler) }
-  }, [])
-
-  return null
+  render() { return null }
 }
 
 

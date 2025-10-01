@@ -547,7 +547,8 @@ async function deleteChatMessage(communityId, requesterId, msgId) {
 }
 
 async function toggleReaction(targetType, targetId, userId, emoji) {
-  const model = targetType === 'chat' ? ChatMessage : Activity;
+  // Reactions for chat go to ChatMessage; reactions for updates go to CommunityActivity
+  const model = targetType === 'chat' ? ChatMessage : CommunityActivity;
   const doc = await model.findById(targetId).select('reactions');
   if (!doc) throw Object.assign(new Error('Not found'), { statusCode: 404 });
   const map = doc.reactions || new Map();
