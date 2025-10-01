@@ -200,6 +200,7 @@ try {
     try {
       const CommunityItem = require('./CommunityItem');
       const CommunityActivity = require('./CommunityActivity');
+      const CommunityMember = require('./CommunityMember');
 
       // Determine affected communities
       const communityIds = new Set();
@@ -217,6 +218,14 @@ try {
         for (const it of items) communityIds.add(String(it.communityId));
       }
 
+      // Fallback: if no direct community linkage via item or explicit communityId,
+      // mirror to all communities where the actor is an active member
+      if (communityIds.size === 0) {
+        try {
+          const memberships = await CommunityMember.find({ userId: doc.userId, status: 'active' }).select('communityId').lean();
+          for (const m of memberships) communityIds.add(String(m.communityId));
+        } catch (_) {}
+      }
       if (communityIds.size === 0) return;
 
       // Create per-community activity documents if not already present

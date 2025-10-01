@@ -487,26 +487,39 @@ async function listMembers(communityId) {
 async function getFeed(communityId, { limit = 20, filter = 'all', before = null } = {}) {
   const cap = Math.min(100, Math.max(1, limit));
   const beforeClause = before ? { $lt: before } : {};
-  // For now, updates are global public activities (not scoped to community). Chat is community-scoped.
-  const qUpdates = { isActive: true, isPublic: true, ...(before ? { createdAt: beforeClause } : {}) };
+  // Updates are sourced from per-community mirror; fallback to member activities when mirror is empty
+  const qUpdates = { ...(before ? { createdAt: beforeClause } : {}) };
   const qChat = { communityId, ...(before ? { createdAt: beforeClause } : {}) };
 
   const projBase = { _id: 1, communityId: 1, userId: 1, name: 1, avatar: 1, createdAt: 1, reactions: 1 };
 
   if (filter === 'updates') {
-    const updates = await CommunityActivity.find({ communityId, ...(before ? { createdAt: beforeClause } : {}) })
+    let updates = await CommunityActivity.find({ communityId, ...(before ? { createdAt: beforeClause } : {}) })
       .sort({ createdAt: -1 })
       .limit(cap)
       .select({ ...projBase, type: 1, data: 1 })
       .lean({ virtuals: true });
-    return updates.map(u => ({ kind: 'update', ...u }));
+    if (!updates || updates.length === 0) {
+      // Fallback: fetch recent public activities from community members
+      const memberIds = await CommunityMember.find({ communityId, status: 'active' }).select('userId').lean();
+      const ids = memberIds.map(m => m.userId);
+      if (ids.length > 0) {
+        const acts = await Activity.find({ userId: { $in: ids }, isActive: true, isPublic: true, ...(before ? { createdAt: beforeClause } : {}) })
+          .sort({ createdAt: -1 })
+          .limit(cap)
+          .select({ ...projBase, type: 1, data: 1 })
+          .lean({ virtuals: true });
+        updates = acts;
+      }
+    }
+    return (updates || []).map(u => ({ kind: 'update', ...u }));
   }
   if (filter === 'chat') {
     const chat = await ChatMessage.find(qChat).sort({ createdAt: -1 }).limit(cap).select({ ...projBase, text: 1 }).lean();
     return chat.map(m => ({ kind: 'chat', ...m }));
   }
   // all: fetch both and merge-sort
-  const [updates, chat] = await Promise.all([
+  let [updates, chat] = await Promise.all([
     CommunityActivity.find({ communityId, ...(before ? { createdAt: beforeClause } : {}) })
       .sort({ createdAt: -1 })
       .limit(cap)
@@ -514,6 +527,30 @@ async function getFeed(communityId, { limit = 20, filter = 'all', before = null 
       .lean({ virtuals: true }),
     ChatMessage.find(qChat).sort({ createdAt: -1 }).limit(cap).select({ ...projBase, text: 1 }).lean()
   ]);
+  if (!updates || updates.length === 0) {
+    // Fallback populate updates from member activities
+    const memberIds = await CommunityMember.find({ communityId, status: 'active' }).select('userId').lean();
+    const ids = memberIds.map(m => m.userId);
+    if (ids.length > 0) {
+      const acts = await Activity.find({ userId: { $in: ids }, isActive: true, isPublic: true, ...(before ? { createdAt: beforeClause } : {}) })
+        .sort({ createdAt: -1 })
+        .limit(cap)
+        .select({ ...projBase, type: 1, data: 1 })
+        .lean({ virtuals: true });
+      updates = acts;
+      // Backfill mirror for future fast reads
+      try {
+        const ops = acts.map((a) => CommunityActivity.updateOne(
+          { communityId, sourceActivityId: a._id },
+          { $setOnInsert: { communityId, sourceActivityId: a._id, userId: a.userId, name: a.name, avatar: a.avatar, type: a.type, data: a.data, reactions: {}, createdAt: a.createdAt } },
+          { upsert: true }
+        ));
+        await Promise.allSettled(ops);
+      } catch (_) {}
+    } else {
+      updates = [];
+    }
+  }
   const merged = [];
   let i = 0, j = 0;
   while (merged.length < cap && (i < updates.length || j < chat.length)) {
@@ -547,9 +584,16 @@ async function deleteChatMessage(communityId, requesterId, msgId) {
 }
 
 async function toggleReaction(targetType, targetId, userId, emoji) {
-  // Reactions for chat go to ChatMessage; reactions for updates go to CommunityActivity
-  const model = targetType === 'chat' ? ChatMessage : CommunityActivity;
-  const doc = await model.findById(targetId).select('reactions');
+  // Reactions for chat go to ChatMessage; reactions for updates prefer CommunityActivity, fallback to Activity
+  let doc = null;
+  if (targetType === 'chat') {
+    doc = await ChatMessage.findById(targetId).select('reactions');
+  } else {
+    doc = await CommunityActivity.findById(targetId).select('reactions');
+    if (!doc) {
+      doc = await Activity.findById(targetId).select('reactions');
+    }
+  }
   if (!doc) throw Object.assign(new Error('Not found'), { statusCode: 404 });
   const map = doc.reactions || new Map();
   const key = String(emoji || '').trim();

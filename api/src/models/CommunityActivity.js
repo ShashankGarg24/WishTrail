@@ -50,6 +50,12 @@ communityActivitySchema.virtual('message').get(function() {
     })(),
     'achievement_earned': `earned the "${this.data.achievementName}" achievement`,
     'goal_liked': `liked "${this.data.goalTitle}"`,
+    // Community-specific
+    'community_member_joined': 'joined the community',
+    'community_item_added': (() => {
+      const t = this?.data?.itemTitle || this?.data?.goalTitle || this?.data?.metadata?.habitName || '';
+      return t ? `added a new community item "${t}"` : 'added a new community item';
+    })(),
   };
   return messages[this.type] || 'performed an activity';
 });
