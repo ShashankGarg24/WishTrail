@@ -224,9 +224,10 @@ class AuthService {
     
     // Update password (will be hashed by pre-save middleware)
     user.password = newPassword;
-    user.passwordChangedAt = new Date();        
+    user.passwordChangedAt = new Date();
     // Invalidate all existing refresh tokens for security
-    user.refreshToken = null;
+    user.refreshTokens.app = null;
+    user.refreshTokens.web = null;
     await user.save();
 
     // Send confirmation email
@@ -282,8 +283,12 @@ class AuthService {
       // Generate new tokens
       const tokens = this.generateTokens(user._id);
       
-      // Update refresh token
-      deviceType === 'app' ? user.refreshTokens.app = refreshToken : user.refreshTokens.web = refreshToken;
+      // Rotate and persist the newly generated refresh token
+      if (deviceType === 'app') {
+        user.refreshTokens.app = tokens.refreshToken;
+      } else {
+        user.refreshTokens.web = tokens.refreshToken;
+      }
       await user.save();
       
       return tokens;
@@ -475,7 +480,8 @@ class AuthService {
     user.passwordChangedAt = new Date();
     
     // Invalidate all existing refresh tokens for security
-    user.refreshToken = null;
+    user.refreshTokens.app = null;
+    user.refreshTokens.web = null;
     
     await user.save();
 
