@@ -312,6 +312,17 @@ async function joinItem(userId, communityId, itemId) {
     { new: true, upsert: true }
   );
   await CommunityItem.updateOne({ _id: itemId }, { $inc: { 'stats.participantCount': 1 } });
+  // Emit update and mirror activity
+  try {
+    const u = await User.findById(userId).select('name avatar').lean();
+    const Activity = require('../models/Activity');
+    const a = await Activity.createActivity(userId, u?.name, u?.avatar, 'goal_joined', {
+      goalId: item.type === 'goal' ? item.sourceId : undefined,
+      goalTitle: item.title,
+      goalCategory: item.type === 'goal' ? undefined : undefined,
+      metadata: item.type === 'habit' ? { habitId: item.sourceId, habitName: item.title } : undefined
+    }, { communityId });
+  } catch (_) {}
   return doc;
 }
 
@@ -422,6 +433,16 @@ async function joinCommunity(userId, communityId) {
     : await CommunityMember.create({ communityId, userId, role, status });
   if (status === 'active') {
     await Community.updateOne({ _id: communityId }, { $inc: { 'stats.memberCount': 1 } });
+    // Emit a community join update (non-intrusive)
+    try {
+      const u = await User.findById(userId).select('name avatar').lean();
+      const Activity = require('../models/Activity');
+      await Activity.createActivity(userId, u?.name, u?.avatar, 'user_followed', {
+        targetUserId: userId,
+        targetUserName: u?.name,
+        metadata: { kind: 'community_member_joined', communityId }
+      }, { communityId });
+    } catch (_) {}
   }
   return membership;
 }

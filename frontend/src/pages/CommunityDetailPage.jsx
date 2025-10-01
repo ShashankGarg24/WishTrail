@@ -198,13 +198,36 @@ export default function CommunityDetailPage() {
             </select>
             <div className="flex-1" />
           </div>
-          {feed.map(a => (
-            <div key={a._id} className={`rounded-xl border border-gray-200 dark:border-gray-800 p-4 ${a.kind==='chat' ? 'bg-gray-50 dark:bg-gray-800/60' : 'bg-white dark:bg-gray-900'}`}>
+          {feed
+            .filter(a => (filter === 'all') || (filter === 'chat' ? a.kind === 'chat' : a.kind === 'update'))
+            .map(a => (
+            <div key={a._id} className={`rounded-xl border ${a.kind==='chat' ? 'border-emerald-200' : 'border-blue-200'} dark:border-gray-800 p-4 ${a.kind==='chat' ? 'bg-gray-50 dark:bg-gray-800/60' : 'bg-white dark:bg-gray-900'} border-l-4 ${a.kind==='chat' ? 'border-l-emerald-500' : 'border-l-blue-500'}`}>
               <div className="flex items-center gap-3">
                 <img src={a.avatar || a.userId?.avatar} alt="User" className="h-8 w-8 rounded-full" />
                 <div className="text-sm">
-                  <span className="font-medium">{a.name || a.userId?.name}</span>
-                  <span className="text-gray-500"> {a.kind==='chat' ? a.text : a.message}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">{a.name || a.userId?.name}</span>
+                    <span className={`inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full ${a.kind==='chat' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'}`}>
+                      {a.kind==='chat' ? <MessageSquare className="h-3 w-3" /> : <Newspaper className="h-3 w-3" />}
+                      {a.kind==='chat' ? 'Message' : 'Update'}
+                    </span>
+                  </div>
+                  <div className="text-gray-500">
+                    {a.kind==='chat' ? ` ${a.text}` : (() => {
+                      const t = a?.type;
+                      if (t === 'goal_created') return ` created a new goal "${a?.data?.goalTitle || ''}"`;
+                      if (t === 'goal_completed') return ` completed "${a?.data?.goalTitle || ''}"`;
+                      if (t === 'goal_joined') return ` joined "${a?.data?.goalTitle || a?.data?.metadata?.habitName || ''}"`;
+                      if (t === 'streak_milestone') {
+                        const nm = a?.data?.metadata?.habitName;
+                        return nm ? ` achieved a ${a?.data?.streakCount}-day streak on "${nm}"` : ` achieved a ${a?.data?.streakCount}-day streak`;
+                      }
+                      if (t === 'user_followed') return ` started following ${a?.data?.targetUserName || 'a user'}`;
+                      if (t === 'level_up') return ` leveled up to ${a?.data?.newLevel}`;
+                      if (t === 'achievement_earned') return ` earned the "${a?.data?.achievementName || 'achievement'}" achievement`;
+                      return ` ${a.message || ''}`;
+                    })()}
+                  </div>
                 </div>
                 <div className="flex-1" />
                 <div className="text-xs text-gray-500">{new Date(a.createdAt).toLocaleString()}</div>

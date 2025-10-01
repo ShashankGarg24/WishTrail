@@ -27,7 +27,9 @@ const communityActivitySchema = new mongoose.Schema({
     of: new mongoose.Schema({ count: { type: Number, default: 0 }, userIds: [{ type: mongoose.Schema.Types.ObjectId }] }, { _id: false }),
     default: {}
   },
-  isActive: { type: Boolean, default: true, index: true }
+  isActive: { type: Boolean, default: true, index: true },
+  // TTL for updates: 7 days
+  expiresAt: { type: Date, default: () => new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), index: true }
 }, {
   timestamps: true,
   toJSON: { virtuals: true },
@@ -37,11 +39,16 @@ const communityActivitySchema = new mongoose.Schema({
 communityActivitySchema.index({ communityId: 1, createdAt: -1 });
 communityActivitySchema.index({ communityId: 1, sourceActivityId: 1 }, { unique: true, sparse: true });
 communityActivitySchema.index({ 'data.goalId': 1, createdAt: -1 });
+communityActivitySchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 communityActivitySchema.virtual('message').get(function() {
   const messages = {
     'goal_completed': `completed "${this.data.goalTitle}"`,
     'goal_created': `created a new goal "${this.data.goalTitle}"`,
+    'goal_joined': (() => {
+      const t = this?.data?.goalTitle || this?.data?.metadata?.habitName || '';
+      return t ? `joined "${t}"` : 'joined a goal';
+    })(),
     'user_followed': `started following ${this.data.targetUserName}`,
     'level_up': `leveled up to ${this.data.newLevel}`,
     'streak_milestone': (() => {
