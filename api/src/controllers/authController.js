@@ -1,5 +1,6 @@
 const DeviceToken = require('../models/DeviceToken');
 const authService = require('../services/authService');
+const jwt = require('jsonwebtoken');
 const { validationResult } = require('express-validator');
 
 // @desc    Complete user profile and register after OTP verification
@@ -18,23 +19,25 @@ const register = async (req, res, next) => {
     const deviceType = getDeviceType(req);
     const result = await authService.register(req.body, deviceType);
 
-    // Set refresh token as httpOnly cookie
-    const isProd = process.env.NODE_ENV === 'production';
-    res.cookie('refreshToken', result.refreshToken, {
-      httpOnly: true,
-      secure: isProd,
-      sameSite: isProd ? 'none' : 'lax',
-      partitioned: isProd ? true : false,
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-    });
+    // For web: set refresh token cookie. For app: return refresh token in body.
+    if (deviceType === 'web') {
+      const isProd = process.env.NODE_ENV === 'production';
+      res.cookie('refreshToken', result.refreshToken, {
+        httpOnly: true,
+        secure: isProd,
+        sameSite: isProd ? 'none' : 'lax',
+        partitioned: isProd ? true : false,
+        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+      });
+    }
 
     res.status(201).json({
       success: true,
       message: 'Registration completed successfully',
-      data: {
-        user: result.user,
-        token: result.token
-      }
+      data: Object.assign(
+        { user: result.user, token: result.token },
+        deviceType === 'app' ? { refreshToken: result.refreshToken } : {}
+      )
     });
   } catch (error) {
     next(error);
@@ -68,23 +71,25 @@ const login = async (req, res, next) => {
       );
     }
 
-    // Set refresh token as httpOnly cookie (used by web)
-    const isProdLogin = process.env.NODE_ENV === 'production';
-    res.cookie('refreshToken', result.refreshToken, {
-      httpOnly: true,
-      secure: isProdLogin,
-      sameSite: isProdLogin ? 'none' : 'lax',
-      partitioned: isProdLogin ? true : false,
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-    });
+    // For web: set refresh token cookie (used by web)
+    if (deviceType === 'web') {
+      const isProdLogin = process.env.NODE_ENV === 'production';
+      res.cookie('refreshToken', result.refreshToken, {
+        httpOnly: true,
+        secure: isProdLogin,
+        sameSite: isProdLogin ? 'none' : 'lax',
+        partitioned: isProdLogin ? true : false,
+        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+      });
+    }
 
     res.status(200).json({
       success: true,
       message: 'Login successful',
-      data: {
-        user: result.user,
-        token: result.token
-      }
+      data: Object.assign(
+        { user: result.user, token: result.token },
+        deviceType === 'app' ? { refreshToken: result.refreshToken } : {}
+      )
     });
   } catch (error) {
     next(error);
@@ -202,7 +207,20 @@ const refreshToken = async (req, res, next) => {
 
     const bodyToken = (req.body && req.body.refreshToken) ? String(req.body.refreshToken).trim() : '';
     const cookieToken = (req.cookies && req.cookies.refreshToken) ? String(req.cookies.refreshToken).trim() : '';
-    const token = headerToken || bodyToken || cookieToken;
+    let token = headerToken || bodyToken || cookieToken;
+    // Optional: allow Bearer refresh tokens (mobile clients) without overriding cookies
+    if (!token) {
+      const auth = (req.headers['authorization'] || '').trim();
+      if (/^Bearer\s+/.test(auth)) {
+        const bearer = auth.replace(/^Bearer\s+/i, '').trim();
+        try {
+          const decoded = jwt.decode(bearer);
+          if (decoded && decoded.type === 'refresh') {
+            token = bearer;
+          }
+        } catch (_) {}
+      }
+    }
 
     if (!token) {
       return res.status(401).json({
@@ -213,24 +231,29 @@ const refreshToken = async (req, res, next) => {
 
     const result = await authService.refreshToken(token, deviceType);
 
-    // Set new refresh token as httpOnly cookie
-    try {
-      const isProdRefresh = process.env.NODE_ENV === 'production';
-      res.cookie('refreshToken', result.refreshToken, {
-        httpOnly: true,
-        secure: isProdRefresh,
-        sameSite: isProdRefresh ? 'none' : 'lax',
-        partitioned: isProdRefresh ? true : false,
-        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-      });
-    } catch (_) {}
+    // For web: set new refresh token as httpOnly cookie; For app: return it in body.
+    if (deviceType === 'web') {
+      try {
+        const isProdRefresh = process.env.NODE_ENV === 'production';
+        res.cookie('refreshToken', result.refreshToken, {
+          httpOnly: true,
+          secure: isProdRefresh,
+          sameSite: isProdRefresh ? 'none' : 'lax',
+          partitioned: isProdRefresh ? true : false,
+          maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+        });
+      } catch (_) {}
+    }
+
+    const payload = Object.assign(
+      { token: result.accessToken },
+      deviceType === 'app' ? { refreshToken: result.refreshToken } : {}
+    );
 
     res.status(200).json({
       success: true,
       message: 'Token refreshed successfully',
-      data: {
-        token: result.accessToken
-      }
+      data: payload
     });
   } catch (error) {
     next(error);

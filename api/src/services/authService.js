@@ -12,7 +12,8 @@ class AuthService {
   /**
    * Create user
    */
-  async register({ email, name, password, username, dateOfBirth, interests, location, gender, deviceType}) {
+  async register(profileData, deviceType) {
+    const { email, name, password, username, dateOfBirth, interests, location, gender } = profileData || {};
     // Check if OTP was verified (you might want to implement a temporary verification token)
     const recentVerifiedOTP = await OTP.findOne({
       email,
@@ -65,8 +66,9 @@ class AuthService {
     // Generate tokens
     const { accessToken, refreshToken } = this.generateTokens(user._id);
     
-    // Save refresh token
-    deviceType === 'app' ? user.refreshTokens.app = refreshToken : user.refreshTokens.web = refreshToken;
+    // Save refresh token (default to web if deviceType is unknown)
+    const kind = deviceType === 'app' ? 'app' : 'web';
+    user.refreshTokens[kind] = refreshToken;
     await user.save();
 
     // Send welcome email
@@ -206,7 +208,7 @@ class AuthService {
    * Update password
    */
   async updatePassword(userId, currentPassword, newPassword) {
-    const user = await User.findById(userId).select('+password');
+    const user = await User.findById(userId).select('+password +refreshTokens.app +refreshTokens.web');
     
     if (!user) {
       throw new Error('User not found');
@@ -275,7 +277,7 @@ class AuthService {
         throw new Error('Invalid token type');
       }
       
-      const user = await User.findById(decoded.userId);
+      const user = await User.findById(decoded.userId).select('+refreshTokens.app +refreshTokens.web');
       if (!user || !user.isActive || user.refreshTokens[deviceType] !== refreshToken) {
         throw new Error('Invalid refresh token');
       }
@@ -470,7 +472,7 @@ class AuthService {
     const passwordReset = await PasswordReset.verifyResetToken(token);
     
     // Get the user
-    const user = await User.findOne({ email: passwordReset.email, isActive: true });
+    const user = await User.findOne({ email: passwordReset.email, isActive: true }).select('+refreshTokens.app +refreshTokens.web');
     if (!user) {
       throw new Error('User not found');
     }

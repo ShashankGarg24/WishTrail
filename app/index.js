@@ -15,6 +15,7 @@ try {
 } catch (_) {}
 
 const AsyncStorage = (() => { try { return require('@react-native-async-storage/async-storage').default; } catch { return null; } })();
+let SecureStore = null; try { SecureStore = require('expo-secure-store'); } catch (_) { SecureStore = null; }
 
 const WEB_URL = (Constants.expoConfig?.extra?.WEB_URL || Constants.manifest?.extra?.WEB_URL || 'http://localhost:5173');
 // Backend API base (include /api/v1). Falls back to WEB_URL + /api/v1 when not provided
@@ -340,6 +341,20 @@ function App() {
     return () => clearTimeout(t);
   }, [injectAuthProbe]);
 
+  // On app start, inject any stored refresh token into the WebView global
+  useEffect(() => {
+    (async () => {
+      try {
+        if (SecureStore && SecureStore.getItemAsync) {
+          const rt = await SecureStore.getItemAsync('wt_refresh_token');
+          if (rt && rt.length > 0) {
+            try { webRef.current?.injectJavaScript(`window.__WT_REFRESH_TOKEN = ${JSON.stringify(rt)}; true;`); } catch {}
+          }
+        }
+      } catch {}
+    })();
+  }, []);
+
   const onMessage = useCallback((event) => {
     try {
       const data = JSON.parse(event?.nativeEvent?.data || '{}');
@@ -356,6 +371,12 @@ function App() {
       } else if (data?.type === 'WT_USER') {
         const uid = (data.userId || '').trim();
         if (uid && uid.length > 0) setUserId(uid);
+      } else if (data?.type === 'WT_REFRESH') {
+        const rt = (data.refreshToken || '').trim();
+        if (rt && rt.length > 0) {
+          try { SecureStore && SecureStore.setItemAsync && SecureStore.setItemAsync('wt_refresh_token', rt); } catch {}
+          try { webRef.current?.injectJavaScript(`window.__WT_REFRESH_TOKEN = ${JSON.stringify(rt)}; true;`); } catch {}
+        }
       } else if (data?.type === 'WT_PATH') {
         try {
           const p = String(data.path || '/');

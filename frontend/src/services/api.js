@@ -6,10 +6,7 @@ const API_BASE_URL = API_CONFIG.BASE_URL;
 // Create axios instance with default config
 const api = axios.create({
   baseURL: API_BASE_URL,
-  withCredentials: true,
-  headers: {
-    'X-Client-Platform': 'web'
-  }
+  withCredentials: true
 });
 
 // Request interceptor to add auth token
@@ -19,6 +16,10 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    try {
+      const isNative = typeof window !== 'undefined' && !!window.ReactNativeWebView;
+      config.headers['X-Client-Platform'] = isNative ? 'app' : 'web';
+    } catch {}
     return config;
   },
   (error) => {
@@ -26,7 +27,7 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor to handle errors with refresh flow
+// Response interceptor to handle success updates (capture refresh token in app) and errors with refresh flow
 let isRefreshing = false;
 const queue = [];
 const processQueue = (error, token = null) => {
@@ -42,7 +43,22 @@ const processQueue = (error, token = null) => {
 };
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // If in native app and the endpoint is auth/login, auth/register, or auth/refresh, capture refreshToken
+    try {
+      const isNative = typeof window !== 'undefined' && !!window.ReactNativeWebView;
+      if (isNative) {
+        const url = String(response?.config?.url || '');
+        const isAuthEndpoint = /\/auth\/(login|register|refresh)(\b|\?|$)/.test(url);
+        const rt = response?.data?.data?.refreshToken;
+        if (isAuthEndpoint && typeof rt === 'string' && rt.length > 0) {
+          try { window.__WT_REFRESH_TOKEN = rt; } catch {}
+          try { window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'WT_REFRESH', refreshToken: rt })); } catch {}
+        }
+      }
+    } catch {}
+    return response;
+  },
   async (error) => {
     const { config, response } = error || {};
     if (!response) return Promise.reject(error);
@@ -72,11 +88,28 @@ api.interceptors.response.use(
     // Start refresh
     isRefreshing = true;
     try {
-      const res = await api.post('/auth/refresh', null, { withCredentials: true });
+      // In native app pass refresh token via header; web keeps cookie-based
+      const headers = {};
+      try {
+        const isNative = typeof window !== 'undefined' && !!window.ReactNativeWebView;
+        if (isNative && typeof window.__WT_REFRESH_TOKEN === 'string' && window.__WT_REFRESH_TOKEN.length > 0) {
+          headers['x-refresh-token'] = window.__WT_REFRESH_TOKEN;
+        }
+      } catch {}
+      const res = await api.post('/auth/refresh', null, { withCredentials: true, headers });
       const newToken = res?.data?.data?.token;
       if (!newToken) throw new Error('No access token in refresh response');
       localStorage.setItem('token', newToken);
       api.defaults.headers.common.Authorization = `Bearer ${newToken}`;
+      // If backend returned a rotated refresh token (app), capture and forward it
+      try {
+        const isNative = typeof window !== 'undefined' && !!window.ReactNativeWebView;
+        const rt = res?.data?.data?.refreshToken;
+        if (isNative && typeof rt === 'string' && rt.length > 0) {
+          try { window.__WT_REFRESH_TOKEN = rt; } catch {}
+          try { window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'WT_REFRESH', refreshToken: rt })); } catch {}
+        }
+      } catch {}
       processQueue(null, newToken);
       // Retry original
       originalRequest.headers.Authorization = `Bearer ${newToken}`;
