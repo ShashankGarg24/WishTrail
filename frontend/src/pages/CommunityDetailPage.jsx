@@ -22,7 +22,7 @@ export default function CommunityDetailPage() {
   const [summary, setSummary] = useState(null)
   const [tab, setTab] = useState('feed')
   const [feed, setFeed] = useState([])
-  const [filter, setFilter] = useState('all') // all | updates | chat
+  const [filter, setFilter] = useState('all') // removed UI; always fetch all
   const [chatText, setChatText] = useState('')
   const [items, setItems] = useState([])
   const [itemProgress, setItemProgress] = useState({})
@@ -57,7 +57,7 @@ export default function CommunityDetailPage() {
   useEffect(() => {
     async function loadFeed() {
       const [f, i, m, d] = await Promise.all([
-        communitiesAPI.feed(id, { limit: 30, filter }),
+        communitiesAPI.feed(id, { limit: 100 }),
         communitiesAPI.items(id),
         communitiesAPI.members(id),
         communitiesAPI.dashboard(id)
@@ -81,7 +81,7 @@ export default function CommunityDetailPage() {
       } catch {}
     }
     loadFeed()
-  }, [id, filter])
+  }, [id])
 
   // Socket.io connect & room join
   const ioUrl = useMemo(() => {
@@ -92,7 +92,7 @@ export default function CommunityDetailPage() {
   }, [])
 
   useEffect(() => {
-    const s = io(ioUrl, { transports: ['websocket'], withCredentials: true })
+    const s = io(ioUrl, { transports: ['websocket'] })
     socketRef.current = s
     s.emit('community:join', id)
     s.on('community:message:new', (msg) => {
@@ -190,59 +190,66 @@ export default function CommunityDetailPage() {
       {tab === 'feed' && isMember && (
         <div className="relative min-h-[60vh] flex flex-col">
           <div className="space-y-3 flex-1 overflow-y-auto pr-1">
-          <div className="flex items-center gap-2 mb-2">
-            <select value={filter} onChange={e => setFilter(e.target.value)} className="px-2 py-1 rounded border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-sm">
-              <option value="all">All</option>
-              <option value="updates">Updates</option>
-              <option value="chat">Chat</option>
-            </select>
-            <div className="flex-1" />
-          </div>
+          <div className="h-1" />
           {feed
-            .filter(a => (filter === 'all') || (filter === 'chat' ? a.kind === 'chat' : a.kind === 'update'))
+            .slice() // clone so we can sort safely
+            .sort((a,b) => new Date(a.createdAt) - new Date(b.createdAt))
+            // always show all (messages + updates)
             .map(a => (
-            <div key={a._id} className={`rounded-xl border ${a.kind==='chat' ? 'border-emerald-200' : 'border-blue-200'} dark:border-gray-800 p-4 ${a.kind==='chat' ? 'bg-gray-50 dark:bg-gray-800/60' : 'bg-white dark:bg-gray-900'} border-l-4 ${a.kind==='chat' ? 'border-l-emerald-500' : 'border-l-blue-500'}`}>
-              <div className="flex items-center gap-3">
-                <img src={a.avatar || a.userId?.avatar} alt="User" className="h-8 w-8 rounded-full" />
-                <div className="text-sm">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">{a.name || a.userId?.name}</span>
-                    <span className={`inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full ${a.kind==='chat' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'}`}>
-                      {a.kind==='chat' ? <MessageSquare className="h-3 w-3" /> : <Newspaper className="h-3 w-3" />}
-                      {a.kind==='chat' ? 'Message' : 'Update'}
-                    </span>
+            <div key={a._id} className="px-2">
+              {a.kind==='chat' ? (
+                <div className="flex items-end gap-2 mb-2">
+                  <img src={a.avatar || a.userId?.avatar} alt="User" className="h-7 w-7 rounded-full" />
+                  <div className="max-w-[75%] rounded-2xl px-3 py-2 bg-gray-100 dark:bg-gray-800 text-sm">
+                    <div className="text-xs text-gray-500 mb-0.5">{a.name || a.userId?.name} • {new Date(a.createdAt).toLocaleTimeString()}</div>
+                    <div className="whitespace-pre-wrap text-gray-800 dark:text-gray-200">{a.text}</div>
+                    {(['admin','moderator'].includes(role)) && (
+                      <div className="mt-1">
+                        <button onClick={async () => { if (confirm('Delete message?')) { try { await communitiesAPI.deleteChat(id, a._id); setFeed(curr => curr.filter(x => x._id!==a._id)) } catch {} } }} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border border-red-200 text-red-600 text-[11px]">Delete</button>
+                      </div>
+                    )}
                   </div>
-                  <div className="text-gray-500">
-                    {a.kind==='chat' ? ` ${a.text}` : (() => {
+                </div>
+              ) : (
+                <div className="flex justify-center my-3">
+                  <div className="text-[13px] text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 px-3 py-1.5 rounded-full text-center">
+                    <span className="font-medium mr-1">{a.name || a.userId?.name}</span>
+                    <span className="opacity-70">{(() => {
                       const t = a?.type;
-                      if (t === 'goal_created') return ` created a new goal "${a?.data?.goalTitle || ''}"`;
-                      if (t === 'goal_completed') return ` completed "${a?.data?.goalTitle || ''}"`;
-                      if (t === 'goal_joined') return ` joined "${a?.data?.goalTitle || a?.data?.metadata?.habitName || ''}"`;
+                      if (t === 'goal_created') return `created a goal: "${a?.data?.goalTitle || ''}"`;
+                      if (t === 'goal_completed') return `completed a goal: "${a?.data?.goalTitle || ''}"`;
+                      if (t === 'goal_joined') return `joined a goal/habit: "${a?.data?.goalTitle || a?.data?.metadata?.habitName || ''}"`;
                       if (t === 'streak_milestone') {
                         const nm = a?.data?.metadata?.habitName;
-                        return nm ? ` achieved a ${a?.data?.streakCount}-day streak on "${nm}"` : ` achieved a ${a?.data?.streakCount}-day streak`;
+                        return `streak in habit${nm ? `: "${nm}"` : ''} — ${a?.data?.streakCount}-day streak`;
                       }
-                      if (t === 'user_followed') return ` started following ${a?.data?.targetUserName || 'a user'}`;
-                      if (t === 'level_up') return ` leveled up to ${a?.data?.newLevel}`;
-                      if (t === 'achievement_earned') return ` earned the "${a?.data?.achievementName || 'achievement'}" achievement`;
-                      return ` ${a.message || ''}`;
+                      if (t === 'community_member_joined') return 'joined the community';
+                      if (t === 'community_member_left') return 'left the community';
+                      if (t === 'community_item_added') {
+                        const t1 = a?.data?.goalTitle || a?.data?.metadata?.habitName || '';
+                        return t1 ? `added a community item: "${t1}"` : 'added a community item';
+                      }
+                      return a.message || '';
+                    })()}</span>
+                    <span className="ml-2 text-[11px] opacity-60">{new Date(a.createdAt).toLocaleString()}</span>
+                    {/* reactions (allowed subset only) */}
+                    {(() => {
+                      const allowed = new Set(['goal_completed','community_item_added','goal_joined','streak_milestone']);
+                      if (!allowed.has(String(a?.type))) return null;
+                      return (
+                        <span className="ml-2">
+                          {['👍','🎉','💯'].map(ej => (
+                            <button key={ej} onClick={async () => { try { const r = await communitiesAPI.react(id, { targetType: 'update', targetId: a._id, emoji: ej }); setFeed(curr => curr.map(x => x._id===a._id? { ...x, reactions: r?.data?.data?.reactions } : x)) } catch {} }} className="inline-flex items-center gap-1 px-1 py-0.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700">
+                              <span>{ej}</span>
+                              <span className="text-[10px] opacity-70">{a?.reactions?.[ej]?.count || 0}</span>
+                            </button>
+                          ))}
+                        </span>
+                      );
                     })()}
                   </div>
                 </div>
-                <div className="flex-1" />
-                <div className="text-xs text-gray-500">{new Date(a.createdAt).toLocaleString()}</div>
-              </div>
-              <div className="mt-3 flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
-                {['👍','🎉','💯'].map(ej => (
-                  <button key={ej} onClick={async () => { try { const r = await communitiesAPI.react(id, { targetType: a.kind, targetId: a._id, emoji: ej }); setFeed(curr => curr.map(x => x._id===a._id? { ...x, reactions: r?.data?.data?.reactions } : x)) } catch {} }} className="inline-flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">
-                    <span>{ej}</span>
-                    <span className="text-[11px] text-gray-500">{a?.reactions?.[ej]?.count || 0}</span>
-                  </button>
-                ))}
-                {a.kind==='chat' && (['admin','moderator'].includes(role)) && (
-                  <button onClick={async () => { if (confirm('Delete message?')) { try { await communitiesAPI.deleteChat(id, a._id); setFeed(curr => curr.filter(x => x._id!==a._id)) } catch {} } }} className="ml-2 inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-red-200 text-red-600">Delete</button>
-                )}
-              </div>
+              )}
             </div>
           ))}
           {feed.length === 0 && <div className="text-sm text-gray-500">No activity yet.</div>}

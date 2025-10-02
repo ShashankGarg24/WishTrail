@@ -152,6 +152,22 @@ async function suggestCommunityItem(communityId, userId, payload) {
     status: allowAnyone ? 'approved' : 'pending'
   });
   await item.save();
+  // Mirror addition immediately if auto-approved
+  if (item.status === 'approved') {
+    try {
+      const u = await User.findById(userId).select('name avatar').lean();
+      await CommunityActivity.create({
+        communityId,
+        userId,
+        name: u?.name,
+        avatar: u?.avatar,
+        type: 'community_item_added',
+        data: payload.type === 'goal'
+          ? { goalId: item.sourceId, goalTitle: item.title }
+          : { metadata: { habitId: item.sourceId, habitName: item.title } }
+      });
+    } catch (_) {}
+  }
   return item;
 }
 
@@ -196,6 +212,18 @@ async function createCommunityOwnedItem(communityId, creatorId, payload) {
     { $setOnInsert: { type: 'goal', progressPercent: 0, lastUpdatedAt: new Date() }, $set: { status: 'joined' } },
       { upsert: true }
     );
+    // Mirror community addition update
+    try {
+      const u = await User.findById(creatorId).select('name avatar').lean();
+      await CommunityActivity.create({
+        communityId,
+        userId: creatorId,
+        name: u?.name,
+        avatar: u?.avatar,
+        type: 'community_item_added',
+        data: { goalId: g._id, goalTitle: g.title }
+      });
+    } catch (_) {}
     return item;
   } else {
     const h = new Habit({
@@ -217,6 +245,18 @@ async function createCommunityOwnedItem(communityId, creatorId, payload) {
     { $setOnInsert: { type: 'habit', progressPercent: 0, lastUpdatedAt: new Date() }, $set: { status: 'joined' } },
       { upsert: true }
     );
+    // Mirror community addition update
+    try {
+      const u = await User.findById(creatorId).select('name avatar').lean();
+      await CommunityActivity.create({
+        communityId,
+        userId: creatorId,
+        name: u?.name,
+        avatar: u?.avatar,
+        type: 'community_item_added',
+        data: { metadata: { habitId: h._id, habitName: h.name } }
+      });
+    } catch (_) {}
     return item;
   }
 }
@@ -261,6 +301,18 @@ async function copyFromPersonalToCommunity(communityId, creatorId, { type, sourc
     { $setOnInsert: { type: 'goal', progressPercent: 0, lastUpdatedAt: new Date() }, $set: { status: 'joined' } },
       { upsert: true }
     );
+    // Mirror community addition update
+    try {
+      const u = await User.findById(creatorId).select('name avatar').lean();
+      await CommunityActivity.create({
+        communityId,
+        userId: creatorId,
+        name: u?.name,
+        avatar: u?.avatar,
+        type: 'community_item_added',
+        data: { goalId: g._id, goalTitle: g.title }
+      });
+    } catch (_) {}
     return item;
   } else {
     const src = await Habit.findById(sourceId).lean();
@@ -284,6 +336,18 @@ async function copyFromPersonalToCommunity(communityId, creatorId, { type, sourc
     { $setOnInsert: { type: 'habit', progressPercent: 0, lastUpdatedAt: new Date() }, $set: { status: 'joined' } },
       { upsert: true }
     );
+    // Mirror community addition update
+    try {
+      const u = await User.findById(creatorId).select('name avatar').lean();
+      await CommunityActivity.create({
+        communityId,
+        userId: creatorId,
+        name: u?.name,
+        avatar: u?.avatar,
+        type: 'community_item_added',
+        data: { metadata: { habitId: h._id, habitName: h.name } }
+      });
+    } catch (_) {}
     return item;
   }
 }
@@ -300,6 +364,22 @@ async function approveCommunityItem(communityId, itemId, approverId, approve = t
     { $set: { status, approverId, approvedAt: approve ? new Date() : null } },
     { new: true }
   );
+  // Mirror addition if approved now
+  if (updated && status === 'approved') {
+    try {
+      const creator = await User.findById(updated.createdBy).select('name avatar').lean();
+      await CommunityActivity.create({
+        communityId,
+        userId: updated.createdBy,
+        name: creator?.name,
+        avatar: creator?.avatar,
+        type: 'community_item_added',
+        data: updated.type === 'goal'
+          ? { goalId: updated.sourceId, goalTitle: updated.title }
+          : { metadata: { habitId: updated.sourceId, habitName: updated.title } }
+      });
+    } catch (_) {}
+  }
   return updated;
 }
 
@@ -312,16 +392,21 @@ async function joinItem(userId, communityId, itemId) {
     { new: true, upsert: true }
   );
   await CommunityItem.updateOne({ _id: itemId }, { $inc: { 'stats.participantCount': 1 } });
-  // Emit update and mirror activity
+  // Create community activity mirror only
   try {
     const u = await User.findById(userId).select('name avatar').lean();
-    const Activity = require('../models/Activity');
-    const a = await Activity.createActivity(userId, u?.name, u?.avatar, 'goal_joined', {
-      goalId: item.type === 'goal' ? item.sourceId : undefined,
-      goalTitle: item.title,
-      goalCategory: item.type === 'goal' ? undefined : undefined,
-      metadata: item.type === 'habit' ? { habitId: item.sourceId, habitName: item.title } : undefined
-    }, { communityId });
+    await CommunityActivity.create({
+      communityId,
+      userId,
+      name: u?.name,
+      avatar: u?.avatar,
+      type: 'goal_joined',
+      data: {
+        goalId: item.type === 'goal' ? item.sourceId : undefined,
+        goalTitle: item.title,
+        metadata: item.type === 'habit' ? { habitId: item.sourceId, habitName: item.title } : undefined
+      }
+    });
   } catch (_) {}
   return doc;
 }
@@ -433,15 +518,17 @@ async function joinCommunity(userId, communityId) {
     : await CommunityMember.create({ communityId, userId, role, status });
   if (status === 'active') {
     await Community.updateOne({ _id: communityId }, { $inc: { 'stats.memberCount': 1 } });
-    // Emit a community join update (non-intrusive)
+    // Create community member joined activity
     try {
       const u = await User.findById(userId).select('name avatar').lean();
-      const Activity = require('../models/Activity');
-      await Activity.createActivity(userId, u?.name, u?.avatar, 'user_followed', {
-        targetUserId: userId,
-        targetUserName: u?.name,
-        metadata: { kind: 'community_member_joined', communityId }
-      }, { communityId });
+      await CommunityActivity.create({
+        communityId,
+        userId,
+        name: u?.name,
+        avatar: u?.avatar,
+        type: 'community_member_joined',
+        data: { metadata: { kind: 'community_member_joined' } }
+      });
     } catch (_) {}
   }
   return membership;
@@ -487,6 +574,18 @@ async function leaveCommunity(userId, communityId) {
   if (!mem) return { ok: true };
   await CommunityMember.updateOne({ _id: mem._id }, { $set: { status: 'removed' } });
   await Community.updateOne({ _id: communityId }, { $inc: { 'stats.memberCount': -1 } });
+  // Create community member left activity
+  try {
+    const u = await User.findById(userId).select('name avatar').lean();
+    await CommunityActivity.create({
+      communityId,
+      userId,
+      name: u?.name,
+      avatar: u?.avatar,
+      type: 'community_member_left',
+      data: { metadata: { kind: 'community_member_left' } }
+    });
+  } catch (_) {}
   return { ok: true };
 }
 
@@ -515,24 +614,11 @@ async function getFeed(communityId, { limit = 20, filter = 'all', before = null 
   const projBase = { _id: 1, communityId: 1, userId: 1, name: 1, avatar: 1, createdAt: 1, reactions: 1 };
 
   if (filter === 'updates') {
-    let updates = await CommunityActivity.find({ communityId, ...(before ? { createdAt: beforeClause } : {}) })
+    const updates = await CommunityActivity.find({ communityId, ...(before ? { createdAt: beforeClause } : {}) })
       .sort({ createdAt: -1 })
       .limit(cap)
       .select({ ...projBase, type: 1, data: 1 })
       .lean({ virtuals: true });
-    if (!updates || updates.length === 0) {
-      // Fallback: fetch recent public activities from community members
-      const memberIds = await CommunityMember.find({ communityId, status: 'active' }).select('userId').lean();
-      const ids = memberIds.map(m => m.userId);
-      if (ids.length > 0) {
-        const acts = await Activity.find({ userId: { $in: ids }, isActive: true, isPublic: true, ...(before ? { createdAt: beforeClause } : {}) })
-          .sort({ createdAt: -1 })
-          .limit(cap)
-          .select({ ...projBase, type: 1, data: 1 })
-          .lean({ virtuals: true });
-        updates = acts;
-      }
-    }
     return (updates || []).map(u => ({ kind: 'update', ...u }));
   }
   if (filter === 'chat') {
@@ -540,7 +626,7 @@ async function getFeed(communityId, { limit = 20, filter = 'all', before = null 
     return chat.map(m => ({ kind: 'chat', ...m }));
   }
   // all: fetch both and merge-sort
-  let [updates, chat] = await Promise.all([
+  const [updates, chat] = await Promise.all([
     CommunityActivity.find({ communityId, ...(before ? { createdAt: beforeClause } : {}) })
       .sort({ createdAt: -1 })
       .limit(cap)
@@ -548,30 +634,6 @@ async function getFeed(communityId, { limit = 20, filter = 'all', before = null 
       .lean({ virtuals: true }),
     ChatMessage.find(qChat).sort({ createdAt: -1 }).limit(cap).select({ ...projBase, text: 1 }).lean()
   ]);
-  if (!updates || updates.length === 0) {
-    // Fallback populate updates from member activities
-    const memberIds = await CommunityMember.find({ communityId, status: 'active' }).select('userId').lean();
-    const ids = memberIds.map(m => m.userId);
-    if (ids.length > 0) {
-      const acts = await Activity.find({ userId: { $in: ids }, isActive: true, isPublic: true, ...(before ? { createdAt: beforeClause } : {}) })
-        .sort({ createdAt: -1 })
-        .limit(cap)
-        .select({ ...projBase, type: 1, data: 1 })
-        .lean({ virtuals: true });
-      updates = acts;
-      // Backfill mirror for future fast reads
-      try {
-        const ops = acts.map((a) => CommunityActivity.updateOne(
-          { communityId, sourceActivityId: a._id },
-          { $setOnInsert: { communityId, sourceActivityId: a._id, userId: a.userId, name: a.name, avatar: a.avatar, type: a.type, data: a.data, reactions: {}, createdAt: a.createdAt } },
-          { upsert: true }
-        ));
-        await Promise.allSettled(ops);
-      } catch (_) {}
-    } else {
-      updates = [];
-    }
-  }
   const merged = [];
   let i = 0, j = 0;
   while (merged.length < cap && (i < updates.length || j < chat.length)) {
@@ -605,17 +667,18 @@ async function deleteChatMessage(communityId, requesterId, msgId) {
 }
 
 async function toggleReaction(targetType, targetId, userId, emoji) {
-  // Reactions for chat go to ChatMessage; reactions for updates prefer CommunityActivity, fallback to Activity
-  let doc = null;
+  // Reactions: disabled for chat, only allowed for updates
   if (targetType === 'chat') {
-    doc = await ChatMessage.findById(targetId).select('reactions');
-  } else {
-    doc = await CommunityActivity.findById(targetId).select('reactions');
-    if (!doc) {
-      doc = await Activity.findById(targetId).select('reactions');
-    }
+    throw Object.assign(new Error('Reactions are disabled for messages'), { statusCode: 400 });
   }
+  // updates only
+  let doc = await CommunityActivity.findById(targetId).select('reactions type');
   if (!doc) throw Object.assign(new Error('Not found'), { statusCode: 404 });
+  // Only allow reactions for specific update types
+  const allowedTypes = new Set(['goal_completed', 'community_item_added', 'goal_joined', 'streak_milestone']);
+  if (!allowedTypes.has(String(doc.type))) {
+    throw Object.assign(new Error('Reactions not allowed for this update'), { statusCode: 400 });
+  }
   const map = doc.reactions || new Map();
   const key = String(emoji || '').trim();
   if (!key) throw Object.assign(new Error('Invalid emoji'), { statusCode: 400 });

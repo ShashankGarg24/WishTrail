@@ -313,7 +313,7 @@ class GoalService {
       await userService.updateUserStreak(userId);
     }
     
-    // Create completion activity
+    // Create completion activity (global)
     await Activity.createActivity(
       userId,
       user.name,
@@ -327,6 +327,22 @@ class GoalService {
         completionNote
       }
     );
+    // Mirror into community feed if a community item references this goal
+    try {
+      const CommunityItem = require('../models/CommunityItem');
+      const CommunityActivity = require('../models/CommunityActivity');
+      const link = await CommunityItem.findOne({ type: 'goal', sourceId: goal._id, status: 'approved', isActive: true }).select('communityId title').lean();
+      if (link && link.communityId) {
+        await CommunityActivity.create({
+          communityId: link.communityId,
+          userId,
+          name: user?.name,
+          avatar: user?.avatar,
+          type: 'goal_completed',
+          data: { goalId: goal._id, goalTitle: goal.title, goalCategory: goal.category, pointsEarned: goal.pointsEarned }
+        });
+      }
+    } catch (_) {}
     
     return goal;
   }

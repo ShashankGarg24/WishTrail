@@ -159,8 +159,16 @@ if (require.main === module) {
       const { Server } = require('socket.io');
       const { createAdapter } = require('@socket.io/redis-adapter');
       const IORedis = require('ioredis');
+      const allowedOrigins = (() => {
+        try {
+          const def = ['http://localhost:5173','http://127.0.0.1:5173'];
+          const fromEnv = (process.env.ALLOWED_ORIGINS || process.env.CLIENT_URL || '')
+            .split(',').map(s => s.trim()).filter(Boolean);
+          return Array.from(new Set([...def, ...fromEnv]));
+        } catch { return ['*']; }
+      })();
       const io = new Server(http, {
-        cors: { origin: '*', methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'] }
+        cors: { origin: allowedOrigins, credentials: true, methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'] }
       });
       // Redis adapter (optional, requires a TCP Redis URL, not Upstash REST)
       try {

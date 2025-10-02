@@ -157,6 +157,23 @@ async function toggleLog(userId, habitId, { status = 'done', note = '', mood = '
         });
       } catch (_) {}
     }
+    // Mirror into community feed if a community item references this habit
+    try {
+      const CommunityItem = require('../models/CommunityItem');
+      const CommunityActivity = require('../models/CommunityActivity');
+      const link = await CommunityItem.findOne({ type: 'habit', sourceId: habit._id, status: 'approved', isActive: true }).select('communityId').lean();
+      if (link && link.communityId && [1,7,30,100].includes(nextStreak)) {
+        const u = await User.findById(userId).select('name avatar').lean();
+        await CommunityActivity.create({
+          communityId: link.communityId,
+          userId,
+          name: u?.name,
+          avatar: u?.avatar,
+          type: 'streak_milestone',
+          data: { streakCount: nextStreak, metadata: { habitId: habit._id, habitName: habit.name } }
+        });
+      }
+    } catch (_) {}
   } else if (!isDone) {
     // If missed or skipped, reset current streak only if dateKey is today
     const todayKey = toDateKeyUTC(new Date());
