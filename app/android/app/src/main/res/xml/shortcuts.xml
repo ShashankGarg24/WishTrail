@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+  <shortcut
+    android:shortcutId="dashboard"
+    android:enabled="true"
+    android:icon="@mipmap/ic_launcher"
+    android:shortLabel="Dashboard"
+    android:longLabel="Open Dashboard">
+    <intent android:action="android.intent.action.VIEW" android:data="wishtrail://dashboard" />
+  </shortcut>
+  <shortcut
+    android:shortcutId="feed"
+    android:enabled="true"
+    android:icon="@mipmap/ic_launcher"
+    android:shortLabel="Feed"
+    android:longLabel="Open Feed">
+    <intent android:action="android.intent.action.VIEW" android:data="wishtrail://feed" />
+  </shortcut>
+  <shortcut
+    android:shortcutId="communities"
+    android:enabled="true"
+    android:icon="@mipmap/ic_launcher"
+    android:shortLabel="Communities"
+    android:longLabel="Open Communities">
+    <intent android:action="android.intent.action.VIEW" android:data="wishtrail://communities" />
+  </shortcut>
+  <shortcut
+    android:shortcutId="feedback"
+    android:enabled="true"
+    android:icon="@mipmap/ic_launcher"
+    android:shortLabel="Feedback"
+    android:longLabel="Leave Feedback">
+    <intent android:action="android.intent.action.VIEW" android:data="wishtrail://feedback" />
+  </shortcut>
+</shortcuts>

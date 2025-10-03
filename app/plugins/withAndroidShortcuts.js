@@ -1,0 +1,101 @@
+// Expo config plugin to add static Android App Shortcuts
+// Usage (in app.json or app.config.js):
+// {
+//   "plugins": [
+//     "./plugins/withAndroidShortcuts"
+//   ]
+// }
+
+const { withAndroidManifest, withDangerousMod } = require('@expo/config-plugins');
+const fs = require('fs');
+const path = require('path');
+
+function ensureArray(obj, key) {
+  if (!obj[key]) obj[key] = [];
+  return obj[key];
+}
+
+const SHORTCUTS_XML = `<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+  <shortcut
+    android:shortcutId="dashboard"
+    android:enabled="true"
+    android:icon="@mipmap/ic_launcher"
+    android:shortLabel="Dashboard"
+    android:longLabel="Open Dashboard">
+    <intent android:action="android.intent.action.VIEW" android:data="wishtrail://dashboard" />
+  </shortcut>
+  <shortcut
+    android:shortcutId="feed"
+    android:enabled="true"
+    android:icon="@mipmap/ic_launcher"
+    android:shortLabel="Feed"
+    android:longLabel="Open Feed">
+    <intent android:action="android.intent.action.VIEW" android:data="wishtrail://feed" />
+  </shortcut>
+  <shortcut
+    android:shortcutId="communities"
+    android:enabled="true"
+    android:icon="@mipmap/ic_launcher"
+    android:shortLabel="Communities"
+    android:longLabel="Open Communities">
+    <intent android:action="android.intent.action.VIEW" android:data="wishtrail://communities" />
+  </shortcut>
+  <shortcut
+    android:shortcutId="feedback"
+    android:enabled="true"
+    android:icon="@mipmap/ic_launcher"
+    android:shortLabel="Feedback"
+    android:longLabel="Leave Feedback">
+    <intent android:action="android.intent.action.VIEW" android:data="wishtrail://feedback" />
+  </shortcut>
+</shortcuts>`;
+
+const withAndroidShortcuts = (config) => {
+  // 1) Write res/xml/shortcuts.xml during prebuild
+  config = withDangerousMod(config, [
+    'android',
+    async (cfg) => {
+      const projectRoot = cfg.modRequest.projectRoot;
+      const xmlDir = path.join(projectRoot, 'android', 'app', 'src', 'main', 'res', 'xml');
+      try { fs.mkdirSync(xmlDir, { recursive: true }); } catch {}
+      const file = path.join(xmlDir, 'shortcuts.xml');
+      fs.writeFileSync(file, SHORTCUTS_XML, 'utf8');
+      return cfg;
+    },
+  ]);
+
+  // 2) Attach meta-data to the LAUNCHER activity
+  config = withAndroidManifest(config, (cfg) => {
+    const manifest = cfg.modResults.manifest;
+    const app = manifest.application && manifest.application[0];
+    if (!app) return cfg;
+    const activities = ensureArray(app, 'activity');
+    const mainActivity = activities.find((act) => {
+      const filters = (act['intent-filter'] || []);
+      return filters.some((f) => {
+        const actions = (f.action || []).map(a => a['$'] && a['$']['android:name']);
+        const cats = (f.category || []).map(c => c['$'] && c['$']['android:name']);
+        return actions.includes('android.intent.action.MAIN') && cats.includes('android.intent.category.LAUNCHER');
+      });
+    });
+    if (!mainActivity) return cfg;
+    const meta = ensureArray(mainActivity, 'meta-data');
+    const exists = meta.some((m) => m['$'] && m['$']['android:name'] === 'android.app.shortcuts');
+    if (!exists) {
+      meta.push({
+        $: {
+          'android:name': 'android.app.shortcuts',
+          'android:resource': '@xml/shortcuts',
+        },
+      });
+    }
+    return cfg;
+  });
+
+  return config;
+};
+
+module.exports = withAndroidShortcuts;
+
+
