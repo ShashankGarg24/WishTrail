@@ -595,7 +595,7 @@ async function leaveCommunity(userId, communityId) {
 
 async function listMembers(communityId) {
   const members = await CommunityMember.find({ communityId, status: 'active' })
-    .populate('userId', 'name avatar currentStreak longestStreak totalPoints')
+    .populate('userId', 'name username avatar currentStreak longestStreak totalPoints')
     .sort({ role: 1, 'userId.totalPoints': -1 })
     .lean();
   return members.map(m => ({

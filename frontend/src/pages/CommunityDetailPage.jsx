@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { Newspaper, BarChart3, Target, Users, Settings, ThumbsUp, MessageSquare } from 'lucide-react'
 import api, { communitiesAPI } from '../services/api'
 import CommunityDashboard from '../components/community/CommunityDashboard'
@@ -18,6 +18,7 @@ const Tab = ({ active, label, Icon, onClick }) => (
 export default function CommunityDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const [loading, setLoading] = useState(true)
   const [summary, setSummary] = useState(null)
   const [tab, setTab] = useState('feed')
@@ -30,6 +31,8 @@ export default function CommunityDetailPage() {
   const [dashboard, setDashboard] = useState(null)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [joinedItems, setJoinedItems] = useState(new Set())
+  const [loaded, setLoaded] = useState({ feed: false, items: false, members: false, dashboard: false, joinedItems: false })
+  const [isSocketConnected, setIsSocketConnected] = useState(false)
   const socketRef = useRef(null)
   const seenIdsRef = useRef(new Set())
   const feedScrollRef = useRef(null)
@@ -49,12 +52,24 @@ export default function CommunityDetailPage() {
     return () => { active = false }
   }, [id])
 
-  // Ensure non-members don't land on Feed by default
+  // Sync tab with URL (?tab=) and enforce visibility rules
   useEffect(() => {
-    if (summary && summary.isMember === false && tab === 'feed') {
-      setTab('dashboard')
-    }
-  }, [summary, tab])
+    if (!summary) return
+    const params = new URLSearchParams(location.search)
+    let next = params.get('tab') || (summary.isMember ? 'feed' : 'dashboard')
+    const allowed = ['feed','dashboard','items','members','settings']
+    if (!allowed.includes(next)) next = summary.isMember ? 'feed' : 'dashboard'
+    if (!summary.isMember && next === 'feed') next = 'dashboard'
+    if (summary.role !== 'admin' && next === 'settings') next = summary.isMember ? 'feed' : 'dashboard'
+    if (tab !== next) setTab(next)
+  }, [location.search, summary])
+
+  // Navigate helper to update URL with active tab
+  const switchTab = (next) => {
+    const params = new URLSearchParams(location.search)
+    params.set('tab', next)
+    navigate({ pathname: `/communities/${id}`, search: `?${params.toString()}` })
+  }
 
   // Helper: scroll to message box and focus input
   const scrollToMessageBox = () => {
@@ -95,47 +110,83 @@ export default function CommunityDetailPage() {
     } catch { return '' }
   }
 
+  // Lazy load data per active tab
   useEffect(() => {
-    async function loadFeed() {
-      const [f, i, m, d] = await Promise.all([
-        communitiesAPI.feed(id, { limit: 100 }),
-        communitiesAPI.items(id),
-        communitiesAPI.members(id),
-        communitiesAPI.dashboard(id)
-      ])
-      setFeed(f?.data?.data || [])
-      const list = i?.data?.data || []
-      setItems(list)
-      // fetch progress in parallel
-      const progressPairs = await Promise.all(list.map(it => communitiesAPI.itemProgress(id, it._id).then(r => [it._id, r?.data?.data]).catch(() => [it._id, { personal: 0, community: 0 }])));
-      const map = {}
-      for (const [key, val] of progressPairs) map[key] = val
-      setItemProgress(map)
-      setMembers(m?.data?.data || [])
-      setDashboard(d?.data?.data || null)
-      // Load membership to toggle Join/Leave
+    let cancelled = false
+    async function loadForTab() {
       try {
-        const mine = await communitiesAPI.listMyJoinedItems()
-        const arr = mine?.data?.data || []
-        const set = new Set(arr.filter(x => String(x.communityId) === String(id)).map(x => String(x._id)))
-        setJoinedItems(set)
+        if (tab === 'feed' && summary?.isMember && !loaded.feed) {
+          const f = await communitiesAPI.feed(id, { limit: 100 })
+          if (cancelled) return
+          setFeed(f?.data?.data || [])
+          setLoaded(prev => ({ ...prev, feed: true }))
+        }
+        if (tab === 'dashboard' && !loaded.dashboard) {
+          const d = await communitiesAPI.dashboard(id)
+          if (cancelled) return
+          setDashboard(d?.data?.data || null)
+          setLoaded(prev => ({ ...prev, dashboard: true }))
+          if (!loaded.members) {
+            try {
+              const m = await communitiesAPI.members(id)
+              if (cancelled) return
+              setMembers(m?.data?.data || [])
+              setLoaded(prev => ({ ...prev, members: true }))
+            } catch {}
+          }
+        }
+        if (tab === 'items' && !loaded.items) {
+          const i = await communitiesAPI.items(id)
+          const list = i?.data?.data || []
+          if (cancelled) return
+          setItems(list)
+          try {
+            const progressPairs = await Promise.all(list.map(it => communitiesAPI.itemProgress(id, it._id).then(r => [it._id, r?.data?.data]).catch(() => [it._id, { personal: 0, community: 0 }])))
+            const map = {}
+            for (const [key, val] of progressPairs) map[key] = val
+            if (!cancelled) setItemProgress(map)
+          } catch {}
+          setLoaded(prev => ({ ...prev, items: true }))
+          // Load joined items to toggle Join/Leave
+          try {
+            const mine = await communitiesAPI.listMyJoinedItems()
+            if (cancelled) return
+            const arr = mine?.data?.data || []
+            const set = new Set(arr.filter(x => String(x.communityId) === String(id)).map(x => String(x._id)))
+            setJoinedItems(set)
+            setLoaded(prev => ({ ...prev, joinedItems: true }))
+          } catch {}
+        }
+        if (tab === 'members' && !loaded.members) {
+          const m = await communitiesAPI.members(id)
+          if (cancelled) return
+          setMembers(m?.data?.data || [])
+          setLoaded(prev => ({ ...prev, members: true }))
+        }
       } catch {}
     }
-    loadFeed()
-  }, [id])
+    loadForTab()
+    return () => { cancelled = true }
+  }, [tab, id, summary, loaded])
 
   // Socket.io connect & room join
   const ioUrl = useMemo(() => {
     try {
-      const base = new URL(api.defaults.baseURL || window.location.origin)
+      const base = new URL(api.defaults.baseURL || '/', window.location.origin)
       return base.origin
     } catch { return window.location.origin }
   }, [])
 
   useEffect(() => {
-    const s = io(ioUrl, { transports: ['websocket'] })
+    if (tab !== 'feed' || !summary?.isMember) return
+    const s = io(ioUrl, { withCredentials: true })
     socketRef.current = s
-    s.emit('community:join', id)
+    try {
+      s.on('connect', () => { try { console.debug('[socket] connected to', ioUrl); } catch {} ; setIsSocketConnected(true); try { s.emit('community:join', id) } catch {} })
+      s.on('connect_error', (err) => { try { console.warn('[socket] connect_error', err?.message || err); } catch {} })
+      s.on('error', (err) => { try { console.warn('[socket] error', err?.message || err); } catch {} })
+      s.on('disconnect', () => { setIsSocketConnected(false) })
+    } catch {}
     s.on('community:message:new', (msg) => {
       setFeed((curr) => {
         if (filter === 'updates') return curr
@@ -166,8 +217,28 @@ export default function CommunityDetailPage() {
         ? { ...x, reactions }
         : x))
     })
-    return () => { try { s.emit('community:leave', id); s.disconnect() } catch {} }
-  }, [id, ioUrl, filter])
+    return () => { try { s.emit('community:leave', id); s.disconnect(); setIsSocketConnected(false) } catch {} }
+  }, [id, ioUrl, filter, tab, summary])
+
+  // Polling fallback when socket is not connected
+  useEffect(() => {
+    if (tab !== 'feed' || !summary?.isMember) return
+    let timer = null
+    let cancelled = false
+    const poll = async () => {
+      try {
+        if (isSocketConnected) return
+        const f = await communitiesAPI.feed(id, { limit: 100 })
+        if (cancelled) return
+        setFeed(f?.data?.data || [])
+      } catch {}
+      finally {
+        if (!cancelled && !isSocketConnected) timer = setTimeout(poll, 10000)
+      }
+    }
+    if (!isSocketConnected) poll()
+    return () => { cancelled = true; if (timer) clearTimeout(timer) }
+  }, [tab, summary, isSocketConnected, id])
 
   const sendChat = async () => {
     const text = chatText.trim()
@@ -178,6 +249,8 @@ export default function CommunityDetailPage() {
       if (msg && msg._id) {
         // Mark as seen so when socket echoes it back we don't duplicate
         seenIdsRef.current.add(String(msg._id))
+        // Show immediately in UI even if socket echo is delayed/unavailable
+        setFeed(curr => [{ kind: 'chat', ...msg }, ...curr])
       }
       setChatText('')
     } catch {}
@@ -217,13 +290,13 @@ export default function CommunityDetailPage() {
       <div className="mb-6 -mx-4 px-4 overflow-x-auto">
         <div className="flex gap-2 w-max">
           {isMember && (
-            <Tab active={tab==='feed'} label="Feed" Icon={Newspaper} onClick={() => { setTab('feed'); setTimeout(scrollToMessageBox, 0) }} />
+            <Tab active={tab==='feed'} label="Feed" Icon={Newspaper} onClick={() => { switchTab('feed'); setTimeout(scrollToMessageBox, 0) }} />
           )}
-          <Tab active={tab==='dashboard'} label="Dashboard" Icon={BarChart3} onClick={() => setTab('dashboard')} />
-          <Tab active={tab==='items'} label="Goals & Habits" Icon={Target} onClick={() => setTab('items')} />
-          <Tab active={tab==='members'} label="Members" Icon={Users} onClick={() => setTab('members')} />
+          <Tab active={tab==='dashboard'} label="Dashboard" Icon={BarChart3} onClick={() => switchTab('dashboard')} />
+          <Tab active={tab==='items'} label="Goals & Habits" Icon={Target} onClick={() => switchTab('items')} />
+          <Tab active={tab==='members'} label="Members" Icon={Users} onClick={() => switchTab('members')} />
           {role === 'admin' && (
-            <Tab active={tab==='settings'} label="Settings" Icon={Settings} onClick={() => setTab('settings')} />
+            <Tab active={tab==='settings'} label="Settings" Icon={Settings} onClick={() => switchTab('settings')} />
           )}
         </div>
       </div>
