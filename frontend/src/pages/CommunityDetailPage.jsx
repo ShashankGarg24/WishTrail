@@ -32,6 +32,8 @@ export default function CommunityDetailPage() {
   const [joinedItems, setJoinedItems] = useState(new Set())
   const socketRef = useRef(null)
   const seenIdsRef = useRef(new Set())
+  const feedScrollRef = useRef(null)
+  const chatInputRef = useRef(null)
 
   useEffect(() => {
     let active = true
@@ -53,6 +55,45 @@ export default function CommunityDetailPage() {
       setTab('dashboard')
     }
   }, [summary, tab])
+
+  // Helper: scroll to message box and focus input
+  const scrollToMessageBox = () => {
+    try {
+      if (feedScrollRef.current) {
+        feedScrollRef.current.scrollTop = feedScrollRef.current.scrollHeight
+      }
+      if (chatInputRef.current) {
+        chatInputRef.current.focus({ preventScroll: false })
+        try { chatInputRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' }) } catch {}
+      }
+    } catch {}
+  }
+
+  // When feed tab becomes active, auto-scroll to input
+  useEffect(() => {
+    if (tab === 'feed') {
+      setTimeout(scrollToMessageBox, 0)
+    }
+  }, [tab])
+
+  // Time formatter: 1m ago, 1h ago, 1d ago
+  const formatRelativeTime = (iso) => {
+    try {
+      const now = Date.now()
+      const then = new Date(iso).getTime()
+      const diff = Math.max(0, now - then)
+      const sec = Math.floor(diff / 1000)
+      if (sec < 60) return `${sec || 1}s ago`
+      const min = Math.floor(sec / 60)
+      if (min < 60) return `${min}m ago`
+      const hr = Math.floor(min / 60)
+      if (hr < 24) return `${hr}h ago`
+      const day = Math.floor(hr / 24)
+      if (day < 7) return `${day}d ago`
+      const wk = Math.floor(day / 7)
+      return `${wk}w ago`
+    } catch { return '' }
+  }
 
   useEffect(() => {
     async function loadFeed() {
@@ -176,7 +217,7 @@ export default function CommunityDetailPage() {
       <div className="mb-6 -mx-4 px-4 overflow-x-auto">
         <div className="flex gap-2 w-max">
           {isMember && (
-            <Tab active={tab==='feed'} label="Feed" Icon={Newspaper} onClick={() => setTab('feed')} />
+            <Tab active={tab==='feed'} label="Feed" Icon={Newspaper} onClick={() => { setTab('feed'); setTimeout(scrollToMessageBox, 0) }} />
           )}
           <Tab active={tab==='dashboard'} label="Dashboard" Icon={BarChart3} onClick={() => setTab('dashboard')} />
           <Tab active={tab==='items'} label="Goals & Habits" Icon={Target} onClick={() => setTab('items')} />
@@ -189,7 +230,7 @@ export default function CommunityDetailPage() {
 
       {tab === 'feed' && isMember && (
         <div className="relative min-h-[60vh] flex flex-col">
-          <div className="space-y-3 flex-1 overflow-y-auto pr-1">
+          <div ref={feedScrollRef} className="space-y-3 flex-1 overflow-y-auto pr-1">
           <div className="h-1" />
           {feed
             .slice() // clone so we can sort safely
@@ -201,7 +242,7 @@ export default function CommunityDetailPage() {
                 <div className="flex items-end gap-2 mb-2">
                   <img src={a.avatar || a.userId?.avatar} alt="User" className="h-7 w-7 rounded-full" />
                   <div className="max-w-[75%] rounded-2xl px-3 py-2 bg-gray-100 dark:bg-gray-800 text-sm">
-                    <div className="text-xs text-gray-500 mb-0.5">{a.name || a.userId?.name} • {new Date(a.createdAt).toLocaleTimeString()}</div>
+                  <div className="text-xs text-gray-500 mb-0.5">{a.name || a.userId?.name} • <span title={new Date(a.createdAt).toLocaleString()}>{formatRelativeTime(a.createdAt)}</span></div>
                     <div className="whitespace-pre-wrap text-gray-800 dark:text-gray-200">{a.text}</div>
                     {(['admin','moderator'].includes(role)) && (
                       <div className="mt-1">
@@ -231,7 +272,7 @@ export default function CommunityDetailPage() {
                       }
                       return a.message || '';
                     })()}</span>
-                    <span className="ml-2 text-[11px] opacity-60">{new Date(a.createdAt).toLocaleString()}</span>
+                    <span className="ml-2 text-[11px] opacity-60" title={new Date(a.createdAt).toLocaleString()}>{formatRelativeTime(a.createdAt)}</span>
                     {/* reactions (allowed subset only) */}
                     {(() => {
                       const allowed = new Set(['goal_completed','community_item_added','goal_joined','streak_milestone']);
@@ -254,9 +295,9 @@ export default function CommunityDetailPage() {
           ))}
           {feed.length === 0 && <div className="text-sm text-gray-500">No activity yet.</div>}
           </div>
-          <div className="sticky bottom-0 w-full px-0 pt-2 bg-gradient-to-t from-white/90 dark:from-gray-900/90 to-transparent">
+          <div className="sticky bottom-[72px] md:bottom-0 w-full px-0 pt-2 bg-gradient-to-t from-white/90 dark:from-gray-900/90 to-transparent">
             <div className="flex items-center gap-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl px-3 py-2 shadow-sm mx-0">
-              <input value={chatText} onChange={e => setChatText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') sendChat() }} placeholder="Message…" className="flex-1 px-2 py-2 rounded-md outline-none bg-transparent text-sm" />
+              <input ref={chatInputRef} value={chatText} onChange={e => setChatText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') sendChat() }} placeholder="Message…" className="flex-1 px-2 py-2 rounded-md outline-none bg-transparent text-sm" />
               <button onClick={sendChat} className="px-3 py-2 rounded-lg bg-blue-600 text-white text-sm">Send</button>
             </div>
           </div>

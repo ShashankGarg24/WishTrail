@@ -41,13 +41,17 @@ function App() {
     }
   }, [isDarkMode, initializeAuth])
 
-  // Deep link bootstrap: allow ?url=... to redirect (for push taps)
+  // Deep link bootstrap: allow ?url=... to redirect (for push taps) and feedback=1 to open feedback modal
   useEffect(() => {
     try {
       const params = new URLSearchParams(location.search)
       const target = params.get('url')
+      const feedback = params.get('feedback')
       if (target && /^\/.+/.test(new URL(target, window.location.origin).pathname)) {
         navigate(new URL(target, window.location.origin).pathname + new URL(target, window.location.origin).search, { replace: true })
+      }
+      if (feedback === '1') {
+        try { window.dispatchEvent(new CustomEvent('wt_open_feedback')); } catch {}
       }
     } catch {}
   }, [location.search, navigate])

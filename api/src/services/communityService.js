@@ -117,7 +117,10 @@ async function getCommunityDashboard(communityId) {
 }
 
 async function listCommunityItems(communityId) {
-  const items = await CommunityItem.find({ communityId, status: 'approved', isActive: true }).sort({ 'stats.participantCount': -1, createdAt: -1 }).lean();
+  const items = await CommunityItem.find({ communityId, status: 'approved', isActive: true })
+    .sort({ 'stats.participantCount': -1, createdAt: -1 })
+    .select('communityId type participationType title description stats sourceId createdBy')
+    .lean();
   return items;
 }
 
@@ -492,6 +495,7 @@ async function listMyJoinedItems(userId) {
       communityName: community.name,
       type: item.type,
       participationType: item.participationType || 'individual',
+      sourceId: item.sourceId,
       title: item.title,
       description: item.description,
       stats: item.stats || {},

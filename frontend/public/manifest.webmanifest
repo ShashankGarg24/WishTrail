@@ -1,0 +1,38 @@
+{
+  "name": "WishTrail",
+  "short_name": "WishTrail",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "icons": [],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "url": "/dashboard",
+      "icons": []
+    },
+    {
+      "name": "Communities",
+      "short_name": "Communities",
+      "url": "/communities",
+      "icons": []
+    },
+    {
+      "name": "Feed",
+      "short_name": "Feed",
+      "url": "/feed",
+      "icons": []
+    },
+    {
+      "name": "Why uninstalling? Tell us",
+      "short_name": "Feedback",
+      "url": "/?feedback=1",
+      "icons": []
+    }
+  ]
+}
+
+
+

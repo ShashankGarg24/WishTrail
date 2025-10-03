@@ -364,7 +364,7 @@ const DashboardPage = () => {
 
 
   // Goals ordering and pagination
-  const goalsForYear = (goals || []).filter(g => g.year === selectedYear)
+  const goalsForYear = (goals || []).filter(g => g.year === selectedYear && !g.communityId)
   const incompleteGoals = goalsForYear.filter(g => !g.completed)
   const completedGoals = goalsForYear.filter(g => g.completed)
   const orderedGoals = [...incompleteGoals, ...completedGoals]
