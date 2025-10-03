@@ -1,16 +1,18 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Menu, X, Star, User, BarChart3, LogOut, Settings, Bell, CheckCircle, Search } from 'lucide-react'
+import { Menu, X, Star, User, BarChart3, LogOut, Settings, Bell, CheckCircle, Search, MessageSquarePlus } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
 import useApiStore from '../store/apiStore'
 import SettingsModal from './SettingsModal'
 import { notificationsAPI } from '../services/api'
+import FeedbackButton from './FeedbackButton'
 
 const Header = () => {
   const { isAuthenticated, logout, unreadNotifications, getNotifications, isFeatureEnabled, features } = useApiStore()
   const featuresReady = !!features
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false)
   const location = useLocation()
   const menuRef = useRef(null)
   const navigate = useNavigate();
@@ -20,12 +22,11 @@ const Header = () => {
   // Main navigation tabs in specified order
   // Replace single Explore with standalone Feed and Discover pages
   const mainNavigation = [
-    { name: 'Home', href: '/' },
     ...(isAuthenticated
       ? [
           { name: 'Feed', href: '/feed' },
-          { name: 'Dashboard', href: '/dashboard' },
           ...(isFeatureEnabled('community') ? [{ name: 'Communities', href: '/communities' }] : []),
+          { name: 'Dashboard', href: '/dashboard' },
           ...(isFeatureEnabled('leaderboard') ? [{ name: 'Leaderboard', href: '/leaderboard?tab=global' }] : []),
         ]
       : []),
@@ -118,6 +119,13 @@ const Header = () => {
     window.addEventListener('wt_open_settings', handler)
     return () => window.removeEventListener('wt_open_settings', handler)
   }, [])
+
+    // Global event to open settings from anywhere
+    useEffect(() => {
+      const handler = () => setIsFeedbackOpen(true)
+      window.addEventListener('wt_open_feedback', handler)
+      return () => window.removeEventListener('wt_open_feedback', handler)
+    }, [])
 
   return (
     <>
@@ -299,6 +307,16 @@ const Header = () => {
                         <span>Settings</span>
                       </button>
                       <button
+                        onClick={() => {
+                          setIsMenuOpen(false);
+                          setIsFeedbackOpen(true);
+                        }}
+                        className="flex items-center space-x-3 px-3 py-2 text-base font-medium text-gray-700 hover:text-primary-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:text-primary-400 dark:hover:bg-gray-800 rounded-lg transition-colors w-full text-left"
+                      >
+                        <MessageSquarePlus className="h-5 w-5" />
+                        <span>Feedback</span>
+                      </button>
+                      <button
                         onClick={handleLogout}
                         className="flex items-center space-x-3 px-3 py-2 text-base font-medium text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20 rounded-lg transition-colors w-full text-left"
                       >
@@ -326,6 +344,10 @@ const Header = () => {
       <SettingsModal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
+      />
+      <FeedbackButton
+        isOpen={isFeedbackOpen}
+        onClose={() => setIsFeedbackOpen(false)}
       />
       <AnimatePresence>
         {toast && (

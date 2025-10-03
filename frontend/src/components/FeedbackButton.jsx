@@ -3,16 +3,16 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { MessageSquarePlus, X, Image } from 'lucide-react'
 import useApiStore from '../store/apiStore'
 import { feedbackAPI } from '../services/api'
-import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
+import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock';
 
 const ScrollLockGuard = () => {
   useEffect(() => { lockBodyScroll(); return () => unlockBodyScroll(); }, [])
   return null
 }
 
-const FeedbackButton = () => {
+const FeedbackButton = ({ isOpen: controlledOpen, onClose }) => {
   const { isAuthenticated } = useApiStore()
-  const [isOpen, setIsOpen] = useState(false)
+  const [internalOpen, setInternalOpen] = useState(false)
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('') // optional
   const [screenshotFile, setScreenshotFile] = useState(null)
@@ -26,6 +26,9 @@ const FeedbackButton = () => {
 
   if (!isAuthenticated) return null
 
+  const isControlled = typeof controlledOpen === 'boolean'
+  const open = isControlled ? controlledOpen : internalOpen
+
   const openModal = () => {
     try { if (previewUrl) URL.revokeObjectURL(previewUrl) } catch {}
     setTitle('')
@@ -35,14 +38,27 @@ const FeedbackButton = () => {
     setSizeWarning('')
     setError('')
     setSuccess('')
-    setIsOpen(true)
+    if (isControlled) {
+      try { window.dispatchEvent(new CustomEvent('wt_open_feedback')) } catch {}
+    } else {
+      setInternalOpen(true)
+    }
   }
 
   const handleClose = () => {
-    setIsOpen(false)
+    if (isControlled) { try { onClose && onClose() } catch {} }
+    else { setInternalOpen(false) }
     setSuccess('')
     setError('')
   }
+
+  useEffect(() => {
+    if (open) {
+      lockBodyScroll();
+      return () => unlockBodyScroll();
+    }
+    return undefined;
+  }, [open]);
 
   const countWords = (text) => (text || '').trim().split(/\s+/).filter(Boolean).length
 
@@ -120,20 +136,8 @@ const FeedbackButton = () => {
 
   return (
     <>
-      {!isOpen && (
-        <motion.button
-          onClick={openModal}
-          className="fixed bottom-16 sm:bottom-6 right-6 z-[55] btn-primary shadow-lg rounded-full px-4 py-3 flex items-center gap-2"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          <MessageSquarePlus className="h-5 w-5" />
-          Feedback
-        </motion.button>
-      )}
-
       <AnimatePresence>
-        {isOpen && (
+        {open && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}

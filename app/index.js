@@ -411,6 +411,62 @@ function App() {
     } catch {}
   }, [isPTRPage, ptrAnim]);
 
+  // App Shortcuts / Quick Actions (mobile only)
+  useEffect(() => {
+    try {
+      if (!(Platform.OS === 'ios' || Platform.OS === 'android')) return;
+      let expoQA = null;
+      let rnQA = null;
+      try { expoQA = require('expo-quick-actions'); } catch (_) { expoQA = null; }
+      if (!expoQA) {
+        try { rnQA = require('react-native-quick-actions'); } catch (_) { rnQA = null; }
+      }
+      const items = [
+        { id: 'dashboard', title: 'Dashboard', subtitle: '', icon: 'bookmark' },
+        { id: 'feed', title: 'Feed', subtitle: '', icon: 'bookmark' },
+        { id: 'communities', title: 'Communities', subtitle: '', icon: 'bookmark' },
+        { id: 'feedback', title: 'Feedback', subtitle: 'Why uninstalling? Tell us', icon: 'compose' }
+      ];
+
+      const handle = (action) => {
+        try {
+          const key = String(action?.id || action?.type || '').toLowerCase();
+          const routeFor = (k) => (k === 'dashboard' ? '/dashboard' : (k === 'feed' ? '/feed' : (k === 'communities' ? '/communities' : '/')));
+          if (key === 'feedback') {
+            // Open feedback modal in web
+            try { webRef.current?.injectJavaScript(`window.dispatchEvent(new CustomEvent('wt_open_feedback')); true;`); } catch {}
+            return;
+          }
+          const url = `${WEB_URL.replace(/\/$/, '')}${routeFor(key)}`;
+          if (webReady) forwardDeepLinkToWeb(url); else pendingDeepLinkRef.current = url;
+        } catch {}
+      };
+
+      if (expoQA && typeof expoQA.setItems === 'function') {
+        expoQA.setItems(items).catch(()=>{});
+        (async () => {
+          try {
+            const initial = await expoQA.getInitialActionAsync();
+            if (initial) handle(initial);
+          } catch {}
+        })();
+        try { const sub = expoQA.addQuickActionListener(handle); return () => { try { sub && sub.remove && sub.remove(); } catch {} }; } catch { return undefined; }
+      }
+
+      if (rnQA && typeof rnQA.default?.setShortcutItems === 'function') {
+        try { rnQA.default.setShortcutItems(items.map(i => ({ type: i.id, title: i.title, subtitle: i.subtitle, icon: i.icon, userInfo: { id: i.id } }))); } catch {}
+        try {
+          rnQA.default.popInitialAction().then((initial) => { if (initial) handle({ id: initial?.type || initial?.userInfo?.id }); }).catch(()=>{});
+        } catch {}
+        try {
+          const { DeviceEventEmitter } = require('react-native');
+          const sub = DeviceEventEmitter.addListener('quickActionShortcut', (data) => handle({ id: data?.type || data?.userInfo?.id }));
+          return () => { try { sub && sub.remove && sub.remove(); } catch {} };
+        } catch { return undefined; }
+      }
+    } catch {}
+  }, [WEB_URL, webReady, forwardDeepLinkToWeb]);
+
   // Resolve initial URL: dashboard if authed, home otherwise; override with notification deeplink
   useEffect(() => {
     (async () => {
