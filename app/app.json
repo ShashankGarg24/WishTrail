@@ -20,6 +20,7 @@
     },
     "android": {
       "package": "com.yourco.wishtrail",
+      "minSdkVersion": 25,
       "intentFilters": [
         {
           "action": "VIEW",

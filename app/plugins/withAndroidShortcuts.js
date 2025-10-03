@@ -21,32 +21,32 @@ const SHORTCUTS_XML = `<?xml version="1.0" encoding="utf-8"?>
     android:shortcutId="dashboard"
     android:enabled="true"
     android:icon="@mipmap/ic_launcher"
-    android:shortLabel="Dashboard"
-    android:longLabel="Open Dashboard">
+    android:shortcutShortLabel="Dashboard"
+    android:shortcutLongLabel="Open Dashboard">
     <intent android:action="android.intent.action.VIEW" android:data="wishtrail://dashboard" />
   </shortcut>
   <shortcut
     android:shortcutId="feed"
     android:enabled="true"
     android:icon="@mipmap/ic_launcher"
-    android:shortLabel="Feed"
-    android:longLabel="Open Feed">
+    android:shortcutShortLabel="Feed"
+    android:shortcutLongLabel="Open Feed">
     <intent android:action="android.intent.action.VIEW" android:data="wishtrail://feed" />
   </shortcut>
   <shortcut
     android:shortcutId="communities"
     android:enabled="true"
     android:icon="@mipmap/ic_launcher"
-    android:shortLabel="Communities"
-    android:longLabel="Open Communities">
+    android:shortcutShortLabel="Communities"
+    android:shortcutLongLabel="Open Communities">
     <intent android:action="android.intent.action.VIEW" android:data="wishtrail://communities" />
   </shortcut>
   <shortcut
     android:shortcutId="feedback"
     android:enabled="true"
     android:icon="@mipmap/ic_launcher"
-    android:shortLabel="Feedback"
-    android:longLabel="Leave Feedback">
+    android:shortcutShortLabel="Feedback"
+    android:shortcutLongLabel="Leave Feedback">
     <intent android:action="android.intent.action.VIEW" android:data="wishtrail://feedback" />
   </shortcut>
 </shortcuts>`;
