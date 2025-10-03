@@ -31,6 +31,9 @@
       ]
     },
     "web": {},
+    "plugins": [
+      "./plugins/withAndroidShortcuts"
+    ],
     "extra": {
       "WEB_URL": "https://wishtrail.vercel.app/",
       "API_URL": "https://wishtrail-app.onrender.com/api/v1",

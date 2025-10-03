@@ -415,18 +415,27 @@ function App() {
   useEffect(() => {
     try {
       if (!(Platform.OS === 'ios' || Platform.OS === 'android')) return;
+      const safeRequire = (name) => { try { return eval('require')(name); } catch (_) { return null; } };
       let expoQA = null;
       let rnQA = null;
-      try { expoQA = require('expo-quick-actions'); } catch (_) { expoQA = null; }
-      if (!expoQA) {
-        try { rnQA = require('react-native-quick-actions'); } catch (_) { rnQA = null; }
+      if (Platform.OS === 'ios') {
+        expoQA = safeRequire('expo-quick-actions') || safeRequire('react-native-quick-actions');
+      } else if (Platform.OS === 'android') {
+        rnQA = safeRequire('react-native-quick-actions');
       }
-      const items = [
-        { id: 'dashboard', title: 'Dashboard', subtitle: '', icon: 'bookmark' },
-        { id: 'feed', title: 'Feed', subtitle: '', icon: 'bookmark' },
-        { id: 'communities', title: 'Communities', subtitle: '', icon: 'bookmark' },
-        { id: 'feedback', title: 'Feedback', subtitle: 'Why uninstalling? Tell us', icon: 'compose' }
-      ];
+      const items = (Platform.OS === 'ios')
+        ? [
+            { id: 'dashboard', title: 'Dashboard', subtitle: '', icon: 'bookmark' },
+            { id: 'feed', title: 'Feed', subtitle: '', icon: 'bookmark' },
+            { id: 'communities', title: 'Communities', subtitle: '', icon: 'bookmark' },
+            { id: 'feedback', title: 'Feedback', subtitle: 'Why uninstalling? Tell us', icon: 'compose' }
+          ]
+        : [
+            { id: 'dashboard', title: 'Dashboard', subtitle: '' },
+            { id: 'feed', title: 'Feed', subtitle: '' },
+            { id: 'communities', title: 'Communities', subtitle: '' },
+            { id: 'feedback', title: 'Feedback', subtitle: 'Why uninstalling? Tell us' }
+          ];
 
       const handle = (action) => {
         try {
@@ -442,7 +451,7 @@ function App() {
         } catch {}
       };
 
-      if (expoQA && typeof expoQA.setItems === 'function') {
+      if (Platform.OS === 'ios' && expoQA && typeof expoQA.setItems === 'function') {
         expoQA.setItems(items).catch(()=>{});
         (async () => {
           try {
@@ -453,7 +462,7 @@ function App() {
         try { const sub = expoQA.addQuickActionListener(handle); return () => { try { sub && sub.remove && sub.remove(); } catch {} }; } catch { return undefined; }
       }
 
-      if (rnQA && typeof rnQA.default?.setShortcutItems === 'function') {
+      if (Platform.OS === 'android' && rnQA && typeof rnQA.default?.setShortcutItems === 'function') {
         try { rnQA.default.setShortcutItems(items.map(i => ({ type: i.id, title: i.title, subtitle: i.subtitle, icon: i.icon, userInfo: { id: i.id } }))); } catch {}
         try {
           rnQA.default.popInitialAction().then((initial) => { if (initial) handle({ id: initial?.type || initial?.userInfo?.id }); }).catch(()=>{});
@@ -475,6 +484,17 @@ function App() {
         const authed = AsyncStorage ? await AsyncStorage.getItem('wt_native_authed') : null;
         if (authed === '1') {
           target = `${WEB_URL.replace(/\/$/, '')}/dashboard`;
+        }
+      } catch {}
+      // If app was opened via a deep link/intent, prefer it
+      try {
+        const initialUrl = await Linking.getInitialURL();
+        if (initialUrl) {
+          // If it's a relative-internal URL, normalize to web origin
+          const u = new URL(initialUrl, WEB_URL);
+          if (u.origin === new URL(WEB_URL).origin) {
+            target = u.toString();
+          }
         }
       } catch {}
       try {
