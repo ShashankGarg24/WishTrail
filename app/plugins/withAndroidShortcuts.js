@@ -21,35 +21,47 @@ const SHORTCUTS_XML = `<?xml version="1.0" encoding="utf-8"?>
     android:shortcutId="dashboard"
     android:enabled="true"
     android:icon="@mipmap/ic_launcher"
-    android:shortcutShortLabel="Dashboard"
-    android:shortcutLongLabel="Open Dashboard">
+    android:shortcutShortLabel="@string/shortcut_dashboard_short"
+    android:shortcutLongLabel="@string/shortcut_dashboard_long">
     <intent android:action="android.intent.action.VIEW" android:data="wishtrail://dashboard" />
   </shortcut>
   <shortcut
     android:shortcutId="feed"
     android:enabled="true"
     android:icon="@mipmap/ic_launcher"
-    android:shortcutShortLabel="Feed"
-    android:shortcutLongLabel="Open Feed">
+    android:shortcutShortLabel="@string/shortcut_feed_short"
+    android:shortcutLongLabel="@string/shortcut_feed_long">
     <intent android:action="android.intent.action.VIEW" android:data="wishtrail://feed" />
   </shortcut>
   <shortcut
     android:shortcutId="communities"
     android:enabled="true"
     android:icon="@mipmap/ic_launcher"
-    android:shortcutShortLabel="Communities"
-    android:shortcutLongLabel="Open Communities">
+    android:shortcutShortLabel="@string/shortcut_communities_short"
+    android:shortcutLongLabel="@string/shortcut_communities_long">
     <intent android:action="android.intent.action.VIEW" android:data="wishtrail://communities" />
   </shortcut>
   <shortcut
     android:shortcutId="feedback"
     android:enabled="true"
     android:icon="@mipmap/ic_launcher"
-    android:shortcutShortLabel="Feedback"
-    android:shortcutLongLabel="Leave Feedback">
+    android:shortcutShortLabel="@string/shortcut_feedback_short"
+    android:shortcutLongLabel="@string/shortcut_feedback_long">
     <intent android:action="android.intent.action.VIEW" android:data="wishtrail://feedback" />
   </shortcut>
 </shortcuts>`;
+
+const LABELS_XML = `<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="shortcut_dashboard_short">Dashboard</string>
+  <string name="shortcut_dashboard_long">Open Dashboard</string>
+  <string name="shortcut_feed_short">Feed</string>
+  <string name="shortcut_feed_long">Open Feed</string>
+  <string name="shortcut_communities_short">Communities</string>
+  <string name="shortcut_communities_long">Open Communities</string>
+  <string name="shortcut_feedback_short">Feedback</string>
+  <string name="shortcut_feedback_long">Leave Feedback</string>
+</resources>`;
 
 const withAndroidShortcuts = (config) => {
   // 1) Write res/xml/shortcuts.xml during prebuild
@@ -61,6 +73,10 @@ const withAndroidShortcuts = (config) => {
       try { fs.mkdirSync(xmlDir, { recursive: true }); } catch {}
       const file = path.join(xmlDir, 'shortcuts.xml');
       fs.writeFileSync(file, SHORTCUTS_XML, 'utf8');
+      const valuesDir = path.join(projectRoot, 'android', 'app', 'src', 'main', 'res', 'values');
+      try { fs.mkdirSync(valuesDir, { recursive: true }); } catch {}
+      const labelsFile = path.join(valuesDir, 'shortcuts_labels.xml');
+      fs.writeFileSync(labelsFile, LABELS_XML, 'utf8');
       return cfg;
     },
   ]);

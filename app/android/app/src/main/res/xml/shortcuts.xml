@@ -4,32 +4,32 @@
     android:shortcutId="dashboard"
     android:enabled="true"
     android:icon="@mipmap/ic_launcher"
-    android:shortcutShortLabel="Dashboard"
-    android:shortcutLongLabel="Open Dashboard">
+    android:shortcutShortLabel="@string/shortcut_dashboard_short"
+    android:shortcutLongLabel="@string/shortcut_dashboard_long">
     <intent android:action="android.intent.action.VIEW" android:data="wishtrail://dashboard" />
   </shortcut>
   <shortcut
     android:shortcutId="feed"
     android:enabled="true"
     android:icon="@mipmap/ic_launcher"
-    android:shortcutShortLabel="Feed"
-    android:shortcutLongLabel="Open Feed">
+    android:shortcutShortLabel="@string/shortcut_feed_short"
+    android:shortcutLongLabel="@string/shortcut_feed_long">
     <intent android:action="android.intent.action.VIEW" android:data="wishtrail://feed" />
   </shortcut>
   <shortcut
     android:shortcutId="communities"
     android:enabled="true"
     android:icon="@mipmap/ic_launcher"
-    android:shortcutShortLabel="Communities"
-    android:shortcutLongLabel="Open Communities">
+    android:shortcutShortLabel="@string/shortcut_communities_short"
+    android:shortcutLongLabel="@string/shortcut_communities_long">
     <intent android:action="android.intent.action.VIEW" android:data="wishtrail://communities" />
   </shortcut>
   <shortcut
     android:shortcutId="feedback"
     android:enabled="true"
     android:icon="@mipmap/ic_launcher"
-    android:shortcutShortLabel="Feedback"
-    android:shortcutLongLabel="Leave Feedback">
+    android:shortcutShortLabel="@string/shortcut_feedback_short"
+    android:shortcutLongLabel="@string/shortcut_feedback_long">
     <intent android:action="android.intent.action.VIEW" android:data="wishtrail://feedback" />
   </shortcut>
 </shortcuts>
