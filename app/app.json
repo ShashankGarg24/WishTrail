@@ -32,7 +32,7 @@
     },
     "web": {},
     "plugins": [
-      "./plugins/withAndroidShortcuts"
+      "../plugins/withAndroidShortcuts"
     ],
     "extra": {
       "WEB_URL": "https://wishtrail.vercel.app/",
