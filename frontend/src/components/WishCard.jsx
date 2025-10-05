@@ -8,7 +8,7 @@ import EditWishModal from './EditWishModal'
 import ShareModal from './ShareModal'
 import GoalDivisionEditor from './GoalDivisionEditor'
 
-const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewingOwnGoals = true, onOpenGoal }) => {
+const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewingOwnGoals = true, onOpenGoal, footer, isReadOnly = false }) => {
   const { 
     deleteGoal, 
     likeGoal,
@@ -142,7 +142,7 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: index * 0.1 }}
-      onClick={() => { if (!isDivisionOpen) onOpenGoal?.(wish?._id) }}
+      onClick={() => { if (!isDivisionOpen && !isReadOnly) onOpenGoal?.(wish?._id) }}
       className={`glass-card-hover p-6 rounded-xl theme-transition ${onOpenGoal ? 'cursor-pointer' : ''} ${
         wish.completed ? 'bg-green-50/50 dark:bg-green-900/10' : ''
       } ${isOverdue() ? 'ring-2 ring-red-200 dark:ring-red-800' : ''}`}
@@ -151,11 +151,11 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center space-x-3">
           <button
-            onClick={(e) => { e.stopPropagation(); handleToggle(); }}
+            onClick={(e) => { e.stopPropagation(); if (isReadOnly) return; handleToggle(); }}
             className={`flex-shrink-0 transition-colors ${
-              wish.isLocked && !wish.completed ? 'cursor-not-allowed' : ''
+              (wish.isLocked && !wish.completed) || isReadOnly ? 'cursor-not-allowed' : ''
             }`}
-            disabled={loading || (wish.isLocked && !wish.completed)}
+            disabled={loading || (wish.isLocked && !wish.completed) || isReadOnly}
             title={
               wish.completed 
                   ? 'Mark as incomplete' 
@@ -402,6 +402,13 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
               <strong>What I did:</strong> <span className="line-clamp-3 break-anywhere inline-block align-top">{wish.completionNote}</span>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Optional footer slot for extra actions (e.g., community link) */}
+      {footer && (
+        <div className="mt-4">
+          {footer}
         </div>
       )}
       {/* Completion Modal - Rendered at document body level */}

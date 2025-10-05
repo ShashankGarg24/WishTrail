@@ -10,7 +10,7 @@ import WishCard from '../components/WishCard'
 import GoalSuggestionsModal from '../components/GoalSuggestionsModal'
 import HabitSuggestionsModal from '../components/HabitSuggestionsModal'
 import { API_CONFIG } from '../config/api'
-import { communitiesAPI } from '../services/api'
+import { communitiesAPI, habitsAPI } from '../services/api'
 import GoalPostModal from '../components/GoalPostModal'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
@@ -160,6 +160,51 @@ const DashboardPage = () => {
   }, [openGoalId])
 
   const userInterests = Array.isArray(user?.interests) ? user.interests : []
+
+  // Ensure a personal habit exists for a community habit; create if missing
+  const ensurePersonalHabit = async (it) => {
+    try {
+      const existing = (useApiStore.getState().habits || []).find(h => String(h._id) === String(it.sourceId))
+        || (useApiStore.getState().habits || []).find(h => String(h.name).trim().toLowerCase() === String(it.title || '').trim().toLowerCase())
+      if (existing) return existing
+      const payload = {
+        name: it.title,
+        description: it.description || '',
+        frequency: 'daily',
+        daysOfWeek: []
+      }
+      const res = await habitsAPI.create(payload)
+      const created = res?.data?.data || res?.data
+      if (created?._id) {
+        try { useApiStore.getState().appendHabit(created) } catch {}
+        return created
+      }
+    } catch {}
+    return null
+  }
+
+  // Ensure a personal goal exists for a community goal; create if missing
+  const ensurePersonalGoal = async (it) => {
+    try {
+      const existingById = (useApiStore.getState().goals || []).find(g => String(g._id) === String(it.sourceId))
+      if (existingById) return existingById
+      const existingByTitle = (useApiStore.getState().goals || []).find(g => String(g.title).trim().toLowerCase() === String(it.title || '').trim().toLowerCase())
+      if (existingByTitle) return existingByTitle
+      const goalData = {
+        title: it.title,
+        description: it.description || '',
+        category: 'Other',
+        priority: 'medium',
+        duration: 'medium-term',
+        year: selectedYear
+      }
+      const result = await createGoal(goalData)
+      if (result?.success && result?.goal) {
+        return result.goal
+      }
+    } catch {}
+    return null
+  }
 
   const openPrefilledCreateModal = (goalTemplate) => {
     setInitialGoalData({
@@ -505,29 +550,49 @@ const DashboardPage = () => {
               )}
             </motion.div>
 
-            {/* Community Goals Section */}
+            {/* Community Goals Section (render using WishCard style) */}
             <div className="mt-10">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Community goals</h3>
               {communityItems && communityItems.filter(i => i.type === 'goal').length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {communityItems.filter(i => i.type === 'goal').map((it) => (
-                    <div key={it._id} className="p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 relative">
-                      <span className="absolute top-2 right-2 text-[10px] px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-200 border border-purple-200 dark:border-purple-800">Community</span>
-                      <div className="text-sm font-semibold truncate" title={it.title}>{it.title}</div>
-                      <div className="text-xs text-gray-500 mb-2">{it.communityName} • {it.participationType === 'collaborative' ? 'Collaborative' : 'Individual'}</div>
-                      <div className="flex items-center gap-4 text-xs">
-                        <div className="flex-1">
-                          <div className="text-[10px] text-gray-500">Your progress</div>
-                          <div className="h-2 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
-                            <div className="h-full bg-blue-600" style={{ width: `${it.personalPercent || 0}%` }} />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {communityItems.filter(i => i.type === 'goal').map((it, index) => {
+                    const mapped = {
+                      _id: it.sourceId || it._id,
+                      title: it.title,
+                      description: it.description || '',
+                      category: 'Community',
+                      priority: 'medium',
+                      duration: 'medium-term',
+                      createdAt: new Date().toISOString(),
+                      progress: { percent: it.personalPercent || 0 },
+                      completed: false,
+                      isLocked: true // lock goal actions since these are community mirrors
+                    }
+                    return (
+                      <WishCard
+                        key={`${it._id}-${index}`}
+                        wish={mapped}
+                        index={index}
+                        isViewingOwnGoals={true}
+                        onOpenGoal={undefined}
+                        isReadOnly={true}
+                        footer={(
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-200 border border-purple-200 dark:border-purple-800">{it.communityName}</span>
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={async () => { const g = await ensurePersonalGoal(it); if (g?._id) { try { setOpenGoalId(g._id) } catch {} } }}
+                                className="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 text-sm"
+                              >
+                                Open in my goals
+                              </button>
+                              <a href={`/communities/${it.communityId}?tab=items`} className="px-3 py-1.5 rounded-lg bg-primary-500 text-white text-sm">Open community</a>
+                            </div>
                           </div>
-                        </div>
-                      </div>
-                      <div className="mt-2 text-right">
-                        <a href={`/communities/${it.communityId}`} className="text-sm text-primary-600 hover:underline">Open community</a>
-                      </div>
-                    </div>
-                  ))}
+                        )}
+                      />
+                    )
+                  })}
                 </div>
               ) : (
                 <div className="text-sm text-gray-500">No community goals joined yet.</div>
@@ -616,6 +681,85 @@ const DashboardPage = () => {
                 <div className="text-center py-12 text-gray-500 dark:text-gray-400">No habits yet. Create your first habit!</div>
               )}
             </motion.div>
+
+            {/* Community Habits Section (use same habit card UI) */}
+            <div className="mt-10">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Community habits</h3>
+              {communityItems && communityItems.filter(i => i.type === 'habit').length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {communityItems.filter(i => i.type === 'habit').map((it, idx) => {
+                    const base = (habits || []).find(h => String(h._id) === String(it.sourceId));
+                    const h = base || {
+                      _id: it.sourceId,
+                      name: it.title,
+                      description: it.description || '',
+                      frequency: 'daily',
+                      daysOfWeek: [],
+                      currentStreak: 0,
+                      longestStreak: 0,
+                      totalCompletions: 0
+                    };
+                    return (
+                      <div 
+                        key={it._id || idx}
+                        onClick={() => { if (base) setSelectedHabit(base) }}
+                        className="glass-card-hover p-5 rounded-2xl border border-gray-200 dark:border-gray-800 flex flex-col gap-2 cursor-pointer"
+                      >
+                        <span className="self-end text-[10px] px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-200 border border-purple-200 dark:border-purple-800">Community</span>
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="font-semibold text-gray-900 dark:text-white truncate" title={h.name}>{h.name}</div>
+                            {h.description && <div className="text-sm text-gray-600 dark:text-gray-400 truncate" title={h.description}>{h.description}</div>}
+                          </div>
+                          <div className="text-xs px-2 py-0.5 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                            {frequencyLabel(h)}
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400">
+                          <div className="flex items-center gap-4">
+                            <span>🔥 {h.currentStreak || 0} / Best {h.longestStreak || 0}</span>
+                            <span>✅ {h.totalCompletions || 0}</span>
+                          </div>
+                          {isScheduledToday(h) ? (
+                            <div className="inline-flex items-center gap-1 text-orange-600" title="Scheduled today">
+                              <Clock className="h-4 w-4" /> Today
+                            </div>
+                          ) : (
+                            <div className="inline-flex items-center gap-1 text-gray-500" title="Not scheduled today">
+                              <Clock className="h-4 w-4" /> Not today
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex items-center justify-end gap-2 pt-2">
+                          <button
+                            onClick={async (e) => { e.stopPropagation(); handleStatusToast('skipped'); try { const target = base || await ensurePersonalHabit(it); if (target?._id) await logHabit(target._id, 'skipped'); } catch {} }}
+                            className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-white text-sm ${isScheduledToday ? 'bg-yellow-600/90 hover:bg-yellow-600' : 'bg-gray-300 dark:bg-gray-700 cursor-not-allowed'}`}
+                            disabled={false}
+                          >
+                            <SkipForward className="h-4 w-4" /> Skip
+                          </button>
+                          <button
+                            onClick={async (e) => { e.stopPropagation(); handleStatusToast('done'); try { const target = base || await ensurePersonalHabit(it); if (target?._id) await logHabit(target._id, 'done'); } catch {} }}
+                            className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-white text-sm ${isScheduledToday ? 'bg-green-600/90 hover:bg-green-600' : 'bg-gray-300 dark:bg-gray-700 cursor-not-allowed'}`}
+                            disabled={false}
+                          >
+                            <CheckCircle className="h-4 w-4" /> Done
+                          </button>
+                          <a
+                            href={`/communities/${it.communityId}?tab=items`}
+                            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-primary-500 text-white text-sm"
+                          >
+                            Open community
+                          </a>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : (
+                <div className="text-sm text-gray-500">No community habits joined yet.</div>
+              )}
+            </div>
           </>
         )}
       </div>
