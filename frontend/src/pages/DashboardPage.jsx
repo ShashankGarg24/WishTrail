@@ -705,7 +705,6 @@ const DashboardPage = () => {
                         onClick={() => { if (base) setSelectedHabit(base) }}
                         className="glass-card-hover p-5 rounded-2xl border border-gray-200 dark:border-gray-800 flex flex-col gap-2 cursor-pointer"
                       >
-                        <span className="self-end text-[10px] px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-200 border border-purple-200 dark:border-purple-800">Community</span>
                         <div className="flex items-center justify-between gap-3">
                           <div className="min-w-0">
                             <div className="font-semibold text-gray-900 dark:text-white truncate" title={h.name}>{h.name}</div>

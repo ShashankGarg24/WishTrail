@@ -3,7 +3,7 @@ import { communitiesAPI, goalsAPI } from '../../services/api'
 import useApiStore from '../../store/apiStore'
 import CreateWishModal from '../CreateWishModal'
 import CreateHabitModal from '../CreateHabitModal'
-import { Link, Plus } from 'lucide-react'
+import { Link, Plus, TrendingUp } from 'lucide-react'
 
 export function AddItemModal({ open, onClose, communityId }) {
   const [type, setType] = useState('goal')
@@ -161,16 +161,28 @@ export default function CommunityItems({ id, role, settings, items, itemProgress
       {onlyAdmins ? (
         <div className="flex items-center justify-between p-3 rounded-lg border border-dashed border-gray-300 dark:border-gray-700">
           <div className="text-sm text-gray-600 dark:text-gray-300">Add goals/habits to the community</div>
-          {['admin','moderator'].includes(role) ? (
-            <button className="px-3 py-1.5 rounded-lg bg-blue-600 text-white" onClick={() => setShowAddModal(true)}>Add</button>
-          ) : (
-            <button className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-800" onClick={() => setShowSuggestModal(true)}>Suggest</button>
-          )}
+          <div className="flex items-center gap-2">
+            {['admin','moderator'].includes(role) ? (
+              <button className="px-3 py-1.5 rounded-lg bg-blue-600 text-white" onClick={() => setShowAddModal(true)}>Add</button>
+            ) : (
+              <button className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-800" onClick={() => setShowSuggestModal(true)}>Suggest</button>
+            )}
+            <a href="/dashboard" title="Go to your dashboard to update progress for your goals and habits" aria-label="Go to your dashboard to update progress for your goals and habits" className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary-600 text-white text-sm font-medium shadow-sm hover:shadow-md hover:bg-primary-700 transition-colors">
+              <TrendingUp className="h-4 w-4" />
+              Update progress
+            </a>
+          </div>
         </div>
       ) : (
         <div className="flex items-center justify-between p-3 rounded-lg border border-dashed border-gray-300 dark:border-gray-700">
           <div className="text-sm text-gray-600 dark:text-gray-300">Add goals/habits to the community</div>
-          <button className="px-3 py-1.5 rounded-lg bg-blue-600 text-white" onClick={() => setShowAddModal(true)}>Add</button>
+          <div className="flex items-center gap-2">
+            <button className="px-3 py-1.5 rounded-lg bg-blue-600 text-white" onClick={() => setShowAddModal(true)}>Add</button>
+            <a href="/dashboard" title="Go to your dashboard to update progress for your goals and habits" aria-label="Go to your dashboard to update progress for your goals and habits" className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary-600 text-white text-sm font-medium shadow-sm hover:shadow-md hover:bg-primary-700 transition-colors">
+              <TrendingUp className="h-4 w-4" />
+              Update progress
+            </a>
+          </div>
         </div>
       )}
 
