@@ -166,7 +166,13 @@ export default function GoalDivisionEditor({ goal, habits, onClose, draftMode = 
                   <select value={sg.linkedGoalId || ''} onChange={(e) => setLocalSubGoals(prev => prev.map((s,i) => i===idx ? { ...s, linkedGoalId: e.target.value || undefined } : s))} className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white">
                     <option value="">Link goal…</option>
                     {(useApiStore.getState().goals || []).filter(g => {
-                      try { return !goal || String(g._id) !== String(goal._id) } catch { return true }
+                      try { 
+                        // Exclude current goal to prevent self-linking
+                        if (goal && String(g._id) === String(goal._id)) return false;
+                        // Exclude goals that already have sub-goals
+                        if (Array.isArray(g.subGoals) && g.subGoals.length > 0) return false;
+                        return true;
+                      } catch { return true }
                     }).slice(0, 50).map(g => (
                       <option key={g._id} value={g._id}>{g.title}</option>
                     ))}

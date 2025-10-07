@@ -5,12 +5,13 @@ import useApiStore from '../store/apiStore'
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
 import GoalDivisionEditor from './GoalDivisionEditor'
 
-export default function CreateGoalWizard({ isOpen, onClose, year, initialData }) {
+export default function CreateGoalWizard({ isOpen, onClose, year, initialData, editMode = false, goalId = null }) {
   const MAX_TITLE_CHARS = 200
   const MAX_DESC_CHARS = 1000
 
   const {
     createGoal,
+    updateGoal,
     setSubGoals,
     setHabitLinks,
     loadHabits,
@@ -39,20 +40,37 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData })
     if (isOpen) {
       setStep(1)
       setSaving(false)
+      
+      // Format target date for HTML date input if it exists
+      let formattedTargetDate = ''
+      if (initialData?.targetDate) {
+        const date = new Date(initialData.targetDate)
+        if (!isNaN(date.getTime())) {
+          formattedTargetDate = date.toISOString().split('T')[0]
+        }
+      }
+      
       setFormData(prev => ({
         title: initialData?.title || '',
         description: initialData?.description || '',
         category: initialData?.category || '',
         priority: initialData?.priority || 'medium',
         duration: initialData?.duration || 'medium-term',
-        targetDate: initialData?.targetDate || '',
+        targetDate: formattedTargetDate,
         isPublic: initialData?.isPublic ?? true
       }))
       setErrors({})
-      setLocalSubGoals([])
-      setLocalHabitLinks([])
+      
+      // Load existing sub-goals and habit links if in edit mode
+      if (editMode && initialData) {
+        setLocalSubGoals(Array.isArray(initialData.subGoals) ? initialData.subGoals.map(s => ({ ...s })) : [])
+        setLocalHabitLinks(Array.isArray(initialData.habitLinks) ? initialData.habitLinks.map(h => ({ ...h })) : [])
+      } else {
+        setLocalSubGoals([])
+        setLocalHabitLinks([])
+      }
     }
-  }, [isOpen, initialData])
+  }, [isOpen, initialData, editMode])
 
   useEffect(() => { if (isOpen) { lockBodyScroll(); return () => unlockBodyScroll(); } }, [isOpen])
 
@@ -94,10 +112,19 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData })
   }
 
   const getMinDate = () => {
-    const today = new Date(Date.now())
-    const minDate = new Date(today)
-    minDate.setDate(minDate.getDate() + 1)
-    return minDate.toISOString().split('T')[0]
+    if (editMode && initialData?.createdAt) {
+      // For editing, allow dates from creation date + 1 day
+      const creationDate = new Date(initialData.createdAt)
+      const minDate = new Date(creationDate)
+      minDate.setDate(minDate.getDate() + 1)
+      return minDate.toISOString().split('T')[0]
+    } else {
+      // For creation, allow dates from today + 1 day
+      const today = new Date(Date.now())
+      const minDate = new Date(today)
+      minDate.setDate(minDate.getDate() + 1)
+      return minDate.toISOString().split('T')[0]
+    }
   }
 
   const validateStep1 = () => {
@@ -109,10 +136,17 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData })
     if (!formData.category) newErrors.category = 'Category is required'
     if (formData.targetDate) {
       const targetDate = new Date(formData.targetDate)
-      const today = new Date()
-      const minAllowedDate = new Date(today)
-      minAllowedDate.setDate(minAllowedDate.getDate() + 1)
-      if (targetDate < minAllowedDate) newErrors.targetDate = 'Target date must be at least 1 day from today'
+      if (editMode && initialData?.createdAt) {
+        const creationDate = new Date(initialData.createdAt)
+        const minAllowedDate = new Date(creationDate)
+        minAllowedDate.setDate(minAllowedDate.getDate() + 1)
+        if (targetDate < minAllowedDate) newErrors.targetDate = 'Target date must be at least 1 day after creation date'
+      } else {
+        const today = new Date()
+        const minAllowedDate = new Date(today)
+        minAllowedDate.setDate(minAllowedDate.getDate() + 1)
+        if (targetDate < minAllowedDate) newErrors.targetDate = 'Target date must be at least 1 day from today'
+      }
     }
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -169,7 +203,7 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData })
   const handleSave = async () => {
     setSaving(true)
     try {
-      // 1) Create goal
+      // Prepare basic goal data
       const goalPayload = {
         title: formData.title.trim(),
         description: formData.description.trim(),
@@ -180,37 +214,52 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData })
         year: year,
         isPublic: !!formData.isPublic
       }
-      const created = await createGoal(goalPayload)
-      if (!created?.success || !created?.goal?._id) throw new Error(created?.error || 'Failed to create goal')
-      const goalId = created.goal._id
 
-      // 2) If any division provided, normalize and save
+      // Prepare division data if any exists
       const allWeights = [
         ...localSubGoals.map(s => Number(s.weight || 0)),
         ...localHabitLinks.map(h => Number(h.weight || 0))
       ]
+      
+      let normalizedSubGoals = []
+      let normalizedHabitLinks = []
+      
       if (allWeights.some(w => Number(w) > 0)) {
         const normalized = normalizeToHundred(allWeights)
-        const nextSubs = localSubGoals.map((s, i) => ({
+        normalizedSubGoals = localSubGoals.map((s, i) => ({
           title: String(s.title || '').trim(),
-          linkedGoalId: undefined, // linking other goals not in wizard v1
+          linkedGoalId: s.linkedGoalId || undefined,
           weight: Number(normalized[i] || 0),
-          completed: false,
+          completed: !!s.completed,
+          completedAt: s.completedAt || undefined,
           note: String(s.note || '')
         })).filter(s => s.title.length > 0 || (s.linkedGoalId && String(s.linkedGoalId).length > 0))
-        const nextHabs = localHabitLinks.map((h, j) => ({
+        
+        normalizedHabitLinks = localHabitLinks.map((h, j) => ({
           habitId: h.habitId,
           weight: Number(normalized[localSubGoals.length + j] || 0),
           endDate: h.endDate || undefined
         })).filter(h => h.habitId)
-        if (nextSubs.length > 0) await setSubGoals(goalId, nextSubs)
-        if (nextHabs.length > 0) await setHabitLinks(goalId, nextHabs)
       }
 
-      // 3) Refresh dashboard stats to reflect new totals
+      // Add division data to payload
+      goalPayload.subGoals = normalizedSubGoals
+      goalPayload.habitLinks = normalizedHabitLinks
+
+      let result
+      if (editMode && goalId) {
+        // Update existing goal
+        result = await updateGoal(goalId, goalPayload)
+        if (!result?.success) throw new Error(result?.error || 'Failed to update goal')
+      } else {
+        // Create new goal
+        result = await createGoal(goalPayload)
+        if (!result?.success || !result?.goal?._id) throw new Error(result?.error || 'Failed to create goal')
+      }
+
+      // Refresh dashboard stats to reflect changes
       try { await getDashboardStats({ force: true }) } catch {}
 
-      // Done
       onClose?.()
     } catch (e) {
       window.dispatchEvent(new CustomEvent('wt_toast', { detail: { message: e?.message || 'Failed to save goal', type: 'error' } }))
@@ -242,7 +291,9 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData })
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
             <Plus className="h-6 w-6 text-primary-500" />
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Create New Goal</h2>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+              {editMode ? 'Edit Goal' : 'Create New Goal'}
+            </h2>
           </div>
           <button onClick={onClose} className="p-2 rounded-full hover:bg-white/10 transition-colors">
             <X className="h-5 w-5 text-gray-500" />
@@ -256,7 +307,7 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData })
           </div>
           <ChevronRight className="h-4 w-4 text-gray-400" />
           <div className={`px-3 py-1.5 rounded-full border ${step === 2 ? 'bg-primary-50 border-primary-200 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300 dark:border-primary-800' : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300'}`}>
-            2. Sub-goals & Habits (Optional)
+            2. Sub-goals & Habits
           </div>
         </div>
 
@@ -375,7 +426,7 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData })
             {/* Actions */}
             <div className="flex items-center gap-3 pt-4">
               <button type="button" onClick={onClose} className="flex-1 py-2 px-4 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">Cancel</button>
-              <button type="submit" disabled={saving} className="flex-1 py-2 px-4 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">{saving ? 'Creating…' : 'Next'}</button>
+              <button type="submit" disabled={saving} className="flex-1 py-2 px-4 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">{saving ? (editMode ? 'Updating…' : 'Creating…') : 'Next'}</button>
             </div>
           </form>
         )}
@@ -398,7 +449,7 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData })
                 <ChevronLeft className="h-4 w-4" /> Back
               </button>
               <button type="button" onClick={handleSave} disabled={saving} className="flex-1 py-2 px-4 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
-                {saving ? 'Save…' : 'Save'}
+                {saving ? (editMode ? 'Updating…' : 'Saving…') : (editMode ? 'Update' : 'Save')}
               </button>
             </div>
           </div>

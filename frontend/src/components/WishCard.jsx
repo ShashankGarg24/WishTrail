@@ -4,7 +4,6 @@ import { motion } from 'framer-motion'
 import { CheckCircle, Circle, Edit2, Trash2, Calendar, Tag, Clock, Star, Heart, Lock, Share2 } from 'lucide-react'
 import useApiStore from '../store/apiStore'
 import CompletionModal from './CompletionModal'
-import EditWishModal from './EditWishModal'
 import ShareModal from './ShareModal'
 import GoalDivisionEditor from './GoalDivisionEditor'
 import CreateGoalWizard from './CreateGoalWizard'
@@ -21,7 +20,6 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
   } = useApiStore()
   
   const [isCompletionModalOpen, setIsCompletionModalOpen] = useState(false)
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isShareModalOpen, setIsShareModalOpen] = useState(false)
   const [isDivisionOpen, setIsDivisionOpen] = useState(false)
   const [isEditWizardOpen, setIsEditWizardOpen] = useState(false)
@@ -422,13 +420,19 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
           isOpen={isEditWizardOpen}
           onClose={() => setIsEditWizardOpen(false)}
           year={year}
+          editMode={true}
+          goalId={wish._id}
           initialData={{
             title: wish.title,
             description: wish.description,
             category: wish.category,
             priority: wish.priority,
             duration: wish.duration,
-            targetDate: wish.targetDate || ''
+            targetDate: wish.targetDate || '',
+            isPublic: wish.isPublic,
+            createdAt: wish.createdAt,
+            subGoals: wish.subGoals || [],
+            habitLinks: wish.habitLinks || []
           }}
         />,
         document.body

@@ -222,7 +222,7 @@ const createGoal = async (req, res, next) => {
       });
     }
     
-    const { title, description, category, priority, duration, targetDate, year } = req.body;
+    const { title, description, category, priority, duration, targetDate, year, subGoals, habitLinks } = req.body;
     const isPublicFlag = (req.body.isPublic === true || req.body.isPublic === 'true') ? true : false;
     const isDiscoverableFlag = (req.body.isDiscoverable === true || req.body.isDiscoverable === 'true') ? true : false;
     
@@ -261,20 +261,42 @@ const createGoal = async (req, res, next) => {
     const session = await mongoose.startSession();
     let createdGoal = null;
     await session.withTransaction(async () => {
-      const [goal] = await Goal.create([
-        {
-          userId: req.user.id,
-          title,
-          description,
-          category,
-          priority,
-          duration,
-          targetDate,
-          year: currentYear,
-          isPublic: isPublicFlag,
-          isDiscoverable: isDiscoverableFlag
-        }
-      ], { session });
+      // Prepare goal data with sub-goals and habit links
+      const goalData = {
+        userId: req.user.id,
+        title,
+        description,
+        category,
+        priority,
+        duration,
+        targetDate,
+        year: currentYear,
+        isPublic: isPublicFlag,
+        isDiscoverable: isDiscoverableFlag
+      };
+
+      // Add sub-goals if provided
+      if (Array.isArray(subGoals) && subGoals.length > 0) {
+        goalData.subGoals = subGoals.map(sg => ({
+          title: String(sg.title || '').trim(),
+          linkedGoalId: sg.linkedGoalId || undefined,
+          weight: Number(sg.weight || 0),
+          completed: !!sg.completed,
+          completedAt: sg.completedAt || undefined,
+          note: String(sg.note || '')
+        }));
+      }
+
+      // Add habit links if provided
+      if (Array.isArray(habitLinks) && habitLinks.length > 0) {
+        goalData.habitLinks = habitLinks.map(hl => ({
+          habitId: hl.habitId,
+          weight: Number(hl.weight || 0),
+          endDate: hl.endDate || undefined
+        }));
+      }
+
+      const [goal] = await Goal.create([goalData], { session });
       createdGoal = goal;
       await User.updateOne({ _id: req.user.id }, { $inc: { totalGoals: 1 } }, { session });
 
@@ -349,13 +371,54 @@ const updateGoal = async (req, res, next) => {
       });
     }
     
-    const { title, description, category, priority, duration, targetDate } = req.body;
+    const { title, description, category, priority, duration, targetDate, subGoals, habitLinks } = req.body;
     const isPublicFlag = (req.body.isPublic === true || req.body.isPublic === 'true') ? true : goal.isPublic;
     const isDiscoverableFlag = (req.body.isDiscoverable === true || req.body.isDiscoverable === 'true') ? true : goal.isDiscoverable;
     
+    // Prepare update data
+    const updateData = { 
+      title, 
+      description, 
+      category, 
+      priority, 
+      duration, 
+      targetDate, 
+      isPublic: isPublicFlag, 
+      isDiscoverable: isDiscoverableFlag 
+    };
+
+    // Update sub-goals if provided
+    if (Array.isArray(subGoals)) {
+      if (subGoals.length > 0) {
+        updateData.subGoals = subGoals.map(sg => ({
+          title: String(sg.title || '').trim(),
+          linkedGoalId: sg.linkedGoalId || undefined,
+          weight: Number(sg.weight || 0),
+          completed: !!sg.completed,
+          completedAt: sg.completedAt || undefined,
+          note: String(sg.note || '')
+        }));
+      } else {
+        updateData.subGoals = [];
+      }
+    }
+
+    // Update habit links if provided
+    if (Array.isArray(habitLinks)) {
+      if (habitLinks.length > 0) {
+        updateData.habitLinks = habitLinks.map(hl => ({
+          habitId: hl.habitId,
+          weight: Number(hl.weight || 0),
+          endDate: hl.endDate || undefined
+        }));
+      } else {
+        updateData.habitLinks = [];
+      }
+    }
+    
     const updatedGoal = await Goal.findByIdAndUpdate(
       req.params.id,
-      { title, description, category, priority, duration, targetDate, isPublic: isPublicFlag, isDiscoverable: isDiscoverableFlag },
+      updateData,
       { new: true, runValidators: true }
     );
     
