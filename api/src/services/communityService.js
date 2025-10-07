@@ -434,7 +434,9 @@ async function removeCommunityItem(communityId, itemId, requesterId) {
     throw Object.assign(new Error('Forbidden'), { statusCode: 403 });
   }
   await CommunityItem.updateOne({ _id: itemId }, { $set: { isActive: false, status: 'rejected' } });
+  // Mark all participants as left
   await CommunityParticipation.updateMany({ communityId, itemId }, { $set: { status: 'left' } });
+  // Optional: notify participants? Out of scope
   return { ok: true };
 }
 

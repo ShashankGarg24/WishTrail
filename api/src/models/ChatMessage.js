@@ -8,7 +8,11 @@ const chatMessageSchema = new mongoose.Schema({
   avatar: { type: String, default: '' },
   text: { type: String, trim: true, maxlength: 500, required: true },
   createdAt: { type: Date, default: Date.now, index: true },
-  expiresAt: { type: Date, default: () => new Date(Date.now() + 24 * 60 * 60 * 1000), index: true },
+  expiresAt: { 
+    type: Date, 
+    default: () => new Date(Date.now() + 24 * 60 * 60 * 1000), 
+    index: { expireAfterSeconds: 0 }
+  },
   reactions: {
     type: Map,
     of: new mongoose.Schema({ count: { type: Number, default: 0 }, userIds: [{ type: mongoose.Schema.Types.ObjectId }] }, { _id: false }),
@@ -17,7 +21,6 @@ const chatMessageSchema = new mongoose.Schema({
 }, { versionKey: false });
 
 chatMessageSchema.index({ communityId: 1, createdAt: -1 });
-chatMessageSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 module.exports = getFeedConnection().model('ChatMessage', chatMessageSchema);
 

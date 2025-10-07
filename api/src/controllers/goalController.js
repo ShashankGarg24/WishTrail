@@ -30,6 +30,7 @@ const searchGoals = async (req, res, next) => {
   }
 };
 const Goal = require('../models/Goal');
+const CommunityItem = require('../models/CommunityItem');
 const User = require('../models/User');
 const Activity = require('../models/Activity');
 const Like = require('../models/Like');
@@ -332,6 +333,14 @@ const updateGoal = async (req, res, next) => {
       });
     }
     
+    // Disallow editing if this goal is used by a community item (community-owned)
+    try {
+      const referenced = await CommunityItem.findOne({ type: 'goal', sourceId: goal._id, isActive: true }).lean();
+      if (referenced) {
+        return res.status(400).json({ success: false, message: 'Community goals cannot be edited' });
+      }
+    } catch {}
+
     // Don't allow updating completed goals
     if (goal.completed) {
       return res.status(400).json({

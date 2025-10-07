@@ -180,7 +180,7 @@ const notificationSchema = new mongoose.Schema({
       // Notifications expire after 30 days
       return new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
     },
-    index: true
+    index: { expireAfterSeconds: 0 }
   },
   
   // Priority level
@@ -202,7 +202,6 @@ notificationSchema.index({ userId: 1, type: 1, createdAt: -1 });
 notificationSchema.index({ userId: 1, communityId: 1, createdAt: -1 });
 notificationSchema.index({ userId: 1, priority: 1, createdAt: -1 });
 notificationSchema.index({ createdAt: -1 });
-notificationSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 }); // TTL index
 
 // Virtual for notification age
 notificationSchema.virtual('age').get(function() {

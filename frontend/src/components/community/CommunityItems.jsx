@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { communitiesAPI, goalsAPI } from '../../services/api'
 import useApiStore from '../../store/apiStore'
-import CreateWishModal from '../CreateWishModal'
+import CreateGoalWizard from '../CreateGoalWizard'
 import CreateHabitModal from '../CreateHabitModal'
 import { Link, Plus, TrendingUp } from 'lucide-react'
 
@@ -113,23 +113,11 @@ export function AddItemModal({ open, onClose, communityId }) {
         </div>
       </div>
       {showCreateGoalModal && (
-        <CreateWishModal
+        <CreateGoalWizard
           isOpen={showCreateGoalModal}
           onClose={() => setShowCreateGoalModal(false)}
-          onSave={async (goalData) => {
-            try {
-              const res = await goalsAPI.createGoal(goalData)
-              const created = res?.data?.data?.goal
-              if (created?._id) {
-                await communitiesAPI.copyCommunityItem(communityId, { type: 'goal', sourceId: created._id, participationType })
-              }
-              onClose(true)
-              return { success: true }
-            } catch (e) {
-              return { success: false }
-            }
-          }}
           year={new Date().getFullYear()}
+          initialData={{}}
         />
       )}
       {showCreateHabitModal && (
@@ -210,12 +198,65 @@ export default function CommunityItems({ id, role, settings, items, itemProgress
               </div>
               <div className="flex-shrink-0 flex items-center gap-2">
                 {joinedItems.has(String(it._id)) ? (
-                  <button onClick={async () => { await communitiesAPI.leaveItem(id, it._id); const r = await communitiesAPI.itemProgress(id, it._id); onRefreshProgress?.(it._id, r?.data?.data); onToggleJoin?.(it._id, false); }} className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-800 text-sm">Leave</button>
+                  <button onClick={async () => {
+                    try {
+                      const confirmed = window.confirm('Leave this community goal/habit?')
+                      if (!confirmed) return
+                      const alsoRemove = window.confirm('Do you want to delete it from your dashboard as well? Click Cancel to keep it as a personal item.')
+                      await communitiesAPI.leaveItem(id, it._id)
+                      if (alsoRemove) {
+                        // Try to remove personal copy: for goals, find by title; for habits, same
+                        try {
+                          if (it.type === 'goal') {
+                            const goalsRes = await useApiStore.getState().getGoals({ page: 1, limit: 100 })
+                            const match = (goalsRes?.goals || []).find(g => String(g.title).trim().toLowerCase() === String(it.title || '').trim().toLowerCase())
+                            if (match?._id) await useApiStore.getState().deleteGoal(match._id)
+                          } else {
+                            const habs = (useApiStore.getState().habits || [])
+                            const match = habs.find(h => String(h.name).trim().toLowerCase() === String(it.title || '').trim().toLowerCase())
+                            if (match?._id) await useApiStore.getState().deleteHabit(match._id)
+                          }
+                        } catch {}
+                      } else {
+                        // Keep personal copy but detach community semantics (set category to Other and unlock)
+                        try {
+                          if (it.type === 'goal') {
+                            const goalsRes = await useApiStore.getState().getGoals({ page: 1, limit: 100 })
+                            const match = (goalsRes?.goals || []).find(g => String(g.title).trim().toLowerCase() === String(it.title || '').trim().toLowerCase())
+                            if (match?._id) await useApiStore.getState().updateGoal(match._id, { category: 'Other', isPublic: true })
+                          } else {
+                            const habs = (useApiStore.getState().habits || [])
+                            const match = habs.find(h => String(h.name).trim().toLowerCase() === String(it.title || '').trim().toLowerCase())
+                            // For habits, just leave as-is; no community lock flag to clear here
+                            if (match?._id) {
+                              // no-op or could set a tag/description update if desired
+                            }
+                          }
+                        } catch {}
+                      }
+                      const r = await communitiesAPI.itemProgress(id, it._id)
+                      onRefreshProgress?.(it._id, r?.data?.data)
+                      onToggleJoin?.(it._id, false)
+                    } catch {}
+                  }} className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-800 text-sm">Leave</button>
                 ) : (
                   <button onClick={async () => { await communitiesAPI.joinItem(id, it._id); const r = await communitiesAPI.itemProgress(id, it._id); onRefreshProgress?.(it._id, r?.data?.data); onToggleJoin?.(it._id, true); }} className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-sm">Join</button>
                 )}
                 {(['admin'].includes(role) || String(it.createdBy?._id || it.createdBy) === String(useApiStore.getState().user?._id)) && (
-                  <button onClick={async () => { if (confirm('Remove this item from the community?')) { await communitiesAPI.removeItem(id, it._id); window.location.reload(); } }} className="px-3 py-1.5 rounded-lg border border-red-200 text-red-600 text-sm">Remove</button>
+                  <button onClick={async () => {
+                    if (!confirm('Remove this item from the community?')) return
+                    await communitiesAPI.removeItem(id, it._id)
+                    try {
+                      // For members, this item disappears from community; keep their personal copies as normal items (no action needed)
+                      // Ensure personal goal is not tagged as community by resetting category to Other if matched by title
+                      const goalsRes = await useApiStore.getState().getGoals({ page: 1, limit: 100 })
+                      const maybe = (goalsRes?.goals || []).find(g => String(g.title).trim().toLowerCase() === String(it.title || '').trim().toLowerCase())
+                      if (maybe?._id && maybe.category === 'Community') {
+                        await useApiStore.getState().updateGoal(maybe._id, { category: 'Other' })
+                      }
+                    } catch {}
+                    window.location.reload()
+                  }} className="px-3 py-1.5 rounded-lg border border-red-200 text-red-600 text-sm">Remove</button>
                 )}
               </div>
             </div>

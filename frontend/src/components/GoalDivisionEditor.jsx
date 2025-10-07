@@ -5,7 +5,7 @@ import CreateHabitModal from './CreateHabitModal'
 import CreateWishModal from './CreateWishModal'
 import { ChevronDown, ChevronRight, Trash2, Plus, Link} from 'lucide-react'
 
-export default function GoalDivisionEditor({ goal, habits, onClose }) {
+export default function GoalDivisionEditor({ goal, habits, onClose, draftMode = false, renderInline = false, value, onChange }) {
   const { setSubGoals, setHabitLinks, getGoalProgress } = useApiStore()
   const [localSubGoals, setLocalSubGoals] = useState([])
   const [localHabitLinks, setLocalHabitLinks] = useState([])
@@ -21,10 +21,16 @@ export default function GoalDivisionEditor({ goal, habits, onClose }) {
   const [didInitNormalize, setDidInitNormalize] = useState(false)
 
   useEffect(() => {
+    if (draftMode) {
+      setLocalSubGoals(Array.isArray(value?.subGoals) ? value.subGoals.map(s => ({ ...s })) : [])
+      setLocalHabitLinks(Array.isArray(value?.habitLinks) ? value.habitLinks.map(h => ({ ...h })) : [])
+      setDidInitNormalize(false)
+      return
+    }
     setLocalSubGoals(Array.isArray(goal?.subGoals) ? goal.subGoals.map(s => ({ ...s })) : [])
     setLocalHabitLinks(Array.isArray(goal?.habitLinks) ? goal.habitLinks.map(h => ({ ...h })) : [])
     setDidInitNormalize(false)
-  }, [goal])
+  }, [draftMode, goal?._id])
 
   const totalWeight = useMemo(() => {
     const sg = localSubGoals.reduce((s, g) => s + (Number(g.weight) || 0), 0)
@@ -47,8 +53,9 @@ export default function GoalDivisionEditor({ goal, habits, onClose }) {
 
   const addSubGoal = () => setLocalSubGoals(prev => [...prev, { title: '', linkedGoalId: '', weight: 0, completed: false, note: '' }])
   const addHabitLink = () => setLocalHabitLinks(prev => [...prev, { habitId: '', weight: 0, endDate: '' }])
-  const addHabitInline = () => setIsCreateHabitOpen(true)
+  const addHabitInline = () => { if (!draftMode) setIsCreateHabitOpen(true) }
   const createGoal = () => {
+    if (draftMode) return
     const idx = localSubGoals.length
     setPendingLinkIndex(idx)
     setIsCreateGoalOpen(true)
@@ -95,6 +102,15 @@ export default function GoalDivisionEditor({ goal, habits, onClose }) {
     setSaving(true)
     setError('')
     try {
+      if (draftMode) {
+        // In draft mode, bubble current values to parent and exit; do not persist
+        onChange?.({
+          subGoals: localSubGoals.map(s => ({ ...s })),
+          habitLinks: localHabitLinks.map(h => ({ ...h }))
+        })
+        onClose?.()
+        return
+      }
       const allWeights = [
         ...localSubGoals.map(s => Number(s.weight || 0)),
         ...localHabitLinks.map(h => Number(h.weight || 0))
@@ -116,15 +132,14 @@ export default function GoalDivisionEditor({ goal, habits, onClose }) {
     }
   }
 
-  if (!goal) return null
+  if (!goal && !draftMode) return null
 
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="relative bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-full max-w-3xl mx-4 p-6 border border-gray-200 dark:border-gray-800" onClick={(e) => e.stopPropagation()}>
+  const content = (
+      <>
+      <motion.div initial={{ opacity: renderInline ? 1 : 0, y: renderInline ? 0 : 20 }} animate={{ opacity: 1, y: 0 }} className={`relative ${renderInline ? '' : 'bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-full max-w-3xl mx-4 p-6 border border-gray-200 dark:border-gray-800'}`} onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Goal Breakdown</h3>
-          <button onClick={onClose} className="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200">Close</button>
+          {!renderInline && (<button onClick={onClose} className="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200">Close</button>)}
         </div>
         {error && <div className="text-sm text-red-600 dark:text-red-400 mb-3">{error}</div>}
         <div className="mb-4">
@@ -150,7 +165,9 @@ export default function GoalDivisionEditor({ goal, habits, onClose }) {
                 <div className="col-span-7">
                   <select value={sg.linkedGoalId || ''} onChange={(e) => setLocalSubGoals(prev => prev.map((s,i) => i===idx ? { ...s, linkedGoalId: e.target.value || undefined } : s))} className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white">
                     <option value="">Link goal…</option>
-                    {(useApiStore.getState().goals || []).filter(g => g._id !== goal._id).slice(0, 50).map(g => (
+                    {(useApiStore.getState().goals || []).filter(g => {
+                      try { return !goal || String(g._id) !== String(goal._id) } catch { return true }
+                    }).slice(0, 50).map(g => (
                       <option key={g._id} value={g._id}>{g.title}</option>
                     ))}
                   </select>
@@ -165,7 +182,7 @@ export default function GoalDivisionEditor({ goal, habits, onClose }) {
             {localSubGoals.length === 0 && <div className="text-sm text-gray-500 dark:text-gray-400">No sub-goals added.</div>}
             <div className="pt-2 flex items-center justify-end gap-2">
               <button onClick={addSubGoal} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200"><Link className="h-4 w-4" />Link</button>
-              <button onClick={createGoal} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 border border-primary-200 dark:border-primary-800"><Plus className="h-4 w-4" />Add New</button>
+              {!draftMode && (<button onClick={createGoal} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 border border-primary-200 dark:border-primary-800"><Plus className="h-4 w-4" />Add New</button>)}
             </div>
           </div>
           )}
@@ -197,20 +214,22 @@ export default function GoalDivisionEditor({ goal, habits, onClose }) {
             {localHabitLinks.length === 0 && <div className="text-sm text-gray-500 dark:text-gray-400">No habits linked yet.</div>}
             <div className="pt-2 flex items-center justify-end gap-2">
               <button onClick={addHabitLink} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200"><Link className="h-4 w-4" />Link</button>
-              <button onClick={addHabitInline} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 border border-primary-200 dark:border-primary-800"><Plus className="h-4 w-4" />Add New</button>
+              {!draftMode && (<button onClick={addHabitInline} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 border border-primary-200 dark:border-primary-800"><Plus className="h-4 w-4" />Add New</button>)}
             </div>
           </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between pt-2">
-          <div className="text-xs text-gray-500 dark:text-gray-400">Weights auto-adjust to 100%.</div>
-          <div className="flex items-center gap-2">
-            <button onClick={onClose} className="px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200">Cancel</button>
-            <button disabled={saving} onClick={saveAll} className="px-4 py-2 rounded-lg bg-primary-500 text-white disabled:opacity-70">{saving ? 'Saving…' : 'Save'}</button>
+        {!draftMode && !renderInline && (
+          <div className="flex items-center justify-between pt-2">
+            <div className="text-xs text-gray-500 dark:text-gray-400">Weights auto-adjust to 100%.</div>
+            <div className="flex items-center gap-2">
+              <button onClick={onClose} className="px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200">Cancel</button>
+              <button disabled={saving} onClick={saveAll} className="px-4 py-2 rounded-lg bg-primary-500 text-white disabled:opacity-70">{saving ? 'Saving…' : 'Save'}</button>
+            </div>
           </div>
-        </div>
+        )}
       </motion.div>
       {isCreateHabitOpen && (
         <CreateHabitModal
@@ -254,6 +273,25 @@ export default function GoalDivisionEditor({ goal, habits, onClose }) {
           initialData={{}}
         />
       )}
+      </>
+  )
+
+  // Sync upwards on change when in draft mode
+  useEffect(() => {
+    if (draftMode) {
+      onChange?.({ subGoals: localSubGoals.map(s => ({ ...s })), habitLinks: localHabitLinks.map(h => ({ ...h })) })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draftMode, localSubGoals, localHabitLinks])
+
+  if (renderInline) {
+    return content
+  }
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      {content}
     </div>
   )
 }

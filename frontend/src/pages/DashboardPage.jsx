@@ -5,7 +5,7 @@ import HabitDetailModal from '../components/HabitDetailModal'
 import CreateHabitModal from '../components/CreateHabitModal'
 import EditHabitModal from '../components/EditHabitModal'
 import useApiStore from '../store/apiStore'
-import CreateWishModal from '../components/CreateWishModal'
+import CreateGoalWizard from '../components/CreateGoalWizard'
 import WishCard from '../components/WishCard'
 import GoalSuggestionsModal from '../components/GoalSuggestionsModal'
 import HabitSuggestionsModal from '../components/HabitSuggestionsModal'
@@ -233,15 +233,7 @@ const DashboardPage = () => {
     getGoals({ year })
   }
 
-  const handleCreateGoal = async (goalData) => {
-    const result = await createGoal({ ...goalData, year: selectedYear })
-    if (result.success) {
-      await getDashboardStats({ force: true })
-      setIsCreateModalOpen(false)
-      setInitialGoalData(null)
-    }
-    return result
-  }
+  // Goal creation handled by CreateGoalWizard
 
   const handleHabitCreated = async (habit) => {
     try {
@@ -791,7 +783,7 @@ const DashboardPage = () => {
 
       {/* Create Goal Modal */}
       {isCreateModalOpen && (
-        <CreateWishModal isOpen={isCreateModalOpen} onClose={() => { setIsCreateModalOpen(false); setInitialGoalData(null) }} onSave={handleCreateGoal} year={selectedYear} initialData={initialGoalData} />
+        <CreateGoalWizard isOpen={isCreateModalOpen} onClose={() => { setIsCreateModalOpen(false); setInitialGoalData(null) }} year={selectedYear} initialData={initialGoalData} />
       )}
 
       {/* Goal Suggestions Modal */}

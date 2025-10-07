@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { motion } from 'framer-motion'
-import { CheckCircle, Circle, Edit2, Trash2, Calendar, Tag, Clock, Star, Heart, Lock, Share2, Wrench } from 'lucide-react'
+import { CheckCircle, Circle, Edit2, Trash2, Calendar, Tag, Clock, Star, Heart, Lock, Share2 } from 'lucide-react'
 import useApiStore from '../store/apiStore'
 import CompletionModal from './CompletionModal'
 import EditWishModal from './EditWishModal'
 import ShareModal from './ShareModal'
 import GoalDivisionEditor from './GoalDivisionEditor'
+import CreateGoalWizard from './CreateGoalWizard'
 
 const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewingOwnGoals = true, onOpenGoal, footer, isReadOnly = false }) => {
   const { 
@@ -23,6 +24,7 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isShareModalOpen, setIsShareModalOpen] = useState(false)
   const [isDivisionOpen, setIsDivisionOpen] = useState(false)
+  const [isEditWizardOpen, setIsEditWizardOpen] = useState(false)
 
   const handleToggle = () => {
     if (wish.completed) {
@@ -61,7 +63,7 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
   }
 
   const handleEdit = () => {
-    setIsEditModalOpen(true)
+    setIsEditWizardOpen(true)
   }
 
   const handleLike = () => {
@@ -136,6 +138,7 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
 
   const progressPercent = typeof wish?.progress?.percent === 'number' ? Math.max(0, Math.min(100, wish.progress.percent)) : null
   const hasDivision = ((wish?.subGoals?.length || 0) + (wish?.habitLinks?.length || 0)) > 0
+  const isCommunityMirror = wish?.isLocked === true && wish?.category === 'Community'
 
   return (
     <motion.div
@@ -197,7 +200,7 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
         {isViewingOwnGoals && (
         <div className="flex items-center space-x-2">
           {/* Only show edit button for uncompleted goals */}
-          {!wish.completed && (
+          {!wish.completed && !isCommunityMirror && (
             <button
               onClick={(e) => { e.stopPropagation(); handleEdit(); }}
               className="p-1 rounded-full hover:bg-white/10 transition-colors"
@@ -206,17 +209,7 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
               <Edit2 className="h-4 w-4 text-gray-400 hover:text-primary-500" />
             </button>
           )}
-          {/* Division editor button */}
-          {isFeatureEnabled('goal_division') && !wish.completed && (
-            <button
-              onClick={async (e) => { e.stopPropagation(); try { await loadHabits({}).catch(()=>{}) } catch {} setIsDivisionOpen(true); }}
-              className="p-1 rounded-full hover:bg-white/10 transition-colors"
-              disabled={loading}
-              title="Edit goal breakdown"
-            >
-              <Wrench className="h-4 w-4 text-gray-400 hover:text-primary-500" />
-            </button>
-          )}
+          {/* Removed wrench button; flow uses edit wizard */}
           {isViewingOwnGoals && wish.completed && (
             <button
               onClick={(e) => { e.stopPropagation(); handleShare(); }}
@@ -423,17 +416,24 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
         document.body
       )}
 
-      {/* Edit Modal - Rendered at document body level */}
-      {isEditModalOpen && createPortal(
-        <EditWishModal
-          isOpen={isEditModalOpen}
-          onClose={() => setIsEditModalOpen(false)}
-          goal={wish}
+      {/* Edit Wizard - Rendered at document body level */}
+      {isEditWizardOpen && createPortal(
+        <CreateGoalWizard
+          isOpen={isEditWizardOpen}
+          onClose={() => setIsEditWizardOpen(false)}
           year={year}
+          initialData={{
+            title: wish.title,
+            description: wish.description,
+            category: wish.category,
+            priority: wish.priority,
+            duration: wish.duration,
+            targetDate: wish.targetDate || ''
+          }}
         />,
         document.body
       )}
-      {/* Division Editor Modal */}
+      {/* Division Editor Modal - no longer opened via UI (kept for safety behind state) */}
       {isDivisionOpen && createPortal(
         <GoalDivisionEditor
           goal={wish}
