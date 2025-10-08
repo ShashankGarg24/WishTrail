@@ -283,7 +283,7 @@ export const communitiesAPI = {
   members: (id) => api.get(`/communities/${id}/members`),
   // New per-item endpoints
   joinItem: (id, itemId) => api.post(`/communities/${id}/items/${itemId}/join`),
-  leaveItem: (id, itemId) => api.post(`/communities/${id}/items/${itemId}/leave`),
+  leaveItem: (id, itemId, options = {}) => api.post(`/communities/${id}/items/${itemId}/leave`, options),
   itemProgress: (id, itemId) => api.get(`/communities/${id}/items/${itemId}/progress`),
   // Membership moderation
   pendingMembers: (id) => api.get(`/communities/${id}/members/pending`),

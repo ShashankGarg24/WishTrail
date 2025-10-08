@@ -202,45 +202,55 @@ export default function CommunityItems({ id, role, settings, items, itemProgress
                     try {
                       const confirmed = window.confirm('Leave this community goal/habit?')
                       if (!confirmed) return
-                      const alsoRemove = window.confirm('Do you want to delete it from your dashboard as well? Click Cancel to keep it as a personal item.')
-                      await communitiesAPI.leaveItem(id, it._id)
-                      if (alsoRemove) {
-                        // Try to remove personal copy: for goals, find by title; for habits, same
-                        try {
-                          if (it.type === 'goal') {
-                            const goalsRes = await useApiStore.getState().getGoals({ page: 1, limit: 100 })
-                            const match = (goalsRes?.goals || []).find(g => String(g.title).trim().toLowerCase() === String(it.title || '').trim().toLowerCase())
-                            if (match?._id) await useApiStore.getState().deleteGoal(match._id)
-                          } else {
-                            const habs = (useApiStore.getState().habits || [])
-                            const match = habs.find(h => String(h.name).trim().toLowerCase() === String(it.title || '').trim().toLowerCase())
-                            if (match?._id) await useApiStore.getState().deleteHabit(match._id)
-                          }
-                        } catch {}
-                      } else {
-                        // Keep personal copy but detach community semantics (set category to Other and unlock)
-                        try {
-                          if (it.type === 'goal') {
-                            const goalsRes = await useApiStore.getState().getGoals({ page: 1, limit: 100 })
-                            const match = (goalsRes?.goals || []).find(g => String(g.title).trim().toLowerCase() === String(it.title || '').trim().toLowerCase())
-                            if (match?._id) await useApiStore.getState().updateGoal(match._id, { category: 'Other', isPublic: true })
-                          } else {
-                            const habs = (useApiStore.getState().habits || [])
-                            const match = habs.find(h => String(h.name).trim().toLowerCase() === String(it.title || '').trim().toLowerCase())
-                            // For habits, just leave as-is; no community lock flag to clear here
-                            if (match?._id) {
-                              // no-op or could set a tag/description update if desired
-                            }
-                          }
-                        } catch {}
+                      
+                      const choice = window.confirm(
+                        'What would you like to do with your personal copy?\n\n' +
+                        'OK = Delete from your dashboard completely\n' +
+                        'Cancel = Keep as a personal goal/habit'
+                      )
+                      
+                      const result = await communitiesAPI.leaveItem(id, it._id, {
+                        deletePersonalCopy: choice,
+                        transferToPersonal: !choice
+                      })
+                      
+                      // Immediately update UI state based on result
+                      if (result?.data?.success) {
+                        onToggleJoin?.(it._id, false)
+                        const r = await communitiesAPI.itemProgress(id, it._id)
+                        onRefreshProgress?.(it._id, r?.data?.data)
                       }
-                      const r = await communitiesAPI.itemProgress(id, it._id)
-                      onRefreshProgress?.(it._id, r?.data?.data)
-                      onToggleJoin?.(it._id, false)
-                    } catch {}
+                    } catch {
+                      // On error, refresh to get current state
+                      try {
+                        const mine = await communitiesAPI.listMyJoinedItems()
+                        const arr = mine?.data?.data || []
+                        const set = new Set(arr.filter(x => String(x.communityId) === String(id)).map(x => String(x._id)))
+                        onToggleJoin?.(it._id, set.has(String(it._id)))
+                      } catch {}
+                    }
                   }} className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-800 text-sm">Leave</button>
                 ) : (
-                  <button onClick={async () => { await communitiesAPI.joinItem(id, it._id); const r = await communitiesAPI.itemProgress(id, it._id); onRefreshProgress?.(it._id, r?.data?.data); onToggleJoin?.(it._id, true); }} className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-sm">Join</button>
+                  <button onClick={async () => { 
+                    try {
+                      const result = await communitiesAPI.joinItem(id, it._id)
+                      
+                      // Immediately update UI state based on result
+                      if (result?.data?.success && result?.data?.joined) {
+                        onToggleJoin?.(it._id, true)
+                        const r = await communitiesAPI.itemProgress(id, it._id)
+                        onRefreshProgress?.(it._id, r?.data?.data)
+                      }
+                    } catch {
+                      // On error, refresh to get current state
+                      try {
+                        const mine = await communitiesAPI.listMyJoinedItems()
+                        const arr = mine?.data?.data || []
+                        const set = new Set(arr.filter(x => String(x.communityId) === String(id)).map(x => String(x._id)))
+                        onToggleJoin?.(it._id, set.has(String(it._id)))
+                      } catch {}
+                    }
+                  }} className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-sm">Join</button>
                 )}
                 {(['admin'].includes(role) || String(it.createdBy?._id || it.createdBy) === String(useApiStore.getState().user?._id)) && (
                   <button onClick={async () => {

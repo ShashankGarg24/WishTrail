@@ -401,7 +401,8 @@ const DashboardPage = () => {
 
 
   // Goals ordering and pagination
-  const goalsForYear = (goals || []).filter(g => g.year === selectedYear && !g.communityId)
+  const goalsForYear = (goals || []).filter(g => g.year === selectedYear && !g.communityId && !g.isCommunitySource && !g.communityInfo)
+  const communityGoals = (goals || []).filter(g => g.year === selectedYear && g.communityInfo)
   const incompleteGoals = goalsForYear.filter(g => !g.completed)
   const completedGoals = goalsForYear.filter(g => g.completed)
   const orderedGoals = [...incompleteGoals, ...completedGoals]
@@ -545,7 +546,34 @@ const DashboardPage = () => {
             {/* Community Goals Section (render using WishCard style) */}
             <div className="mt-10">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Community goals</h3>
-              {communityItems && communityItems.filter(i => i.type === 'goal').length > 0 ? (
+              {communityGoals.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {communityGoals.map((goal, index) => (
+                    <WishCard 
+                      key={goal._id} 
+                      wish={goal} 
+                      year={selectedYear} 
+                      index={index} 
+                      onToggle={() => handleToggleGoal(goal._id)} 
+                      onDelete={() => handleDeleteGoal(goal._id)} 
+                      onComplete={handleCompleteGoal} 
+                      isViewingOwnGoals={true} 
+                      onOpenGoal={(id) => setOpenGoalId(id)} 
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-6 text-gray-500 dark:text-gray-400">
+                  <p>No community goals joined yet.</p>
+                  <p className="text-sm">Join community goals to see them here!</p>
+                </div>
+              )}
+            </div>
+
+            {/* Legacy Community Items Section - only show if no new-style community goals exist */}
+            {false && communityItems && communityItems.filter(i => i.type === 'goal').length > 0 && communityGoals.length === 0 && (
+              <div className="mt-10">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Community goals (legacy)</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {communityItems.filter(i => i.type === 'goal').map((it, index) => {
                     const mapped = {
@@ -586,10 +614,8 @@ const DashboardPage = () => {
                     )
                   })}
                 </div>
-              ) : (
-                <div className="text-sm text-gray-500">No community goals joined yet.</div>
-              )}
-            </div>
+              </div>
+            )}
           </>
         )}
 
@@ -677,7 +703,62 @@ const DashboardPage = () => {
             {/* Community Habits Section (use same habit card UI) */}
             <div className="mt-10">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Community habits</h3>
-              {communityItems && communityItems.filter(i => i.type === 'habit').length > 0 ? (
+              {(habits || []).filter(h => h.communityInfo).length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {(habits || []).filter(h => h.communityInfo).map((h, idx) => {
+                    return (
+                      <div key={h._id} className="relative group bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-6 hover:shadow-lg transition-all duration-300">
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="min-w-0 flex-1">
+                            <h3 className="font-semibold text-gray-900 dark:text-white truncate">{h.name}</h3>
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{frequencyLabel(h)}</p>
+                            {h.description && (
+                              <p className="text-xs text-gray-500 dark:text-gray-500 mt-2 line-clamp-2">{h.description}</p>
+                            )}
+                          </div>
+                          <div className="text-right">
+                            <div className="text-lg font-bold text-primary-600 dark:text-primary-400">{h.currentStreak || 0}</div>
+                            <div className="text-xs text-gray-500">current streak</div>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-end gap-2 pt-2">
+                          <button
+                            onClick={async (e) => { e.stopPropagation(); handleStatusToast('skipped'); try { await logHabit(h._id, 'skipped'); } catch {} }}
+                            className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-white text-sm ${isScheduledToday(h) ? 'bg-yellow-600/90 hover:bg-yellow-600' : 'bg-gray-300 dark:bg-gray-700 cursor-not-allowed'}`}
+                            disabled={false}
+                          >
+                            <SkipForward className="h-4 w-4" /> Skip
+                          </button>
+                          <button
+                            onClick={async (e) => { e.stopPropagation(); handleStatusToast('done'); try { await logHabit(h._id, 'done'); } catch {} }}
+                            className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-white text-sm ${isScheduledToday(h) ? 'bg-green-600/90 hover:bg-green-600' : 'bg-gray-300 dark:bg-gray-700 cursor-not-allowed'}`}
+                            disabled={false}
+                          >
+                            <CheckCircle className="h-4 w-4" /> Done
+                          </button>
+                          <a
+                            href={`/communities/${h.communityInfo?.communityId}?tab=items`}
+                            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-primary-500 text-white text-sm"
+                          >
+                            Open community
+                          </a>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-6 text-gray-500 dark:text-gray-400">
+                  <p>No community habits joined yet.</p>
+                  <p className="text-sm">Join community habits to see them here!</p>
+                </div>
+              )}
+            </div>
+
+            {/* Legacy Community Habits Section - disabled for cleaner dashboard */}
+            {false && communityItems && communityItems.filter(i => i.type === 'habit').length > 0 && (habits || []).filter(h => h.communityInfo).length === 0 && (
+              <div className="mt-10">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Community habits (legacy)</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {communityItems.filter(i => i.type === 'habit').map((it, idx) => {
                     const base = (habits || []).find(h => String(h._id) === String(it.sourceId));
@@ -747,10 +828,8 @@ const DashboardPage = () => {
                     )
                   })}
                 </div>
-              ) : (
-                <div className="text-sm text-gray-500">No community habits joined yet.</div>
-              )}
-            </div>
+              </div>
+            )}
           </>
         )}
       </div>

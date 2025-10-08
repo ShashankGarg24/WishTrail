@@ -225,6 +225,46 @@ const goalSchema = new mongoose.Schema({
   shareUrl: {
     type: String,
     trim: true
+  },
+  
+  // Community Integration
+  communityInfo: {
+    communityId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Community'
+    },
+    itemId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'CommunityItem'  
+    },
+    sourceId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Goal'
+    }
+  },
+  
+  // Flag to identify community source goals (not shown in personal goals)
+  isCommunitySource: {
+    type: Boolean,
+    default: false,
+    index: true
+  },
+  
+  // Store original category for community goals (since source uses 'Other' for enum validation)
+  originalCategory: {
+    type: String,
+    enum: [
+      'Health & Fitness',
+      'Education & Learning', 
+      'Career & Business',
+      'Personal Development',
+      'Financial Goals',
+      'Creative Projects',
+      'Travel & Adventure',
+      'Relationships',
+      'Family & Friends',
+      'Other'
+    ]
   }
   
 }, {

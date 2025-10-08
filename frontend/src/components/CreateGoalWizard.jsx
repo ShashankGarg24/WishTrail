@@ -302,11 +302,15 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
 
         {/* Stepper */}
         <div className="flex items-center justify-center gap-3 mb-6 text-sm">
-          <div className={`px-3 py-1.5 rounded-full border ${step === 1 ? 'bg-primary-50 border-primary-200 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300 dark:border-primary-800' : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300'}`}>
+          <div 
+          onClick={() => setStep(1)} 
+          className={`px-3 py-1.5 rounded-full border ${step === 1 ? 'bg-primary-50 border-primary-200 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300 dark:border-primary-800 cursor-pointer' : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 cursor-pointer'}`}>
             1. Details
           </div>
           <ChevronRight className="h-4 w-4 text-gray-400" />
-          <div className={`px-3 py-1.5 rounded-full border ${step === 2 ? 'bg-primary-50 border-primary-200 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300 dark:border-primary-800' : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300'}`}>
+          <div 
+          onClick={() => setStep(2)}
+          className={`px-3 py-1.5 rounded-full border ${step === 2 ? 'bg-primary-50 border-primary-200 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300 dark:border-primary-800 cursor-pointer' : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 cursor-pointer'}`}>
             2. Sub-goals & Habits
           </div>
         </div>

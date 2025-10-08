@@ -32,6 +32,19 @@ export default function CommunityDetailPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [joinedItems, setJoinedItems] = useState(new Set())
   const [loaded, setLoaded] = useState({ feed: false, items: false, members: false, dashboard: false, joinedItems: false })
+  
+  const loadJoinedItems = async () => {
+    try {
+      const mine = await communitiesAPI.listMyJoinedItems()
+      const arr = mine?.data?.data || []
+      const set = new Set(arr.filter(x => String(x.communityId) === String(id)).map(x => String(x._id)))
+      setJoinedItems(set)
+      setLoaded(prev => ({ ...prev, joinedItems: true }))
+      return set
+    } catch {
+      return new Set()
+    }
+  }
   const [isSocketConnected, setIsSocketConnected] = useState(false)
   const socketRef = useRef(null)
   const seenIdsRef = useRef(new Set())
@@ -148,14 +161,7 @@ export default function CommunityDetailPage() {
           } catch {}
           setLoaded(prev => ({ ...prev, items: true }))
           // Load joined items to toggle Join/Leave
-          try {
-            const mine = await communitiesAPI.listMyJoinedItems()
-            if (cancelled) return
-            const arr = mine?.data?.data || []
-            const set = new Set(arr.filter(x => String(x.communityId) === String(id)).map(x => String(x._id)))
-            setJoinedItems(set)
-            setLoaded(prev => ({ ...prev, joinedItems: true }))
-          } catch {}
+          await loadJoinedItems()
         }
         if (tab === 'members' && !loaded.members) {
           const m = await communitiesAPI.members(id)
@@ -168,6 +174,17 @@ export default function CommunityDetailPage() {
     loadForTab()
     return () => { cancelled = true }
   }, [tab, id, summary, loaded])
+
+  // Refresh joined items when user comes back to the page (for visibility changes)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && tab === 'items' && loaded.items) {
+        loadJoinedItems()
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [tab, loaded.items])
 
   // Socket.io connect & room join
   const ioUrl = useMemo(() => {
@@ -390,7 +407,18 @@ export default function CommunityDetailPage() {
           itemProgress={itemProgress}
           onRefreshProgress={(itemId, data) => setItemProgress(p => ({ ...p, [itemId]: data }))}
           joinedItems={joinedItems}
-          onToggleJoin={(itemId, joined) => setJoinedItems(prev => { const next = new Set(prev); if (joined) next.add(String(itemId)); else next.delete(String(itemId)); return next; })}
+          onToggleJoin={(itemId, joined) => {
+            setJoinedItems(prev => { 
+              const next = new Set(prev); 
+              if (joined) next.add(String(itemId)); 
+              else next.delete(String(itemId)); 
+              return next; 
+            })
+            // Also refresh items list if join status changed
+            if (loaded.items) {
+              setTimeout(() => loadJoinedItems(), 100)
+            }
+          }}
         />
       )}
 

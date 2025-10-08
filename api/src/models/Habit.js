@@ -90,6 +90,22 @@ const habitSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
     index: true
+  },
+  
+  // Community Integration
+  communityInfo: {
+    communityId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Community'
+    },
+    itemId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'CommunityItem'
+    },
+    sourceId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Habit'
+    }
   }
 }, {
   timestamps: true,

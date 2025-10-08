@@ -97,7 +97,11 @@ module.exports = {
   },
   async leaveItem(req, res, next) {
     try {
-      const result = await communityService.leaveItem(req.user.id, req.params.id, req.params.itemId);
+      const options = {
+        deletePersonalCopy: req.body.deletePersonalCopy,
+        transferToPersonal: req.body.transferToPersonal
+      };
+      const result = await communityService.leaveItem(req.user.id, req.params.id, req.params.itemId, options);
       res.status(200).json({ success: true, data: result });
     } catch (e) { next(e); }
   },

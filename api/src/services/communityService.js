@@ -192,29 +192,64 @@ async function createCommunityOwnedItem(communityId, creatorId, payload) {
     }
   }
   if (payload.type === 'goal') {
-    // Create a minimal Goal document owned by a virtual community owner (store userId=creatorId to attribute)
+    // Create a minimal Goal document as community source (not owned by user to avoid appearing in personal goals)
     const g = new Goal({
-      userId: creatorId,
+      userId: creatorId, // Keep for attribution but mark as community-only
       title: payload.title,
       description: payload.description || '',
-      category: payload.category,
+      category: 'Other', // Use valid enum value for source goals
       priority: payload.priority || 'medium',
       duration: payload.duration || 'medium-term',
       targetDate: payload.targetDate || null,
       year: new Date().getFullYear(),
       isPublic: true,
       isActive: true,
+      isCommunitySource: true, // Flag to identify this as a community source goal
+      originalCategory: payload.category || 'Other', // Store original category for personal copies
     });
     await g.save();
     const participationType = payload.participationType === 'collaborative' ? 'collaborative' : 'individual';
     const item = new CommunityItem({ communityId, type: 'goal', participationType, sourceId: g._id, title: g.title, description: g.description, createdBy: creatorId, status: 'approved' });
     await item.save();
     // Auto-join creator so it appears in their dashboard
+    const existingParticipation = await CommunityParticipation.findOne({ communityId, itemId: item._id, userId: creatorId });
+    const wasAlreadyJoined = existingParticipation && existingParticipation.status === 'joined';
+    
     await CommunityParticipation.updateOne(
       { communityId, itemId: item._id, userId: creatorId },
     { $setOnInsert: { type: 'goal', progressPercent: 0, lastUpdatedAt: new Date() }, $set: { status: 'joined' } },
       { upsert: true }
     );
+    
+    // Increment participant count if not already joined
+    if (!wasAlreadyJoined) {
+      await CommunityItem.updateOne({ _id: item._id }, { $inc: { 'stats.participantCount': 1 } });
+    }
+    
+    // Create personal copy for creator so it appears in Community goals section
+    try {
+      const personalGoal = new Goal({
+        userId: creatorId,
+        title: g.title,
+        description: g.description || '',
+        category: payload.category || 'Other', // Use the original category they selected
+        priority: g.priority || 'medium',
+        duration: g.duration || 'medium-term',
+        targetDate: g.targetDate || null,
+        year: new Date().getFullYear(),
+        isPublic: false, // Personal copy should be private by default
+        isActive: true,
+        communityInfo: {
+          communityId,
+          itemId: item._id,
+          sourceId: g._id
+        }
+      });
+      await personalGoal.save();
+    } catch (err) {
+      console.error('Error creating personal copy for creator:', err);
+    }
+    
     // Mirror community addition update
     try {
       const u = await User.findById(creatorId).select('name avatar').lean();
@@ -243,11 +278,21 @@ async function createCommunityOwnedItem(communityId, creatorId, payload) {
     await h.save();
     const item = new CommunityItem({ communityId, type: 'habit', participationType: 'individual', sourceId: h._id, title: h.name, description: h.description, createdBy: creatorId, status: 'approved' });
     await item.save();
+    
+    // Auto-join creator so it appears in their dashboard  
+    const existingParticipationCopy = await CommunityParticipation.findOne({ communityId, itemId: item._id, userId: creatorId });
+    const wasAlreadyJoinedCopy = existingParticipationCopy && existingParticipationCopy.status === 'joined';
+    
     await CommunityParticipation.updateOne(
       { communityId, itemId: item._id, userId: creatorId },
     { $setOnInsert: { type: 'habit', progressPercent: 0, lastUpdatedAt: new Date() }, $set: { status: 'joined' } },
       { upsert: true }
     );
+    
+    // Increment participant count if not already joined
+    if (!wasAlreadyJoinedCopy) {
+      await CommunityItem.updateOne({ _id: item._id }, { $inc: { 'stats.participantCount': 1 } });
+    }
     // Mirror community addition update
     try {
       const u = await User.findById(creatorId).select('name avatar').lean();
@@ -287,23 +332,59 @@ async function copyFromPersonalToCommunity(communityId, creatorId, { type, sourc
       userId: creatorId,
       title: src.title,
       description: src.description || '',
-      category: src.category,
+      category: 'Other', // Use valid enum value for source goals
       priority: src.priority || 'medium',
       duration: src.duration || 'medium-term',
       targetDate: null,
       year: new Date().getFullYear(),
       isPublic: true,
       isActive: true,
+      isCommunitySource: true, // Flag to identify this as a community source goal
+      originalCategory: src.category || 'Other', // Store original category for personal copies
     });
     await g.save();
     const pType = participationType === 'collaborative' ? 'collaborative' : 'individual';
     const item = new CommunityItem({ communityId, type: 'goal', participationType: pType, sourceId: g._id, title: g.title, description: g.description, createdBy: creatorId, status: 'approved' });
     await item.save();
+    // Auto-join creator for copyFromPersonalToCommunity
+    const existingParticipationCopy = await CommunityParticipation.findOne({ communityId, itemId: item._id, userId: creatorId });
+    const wasAlreadyJoinedCopy = existingParticipationCopy && existingParticipationCopy.status === 'joined';
+    
     await CommunityParticipation.updateOne(
       { communityId, itemId: item._id, userId: creatorId },
     { $setOnInsert: { type: 'goal', progressPercent: 0, lastUpdatedAt: new Date() }, $set: { status: 'joined' } },
       { upsert: true }
     );
+    
+    // Increment participant count if not already joined
+    if (!wasAlreadyJoinedCopy) {
+      await CommunityItem.updateOne({ _id: item._id }, { $inc: { 'stats.participantCount': 1 } });
+    }
+    
+    // Create personal copy for creator so it appears in Community goals section
+    try {
+      const personalGoal = new Goal({
+        userId: creatorId,
+        title: g.title,
+        description: g.description || '',
+        category: src.category || 'Other', // Use the original category from source goal
+        priority: g.priority || 'medium',
+        duration: g.duration || 'medium-term',
+        targetDate: null,
+        year: new Date().getFullYear(),
+        isPublic: false, // Personal copy should be private by default
+        isActive: true,
+        communityInfo: {
+          communityId,
+          itemId: item._id,
+          sourceId: g._id
+        }
+      });
+      await personalGoal.save();
+    } catch (err) {
+      console.error('Error creating personal copy for creator:', err);
+    }
+    
     // Mirror community addition update
     try {
       const u = await User.findById(creatorId).select('name avatar').lean();
@@ -334,11 +415,21 @@ async function copyFromPersonalToCommunity(communityId, creatorId, { type, sourc
     await h.save();
     const item = new CommunityItem({ communityId, type: 'habit', participationType: 'individual', sourceId: h._id, title: h.name, description: h.description, createdBy: creatorId, status: 'approved' });
     await item.save();
+    
+    // Auto-join creator so it appears in their dashboard  
+    const existingParticipationCopy = await CommunityParticipation.findOne({ communityId, itemId: item._id, userId: creatorId });
+    const wasAlreadyJoinedCopy = existingParticipationCopy && existingParticipationCopy.status === 'joined';
+    
     await CommunityParticipation.updateOne(
       { communityId, itemId: item._id, userId: creatorId },
     { $setOnInsert: { type: 'habit', progressPercent: 0, lastUpdatedAt: new Date() }, $set: { status: 'joined' } },
       { upsert: true }
     );
+    
+    // Increment participant count if not already joined
+    if (!wasAlreadyJoinedCopy) {
+      await CommunityItem.updateOne({ _id: item._id }, { $inc: { 'stats.participantCount': 1 } });
+    }
     // Mirror community addition update
     try {
       const u = await User.findById(creatorId).select('name avatar').lean();
@@ -389,12 +480,96 @@ async function approveCommunityItem(communityId, itemId, approverId, approve = t
 async function joinItem(userId, communityId, itemId) {
   const item = await CommunityItem.findOne({ _id: itemId, communityId, status: 'approved', isActive: true });
   if (!item) throw Object.assign(new Error('Item not found'), { statusCode: 404 });
+  
+  // Check if already joined to avoid duplicate increment
+  const existing = await CommunityParticipation.findOne({ communityId, itemId, userId });
+  const wasAlreadyJoined = existing && existing.status === 'joined';
+  
   const doc = await CommunityParticipation.findOneAndUpdate(
     { communityId, itemId, userId },
     { $setOnInsert: { type: item.type, progressPercent: 0, lastUpdatedAt: new Date() }, $set: { status: 'joined' } },
     { new: true, upsert: true }
   );
-  await CommunityItem.updateOne({ _id: itemId }, { $inc: { 'stats.participantCount': 1 } });
+  
+  // Only increment if not already joined
+  if (!wasAlreadyJoined) {
+    await CommunityItem.updateOne({ _id: itemId }, { $inc: { 'stats.participantCount': 1 } });
+  }
+  
+  // Create personal copy of the goal/habit in user's dashboard
+  try {
+    if (item.type === 'goal') {
+      // Get the source goal details
+      const sourceGoal = await Goal.findById(item.sourceId).lean();
+      if (sourceGoal) {
+        // Check if user already has this goal (by communityInfo match)
+        const existingPersonalGoal = await Goal.findOne({ 
+          userId, 
+          'communityInfo.communityId': communityId,
+          'communityInfo.itemId': itemId,
+          isActive: true 
+        });
+        
+        if (!existingPersonalGoal) {
+          // Create personal copy
+          const personalGoal = new Goal({
+            userId,
+            title: sourceGoal.title,
+            description: sourceGoal.description || '',
+            category: sourceGoal.originalCategory || sourceGoal.category || 'Other', // Use original category if available
+            priority: sourceGoal.priority || 'medium',
+            duration: sourceGoal.duration || 'medium-term',
+            targetDate: sourceGoal.targetDate || null,
+            year: new Date().getFullYear(),
+            isPublic: false, // Personal copy should be private by default
+            isActive: true,
+            communityInfo: {
+              communityId,
+              itemId,
+              sourceId: item.sourceId
+            }
+          });
+          await personalGoal.save();
+        }
+      }
+    } else if (item.type === 'habit') {
+      // Get the source habit details
+      const sourceHabit = await Habit.findById(item.sourceId).lean();
+      if (sourceHabit) {
+        // Check if user already has this habit (by name match)
+        const existingPersonalHabit = await Habit.findOne({ 
+          userId, 
+          name: sourceHabit.name,
+          isActive: true 
+        });
+        
+        if (!existingPersonalHabit) {
+          // Create personal copy
+          const personalHabit = new Habit({
+            userId,
+            name: sourceHabit.name,
+            description: sourceHabit.description || '',
+            frequency: sourceHabit.frequency || 'daily',
+            daysOfWeek: Array.isArray(sourceHabit.daysOfWeek) ? sourceHabit.daysOfWeek : undefined,
+            timezone: sourceHabit.timezone || 'UTC',
+            reminders: Array.isArray(sourceHabit.reminders) ? sourceHabit.reminders : [],
+            isPublic: false, // Personal copy should be private by default
+            isActive: true,
+            communityInfo: {
+              communityId,
+              itemId,
+              sourceId: item.sourceId
+            }
+          });
+          await personalHabit.save();
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Error creating personal copy:', err);
+    // Don't fail the join operation if personal copy creation fails
+  }
+  
   // Create community activity mirror only
   try {
     const u = await User.findById(userId).select('name avatar').lean();
@@ -411,15 +586,107 @@ async function joinItem(userId, communityId, itemId) {
       }
     });
   } catch (_) {}
-  return doc;
+  return { 
+    success: true, 
+    joined: true,
+    itemId: String(itemId),
+    communityId: String(communityId),
+    participation: doc 
+  };
 }
 
-async function leaveItem(userId, communityId, itemId) {
+async function leaveItem(userId, communityId, itemId, options = {}) {
   const existing = await CommunityParticipation.findOne({ communityId, itemId, userId, status: 'joined' });
-  if (!existing) return { ok: true };
+  if (!existing) return { 
+    success: true, 
+    joined: false,
+    itemId: String(itemId),
+    communityId: String(communityId),
+    message: 'User was not joined to this item' 
+  };
+  
+  const item = await CommunityItem.findOne({ _id: itemId, communityId }).lean();
+  if (!item) return { ok: true };
+
+  // Handle personal copy based on user's choice
+  if (options.deletePersonalCopy) {
+    // Delete the personal copy from user's dashboard completely
+    try {
+      if (item.type === 'goal') {
+        await Goal.findOneAndDelete({
+          userId, 
+          'communityInfo.communityId': communityId,
+          'communityInfo.itemId': itemId
+        });
+      } else if (item.type === 'habit') {
+        await Habit.findOneAndDelete({
+          userId, 
+          'communityInfo.communityId': communityId,
+          'communityInfo.itemId': itemId
+        });
+      }
+    } catch (err) {
+      console.error('Error deleting personal copy:', err);
+    }
+  } else if (options.transferToPersonal !== false) {
+    // Transfer to personal goals/habits (remove community info)
+    try {
+      if (item.type === 'goal') {
+        await Goal.findOneAndUpdate(
+          { 
+            userId, 
+            'communityInfo.communityId': communityId,
+            'communityInfo.itemId': itemId
+          },
+          { 
+            $unset: { communityInfo: 1 },
+            category: 'Other',
+            isPublic: true
+          }
+        );
+      } else if (item.type === 'habit') {
+        await Habit.findOneAndUpdate(
+          { 
+            userId, 
+            'communityInfo.communityId': communityId,
+            'communityInfo.itemId': itemId
+          },
+          { 
+            $unset: { communityInfo: 1 }
+          }
+        );
+      }
+    } catch (err) {
+      console.error('Error transferring to personal:', err);
+    }
+  }
+
   await CommunityParticipation.updateOne({ _id: existing._id }, { $set: { status: 'left' } });
   await CommunityItem.updateOne({ _id: itemId }, { $inc: { 'stats.participantCount': -1 } });
-  return { ok: true };
+  
+  // Create community activity
+  try {
+    const u = await User.findById(userId).select('name avatar').lean();
+    await CommunityActivity.create({
+      communityId,
+      userId,
+      name: u?.name,
+      avatar: u?.avatar,
+      type: 'goal_left',
+      data: {
+        goalId: item.type === 'goal' ? item.sourceId : undefined,
+        goalTitle: item.title,
+        metadata: item.type === 'habit' ? { habitId: item.sourceId, habitName: item.title } : undefined
+      }
+    });
+  } catch (_) {}
+  
+  return { 
+    success: true, 
+    joined: false,
+    itemId: String(itemId),
+    communityId: String(communityId) 
+  };
 }
 
 async function removeCommunityItem(communityId, itemId, requesterId) {
