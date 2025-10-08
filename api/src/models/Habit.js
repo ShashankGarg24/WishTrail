@@ -106,6 +106,13 @@ const habitSchema = new mongoose.Schema({
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Habit'
     }
+  },
+  
+  // Flag to identify community source habits (not shown in personal habits)
+  isCommunitySource: {
+    type: Boolean,
+    default: false,
+    index: true
   }
 }, {
   timestamps: true,

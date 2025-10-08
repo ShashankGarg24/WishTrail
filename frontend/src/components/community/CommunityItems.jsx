@@ -240,6 +240,24 @@ export default function CommunityItems({ id, role, settings, items, itemProgress
                         onToggleJoin?.(it._id, true)
                         const r = await communitiesAPI.itemProgress(id, it._id)
                         onRefreshProgress?.(it._id, r?.data?.data)
+                        
+                        // If joined a habit, refresh habits list to show personal copy
+                        if (it.type === 'habit') {
+                          try {
+                            await useApiStore.getState().loadHabits({ force: true })
+                          } catch (err) {
+                            console.error('Error refreshing habits after join:', err)
+                          }
+                        }
+                        
+                        // If joined a goal, refresh goals list to show personal copy  
+                        if (it.type === 'goal') {
+                          try {
+                            await useApiStore.getState().getGoals({ force: true })
+                          } catch (err) {
+                            console.error('Error refreshing goals after join:', err)
+                          }
+                        }
                       }
                     } catch {
                       // On error, refresh to get current state

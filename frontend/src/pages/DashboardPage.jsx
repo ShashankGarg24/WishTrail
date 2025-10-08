@@ -37,6 +37,7 @@ const DashboardPage = () => {
     loading, 
     error,
     goals,
+    goalsPagination,
     user,
     dashboardStats,
     getDashboardStats,
@@ -110,7 +111,7 @@ const DashboardPage = () => {
       setExtraYears((prev) => Array.from(new Set([...(prev || []), y])).sort((a, b) => a - b))
     }
     setSelectedYear(y)
-    getGoals({ year: y })
+    // getGoals will be called by useEffect when selectedYear changes
     setIsAddYearOpen(false)
     setPendingAddYear(null)
   }
@@ -129,8 +130,14 @@ const DashboardPage = () => {
 
   useEffect(() => {
     if (!isAuthenticated) return
-    getGoals({ year: selectedYear, includeProgress: true })
+    setPage(1) // Reset to first page when year changes
   }, [selectedYear])
+
+  // Fetch goals when page changes or year changes
+  useEffect(() => {
+    if (!isAuthenticated) return
+    getGoals({ year: selectedYear, includeProgress: true, page })
+  }, [page, isAuthenticated, selectedYear])
 
   // Load habits on first visit to Habits tab
   useEffect(() => {
@@ -230,7 +237,6 @@ const DashboardPage = () => {
 
   const handleYearChange = (year) => {
     setSelectedYear(year)
-    getGoals({ year })
   }
 
   // Goal creation handled by CreateGoalWizard
@@ -250,7 +256,7 @@ const DashboardPage = () => {
     const result = await toggleGoalCompletion(goalId)
     if (result.success) {
       getDashboardStats({ force: true })
-      getGoals({ year: selectedYear }, { force: true })
+      getGoals({ year: selectedYear, includeProgress: true, page }, { force: true })
     }
   }
 
@@ -258,7 +264,7 @@ const DashboardPage = () => {
     const result = await deleteGoal(goalId)
     if (result.success) {
       await getDashboardStats({ force: true })
-      getGoals({ year: selectedYear }, { force: true })
+      getGoals({ year: selectedYear, includeProgress: true, page }, { force: true })
     }
   }
 
@@ -282,7 +288,7 @@ const DashboardPage = () => {
     }
     if (result.success) {
       getDashboardStats({ force: true })
-      getGoals({ year: selectedYear }, { force: true })
+      getGoals({ year: selectedYear, includeProgress: true, page }, { force: true })
     }
     return result
   }
@@ -400,17 +406,18 @@ const DashboardPage = () => {
   ] : []
 
 
-  // Goals ordering and pagination
+  // Goals filtering (server handles pagination)
   const goalsForYear = (goals || []).filter(g => g.year === selectedYear && !g.communityId && !g.isCommunitySource && !g.communityInfo)
   const communityGoals = (goals || []).filter(g => g.year === selectedYear && g.communityInfo)
-  const incompleteGoals = goalsForYear.filter(g => !g.completed)
-  const completedGoals = goalsForYear.filter(g => g.completed)
-  const orderedGoals = [...incompleteGoals, ...completedGoals]
-  const pageSize = 8
-  const totalPages = Math.max(1, Math.ceil(orderedGoals.length / pageSize))
-  const visibleGoals = orderedGoals.slice((page - 1) * pageSize, page * pageSize)
+  
+  // Server-side pagination - use the goals as returned from server (already paginated and ordered)
+  const visibleGoals = goalsForYear
+  const totalPages = goalsPagination ? goalsPagination.pages : 1
 
-  const progress = goalsForYear.length > 0 ? Math.round((completedGoals.length / goalsForYear.length) * 100) : 0
+  // Use dashboard stats for progress calculation (total for the year, not just current page)
+  const progress = dashboardStats && dashboardStats.totalGoals > 0 
+    ? Math.round((dashboardStats.completedGoals / dashboardStats.totalGoals) * 100) 
+    : 0
 
   const isScheduledToday = (habit) => {
     if (!habit) return false
@@ -484,7 +491,7 @@ const DashboardPage = () => {
             )}
 
             {/* Progress Bar */}
-            {goalsForYear.length > 0 && (
+            {dashboardStats && dashboardStats.totalGoals > 0 && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -516,7 +523,7 @@ const DashboardPage = () => {
               <button onClick={() => setIsCreateModalOpen(true)} className="btn-primary">
                 <Plus className="h-5 w-5 mr-2" />Add New Goal
               </button>
-              {goalsForYear.length !== 0 && (
+              {dashboardStats && dashboardStats.totalGoals > 0 && (
                 <button onClick={() => setIsSuggestionsOpen(true)} className="btn-primary flex items-center">
                   <Lightbulb className="h-5 w-5 mr-2" />Discover Goal Ideas
                 </button>
@@ -534,11 +541,11 @@ const DashboardPage = () => {
               ) : (
                 <div className="text-center py-12 text-gray-500 dark:text-gray-400">No goals for {selectedYear} yet.</div>
               )}
-              {totalPages > 1 && (
+              {goalsPagination && goalsPagination.pages > 1 && (
                 <div className="flex items-center justify-center gap-2 mt-6">
                   <button disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))} className="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 disabled:opacity-50">Prev</button>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">Page {page} of {totalPages}</div>
-                  <button disabled={page >= totalPages} onClick={() => setPage(p => Math.min(totalPages, p + 1))} className="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 disabled:opacity-50">Next</button>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">Page {goalsPagination.page} of {goalsPagination.pages}</div>
+                  <button disabled={page >= goalsPagination.pages} onClick={() => setPage(p => Math.min(goalsPagination.pages, p + 1))} className="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 disabled:opacity-50">Next</button>
                 </div>
               )}
             </motion.div>
@@ -646,9 +653,9 @@ const DashboardPage = () => {
 
             {/* Habits List (cards like goals) */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.4 }}>
-              {Array.isArray(habits) && habits.length > 0 ? (
+              {Array.isArray(habits) && habits.filter(h => !h.isCommunitySource && !h.communityInfo).length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {habits.map((h, idx) => (
+                  {habits.filter(h => !h.isCommunitySource && !h.communityInfo).map((h, idx) => (
                     <div 
                     key={h._id || idx} 
                     onClick={() => setSelectedHabit(h)}

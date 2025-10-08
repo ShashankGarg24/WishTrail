@@ -264,6 +264,7 @@ async function createCommunityOwnedItem(communityId, creatorId, payload) {
     } catch (_) {}
     return item;
   } else {
+    // Create community source habit (hidden from personal dashboard)
     const h = new Habit({
       userId: creatorId,
       name: payload.title,
@@ -274,6 +275,7 @@ async function createCommunityOwnedItem(communityId, creatorId, payload) {
       reminders: Array.isArray(payload.reminders) ? payload.reminders : [],
       isPublic: true,
       isActive: true,
+      isCommunitySource: true, // Flag to hide from personal habits
     });
     await h.save();
     const item = new CommunityItem({ communityId, type: 'habit', participationType: 'individual', sourceId: h._id, title: h.name, description: h.description, createdBy: creatorId, status: 'approved' });
@@ -293,6 +295,30 @@ async function createCommunityOwnedItem(communityId, creatorId, payload) {
     if (!wasAlreadyJoinedCopy) {
       await CommunityItem.updateOne({ _id: item._id }, { $inc: { 'stats.participantCount': 1 } });
     }
+    
+    // Create personal copy for creator so it appears in Community habits section
+    try {
+      const personalHabit = new Habit({
+        userId: creatorId,
+        name: h.name,
+        description: h.description || '',
+        frequency: h.frequency || 'daily',
+        daysOfWeek: Array.isArray(h.daysOfWeek) ? h.daysOfWeek : undefined,
+        timezone: h.timezone || 'UTC',
+        reminders: Array.isArray(h.reminders) ? h.reminders : [],
+        isPublic: false, // Personal copy should be private by default
+        isActive: true,
+        communityInfo: {
+          communityId,
+          itemId: item._id,
+          sourceId: h._id
+        }
+      });
+      await personalHabit.save();
+    } catch (err) {
+      console.error('Error creating personal habit copy for creator:', err);
+    }
+    
     // Mirror community addition update
     try {
       const u = await User.findById(creatorId).select('name avatar').lean();
@@ -401,6 +427,8 @@ async function copyFromPersonalToCommunity(communityId, creatorId, { type, sourc
   } else {
     const src = await Habit.findById(sourceId).lean();
     if (!src) throw Object.assign(new Error('Source habit not found'), { statusCode: 404 });
+    
+    // Create community source habit (hidden from personal dashboard)
     const h = new Habit({
       userId: creatorId,
       name: src.name,
@@ -411,6 +439,7 @@ async function copyFromPersonalToCommunity(communityId, creatorId, { type, sourc
       reminders: Array.isArray(src.reminders) ? src.reminders : [],
       isPublic: true,
       isActive: true,
+      isCommunitySource: true, // Flag to hide from personal habits
     });
     await h.save();
     const item = new CommunityItem({ communityId, type: 'habit', participationType: 'individual', sourceId: h._id, title: h.name, description: h.description, createdBy: creatorId, status: 'approved' });
@@ -430,6 +459,30 @@ async function copyFromPersonalToCommunity(communityId, creatorId, { type, sourc
     if (!wasAlreadyJoinedCopy) {
       await CommunityItem.updateOne({ _id: item._id }, { $inc: { 'stats.participantCount': 1 } });
     }
+    
+    // Create personal copy for creator so it appears in Community habits section
+    try {
+      const personalHabit = new Habit({
+        userId: creatorId,
+        name: h.name,
+        description: h.description || '',
+        frequency: h.frequency || 'daily',
+        daysOfWeek: Array.isArray(h.daysOfWeek) ? h.daysOfWeek : undefined,
+        timezone: h.timezone || 'UTC',
+        reminders: Array.isArray(h.reminders) ? h.reminders : [],
+        isPublic: false, // Personal copy should be private by default
+        isActive: true,
+        communityInfo: {
+          communityId,
+          itemId: item._id,
+          sourceId: h._id
+        }
+      });
+      await personalHabit.save();
+    } catch (err) {
+      console.error('Error creating personal habit copy for creator:', err);
+    }
+    
     // Mirror community addition update
     try {
       const u = await User.findById(creatorId).select('name avatar').lean();
@@ -478,7 +531,7 @@ async function approveCommunityItem(communityId, itemId, approverId, approve = t
 }
 
 async function joinItem(userId, communityId, itemId) {
-  const item = await CommunityItem.findOne({ _id: itemId, communityId, status: 'approved', isActive: true });
+  const item = await CommunityItem.findOne({ _id: itemId, communityId, status: 'approved', isActive: true }).lean();
   if (!item) throw Object.assign(new Error('Item not found'), { statusCode: 404 });
   
   // Check if already joined to avoid duplicate increment
@@ -536,10 +589,11 @@ async function joinItem(userId, communityId, itemId) {
       // Get the source habit details
       const sourceHabit = await Habit.findById(item.sourceId).lean();
       if (sourceHabit) {
-        // Check if user already has this habit (by name match)
+        // Check if user already has this habit (by communityInfo match)
         const existingPersonalHabit = await Habit.findOne({ 
           userId, 
-          name: sourceHabit.name,
+          'communityInfo.communityId': communityId,
+          'communityInfo.itemId': itemId,
           isActive: true 
         });
         

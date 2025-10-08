@@ -132,7 +132,7 @@ const getGoals = async (req, res, next) => {
     if (status === 'pending') query.completed = false;
     
     const rawGoals = await Goal.find(query)
-      .sort({ createdAt: -1 })
+      .sort({ completed: 1, createdAt: -1 }) // Sort by completion status first (false=0, true=1), then by creation date
       .limit(limit * 1)
       .skip((page - 1) * limit);
 
