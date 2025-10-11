@@ -799,6 +799,59 @@ async function getItemProgress(userId, communityId, itemId) {
   return { personal, community: communityProgress };
 }
 
+async function getItemAnalytics(communityId, itemId) {
+  const item = await CommunityItem.findOne({ _id: itemId, communityId, status: 'approved', isActive: true }).lean();
+  if (!item) throw Object.assign(new Error('Item not found'), { statusCode: 404 });
+
+  const parts = await CommunityParticipation.find({ communityId, itemId, status: 'joined' }).select('userId progressPercent').lean();
+  const userIds = parts.map(p => p.userId).filter(Boolean);
+  const users = userIds.length > 0
+    ? await User.find({ _id: { $in: userIds } }).select('name username avatar').lean()
+    : [];
+  const userById = new Map(users.map(u => [String(u._id), u]));
+
+  const rows = parts.map(p => {
+    const u = userById.get(String(p.userId));
+    const progress = Math.max(0, Math.min(100, Math.round(p.progressPercent || 0)));
+    let status = 'in_progress';
+    if (item.type === 'goal') {
+      if (item.participationType === 'collaborative') {
+        status = progress > 0 ? 'contributed' : 'pending';
+      } else {
+        status = progress >= 100 ? 'completed' : 'in_progress';
+      }
+    } else {
+      // habit
+      status = progress > 0 ? 'active' : 'pending';
+    }
+    return {
+      userId: String(p.userId),
+      user: u ? { _id: String(u._id), name: u.name, username: u.username, avatar: u.avatar } : null,
+      progressPercent: progress,
+      status
+    };
+  });
+
+  let aggregate = 0;
+  if (item.type === 'goal' && item.participationType === 'collaborative') {
+    aggregate = Math.min(100, Math.round(rows.reduce((s, r) => s + (r.progressPercent || 0), 0)));
+  } else {
+    aggregate = rows.length === 0 ? 0 : Math.round(rows.reduce((s, r) => s + (r.progressPercent || 0), 0) / rows.length);
+  }
+
+  const completedCount = rows.filter(r => r.progressPercent >= 100).length;
+
+  return {
+    item: { _id: String(item._id), title: item.title, type: item.type, participationType: item.participationType || 'individual' },
+    totals: {
+      participants: rows.length,
+      averagePercent: aggregate,
+      completedCount
+    },
+    participants: rows
+  };
+}
+
 async function listMyJoinedItems(userId) {
   const parts = await CommunityParticipation.find({ userId, status: 'joined' }).select('communityId itemId type progressPercent').lean();
   if (parts.length === 0) return [];
@@ -1054,6 +1107,7 @@ module.exports = {
   sendChatMessage,
   deleteChatMessage,
   toggleReaction,
+  getItemAnalytics,
 };
 
 

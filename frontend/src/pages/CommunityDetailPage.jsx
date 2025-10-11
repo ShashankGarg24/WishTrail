@@ -22,6 +22,7 @@ export default function CommunityDetailPage() {
   const [loading, setLoading] = useState(true)
   const [summary, setSummary] = useState(null)
   const [tab, setTab] = useState('feed')
+  const [headerImages, setHeaderImages] = useState({ avatarUrl: '', bannerUrl: '' })
   const [feed, setFeed] = useState([])
   const [filter, setFilter] = useState('all') // removed UI; always fetch all
   const [chatText, setChatText] = useState('')
@@ -58,7 +59,14 @@ export default function CommunityDetailPage() {
         setLoading(true)
         const res = await communitiesAPI.get(id)
         if (!active) return
-        setSummary(res?.data?.data || null)
+        const sm = res?.data?.data || null
+        setSummary(sm)
+        if (sm?.community) {
+          setHeaderImages({
+            avatarUrl: sm.community.avatarUrl || '',
+            bannerUrl: sm.community.bannerUrl || ''
+          })
+        }
       } finally { setLoading(false) }
     }
     load()
@@ -284,12 +292,20 @@ export default function CommunityDetailPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
       <div className="relative overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-800 mb-6">
-        <div className="h-28 sm:h-36 bg-gradient-to-r from-blue-500/20 to-purple-500/20" />
+        <div className="h-28 sm:h-36 bg-gradient-to-r from-blue-500/20 to-purple-500/20 relative">
+          {headerImages.bannerUrl ? (
+            <img src={headerImages.bannerUrl} alt="Community banner" className="absolute inset-0 h-full w-full object-cover" />
+          ) : null}
+        </div>
         <div className="p-4 sm:p-6 -mt-8">
           <div className="flex items-center gap-3">
-            <div className="h-14 w-14 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 text-white flex items-center justify-center text-lg font-bold">
-              {community.name?.slice(0,2).toUpperCase()}
-            </div>
+            {headerImages.avatarUrl ? (
+              <img src={headerImages.avatarUrl} alt="Community avatar" className="h-14 w-14 rounded-full border object-cover" />
+            ) : (
+              <div className="h-14 w-14 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 text-white flex items-center justify-center text-lg font-bold">
+                {community.name?.slice(0,2).toUpperCase()}
+              </div>
+            )}
             <div className="min-w-0">
               <div className="font-bold text-xl truncate">{community.name}</div>
               <div className="text-xs text-gray-500 dark:text-gray-400">{community.stats?.memberCount || 0} members • {community.visibility}</div>
@@ -428,10 +444,11 @@ export default function CommunityDetailPage() {
 
       {tab === 'settings' && (
         <CommunitySettings
-          community={community}
+          community={{ ...community, ...headerImages }}
           role={role}
           showDeleteModal={showDeleteModal}
           setShowDeleteModal={setShowDeleteModal}
+          onCommunityChange={(changes) => setHeaderImages(prev => ({ ...prev, ...changes }))}
           DeleteModal={(
             <DeleteCommunityModal
               open={showDeleteModal}

@@ -53,6 +53,7 @@ router.post('/:id/items/:itemId/join', protect, requireFeature('community'), con
 router.post('/:id/items/:itemId/leave', protect, requireFeature('community'), controller.leaveItem);
 router.delete('/:id/items/:itemId', protect, requireFeature('community'), controller.removeItem);
 router.get('/:id/items/:itemId/progress', protect, requireFeature('community'), controller.getItemProgress);
+router.get('/:id/items/:itemId/analytics', protect, requireFeature('community'), controller.getItemAnalytics);
 router.post('/:id/join', protect, requireFeature('community'), controller.join);
 router.post('/:id/leave', protect, requireFeature('community'), controller.leave);
 router.delete('/:id', protect, requireFeature('community'), controller.deleteCommunity);

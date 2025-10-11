@@ -285,6 +285,7 @@ export const communitiesAPI = {
   joinItem: (id, itemId) => api.post(`/communities/${id}/items/${itemId}/join`),
   leaveItem: (id, itemId, options = {}) => api.post(`/communities/${id}/items/${itemId}/leave`, options),
   itemProgress: (id, itemId) => api.get(`/communities/${id}/items/${itemId}/progress`),
+  itemAnalytics: (id, itemId) => api.get(`/communities/${id}/items/${itemId}/analytics`),
   // Membership moderation
   pendingMembers: (id) => api.get(`/communities/${id}/members/pending`),
   approveMember: (id, userId, approve = true) => api.post(`/communities/${id}/members/${userId}/approve`, { approve }),

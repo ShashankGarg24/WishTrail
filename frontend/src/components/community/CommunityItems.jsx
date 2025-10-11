@@ -3,7 +3,7 @@ import { communitiesAPI, goalsAPI } from '../../services/api'
 import useApiStore from '../../store/apiStore'
 import CreateGoalWizard from '../CreateGoalWizard'
 import CreateHabitModal from '../CreateHabitModal'
-import { Link, Plus, TrendingUp } from 'lucide-react'
+import { Link, Plus, TrendingUp, BarChart3 } from 'lucide-react'
 
 export function AddItemModal({ open, onClose, communityId }) {
   const [type, setType] = useState('goal')
@@ -138,11 +138,74 @@ export function AddItemModal({ open, onClose, communityId }) {
   )
 }
 
+function ItemAnalyticsModal({ open, onClose, analytics }) {
+  if (!open) return null
+  const rows = Array.isArray(analytics?.participants) ? analytics.participants : []
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-2xl rounded-2xl bg-white dark:bg-gray-900 p-6 shadow-xl border border-gray-200 dark:border-gray-800">
+        <div className="flex items-center justify-between mb-3">
+          <div className="text-lg font-semibold">Item analytics</div>
+          <button onClick={onClose} className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-800 text-sm">Close</button>
+        </div>
+        {analytics && (
+          <div className="mb-4 text-sm text-gray-700 dark:text-gray-300">
+            <div className="font-medium">{analytics.item?.title} <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800">{analytics.item?.type} • {analytics.item?.participationType}</span></div>
+            <div className="mt-2 text-xs text-gray-600 dark:text-gray-400">Participants: {analytics.totals?.participants || 0} • Avg: {analytics.totals?.averagePercent || 0}% • Completed: {analytics.totals?.completedCount || 0}</div>
+          </div>
+        )}
+        <div className="max-h-[60vh] overflow-auto rounded-lg border border-gray-200 dark:border-gray-800">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-gray-50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-300">
+                <th className="text-left px-3 py-2">User</th>
+                <th className="text-left px-3 py-2">Status</th>
+                <th className="text-left px-3 py-2">Progress</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r, idx) => (
+                <tr key={idx} className="border-t border-gray-100 dark:border-gray-800">
+                  <td className="px-3 py-2">
+                    <div className="flex items-center gap-2">
+                      <img src={r.user?.avatar || '/api/placeholder/32/32'} alt={r.user?.name || 'User'} className="h-7 w-7 rounded-full" />
+                      <div className="min-w-0">
+                        <div className="font-medium text-gray-900 dark:text-white truncate">{r.user?.name || 'User'}</div>
+                        <div className="text-xs text-gray-500">@{r.user?.username || r.userId?.slice(-6)}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-3 py-2">
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800">{r.status}</span>
+                  </td>
+                  <td className="px-3 py-2 w-[40%]">
+                    <div className="h-2 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
+                      <div className="h-full bg-blue-600" style={{ width: `${r.progressPercent || 0}%` }} />
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {rows.length === 0 && (
+                <tr>
+                  <td className="px-3 py-3 text-sm text-gray-500" colSpan={3}>No participants yet.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function CommunityItems({ id, role, settings, items, itemProgress, onRefreshProgress, joinedItems = new Set(), onToggleJoin }) {
   const allowAnyMemberToAdd = (settings?.onlyAdminsCanAddItems === false) || (settings?.onlyAdminsCanAddGoals === false) || (settings?.onlyAdminsCanAddHabits === false)
   const onlyAdmins = !allowAnyMemberToAdd
   const [showAddModal, setShowAddModal] = useState(false)
   const [showSuggestModal, setShowSuggestModal] = useState(false)
+  const [analyticsOpen, setAnalyticsOpen] = useState(false)
+  const [analyticsData, setAnalyticsData] = useState(null)
 
   return (
     <div className="space-y-3">
@@ -194,6 +257,20 @@ export default function CommunityItems({ id, role, settings, items, itemProgress
                       <div className="h-full bg-green-600" style={{ width: `${itemProgress[it._id]?.community || 0}%` }} />
                     </div>
                   </div>
+                </div>
+                <div className="mt-3">
+                  <button
+                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-800 text-sm"
+                    onClick={async () => {
+                      try {
+                        const resp = await communitiesAPI.itemAnalytics(id, it._id)
+                        setAnalyticsData(resp?.data?.data || null)
+                        setAnalyticsOpen(true)
+                      } catch {}
+                    }}
+                  >
+                    <BarChart3 className="h-4 w-4" /> Analytics
+                  </button>
                 </div>
               </div>
               <div className="flex-shrink-0 flex items-center gap-2">
@@ -291,6 +368,7 @@ export default function CommunityItems({ id, role, settings, items, itemProgress
           </div>
         ))}
       </div>
+      <ItemAnalyticsModal open={analyticsOpen} onClose={() => setAnalyticsOpen(false)} analytics={analyticsData} />
       {items.length === 0 && <div className="text-sm text-gray-500">No shared goals or habits yet.</div>}
       <AddItemModal open={showAddModal} onClose={(refresh) => { setShowAddModal(false); if (refresh) window.location.reload(); }} communityId={id} />
       {/* Suggest modal stays in page for brevity; can extract similarly if needed */}

@@ -1,7 +1,14 @@
+import { useState } from 'react'
 import { communityUploadAPI, communitiesAPI } from '../../services/api'
 import InterestsMultiSelect from './InterestsMultiSelect'
 
-export default function CommunitySettings({ community, role, showDeleteModal, setShowDeleteModal, DeleteModal }) {
+export default function CommunitySettings({ community, role, showDeleteModal, setShowDeleteModal, DeleteModal, onCommunityChange }) {
+  const [avatarUploading, setAvatarUploading] = useState(false)
+  const [bannerUploading, setBannerUploading] = useState(false)
+  const [avatarPreview, setAvatarPreview] = useState('')
+  const [bannerPreview, setBannerPreview] = useState('')
+  const [avatarError, setAvatarError] = useState('')
+  const [bannerError, setBannerError] = useState('')
   if (role !== 'admin') {
     return <div className="text-sm text-gray-500">Settings are visible to admins only.</div>
   }
@@ -30,27 +37,75 @@ export default function CommunitySettings({ community, role, showDeleteModal, se
             <div>
               <label className="block text-xs font-medium mb-1">Avatar</label>
               <div className="flex items-center gap-3">
-                <img src={community.avatarUrl || '/api/placeholder/64/64'} alt="Avatar" className="h-10 w-10 rounded-full border" />
-                <input type="file" accept="image/*" onChange={async (e) => {
-                  const file = e.target.files?.[0]; if (!file) return;
-                  const fd = new FormData(); fd.append('image', file);
-                  const resp = await communityUploadAPI.uploadAvatar(community._id, fd);
-                  const url = resp?.data?.data?.url; if (url) { await communitiesAPI.update(community._id, { avatarUrl: url }); window.location.reload(); }
-                }} />
+                {avatarPreview ? (
+                  <img src={avatarPreview} alt="Avatar preview" className="h-10 w-10 rounded-full border object-cover" />
+                ) : (
+                  <img src={community.avatarUrl || '/api/placeholder/64/64'} alt="Avatar" className="h-10 w-10 rounded-full border object-cover" />
+                )}
+                <div className="flex flex-col gap-1">
+                  <input disabled={avatarUploading} type="file" accept="image/*" onChange={async (e) => {
+                    const file = e.target.files?.[0]; if (!file) return;
+                    setAvatarError('')
+                    if (!file.type.startsWith('image/')) { setAvatarError('Please select an image file'); return }
+                    if (file.size > 5 * 1024 * 1024) { setAvatarError('Max image size is 5 MB'); return }
+                    try {
+                      setAvatarPreview(URL.createObjectURL(file))
+                    } catch {}
+                    try {
+                      setAvatarUploading(true)
+                      const fd = new FormData(); fd.append('image', file);
+                      const resp = await communityUploadAPI.uploadAvatar(community._id, fd);
+                      const url = resp?.data?.data?.url;
+                      if (url) {
+                        await communitiesAPI.update(community._id, { avatarUrl: url });
+                        onCommunityChange?.({ avatarUrl: url })
+                      }
+                    } catch (err) {
+                      setAvatarError('Upload failed. Try a different image')
+                    } finally {
+                      setAvatarUploading(false)
+                    }
+                  }} />
+                  {avatarUploading && <div className="text-xs text-gray-500">Uploading…</div>}
+                  {avatarError && <div className="text-xs text-red-600">{avatarError}</div>}
+                </div>
               </div>
             </div>
             <div>
               <label className="block text-xs font-medium mb-1">Banner</label>
               <div className="flex items-center gap-3">
                 <div className="h-10 w-20 rounded bg-gray-200 dark:bg-gray-800 overflow-hidden">
-                  {community.bannerUrl && <img src={community.bannerUrl} alt="Banner" className="h-full w-full object-cover" />}
+                  {(bannerPreview || community.bannerUrl) && (
+                    <img src={bannerPreview || community.bannerUrl} alt="Banner" className="h-full w-full object-cover" />
+                  )}
                 </div>
-                <input type="file" accept="image/*" onChange={async (e) => {
-                  const file = e.target.files?.[0]; if (!file) return;
-                  const fd = new FormData(); fd.append('image', file);
-                  const resp = await communityUploadAPI.uploadBanner(community._id, fd);
-                  const url = resp?.data?.data?.url; if (url) { await communitiesAPI.update(community._id, { bannerUrl: url }); window.location.reload(); }
-                }} />
+                <div className="flex flex-col gap-1">
+                  <input disabled={bannerUploading} type="file" accept="image/*" onChange={async (e) => {
+                    const file = e.target.files?.[0]; if (!file) return;
+                    setBannerError('')
+                    if (!file.type.startsWith('image/')) { setBannerError('Please select an image file'); return }
+                    if (file.size > 5 * 1024 * 1024) { setBannerError('Max image size is 5 MB'); return }
+                    try {
+                      setBannerPreview(URL.createObjectURL(file))
+                    } catch {}
+                    try {
+                      setBannerUploading(true)
+                      const fd = new FormData(); fd.append('image', file);
+                      const resp = await communityUploadAPI.uploadBanner(community._id, fd);
+                      const url = resp?.data?.data?.url;
+                      if (url) {
+                        await communitiesAPI.update(community._id, { bannerUrl: url });
+                        onCommunityChange?.({ bannerUrl: url })
+                      }
+                    } catch (err) {
+                      setBannerError('Upload failed. Try a different image')
+                    } finally {
+                      setBannerUploading(false)
+                    }
+                  }} />
+                  {bannerUploading && <div className="text-xs text-gray-500">Uploading…</div>}
+                  {bannerError && <div className="text-xs text-red-600">{bannerError}</div>}
+                </div>
               </div>
             </div>
             <div>

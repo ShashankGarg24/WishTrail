@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
-import { Plus, Calendar, Target, CheckCircle, Circle, Star, Award, Lightbulb, Clock, XCircle, SkipForward, Activity } from 'lucide-react'
+import { Plus, Calendar, Target, CheckCircle, Circle, Star, Award, Lightbulb, Clock, XCircle, SkipForward, Activity, Compass } from 'lucide-react'
 import HabitDetailModal from '../components/HabitDetailModal'
 import CreateHabitModal from '../components/CreateHabitModal'
 import EditHabitModal from '../components/EditHabitModal'
@@ -573,6 +573,12 @@ const DashboardPage = () => {
                 <div className="text-center py-6 text-gray-500 dark:text-gray-400">
                   <p>No community goals joined yet.</p>
                   <p className="text-sm">Join community goals to see them here!</p>
+                  <a
+                    href="/discover?tab=communities"
+                    className="inline-flex items-center gap-2 mt-3 px-3 py-2 rounded-lg bg-primary-500 text-white hover:bg-primary-600"
+                  >
+                    <Compass className="h-4 w-4" /> Explore communities
+                  </a>
                 </div>
               )}
             </div>
@@ -758,6 +764,12 @@ const DashboardPage = () => {
                 <div className="text-center py-6 text-gray-500 dark:text-gray-400">
                   <p>No community habits joined yet.</p>
                   <p className="text-sm">Join community habits to see them here!</p>
+                  <a
+                    href="/discover?tab=communities"
+                    className="inline-flex items-center gap-2 mt-3 px-3 py-2 rounded-lg bg-primary-500 text-white hover:bg-primary-600"
+                  >
+                    <Compass className="h-4 w-4" /> Explore communities
+                  </a>
                 </div>
               )}
             </div>

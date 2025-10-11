@@ -117,6 +117,12 @@ module.exports = {
       res.status(200).json({ success: true, data: result });
     } catch (e) { next(e); }
   },
+  async getItemAnalytics(req, res, next) {
+    try {
+      const result = await communityService.getItemAnalytics(req.params.id, req.params.itemId);
+      res.status(200).json({ success: true, data: result });
+    } catch (e) { next(e); }
+  },
   async join(req, res, next) {
     try {
       const membership = await communityService.joinCommunity(req.user.id, req.params.id);

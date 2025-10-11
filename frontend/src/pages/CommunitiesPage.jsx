@@ -92,7 +92,16 @@ export default function CommunitiesPage() {
         {loading && mine.length === 0 ? (
           <div className="text-sm text-gray-500">Loading…</div>
         ) : mine.length === 0 ? (
-          <div className="text-sm text-gray-500">You haven’t joined any communities yet.</div>
+          <div className="text-sm text-gray-500">
+            <div>You haven’t joined any communities yet.</div>
+            <a
+              href="/discover?tab=communities"
+              className="inline-flex items-center gap-2 mt-3 px-3 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-500"
+            >
+              {/* Using text label to avoid importing extra icon here */}
+              Explore communities
+            </a>
+          </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {mine.map(c => (

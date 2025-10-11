@@ -817,23 +817,34 @@ const DiscoverPage = () => {
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ duration: 0.5, delay: 0.05 * idx }}
-                          className="bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-5 border border-gray-200 dark:border-gray-700/50 hover:border-gray-300 dark:hover:border-gray-600/50 transition-all duration-200 shadow-lg hover:shadow-xl"
+                          className="bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl border border-gray-200 dark:border-gray-700/50 hover:border-gray-300 dark:hover:border-gray-600/50 transition-all duration-200 shadow-lg hover:shadow-xl overflow-hidden"
                         >
-                          <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 text-white flex items-center justify-center text-sm font-semibold">
-                              {c.name?.slice(0,2).toUpperCase()}
-                            </div>
-                            <div className="min-w-0">
-                              <div className="font-semibold truncate">{c.name}</div>
-                              <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{c.description || '—'}</div>
-                            </div>
+                          <div className="h-24 relative bg-gradient-to-r from-blue-500/20 to-purple-500/20">
+                            {c.bannerUrl && (
+                              <img src={c.bannerUrl} alt="Community banner" className="absolute inset-0 h-full w-full object-cover" />
+                            )}
                           </div>
-                          <div className="mt-3 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-                            <span>{c.stats?.memberCount || 0} members</span>
-                            <span className="px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800">{c.visibility}</span>
-                          </div>
-                          <div className="mt-3 flex items-center gap-2">
-                            <button className="flex-1 px-3 py-2 rounded-lg bg-blue-600 text-white" onClick={() => navigate(`/communities/${c._id}`)}>View</button>
+                          <div className="p-5">
+                            <div className="flex items-center gap-3">
+                              {c.avatarUrl ? (
+                                <img src={c.avatarUrl} alt="Community avatar" className="h-10 w-10 rounded-full border object-cover" />
+                              ) : (
+                                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 text-white flex items-center justify-center text-sm font-semibold">
+                                  {c.name?.slice(0,2).toUpperCase()}
+                                </div>
+                              )}
+                              <div className="min-w-0">
+                                <div className="font-semibold truncate">{c.name}</div>
+                                <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{c.description || '—'}</div>
+                              </div>
+                            </div>
+                            <div className="mt-3 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                              <span className="inline-flex items-center gap-1"><Users className="h-3.5 w-3.5" />{c.stats?.memberCount || 0} members</span>
+                              <span className="px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800">{c.visibility}</span>
+                            </div>
+                            <div className="mt-3 flex items-center gap-2">
+                              <button className="flex-1 px-3 py-2 rounded-lg bg-blue-600 text-white" onClick={() => navigate(`/communities/${c._id}`)}>View</button>
+                            </div>
                           </div>
                         </motion.div>
                       ))}
