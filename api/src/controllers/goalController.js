@@ -121,7 +121,7 @@ const getGoalPost = async (req, res, next) => {
 // @access  Private
 const getGoals = async (req, res, next) => {
   try {
-    const { year, category, status, page = 1, limit = 10, includeProgress } = req.query;
+    const { year, category, status, page = 1, limit = 10, includeProgress, communityOnly } = req.query;
     
     const query = { userId: req.user.id };
     
@@ -130,6 +130,10 @@ const getGoals = async (req, res, next) => {
     if (category) query.category = category;
     if (status === 'completed') query.completed = true;
     if (status === 'pending') query.completed = false;
+    // Community-only filter
+    if (communityOnly === 'true' || communityOnly === true) {
+      query['communityInfo'] = { $exists: true };
+    }
     
     const rawGoals = await Goal.find(query)
       .sort({ completed: 1, createdAt: -1 }) // Sort by completion status first (false=0, true=1), then by creation date

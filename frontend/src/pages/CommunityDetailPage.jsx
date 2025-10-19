@@ -29,6 +29,7 @@ export default function CommunityDetailPage() {
   const [items, setItems] = useState([])
   const [itemProgress, setItemProgress] = useState({})
   const [members, setMembers] = useState([])
+  const [analytics, setAnalytics] = useState(null)
   const [dashboard, setDashboard] = useState(null)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [joinedItems, setJoinedItems] = useState(new Set())
@@ -147,6 +148,10 @@ export default function CommunityDetailPage() {
           if (cancelled) return
           setDashboard(d?.data?.data || null)
           setLoaded(prev => ({ ...prev, dashboard: true }))
+          try {
+            const a = await communitiesAPI.analytics(id, { weeks: 12 })
+            if (!cancelled) setAnalytics(a?.data?.data || null)
+          } catch {}
           if (!loaded.members) {
             try {
               const m = await communitiesAPI.members(id)
@@ -411,7 +416,7 @@ export default function CommunityDetailPage() {
       )}
 
       {tab === 'dashboard' && (
-        <CommunityDashboard dashboard={dashboard} members={members} />
+        <CommunityDashboard dashboard={dashboard} members={members} analytics={analytics} />
       )}
 
       {tab === 'items' && (

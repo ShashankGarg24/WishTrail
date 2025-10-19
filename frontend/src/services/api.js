@@ -267,6 +267,7 @@ export const communitiesAPI = {
   remove: (id) => api.delete(`/communities/${id}`),
   get: (id) => api.get(`/communities/${id}`),
   dashboard: (id) => api.get(`/communities/${id}/dashboard`),
+  analytics: (id, params) => api.get(`/communities/${id}/analytics`, { params }),
   feed: (id, params) => api.get(`/communities/${id}/feed`, { params }),
   sendChat: (id, text) => api.post(`/communities/${id}/chat`, { text }),
   deleteChat: (id, msgId) => api.delete(`/communities/${id}/chat/${msgId}`),

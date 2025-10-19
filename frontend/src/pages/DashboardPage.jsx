@@ -51,6 +51,10 @@ const DashboardPage = () => {
     logHabit,
     habitAnalytics,
     loadHabitAnalytics,
+    habitStats,
+    loadHabitStats,
+    loadCommunityGoalsForYear,
+    communityGoalsByYear,
   } = useApiStore()
 
   const [openGoalId, setOpenGoalId] = useState(null)
@@ -95,13 +99,12 @@ const DashboardPage = () => {
 
   const canAddYear = candidateYears.length > 0
 
+  const [pendingAddYear, setPendingAddYear] = useState(null)
   const openAddYear = () => setIsAddYearOpen(true)
   const chooseYear = async (y) => {
     // Only mark pending selection; do not modify list or switch year yet
     setPendingAddYear(y)
   }
-
-  const [pendingAddYear, setPendingAddYear] = useState(null)
   const handleConfirmAddYear = async () => {
     if (typeof pendingAddYear !== 'number') { setIsAddYearOpen(false); return }
     const res = await addDashboardYear(pendingAddYear)
@@ -145,8 +148,15 @@ const DashboardPage = () => {
     if (activeTab === 'habits') {
       try { loadHabits({}).catch(()=>{}) } catch {}
       try { loadHabitAnalytics({}).catch(()=>{}) } catch {}
+      try { loadHabitStats({}).catch(()=>{}) } catch {}
     }
   }, [activeTab, isAuthenticated])
+
+  // Load community goals (not paginated with personal goals)
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    try { loadCommunityGoalsForYear(selectedYear).catch(()=>{}) } catch {}
+  }, [isAuthenticated, selectedYear])
 
   // Deep link open via ?goalId=
   useEffect(() => {
@@ -398,17 +408,20 @@ const DashboardPage = () => {
     { label: 'Level', value: dashboardStats.level?.level || 'Novice', icon: Award, color: dashboardStats.level?.color || 'text-gray-500', emoji: dashboardStats.level?.icon }
   ] : []
 
-  const habitStats = habitAnalytics?.analytics?.totals ? [
+  const habitsSummary = habitAnalytics?.analytics?.totals ? [
     { label: 'Done', value: habitAnalytics.analytics?.totals?.done, icon: CheckCircle, color: 'text-green-500' },
     { label: 'Skipped', value: habitAnalytics.analytics?.totals?.skipped, icon: SkipForward, color: 'text-yellow-500' },
     { label: 'Missed', value: habitAnalytics.analytics?.totals?.missed, icon: XCircle, color: 'text-red-500' },
-    { label: 'Longest Streak', value: habitAnalytics.analytics?.totals?.longestStreak, icon: Activity, color: 'text-orange-500' }
+    { label: 'Longest Streak', value: (habitStats?.bestStreak ?? habitAnalytics.analytics?.totals?.longestStreak ?? 0), icon: Activity, color: 'text-orange-500' }
   ] : []
 
 
   // Goals filtering (server handles pagination)
+
   const goalsForYear = (goals || []).filter(g => g.year === selectedYear && !g.communityId && !g.isCommunitySource && !g.communityInfo)
-  const communityGoals = (goals || []).filter(g => g.year === selectedYear && g.communityInfo)
+  const communityGoals = Array.isArray(communityGoalsByYear?.[String(selectedYear)]?.goals)
+    ? communityGoalsByYear[String(selectedYear)].goals
+    : []
   
   // Server-side pagination - use the goals as returned from server (already paginated and ordered)
   const visibleGoals = goalsForYear
@@ -566,6 +579,16 @@ const DashboardPage = () => {
                       onComplete={handleCompleteGoal} 
                       isViewingOwnGoals={true} 
                       onOpenGoal={(id) => setOpenGoalId(id)} 
+                      footer={(
+                        <div className="flex items-center justify-end">
+                          <a
+                            href={`/communities/${goal?.communityInfo?.communityId}?tab=items`}
+                            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary-500 text-white text-sm"
+                          >
+                            Go to community
+                          </a>
+                        </div>
+                      )}
                     />
                   ))}
                 </div>
@@ -635,9 +658,9 @@ const DashboardPage = () => {
         {activeTab === 'habits' && (
           <>
             {/* Analytics (Habits) */}
-            {habitStats && (
+            {habitsSummary && (
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.2 }} className="grid grid-cols-2 lg:grid-cols-6 gap-4 mb-8">
-                {habitStats.map((stat) => (
+                {habitsSummary.map((stat) => (
                   <div key={stat.label} className="glass-card-hover p-6 rounded-xl text-center">
                     {stat.emoji ? (<div className="text-3xl mb-2">{stat.emoji}</div>) : (<stat.icon className={`h-8 w-8 ${stat.color} mx-auto mb-2`} />)}
                     <div className="text-2xl font-bold text-gray-900 dark:text-white mb-1">{stat.value}</div>
@@ -694,13 +717,13 @@ const DashboardPage = () => {
                       <div className="flex items-center justify-end gap-2 pt-2">
                         <button
                           onClick={async (e) => { e.stopPropagation(); handleStatusToast('skipped'); try { await logHabit(h._id, 'skipped'); } catch {} }}
-                          className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-white text-sm ${isScheduledToday ? 'bg-yellow-600/90 hover:bg-yellow-600' : 'bg-gray-300 dark:bg-gray-700 cursor-not-allowed'}`}
+                          className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-white text-sm ${isScheduledToday(h) ? 'bg-yellow-600/90 hover:bg-yellow-600' : 'bg-gray-300 dark:bg-gray-700 cursor-not-allowed'}`}
                         >
                           <SkipForward className="h-4 w-4" /> Skip
                         </button>
                         <button
                           onClick={async (e) => { e.stopPropagation(); handleStatusToast('done'); try { await logHabit(h._id, 'done'); } catch {} }}
-                          className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-white text-sm ${isScheduledToday ? 'bg-green-600/90 hover:bg-green-600' : 'bg-gray-300 dark:bg-gray-700 cursor-not-allowed'}`}
+                          className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-white text-sm ${isScheduledToday(h) ? 'bg-green-600/90 hover:bg-green-600' : 'bg-gray-300 dark:bg-gray-700 cursor-not-allowed'}`}
                         >
                           <CheckCircle className="h-4 w-4" /> Done
                         </button>
@@ -824,14 +847,14 @@ const DashboardPage = () => {
                         <div className="flex items-center justify-end gap-2 pt-2">
                           <button
                             onClick={async (e) => { e.stopPropagation(); handleStatusToast('skipped'); try { const target = base || await ensurePersonalHabit(it); if (target?._id) await logHabit(target._id, 'skipped'); } catch {} }}
-                            className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-white text-sm ${isScheduledToday ? 'bg-yellow-600/90 hover:bg-yellow-600' : 'bg-gray-300 dark:bg-gray-700 cursor-not-allowed'}`}
+                            className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-white text-sm ${isScheduledToday(h) ? 'bg-yellow-600/90 hover:bg-yellow-600' : 'bg-gray-300 dark:bg-gray-700 cursor-not-allowed'}`}
                             disabled={false}
                           >
                             <SkipForward className="h-4 w-4" /> Skip
                           </button>
                           <button
                             onClick={async (e) => { e.stopPropagation(); handleStatusToast('done'); try { const target = base || await ensurePersonalHabit(it); if (target?._id) await logHabit(target._id, 'done'); } catch {} }}
-                            className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-white text-sm ${isScheduledToday ? 'bg-green-600/90 hover:bg-green-600' : 'bg-gray-300 dark:bg-gray-700 cursor-not-allowed'}`}
+                            className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-white text-sm ${isScheduledToday(h) ? 'bg-green-600/90 hover:bg-green-600' : 'bg-gray-300 dark:bg-gray-700 cursor-not-allowed'}`}
                             disabled={false}
                           >
                             <CheckCircle className="h-4 w-4" /> Done

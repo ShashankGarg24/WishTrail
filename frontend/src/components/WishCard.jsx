@@ -136,7 +136,7 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
 
   const progressPercent = typeof wish?.progress?.percent === 'number' ? Math.max(0, Math.min(100, wish.progress.percent)) : null
   const hasDivision = ((wish?.subGoals?.length || 0) + (wish?.habitLinks?.length || 0)) > 0
-  const isCommunityMirror = wish?.isLocked === true && wish?.category === 'Community'
+  const isCommunityMirror = !!(wish?.communityInfo || (wish?.isLocked === true && wish?.category === 'Community'))
 
   return (
     <motion.div
@@ -197,7 +197,7 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
         {/* Only show edit/delete for own goals */}
         {isViewingOwnGoals && (
         <div className="flex items-center space-x-2">
-          {/* Only show edit button for uncompleted goals */}
+          {/* Only show edit button for uncompleted goals (not for community goals) */}
           {!wish.completed && !isCommunityMirror && (
             <button
               onClick={(e) => { e.stopPropagation(); handleEdit(); }}

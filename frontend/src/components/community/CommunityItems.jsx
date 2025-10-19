@@ -162,6 +162,7 @@ function ItemAnalyticsModal({ open, onClose, analytics }) {
                 <th className="text-left px-3 py-2">User</th>
                 <th className="text-left px-3 py-2">Status</th>
                 <th className="text-left px-3 py-2">Progress</th>
+                <th className="text-left px-3 py-2">Details</th>
               </tr>
             </thead>
             <tbody>
@@ -179,16 +180,34 @@ function ItemAnalyticsModal({ open, onClose, analytics }) {
                   <td className="px-3 py-2">
                     <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800">{r.status}</span>
                   </td>
-                  <td className="px-3 py-2 w-[40%]">
+                  <td className="px-3 py-2 w-[30%]">
                     <div className="h-2 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
                       <div className="h-full bg-blue-600" style={{ width: `${r.progressPercent || 0}%` }} />
                     </div>
+                  </td>
+                  <td className="px-3 py-2 text-xs w-[40%]">
+                    {analytics?.item?.type === 'habit' ? (
+                      <div className="space-y-1">
+                        <div className="text-gray-600 dark:text-gray-300">Streak: <span className="font-medium">{r?.habit?.currentStreak || 0}</span> / Best <span className="font-medium">{r?.habit?.longestStreak || 0}</span></div>
+                        <div className="text-gray-600 dark:text-gray-300">Last {analytics?.windowDays || 30}d — Done <span className="font-medium">{r?.habit?.totals?.done || 0}</span>, Missed <span className="font-medium">{r?.habit?.totals?.missed || 0}</span>, Skipped <span className="font-medium">{r?.habit?.totals?.skipped || 0}</span></div>
+                      </div>
+                    ) : (
+                      <div className="space-y-1">
+                        <div className="text-gray-600 dark:text-gray-300">{r?.goal?.completed ? 'Completed' : 'In progress'}{typeof r?.goal?.percent === 'number' ? ` • ${Math.round(r.goal.percent)}%` : ''}</div>
+                        {Array.isArray(r?.goal?.breakdown?.subGoals) && r.goal.breakdown.subGoals.length > 0 && (
+                          <div className="text-gray-500">Sub-goals: {r.goal.breakdown.subGoals.filter(s => s.completed).length}/{r.goal.breakdown.subGoals.length}</div>
+                        )}
+                        {analytics?.item?.participationType === 'collaborative' && typeof r?.contributionPercent === 'number' && (
+                          <div className="text-gray-600 dark:text-gray-300">Contribution: <span className="font-medium">{Math.round(r.contributionPercent)}%</span></div>
+                        )}
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))}
               {rows.length === 0 && (
                 <tr>
-                  <td className="px-3 py-3 text-sm text-gray-500" colSpan={3}>No participants yet.</td>
+                  <td className="px-3 py-3 text-sm text-gray-500" colSpan={4}>No participants yet.</td>
                 </tr>
               )}
             </tbody>

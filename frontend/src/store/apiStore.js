@@ -40,6 +40,7 @@ const useApiStore = create(
       // Goals
       goals: [],
       goalsPagination: null,
+      communityGoalsByYear: {},
       
       // Users
       users: [],
@@ -80,6 +81,8 @@ const useApiStore = create(
       cacheHabitsTs: 0,
       habitAnalytics: null,
       cacheHabitAnalyticsTs: 0,
+      habitStats: null,
+      cacheHabitStatsTs: 0,
       // UI state
       settingsModalOpen: false,
       // Feature flags (web)
@@ -586,6 +589,23 @@ const useApiStore = create(
           return { success: false, error: handleApiError(error) };
         }
       },
+
+      loadHabitStats: async (opts = {}) => {
+        try {
+          const force = !!opts.force;
+          const ts = get().cacheHabitStatsTs || 0;
+          const ttl = get().cacheTTLs.habitAnalytics; // reuse TTL
+          if (!force && ts && Date.now() - ts < ttl && get().habitStats) {
+            return { success: true, data: get().habitStats };
+          }
+          const res = await habitsAPI.stats();
+          const data = res?.data?.data?.stats || res?.data?.data || null;
+          set({ habitStats: data, cacheHabitStatsTs: Date.now() });
+          return { success: true, data };
+        } catch (error) {
+          return { success: false, error: handleApiError(error) };
+        }
+      },
       
       // =====================
       // GOALS ACTIONS
@@ -612,6 +632,28 @@ const useApiStore = create(
           const errorMessage = handleApiError(error);
           set({ loading: false, error: errorMessage });
           return { success: false, error: errorMessage };
+        }
+      },
+
+      // Fetch community goals separately, unpaged for current year, then cache by year
+      loadCommunityGoalsForYear: async (year, opts = {}) => {
+        try {
+          if (!year) return { success: true, goals: [] };
+          const force = !!opts.force;
+          const bucket = get().communityGoalsByYear || {};
+          const entry = bucket[String(year)];
+          const fresh = entry && Array.isArray(entry.goals) && entry.ts && (Date.now() - entry.ts < get().cacheTTLs.goals);
+          if (!force && fresh) {
+            return { success: true, goals: entry.goals };
+          }
+          // Pull large page to approximate all
+          const res = await goalsAPI.getGoals({ year, communityOnly: true, page: 1, limit: 1000 });
+          const goals = res?.data?.data?.goals || [];
+          const next = { ...(get().communityGoalsByYear || {}), [String(year)]: { goals, ts: Date.now() } };
+          set({ communityGoalsByYear: next });
+          return { success: true, goals };
+        } catch (error) {
+          return { success: false, error: handleApiError(error) };
         }
       },
 

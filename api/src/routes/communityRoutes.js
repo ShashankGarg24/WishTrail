@@ -17,6 +17,7 @@ router.patch('/:id', protect, requireFeature('community'), controller.updateComm
 // Detail
 router.get('/:id', protect, requireFeature('community'), controller.getCommunity);
 router.get('/:id/dashboard', protect, requireFeature('community'), controller.getDashboard);
+router.get('/:id/analytics', protect, requireFeature('community'), controller.getAnalytics);
 router.get('/:id/feed', protect, requireFeature('community'), controller.feed);
 router.post('/:id/chat', protect, requireFeature('community'), async (req, res, next) => {
   try {

@@ -11,6 +11,8 @@ const Notification = require('../models/Notification');
 const User = require('../models/User');
 const Goal = require('../models/Goal');
 const Habit = require('../models/Habit');
+const HabitLog = require('../models/HabitLog');
+const goalDivisionService = require('./goalDivisionService');
 
 async function createCommunity(ownerId, payload) {
   const session = await mongoose.startSession();
@@ -109,11 +111,186 @@ async function updateCommunity(requesterId, communityId, payload) {
 async function getCommunityDashboard(communityId) {
   const community = await Community.findById(communityId).lean();
   if (!community || !community.isActive) throw Object.assign(new Error('Community not found'), { statusCode: 404 });
-  // Simple aggregation placeholder; can be expanded later
-  const stats = community.stats || { memberCount: 0, totalPoints: 0, weeklyActivityCount: 0, completionRate: 0 };
+
+  const now = new Date();
+  const sevenDaysAgo = new Date(now);
+  sevenDaysAgo.setUTCDate(sevenDaysAgo.getUTCDate() - 7);
+  const sevenDaysKey = toDateKeyUTC(sevenDaysAgo);
+
+  // Community points: sum of points from completed personal goals linked to this community
+  const pointsAgg = await Goal.aggregate([
+    { $match: { 'communityInfo.communityId': community._id, isActive: true, completed: true } },
+    { $group: { _id: null, total: { $sum: { $ifNull: ['$pointsEarned', 0] } } } },
+    { $project: { _id: 0, total: 1 } }
+  ]);
+  const totalPoints = (pointsAgg[0]?.total) || 0;
+
+  // Weekly activity: goal completions last 7 days + habit 'done' logs for habits linked to this community last 7 days
+  const weeklyGoalCount = await Goal.countDocuments({ 'communityInfo.communityId': community._id, completed: true, completedAt: { $gte: sevenDaysAgo } });
+  const personalHabits = await Habit.find({ 'communityInfo.communityId': community._id, isActive: true }).select('_id').lean();
+  const habitIds = personalHabits.map(h => h._id);
+  const weeklyHabitDone = habitIds.length > 0
+    ? await HabitLog.countDocuments({ habitId: { $in: habitIds }, status: 'done', dateKey: { $gte: sevenDaysKey } })
+    : 0;
+  const weeklyActivityCount = weeklyGoalCount + weeklyHabitDone;
+
+  // Completion rate: fraction of completed personal goals linked to this community (all-time)
+  const totalCommunityGoals = await Goal.countDocuments({ 'communityInfo.communityId': community._id, isActive: true });
+  const completedCommunityGoals = totalCommunityGoals > 0
+    ? await Goal.countDocuments({ 'communityInfo.communityId': community._id, isActive: true, completed: true })
+    : 0;
+  const completionRate = totalCommunityGoals === 0 ? 0 : Math.min(100, Math.round((completedCommunityGoals / totalCommunityGoals) * 100));
+
+  const memberCount = community?.stats?.memberCount || 0;
+
+  const stats = { memberCount, totalPoints, weeklyActivityCount, completionRate };
   const highlights = [];
-  if ((stats.completionRate || 0) >= 75) highlights.push('Community hit 75% of shared goals this week 🎉');
+  if ((stats.completionRate || 0) >= 75) highlights.push('Community hit 75% of shared goals 🎉');
+  if (weeklyActivityCount >= 50) highlights.push('High activity this week!');
   return { stats, highlights };
+}
+
+// Helpers for weekly bucketing (ISO week starting Monday in UTC)
+function startOfWeekUTC(date) {
+  const d = new Date(date);
+  d.setUTCHours(0,0,0,0);
+  const dow = d.getUTCDay(); // 0=Sun..6=Sat
+  const diff = (dow + 6) % 7; // days since Monday
+  d.setUTCDate(d.getUTCDate() - diff);
+  return d;
+}
+
+function toDateKeyUTC(date) {
+  const d = new Date(date);
+  d.setUTCHours(0,0,0,0);
+  return d.toISOString().split('T')[0];
+}
+
+async function getCommunityAnalytics(communityId, { weeks = 12 } = {}) {
+  const community = await Community.findById(communityId).lean();
+  if (!community || !community.isActive) throw Object.assign(new Error('Community not found'), { statusCode: 404 });
+
+  const items = await CommunityItem.find({ communityId, status: 'approved', isActive: true })
+    .select('_id type sourceId participationType title')
+    .lean();
+  const itemIds = items.map(i => i._id);
+  const goalItems = items.filter(i => i.type === 'goal');
+  const habitItems = items.filter(i => i.type === 'habit');
+
+  const parts = await CommunityParticipation.find({ communityId, status: 'joined' })
+    .select('userId itemId type progressPercent')
+    .lean();
+  const uniqueParticipants = new Set(parts.map(p => String(p.userId)));
+  const goalParticipants = new Set(parts.filter(p => p.type === 'goal').map(p => String(p.userId)));
+  const habitParticipants = new Set(parts.filter(p => p.type === 'habit').map(p => String(p.userId)));
+
+  // Time window: last N weeks
+  const cappedWeeks = Math.max(1, Math.min(52, parseInt(weeks) || 12));
+  const now = new Date();
+  const thisWeekStart = startOfWeekUTC(now);
+  const oldest = new Date(thisWeekStart);
+  oldest.setUTCDate(oldest.getUTCDate() - (cappedWeeks - 1) * 7);
+  const oldestKey = toDateKeyUTC(oldest);
+
+  // Goals: completions linked to this community
+  const goalMatch = { 'communityInfo.communityId': community._id, completed: true, completedAt: { $gte: oldest }, isActive: true };
+  const completedGoals = await Goal.find(goalMatch).select('completedAt userId pointsEarned').lean();
+
+  // Habits: personal copies linked to this community, then logs in range
+  const personalHabits = await Habit.find({ 'communityInfo.communityId': community._id, isActive: true })
+    .select('_id userId currentStreak longestStreak lastLoggedDateKey')
+    .lean();
+  const habitIds = personalHabits.map(h => h._id);
+  let habitLogs = [];
+  if (habitIds.length > 0) {
+    habitLogs = await HabitLog.find({ habitId: { $in: habitIds }, status: 'done', dateKey: { $gte: oldestKey } })
+      .select('dateKey habitId userId')
+      .lean();
+  }
+
+  // Build weekly bins
+  const bins = [];
+  for (let i = cappedWeeks - 1; i >= 0; i--) {
+    const d = new Date(thisWeekStart);
+    d.setUTCDate(d.getUTCDate() - i * 7);
+    const key = toDateKeyUTC(d);
+    bins.push({ weekStart: key, count: 0 });
+  }
+  const idxByKey = new Map(bins.map((b, i) => [b.weekStart, i]));
+
+  // Tally goal completions per week
+  for (const g of completedGoals) {
+    const wk = startOfWeekUTC(g.completedAt);
+    const key = toDateKeyUTC(wk);
+    const idx = idxByKey.get(key);
+    if (idx != null) bins[idx].count += 1;
+  }
+  // Tally habit 'done' logs per week
+  for (const l of habitLogs) {
+    const d = new Date(l.dateKey + 'T00:00:00.000Z');
+    const wk = startOfWeekUTC(d);
+    const key = toDateKeyUTC(wk);
+    const idx = idxByKey.get(key);
+    if (idx != null) bins[idx].count += 1;
+  }
+
+  // Today activity snapshot
+  const todayKey = toDateKeyUTC(new Date());
+  const todaysHabitUserSet = new Set(habitLogs.filter(l => l.dateKey === todayKey).map(l => String(l.userId)));
+  const completedGoalsTotal = completedGoals.length;
+
+  // Leaderboard (last N weeks): points = goal points + habit done count
+  const userPoints = new Map();
+  for (const g of completedGoals) {
+    const k = String(g.userId);
+    const curr = userPoints.get(k) || { points: 0, goalCompletions: 0, habitDones: 0 };
+    // Points are from community-linked goal completions only
+    curr.points += Math.max(0, g.pointsEarned || 0);
+    curr.goalCompletions += 1;
+    userPoints.set(k, curr);
+  }
+  for (const l of habitLogs) {
+    const k = String(l.userId);
+    const curr = userPoints.get(k) || { points: 0, goalCompletions: 0, habitDones: 0 };
+    // Track habit activity separately, but do not add to points
+    curr.habitDones += 1;
+    userPoints.set(k, curr);
+  }
+  const userIds = Array.from(userPoints.keys()).map(id => new mongoose.Types.ObjectId(id));
+  const users = userIds.length > 0
+    ? await User.find({ _id: { $in: userIds } }).select('name username avatar').lean()
+    : [];
+  const userById = new Map(users.map(u => [String(u._id), u]));
+  const topContributors = Array.from(userPoints.entries())
+    .map(([userId, v]) => ({
+      userId,
+      user: userById.get(userId) || null,
+      points: v.points,
+      goalCompletions: v.goalCompletions,
+      habitDones: v.habitDones
+    }))
+    .sort((a,b) => b.points - a.points)
+    .slice(0, 10);
+
+  return {
+    totals: {
+      members: community?.stats?.memberCount || 0,
+      items: { goals: goalItems.length, habits: habitItems.length },
+      participants: uniqueParticipants.size,
+      goals: { completedInPeriod: completedGoalsTotal },
+      habits: { activeToday: todaysHabitUserSet.size }
+    },
+    series: {
+      weeklyActivity: bins
+    },
+    leaderboard: {
+      topContributors
+    },
+    snapshot: {
+      goals: { items: goalItems.length, participants: goalParticipants.size },
+      habits: { items: habitItems.length, participants: habitParticipants.size }
+    }
+  };
 }
 
 async function listCommunityItems(communityId) {
@@ -766,10 +943,22 @@ async function getItemProgress(userId, communityId, itemId) {
   if (!item) throw Object.assign(new Error('Item not found'), { statusCode: 404 });
   let personal = 0;
   if (item.type === 'goal') {
-    const g = await Goal.findById(item.sourceId).select('completed subGoals habitLinks').lean();
-    if (g) {
-      // For individual: personal progress; collaborative: contributions are aggregated below
-      if (item.participationType !== 'collaborative') {
+    // Prefer the user's personal copy for accurate progress
+    const personalGoal = await Goal.findOne({ userId, 'communityInfo.communityId': communityId, 'communityInfo.itemId': itemId, isActive: true })
+      .select('_id completed')
+      .lean();
+    if (personalGoal) {
+      if (personalGoal.completed) personal = 100;
+      else {
+        try {
+          const prog = await goalDivisionService.computeGoalProgress(personalGoal._id, userId);
+          personal = Math.max(0, Math.min(100, Math.round(prog?.percent || 0)));
+        } catch (_) { personal = 0; }
+      }
+    } else {
+      // Fallback: estimate from source structure
+      const g = await Goal.findById(item.sourceId).select('completed subGoals habitLinks').lean();
+      if (g) {
         if (g.completed) personal = 100; else {
           const total = (g.subGoals?.length || 0) + (g.habitLinks?.length || 0) || 1;
           const done = (g.subGoals || []).filter(s => s.completed).length;
@@ -799,7 +988,7 @@ async function getItemProgress(userId, communityId, itemId) {
   return { personal, community: communityProgress };
 }
 
-async function getItemAnalytics(communityId, itemId) {
+async function getItemAnalytics(communityId, itemId, { days = 30 } = {}) {
   const item = await CommunityItem.findOne({ _id: itemId, communityId, status: 'approved', isActive: true }).lean();
   if (!item) throw Object.assign(new Error('Item not found'), { statusCode: 404 });
 
@@ -810,9 +999,61 @@ async function getItemAnalytics(communityId, itemId) {
     : [];
   const userById = new Map(users.map(u => [String(u._id), u]));
 
-  const rows = parts.map(p => {
+  // Time window for habit logs
+  const windowDays = Math.max(1, Math.min(180, parseInt(days) || 30));
+  const from = new Date();
+  from.setUTCDate(from.getUTCDate() - windowDays);
+  const fromKey = toDateKeyUTC(from);
+
+  const rows = [];
+  for (const p of parts) {
     const u = userById.get(String(p.userId));
-    const progress = Math.max(0, Math.min(100, Math.round(p.progressPercent || 0)));
+    let progress = 0;
+    const details = {};
+    if (item.type === 'habit') {
+      // Find participant's personal habit copy
+      const personalHabit = await Habit.findOne({ userId: p.userId, isActive: true, 'communityInfo.itemId': item._id })
+        .select('_id currentStreak longestStreak totalCompletions lastLoggedDateKey')
+        .lean();
+      if (personalHabit) {
+        const denom = Math.max(1, personalHabit.longestStreak || 1);
+        progress = Math.min(100, Math.round(((personalHabit.currentStreak || 0) / denom) * 100));
+        const logs = await HabitLog.find({ userId: p.userId, habitId: personalHabit._id, dateKey: { $gte: fromKey } }).select('status').lean();
+        const totals = { done: 0, missed: 0, skipped: 0 };
+        for (const l of logs) {
+          if (l.status === 'done') totals.done++; else if (l.status === 'missed') totals.missed++; else totals.skipped++;
+        }
+        details.habit = {
+          currentStreak: personalHabit.currentStreak || 0,
+          longestStreak: personalHabit.longestStreak || 0,
+          totals
+        };
+      } else {
+        details.habit = { currentStreak: 0, longestStreak: 0, totals: { done: 0, missed: 0, skipped: 0 } };
+      }
+    } else {
+      // goal
+      const personalGoal = await Goal.findOne({ userId: p.userId, isActive: true, 'communityInfo.itemId': item._id })
+        .select('_id completed')
+        .lean();
+      if (personalGoal) {
+        if (personalGoal.completed) progress = 100; else {
+          try {
+            const prog = await goalDivisionService.computeGoalProgress(personalGoal._id, p.userId);
+            progress = Math.max(0, Math.min(100, Math.round(prog?.percent || 0)));
+            details.goal = { completed: !!personalGoal.completed, percent: prog?.percent || 0, breakdown: prog?.breakdown || null };
+          } catch (_) {
+            details.goal = { completed: !!personalGoal.completed, percent: 0, breakdown: null };
+          }
+        }
+      } else {
+        details.goal = { completed: false, percent: 0, breakdown: null };
+      }
+      if (item.participationType === 'collaborative') {
+        details.contributionPercent = progress;
+      }
+    }
+
     let status = 'in_progress';
     if (item.type === 'goal') {
       if (item.participationType === 'collaborative') {
@@ -821,16 +1062,17 @@ async function getItemAnalytics(communityId, itemId) {
         status = progress >= 100 ? 'completed' : 'in_progress';
       }
     } else {
-      // habit
       status = progress > 0 ? 'active' : 'pending';
     }
-    return {
+
+    rows.push({
       userId: String(p.userId),
       user: u ? { _id: String(u._id), name: u.name, username: u.username, avatar: u.avatar } : null,
       progressPercent: progress,
-      status
-    };
-  });
+      status,
+      ...details
+    });
+  }
 
   let aggregate = 0;
   if (item.type === 'goal' && item.participationType === 'collaborative') {
@@ -1085,6 +1327,7 @@ module.exports = {
   discoverCommunities,
   getCommunitySummary,
   getCommunityDashboard,
+  getCommunityAnalytics,
   listCommunityItems,
   listPendingItems,
   suggestCommunityItem,

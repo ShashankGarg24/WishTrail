@@ -51,6 +51,13 @@ module.exports = {
       res.status(200).json({ success: true, data });
     } catch (e) { next(e); }
   },
+  async getAnalytics(req, res, next) {
+    try {
+      const weeks = Math.min(parseInt(req.query.weeks) || 12, 52);
+      const data = await communityService.getCommunityAnalytics(req.params.id, { weeks });
+      res.status(200).json({ success: true, data });
+    } catch (e) { next(e); }
+  },
   async listItems(req, res, next) {
     try {
       const data = await communityService.listCommunityItems(req.params.id);
@@ -119,7 +126,8 @@ module.exports = {
   },
   async getItemAnalytics(req, res, next) {
     try {
-      const result = await communityService.getItemAnalytics(req.params.id, req.params.itemId);
+      const days = Math.min(parseInt(req.query.days) || 30, 180);
+      const result = await communityService.getItemAnalytics(req.params.id, req.params.itemId, { days });
       res.status(200).json({ success: true, data: result });
     } catch (e) { next(e); }
   },

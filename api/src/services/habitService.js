@@ -200,14 +200,75 @@ async function getHeatmap(userId, habitId, { months = 3 } = {}) {
 }
 
 async function getStats(userId) {
-  const habits = await Habit.find({ userId, isActive: true, isArchived: false }).lean();
-  const total = habits.length;
-  const streaks = habits.reduce((acc, h) => ({
-    totalCurrent: acc.totalCurrent + (h.currentStreak || 0),
-    best: Math.max(acc.best, h.longestStreak || 0),
-  }), { totalCurrent: 0, best: 0 });
-  const avgConsistency = habits.length === 0 ? 0 : Math.round(habits.reduce((s, h) => s + computeConsistency(h.totalCompletions || 0, h.createdAt), 0) / habits.length);
-  return { totalHabits: total, totalCurrentStreak: streaks.totalCurrent, bestStreak: streaks.best, avgConsistency };
+  // Use aggregation to compute stats efficiently in MongoDB
+  const dayMs = 24 * 60 * 60 * 1000;
+  const stats = await Habit.aggregate([
+    { $match: { userId: new mongoose.Types.ObjectId(userId), isActive: true, isArchived: false } },
+    {
+      $project: {
+        currentStreak: { $ifNull: ["$currentStreak", 0] },
+        longestStreak: { $ifNull: ["$longestStreak", 0] },
+        totalCompletions: { $ifNull: ["$totalCompletions", 0] },
+        createdAt: 1,
+        daysSince: {
+          $max: [
+            1,
+            {
+              $ceil: {
+                $divide: [
+                  { $subtract: ["$$NOW", "$createdAt"] },
+                  dayMs
+                ]
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      $project: {
+        currentStreak: 1,
+        longestStreak: 1,
+        consistency: {
+          $min: [
+            100,
+            {
+              $round: [
+                {
+                  $multiply: [
+                    { $cond: [{ $gt: ["$daysSince", 0] }, { $divide: ["$totalCompletions", "$daysSince"] }, 0] },
+                    100
+                  ]
+                },
+                0
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      $group: {
+        _id: null,
+        totalHabits: { $sum: 1 },
+        totalCurrentStreak: { $sum: "$currentStreak" },
+        bestStreak: { $max: "$longestStreak" },
+        avgConsistency: { $avg: "$consistency" }
+      }
+    },
+    {
+      $project: {
+        _id: 0,
+        totalHabits: 1,
+        totalCurrentStreak: 1,
+        bestStreak: 1,
+        avgConsistency: { $ifNull: [{ $round: ["$avgConsistency", 0] }, 0] }
+      }
+    }
+  ]);
+
+  const result = stats[0] || { totalHabits: 0, totalCurrentStreak: 0, bestStreak: 0, avgConsistency: 0 };
+  return result;
 }
 
 // Timezone-aware reminder: build local time from habit.timezone and compare to current UTC
