@@ -406,12 +406,12 @@ export default function CommunityDetailPage() {
           ))}
           {feed.length === 0 && <div className="text-sm text-gray-500">No activity yet.</div>}
           </div>
-          <div className="sticky bottom-[72px] md:bottom-0 w-full px-0 pt-2 bg-gradient-to-t from-white/90 dark:from-gray-900/90 to-transparent">
+          {/* <div className="sticky bottom-[72px] md:bottom-0 w-full px-0 pt-2 bg-gradient-to-t from-white/90 dark:from-gray-900/90 to-transparent">
             <div className="flex items-center gap-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl px-3 py-2 shadow-sm mx-0">
               <input ref={chatInputRef} value={chatText} onChange={e => setChatText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') sendChat() }} placeholder="Message…" className="flex-1 px-2 py-2 rounded-md outline-none bg-transparent text-sm" />
               <button onClick={sendChat} className="px-3 py-2 rounded-lg bg-blue-600 text-white text-sm">Send</button>
             </div>
-          </div>
+          </div> */}
         </div>
       )}
 
