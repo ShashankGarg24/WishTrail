@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import useApiStore from '../store/apiStore'
 import { motion } from 'framer-motion'
-import CreateHabitModal from './CreateHabitModal'
-import CreateWishModal from './CreateWishModal'
+const CreateHabitModal = lazy(() => import('./CreateHabitModal'));
+const CreateWishModal = lazy(() => import('./CreateWishModal'));
 import { ChevronDown, ChevronRight, Trash2, Plus, Link} from 'lucide-react'
 
 export default function GoalDivisionEditor({ goal, habits, onClose, draftMode = false, renderInline = false, value, onChange }) {
@@ -238,7 +238,8 @@ export default function GoalDivisionEditor({ goal, habits, onClose, draftMode = 
         )}
       </motion.div>
       {isCreateHabitOpen && (
-        <CreateHabitModal
+        <Suspense fallback={null}>
+          <CreateHabitModal
           isOpen={isCreateHabitOpen}
           onClose={() => setIsCreateHabitOpen(false)}
           onCreated={(habit) => {
@@ -257,10 +258,12 @@ export default function GoalDivisionEditor({ goal, habits, onClose, draftMode = 
           }}
           initialData={{}}
         />
+        </Suspense>
       )}
       {/* Inline create goal modal for sub-goal creation and linking */}
       {isCreateGoalOpen && (
-        <CreateWishModal
+        <Suspense fallback={null}>
+         <CreateWishModal
           isOpen={isCreateGoalOpen}
           onClose={() => { setIsCreateGoalOpen(false); setPendingLinkIndex(null); }}
           onSave={async (goalData) => {
@@ -278,6 +281,7 @@ export default function GoalDivisionEditor({ goal, habits, onClose, draftMode = 
           year={new Date().getFullYear()}
           initialData={{}}
         />
+        </Suspense>
       )}
       </>
   )

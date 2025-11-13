@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import { motion } from 'framer-motion'
 import { X, CheckCircle, AlertCircle, FileText, Share2, Lock, Globe, Image as ImageIcon } from 'lucide-react'
 import useApiStore from '../store/apiStore'
-import CelebrationModal from './CelebrationModal'
+const CelebrationModal = lazy(() => import('./CelebrationModal'));
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
 
 const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal }) => {
@@ -130,13 +130,15 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal }) => {
   // Show celebration modal after completion
   if (showCelebration) {
     return (
-      <CelebrationModal
+      <Suspense fallback={null}>
+        <CelebrationModal
         wish={goal}
         isOpen={showCelebration}
         onClose={handleCelebrationClose}
         goalTitle={goalTitle}
         pointsEarned={goal?.pointsEarned || 0}
       />
+      </Suspense>
     )
   }
 

@@ -1,8 +1,8 @@
 import { motion } from 'framer-motion'
-import { useRef } from 'react'
+import { lazy, Suspense, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { Star, ArrowRight, Play, Users, Youtube, Instagram, Activity, BarChart3, Trophy, BookOpen, ChevronLeft, ChevronRight, Newspaper, Search } from 'lucide-react'
-import VideoEmbedGrid from '../components/VideoEmbedGrid'
+const VideoEmbedGrid = lazy(() => import('../components/VideoEmbedGrid'));
 import useApiStore from '../store/apiStore'
 
 const HomePage = () => {
@@ -247,7 +247,7 @@ const HomePage = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
           >
-            <VideoEmbedGrid />
+            <Suspense fallback={null}><VideoEmbedGrid /></Suspense>
           </motion.div>
         </div>
       </section>

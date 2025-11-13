@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, RefreshCw } from 'lucide-react'
-import HabitSuggestions from './HabitSuggestions'
+const HabitSuggestions = lazy(() => import('./HabitSuggestions'));
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
 
 const HabitSuggestionsModal = ({ isOpen, onClose, interests = [], onSelect, limit = 6, title = 'Habit Suggestions' }) => {
@@ -52,7 +52,7 @@ const HabitSuggestionsModal = ({ isOpen, onClose, interests = [], onSelect, limi
           <div className="mt-2 text-sm text-gray-600 dark:text-gray-400 mb-4">
             Pick a habit idea and customize the details. You can always edit or add more later.
           </div>
-          <HabitSuggestions
+          <Suspense fallback={null}><HabitSuggestions
             key={shuffleVersion}
             interests={interests}
             onSelect={(h) => { onSelect?.(h); onClose?.() }}
@@ -62,7 +62,7 @@ const HabitSuggestionsModal = ({ isOpen, onClose, interests = [], onSelect, limi
             limit={limit}
             containerClassName="mt-0"
             innerContainerClassName="w-full"
-          />
+          /></Suspense>
         </motion.div>
       </motion.div>
     </AnimatePresence>

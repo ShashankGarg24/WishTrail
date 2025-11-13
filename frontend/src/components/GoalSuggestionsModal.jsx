@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, RefreshCw } from 'lucide-react'
-import GoalSuggestions from './GoalSuggestions'
+const GoalSuggestions = lazy(() => import('./GoalSuggestions'));
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
 
 const GoalSuggestionsModal = ({ isOpen, onClose, interests = [], onSelect, limit = 6, title = 'Goal Suggestions' }) => {
@@ -52,7 +52,7 @@ const GoalSuggestionsModal = ({ isOpen, onClose, interests = [], onSelect, limit
           <div className="mt-2 text-sm text-gray-600 dark:text-gray-400 mb-4">
             Not sure where to start? Pick any idea and customize it. You can always edit or add more goals later.
           </div>
-          <GoalSuggestions
+          <Suspense fallback={null}><GoalSuggestions
             key={shuffleVersion}
             interests={interests}
             onSelect={(g) => { onSelect?.(g); onClose?.() }}
@@ -62,7 +62,7 @@ const GoalSuggestionsModal = ({ isOpen, onClose, interests = [], onSelect, limit
             limit={limit}
             containerClassName="mt-0"
             innerContainerClassName="w-full"
-          />
+          /></Suspense>
         </motion.div>
       </motion.div>
     </AnimatePresence>

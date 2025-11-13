@@ -1,17 +1,17 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, lazy, Suspense } from 'react'
 import { motion } from 'framer-motion'
 import { Plus, Calendar, Target, CheckCircle, Circle, Star, Award, Lightbulb, Clock, XCircle, SkipForward, Activity, Compass } from 'lucide-react'
-import HabitDetailModal from '../components/HabitDetailModal'
-import CreateHabitModal from '../components/CreateHabitModal'
-import EditHabitModal from '../components/EditHabitModal'
+const HabitDetailModal = lazy(() => import('../components/HabitDetailModal'));
+const CreateHabitModal = lazy(() => import('../components/CreateHabitModal'));
+const EditHabitModal = lazy(() => import('../components/EditHabitModal'));
 import useApiStore from '../store/apiStore'
-import CreateGoalWizard from '../components/CreateGoalWizard'
-import WishCard from '../components/WishCard'
-import GoalSuggestionsModal from '../components/GoalSuggestionsModal'
-import HabitSuggestionsModal from '../components/HabitSuggestionsModal'
+const CreateGoalWizard = lazy(() => import('../components/CreateGoalWizard'));
+const WishCard = lazy(() => import('../components/WishCard'));
+const GoalSuggestionsModal = lazy(() => import('../components/GoalSuggestionsModal'));
+const HabitSuggestionsModal = lazy(() => import('../components/HabitSuggestionsModal'));
 import { API_CONFIG } from '../config/api'
 import { communitiesAPI, habitsAPI } from '../services/api'
-import GoalPostModal from '../components/GoalPostModal'
+const GoalPostModal = lazy(() => import('../components/GoalPostModal'));
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
 
@@ -904,27 +904,27 @@ const DashboardPage = () => {
 
       {/* Create Goal Modal */}
       {isCreateModalOpen && (
-        <CreateGoalWizard isOpen={isCreateModalOpen} onClose={() => { setIsCreateModalOpen(false); setInitialGoalData(null) }} year={selectedYear} initialData={initialGoalData} />
+        <Suspense fallback={null}><CreateGoalWizard isOpen={isCreateModalOpen} onClose={() => { setIsCreateModalOpen(false); setInitialGoalData(null) }} year={selectedYear} initialData={initialGoalData} /></Suspense>
       )}
 
       {/* Goal Suggestions Modal */}
       {isSuggestionsOpen && (
-        <GoalSuggestionsModal isOpen={isSuggestionsOpen} onClose={() => setIsSuggestionsOpen(false)} interests={userInterests} onSelect={openPrefilledCreateModal} limit={6} title="Goal Suggestions" />
+        <Suspense fallback={null}><GoalSuggestionsModal isOpen={isSuggestionsOpen} onClose={() => setIsSuggestionsOpen(false)} interests={userInterests} onSelect={openPrefilledCreateModal} limit={6} title="Goal Suggestions" /></Suspense>
       )}
 
       {/* Habit Suggestions Modal */}
       {isHabitIdeasOpen && (
-        <HabitSuggestionsModal isOpen={isHabitIdeasOpen} onClose={() => setIsHabitIdeasOpen(false)} interests={userInterests} onSelect={openPrefilledHabitModal} limit={6} title="Habit Suggestions" />
+        <Suspense fallback={null}><HabitSuggestionsModal isOpen={isHabitIdeasOpen} onClose={() => setIsHabitIdeasOpen(false)} interests={userInterests} onSelect={openPrefilledHabitModal} limit={6} title="Habit Suggestions" /></Suspense>
       )}
 
       {/* Create Habit Modal */}
       {isHabitModalOpen && (
-        <CreateHabitModal isOpen={isHabitModalOpen} onClose={() => { setIsHabitModalOpen(false); setInitialHabitData(null) }} onCreated={handleHabitCreated} initialData={initialHabitData} />
+        <Suspense fallback={null}><CreateHabitModal isOpen={isHabitModalOpen} onClose={() => { setIsHabitModalOpen(false); setInitialHabitData(null) }} onCreated={handleHabitCreated} initialData={initialHabitData} /></Suspense>
       )}
 
       {/* Edit Habit Modal */}
       {isEditHabitOpen && (
-        <EditHabitModal
+        <Suspense fallback={null}><EditHabitModal
           isOpen={isEditHabitOpen}
           habit={selectedHabit}
           onClose={() => setIsEditHabitOpen(false)}
@@ -936,29 +936,30 @@ const DashboardPage = () => {
             }
             throw new Error(res?.error || 'Failed to update habit')
           }}
-        />
+        /></Suspense>
       )}
 
 
       {/* Habit Detail Modal */}
       {selectedHabit && (
-        <HabitDetailModal 
+        <Suspense fallback={null}><HabitDetailModal 
         isOpen={!!selectedHabit}
         habit={selectedHabit} 
         onClose={() => setSelectedHabit(null)} 
         onLog={handleHabitLog} 
         onEdit={() => setIsEditHabitOpen(true)} 
         onDelete={async () => { const res = await useApiStore.getState().deleteHabit(selectedHabit._id); if (res.success) { setSelectedHabit(null) } }} />
+        </Suspense>
       )}
 
       {/* Goal Post Modal (shared with Feed) */}
       {openGoalId && (
-        <GoalPostModal
+        <Suspense fallback={null}><GoalPostModal
           isOpen={!!openGoalId}
           goalId={openGoalId}
           autoOpenComments={scrollCommentsOnOpen}
           onClose={closeGoalModal}
-        />
+        /></Suspense>
       )}
     </div>
   )

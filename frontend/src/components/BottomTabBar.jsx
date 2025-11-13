@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Activity, Users, Trophy, BarChart3, User, Newspaper } from 'lucide-react'
 import useApiStore from '../store/apiStore'
-import AccountMenuSheet from './account/AccountMenuSheet'
+const AccountMenuSheet = lazy(() => import('./account/AccountMenuSheet'));
 
 const TabButton = ({ active, label, Icon, onClick, badge }) => (
   <button
@@ -75,7 +75,10 @@ const BottomTabBar = () => {
       </div>
 
       {isAuthenticated && (
-        <AccountMenuSheet open={accountOpen} onClose={() => setAccountOpen(false)} />)
+      <Suspense fallback={null}>
+        <AccountMenuSheet open={accountOpen} onClose={() => setAccountOpen(false)} />
+      </Suspense>
+        )
       }
     </>
   )

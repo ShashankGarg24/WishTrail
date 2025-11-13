@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, lazy, Suspense } from 'react'
 import { motion } from 'framer-motion'
 import { 
   X, 
@@ -15,7 +15,7 @@ import {
 } from 'lucide-react'
 import { createPortal } from 'react-dom'
 import html2canvas from 'html2canvas'
-import ShareableGoalCard from './ShareableGoalCard'
+const ShareableGoalCard = lazy(() => import('./ShareableGoalCard'));
 import useApiStore from '../store/apiStore'
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
 
@@ -240,11 +240,11 @@ const ShareModal = ({ isOpen, onClose, goal, user }) => {
         <div className="p-6">
           {/* Shareable Card */}
           <div className="mb-6 flex justify-center">
-            <ShareableGoalCard
+            <Suspense fallback={null}><ShareableGoalCard
               ref={cardRef}
               goal={goal}
               user={user}
-            />
+            /></Suspense>
           </div>
 
           {/* Action Buttons */}

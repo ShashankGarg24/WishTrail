@@ -1,19 +1,19 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, lazy, Suspense } from "react";
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Calendar, Target, TrendingUp, Star, Edit2, ExternalLink, Youtube, Instagram, MapPin, Globe, Trophy, BookOpen, Clock, CheckCircle, Circle, User, UserPlus, UserCheck, ArrowLeft, Lock, Sparkles, Download } from "lucide-react";
-import FollowListModal from "../components/FollowListModal";
+const FollowListModal = lazy(() => import("../components/FollowListModal"));
 import { motion } from "framer-motion";
 import useApiStore from "../store/apiStore";
 import { journalsAPI } from "../services/api";
 import { habitsAPI } from '../services/api';
-import ProfileEditModal from "../components/ProfileEditModal";
-import ReportModal from "../components/ReportModal";
-import BlockModal from "../components/BlockModal";
-import JournalPromptModal from "../components/JournalPromptModal";
-import JournalEntryModal from "../components/JournalEntryModal";
-import JournalExportModal from "../components/JournalExportModal";
-import HabitAnalyticsCard from "../components/HabitAnalyticsCard";
-import GoalPostModal from '../components/GoalPostModal'
+const ProfileEditModal = lazy(() => import("../components/ProfileEditModal"));
+const ReportModal = lazy(() => import("../components/ReportModal"));
+const BlockModal = lazy(() => import("../components/BlockModal"));
+const JournalPromptModal = lazy(() => import("../components/JournalPromptModal"));
+const JournalEntryModal = lazy(() => import("../components/JournalEntryModal"));
+const JournalExportModal = lazy(() => import("../components/JournalExportModal"));
+const HabitAnalyticsCard = lazy(() => import("../components/HabitAnalyticsCard"));
+const GoalPostModal = lazy(() => import('../components/GoalPostModal'));
 
 const ProfilePage = () => {
   const params = useParams();
@@ -582,7 +582,7 @@ const ProfilePage = () => {
               )}
 
           {/* Follow List Modal */}
-          <FollowListModal
+          <Suspense fallback={null}><FollowListModal
             isOpen={followModalOpen}
             onClose={() => setFollowModalOpen(false)}
             activeTab={followModalTab}
@@ -612,7 +612,7 @@ const ProfilePage = () => {
                 setFollowModalOpen(false)
               } catch {}
             }}
-          />
+          /></Suspense>
               {/* Action Button - Mobile */}
               <div className="block md:hidden">
                 {isOwnProfile ? (
@@ -1041,14 +1041,14 @@ const ProfilePage = () => {
         )}
         {/* Profile Edit Modal - only for own profile */}
         {isOwnProfile && (
-          <ProfileEditModal 
+          <Suspense fallback={null}><ProfileEditModal 
             isOpen={isEditModalOpen} 
             onClose={() => setIsEditModalOpen(false)} 
-          />
+          /></Suspense>
         )}
         {/* Journal Prompt Modal */}
         {isOwnProfile && (
-          <JournalPromptModal 
+          <Suspense fallback={null}><JournalPromptModal 
             isOpen={isJournalOpen} 
             onClose={() => setIsJournalOpen(false)} 
             onSubmitted={async () => {
@@ -1058,21 +1058,21 @@ const ProfilePage = () => {
                 await getUserJournalStats(currentUser?._id);
               } catch {}
             }}
-          />
+          /></Suspense>
         )}
         {exportOpen && (
-          <JournalExportModal isOpen={exportOpen} onClose={() => setExportOpen(false)} />
+          <Suspense fallback={null}><JournalExportModal isOpen={exportOpen} onClose={() => setExportOpen(false)} /></Suspense>
         )}
         {entryModalOpen && selectedEntry && (
-          <JournalEntryModal
+          <Suspense fallback={null}><JournalEntryModal
             isOpen={entryModalOpen}
             onClose={() => { setEntryModalOpen(false); setSelectedEntry(null); }}
             entry={selectedEntry}
-          />
+          /></Suspense>
         )}
       </div>
       {/* Report & Block Modals */}
-      <ReportModal
+      <Suspense fallback={null}><ReportModal
         isOpen={reportOpen}
         onClose={() => setReportOpen(false)}
         targetLabel={displayUser?.username ? `@${displayUser.username}` : 'user'}
@@ -1087,8 +1087,8 @@ const ProfilePage = () => {
           }
         }}
         onReportAndBlock={displayUser?._id ? async () => { await blockUser(displayUser._id); } : undefined}
-      />
-      <BlockModal
+      /></Suspense>
+      <Suspense fallback={null}><BlockModal
         isOpen={blockOpen}
         onClose={() => setBlockOpen(false)}
         username={displayUser?.username || 'this user'}
@@ -1100,15 +1100,15 @@ const ProfilePage = () => {
             setBlockOpen(false);
           }
         }}
-      />
+      /></Suspense>
       {/* Goal Post Modal (shared with Feed) */}
       {openGoalId && (
-        <GoalPostModal
+        <Suspense fallback={null}><GoalPostModal
           isOpen={!!openGoalId}
           goalId={openGoalId}
           autoOpenComments={scrollCommentsOnOpen}
           onClose={closeGoalModal}
-        />
+        /></Suspense>
       )}
     </div>
   );

@@ -1,12 +1,12 @@
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { motion } from 'framer-motion'
 import { CheckCircle, Circle, Edit2, Trash2, Calendar, Tag, Clock, Star, Heart, Lock, Share2 } from 'lucide-react'
 import useApiStore from '../store/apiStore'
-import CompletionModal from './CompletionModal'
-import ShareModal from './ShareModal'
-import GoalDivisionEditor from './GoalDivisionEditor'
-import CreateGoalWizard from './CreateGoalWizard'
+const CompletionModal = lazy(() => import('./CompletionModal'));
+const ShareModal = lazy(() => import('./ShareModal'));
+const GoalDivisionEditor = lazy(() => import('./GoalDivisionEditor'));
+const CreateGoalWizard = lazy(() => import('./CreateGoalWizard'));
 
 const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewingOwnGoals = true, onOpenGoal, footer, isReadOnly = false }) => {
   const { 
@@ -404,19 +404,19 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
       )}
       {/* Completion Modal - Rendered at document body level */}
       {isCompletionModalOpen && createPortal(
-        <CompletionModal
+        <Suspense fallback={null}><CompletionModal
           isOpen={isCompletionModalOpen}
           onClose={() => setIsCompletionModalOpen(false)}
           onComplete={handleComplete}
           goalTitle={wish.title}
           goal={wish}
-        />,
+        /></Suspense>,
         document.body
       )}
 
       {/* Edit Wizard - Rendered at document body level */}
       {isEditWizardOpen && createPortal(
-        <CreateGoalWizard
+        <Suspense fallback={null}><CreateGoalWizard
           isOpen={isEditWizardOpen}
           onClose={() => setIsEditWizardOpen(false)}
           year={year}
@@ -434,26 +434,26 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
             subGoals: wish.subGoals || [],
             habitLinks: wish.habitLinks || []
           }}
-        />,
+        /></Suspense>,
         document.body
       )}
       {/* Division Editor Modal - no longer opened via UI (kept for safety behind state) */}
       {isDivisionOpen && createPortal(
-        <GoalDivisionEditor
+        <Suspense fallback={null}><GoalDivisionEditor
           goal={wish}
           habits={useApiStore.getState().habits}
           onClose={() => setIsDivisionOpen(false)}
-        />,
+        /></Suspense>,
         document.body
       )}
       {/* Share Modal - Rendered at document body level */}
       {isShareModalOpen && createPortal(
-        <ShareModal
+        <Suspense fallback={null}><ShareModal
           isOpen={isShareModalOpen}
           onClose={() => setIsShareModalOpen(false)}
           goal={wish}
           user={user}
-        />,
+        /></Suspense>,
         document.body
       )}
     </motion.div>

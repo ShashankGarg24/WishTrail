@@ -1,13 +1,13 @@
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useState, useRef, useCallback, lazy, Suspense } from 'react'
 import { motion } from 'framer-motion'
 import { Users, Target, RefreshCw, ChevronsDown, TrendingUp, Flame, UserPlus, UserCheck, Compass } from 'lucide-react'
 import { communitiesAPI } from '../services/api'
 import useApiStore from '../store/apiStore'
 import SkeletonList from '../components/loader/SkeletonList'
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
-import GoalPostModal from '../components/GoalPostModal'
-import ReportModal from '../components/ReportModal'
-import BlockModal from '../components/BlockModal'
+const GoalPostModal = lazy(() => import('../components/GoalPostModal'));
+const ReportModal = lazy(() => import('../components/ReportModal'));
+const BlockModal = lazy(() => import('../components/BlockModal'));
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
 
 const DiscoverPage = () => {
@@ -859,17 +859,17 @@ const DiscoverPage = () => {
         }
         {/* Goal Post Modal */}
         {goalModalOpen && (
-          <GoalPostModal
+          <Suspense fallback={null}><GoalPostModal
             isOpen={goalModalOpen}
             goalId={openGoalId}
             autoOpenComments={scrollCommentsOnOpen}
             onClose={closeGoalModal}
-          />
+          /></Suspense>
         )}
       </div>
       
       {/* Report & Block Modals */}
-      <ReportModal
+      <Suspense fallback={null}><ReportModal
         isOpen={reportOpen}
         onClose={() => setReportOpen(false)}
         targetLabel={reportTarget.label}
@@ -879,13 +879,13 @@ const DiscoverPage = () => {
       setReportOpen(false);
     }}
     onReportAndBlock={reportTarget.type === 'user' ? async () => { if (reportTarget.id) { await blockUser(reportTarget.id); } } : undefined}
-      />
-      <BlockModal
+      /></Suspense>
+      <Suspense fallback={null}><BlockModal
         isOpen={blockOpen}
         onClose={() => setBlockOpen(false)}
-    username={blockUsername || ''}
+        username={blockUsername || ''}
         onConfirm={async () => { if (blockUserId) { await blockUser(blockUserId); setBlockOpen(false); } }}
-      />
+      /></Suspense>
     </div>
   )
 }

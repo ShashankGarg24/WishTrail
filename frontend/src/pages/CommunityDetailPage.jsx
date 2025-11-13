@@ -1,12 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { Newspaper, BarChart3, Target, Users, Settings, ThumbsUp, MessageSquare } from 'lucide-react'
 import api, { communitiesAPI } from '../services/api'
-import CommunityDashboard from '../components/community/CommunityDashboard'
-import CommunityItems from '../components/community/CommunityItems'
-import CommunityMembers from '../components/community/CommunityMembers'
-import CommunitySettings from '../components/community/CommunitySettings'
-import DeleteCommunityModal from '../components/community/DeleteCommunityModal'
+const CommunityDashboard = lazy(() => import('../components/community/CommunityDashboard'));
+const CommunityItems = lazy(() => import('../components/community/CommunityItems'));
+const CommunityMembers = lazy(() => import('../components/community/CommunityMembers'));
+const CommunitySettings = lazy(() => import('../components/community/CommunitySettings'));
+const DeleteCommunityModal = lazy(() => import('../components/community/DeleteCommunityModal'));
 import io from 'socket.io-client'
 
 const Tab = ({ active, label, Icon, onClick }) => (
@@ -406,21 +406,21 @@ export default function CommunityDetailPage() {
           ))}
           {feed.length === 0 && <div className="text-sm text-gray-500">No activity yet.</div>}
           </div>
-          <div className="sticky bottom-[72px] md:bottom-0 w-full px-0 pt-2 bg-gradient-to-t from-white/90 dark:from-gray-900/90 to-transparent">
+          {/* <div className="sticky bottom-[72px] md:bottom-0 w-full px-0 pt-2 bg-gradient-to-t from-white/90 dark:from-gray-900/90 to-transparent">
             <div className="flex items-center gap-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl px-3 py-2 shadow-sm mx-0">
               <input ref={chatInputRef} value={chatText} onChange={e => setChatText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') sendChat() }} placeholder="Message…" className="flex-1 px-2 py-2 rounded-md outline-none bg-transparent text-sm" />
               <button onClick={sendChat} className="px-3 py-2 rounded-lg bg-blue-600 text-white text-sm">Send</button>
             </div>
-          </div>
+          </div> */}
         </div>
       )}
 
       {tab === 'dashboard' && (
-        <CommunityDashboard dashboard={dashboard} members={members} analytics={analytics} />
+        <Suspense fallback={null}><CommunityDashboard dashboard={dashboard} members={members} analytics={analytics} /></Suspense>
       )}
 
       {tab === 'items' && (
-        <CommunityItems
+        <Suspense fallback={null}><CommunityItems
           id={id}
           role={role}
           settings={summary?.community?.settings}
@@ -440,15 +440,15 @@ export default function CommunityDetailPage() {
               setTimeout(() => loadJoinedItems(), 100)
             }
           }}
-        />
+        /></Suspense>
       )}
 
       {tab === 'members' && (
-        <CommunityMembers id={id} role={role} community={community} members={members} />
+        <Suspense fallback={null}><CommunityMembers id={id} role={role} community={community} members={members} /></Suspense>
       )}
 
       {tab === 'settings' && (
-        <CommunitySettings
+        <Suspense fallback={null}><CommunitySettings
           community={{ ...community, ...headerImages }}
           role={role}
           showDeleteModal={showDeleteModal}
@@ -461,7 +461,7 @@ export default function CommunityDetailPage() {
               onConfirm={async () => { try { await communitiesAPI.remove(community._id); window.location.assign('/communities'); } finally { setShowDeleteModal(false); } }}
             />
           )}
-        />
+        /></Suspense>
       )}
     </div>
   )

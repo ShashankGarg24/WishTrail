@@ -1,11 +1,11 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Menu, X, Star, User, BarChart3, LogOut, Settings, Bell, CheckCircle, Search, MessageSquarePlus } from 'lucide-react'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import useApiStore from '../store/apiStore'
-import SettingsModal from './SettingsModal'
+const SettingsModal = lazy(() => import('./SettingsModal'));
 import { notificationsAPI } from '../services/api'
-import FeedbackButton from './FeedbackButton'
+const FeedbackButton = lazy(() => import('./FeedbackButton'));
 
 const Header = () => {
   const { isAuthenticated, logout, unreadNotifications, getNotifications, isFeatureEnabled, features } = useApiStore()
@@ -341,14 +341,14 @@ const Header = () => {
       </header>
 
       {/* Settings Modal */}
-      <SettingsModal
+      <Suspense fallback={null}><SettingsModal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
-      />
-      <FeedbackButton
+      /></Suspense>
+      <Suspense fallback={null}><FeedbackButton
         isOpen={isFeedbackOpen}
         onClose={() => setIsFeedbackOpen(false)}
-      />
+      /></Suspense>
       <AnimatePresence>
         {toast && (
           <motion.div

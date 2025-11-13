@@ -1,15 +1,15 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Activity, Heart, MessageCircle, RefreshCw, Compass, ArrowRightCircle, Send, Newspaper } from 'lucide-react'
 import useApiStore from '../store/apiStore'
 import SkeletonList from '../components/loader/SkeletonList'
-import ActivityCommentsModal from '../components/ActivityCommentsModal'
-import ReportModal from '../components/ReportModal'
-import BlockModal from '../components/BlockModal'
+const ActivityCommentsModal = lazy(() => import('../components/ActivityCommentsModal'));
+const ReportModal = lazy(() => import('../components/ReportModal'));
+const BlockModal = lazy(() => import('../components/BlockModal'));
+const GoalPostModal = lazy(() => import('../components/GoalPostModal'));
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
-import GoalPostModal from '../components/GoalPostModal'
-import ShareSheet from '../components/ShareSheet'
+const ShareSheet = lazy(() => import('../components/ShareSheet'));
 
 const FeedPage = () => {
   const navigate = useNavigate()
@@ -607,7 +607,7 @@ const FeedPage = () => {
           </div>
         )}
 
-        <ReportModal
+        <Suspense fallback={null}><ReportModal
           isOpen={reportOpen}
           onClose={() => setReportOpen(false)}
           targetLabel={reportTarget.label}
@@ -619,37 +619,37 @@ const FeedPage = () => {
             setReportOpen(false);
           }}
           onReportAndBlock={reportTarget.type === 'user' ? async () => { if (reportTarget.id) { await blockUser(reportTarget.id); } } : undefined}
-        />
-        <BlockModal
+        /></Suspense>
+        <Suspense fallback={null}><BlockModal
           isOpen={blockOpen}
           onClose={() => setBlockOpen(false)}
           username={blockUsername || ''}
           onConfirm={async () => { if (blockUserId) { await blockUser(blockUserId); setBlockOpen(false); } }}
-        />
+        /></Suspense>
 
         {/* Activity Comments Bottom Sheet */}
-        <ActivityCommentsModal
+        <Suspense fallback={null}><ActivityCommentsModal
           isOpen={!!commentsOpenActivityId}
           onClose={() => setCommentsOpenActivityId(null)}
           activity={{ _id: commentsOpenActivityId }}
-        />
+        /></Suspense>
 
         {/* Goal Post Modal */}
         {goalModalOpen && (
-          <GoalPostModal
+          <Suspense fallback={null}><GoalPostModal
             isOpen={goalModalOpen}
             goalId={openGoalId}
             autoOpenComments={scrollCommentsOnOpen}
             onClose={closeGoalModal}
-          />
+          /></Suspense>
         )}
         {/* Share Sheet (mobile) */}
-        <ShareSheet
+        <Suspense fallback={null}><ShareSheet
           isOpen={shareSheetOpen}
           onClose={() => setShareSheetOpen(false)}
           url={shareUrlRef.current}
           title="WishTrail Goal"
-        />
+        /></Suspense>
       </div>
     </div>
   )

@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, lazy, Suspense } from 'react'
 import { motion } from 'framer-motion'
 import { X, Plus, Target, Calendar, Tag, AlertCircle, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react'
 import useApiStore from '../store/apiStore'
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
-import GoalDivisionEditor from './GoalDivisionEditor'
+const GoalDivisionEditor = lazy(() => import('./GoalDivisionEditor'));
 
 export default function CreateGoalWizard({ isOpen, onClose, year, initialData, editMode = false, goalId = null }) {
   const MAX_TITLE_CHARS = 200
@@ -436,6 +436,7 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
         )}
         {step === 2 && (
           <div className="space-y-4">
+            <Suspense fallback={null}>
             <GoalDivisionEditor
               draftMode
               renderInline
@@ -448,6 +449,7 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
               habits={habits}
               onClose={() => setStep(1)}
             />
+            </Suspense>
             <div className="flex items-center gap-3">
               <button type="button" onClick={() => setStep(1)} className="flex-1 py-2 px-4 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors inline-flex items-center justify-center gap-2">
                 <ChevronLeft className="h-4 w-4" /> Back

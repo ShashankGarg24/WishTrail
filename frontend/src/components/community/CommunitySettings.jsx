@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { communityUploadAPI, communitiesAPI } from '../../services/api'
-import InterestsMultiSelect from './InterestsMultiSelect'
+const InterestsMultiSelect = lazy(() => import('./InterestsMultiSelect'));
 
 export default function CommunitySettings({ community, role, showDeleteModal, setShowDeleteModal, DeleteModal, onCommunityChange }) {
   const [avatarUploading, setAvatarUploading] = useState(false)
@@ -114,7 +114,7 @@ export default function CommunitySettings({ community, role, showDeleteModal, se
             </div>
             <div className="sm:col-span-2">
               <label className="block text-xs font-medium mb-1">Interests</label>
-              <InterestsMultiSelect community={community} />
+              <Suspense fallback={null}><InterestsMultiSelect community={community} /></Suspense>
             </div>
           </div>
         </details>

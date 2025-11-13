@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Heart, MessageCircle, Send } from 'lucide-react'
-import ActivityCommentsModal from './ActivityCommentsModal'
+const ActivityCommentsModal = lazy(() => import('./ActivityCommentsModal'));
 import useApiStore from '../store/apiStore'
 
 export default function GoalPostModal({ isOpen, goalId, onClose, autoOpenComments = false }) {
@@ -132,7 +132,7 @@ export default function GoalPostModal({ isOpen, goalId, onClose, autoOpenComment
                   <div className="pb-6">
                     <div ref={commentsAnchorRef} className="pt-2 border-t border-gray-200 dark:border-gray-800" />
                     {data?.social?.activityId ? (
-                      <ActivityCommentsModal embedded activity={{ _id: data.social.activityId, commentCount: data?.social?.commentCount }} />
+                      <Suspense fallback={null}><ActivityCommentsModal embedded activity={{ _id: data.social.activityId, commentCount: data?.social?.commentCount }} /></Suspense>
                     ) : (
                       <div className="text-sm text-gray-500 py-4">Comments unavailable</div>
                     )}
@@ -205,7 +205,7 @@ export default function GoalPostModal({ isOpen, goalId, onClose, autoOpenComment
               {!isMobile && (
                 <div ref={commentsAnchorRef} className="px-6 pb-6">
                   {data?.social?.activityId ? (
-                    <ActivityCommentsModal embedded activity={{ _id: data.social.activityId, commentCount: data?.social?.commentCount }} />
+                    <Suspense fallback={null}><ActivityCommentsModal embedded activity={{ _id: data.social.activityId, commentCount: data?.social?.commentCount }} /></Suspense>
                   ) : (
                     <div className="text-sm text-gray-500">Comments unavailable</div>
                   )}
@@ -231,11 +231,12 @@ export default function GoalPostModal({ isOpen, goalId, onClose, autoOpenComment
         )}
       </div>
       {/* Mobile comments bottom sheet */}
-      <ActivityCommentsModal
+      <Suspense fallback={null}><ActivityCommentsModal
         isOpen={!!commentsOpenActivityId}
         onClose={() => setCommentsOpenActivityId(null)}
         activity={{ _id: commentsOpenActivityId }}
       />
+      </Suspense>
     </div>
   )
 }

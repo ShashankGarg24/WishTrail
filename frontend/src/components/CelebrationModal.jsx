@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, CheckCircle, Share2, Star } from 'lucide-react'
 import { createPortal } from 'react-dom'
-import ShareModal from './ShareModal'
+const ShareModal = lazy(() => import('./ShareModal'));
 import useApiStore from '../store/apiStore'
 
 const CelebrationModal = ({ wish, isOpen, onClose, goalTitle, pointsEarned }) => {
@@ -223,12 +223,13 @@ const CelebrationModal = ({ wish, isOpen, onClose, goalTitle, pointsEarned }) =>
           </div>
         {/* Share Modal - Rendered at document body level */}
         {isShareModalOpen && createPortal(
+          <Suspense fallback={null}>
           <ShareModal
             isOpen={isShareModalOpen}
             onClose={() => setIsShareModalOpen(false)}
             goal={wish}
             user={user}
-          />,
+          /></Suspense>,
           document.body
         )}
         </motion.div>

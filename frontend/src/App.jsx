@@ -1,26 +1,26 @@
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom'
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import useApiStore from './store/apiStore'
 import Header from './components/Header'
 import ScrollMemory from './components/ScrollMemory'
 import BottomTabBar from './components/BottomTabBar'
 import Footer from './components/Footer'
-import HomePage from './pages/HomePage'
-import AuthPage from './pages/AuthPage'
-import DashboardPage from './pages/DashboardPage'
-import ProfilePage from './pages/ProfilePage'
-import InspirationPage from './pages/InspirationPage'
-import FeedPage from './pages/FeedPage'
-import DiscoverPage from './pages/DiscoverPage'
-import NotificationsPage from './pages/NotificationsPage'
-import LeaderboardPage from './pages/LeaderboardPage'
-import CommunitiesPage from './pages/CommunitiesPage'
-import CommunityDetailPage from './pages/CommunityDetailPage'
-import ResetPasswordPage from './pages/ResetPasswordPage'
-import NotFoundPage from './pages/NotFoundPage'
+const HomePage = lazy(() => import('./pages/HomePage'))
+const AuthPage = lazy(() => import('./pages/AuthPage'))
+const DashboardPage = lazy(() => import('./pages/DashboardPage'))
+const ProfilePage = lazy(() => import('./pages/ProfilePage'))
+const InspirationPage = lazy(() => import('./pages/InspirationPage'))
+const FeedPage = lazy(() => import('./pages/FeedPage'))
+const DiscoverPage = lazy(() => import('./pages/DiscoverPage'))
+const NotificationsPage = lazy(() => import('./pages/NotificationsPage'))
+const LeaderboardPage = lazy(() => import('./pages/LeaderboardPage'))
+const CommunitiesPage = lazy(() => import('./pages/CommunitiesPage'))
+const CommunityDetailPage = lazy(() => import('./pages/CommunityDetailPage'))
+const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'))
+const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
 import { SpeedInsights } from '@vercel/speed-insights/react';
-import FeedbackButton from './components/FeedbackButton'
-import SettingsPage from './pages/SettingsPage'
+const FeedbackButton = lazy(() => import('./components/FeedbackButton'))
+const SettingsPage = lazy(() => import('./pages/SettingsPage'))
 
 function App() {
   const { isDarkMode, initializeAuth, isAuthenticated, loadFeatures, isFeatureEnabled } = useApiStore()
@@ -79,24 +79,24 @@ function App() {
         <main className="flex-grow pt-16 pb-24 sm:pb-28">
           <ScrollMemory />
           <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/auth" element={<AuthPage />} />
-            <Route path="/reset-password" element={<ResetPasswordPage />} />
-            <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/feed" element={<FeedPage />} />
-            <Route path="/discover" element={<DiscoverPage />} />
-            <Route path="/notifications" element={<NotificationsPage />} />
-            <Route path="/profile/:userId" element={<ProfilePage />} />
-            <Route path="/profile/@:username" element={<ProfilePage />} />
-            <Route path="/profile" element={<ProfilePage />} />
-            <Route path="/inspiration" element={<InspirationPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
-            {isFeatureEnabled('leaderboard') && <Route path="/leaderboard" element={<LeaderboardPage />} />}
-            {isFeatureEnabled('community') && <Route path="/communities" element={<CommunitiesPage />} />}
-            {isFeatureEnabled('community') && <Route path="/communities/:id" element={<CommunityDetailPage />} />}
+            <Route path="/" element={<Suspense fallback={null}><HomePage /></Suspense>} />
+            <Route path="/auth" element={<Suspense fallback={null}><AuthPage /></Suspense>} />
+            <Route path="/reset-password" element={<Suspense fallback={null}><ResetPasswordPage /></Suspense>} />
+            <Route path="/dashboard" element={<Suspense fallback={null}><DashboardPage /></Suspense>} />
+            <Route path="/feed" element={<Suspense fallback={null}><FeedPage /></Suspense>} />
+            <Route path="/discover" element={<Suspense fallback={null}><DiscoverPage /></Suspense>} />
+            <Route path="/notifications" element={<Suspense fallback={null}><NotificationsPage /></Suspense>} />
+            <Route path="/profile/:userId" element={<Suspense fallback={null}><ProfilePage /></Suspense>} />
+            <Route path="/profile/@:username" element={<Suspense fallback={null}><ProfilePage /></Suspense>} />
+            <Route path="/profile" element={<Suspense fallback={null}><ProfilePage /></Suspense>} />
+            <Route path="/inspiration" element={<Suspense fallback={null}><InspirationPage /></Suspense>} />
+            <Route path="/settings" element={<Suspense fallback={null}><SettingsPage /></Suspense>} />
+            {isFeatureEnabled('leaderboard') && <Route path="/leaderboard" element={<Suspense fallback={null}><LeaderboardPage /></Suspense>} />}
+            {isFeatureEnabled('community') && <Route path="/communities" element={<Suspense fallback={null}><CommunitiesPage /></Suspense>} />}
+            {isFeatureEnabled('community') && <Route path="/communities/:id" element={<Suspense fallback={null}><CommunityDetailPage /></Suspense>} />}
             {/* Goal deeplink opens modal within feed/discover */}
-            <Route path="/goal/:goalId" element={<FeedPage />} />
-            <Route path="*" element={<NotFoundPage />} />
+            <Route path="/goal/:goalId" element={<Suspense fallback={null}><FeedPage /></Suspense>} />
+            <Route path="*" element={<Suspense fallback={null}><NotFoundPage /></Suspense>} />
           </Routes>
         </main>
         {/* Bottom nav (web) */}
@@ -105,7 +105,7 @@ function App() {
         {!inNativeApp && (
           <Footer/>
         )}
-        <FeedbackButton />
+        <Suspense fallback={null}><FeedbackButton /></Suspense>
       </div>
       <SpeedInsights />
     </div>

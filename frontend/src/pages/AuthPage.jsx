@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { motion } from "framer-motion";
 import { Mail, Lock, Eye, EyeOff, Star } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import useApiStore from "../store/apiStore";
-import MultiStepSignup from "../components/MultiStepSignup";
-import ForgotPasswordModal from "../components/ForgotPasswordModal";
+const MultiStepSignup = lazy(() => import("../components/MultiStepSignup"));
+const ForgotPasswordModal = lazy(() => import("../components/ForgotPasswordModal"));
 
 const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -119,10 +119,10 @@ const AuthPage = () => {
               </div>
             </div>
 
-            <MultiStepSignup
+            <Suspense fallback={null}><MultiStepSignup
               onSuccess={handleMultiStepSignupSuccess}
               onBack={toggleAuthMode}
-            />
+            /></Suspense>
 
             {/* Toggle Auth Mode */}
             <div className="text-center mt-6">
@@ -284,10 +284,10 @@ const AuthPage = () => {
         </div>
       </motion.div>
       {/* Forgot Password Modal */}
-      <ForgotPasswordModal 
+      <Suspense fallback={null}><ForgotPasswordModal 
         isOpen={showForgotPasswordModal}
         onClose={() => setShowForgotPasswordModal(false)}
-      />
+      /></Suspense>
     </div>
   );
 };

@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react'
-import { communitiesAPI, goalsAPI } from '../../services/api'
+import { useState, useEffect, lazy } from 'react'
+import { communitiesAPI } from '../../services/api'
 import useApiStore from '../../store/apiStore'
-import CreateGoalWizard from '../CreateGoalWizard'
-import CreateHabitModal from '../CreateHabitModal'
+const CreateGoalWizard = lazy(() => import('../CreateGoalWizard'));
+const CreateHabitModal = lazy(() => import('../CreateHabitModal'));
 import { Link, Plus, TrendingUp, BarChart3 } from 'lucide-react'
 
 export function AddItemModal({ open, onClose, communityId }) {
@@ -113,15 +113,18 @@ export function AddItemModal({ open, onClose, communityId }) {
         </div>
       </div>
       {showCreateGoalModal && (
-        <CreateGoalWizard
+        <Suspense fallback={null}>
+          <CreateGoalWizard
           isOpen={showCreateGoalModal}
           onClose={() => setShowCreateGoalModal(false)}
           year={new Date().getFullYear()}
           initialData={{}}
         />
+        </Suspense>
       )}
       {showCreateHabitModal && (
-        <CreateHabitModal
+        <Suspense fallback={null}>
+          <CreateHabitModal
           isOpen={showCreateHabitModal}
           onClose={() => setShowCreateHabitModal(false)}
           onCreated={async (habit) => {
@@ -133,6 +136,7 @@ export function AddItemModal({ open, onClose, communityId }) {
             } catch { onClose(false) }
           }}
         />
+        </Suspense>
       )}
     </div>
   )

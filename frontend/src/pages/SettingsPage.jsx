@@ -1,19 +1,20 @@
 import { Shield, Palette, UserX, Bell, Lock } from "lucide-react";
-import PrivacySettings from "../components/settings/PrivacySettings";
-import ThemeSettings from "../components/settings/ThemeSettings";
-import BlockedUsers from "../components/settings/BlockedUsersSettings";
-import NotificationsSettings from "../components/settings/NotificationsSettings";
-import PasswordSettings from "../components/settings/PasswordSettings";
-import SettingsLayoutModal from "../components/settings/SettingsLayoutModal";
+import { lazy, Suspense } from "react";
+const PrivacySettings = lazy(() => import("../components/settings/PrivacySettings"));
+const ThemeSettings = lazy(() => import("../components/settings/ThemeSettings"));
+const BlockedUsers = lazy(() => import("../components/settings/BlockedUsersSettings"));
+const NotificationsSettings = lazy(() => import("../components/settings/NotificationsSettings"));
+const PasswordSettings = lazy(() => import("../components/settings/PasswordSettings"));
+const SettingsLayoutModal = lazy(() => import("../components/settings/SettingsLayoutModal"));
 
 export default function SettingsPage() {
   const sections = [
-    { id: "privacy", label: "Privacy", icon: Shield, component: <PrivacySettings /> },
-    { id: "theme", label: "Theme", icon: Palette, component: <ThemeSettings /> },
-    { id: "blocked", label: "Blocked", icon: UserX, component: <BlockedUsers /> },
-    { id: "notifications", label: "Notifications", icon: Bell, component: <NotificationsSettings /> },
-    { id: "password", label: "Password", icon: Lock, component: <PasswordSettings /> },
+    { id: "privacy", label: "Privacy", icon: Shield, component: <Suspense fallback={null}><PrivacySettings /></Suspense> },
+    { id: "theme", label: "Theme", icon: Palette, component: <Suspense fallback={null}><ThemeSettings /></Suspense> },
+    { id: "blocked", label: "Blocked", icon: UserX, component: <Suspense fallback={null}><BlockedUsers /></Suspense> },
+    { id: "notifications", label: "Notifications", icon: Bell, component: <Suspense fallback={null}><NotificationsSettings /></Suspense> },
+    { id: "password", label: "Password", icon: Lock, component: <Suspense fallback={null}><PasswordSettings /></Suspense> },
   ];
 
-  return <SettingsLayoutModal sections={sections} initial="privacy" />;
+  return <Suspense fallback={null}><SettingsLayoutModal sections={sections} initial="privacy" /></Suspense>;
 }
