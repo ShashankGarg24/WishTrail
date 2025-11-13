@@ -6,7 +6,6 @@ const morgan = require('morgan');
 const compression = require('compression');
 const cookieParser = require('cookie-parser');
 const rateLimit = require('express-rate-limit');
-const compression = require('compression');
 
 const connectDB = require('./config/database');
 const globalErrorHandler = require('./middleware/errorHandler');
@@ -143,7 +142,6 @@ const createApp = async () => {
 
   app.use(notFoundHandler);
   app.use(globalErrorHandler);
-  app.use(compression());
 
   return app;
 };
