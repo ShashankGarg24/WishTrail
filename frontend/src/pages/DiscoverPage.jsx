@@ -9,6 +9,7 @@ const GoalPostModal = lazy(() => import('../components/GoalPostModal'));
 const ReportModal = lazy(() => import('../components/ReportModal'));
 const BlockModal = lazy(() => import('../components/BlockModal'));
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
+import { useSwipeable } from 'react-swipeable'
 
 const DiscoverPage = () => {
   const {
@@ -449,6 +450,18 @@ const DiscoverPage = () => {
     };
     return colors[category] || 'bg-gray-500';
   };
+
+  const handleSwipe = useSwipeable({
+    onSwipedLeft: () => {
+      if (activeTab === "users") handleTabChange("goals")
+      else if (activeTab === "goals" && isFeatureEnabled("community")) handleTabChange("communities")
+    },
+    onSwipedRight: () => {
+      if (activeTab === "communities" && isFeatureEnabled("community")) handleTabChange("goals")
+      else if (activeTab === "goals") handleTabChange("users")
+    },
+    trackMouse: false
+  })  
       
   if (!isAuthenticated) {
     return (
@@ -477,7 +490,9 @@ const DiscoverPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-slate-900 dark:via-gray-900 dark:to-zinc-900">
+    <div 
+    {...handleSwipe}
+    className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-slate-900 dark:via-gray-900 dark:to-zinc-900">
       <div className="max-w-7xl mx-auto px-4 py-8">
         {!inNativeApp && (
         <div className="flex items-center justify-between mb-6">
@@ -504,7 +519,7 @@ const DiscoverPage = () => {
              value={searchTerm} 
              onChange={(e) => setSearchTerm(e.target.value)} 
              className="w-full pl-4 pr-36 py-4 bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg border border-gray-200 dark:border-gray-700/50 rounded-2xl text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-lg" />
-            <div role="tablist" aria-label="Discover mode" className="flex absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700/50 rounded-xl p-1 shadow-sm">
+            {/* <div role="tablist" aria-label="Discover mode" className="flex absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700/50 rounded-xl p-1 shadow-sm">
               <button role="tab" 
               aria-selected={activeTab === 'users'} 
               className={`px-2.5 py-1.5 rounded-lg text-xs font-medium ${activeTab === 'users' ? 'bg-blue-500 text-white' : 'text-gray-700 dark:text-gray-300'}`} 
@@ -521,8 +536,52 @@ const DiscoverPage = () => {
                 className={`ml-1 px-2.5 py-1.5 rounded-lg text-xs font-medium ${activeTab === 'communities' ? 'bg-blue-500 text-white' : 'text-gray-700 dark:text-gray-300'}`} 
                 onClick={() => { handleTabChange('communities'); setUsers([]); setTrending([]);}}>Communities</button>
               }
-            </div>
+            </div> */}
           </div>
+            <div className="flex justify-center mt-4">
+              <div className="relative flex w-full max-w-sm border-b border-gray-300 dark:border-gray-700">
+                {["users", "goals", ...(isFeatureEnabled('community') ? ["communities"] : [])].map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => handleTabChange(tab)}
+                    className={`
+                      flex-1 py-2 text-center text-sm font-medium capitalize
+                      transition-colors duration-200
+                      ${activeTab === tab 
+                        ? "text-blue-600 dark:text-blue-400" 
+                        : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                      }
+                    `}
+                  >
+                    {tab}
+                  </button>
+                ))}
+
+                {/* Sliding Underline */}
+                <motion.div
+                  className="absolute bottom-0 h-0.5 bg-blue-600 dark:bg-blue-400"
+                  layoutId="discoverTabUnderline"
+                  initial={false}
+                  animate={{
+                    left:
+                      activeTab === "users"
+                        ? "0%"
+                        : activeTab === "goals"
+                        ? "33%"
+                        : "66%",
+                    width:
+                      isFeatureEnabled("community")
+                        ? "33%"
+                        : "50%"
+                  }}
+                  transition={{
+                    type: "spring",
+                    stiffness: 300,
+                    damping: 30
+                  }}
+                />
+              </div>
+            </div>
           <div className="mt-3">
               <div className="relative">
                 <div className="flex gap-2 flex-nowrap overflow-x-auto no-scrollbar pr-16 items-center">
