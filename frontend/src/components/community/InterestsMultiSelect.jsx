@@ -1,20 +1,17 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import useApiStore from '../../store/apiStore'
-import { communitiesAPI } from '../../services/api'
 
-export default function InterestsMultiSelect({ community }) {
+export default function InterestsMultiSelect({ value = [], onChange }) {
   const { interestsCatalog, loadInterests } = useApiStore();
-  const [selected, setSelected] = useState(Array.isArray(community.interests) ? community.interests : []);
   useEffect(() => { if (!interestsCatalog || interestsCatalog.length === 0) loadInterests().catch(() => {}) }, []);
-  useEffect(() => { setSelected(Array.isArray(community.interests) ? community.interests : []) }, [community.interests]);
   const list = (interestsCatalog && interestsCatalog.length > 0)
     ? interestsCatalog.map(x => x.interest)
     : ['fitness','health','travel','education','career','finance','hobbies','relationships','personal_growth','creativity','technology','business','lifestyle','spirituality','sports','music','art','reading','cooking','gaming','nature','volunteering'];
-  const toggle = async (val) => {
+  const selected = Array.isArray(value) ? value : [];
+  const toggle = (val) => {
     const active = selected.includes(val);
     const next = active ? selected.filter(i => i !== val) : [...selected, val];
-    setSelected(next);
-    try { await communitiesAPI.update(community._id, { interests: next }); } catch {}
+    onChange?.(next);
   };
   return (
     <div className="space-y-2">

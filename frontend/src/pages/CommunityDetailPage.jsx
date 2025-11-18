@@ -447,11 +447,12 @@ export default function CommunityDetailPage() {
         <Suspense fallback={null}><CommunityMembers id={id} role={role} community={community} members={members} /></Suspense>
       )}
 
+      
+
       {tab === 'settings' && (
         <Suspense fallback={null}><CommunitySettings
           community={{ ...community, ...headerImages }}
           role={role}
-          showDeleteModal={showDeleteModal}
           setShowDeleteModal={setShowDeleteModal}
           onCommunityChange={(changes) => setHeaderImages(prev => ({ ...prev, ...changes }))}
           DeleteModal={(

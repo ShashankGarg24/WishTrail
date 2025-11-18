@@ -1,13 +1,14 @@
 import { useEffect, useState, useRef } from 'react';
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock';
 import { motion } from 'framer-motion';
-import { X, Lock, Eye, EyeOff, Shield, Settings, Bell, UserX, Moon, Sun, Palette } from 'lucide-react';
+import { X, Lock, Eye, EyeOff, Shield, Settings, Bell, UserX, Moon, Sun, Palette, ArrowLeft } from 'lucide-react';
 import useApiStore from '../store/apiStore';
 
 const SettingsModal = ({ isOpen, onClose }) => {
   const { user, updateUserPrivacy, updatePassword, logout, notificationSettings, loadNotificationSettings, 
     updateNotificationSettings, listBlockedUsers, unblockUser, toggleTheme,isDarkMode } = useApiStore();
   const [activeTab, setActiveTab] = useState('privacy');
+  const [mobileView, setMobileView] = useState('tabs'); // 'tabs' or 'content'
   const [notif, setNotif] = useState(null);
   const [isPrivate, setIsPrivate] = useState(user?.isPrivate || false);
   const [currentPassword, setCurrentPassword] = useState('');
@@ -486,6 +487,10 @@ const SettingsModal = ({ isOpen, onClose }) => {
   useEffect(() => {
     if (isOpen) {
       lockBodyScroll();
+      // Reset mobile view to tabs when modal opens (only on mobile)
+      if (window.innerWidth < 768) {
+        setMobileView('tabs');
+      }
       return () => unlockBodyScroll();
     }
     return undefined;
@@ -505,11 +510,20 @@ const SettingsModal = ({ isOpen, onClose }) => {
         animate={{ scale: 1, opacity: 1, y: 0 }}
         exit={{ scale: 0.95, opacity: 0, y: 20 }}
         onClick={(e) => e.stopPropagation()}
-        className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl border border-gray-200 dark:border-gray-700"
+        className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-5xl h-[700px] overflow-hidden shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col"
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
           <div className="flex items-center space-x-2">
+            {/* Mobile back button - only show when in content view */}
+            {mobileView === 'content' && (
+              <button
+                onClick={() => setMobileView('tabs')}
+                className="md:hidden p-2 -ml-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors mr-2"
+              >
+                <ArrowLeft className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+              </button>
+            )}
             <Settings className="h-6 w-6 text-primary-600" />
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Settings</h2>
           </div>
@@ -521,62 +535,93 @@ const SettingsModal = ({ isOpen, onClose }) => {
           </button>
         </div>
 
-        {/* Tabs */}
-        <div className="border-b border-gray-200 dark:border-gray-700 overflow-x-auto no-scrollbar">
-          <div className="flex min-w-max">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`whitespace-nowrap flex-shrink-0 px-6 py-4 text-sm font-medium transition-colors ${
-                  activeTab === tab.id
-                    ? 'text-primary-600 border-b-2 border-primary-600 bg-primary-50 dark:bg-primary-900/20'
-                    : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
-                }`}
-              >
-                <div className="flex items-center justify-center space-x-2">
-                  <tab.icon className="h-5 w-5" />
-                  <span>{tab.label}</span>
-                </div>
-              </button>
-            ))}
+        {/* Main Content Area with Sidebar */}
+        <div className="flex flex-1 overflow-hidden">
+          {/* Left Sidebar - Desktop */}
+          <div className="hidden md:flex w-64 border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 flex-col flex-shrink-0">
+            <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
+              {tabs.map((tab) => {
+                const Icon = tab.icon
+                const isActive = activeTab === tab.id
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                      isActive
+                        ? 'bg-primary-600 text-white'
+                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                    }`}
+                  >
+                    <Icon className="h-4 w-4" />
+                    <span>{tab.label}</span>
+                  </button>
+                )
+              })}
+            </nav>
           </div>
-        </div>
 
-        {/* Content */}
-        <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
-          {/* Error/Success Messages */}
-          {error && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mb-6 p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 rounded-lg"
-            >
-              <div className="flex items-center space-x-2">
-                <X className="h-5 w-5" />
-                <span>{error}</span>
-              </div>
-            </motion.div>
-          )}
-          
-          {success && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mb-6 p-4 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 rounded-lg"
-            >
-              <div className="flex items-center space-x-2">
-                <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
-                  <span className="text-white text-xs">✓</span>
-                </div>
-                <span>{success}</span>
-              </div>
-            </motion.div>
+          {/* Mobile Tabs View */}
+          {mobileView === 'tabs' && (
+            <div className="md:hidden flex-1 overflow-y-auto">
+              <nav className="p-4 space-y-2">
+                {tabs.map((tab) => {
+                  const Icon = tab.icon
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => {
+                        setActiveTab(tab.id)
+                        setMobileView('content')
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700"
+                    >
+                      <Icon className="h-5 w-5" />
+                      <span>{tab.label}</span>
+                    </button>
+                  )
+                })}
+              </nav>
+            </div>
           )}
 
-          {/* Tab Content */}
-          <div className="space-y-6">
-            {tabs.find(tab => tab.id === activeTab)?.component}
+          {/* Right Content Area - Desktop always shows, Mobile shows when content view */}
+          <div className={`flex-1 overflow-y-auto ${mobileView === 'tabs' ? 'hidden' : 'flex'} md:flex md:w-full`}>
+            <div className="p-6 w-full">
+              {/* Error/Success Messages */}
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mb-6 p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 rounded-lg"
+                >
+                  <div className="flex items-center space-x-2">
+                    <X className="h-5 w-5" />
+                    <span>{error}</span>
+                  </div>
+                </motion.div>
+              )}
+              
+              {success && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mb-6 p-4 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 rounded-lg"
+                >
+                  <div className="flex items-center space-x-2">
+                    <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
+                      <span className="text-white text-xs">✓</span>
+                    </div>
+                    <span>{success}</span>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Tab Content */}
+              <div className="space-y-6">
+                {tabs.find(tab => tab.id === activeTab)?.component}
+              </div>
+            </div>
           </div>
         </div>
       </motion.div>
