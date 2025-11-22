@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { Heart, MessageCircle, Send, CheckCircle, Target, Calendar, TrendingUp, Plus, ListChecks } from 'lucide-react'
 const ActivityCommentsModal = lazy(() => import('./ActivityCommentsModal'));
 import useApiStore from '../store/apiStore'
@@ -16,7 +16,7 @@ export default function GoalDetailsModal({ isOpen, goalId, onClose, autoOpenComm
     const rightPanelScrollRef = useRef(null)
     const commentsAnchorRef = useRef(null)
     const navigate = useNavigate()
-    const [searchParams, setSearchParams] = useSearchParams()
+    const [nestedGoalId, setNestedGoalId] = useState(null)
 
     useEffect(() => {
         const compute = () => setIsMobile(typeof window !== 'undefined' && window.innerWidth < 768)
@@ -159,9 +159,7 @@ export default function GoalDetailsModal({ isOpen, goalId, onClose, autoOpenComm
 
         // If it's a subgoal event with a linkedGoalId, open that goal's modal
         if ((event.type === 'subgoal_created' || event.type === 'subgoal_completed') && event.linkedGoalId) {
-            const newParams = new URLSearchParams(searchParams)
-            newParams.set('goalId', event.linkedGoalId)
-            setSearchParams(newParams)
+            setNestedGoalId(event.linkedGoalId)
         }
     }
 
@@ -540,6 +538,14 @@ export default function GoalDetailsModal({ isOpen, goalId, onClose, autoOpenComm
                 activity={{ _id: commentsOpenActivityId }}
             />
             </Suspense>
+            {/* Nested Goal Modal for Subgoals */}
+            {nestedGoalId && (
+                <GoalDetailsModal
+                    isOpen={true}
+                    goalId={nestedGoalId}
+                    onClose={() => setNestedGoalId(null)}
+                />
+            )}
         </div>
     )
 }
