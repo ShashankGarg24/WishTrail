@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Heart, MessageCircle, Send, CheckCircle, Target, Calendar, TrendingUp } from 'lucide-react'
+import { Heart, MessageCircle, Send, CheckCircle, Target, Calendar, TrendingUp, Plus, ListChecks } from 'lucide-react'
 const ActivityCommentsModal = lazy(() => import('./ActivityCommentsModal'));
 import useApiStore from '../store/apiStore'
 
@@ -45,10 +45,48 @@ export default function GoalDetailsModal({ isOpen, goalId, onClose, autoOpenComm
                             type: 'goal_created',
                             title: 'Goal Created',
                             description: resp.data?.goal?.title,
+                            timestamp: new Date(resp.data?.goal?.createdAt),
                             icon: Target,
                             color: 'text-blue-500',
                             bgColor: 'bg-blue-50 dark:bg-blue-900/20',
                             borderColor: 'border-blue-200 dark:border-blue-800'
+                        })
+
+                        // Subgoal events
+                        const subGoals = resp.data?.goal?.subGoals || []
+                        console.log(subGoals)
+                        subGoals.forEach((subGoal, index) => {
+                            // Subgoal created event
+                            events.push({
+                                id: `subgoal-created-${index}`,
+                                type: 'subgoal_created',
+                                title: 'Subgoal Created',
+                                description: subGoal.title || 'Linked Goal',
+                                timestamp: new Date(resp.data?.goal?.createdAt), // Use goal creation as proxy
+                                icon: Plus,
+                                color: 'text-purple-500',
+                                bgColor: 'bg-purple-50 dark:bg-purple-900/20',
+                                borderColor: 'border-purple-200 dark:border-purple-800',
+                                linkedGoalId: subGoal.linkedGoalId,
+                                subGoalData: subGoal
+                            })
+
+                            // Subgoal completed event
+                            if (subGoal.completedAt) {
+                                events.push({
+                                    id: `subgoal-completed-${index}`,
+                                    type: 'subgoal_completed',
+                                    title: 'Subgoal Completed',
+                                    description: subGoal.title || 'Linked Goal',
+                                    timestamp: new Date(subGoal.completedAt),
+                                    icon: CheckCircle,
+                                    color: 'text-emerald-500',
+                                    bgColor: 'bg-emerald-50 dark:bg-emerald-900/20',
+                                    borderColor: 'border-emerald-200 dark:border-emerald-800',
+                                    linkedGoalId: subGoal.linkedGoalId,
+                                    subGoalData: subGoal
+                                })
+                            }
                         })
 
                         // Goal completed event (if completed)
@@ -62,20 +100,24 @@ export default function GoalDetailsModal({ isOpen, goalId, onClose, autoOpenComm
                                     month: 'short',
                                     day: 'numeric'
                                 }),
+                                timestamp: new Date(resp.data.goal.completedAt),
                                 icon: CheckCircle,
                                 color: 'text-green-500',
                                 bgColor: 'bg-green-50 dark:bg-green-900/20',
                                 borderColor: 'border-green-200 dark:border-green-800',
                                 points: resp.data?.goal?.pointsEarned
                             })
-                            // Default to completed view if goal is completed
-                            setSelectedEvent('completed')
-                        } else {
-                            // Default to created view if goal is not completed
-                            setSelectedEvent('created')
                         }
 
+                        // Sort events by timestamp
+                        events.sort((a, b) => a.timestamp - b.timestamp)
+
                         setTimelineEvents(events)
+
+                        // Default to the most recent event
+                        if (events.length > 0) {
+                            setSelectedEvent(events[events.length - 1].id)
+                        }
                     }
                 } finally {
                     if (active) setLoading(false)
@@ -110,6 +152,21 @@ export default function GoalDetailsModal({ isOpen, goalId, onClose, autoOpenComm
     const handleUserClick = (userId) => {
         navigate(`/profile/${userId}?tab=overview`);
     };
+
+    const handleEventClick = (event) => {
+        setSelectedEvent(event.id)
+
+        // If it's a subgoal event with a linkedGoalId, open that goal's modal
+        if ((event.type === 'subgoal_created' || event.type === 'subgoal_completed') && event.linkedGoalId) {
+            // Close current modal and navigate to the linked goal
+            onClose?.()
+            // Use a small delay to ensure the current modal closes first
+            setTimeout(() => {
+                navigate(`/goal/${event.linkedGoalId}`)
+            }, 100)
+        }
+    }
+
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center">
@@ -161,7 +218,7 @@ export default function GoalDetailsModal({ isOpen, goalId, onClose, autoOpenComm
                                                         const isLast = idx === timelineEvents.length - 1
                                                         const isSelected = selectedEvent === event.id
                                                         return (
-                                                            <div key={event.id} className="flex items-center flex-shrink-0 cursor-pointer group" onClick={() => setSelectedEvent(event.id)}>
+                                                            <div key={event.id} className="flex items-center flex-shrink-0 cursor-pointer group" onClick={() => handleEventClick(event)}>
                                                                 {/* Event card */}
                                                                 <div className="flex flex-col items-center min-w-[140px] px-2">
                                                                     {/* Icon circle */}
@@ -218,7 +275,7 @@ export default function GoalDetailsModal({ isOpen, goalId, onClose, autoOpenComm
                                                             {/* Content Card */}
                                                             <div
                                                                 className={`p-3 rounded-xl border cursor-pointer transition-all ${isSelected ? 'bg-blue-50/50 border-blue-200 dark:bg-blue-900/10 dark:border-blue-800 shadow-sm' : 'bg-white border-gray-100 dark:bg-gray-800/50 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'}`}
-                                                                onClick={() => setSelectedEvent(event.id)}
+                                                                onClick={() => handleEventClick(event)}
                                                             >
                                                                 <div className="flex items-center gap-2 mb-1">
                                                                     <Icon className={`h-4 w-4 ${event.color}`} />
@@ -336,7 +393,7 @@ export default function GoalDetailsModal({ isOpen, goalId, onClose, autoOpenComm
                                                     const isLast = idx === timelineEvents.length - 1
                                                     const isSelected = selectedEvent === event.id
                                                     return (
-                                                        <div key={event.id} className="flex items-center flex-shrink-0 cursor-pointer group" onClick={() => setSelectedEvent(event.id)}>
+                                                        <div key={event.id} className="flex items-center flex-shrink-0 cursor-pointer group" onClick={() => handleEventClick(event)}>
                                                             {/* Event card */}
                                                             <div className="flex flex-col items-center min-w-[140px] px-2">
                                                                 {/* Icon circle */}
@@ -390,7 +447,7 @@ export default function GoalDetailsModal({ isOpen, goalId, onClose, autoOpenComm
                                                         {/* Content Card */}
                                                         <div
                                                             className={`p-3 rounded-xl border cursor-pointer transition-all ${isSelected ? 'bg-blue-50/50 border-blue-200 dark:bg-blue-900/10 dark:border-blue-800 shadow-sm' : 'bg-white border-gray-100 dark:bg-gray-800/50 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'}`}
-                                                            onClick={() => setSelectedEvent(event.id)}
+                                                            onClick={() => handleEventClick(event)}
                                                         >
                                                             <div className="flex items-center gap-2 mb-1">
                                                                 <Icon className={`h-4 w-4 ${event.color}`} />

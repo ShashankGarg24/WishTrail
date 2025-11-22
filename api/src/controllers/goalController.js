@@ -46,7 +46,7 @@ const getGoalPost = async (req, res, next) => {
   try {
     const goal = await Goal.findById(req.params.id)
       .populate('userId', 'name avatar username isPrivate isActive')
-      .select('title description category completed completedAt shareCompletionNote completionNote completionAttachmentUrl likeCount pointsEarned userId');
+      .select('title description category completed completedAt shareCompletionNote completionNote completionAttachmentUrl likeCount pointsEarned userId subGoals');
 
     if (!goal) return res.status(404).json({ success: false, message: 'Goal not found' });
 
@@ -92,6 +92,7 @@ const getGoalPost = async (req, res, next) => {
           category: goal.category,
           completedAt: goal.completedAt,
           pointsEarned: goal.pointsEarned,
+          subGoals: goal.subGoals,
         },
         user: {
           _id: goal.userId._id,
