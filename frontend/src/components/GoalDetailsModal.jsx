@@ -115,9 +115,9 @@ export default function GoalDetailsModal({ isOpen, goalId, onClose, autoOpenComm
 
                         setTimelineEvents(events)
 
-                        // Default to the most recent event
+                        // Default to the first event
                         if (events.length > 0) {
-                            setSelectedEvent(events[events.length - 1].id)
+                            setSelectedEvent(events[0].id)
                         }
                     }
                 } finally {
@@ -202,45 +202,6 @@ export default function GoalDetailsModal({ isOpen, goalId, onClose, autoOpenComm
                                     <button onClick={close} className="px-3 py-1.5 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800">✕</button>
                                 </div>
                                 <div ref={rightPanelScrollRef} className={`flex-1 min-h-0 overflow-auto px-6 pb-0`}>
-                                    {/* Timeline Section */}
-                                    {timelineEvents.length > 0 && (
-                                        <div className="py-4 border-b border-gray-200 dark:border-gray-800">
-                                            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">Journey</h3>
-                                            <div className="relative">
-                                                {/* Horizontal scrollable container */}
-                                                <div className="flex items-center gap-0 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-700">
-                                                    {timelineEvents.map((event, idx) => {
-                                                        const Icon = event.icon
-                                                        const isLast = idx === timelineEvents.length - 1
-                                                        const isSelected = selectedEvent === event.id
-                                                        return (
-                                                            <div key={event.id} className="flex items-center flex-shrink-0 cursor-pointer group" onClick={() => handleEventClick(event)}>
-                                                                {/* Event card */}
-                                                                <div className="flex flex-col items-center min-w-[140px] px-2">
-                                                                    {/* Icon circle */}
-                                                                    <div className={`w-12 h-12 rounded-full ${event.bgColor} border-2 ${isSelected ? 'border-blue-500 ring-2 ring-blue-200 dark:ring-blue-900' : event.borderColor} flex items-center justify-center mb-2 shadow-sm transition-all duration-200 ${isSelected ? 'scale-110' : 'group-hover:scale-105'}`}>
-                                                                        <Icon className={`h-6 w-6 ${event.color}`} />
-                                                                    </div>
-                                                                    {/* Event details */}
-                                                                    <div className="text-center">
-                                                                        <div className={`text-xs font-semibold ${isSelected ? 'text-blue-600 dark:text-blue-400' : 'text-gray-900 dark:text-gray-100'} mb-0.5`}>{event.title}</div>
-                                                                        {event.points && (
-                                                                            <div className="text-[10px] font-medium text-green-600 dark:text-green-400 mt-1">+{event.points} pts</div>
-                                                                        )}
-                                                                    </div>
-                                                                </div>
-                                                                {/* Connecting line */}
-                                                                {!isLast && (
-                                                                    <div className="flex-shrink-0 w-8 h-0.5 bg-gradient-to-r from-gray-300 to-gray-200 dark:from-gray-600 dark:to-gray-700 -mx-2" />
-                                                                )}
-                                                            </div>
-                                                        )
-                                                    })}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-
                                     <div className="py-6 space-y-4">
                                         {/* Title and Timeline Toggle */}
                                         <div className="flex items-start justify-between gap-4">
@@ -377,42 +338,6 @@ export default function GoalDetailsModal({ isOpen, goalId, onClose, autoOpenComm
                                 <button onClick={close} className="px-3 py-1.5 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800">✕</button>
                             </div>
                             <div ref={rightPanelScrollRef} className={`flex-1 min-h-0 overflow-auto`}>
-                                {/* Timeline Section */}
-                                {timelineEvents.length > 0 && (
-                                    <div className="p-6 pb-4 border-b border-gray-200 dark:border-gray-800">
-                                        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">Journey</h3>
-                                        <div className="relative">
-                                            {/* Horizontal scrollable container */}
-                                            <div className="flex items-center gap-0 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-700">
-                                                {timelineEvents.map((event, idx) => {
-                                                    const Icon = event.icon
-                                                    const isLast = idx === timelineEvents.length - 1
-                                                    const isSelected = selectedEvent === event.id
-                                                    return (
-                                                        <div key={event.id} className="flex items-center flex-shrink-0 cursor-pointer group" onClick={() => handleEventClick(event)}>
-                                                            {/* Event card */}
-                                                            <div className="flex flex-col items-center min-w-[140px] px-2">
-                                                                {/* Icon circle */}
-                                                                <div className={`w-12 h-12 rounded-full ${event.bgColor} border-2 ${isSelected ? 'border-blue-500 ring-2 ring-blue-200 dark:ring-blue-900' : event.borderColor} flex items-center justify-center mb-2 shadow-sm transition-all duration-200 ${isSelected ? 'scale-110' : 'group-hover:scale-105'}`}>
-                                                                    <Icon className={`h-6 w-6 ${event.color}`} />
-                                                                </div>
-                                                                {/* Event details */}
-                                                                <div className="text-center">
-                                                                    <div className={`text-xs font-semibold ${isSelected ? 'text-blue-600 dark:text-blue-400' : 'text-gray-900 dark:text-gray-100'} mb-0.5`}>{event.title}</div>
-                                                                </div>
-                                                            </div>
-                                                            {/* Connecting line */}
-                                                            {!isLast && (
-                                                                <div className="flex-shrink-0 w-8 h-0.5 bg-gradient-to-r from-gray-300 to-gray-200 dark:from-gray-600 dark:to-gray-700 -mx-2" />
-                                                            )}
-                                                        </div>
-                                                    )
-                                                })}
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-
                                 <div className="p-6 space-y-4">
                                     {/* Title and Timeline Toggle */}
                                     <div className="flex items-start justify-between gap-4">
