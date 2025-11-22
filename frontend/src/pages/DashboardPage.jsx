@@ -11,7 +11,7 @@ const GoalSuggestionsModal = lazy(() => import('../components/GoalSuggestionsMod
 const HabitSuggestionsModal = lazy(() => import('../components/HabitSuggestionsModal'));
 import { API_CONFIG } from '../config/api'
 import { communitiesAPI, habitsAPI } from '../services/api'
-const GoalPostModal = lazy(() => import('../components/GoalPostModal'));
+const GoalDetailsModal = lazy(() => import('../components/GoalDetailsModal'));
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
 
@@ -32,9 +32,9 @@ const DashboardPage = () => {
   const [extraYears, setExtraYears] = useState([])
   const [isAddYearOpen, setIsAddYearOpen] = useState(false)
 
-  const { 
-    isAuthenticated, 
-    loading, 
+  const {
+    isAuthenticated,
+    loading,
     error,
     goals,
     goalsPagination,
@@ -71,9 +71,9 @@ const DashboardPage = () => {
 
   const handleTabChange = (tab) => {
     setSearchParams({ tab });
-    setActiveTab(tab); 
+    setActiveTab(tab);
   };
-  
+
   // Collect user years present in goals
   const yearsInData = useMemo(() => {
     const ys = new Set((goals || []).map(g => g.year).filter(y => typeof y === 'number'))
@@ -127,7 +127,7 @@ const DashboardPage = () => {
       if (initialYear !== selectedYear) setSelectedYear(initialYear)
       getDashboardStats()
       getGoals({ year: initialYear })
-      try { communitiesAPI.listMyJoinedItems().then(r => setCommunityItems(r?.data?.data || [])).catch(()=>{}) } catch {}
+      try { communitiesAPI.listMyJoinedItems().then(r => setCommunityItems(r?.data?.data || [])).catch(() => { }) } catch { }
     }
   }, [isAuthenticated])
 
@@ -146,16 +146,16 @@ const DashboardPage = () => {
   useEffect(() => {
     if (!isAuthenticated) return
     if (activeTab === 'habits') {
-      try { loadHabits({}).catch(()=>{}) } catch {}
-      try { loadHabitAnalytics({}).catch(()=>{}) } catch {}
-      try { loadHabitStats({}).catch(()=>{}) } catch {}
+      try { loadHabits({}).catch(() => { }) } catch { }
+      try { loadHabitAnalytics({}).catch(() => { }) } catch { }
+      try { loadHabitStats({}).catch(() => { }) } catch { }
     }
   }, [activeTab, isAuthenticated])
 
   // Load community goals (not paginated with personal goals)
   useEffect(() => {
     if (!isAuthenticated) return;
-    try { loadCommunityGoalsForYear(selectedYear).catch(()=>{}) } catch {}
+    try { loadCommunityGoalsForYear(selectedYear).catch(() => { }) } catch { }
   }, [isAuthenticated, selectedYear])
 
   // Deep link open via ?goalId=
@@ -164,7 +164,7 @@ const DashboardPage = () => {
       const params = new URLSearchParams(location.search)
       const gid = params.get('goalId')
       if (gid) setOpenGoalId(gid)
-    } catch {}
+    } catch { }
   }, [location.search])
 
   // Lock body scroll when goal modal open
@@ -193,10 +193,10 @@ const DashboardPage = () => {
       const res = await habitsAPI.create(payload)
       const created = res?.data?.data || res?.data
       if (created?._id) {
-        try { useApiStore.getState().appendHabit(created) } catch {}
+        try { useApiStore.getState().appendHabit(created) } catch { }
         return created
       }
-    } catch {}
+    } catch { }
     return null
   }
 
@@ -219,7 +219,7 @@ const DashboardPage = () => {
       if (result?.success && result?.goal) {
         return result.goal
       }
-    } catch {}
+    } catch { }
     return null
   }
 
@@ -309,7 +309,7 @@ const DashboardPage = () => {
     try {
       const params = new URLSearchParams(location.search)
       if (params.get('goalId')) navigate(-1)
-    } catch {}
+    } catch { }
   }
 
   if (!isAuthenticated) {
@@ -345,24 +345,24 @@ const DashboardPage = () => {
 
   const handleHabitLog = async (status) => {
     if (!selectedHabit) return;
-  
+
     try {
       const res = await useApiStore.getState().logHabit(selectedHabit._id, status);
       if (res.success) {
         setSelectedHabit((prev) =>
           prev
             ? {
-                ...prev,
-                currentStreak: status === 'done' ? (prev.currentStreak || 0) + 1 : 0,
-                longestStreak:
-                  status === 'done'
-                    ? Math.max(prev.longestStreak || 0, (prev.currentStreak || 0) + 1)
-                    : prev.longestStreak,
-                totalCompletions:
-                  status === 'done'
-                    ? (prev.totalCompletions || 0) + 1
-                    : prev.totalCompletions || 0,
-              }
+              ...prev,
+              currentStreak: status === 'done' ? (prev.currentStreak || 0) + 1 : 0,
+              longestStreak:
+                status === 'done'
+                  ? Math.max(prev.longestStreak || 0, (prev.currentStreak || 0) + 1)
+                  : prev.longestStreak,
+              totalCompletions:
+                status === 'done'
+                  ? (prev.totalCompletions || 0) + 1
+                  : prev.totalCompletions || 0,
+            }
             : prev
         );
       }
@@ -374,10 +374,10 @@ const DashboardPage = () => {
 
   const handleStatusToast = async (status) => {
     const msg = status === 'done' ? 'Habit logged successfully' : 'Habit skipped successfully';
-    window.dispatchEvent(new CustomEvent('wt_toast', 
+    window.dispatchEvent(new CustomEvent('wt_toast',
       { detail: { message: msg, type: 'success', duration: 2000 } }));
   }
-  
+
   // Error state
   if (error) {
     return (
@@ -388,7 +388,7 @@ const DashboardPage = () => {
             Error Loading Dashboard
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mb-4">{error}</p>
-          <button 
+          <button
             onClick={() => getDashboardStats()}
             className="btn-primary"
           >
@@ -422,14 +422,14 @@ const DashboardPage = () => {
   const communityGoals = Array.isArray(communityGoalsByYear?.[String(selectedYear)]?.goals)
     ? communityGoalsByYear[String(selectedYear)].goals
     : []
-  
+
   // Server-side pagination - use the goals as returned from server (already paginated and ordered)
   const visibleGoals = goalsForYear
   const totalPages = goalsPagination ? goalsPagination.pages : 1
 
   // Use dashboard stats for progress calculation (total for the year, not just current page)
-  const progress = dashboardStats && dashboardStats.totalGoals > 0 
-    ? Math.round((dashboardStats.completedGoals / dashboardStats.totalGoals) * 100) 
+  const progress = dashboardStats && dashboardStats.totalGoals > 0
+    ? Math.round((dashboardStats.completedGoals / dashboardStats.totalGoals) * 100)
     : 0
 
   const isScheduledToday = (habit) => {
@@ -442,7 +442,7 @@ const DashboardPage = () => {
   const frequencyLabel = (h) => {
     if (!h) return ''
     if (h.frequency === 'daily') return 'Daily'
-    const names = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
+    const names = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
     const days = Array.isArray(h.daysOfWeek) ? h.daysOfWeek.slice().sort() : []
     return days.length ? days.map(d => names[d]).join(', ') : 'Weekly'
   }
@@ -569,16 +569,16 @@ const DashboardPage = () => {
               {communityGoals.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {communityGoals.map((goal, index) => (
-                    <WishCard 
-                      key={goal._id} 
-                      wish={goal} 
-                      year={selectedYear} 
-                      index={index} 
-                      onToggle={() => handleToggleGoal(goal._id)} 
-                      onDelete={() => handleDeleteGoal(goal._id)} 
-                      onComplete={handleCompleteGoal} 
-                      isViewingOwnGoals={true} 
-                      onOpenGoal={(id) => setOpenGoalId(id)} 
+                    <WishCard
+                      key={goal._id}
+                      wish={goal}
+                      year={selectedYear}
+                      index={index}
+                      onToggle={() => handleToggleGoal(goal._id)}
+                      onDelete={() => handleDeleteGoal(goal._id)}
+                      onComplete={handleCompleteGoal}
+                      isViewingOwnGoals={true}
+                      onOpenGoal={(id) => setOpenGoalId(id)}
                       footer={(
                         <div className="flex items-center justify-end">
                           <a
@@ -637,7 +637,7 @@ const DashboardPage = () => {
                             <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-200 border border-purple-200 dark:border-purple-800">{it.communityName}</span>
                             <div className="flex items-center gap-2">
                               <button
-                                onClick={async () => { const g = await ensurePersonalGoal(it); if (g?._id) { try { setOpenGoalId(g._id) } catch {} } }}
+                                onClick={async () => { const g = await ensurePersonalGoal(it); if (g?._id) { try { setOpenGoalId(g._id) } catch { } } }}
                                 className="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 text-sm"
                               >
                                 Open in my goals
@@ -685,10 +685,10 @@ const DashboardPage = () => {
               {Array.isArray(habits) && habits.filter(h => !h.isCommunitySource && !h.communityInfo).length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {habits.filter(h => !h.isCommunitySource && !h.communityInfo).map((h, idx) => (
-                    <div 
-                    key={h._id || idx} 
-                    onClick={() => setSelectedHabit(h)}
-                    className="glass-card-hover p-5 rounded-2xl border border-gray-200 dark:border-gray-800 flex flex-col gap-2 cursor-pointer"
+                    <div
+                      key={h._id || idx}
+                      onClick={() => setSelectedHabit(h)}
+                      className="glass-card-hover p-5 rounded-2xl border border-gray-200 dark:border-gray-800 flex flex-col gap-2 cursor-pointer"
                     >
                       <div className="flex items-center justify-between gap-3">
                         <div className="min-w-0">
@@ -716,13 +716,13 @@ const DashboardPage = () => {
                       </div>
                       <div className="flex items-center justify-end gap-2 pt-2">
                         <button
-                          onClick={async (e) => { e.stopPropagation(); handleStatusToast('skipped'); try { await logHabit(h._id, 'skipped'); } catch {} }}
+                          onClick={async (e) => { e.stopPropagation(); handleStatusToast('skipped'); try { await logHabit(h._id, 'skipped'); } catch { } }}
                           className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-white text-sm ${isScheduledToday(h) ? 'bg-yellow-600/90 hover:bg-yellow-600' : 'bg-gray-300 dark:bg-gray-700 cursor-not-allowed'}`}
                         >
                           <SkipForward className="h-4 w-4" /> Skip
                         </button>
                         <button
-                          onClick={async (e) => { e.stopPropagation(); handleStatusToast('done'); try { await logHabit(h._id, 'done'); } catch {} }}
+                          onClick={async (e) => { e.stopPropagation(); handleStatusToast('done'); try { await logHabit(h._id, 'done'); } catch { } }}
                           className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-white text-sm ${isScheduledToday(h) ? 'bg-green-600/90 hover:bg-green-600' : 'bg-gray-300 dark:bg-gray-700 cursor-not-allowed'}`}
                         >
                           <CheckCircle className="h-4 w-4" /> Done
@@ -759,14 +759,14 @@ const DashboardPage = () => {
                         </div>
                         <div className="flex items-center justify-end gap-2 pt-2">
                           <button
-                            onClick={async (e) => { e.stopPropagation(); handleStatusToast('skipped'); try { await logHabit(h._id, 'skipped'); } catch {} }}
+                            onClick={async (e) => { e.stopPropagation(); handleStatusToast('skipped'); try { await logHabit(h._id, 'skipped'); } catch { } }}
                             className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-white text-sm ${isScheduledToday(h) ? 'bg-yellow-600/90 hover:bg-yellow-600' : 'bg-gray-300 dark:bg-gray-700 cursor-not-allowed'}`}
                             disabled={false}
                           >
                             <SkipForward className="h-4 w-4" /> Skip
                           </button>
                           <button
-                            onClick={async (e) => { e.stopPropagation(); handleStatusToast('done'); try { await logHabit(h._id, 'done'); } catch {} }}
+                            onClick={async (e) => { e.stopPropagation(); handleStatusToast('done'); try { await logHabit(h._id, 'done'); } catch { } }}
                             className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-white text-sm ${isScheduledToday(h) ? 'bg-green-600/90 hover:bg-green-600' : 'bg-gray-300 dark:bg-gray-700 cursor-not-allowed'}`}
                             disabled={false}
                           >
@@ -815,7 +815,7 @@ const DashboardPage = () => {
                       totalCompletions: 0
                     };
                     return (
-                      <div 
+                      <div
                         key={it._id || idx}
                         onClick={() => { if (base) setSelectedHabit(base) }}
                         className="glass-card-hover p-5 rounded-2xl border border-gray-200 dark:border-gray-800 flex flex-col gap-2 cursor-pointer"
@@ -846,14 +846,14 @@ const DashboardPage = () => {
                         </div>
                         <div className="flex items-center justify-end gap-2 pt-2">
                           <button
-                            onClick={async (e) => { e.stopPropagation(); handleStatusToast('skipped'); try { const target = base || await ensurePersonalHabit(it); if (target?._id) await logHabit(target._id, 'skipped'); } catch {} }}
+                            onClick={async (e) => { e.stopPropagation(); handleStatusToast('skipped'); try { const target = base || await ensurePersonalHabit(it); if (target?._id) await logHabit(target._id, 'skipped'); } catch { } }}
                             className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-white text-sm ${isScheduledToday(h) ? 'bg-yellow-600/90 hover:bg-yellow-600' : 'bg-gray-300 dark:bg-gray-700 cursor-not-allowed'}`}
                             disabled={false}
                           >
                             <SkipForward className="h-4 w-4" /> Skip
                           </button>
                           <button
-                            onClick={async (e) => { e.stopPropagation(); handleStatusToast('done'); try { const target = base || await ensurePersonalHabit(it); if (target?._id) await logHabit(target._id, 'done'); } catch {} }}
+                            onClick={async (e) => { e.stopPropagation(); handleStatusToast('done'); try { const target = base || await ensurePersonalHabit(it); if (target?._id) await logHabit(target._id, 'done'); } catch { } }}
                             className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-white text-sm ${isScheduledToday(h) ? 'bg-green-600/90 hover:bg-green-600' : 'bg-gray-300 dark:bg-gray-700 cursor-not-allowed'}`}
                             disabled={false}
                           >
@@ -931,7 +931,7 @@ const DashboardPage = () => {
           onSave={async (payload) => {
             const res = await useApiStore.getState().updateHabit(selectedHabit._id, payload)
             if (res?.success) {
-              try { setSelectedHabit(prev => (prev ? { ...prev, ...res.habit } : prev)) } catch {}
+              try { setSelectedHabit(prev => (prev ? { ...prev, ...res.habit } : prev)) } catch { }
               return res
             }
             throw new Error(res?.error || 'Failed to update habit')
@@ -942,19 +942,19 @@ const DashboardPage = () => {
 
       {/* Habit Detail Modal */}
       {selectedHabit && (
-        <Suspense fallback={null}><HabitDetailModal 
-        isOpen={!!selectedHabit}
-        habit={selectedHabit} 
-        onClose={() => setSelectedHabit(null)} 
-        onLog={handleHabitLog} 
-        onEdit={() => setIsEditHabitOpen(true)} 
-        onDelete={async () => { const res = await useApiStore.getState().deleteHabit(selectedHabit._id); if (res.success) { setSelectedHabit(null) } }} />
+        <Suspense fallback={null}><HabitDetailModal
+          isOpen={!!selectedHabit}
+          habit={selectedHabit}
+          onClose={() => setSelectedHabit(null)}
+          onLog={handleHabitLog}
+          onEdit={() => setIsEditHabitOpen(true)}
+          onDelete={async () => { const res = await useApiStore.getState().deleteHabit(selectedHabit._id); if (res.success) { setSelectedHabit(null) } }} />
         </Suspense>
       )}
 
-      {/* Goal Post Modal (shared with Feed) */}
+      {/* Goal Details Modal (with timeline) */}
       {openGoalId && (
-        <Suspense fallback={null}><GoalPostModal
+        <Suspense fallback={null}><GoalDetailsModal
           isOpen={!!openGoalId}
           goalId={openGoalId}
           autoOpenComments={scrollCommentsOnOpen}

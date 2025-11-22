@@ -122,9 +122,9 @@ const getGoalPost = async (req, res, next) => {
 const getGoals = async (req, res, next) => {
   try {
     const { year, category, status, page = 1, limit = 10, includeProgress, communityOnly } = req.query;
-    
+
     const query = { userId: req.user.id };
-    
+
     // Add filters
     if (year) query.year = parseInt(year);
     if (category) query.category = category;
@@ -134,7 +134,7 @@ const getGoals = async (req, res, next) => {
     if (communityOnly === 'true' || communityOnly === true) {
       query['communityInfo'] = { $exists: true };
     }
-    
+
     const rawGoals = await Goal.find(query)
       .sort({ completed: 1, createdAt: -1 }) // Sort by completion status first (false=0, true=1), then by creation date
       .limit(limit * 1)
@@ -157,7 +157,7 @@ const getGoals = async (req, res, next) => {
       for (const g of rawGoals) goals.push(g.toJSON());
     }
     const total = await Goal.countDocuments(query);
-    
+
     res.status(200).json({
       success: true,
       data: {
@@ -181,14 +181,14 @@ const getGoals = async (req, res, next) => {
 const getGoal = async (req, res, next) => {
   try {
     const goal = await Goal.findById(req.params.id).populate('name');
-    
+
     if (!goal) {
       return res.status(404).json({
         success: false,
         message: 'Goal not found'
       });
     }
-    
+
     // Check if user owns goal or if goal is from followed user
     if (goal.userId.toString() !== req.user.id.toString()) {
       // Check if user follows the goal owner
@@ -200,7 +200,7 @@ const getGoal = async (req, res, next) => {
         });
       }
     }
-    
+
     const wantProgress = String(req.query.includeProgress) === 'true';
     let progress = undefined;
     if (wantProgress) {
@@ -225,43 +225,43 @@ const createGoal = async (req, res, next) => {
         errors: errors.array()
       });
     }
-    
+
     const { title, description, category, priority, duration, targetDate, year, subGoals, habitLinks } = req.body;
     const isPublicFlag = (req.body.isPublic === true || req.body.isPublic === 'true') ? true : false;
     const isDiscoverableFlag = (req.body.isDiscoverable === true || req.body.isDiscoverable === 'true') ? true : false;
-    
+
     // Check daily goal creation limit (max 5 per day)
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
-    
+
     const todayGoalCount = await Goal.countDocuments({
       userId: req.user.id,
       createdAt: { $gte: today, $lt: tomorrow }
     });
-    
+
     if (todayGoalCount >= 5) {
       return res.status(400).json({
         success: false,
         message: 'Daily goal creation limit reached (5 goals per day)'
       });
     }
-    
+
     // Check year limit (max 50 goals per year)
     const currentYear = year || new Date().getFullYear();
     const yearGoalCount = await Goal.countDocuments({
       userId: req.user.id,
       year: currentYear
     });
-    
+
     if (yearGoalCount >= 50) {
       return res.status(400).json({
         success: false,
         message: 'Year goal limit reached (50 goals per year)'
       });
     }
-    
+
     const session = await mongoose.startSession();
     let createdGoal = null;
     await session.withTransaction(async () => {
@@ -341,16 +341,16 @@ const updateGoal = async (req, res, next) => {
         errors: errors.array()
       });
     }
-    
+
     const goal = await Goal.findById(req.params.id);
-    
+
     if (!goal) {
       return res.status(404).json({
         success: false,
         message: 'Goal not found'
       });
     }
-    
+
     // Check ownership
     if (goal.userId.toString() !== req.user.id.toString()) {
       return res.status(403).json({
@@ -358,14 +358,14 @@ const updateGoal = async (req, res, next) => {
         message: 'Access denied'
       });
     }
-    
+
     // Disallow editing if this goal is used by a community item (community-owned)
     try {
       const referenced = await CommunityItem.findOne({ type: 'goal', sourceId: goal._id, isActive: true }).lean();
       if (referenced) {
         return res.status(400).json({ success: false, message: 'Community goals cannot be edited' });
       }
-    } catch {}
+    } catch { }
 
     // Don't allow updating completed goals
     if (goal.completed) {
@@ -374,21 +374,21 @@ const updateGoal = async (req, res, next) => {
         message: 'Cannot update completed goals'
       });
     }
-    
+
     const { title, description, category, priority, duration, targetDate, subGoals, habitLinks } = req.body;
     const isPublicFlag = (req.body.isPublic === true || req.body.isPublic === 'true') ? true : goal.isPublic;
     const isDiscoverableFlag = (req.body.isDiscoverable === true || req.body.isDiscoverable === 'true') ? true : goal.isDiscoverable;
-    
+
     // Prepare update data
-    const updateData = { 
-      title, 
-      description, 
-      category, 
-      priority, 
-      duration, 
-      targetDate, 
-      isPublic: isPublicFlag, 
-      isDiscoverable: isDiscoverableFlag 
+    const updateData = {
+      title,
+      description,
+      category,
+      priority,
+      duration,
+      targetDate,
+      isPublic: isPublicFlag,
+      isDiscoverable: isDiscoverableFlag
     };
 
     // Update sub-goals if provided
@@ -419,13 +419,13 @@ const updateGoal = async (req, res, next) => {
         updateData.habitLinks = [];
       }
     }
-    
+
     const updatedGoal = await Goal.findByIdAndUpdate(
       req.params.id,
       updateData,
       { new: true, runValidators: true }
     );
-    
+
     res.status(200).json({
       success: true,
       data: { goal: updatedGoal }
@@ -542,7 +542,7 @@ const toggleGoalCompletion = async (req, res, next) => {
       try {
         const dc = user.dailyCompletions;
         if (dc && typeof dc.keys === 'function') {
-          const nowMid = new Date(); nowMid.setHours(0,0,0,0);
+          const nowMid = new Date(); nowMid.setHours(0, 0, 0, 0);
           const keepDays = 7;
           const minKeep = new Date(nowMid.getTime() - (keepDays - 1) * 24 * 60 * 60 * 1000);
           const unsetPaths = {};
@@ -556,7 +556,7 @@ const toggleGoalCompletion = async (req, res, next) => {
             await User.updateOne({ _id: user._id }, { $unset: unsetPaths }, { session, strict: false });
           }
         }
-      } catch (_) {}
+      } catch (_) { }
 
       if (goal.completed) {
         // UNCOMPLETE
@@ -653,7 +653,7 @@ const toggleGoalCompletion = async (req, res, next) => {
               );
             }
           }
-        } catch (_) {}
+        } catch (_) { }
 
         resultGoal = updated;
       }
@@ -677,14 +677,14 @@ const toggleGoalCompletion = async (req, res, next) => {
 const toggleGoalLike = async (req, res, next) => {
   try {
     const goal = await Goal.findById(req.params.id);
-    
+
     if (!goal) {
       return res.status(404).json({
         success: false,
         message: 'Goal not found'
       });
     }
-    
+
     // Don't allow liking own goals
     if (goal.userId.toString() === req.user.id.toString()) {
       return res.status(400).json({
@@ -692,9 +692,9 @@ const toggleGoalLike = async (req, res, next) => {
         message: 'Cannot like your own goal'
       });
     }
-    
+
     const result = await Like.toggleLike(req.user.id, 'goal', goal._id);
-    
+
     res.status(200).json({
       success: true,
       data: {
@@ -714,7 +714,7 @@ const getYearlyGoalsSummary = async (req, res, next) => {
   try {
     const year = parseInt(req.params.year);
     const userId = req.query.userId || req.user.id;
-    
+
     // If viewing another user's goals, check if following
     if (userId !== req.user.id) {
       const user = await User.findById(req.user.id).select('following');
@@ -725,11 +725,11 @@ const getYearlyGoalsSummary = async (req, res, next) => {
         });
       }
     }
-    
+
     const goals = await Goal.find({ userId, year });
     const completed = goals.filter(g => g.completed);
     const pending = goals.filter(g => !g.completed);
-    
+
     const summary = {
       year,
       total: goals.length,
@@ -739,7 +739,7 @@ const getYearlyGoalsSummary = async (req, res, next) => {
       totalPoints: completed.reduce((sum, goal) => sum + goal.pointsEarned, 0),
       categorySummary: {}
     };
-    
+
     // Category breakdown
     goals.forEach(goal => {
       if (!summary.categorySummary[goal.category]) {
@@ -755,7 +755,7 @@ const getYearlyGoalsSummary = async (req, res, next) => {
         summary.categorySummary[goal.category].points += goal.pointsEarned;
       }
     });
-    
+
     res.status(200).json({
       success: true,
       data: { summary, goals }
@@ -820,7 +820,7 @@ const getShareableGoal = async (req, res, next) => {
       shareUrl: `${req.protocol}://${req.get('host')}/users/${goal.userId._id}`,
       openGraph: {
         title: `${goal.userId.name} achieved their goal: ${goal.title}`,
-        description: goal.shareCompletionNote && goal.completionNote 
+        description: goal.shareCompletionNote && goal.completionNote
           ? `${goal.completionNote.substring(0, 150)}...`
           : `${goal.category} goal completed successfully on ${new Date(goal.completedAt).toLocaleDateString()}`,
         image: `${req.protocol}://${req.get('host')}/api/v1/goals/${goal._id}/og-image`,
@@ -924,13 +924,13 @@ const generateOGImage = async (req, res, next) => {
     ctx.fillStyle = '#1a202c'
     ctx.font = 'bold 36px Arial'
     ctx.textAlign = 'center'
-    
+
     // Word wrap for long titles
     const maxWidth = width - 200
     const words = goal.title.split(' ')
     let line = ''
     let y = 220
-    
+
     for (let n = 0; n < words.length; n++) {
       const testLine = line + words[n] + ' '
       const testWidth = ctx.measureText(testLine).width
@@ -948,7 +948,7 @@ const generateOGImage = async (req, res, next) => {
     ctx.fillStyle = '#4a5568'
     ctx.font = '28px Arial'
     ctx.textAlign = 'center'
-    
+
     const categoryText = `${goal.category} • Completed ${new Date(goal.completedAt).toLocaleDateString()}`
     ctx.fillText(categoryText, width / 2, y + 60)
 
@@ -969,17 +969,17 @@ const generateOGImage = async (req, res, next) => {
     ctx.beginPath()
     ctx.arc(width / 2, y + 180, 30, 0, 2 * Math.PI)
     ctx.fill()
-    
+
     ctx.fillStyle = '#d69e2e'
     ctx.fillRect(width / 2 - 15, y + 190, 30, 20)
-    
+
     ctx.fillStyle = '#f6e05e'
     ctx.fillRect(width / 2 - 10, y + 200, 20, 10)
 
     // Set response headers
     res.setHeader('Content-Type', 'image/png')
     res.setHeader('Cache-Control', 'public, max-age=86400') // Cache for 1 day
-    
+
     // Send image
     const buffer = canvas.toBuffer('image/png')
     res.send(buffer)
