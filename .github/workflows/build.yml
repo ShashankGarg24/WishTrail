@@ -39,6 +39,10 @@ jobs:
           echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > app/wishtrail.keystore
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          
+      - name: Set Gradlew Permission
+        working-directory: app/android
+        run: chmod +x ./gradlew
 
       - name: Build Release APK
         working-directory: app/android
