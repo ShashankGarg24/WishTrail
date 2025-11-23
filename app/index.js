@@ -10,9 +10,9 @@ try {
   const mod = require('@react-native-firebase/messaging');
   const bgMessaging = mod && (mod.default || mod);
   if (bgMessaging && typeof bgMessaging === 'function' && Platform.OS === 'android') {
-    try { bgMessaging().setBackgroundMessageHandler(async () => {}); } catch (_) {}
+    try { bgMessaging().setBackgroundMessageHandler(async () => { }); } catch (_) { }
   }
-} catch (_) {}
+} catch (_) { }
 
 const AsyncStorage = (() => { try { return require('@react-native-async-storage/async-storage').default; } catch { return null; } })();
 let SecureStore = null; try { SecureStore = require('expo-secure-store'); } catch (_) { SecureStore = null; }
@@ -56,7 +56,7 @@ function App() {
       if (!url) return;
       const js = `window.dispatchEvent(new CustomEvent('wt_push', { detail: { url: ${JSON.stringify(url)} } })); true;`;
       webRef.current?.injectJavaScript(js);
-    } catch {}
+    } catch { }
   }, []);
 
   // Custom pull-to-refresh overlay state
@@ -65,6 +65,8 @@ function App() {
   const [ptrLoading, setPtrLoading] = useState(false);
   const [isPTRPage, setIsPTRPage] = useState(false);
   const ptrAnim = useRef(new Animated.Value(0)).current;
+  const lastProgressUpdate = useRef(0);
+  const ptrAnimRef = useRef(null);
 
   // Animated pager for onboarding
   const scrollX = useRef(new Animated.Value(0)).current;
@@ -132,7 +134,7 @@ function App() {
         })(); true;
       `;
       webRef.current?.injectJavaScript(js);
-    } catch {}
+    } catch { }
   }, []);
 
   useEffect(() => {
@@ -146,22 +148,22 @@ function App() {
   }, []);
 
   const completeOnboarding = useCallback(async () => {
-    try { if (AsyncStorage) await AsyncStorage.setItem('wt_onboarding_seen', '1'); } catch {}
+    try { if (AsyncStorage) await AsyncStorage.setItem('wt_onboarding_seen', '1'); } catch { }
     setShowOnboarding(false);
   }, []);
 
   const finishOnboarding = useCallback(async () => {
     await completeOnboarding();
-    try { await askPushPermissionOnce(); } catch {}
+    try { await askPushPermissionOnce(); } catch { }
     try {
       const pathAfter = authToken ? '/dashboard' : '/';
       webRef.current?.injectJavaScript(`try{ window.location.replace(${JSON.stringify(pathAfter)}); }catch(e){} true;`);
-    } catch {}
+    } catch { }
   }, [completeOnboarding]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    try { webRef.current?.reload(); } catch {}
+    try { webRef.current?.reload(); } catch { }
     setTimeout(() => setRefreshing(false), 800);
   }, []);
 
@@ -175,9 +177,9 @@ function App() {
       // Allow internal HTTP navigation
       if (isHttp && isSameOrigin) return true;
       // For external HTTP links, open system browser
-      if (isHttp && !isSameOrigin) { Linking.openURL(url).catch(()=>{}); return false; }
+      if (isHttp && !isSameOrigin) { Linking.openURL(url).catch(() => { }); return false; }
       // Block unknown/custom schemes inside WebView; try to open externally
-      Linking.canOpenURL(url).then((can) => { if (can) Linking.openURL(url); }).catch(()=>{});
+      Linking.canOpenURL(url).then((can) => { if (can) Linking.openURL(url); }).catch(() => { });
       return false;
     } catch {
       return true;
@@ -194,9 +196,9 @@ function App() {
         try {
           const API = (Constants.expoConfig?.extra?.API_URL || Constants?.manifest?.extra?.API_URL || '').replace(/\/$/, '');
           if (API && authToken) {
-            fetch(`${API}/notifications/ping`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` } }).catch(()=>{});
+            fetch(`${API}/notifications/ping`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` } }).catch(() => { });
           }
-        } catch {}
+        } catch { }
       }
     });
     return () => sub.remove();
@@ -215,21 +217,21 @@ function App() {
         Animated.timing(blob2, { toValue: 1, duration: 3500, useNativeDriver: true }),
         Animated.timing(blob2, { toValue: 0, duration: 3500, useNativeDriver: true })
       ])).start();
-    } catch {}
+    } catch { }
   }, [showOnboarding, blob1, blob2]);
 
   useEffect(() => {
     // Restart pulse and intro anims when slide index changes
     try {
       if (pulseLoopRef.current && pulseLoopRef.current.stop) pulseLoopRef.current.stop();
-    } catch {}
-    try { emojiPulse.setValue(0); bodyAnim.setValue(0); ctaAnim.setValue(0); } catch {}
+    } catch { }
+    try { emojiPulse.setValue(0); bodyAnim.setValue(0); ctaAnim.setValue(0); } catch { }
     const up = Animated.timing(emojiPulse, { toValue: 1, duration: 800, useNativeDriver: true });
     const down = Animated.timing(emojiPulse, { toValue: 0, duration: 800, useNativeDriver: true });
     const loop = Animated.loop(Animated.sequence([up, down]));
-    pulseLoopRef.current = loop; try { loop.start(); } catch {}
-    try { Animated.timing(bodyAnim, { toValue: 1, duration: 450, useNativeDriver: true }).start(); } catch {}
-    try { Animated.spring(ctaAnim, { toValue: 1, useNativeDriver: true, friction: 6, tension: 120 }).start(); } catch {}
+    pulseLoopRef.current = loop; try { loop.start(); } catch { }
+    try { Animated.timing(bodyAnim, { toValue: 1, duration: 450, useNativeDriver: true }).start(); } catch { }
+    try { Animated.spring(ctaAnim, { toValue: 1, useNativeDriver: true, friction: 6, tension: 120 }).start(); } catch { }
   }, [onboardingIndex, emojiPulse, bodyAnim, ctaAnim]);
 
   // FCM init + handlers (unchanged)
@@ -237,7 +239,7 @@ function App() {
   const didRegisterRef = useRef(false);
   useEffect(() => {
     const disableFcm = !!(Constants?.expoConfig?.extra?.DISABLE_FCM || Constants?.manifest?.extra?.DISABLE_FCM);
-    if (disableFcm) { try { console.log('FCM disabled via extra.DISABLE_FCM'); } catch {} ; return; }
+    if (disableFcm) { try { console.log('FCM disabled via extra.DISABLE_FCM'); } catch { }; return; }
     (async () => {
       try {
         let messaging;
@@ -245,16 +247,16 @@ function App() {
           const mod = require('@react-native-firebase/messaging');
           messaging = mod?.default || mod;
         } catch (_) { messaging = null; }
-        if (!messaging) { try { console.log('FCM: messaging module not available; skipping'); } catch {} ; return; }
+        if (!messaging) { try { console.log('FCM: messaging module not available; skipping'); } catch { }; return; }
 
         let authStatus = null;
-        try { authStatus = await messaging().requestPermission(); } catch (_) {}
+        try { authStatus = await messaging().requestPermission(); } catch (_) { }
 
         const enabled = (typeof authStatus === 'number') ? (authStatus >= 1) : !!authStatus;
         if (!enabled) return;
         const token = await messaging().getToken();
         setFcmToken(token);
-        try { console.log('FCM token:', token ? (token.slice(0, 12) + '...') : 'null'); } catch {}
+        try { console.log('FCM token:', token ? (token.slice(0, 12) + '...') : 'null'); } catch { }
 
         messaging().onMessage(async (remoteMessage) => {
           try {
@@ -262,7 +264,7 @@ function App() {
             const payload = { title: remoteMessage?.notification?.title || '', body: remoteMessage?.notification?.body || '', url: data?.url || '', type: data?.type || '', id: data?.id || '' };
             const js = `window.dispatchEvent(new CustomEvent('wt_push', { detail: ${JSON.stringify(payload)} })); true;`;
             webRef.current?.injectJavaScript(js);
-          } catch {}
+          } catch { }
         });
 
         messaging().onNotificationOpenedApp((remoteMessage) => {
@@ -271,7 +273,7 @@ function App() {
             if (url) {
               if (webReady) forwardDeepLinkToWeb(url); else pendingDeepLinkRef.current = url;
             }
-          } catch {}
+          } catch { }
         });
 
         try {
@@ -280,9 +282,9 @@ function App() {
           if (url) {
             if (webReady) forwardDeepLinkToWeb(url); else pendingDeepLinkRef.current = url;
           }
-        } catch {}
+        } catch { }
       } catch (e) {
-        try { console.log('FCM init error', e?.message || e); } catch {}
+        try { console.log('FCM init error', e?.message || e); } catch { }
       }
     })();
   }, [webReady, forwardDeepLinkToWeb]);
@@ -300,7 +302,7 @@ function App() {
           body: JSON.stringify({ token: fcmToken, platform: Platform.OS, provider: 'fcm', userId: userId || undefined })
         });
         didRegisterRef.current = true;
-      } catch (_) {}
+      } catch (_) { }
     })();
   }, [authToken, userId, fcmToken]);
 
@@ -333,7 +335,7 @@ function App() {
       } else {
         clearTimeout(authProbeTimer.current);
       }
-    } catch {}
+    } catch { }
   }, [authToken, injectPullToRefreshJS]);
 
   useEffect(() => {
@@ -348,10 +350,10 @@ function App() {
         if (SecureStore && SecureStore.getItemAsync) {
           const rt = await SecureStore.getItemAsync('wt_refresh_token');
           if (rt && rt.length > 0) {
-            try { webRef.current?.injectJavaScript(`window.__WT_REFRESH_TOKEN = ${JSON.stringify(rt)}; true;`); } catch {}
+            try { webRef.current?.injectJavaScript(`window.__WT_REFRESH_TOKEN = ${JSON.stringify(rt)}; true;`); } catch { }
           }
         }
-      } catch {}
+      } catch { }
     })();
   }, []);
 
@@ -362,11 +364,11 @@ function App() {
         const t = (data.token || '').trim();
         if (t && t.length > 0) {
           setAuthToken(t);
-          try { AsyncStorage && AsyncStorage.setItem('wt_native_authed', '1'); } catch {}
+          try { AsyncStorage && AsyncStorage.setItem('wt_native_authed', '1'); } catch { }
         } else {
           setAuthToken(null);
           setUserId(null);
-          try { AsyncStorage && AsyncStorage.removeItem('wt_native_authed'); } catch {}
+          try { AsyncStorage && AsyncStorage.removeItem('wt_native_authed'); } catch { }
         }
       } else if (data?.type === 'WT_USER') {
         const uid = (data.userId || '').trim();
@@ -374,42 +376,78 @@ function App() {
       } else if (data?.type === 'WT_REFRESH') {
         const rt = (data.refreshToken || '').trim();
         if (rt && rt.length > 0) {
-          try { SecureStore && SecureStore.setItemAsync && SecureStore.setItemAsync('wt_refresh_token', rt); } catch {}
-          try { webRef.current?.injectJavaScript(`window.__WT_REFRESH_TOKEN = ${JSON.stringify(rt)}; true;`); } catch {}
+          try { SecureStore && SecureStore.setItemAsync && SecureStore.setItemAsync('wt_refresh_token', rt); } catch { }
+          try { webRef.current?.injectJavaScript(`window.__WT_REFRESH_TOKEN = ${JSON.stringify(rt)}; true;`); } catch { }
         }
       } else if (data?.type === 'WT_PATH') {
         try {
           const p = String(data.path || '/');
-          setIsPTRPage(p.startsWith('/feed') || p.startsWith('/notifications'));
-          if (!(p.startsWith('/feed') || p.startsWith('/notifications'))) { setPtrVisible(false); setPtrProgress(0); setPtrLoading(false); }
-        } catch {}
+          const isPTR = p.startsWith('/feed') || p.startsWith('/notifications');
+          setIsPTRPage(isPTR);
+          // Immediately reset PTR state when navigating away from PTR pages
+          if (!isPTR) {
+            // Stop any ongoing animation
+            if (ptrAnimRef.current) {
+              try { ptrAnimRef.current.stop(); } catch { }
+            }
+            setPtrVisible(false);
+            setPtrProgress(0);
+            setPtrLoading(false);
+            ptrAnim.setValue(0);
+          }
+        } catch { }
       } else if (data?.type === 'WT_PTR_VISIBLE') {
-        if (!isPTRPage) return;
+        // Stop previous animation before starting new one
+        if (ptrAnimRef.current) {
+          try { ptrAnimRef.current.stop(); } catch { }
+        }
         setPtrLoading(false);
         setPtrVisible(!!data.visible);
         setPtrProgress(0);
-        Animated.timing(ptrAnim, { toValue: !!data.visible ? 1 : 0, duration: 180, useNativeDriver: true }).start();
+        ptrAnimRef.current = Animated.timing(ptrAnim, { toValue: !!data.visible ? 1 : 0, duration: 180, useNativeDriver: true });
+        ptrAnimRef.current.start();
       } else if (data?.type === 'WT_PTR_PROGRESS') {
-        if (!isPTRPage) return;
+        // Debounce rapid progress updates (max 60fps)
+        const now = Date.now();
+        if (now - lastProgressUpdate.current < 16) return;
+        lastProgressUpdate.current = now;
+
         const p = Math.max(0, Math.min(Number(data.progress) || 0, 1));
         setPtrVisible(true);
         setPtrProgress(p);
-        Animated.timing(ptrAnim, { toValue: 1, duration: 120, useNativeDriver: true }).start();
+
+        // Stop previous animation
+        if (ptrAnimRef.current) {
+          try { ptrAnimRef.current.stop(); } catch { }
+        }
+        ptrAnimRef.current = Animated.timing(ptrAnim, { toValue: 1, duration: 100, useNativeDriver: true });
+        ptrAnimRef.current.start();
       } else if (data?.type === 'WT_PTR_TRIGGER') {
-        if (!isPTRPage) return;
+        // Stop previous animation
+        if (ptrAnimRef.current) {
+          try { ptrAnimRef.current.stop(); } catch { }
+        }
         setPtrLoading(true);
         setPtrVisible(true);
         setPtrProgress(1);
-        Animated.timing(ptrAnim, { toValue: 1, duration: 120, useNativeDriver: true }).start();
-        try { webRef.current?.reload(); } catch {}
+        ptrAnimRef.current = Animated.timing(ptrAnim, { toValue: 1, duration: 100, useNativeDriver: true });
+        ptrAnimRef.current.start();
+        try { webRef.current?.reload(); } catch { }
       } else if (data?.type === 'WT_PTR_HIDE') {
-        setPtrVisible(false);
-        setPtrProgress(0);
-        setPtrLoading(false);
-        Animated.timing(ptrAnim, { toValue: 0, duration: 200, useNativeDriver: true }).start();
+        // Stop previous animation
+        if (ptrAnimRef.current) {
+          try { ptrAnimRef.current.stop(); } catch { }
+        }
+        // Delay state reset slightly to allow animation to complete
+        ptrAnimRef.current = Animated.timing(ptrAnim, { toValue: 0, duration: 220, useNativeDriver: true });
+        ptrAnimRef.current.start(() => {
+          setPtrVisible(false);
+          setPtrProgress(0);
+          setPtrLoading(false);
+        });
       }
-    } catch {}
-  }, [isPTRPage, ptrAnim]);
+    } catch { }
+  }, [ptrAnim]);
 
   // App Shortcuts / Quick Actions (mobile only)
   useEffect(() => {
@@ -425,17 +463,17 @@ function App() {
       }
       const items = (Platform.OS === 'ios')
         ? [
-            { id: 'dashboard', title: 'Dashboard', subtitle: '', icon: 'bookmark' },
-            { id: 'feed', title: 'Feed', subtitle: '', icon: 'bookmark' },
-            { id: 'communities', title: 'Communities', subtitle: '', icon: 'bookmark' },
-            { id: 'feedback', title: 'Feedback', subtitle: 'Why uninstalling? Tell us', icon: 'compose' }
-          ]
+          { id: 'dashboard', title: 'Dashboard', subtitle: '', icon: 'bookmark' },
+          { id: 'feed', title: 'Feed', subtitle: '', icon: 'bookmark' },
+          { id: 'communities', title: 'Communities', subtitle: '', icon: 'bookmark' },
+          { id: 'feedback', title: 'Feedback', subtitle: 'Why uninstalling? Tell us', icon: 'compose' }
+        ]
         : [
-            { id: 'dashboard', title: 'Dashboard', subtitle: '' },
-            { id: 'feed', title: 'Feed', subtitle: '' },
-            { id: 'communities', title: 'Communities', subtitle: '' },
-            { id: 'feedback', title: 'Feedback', subtitle: 'Why uninstalling? Tell us' }
-          ];
+          { id: 'dashboard', title: 'Dashboard', subtitle: '' },
+          { id: 'feed', title: 'Feed', subtitle: '' },
+          { id: 'communities', title: 'Communities', subtitle: '' },
+          { id: 'feedback', title: 'Feedback', subtitle: 'Why uninstalling? Tell us' }
+        ];
 
       const handle = (action) => {
         try {
@@ -443,37 +481,37 @@ function App() {
           const routeFor = (k) => (k === 'dashboard' ? '/dashboard' : (k === 'feed' ? '/feed' : (k === 'communities' ? '/communities' : '/')));
           if (key === 'feedback') {
             // Open feedback modal in web
-            try { webRef.current?.injectJavaScript(`window.dispatchEvent(new CustomEvent('wt_open_feedback')); true;`); } catch {}
+            try { webRef.current?.injectJavaScript(`window.dispatchEvent(new CustomEvent('wt_open_feedback')); true;`); } catch { }
             return;
           }
           const url = `${WEB_URL.replace(/\/$/, '')}${routeFor(key)}`;
           if (webReady) forwardDeepLinkToWeb(url); else pendingDeepLinkRef.current = url;
-        } catch {}
+        } catch { }
       };
 
       if (Platform.OS === 'ios' && expoQA && typeof expoQA.setItems === 'function') {
-        expoQA.setItems(items).catch(()=>{});
+        expoQA.setItems(items).catch(() => { });
         (async () => {
           try {
             const initial = await expoQA.getInitialActionAsync();
             if (initial) handle(initial);
-          } catch {}
+          } catch { }
         })();
-        try { const sub = expoQA.addQuickActionListener(handle); return () => { try { sub && sub.remove && sub.remove(); } catch {} }; } catch { return undefined; }
+        try { const sub = expoQA.addQuickActionListener(handle); return () => { try { sub && sub.remove && sub.remove(); } catch { } }; } catch { return undefined; }
       }
 
       if (Platform.OS === 'android' && rnQA && typeof rnQA.default?.setShortcutItems === 'function') {
-        try { rnQA.default.setShortcutItems(items.map(i => ({ type: i.id, title: i.title, subtitle: i.subtitle, icon: i.icon, userInfo: { id: i.id } }))); } catch {}
+        try { rnQA.default.setShortcutItems(items.map(i => ({ type: i.id, title: i.title, subtitle: i.subtitle, icon: i.icon, userInfo: { id: i.id } }))); } catch { }
         try {
-          rnQA.default.popInitialAction().then((initial) => { if (initial) handle({ id: initial?.type || initial?.userInfo?.id }); }).catch(()=>{});
-        } catch {}
+          rnQA.default.popInitialAction().then((initial) => { if (initial) handle({ id: initial?.type || initial?.userInfo?.id }); }).catch(() => { });
+        } catch { }
         try {
           const { DeviceEventEmitter } = require('react-native');
           const sub = DeviceEventEmitter.addListener('quickActionShortcut', (data) => handle({ id: data?.type || data?.userInfo?.id }));
-          return () => { try { sub && sub.remove && sub.remove(); } catch {} };
+          return () => { try { sub && sub.remove && sub.remove(); } catch { } };
         } catch { return undefined; }
       }
-    } catch {}
+    } catch { }
   }, [WEB_URL, webReady, forwardDeepLinkToWeb]);
 
   // Resolve initial URL: dashboard if authed, home otherwise; override with notification deeplink
@@ -485,7 +523,7 @@ function App() {
         if (authed === '1') {
           target = `${WEB_URL.replace(/\/$/, '')}/dashboard`;
         }
-      } catch {}
+      } catch { }
       // If app was opened via a deep link/intent, prefer it
       try {
         const initialUrl = await Linking.getInitialURL();
@@ -496,7 +534,7 @@ function App() {
             target = u.toString();
           }
         }
-      } catch {}
+      } catch { }
       try {
         let messaging;
         try { const mod = require('@react-native-firebase/messaging'); messaging = mod?.default || mod; } catch { messaging = null; }
@@ -507,7 +545,7 @@ function App() {
             target = `${WEB_URL.replace(/\/$/, '')}?url=${encodeURIComponent(url)}`;
           }
         }
-      } catch {}
+      } catch { }
       setInitialUri(target);
       setInitialResolved(true);
     })();
@@ -521,20 +559,20 @@ function App() {
       const asked = await AsyncStorage.getItem(KEY);
       if (asked) return;
       if (Platform.OS === 'android' && Platform.Version >= 33) {
-        try { await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS); } catch {}
+        try { await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS); } catch { }
       } else if (Platform.OS === 'ios') {
         try {
-          let messaging; try { const mod = require('@react-native-firebase/messaging'); messaging = mod?.default || mod; } catch {}
-          if (messaging) { try { await messaging().requestPermission(); } catch {} }
-        } catch {}
+          let messaging; try { const mod = require('@react-native-firebase/messaging'); messaging = mod?.default || mod; } catch { }
+          if (messaging) { try { await messaging().requestPermission(); } catch { } }
+        } catch { }
       }
-      try { await AsyncStorage.setItem(KEY, '1'); } catch {}
-    } catch {}
+      try { await AsyncStorage.setItem(KEY, '1'); } catch { }
+    } catch { }
   }, []);
 
   useEffect(() => {
     if (!showOnboarding) {
-      askPushPermissionOnce().catch(() => {});
+      askPushPermissionOnce().catch(() => { });
     }
   }, [showOnboarding, askPushPermissionOnce]);
 
@@ -573,7 +611,7 @@ function App() {
               try {
                 const i = Math.round(e.nativeEvent.contentOffset.x / Math.max(width, 1));
                 if (i !== onboardingIndex) setOnboardingIndex(i);
-              } catch {}
+              } catch { }
             }}
             scrollEventThrottle={16}
             style={{ flex: 1 }}
@@ -585,7 +623,7 @@ function App() {
               const isActive = i === onboardingIndex;
               return (
                 <View key={i} style={{ width, height, paddingHorizontal: 24, paddingTop: 48, alignItems: 'center' }}>
-                  <Animated.View style={{ width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(99,102,241,0.15)', alignItems: 'center', justifyContent: 'center', marginBottom: 24, transform: [ { translateY: emojiParallax }, ...(isActive ? [{ scale: pulseScale }, { rotate: pulseRotate }] : []) ] }}>
+                  <Animated.View style={{ width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(99,102,241,0.15)', alignItems: 'center', justifyContent: 'center', marginBottom: 24, transform: [{ translateY: emojiParallax }, ...(isActive ? [{ scale: pulseScale }, { rotate: pulseRotate }] : [])] }}>
                     <Text style={{ fontSize: 56 }}>{s.emoji}</Text>
                   </Animated.View>
                   <Animated.Text style={{ fontSize: 28, fontWeight: '800', color: 'white', textAlign: 'center', marginBottom: 12, transform: [{ translateY: titleTranslate }] }}>{s.title}</Animated.Text>
@@ -628,7 +666,9 @@ function App() {
 
   // PTR overlay (GitHub-like) — only on Feed and Notifications
   const renderPtrOverlay = () => {
-    if (!isPTRPage) return null;
+    // Show overlay based on visibility state, not page type
+    // This allows the fade-out animation to complete before unmounting
+    if (!ptrVisible && !ptrLoading && ptrProgress === 0) return null;
     const translateY = ptrAnim.interpolate({ inputRange: [0, 1], outputRange: [-28, 52] });
     const opacity = ptrAnim;
     return (
@@ -659,8 +699,8 @@ function App() {
         userAgent="WishTrailApp"
         source={{ uri: initialUri }}
         originWhitelist={originWhitelist}
-        onLoadStart={() => { setLoading(true); setPtrLoading(false); setPtrVisible(false); setPtrProgress(0); Animated.timing(ptrAnim, { toValue: 0, duration: 200, useNativeDriver: true }).start(); }}
-        onLoadEnd={() => { setLoading(false); setWebReady(true); if (pendingDeepLinkRef.current) { forwardDeepLinkToWeb(pendingDeepLinkRef.current); pendingDeepLinkRef.current = ''; } injectAuthProbe(); setTimeout(() => { setPtrLoading(false); setPtrVisible(false); Animated.timing(ptrAnim, { toValue: 0, duration: 250, useNativeDriver: true }).start(); }, 250); }}
+        onLoadStart={() => { setLoading(true); if (ptrAnimRef.current) { try { ptrAnimRef.current.stop(); } catch { } } setPtrLoading(false); setPtrVisible(false); setPtrProgress(0); ptrAnim.setValue(0); }}
+        onLoadEnd={() => { setLoading(false); setWebReady(true); if (pendingDeepLinkRef.current) { forwardDeepLinkToWeb(pendingDeepLinkRef.current); pendingDeepLinkRef.current = ''; } injectAuthProbe(); setTimeout(() => { if (ptrAnimRef.current) { try { ptrAnimRef.current.stop(); } catch { } } setPtrLoading(false); setPtrVisible(false); setPtrProgress(0); ptrAnim.setValue(0); }, 400); }}
         onShouldStartLoadWithRequest={onShouldStartLoadWithRequest}
         onMessage={onMessage}
         pullToRefreshEnabled={false}
