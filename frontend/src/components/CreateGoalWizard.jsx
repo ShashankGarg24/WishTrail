@@ -40,7 +40,7 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
     if (isOpen) {
       setStep(1)
       setSaving(false)
-      
+
       // Format target date for HTML date input if it exists
       let formattedTargetDate = ''
       if (initialData?.targetDate) {
@@ -49,7 +49,7 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
           formattedTargetDate = date.toISOString().split('T')[0]
         }
       }
-      
+
       setFormData(prev => ({
         title: initialData?.title || '',
         description: initialData?.description || '',
@@ -60,7 +60,7 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
         isPublic: initialData?.isPublic ?? true
       }))
       setErrors({})
-      
+
       // Load existing sub-goals and habit links if in edit mode
       if (editMode && initialData) {
         setLocalSubGoals(Array.isArray(initialData.subGoals) ? initialData.subGoals.map(s => ({ ...s })) : [])
@@ -195,7 +195,7 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
   const goNext = async () => {
     if (!validateStep1()) return
     setSaving(true)
-    try { await loadHabits({}).catch(()=>{}) } catch {}
+    try { await loadHabits({}).catch(() => { }) } catch { }
     setStep(2)
     setSaving(false)
   }
@@ -220,21 +220,19 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
         ...localSubGoals.map(s => Number(s.weight || 0)),
         ...localHabitLinks.map(h => Number(h.weight || 0))
       ]
-      
+
       let normalizedSubGoals = []
       let normalizedHabitLinks = []
-      
+
       if (allWeights.some(w => Number(w) > 0)) {
         const normalized = normalizeToHundred(allWeights)
         normalizedSubGoals = localSubGoals.map((s, i) => ({
           title: String(s.title || '').trim(),
           linkedGoalId: s.linkedGoalId || undefined,
           weight: Number(normalized[i] || 0),
-          completed: !!s.completed,
-          completedAt: s.completedAt || undefined,
-          note: String(s.note || '')
+          completedAt: s.completedAt || undefined
         })).filter(s => s.title.length > 0 || (s.linkedGoalId && String(s.linkedGoalId).length > 0))
-        
+
         normalizedHabitLinks = localHabitLinks.map((h, j) => ({
           habitId: h.habitId,
           weight: Number(normalized[localSubGoals.length + j] || 0),
@@ -258,7 +256,7 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
       }
 
       // Refresh dashboard stats to reflect changes
-      try { await getDashboardStats({ force: true }) } catch {}
+      try { await getDashboardStats({ force: true }) } catch { }
 
       onClose?.()
     } catch (e) {
@@ -302,15 +300,15 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
 
         {/* Stepper */}
         <div className="flex items-center justify-center gap-3 mb-6 text-sm">
-          <div 
-          onClick={() => setStep(1)} 
-          className={`px-3 py-1.5 rounded-full border ${step === 1 ? 'bg-primary-50 border-primary-200 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300 dark:border-primary-800 cursor-pointer' : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 cursor-pointer'}`}>
+          <div
+            onClick={() => setStep(1)}
+            className={`px-3 py-1.5 rounded-full border ${step === 1 ? 'bg-primary-50 border-primary-200 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300 dark:border-primary-800 cursor-pointer' : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 cursor-pointer'}`}>
             1. Details
           </div>
           <ChevronRight className="h-4 w-4 text-gray-400" />
-          <div 
-          onClick={() => setStep(2)}
-          className={`px-3 py-1.5 rounded-full border ${step === 2 ? 'bg-primary-50 border-primary-200 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300 dark:border-primary-800 cursor-pointer' : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 cursor-pointer'}`}>
+          <div
+            onClick={() => setStep(2)}
+            className={`px-3 py-1.5 rounded-full border ${step === 2 ? 'bg-primary-50 border-primary-200 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300 dark:border-primary-800 cursor-pointer' : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 cursor-pointer'}`}>
             2. Sub-goals & Habits
           </div>
         </div>
@@ -437,18 +435,18 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
         {step === 2 && (
           <div className="space-y-4">
             <Suspense fallback={null}>
-            <GoalDivisionEditor
-              draftMode
-              renderInline
-              value={{ subGoals: localSubGoals, habitLinks: localHabitLinks }}
-              onChange={(v) => {
-                if (!v) return
-                if (Array.isArray(v.subGoals)) setLocalSubGoals(v.subGoals.map(s => ({ ...s })))
-                if (Array.isArray(v.habitLinks)) setLocalHabitLinks(v.habitLinks.map(h => ({ ...h })))
-              }}
-              habits={habits}
-              onClose={() => setStep(1)}
-            />
+              <GoalDivisionEditor
+                draftMode
+                renderInline
+                value={{ subGoals: localSubGoals, habitLinks: localHabitLinks }}
+                onChange={(v) => {
+                  if (!v) return
+                  if (Array.isArray(v.subGoals)) setLocalSubGoals(v.subGoals.map(s => ({ ...s })))
+                  if (Array.isArray(v.habitLinks)) setLocalHabitLinks(v.habitLinks.map(h => ({ ...h })))
+                }}
+                habits={habits}
+                onClose={() => setStep(1)}
+              />
             </Suspense>
             <div className="flex items-center gap-3">
               <button type="button" onClick={() => setStep(1)} className="flex-1 py-2 px-4 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors inline-flex items-center justify-center gap-2">

@@ -116,18 +116,8 @@ const goalSchema = new mongoose.Schema({
             min: 0,
             max: 100
         },
-        completed: {
-            type: Boolean,
-            default: false
-        },
         completedAt: {
             type: Date
-        },
-        note: {
-            type: String,
-            trim: true,
-            maxlength: 500,
-            default: ''
         }
     }],
     habitLinks: [{
@@ -148,7 +138,6 @@ const goalSchema = new mongoose.Schema({
             type: Date
         }
     }],
-
     // Completion Information
     completed: {
         type: Boolean,

@@ -73,6 +73,7 @@ export default function GoalDetailsModal({ isOpen, goalId, onClose, autoOpenComm
                             })
 
                             // Subgoal completed event
+                            console.log(subGoal)
                             if (subGoal.completedAt) {
                                 events.push({
                                     id: `subgoal-completed-${index}`,

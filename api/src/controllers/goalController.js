@@ -82,6 +82,27 @@ const getGoalPost = async (req, res, next) => {
       commentCount = await ActivityComment.countDocuments({ activityId: activity._id, isActive: true });
     }
 
+    // ✅ Enrich sub-goals with real completion date
+    let enrichedSubGoals = [];
+    if (goal.subGoals && goal.subGoals.length > 0) {
+      const linkedIds = goal.subGoals.map(sg => sg.linkedGoalId).filter(Boolean);
+      const linkedGoals = await Goal.find({ _id: { $in: linkedIds } })
+        .select('completedAt');
+
+      const linkedMap = {};
+      for (const lg of linkedGoals) {
+        linkedMap[String(lg._id)] = lg;
+      }
+
+      enrichedSubGoals = goal.subGoals.map(sg => {
+        const linked = sg.linkedGoalId ? linkedMap[String(sg.linkedGoalId)] : null;
+        return {
+          ...sg.toObject(),
+          completedAt: linked?.completedAt ? linked.completedAt : sg.completedAt || null
+        };
+      });
+    }
+
     return res.status(200).json({
       success: true,
       data: {
@@ -92,7 +113,7 @@ const getGoalPost = async (req, res, next) => {
           category: goal.category,
           completedAt: goal.completedAt,
           pointsEarned: goal.pointsEarned,
-          subGoals: goal.subGoals,
+          subGoals: enrichedSubGoals,
         },
         user: {
           _id: goal.userId._id,
@@ -286,9 +307,7 @@ const createGoal = async (req, res, next) => {
           title: String(sg.title || '').trim(),
           linkedGoalId: sg.linkedGoalId || undefined,
           weight: Number(sg.weight || 0),
-          completed: !!sg.completed,
-          completedAt: sg.completedAt || undefined,
-          note: String(sg.note || '')
+          completedAt: sg.completedAt || undefined
         }));
       }
 
@@ -399,9 +418,7 @@ const updateGoal = async (req, res, next) => {
           title: String(sg.title || '').trim(),
           linkedGoalId: sg.linkedGoalId || undefined,
           weight: Number(sg.weight || 0),
-          completed: !!sg.completed,
           completedAt: sg.completedAt || undefined,
-          note: String(sg.note || '')
         }));
       } else {
         updateData.subGoals = [];
