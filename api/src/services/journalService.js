@@ -1,10 +1,7 @@
 const mongoose = require('mongoose');
 const JournalEntry = require('../models/JournalEntry');
-const EmotionalSummary = require('../models/EmotionalSummary');
 const Notification = require('../models/Notification');
 const User = require('../models/User');
-const Achievement = require('../models/Achievement');
-const UserAchievement = require('../models/UserAchievement');
 const axios = require('axios');
 const redis = require('../config/redis');
 
@@ -51,20 +48,10 @@ Otherwise, produce a concise, emotionally supportive message (50-70 words) celeb
 Also perform sentiment analysis to classify the user's overall mood as EXACTLY ONE of the following strings: "very_negative", "negative", "neutral", "positive", or "very_positive".
 The Sentiment analysis should be very accurate and precise.
 
-Also extract counts of emotional aspects present in the journal:
-- helpedCount: number of times they helped someone
-- gratitudeCount: number of gratitude expressions
-- selfSacrificeCount: number of selfless/sacrifice indications
-- positiveCount: number of clearly positive moments or emotions
-- kindnessCount: number of acts of kindness
-- resilienceCount: number of resilient/courageous moments
-- otherCount: number of other meaningful emotional aspects not covered above
-
 Return STRICT JSON only (no markdown, no commentary) with shape:
 {
   "motivation": string,
-  "mood": "very_negative" | "negative" | "neutral" | "positive" | "very_positive",
-  "signals": {"helpedCount": number, "gratitudeCount": number, "selfSacrificeCount": number, "positiveCount": number, "kindnessCount": number, "resilienceCount": number, "otherCount": number}
+  "mood": "very_negative" | "negative" | "neutral" | "positive" | "very_positive"
 }
 
 Journal prompt key: ${promptKey || 'freeform'}
@@ -91,18 +78,16 @@ Journal content: <<<${content}>>>`;
     try { parsed = JSON.parse(answer); } catch (_) {
       // Try to extract JSON substring
       const m = answer.match(/\{[\s\S]*\}/);
-      if (m) { try { parsed = JSON.parse(m[0]); } catch (_) {} }
+      if (m) { try { parsed = JSON.parse(m[0]); } catch (_) { } }
     }
     if (!parsed || typeof parsed !== 'object') {
       parsed = {
         motivation: (answer || '').slice(0, 240),
-        mood: 'neutral',
-        signals: { helpedCount: 0, gratitudeCount: 0, selfSacrificeCount: 0, positiveCount: 0, kindnessCount: 0, resilienceCount: 0, otherCount: 0 }
+        mood: 'neutral'
       };
     } else {
       parsed.motivation = String(parsed.motivation || '').slice(0, 400);
-      parsed.signals = parsed.signals || { helpedCount: 0, gratitudeCount: 0, selfSacrificeCount: 0, positiveCount: 0, kindnessCount: 0, resilienceCount: 0, otherCount: 0 };
-      const allowedMoods = new Set(['very_negative','negative','neutral','positive','very_positive']);
+      const allowedMoods = new Set(['very_negative', 'negative', 'neutral', 'positive', 'very_positive']);
       if (!allowedMoods.has(String(parsed.mood || '').toLowerCase())) {
         // Derive a reasonable default from signals
         const pos = Number(parsed.signals?.positiveCount || 0);
@@ -119,7 +104,7 @@ Journal content: <<<${content}>>>`;
 
 async function createEntry(userId, { content, promptKey, visibility = 'private', mood = 'neutral', tags = [] }) {
   // Enforce 1 per day
-  const todayKey = new Date(); todayKey.setUTCHours(0,0,0,0);
+  const todayKey = new Date(); todayKey.setUTCHours(0, 0, 0, 0);
   const dayKey = todayKey.toISOString().split('T')[0];
   const existing = await JournalEntry.findOne({ userId, dayKey, isActive: true }).lean();
   if (existing) {
@@ -154,7 +139,6 @@ async function createEntry(userId, { content, promptKey, visibility = 'private',
     dayKey,
     wordCount: words.length
   });
-  entry.signals = deriveSignalsFromEntry(entry);
   await entry.save();
   // Fire-and-forget LLM enrichment
   try {
@@ -162,27 +146,13 @@ async function createEntry(userId, { content, promptKey, visibility = 'private',
     if (llm && llm.parsed) {
       entry.ai = { motivation: llm.parsed.motivation || '', model: 'Llama-3.1-8B-Instant' };
       const s = llm.parsed.signals || {};
-      entry.aiSignals = {
-        helpedCount: Number(s.helpedCount) || 0,
-        gratitudeCount: Number(s.gratitudeCount) || 0,
-        selfSacrificeCount: Number(s.selfSacrificeCount) || 0,
-        positiveCount: Number(s.positiveCount) || 0,
-        kindnessCount: Number(s.kindnessCount) || 0,
-        resilienceCount: Number(s.resilienceCount) || 0,
-        otherCount: Number(s.otherCount) || 0
-      };
       // Set mood from LLM (user can edit later)
       if (llm.parsed.mood) {
         entry.mood = llm.parsed.mood;
       }
-      // Adjust basic signals positivity if strong positiveCount
-      if ((entry.aiSignals.positiveCount || 0) > 0 && (!entry.signals || typeof entry.signals.positivity !== 'number')) {
-        entry.signals = entry.signals || {};
-        entry.signals.positivity = 1;
-      }
       await entry.save();
     }
-  } catch (_) {}
+  } catch (_) { }
   return entry;
 }
 
@@ -206,37 +176,6 @@ async function listMyEntries(userId, { limit = 20, skip = 0 } = {}) {
     .lean();
 }
 
-async function getEmotionStats(targetUserId, viewerUserId) {
-  const isSelf = String(targetUserId) === String(viewerUserId);
-  const visibilityFilter = isSelf ? {} : { visibility: { $in: ['public', 'friends'] } };
-  const entries = await JournalEntry.find({ userId: targetUserId, isActive: true, ...visibilityFilter }).select('signals aiSignals').lean();
-  const stats = {
-    helped: 0,
-    gratitude: 0,
-    selfSacrifice: 0,
-    positive: 0,
-    kindness: 0,
-    resilience: 0,
-    other: 0
-  };
-  for (const e of entries) {
-    if (e.signals?.helpedSomeone) stats.helped += 1;
-    if (e.signals?.expressedGratitude) stats.gratitude += 1;
-    if (e.signals?.selfSacrifice) stats.selfSacrifice += 1;
-    if ((e.signals?.positivity || 0) > 0) stats.positive += 1;
-    if (e.aiSignals) {
-      stats.helped += Number(e.aiSignals.helpedCount || 0);
-      stats.gratitude += Number(e.aiSignals.gratitudeCount || 0);
-      stats.selfSacrifice += Number(e.aiSignals.selfSacrificeCount || 0);
-      stats.positive += Number(e.aiSignals.positiveCount || 0);
-      stats.kindness += Number(e.aiSignals.kindnessCount || 0);
-      stats.resilience += Number(e.aiSignals.resilienceCount || 0);
-      stats.other += Number(e.aiSignals.otherCount || 0);
-    }
-  }
-  return stats;
-}
-
 async function getUserHighlights(targetUserId, viewerUserId, { limit = 12 } = {}) {
   const isSelf = String(targetUserId) === String(viewerUserId);
   let allowedVisibility = ['public'];
@@ -248,7 +187,7 @@ async function getUserHighlights(targetUserId, viewerUserId, { limit = 12 } = {}
       const Follow = mongoose.model('Follow');
       const follows = await Follow.findOne({ followerId: viewerUserId, followingId: targetUserId }).lean();
       if (follows) allowedVisibility = ['public', 'friends'];
-    } catch (_) {}
+    } catch (_) { }
   }
 
   const entries = await JournalEntry.find({
@@ -262,11 +201,6 @@ async function getUserHighlights(targetUserId, viewerUserId, { limit = 12 } = {}
 
   const highlights = [];
   for (const e of entries) {
-    if (e.signals?.helpedSomeone) highlights.push('Helped someone today 📚');
-    if (e.signals?.selfSacrifice) highlights.push('Made a sacrifice for loved ones 💕');
-    if (e.signals?.expressedGratitude) highlights.push('Felt grateful 🙏');
-    if ((e.signals?.positivity || 0) > 0) highlights.push('Stayed positive ✨');
-    // also extract a short quote from content
     if (e.content) {
       const snippet = e.content.length > 60 ? `${e.content.slice(0, 57)}…` : e.content;
       highlights.push(`“${snippet}”`);
@@ -286,7 +220,7 @@ function startOfPeriod(period) {
     const d = new Date(now);
     const day = d.getDay(); // 0=Sun
     const diff = (day + 6) % 7; // start Monday
-    d.setHours(0,0,0,0);
+    d.setHours(0, 0, 0, 0);
     d.setDate(d.getDate() - diff);
     return d;
   }
@@ -312,70 +246,6 @@ function endOfPeriod(period) {
   throw new Error('Unsupported period');
 }
 
-async function computeSummary(userId, period = 'week') {
-  const from = startOfPeriod(period);
-  const to = endOfPeriod(period);
-  const entries = await JournalEntry.find({ userId, isActive: true, createdAt: { $gte: from, $lt: to } }).lean();
-  const metrics = {
-    helpedCount: 0,
-    gratitudeCount: 0,
-    sacrificeCount: 0,
-    positiveMoments: 0,
-    entriesCount: entries.length
-  };
-  for (const e of entries) {
-    if (e.signals?.helpedSomeone) metrics.helpedCount += 1;
-    if (e.signals?.expressedGratitude) metrics.gratitudeCount += 1;
-    if (e.signals?.selfSacrifice) metrics.sacrificeCount += 1;
-    if ((e.signals?.positivity || 0) > 0) metrics.positiveMoments += 1;
-    if (e.aiSignals) {
-      metrics.helpedCount += Number(e.aiSignals.helpedCount || 0);
-      metrics.gratitudeCount += Number(e.aiSignals.gratitudeCount || 0);
-      metrics.sacrificeCount += Number(e.aiSignals.selfSacrificeCount || 0);
-      metrics.positiveMoments += Number(e.aiSignals.positiveCount || 0);
-      // kindness/resilience could be surfaced in the copy later if needed
-    }
-  }
-
-  const summaryText = period === 'week'
-    ? `This week, you helped ${metrics.helpedCount} people, stayed positive ${metrics.positiveMoments} times, and showed gratitude ${metrics.gratitudeCount} times 💫.`
-    : `This month, you helped ${metrics.helpedCount} people, stayed positive ${metrics.positiveMoments} times, and showed gratitude ${metrics.gratitudeCount} times 💫.`;
-
-  // Simple badge logic
-  let badge = null;
-  if (metrics.helpedCount >= 3 && metrics.gratitudeCount >= 2) {
-    badge = { code: 'compassionate_soul', label: 'Compassionate Soul', icon: '🕊️' };
-  } else if (metrics.positiveMoments >= 5) {
-    badge = { code: 'ray_of_sunshine', label: 'Ray of Sunshine', icon: '🌞' };
-  }
-
-  const summary = await EmotionalSummary.findOneAndUpdate(
-    { userId, period, periodStart: from },
-    { userId, period, periodStart: from, periodEnd: to, metrics, summaryText, badge },
-    { new: true, upsert: true }
-  );
-
-  // Award emotional achievements based on badge
-  try {
-    if (badge?.code) {
-      // Ensure default emotional achievements exist
-      await Achievement.createDefaultAchievements();
-      const achievement = await Achievement.findOne({ 'criteria.specialConditions.code': badge.code });
-      if (achievement) {
-        try {
-          await UserAchievement.awardAchievement(userId, achievement._id, { badge: badge.code, period });
-        } catch (e) {
-          // ignore duplicate
-        }
-      }
-    }
-  } catch (_) {}
-
-  return summary;
-}
-
-// Quiet hours removed per new spec
-function isWithinQuietHours() { return false; }
 
 function minutesOfDayInTimezone(timezone) {
   try {
@@ -396,7 +266,7 @@ function localDateKeyInTimezone(timezone) {
     const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: timezone || 'UTC', year: 'numeric', month: '2-digit', day: '2-digit' });
     return fmt.format(new Date());
   } catch {
-    return new Date().toISOString().slice(0,10);
+    return new Date().toISOString().slice(0, 10);
   }
 }
 
@@ -431,7 +301,7 @@ async function notifyDailyPrompt(windowMinutes = 30, targetHHmm = '20:00') {
       // TTL until next local midnight + 1h buffer
       const ttlSeconds = Math.max(60, ((24 * 60 - localMin) * 60) + 3600);
       await redis.set(key, '1', { ex: ttlSeconds });
-    } catch {}
+    } catch { }
     jobs.push(Notification.createNotification({
       userId: u._id,
       type: 'journal_prompt',
@@ -444,35 +314,13 @@ async function notifyDailyPrompt(windowMinutes = 30, targetHHmm = '20:00') {
   await Promise.allSettled(jobs);
 }
 
-async function notifyPeriodSummary(period) {
-  const users = await User.find({ isActive: true }).select('_id notificationSettings timezone').lean();
-  for (const u of users) {
-    const ns = u.notificationSettings || {};
-    if (ns.journal && ns.journal.enabled === false) continue;
-    // Quiet hours removed
-    const summary = await computeSummary(u._id, period);
-    const notifType = period === 'week' ? 'weekly_summary' : 'monthly_summary';
-    await Notification.createNotification({
-      userId: u._id,
-      type: notifType,
-      title: period === 'week' ? 'Weekly Emotional Highlights' : 'Monthly Emotional Highlights',
-      message: summary.summaryText,
-      data: { metadata: { period, badge: summary.badge } },
-      priority: 'medium'
-    });
-  }
-}
-
 module.exports = {
   getTodayPrompt,
   createEntry,
   updateEntry,
   listMyEntries,
   getUserHighlights,
-  computeSummary,
-  notifyDailyPrompt,
-  notifyPeriodSummary,
-  getEmotionStats
+  notifyDailyPrompt
 };
 
 

@@ -14,6 +14,7 @@ const JournalEntryModal = lazy(() => import("../components/JournalEntryModal"));
 const JournalExportModal = lazy(() => import("../components/JournalExportModal"));
 const HabitAnalyticsCard = lazy(() => import("../components/HabitAnalyticsCard"));
 const GoalPostModal = lazy(() => import('../components/GoalPostModal'));
+const GoalDetailsModal = lazy(() => import('../components/GoalDetailsModal'));
 
 const ProfilePage = () => {
   const params = useParams();
@@ -40,9 +41,9 @@ const ProfilePage = () => {
   const [following, setFollowing] = useState([]);
   const [loadingFollows, setLoadingFollows] = useState(false);
 
-  const { 
-    user: currentUser, 
-    isAuthenticated, 
+  const {
+    user: currentUser,
+    isAuthenticated,
     getGoals,
     getUser,
     getUserGoals,
@@ -53,10 +54,8 @@ const ProfilePage = () => {
     cancelFollowRequest,
     getUserJournalHighlights,
     getMyJournalEntries,
-    getUserJournalStats,
     journalHighlights,
     journalEntries,
-    journalStats,
     getFollowers,
     getFollowing,
     isFeatureEnabled
@@ -114,7 +113,7 @@ const ProfilePage = () => {
     return () => document.removeEventListener('mousedown', onDocMouseDown);
   }, [profileMenuOpen]);
 
-    
+
   // Open Journal modal directly if ?journal=1 and viewing own profile
   useEffect(() => {
     try {
@@ -122,7 +121,7 @@ const ProfilePage = () => {
       if (j === '1' && isOwnProfile) {
         setIsJournalOpen(true);
       }
-    } catch {}
+    } catch { }
   }, [searchParams, isOwnProfile]);
 
   useEffect(() => {
@@ -138,8 +137,6 @@ const ProfilePage = () => {
       try {
         const targetId = (isOwnProfile ? currentUser?._id : profileUser?._id);
         if (activeTab === 'journal' && targetId) {
-          // Stats
-          await getUserJournalStats(targetId);
           // Reset feed and load first page (own profile only)
           if (isOwnProfile) {
             setJournalFeed([]);
@@ -148,7 +145,7 @@ const ProfilePage = () => {
             await loadMoreJournal();
           }
         }
-      } catch (e) {}
+      } catch (e) { }
     };
     fetchJournal();
     // Load habit analytics (no heatmap)
@@ -164,7 +161,7 @@ const ProfilePage = () => {
         setMyHabits(habits);
         const analytics = analyticsRes?.data?.data || null;
         setHabitStats(analytics);
-      } catch (_) {}
+      } catch (_) { }
     };
     fetchHabits();
   }, [activeTab, profileUser?._id, currentUser?._id]);
@@ -192,7 +189,7 @@ const ProfilePage = () => {
 
   const hasTodayJournal = (() => {
     if (!isOwnProfile) return false;
-    const today = new Date(); today.setUTCHours(0,0,0,0);
+    const today = new Date(); today.setUTCHours(0, 0, 0, 0);
     const todayKey = today.toISOString().split('T')[0];
     if (Array.isArray(journalEntries) && journalEntries.length > 0) {
       return journalEntries.some(e => (e.dayKey || (new Date(e.createdAt).toISOString().split('T')[0])) === todayKey);
@@ -277,12 +274,12 @@ const ProfilePage = () => {
     try {
       const params = new URLSearchParams(location.search)
       if (params.get('goalId')) navigate(-1)
-    } catch {}
+    } catch { }
   }
 
   const handleTabChange = (tab) => {
     setSearchParams({ tab });
-    setActiveTab(tab); 
+    setActiveTab(tab);
   };
 
   const formatTimeAgo = (dateString) => {
@@ -361,8 +358,8 @@ const ProfilePage = () => {
     );
   }
 
-  const backgroundClass = isOwnProfile 
-    ? "min-h-screen bg-gray-50 dark:bg-gray-900" 
+  const backgroundClass = isOwnProfile
+    ? "min-h-screen bg-gray-50 dark:bg-gray-900"
     : "min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-slate-900 dark:via-gray-900 dark:to-zinc-900";
 
   const containerClass = "max-w-4xl";
@@ -386,13 +383,13 @@ const ProfilePage = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className={isOwnProfile 
+          className={isOwnProfile
             ? "bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 mb-8"
             : "bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-8 border border-gray-200 dark:border-gray-700/50 mb-8"
           }
         >
           <div className="flex flex-row items-start gap-4 md:gap-8">
-          {/* Profile Picture */}
+            {/* Profile Picture */}
             <div className="relative">
               <img
                 src={displayUser.avatar || '/api/placeholder/150/150'}
@@ -421,15 +418,15 @@ const ProfilePage = () => {
                     {displayUser.name}
                   </h1>
                 </div>
-                
+
                 {/* Username */}
                 <p className="text-xl text-gray-600 dark:text-gray-400 flex-1">
                   @{displayUser.username}
                 </p>
                 {/* 3-dots menu for profile actions (aligned right) */}
                 <div className="relative inline-block">
-                <button data-profile-menu-btn="true" onClick={() => setProfileMenuOpen(v => !v)} className="px-2 py-1 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800">⋯</button>
-                {profileMenuOpen && (
+                  <button data-profile-menu-btn="true" onClick={() => setProfileMenuOpen(v => !v)} className="px-2 py-1 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800">⋯</button>
+                  {profileMenuOpen && (
                     <div ref={profileMenuRef} data-profile-menu="true" className="absolute right-0 top-full mt-2 w-44 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-40">
                       {isOwnProfile ? (
                         <button
@@ -462,7 +459,7 @@ const ProfilePage = () => {
               {/* Stats Row */}
               <div className="hidden md:flex items-center space-x-8 mb-4">
                 <button className="text-center" onClick={() => {
-                  try { const el = document.getElementById('profile-goals-section'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch {}
+                  try { const el = document.getElementById('profile-goals-section'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch { }
                 }}>
                   <div className="text-xl font-bold text-gray-900 dark:text-white">
                     {isOwnProfile ? (displayUser.totalGoals || 0) : (userStats?.totalGoals || 0)}
@@ -499,7 +496,7 @@ const ProfilePage = () => {
 
               {/* Mobile stats inline with avatar (already shown next to avatar) */}
               <div className="md:hidden flex items-center justify-around gap-4 mb-2">
-                <button className="text-center" onClick={() => { try { const el = document.getElementById('profile-goals-section'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch {} }}>
+                <button className="text-center" onClick={() => { try { const el = document.getElementById('profile-goals-section'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch { } }}>
                   <div className="text-xl font-bold text-gray-900 dark:text-white">{isOwnProfile ? (displayUser.totalGoals || 0) : (userStats?.totalGoals || 0)}</div>
                   <div className="text-gray-600 dark:text-gray-400 text-sm">Goals</div>
                 </button>
@@ -512,14 +509,14 @@ const ProfilePage = () => {
                   <div className="text-gray-600 dark:text-gray-400 text-sm">Following</div>
                 </button>
               </div>
-              
+
               {/* Bio */}
               {displayUser.bio && (
                 <p className="text-gray-700 dark:text-gray-300 mb-4 leading-relaxed">
                   {displayUser.bio}
                 </p>
               )}
-              
+
               {/* Location and Join Date */}
               <div className="flex flex-col space-y-2 mb-4">
                 {!isOwnProfile && displayUser.location && (
@@ -552,7 +549,7 @@ const ProfilePage = () => {
                       <ExternalLink className="h-3 w-3" />
                     </a>
                   )}
-                  
+
                   {displayUser.youtube && (
                     <a
                       href={formatUrl(displayUser.youtube)}
@@ -565,7 +562,7 @@ const ProfilePage = () => {
                       <ExternalLink className="h-3 w-3" />
                     </a>
                   )}
-                  
+
                   {displayUser.instagram && (
                     <a
                       href={formatUrl(displayUser.instagram)}
@@ -581,42 +578,42 @@ const ProfilePage = () => {
                 </div>
               )}
 
-          {/* Follow List Modal */}
-          <Suspense fallback={null}><FollowListModal
-            isOpen={followModalOpen}
-            onClose={() => setFollowModalOpen(false)}
-            activeTab={followModalTab}
-            onTabChange={async (tab) => {
-              setFollowModalTab(tab)
-              setLoadingFollows(true)
-              try {
-                const uid = isOwnProfile ? currentUser?._id : (profileUser?._id || profileUser?.id)
-                if (tab === 'followers') {
-                  const res = await getFollowers(uid)
-                  if (res?.success) setFollowers(res.followers || [])
-                } else {
-                  const res = await getFollowing(uid)
-                  if (res?.success) setFollowing(res.following || [])
-                }
-              } finally { setLoadingFollows(false) }
-            }}
-            followers={followers}
-            following={following}
-            followersCount={isOwnProfile ? (displayUser?.followerCount || 0) : (userStats?.followers || 0)}
-            followingCount={isOwnProfile ? (displayUser?.followingCount || 0) : (userStats?.followings || 0)}
-            loading={loadingFollows}
-            onOpenProfile={(u) => {
-              try {
-                const path = u?.username ? `/profile/@${u.username}` : (`/profile/${u?._id || u?.id}`)
-                if (path) navigate(path)
-                setFollowModalOpen(false)
-              } catch {}
-            }}
-          /></Suspense>
+              {/* Follow List Modal */}
+              <Suspense fallback={null}><FollowListModal
+                isOpen={followModalOpen}
+                onClose={() => setFollowModalOpen(false)}
+                activeTab={followModalTab}
+                onTabChange={async (tab) => {
+                  setFollowModalTab(tab)
+                  setLoadingFollows(true)
+                  try {
+                    const uid = isOwnProfile ? currentUser?._id : (profileUser?._id || profileUser?.id)
+                    if (tab === 'followers') {
+                      const res = await getFollowers(uid)
+                      if (res?.success) setFollowers(res.followers || [])
+                    } else {
+                      const res = await getFollowing(uid)
+                      if (res?.success) setFollowing(res.following || [])
+                    }
+                  } finally { setLoadingFollows(false) }
+                }}
+                followers={followers}
+                following={following}
+                followersCount={isOwnProfile ? (displayUser?.followerCount || 0) : (userStats?.followers || 0)}
+                followingCount={isOwnProfile ? (displayUser?.followingCount || 0) : (userStats?.followings || 0)}
+                loading={loadingFollows}
+                onOpenProfile={(u) => {
+                  try {
+                    const path = u?.username ? `/profile/@${u.username}` : (`/profile/${u?._id || u?.id}`)
+                    if (path) navigate(path)
+                    setFollowModalOpen(false)
+                  } catch { }
+                }}
+              /></Suspense>
               {/* Action Button - Mobile */}
               <div className="block md:hidden">
                 {isOwnProfile ? (
-                  <button 
+                  <button
                     onClick={() => setIsEditModalOpen(true)}
                     className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-lg transition-colors font-medium border border-gray-300 dark:border-gray-600"
                   >
@@ -651,7 +648,7 @@ const ProfilePage = () => {
           </div>
         </motion.div>
 
-         {/* Content Area */}
+        {/* Content Area */}
         {!isOwnProfile && !isProfileAccessible() ? (
           /* Private Profile Message */
           <motion.div
@@ -668,9 +665,9 @@ const ProfilePage = () => {
                 This Profile is Private
               </h2>
               <p className="text-gray-600 dark:text-gray-400 mb-6">
-                {displayUser.name} has chosen to keep their profile private. 
-                {isAuthenticated 
-                  ? " Follow them to see their activities and goals." 
+                {displayUser.name} has chosen to keep their profile private.
+                {isAuthenticated
+                  ? " Follow them to see their activities and goals."
                   : " Sign in and follow them to see their activities and goals."
                 }
               </p>
@@ -694,38 +691,35 @@ const ProfilePage = () => {
               transition={{ duration: 0.5, delay: 0.1 }}
               className="flex justify-center mb-8"
             >
-              <div className={(isOwnProfile 
+              <div className={(isOwnProfile
                 ? "bg-white dark:bg-gray-800"
                 : "bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg border border-gray-200 dark:border-gray-700/50") + " rounded-2xl p-2 shadow-lg flex overflow-x-auto whitespace-nowrap gap-1 no-scrollbar"}>
                 <button
                   onClick={() => handleTabChange('overview')}
-                  className={`flex items-center space-x-2 px-6 py-3 rounded-xl transition-all duration-200 shrink-0 ${
-                    activeTab === 'overview'
-                      ? (isOwnProfile ? 'bg-primary-500 text-white shadow-lg' : 'bg-blue-500 text-white shadow-lg')
-                      : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
-                  }`}
+                  className={`flex items-center space-x-2 px-6 py-3 rounded-xl transition-all duration-200 shrink-0 ${activeTab === 'overview'
+                    ? (isOwnProfile ? 'bg-primary-500 text-white shadow-lg' : 'bg-blue-500 text-white shadow-lg')
+                    : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
+                    }`}
                 >
                   <User className="h-5 w-5" />
                   <span className="font-medium">Overview</span>
                 </button>
                 <button
                   onClick={() => handleTabChange('goals')}
-                  className={`flex items-center space-x-2 px-6 py-3 rounded-xl transition-all duration-200 shrink-0 ${
-                    activeTab === 'goals'
-                      ? (isOwnProfile ? 'bg-primary-500 text-white shadow-lg' : 'bg-blue-500 text-white shadow-lg')
-                      : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
-                  }`}
+                  className={`flex items-center space-x-2 px-6 py-3 rounded-xl transition-all duration-200 shrink-0 ${activeTab === 'goals'
+                    ? (isOwnProfile ? 'bg-primary-500 text-white shadow-lg' : 'bg-blue-500 text-white shadow-lg')
+                    : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
+                    }`}
                 >
                   <Target className="h-5 w-5" />
                   <span className="font-medium">Goals</span>
                 </button>
                 {isFeatureEnabled('journal') && <button
                   onClick={() => handleTabChange('journal')}
-                  className={`flex items-center space-x-2 px-6 py-3 rounded-xl transition-all duration-200 shrink-0 ${
-                    activeTab === 'journal'
-                      ? (isOwnProfile ? 'bg-primary-500 text-white shadow-lg' : 'bg-blue-500 text-white shadow-lg')
-                      : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
-                  }`}
+                  className={`flex items-center space-x-2 px-6 py-3 rounded-xl transition-all duration-200 shrink-0 ${activeTab === 'journal'
+                    ? (isOwnProfile ? 'bg-primary-500 text-white shadow-lg' : 'bg-blue-500 text-white shadow-lg')
+                    : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
+                    }`}
                 >
                   <BookOpen className="h-5 w-5" />
                   <span className="font-medium">Journal</span>
@@ -741,7 +735,7 @@ const ProfilePage = () => {
               {activeTab === 'overview' && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                   {/* User Stats */}
-                  <div className={isOwnProfile 
+                  <div className={isOwnProfile
                     ? "bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg"
                     : "bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50"
                   }>
@@ -804,8 +798,8 @@ const ProfilePage = () => {
                             <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                               <div
                                 className="bg-primary-500 h-2 rounded-full transition-all duration-300"
-                                style={{ 
-                                  width: `${Math.min(((displayUser.totalPoints || 0) % 100), 100)}%` 
+                                style={{
+                                  width: `${Math.min(((displayUser.totalPoints || 0) % 100), 100)}%`
                                 }}
                               ></div>
                             </div>
@@ -818,7 +812,7 @@ const ProfilePage = () => {
                     )}
                   </div>
                   {/* Hobby Analytics (replaces Interests) */}
-                  <div className={isOwnProfile 
+                  <div className={isOwnProfile
                     ? "bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg"
                     : "bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50"
                   }>
@@ -840,9 +834,9 @@ const ProfilePage = () => {
                       </div>
                     )}
                   </div>
-                                    {/* Current Goals */}
+                  {/* Current Goals */}
                   <div className="lg:col-span-2">
-                    <div className={isOwnProfile 
+                    <div className={isOwnProfile
                       ? "bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg"
                       : "bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50"
                     }>
@@ -853,10 +847,10 @@ const ProfilePage = () => {
                       {isProfileAccessible() ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 cursor-pointer">
                           {userGoals.filter(goal => !goal.completed).slice(0, 6).map((goal, index) => (
-                            <div 
-                            key={goal._id} 
-                            className="p-4 bg-gray-50 dark:bg-gray-700/30 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700/50"
-                            onClick={() => setOpenGoalId(goal._id)}
+                            <div
+                              key={goal._id}
+                              className="p-4 bg-gray-50 dark:bg-gray-700/30 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700/50"
+                              onClick={() => setOpenGoalId(goal._id)}
                             >
                               <div className="flex items-center justify-between mb-2">
                                 <h4 className="font-medium text-gray-900 dark:text-white">{goal.title}</h4>
@@ -891,7 +885,7 @@ const ProfilePage = () => {
                 </div>
               )}
               {activeTab === 'goals' && (
-                <div id="profile-goals-section" className={isOwnProfile 
+                <div id="profile-goals-section" className={isOwnProfile
                   ? "bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg"
                   : "bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50"
                 }>
@@ -916,12 +910,12 @@ const ProfilePage = () => {
                             </span>
                             {goal.completed && <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />}
                           </div>
-                          
+
                           <h4 className="font-semibold text-gray-900 dark:text-white text-lg mb-2">{goal.title}</h4>
                           {goal.description && (
                             <p className="text-gray-600 dark:text-gray-300 text-sm mb-4">{goal.description}</p>
                           )}
-                          
+
                           <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
                             <span>Created {formatTimeAgo(goal.createdAt)}</span>
                           </div>
@@ -945,7 +939,7 @@ const ProfilePage = () => {
                 </div>
               )}
               {activeTab === 'journal' && (
-                <div className={isOwnProfile 
+                <div className={isOwnProfile
                   ? "bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg"
                   : "bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50"
                 }>
@@ -961,7 +955,7 @@ const ProfilePage = () => {
                           className="px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 inline-flex items-center gap-2"
                           title="Export your journal"
                         >
-                          <Download className="h-4 w-4"/> Export
+                          <Download className="h-4 w-4" /> Export
                         </button>
                         <button
                           onClick={() => setIsJournalOpen(true)}
@@ -974,22 +968,6 @@ const ProfilePage = () => {
                       </div>
                     )}
                   </div>
-
-                  {/* Points */}
-                  {journalStats && (
-                    <div className="mb-6">
-                      <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Emotional Points</h4>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                        <StatPill label="+1 Helped" value={journalStats.helped} />
-                        <StatPill label="+1 Gratitude" value={journalStats.gratitude} />
-                        <StatPill label="+1 Self Sacrifice" value={journalStats.selfSacrifice} />
-                        <StatPill label="+1 Positive" value={journalStats.positive} />
-                        <StatPill label="+1 Kindness" value={journalStats.kindness} />
-                        <StatPill label="+1 Resilience" value={journalStats.resilience} />
-                      </div>
-                    </div>
-                  )}
-
                   {/* Journal Feed (own profile) */}
                   {isOwnProfile && (
                     <div>
@@ -1010,7 +988,7 @@ const ProfilePage = () => {
                               <span>{formatTimeAgo(e.createdAt)}</span>
                               <span className="inline-flex items-center gap-2">
                                 <span className="px-2 py-0.5 rounded-full text-xs bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200">{e.visibility}</span>
-                                <span className="px-2 py-0.5 rounded-full text-xs bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200">{e.mood?.replace('_',' ') || 'neutral'}</span>
+                                <span className="px-2 py-0.5 rounded-full text-xs bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200">{e.mood?.replace('_', ' ') || 'neutral'}</span>
                               </span>
                             </div>
                             <p className="text-gray-800 dark:text-gray-200 line-clamp-2 mb-2">{e.content}</p>
@@ -1041,22 +1019,21 @@ const ProfilePage = () => {
         )}
         {/* Profile Edit Modal - only for own profile */}
         {isOwnProfile && (
-          <Suspense fallback={null}><ProfileEditModal 
-            isOpen={isEditModalOpen} 
-            onClose={() => setIsEditModalOpen(false)} 
+          <Suspense fallback={null}><ProfileEditModal
+            isOpen={isEditModalOpen}
+            onClose={() => setIsEditModalOpen(false)}
           /></Suspense>
         )}
         {/* Journal Prompt Modal */}
         {isOwnProfile && (
-          <Suspense fallback={null}><JournalPromptModal 
-            isOpen={isJournalOpen} 
-            onClose={() => setIsJournalOpen(false)} 
+          <Suspense fallback={null}><JournalPromptModal
+            isOpen={isJournalOpen}
+            onClose={() => setIsJournalOpen(false)}
             onSubmitted={async () => {
               try {
                 await getUserJournalHighlights(currentUser?._id, { limit: 12 });
                 await getMyJournalEntries({ limit: 10 });
-                await getUserJournalStats(currentUser?._id);
-              } catch {}
+              } catch { }
             }}
           /></Suspense>
         )}
@@ -1082,7 +1059,7 @@ const ProfilePage = () => {
             await report({ targetType: 'user', targetId: displayUser._id, reason, description });
           } finally {
             // Offer to block after report
-            try { if (displayUser?._id) { setBlockOpen(true); } } catch {}
+            try { if (displayUser?._id) { setBlockOpen(true); } } catch { }
             setReportOpen(false);
           }
         }}
@@ -1101,9 +1078,9 @@ const ProfilePage = () => {
           }
         }}
       /></Suspense>
-      {/* Goal Post Modal (shared with Feed) */}
+      {/* Goal Details Modal (with timeline) */}
       {openGoalId && (
-        <Suspense fallback={null}><GoalPostModal
+        <Suspense fallback={null}><GoalDetailsModal
           isOpen={!!openGoalId}
           goalId={openGoalId}
           autoOpenComments={scrollCommentsOnOpen}
@@ -1114,15 +1091,15 @@ const ProfilePage = () => {
   );
 };
 
-export default ProfilePage; 
+export default ProfilePage;
 // Follow List Modal Mount
 // (placed after default export to avoid interfering with main export)
 
 
 // Modals
 // Placed at end to avoid cluttering main JSX; render conditionally near root if needed
-{/* Report & Block Modals */}
-{/* Intentionally placed after export to keep render tree simple; you can move inline if preferred */}
+{/* Report & Block Modals */ }
+{/* Intentionally placed after export to keep render tree simple; you can move inline if preferred */ }
 // (No-op comment to indicate modal usage is already integrated above.)
 
 // Reusable small stat pill

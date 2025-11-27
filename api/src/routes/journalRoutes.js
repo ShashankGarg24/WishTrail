@@ -22,9 +22,6 @@ router.get('/export', protect, requireFeature('journal'), journalController.expo
 // Get user highlights (public/friends/private-aware)
 router.get('/highlights/:userId', optionalAuth, requireFeature('journal'), journalController.getUserHighlights);
 
-// Get emotion stats for a profile
-router.get('/stats/:userId', optionalAuth, requireFeature('journal'), journalController.getEmotionStats);
-
 module.exports = router;
 
 

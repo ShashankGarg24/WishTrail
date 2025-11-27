@@ -30,14 +30,14 @@ const journalEntrySchema = new mongoose.Schema({
   },
   mood: {
     type: String,
-    enum: ['very_negative','negative','neutral','positive','very_positive'],
+    enum: ['very_negative', 'negative', 'neutral', 'positive', 'very_positive'],
     default: 'neutral',
     index: true
   },
   tags: [{ type: String, trim: true, maxlength: 32 }],
   visibility: {
     type: String,
-    enum: ['private','friends','public'],
+    enum: ['private', 'friends', 'public'],
     default: 'private',
     index: true
   },
@@ -46,13 +46,6 @@ const journalEntrySchema = new mongoose.Schema({
     type: Boolean,
     default: true,
     index: true
-  },
-  // Optional lightweight extracted signals for faster aggregation
-  signals: {
-    helpedSomeone: { type: Boolean, default: false, index: true },
-    expressedGratitude: { type: Boolean, default: false, index: true },
-    selfSacrifice: { type: Boolean, default: false, index: true },
-    positivity: { type: Number, default: 0, min: -5, max: 5, index: true }
   },
   // Denormalized date key for quick daily lookups
   dayKey: {
@@ -65,15 +58,7 @@ const journalEntrySchema = new mongoose.Schema({
     motivation: { type: String, default: '' },
     model: { type: String, default: '' }
   },
-  aiSignals: {
-    helpedCount: { type: Number, default: 0, min: 0 },
-    gratitudeCount: { type: Number, default: 0, min: 0 },
-    selfSacrificeCount: { type: Number, default: 0, min: 0 },
-    positiveCount: { type: Number, default: 0, min: 0 },
-    kindnessCount: { type: Number, default: 0, min: 0 },
-    resilienceCount: { type: Number, default: 0, min: 0 },
-    otherCount: { type: Number, default: 0, min: 0 }
-  }
+
 }, {
   timestamps: true,
   toJSON: { virtuals: true },
@@ -83,11 +68,11 @@ const journalEntrySchema = new mongoose.Schema({
 journalEntrySchema.index({ userId: 1, createdAt: -1 });
 journalEntrySchema.index({ userId: 1, dayKey: 1 }, { unique: false });
 
-journalEntrySchema.pre('save', function(next) {
+journalEntrySchema.pre('save', function (next) {
   if (!this.dayKey) {
     const d = this.createdAt || new Date();
     const iso = new Date(d.getTime());
-    iso.setUTCHours(0,0,0,0);
+    iso.setUTCHours(0, 0, 0, 0);
     this.dayKey = iso.toISOString().split('T')[0];
   }
   next();

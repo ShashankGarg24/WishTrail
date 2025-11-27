@@ -19,7 +19,7 @@ api.interceptors.request.use(
     try {
       const isNative = typeof window !== 'undefined' && !!window.ReactNativeWebView;
       config.headers['X-Client-Platform'] = isNative ? 'app' : 'web';
-    } catch {}
+    } catch { }
     return config;
   },
   (error) => {
@@ -52,11 +52,11 @@ api.interceptors.response.use(
         const isAuthEndpoint = /\/auth\/(login|register|refresh)(\b|\?|$)/.test(url);
         const rt = response?.data?.data?.refreshToken;
         if (isAuthEndpoint && typeof rt === 'string' && rt.length > 0) {
-          try { window.__WT_REFRESH_TOKEN = rt; } catch {}
-          try { window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'WT_REFRESH', refreshToken: rt })); } catch {}
+          try { window.__WT_REFRESH_TOKEN = rt; } catch { }
+          try { window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'WT_REFRESH', refreshToken: rt })); } catch { }
         }
       }
-    } catch {}
+    } catch { }
     return response;
   },
   async (error) => {
@@ -70,7 +70,7 @@ api.interceptors.response.use(
     if (window.location.pathname.startsWith('/auth')) {
       return Promise.reject(error);
     }
-    
+
     // If refresh itself failed, logout
     if (originalRequest?.url?.includes('/auth/refresh')) {
       localStorage.removeItem('token');
@@ -95,7 +95,7 @@ api.interceptors.response.use(
         if (isNative && typeof window.__WT_REFRESH_TOKEN === 'string' && window.__WT_REFRESH_TOKEN.length > 0) {
           headers['x-refresh-token'] = window.__WT_REFRESH_TOKEN;
         }
-      } catch {}
+      } catch { }
       const res = await api.post('/auth/refresh', null, { withCredentials: true, headers });
       const newToken = res?.data?.data?.token;
       if (!newToken) throw new Error('No access token in refresh response');
@@ -106,24 +106,24 @@ api.interceptors.response.use(
         const isNative = typeof window !== 'undefined' && !!window.ReactNativeWebView;
         const rt = res?.data?.data?.refreshToken;
         if (isNative && typeof rt === 'string' && rt.length > 0) {
-          try { window.__WT_REFRESH_TOKEN = rt; } catch {}
-          try { window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'WT_REFRESH', refreshToken: rt })); } catch {}
+          try { window.__WT_REFRESH_TOKEN = rt; } catch { }
+          try { window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'WT_REFRESH', refreshToken: rt })); } catch { }
         }
-      } catch {}
+      } catch { }
       processQueue(null, newToken);
       // Retry original
       originalRequest.headers.Authorization = `Bearer ${newToken}`;
       return api(originalRequest);
     } catch (refreshErr) {
       // On refresh failure, clear token and avoid infinite reload loops
-      try { localStorage.removeItem('token'); } catch {}
-      try { delete api.defaults.headers.common.Authorization; } catch {}
+      try { localStorage.removeItem('token'); } catch { }
+      try { delete api.defaults.headers.common.Authorization; } catch { }
       processQueue(refreshErr, null);
       // Only navigate if not already on auth, and do it once
       try {
         const onAuth = window.location.pathname.startsWith('/auth');
         if (!onAuth) window.location.assign('/auth');
-      } catch {}
+      } catch { }
       return Promise.reject(refreshErr);
     } finally {
       isRefreshing = false;
@@ -143,7 +143,7 @@ export const authAPI = {
   // Password reset API
   forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
   resetPassword: (token, newPassword) => api.post('/auth/reset-password', { token, newPassword }),
-  
+
   // Multi-step signup API
   checkExistingUser: (data) => api.post('/auth/check-existing', data),
   requestOTP: (userData) => api.post('/auth/request-otp', userData),
@@ -159,7 +159,7 @@ export const goalsAPI = {
   createGoal: (goalData) => api.post('/goals', goalData),
   updateGoal: (id, goalData) => api.put(`/goals/${id}`, goalData),
   deleteGoal: (id) => api.delete(`/goals/${id}`),
-  toggleGoalCompletion: (id, completionNote, shareCompletionNote = true) => 
+  toggleGoalCompletion: (id, completionNote, shareCompletionNote = true) =>
     api.patch(`/goals/${id}/toggle`, { completionNote, shareCompletionNote }),
   likeGoal: (id) => api.patch(`/goals/${id}/like`),
   getYearlyGoals: (year, userId) => api.get(`/goals/yearly/${year}`, { params: { userId } }),
@@ -299,7 +299,6 @@ export const journalsAPI = {
   updateEntry: (id, payload) => api.patch(`/journals/${id}`, payload),
   getMyEntries: (params) => api.get('/journals/me', { params }),
   getHighlights: (userId, params) => api.get(`/journals/highlights/${userId}`, { params }),
-  getStats: (userId) => api.get(`/journals/stats/${userId}`),
   export: (params) => api.get('/journals/export', { params, responseType: 'blob' })
 };
 

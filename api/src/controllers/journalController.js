@@ -62,17 +62,6 @@ exports.getUserHighlights = async (req, res, next) => {
   }
 };
 
-exports.getEmotionStats = async (req, res, next) => {
-  try {
-    const targetUserId = req.params.userId;
-    const viewerId = req.user?._id;
-    const stats = await journalService.getEmotionStats(targetUserId, viewerId);
-    res.status(200).json({ success: true, data: { stats } });
-  } catch (error) {
-    next(error);
-  }
-};
-
 // @desc    Export my journal as PDF or text
 // @route   GET /api/v1/journals/export?format=pdf|text&style=simple|diary&includeMotivation=true|false&from=&to=
 // @access  Private
@@ -114,7 +103,7 @@ exports.exportMyJournal = async (req, res, next) => {
 
     // PDF export
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="wishtrail-journal-${user.name.replace(/\s+/g,'_')}.pdf"`);
+    res.setHeader('Content-Disposition', `attachment; filename="wishtrail-journal-${user.name.replace(/\s+/g, '_')}.pdf"`);
     const doc = new PDFDocument({ size: 'A4', margin: 50 });
     doc.pipe(res);
 
@@ -136,12 +125,12 @@ exports.exportMyJournal = async (req, res, next) => {
           const img = Buffer.from(resp.data || Buffer.alloc(0));
           const cx = doc.page.width / 2 - 45;
           const cy = doc.y;
-          try { doc.save(); } catch (_) {}
+          try { doc.save(); } catch (_) { }
           try {
             doc.circle(cx + 45, cy + 45, 45).clip();
             doc.image(img, cx, cy, { width: 90, height: 90 });
-          } catch (_) {}
-          try { doc.restore(); } catch (_) {}
+          } catch (_) { }
+          try { doc.restore(); } catch (_) { }
           doc.moveDown(5);
         } catch (_) { /* ignore avatar errors */ }
       }
@@ -216,7 +205,7 @@ exports.exportMyJournal = async (req, res, next) => {
       doc.restore();
       doc.moveDown(1);
     };
-    doc.on('pageAdded', () => { try { decoratePage(); } catch (_) {} });
+    doc.on('pageAdded', () => { try { decoratePage(); } catch (_) { } });
 
     // Cover
     await writeCover();
@@ -232,7 +221,7 @@ exports.exportMyJournal = async (req, res, next) => {
     inContent = false;
     doc.addPage();
     writeSignature();
-    try { doc.end(); } catch (_) {}
+    try { doc.end(); } catch (_) { }
   } catch (error) {
     next(error);
   }

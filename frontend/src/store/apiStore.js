@@ -1,12 +1,12 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-import { 
-  authAPI, 
-  goalsAPI, 
-  usersAPI, 
-  socialAPI, 
-  activitiesAPI, 
+import {
+  authAPI,
+  goalsAPI,
+  usersAPI,
+  socialAPI,
+  activitiesAPI,
   leaderboardAPI,
   handleApiError,
   setAuthToken,
@@ -28,31 +28,31 @@ const useApiStore = create(
       // Loading states
       loading: false,
       error: null,
-      
+
       // User state
       user: null,
       isAuthenticated: false,
       token: null,
-      
+
       // Dashboard stats
       dashboardStats: null,
-      
+
       // Goals
       goals: [],
       goalsPagination: null,
       communityGoalsByYear: {},
-      
+
       // Users
       users: [],
       usersPagination: null,
-      
+
       // Social
       followedUsers: [],
       followers: [],
       following: [],
       blockedUsers: [],
       followRequests: [],
-      
+
       // Activities
       activityFeed: [],
       recentActivities: [],
@@ -67,8 +67,7 @@ const useApiStore = create(
       journalPrompt: null,
       journalEntries: [],
       journalHighlights: [],
-      journalStats: null,
-      
+
       // Client-side caches (TTL + persisted)
       cacheActivityFeed: {}, // key -> { data, ts }
       cacheUsers: {},        // key -> { data, ts }
@@ -123,12 +122,12 @@ const useApiStore = create(
         const which = bucketName === 'cacheActivityFeed'
           ? 'activityFeed'
           : bucketName === 'cacheUsers'
-          ? 'users'
-          : bucketName === 'cacheGoals'
-          ? 'goals'
-          : bucketName === 'cacheGoalPosts'
-          ? 'goalPosts'
-          : 'notifications';
+            ? 'users'
+            : bucketName === 'cacheGoals'
+              ? 'goals'
+              : bucketName === 'cacheGoalPosts'
+                ? 'goalPosts'
+                : 'notifications';
         const limit = get().maxCacheEntries[which];
         const keys = Object.keys(bucket);
         if (keys.length > limit) {
@@ -148,39 +147,39 @@ const useApiStore = create(
           if (goalId !== undefined && goalId !== null) delete next[`goal:${String(goalId)}`];
           if (activityId !== undefined && activityId !== null) delete next[`activity:${String(activityId)}`];
           set({ cacheGoalPosts: next });
-        } catch {}
+        } catch { }
       },
-      
-      invalidateGoalPostByGoal: (id) => { try { get().invalidateGoalPostCache({ goalId: id }); } catch {} },
-      invalidateGoalPostByActivity: (id) => { try { get().invalidateGoalPostCache({ activityId: id }); } catch {} },
-      
+
+      invalidateGoalPostByGoal: (id) => { try { get().invalidateGoalPostCache({ goalId: id }); } catch { } },
+      invalidateGoalPostByActivity: (id) => { try { get().invalidateGoalPostCache({ activityId: id }); } catch { } },
+
       // Leaderboard
       leaderboard: [],
-      
+
       // Explore removed; keep interestsCatalog used by Discover
       goalsSearchResults: [],
       interestsCatalog: [],
       // Cached trending goals for stories bar (per params key)
       cacheTrendingGoals: {},
-      
+
       // =====================
       // AUTH ACTIONS
       // =====================
-      
+
       signup: async (userData) => {
         try {
           set({ loading: true, error: null });
           const response = await authAPI.signup(userData);
           const { user, token } = response.data.data;
-          
+
           setAuthToken(token);
-          set({ 
-            user, 
-            token, 
-            isAuthenticated: true, 
-            loading: false 
+          set({
+            user,
+            token,
+            isAuthenticated: true,
+            loading: false
           });
-          
+
           return { success: true, user, token };
         } catch (error) {
           const errorMessage = handleApiError(error);
@@ -188,21 +187,21 @@ const useApiStore = create(
           return { success: false, error: errorMessage };
         }
       },
-      
+
       register: async (profileData) => {
         try {
           set({ loading: true, error: null });
           const response = await authAPI.register(profileData);
           const { user, token } = response.data.data;
-          
+
           setAuthToken(token);
-          set({ 
-            user, 
-            token, 
-            isAuthenticated: true, 
-            loading: false 
+          set({
+            user,
+            token,
+            isAuthenticated: true,
+            loading: false
           });
-          
+
           return { success: true, user, token };
         } catch (error) {
           const errorMessage = handleApiError(error);
@@ -210,21 +209,21 @@ const useApiStore = create(
           return { success: false, error: errorMessage };
         }
       },
-      
+
       login: async (email, password) => {
         try {
           set({ loading: true, error: null });
           const response = await authAPI.login({ email, password });
           const { user, token } = response.data.data;
-          
+
           setAuthToken(token);
-          set({ 
-            user, 
-            token, 
-            isAuthenticated: true, 
-            loading: false 
+          set({
+            user,
+            token,
+            isAuthenticated: true,
+            loading: false
           });
-          
+
           return { success: true, user, token };
         } catch (error) {
           const errorMessage = handleApiError(error);
@@ -236,7 +235,7 @@ const useApiStore = create(
       // =====================
       // PASSWORD RESET ACTIONS
       // =====================
-      
+
       forgotPassword: async (email) => {
         try {
           set({ loading: true, error: null });
@@ -250,7 +249,7 @@ const useApiStore = create(
           return { success: false, error: errorMessage };
         }
       },
-      
+
       resetPassword: async (token, newPassword) => {
         try {
           set({ loading: true, error: null });
@@ -268,7 +267,7 @@ const useApiStore = create(
       // =====================
       // MULTI-STEP SIGNUP ACTIONS
       // =====================
-      
+
       checkExistingUser: async (data) => {
         try {
           set({ loading: true, error: null });
@@ -324,14 +323,14 @@ const useApiStore = create(
           return { success: false, error: errorMessage };
         }
       },
-      
+
       logout: async () => {
         try {
           await authAPI.logout();
           setAuthToken(null);
-          set({ 
-            user: null, 
-            token: null, 
+          set({
+            user: null,
+            token: null,
             isAuthenticated: false,
             goals: [],
             dashboardStats: null,
@@ -345,15 +344,15 @@ const useApiStore = create(
         } catch (error) {
           // Even if logout fails, clear local state
           setAuthToken(null);
-          set({ 
-            user: null, 
-            token: null, 
-            isAuthenticated: false 
+          set({
+            user: null,
+            token: null,
+            isAuthenticated: false
           });
           return { success: true };
         }
       },
-      
+
       getMe: async () => {
         try {
           const response = await authAPI.getMe();
@@ -366,11 +365,11 @@ const useApiStore = create(
           return { success: false, error: errorMessage };
         }
       },
-      
+
       // =====================
       // PASSWORD RESET ACTIONS
       // =====================
-      
+
       updateProfile: async (userData) => {
         try {
           set({ loading: true, error: null });
@@ -417,7 +416,7 @@ const useApiStore = create(
         try {
           set({ loading: true, error: null });
           const response = await usersAPI.updatePrivacy({ isPrivate });
-          
+
           if (response.data.success) {
             set((state) => ({
               user: {
@@ -428,7 +427,7 @@ const useApiStore = create(
             }));
             return { success: true };
           }
-                
+
           throw new Error(response.data.message || 'Failed to update privacy settings');
         } catch (error) {
           const errorMessage = handleApiError(error);
@@ -445,14 +444,15 @@ const useApiStore = create(
             currentPassword,
             newPassword
           });
-          
+
           if (response.data.success) {
             set({ loading: false });
-            return { 
-              message: response.data.message, 
-              success: true };
+            return {
+              message: response.data.message,
+              success: true
+            };
           }
-          
+
           throw new Error(response.data.message || 'Failed to update password');
         } catch (error) {
           const errorMessage = handleApiError(error);
@@ -476,11 +476,11 @@ const useApiStore = create(
           set({ locationSuggestions: [] });
         }
       },
-      
+
       // =====================
       // DASHBOARD ACTIONS
       // =====================
-      
+
       getDashboardStats: async (opts = {}) => {
         try {
           const force = !!opts.force;
@@ -606,11 +606,11 @@ const useApiStore = create(
           return { success: false, error: handleApiError(error) };
         }
       },
-      
+
       // =====================
       // GOALS ACTIONS
       // =====================
-      
+
       getGoals: async (params = {}, opts = {}) => {
         try {
           const force = !!opts.force;
@@ -669,7 +669,7 @@ const useApiStore = create(
           return { success: false, error: handleApiError(error) };
         }
       },
-      
+
       setSubGoals: async (goalId, subGoals) => {
         try {
           const res = await goalsAPI.setSubGoals(goalId, subGoals);
@@ -702,13 +702,13 @@ const useApiStore = create(
           return { success: false, error: handleApiError(error) };
         }
       },
-      
+
       createGoal: async (goalData) => {
         try {
           set({ loading: true, error: null });
           const response = await goalsAPI.createGoal(goalData);
           const { goal } = response.data.data;
-          
+
           // Add to current goals list
           set(state => ({
             goals: [goal, ...state.goals],
@@ -726,8 +726,8 @@ const useApiStore = create(
           }
           set({ cacheGoals: newCache, cacheDashboardStats: null });
           // Invalidate goal post detail cache for this goal
-          try { get().invalidateGoalPostByGoal?.(goal?._id); } catch {}
-          
+          try { get().invalidateGoalPostByGoal?.(goal?._id); } catch { }
+
           return { success: true, goal };
         } catch (error) {
           const errorMessage = handleApiError(error);
@@ -735,13 +735,13 @@ const useApiStore = create(
           return { success: false, error: errorMessage };
         }
       },
-      
+
       updateGoal: async (id, goalData) => {
         try {
           set({ loading: true, error: null });
           const response = await goalsAPI.updateGoal(id, goalData);
           const { goal } = response.data.data;
-          
+
           // Update in current goals list
           set(state => ({
             goals: state.goals.map(g => g._id === id ? goal : g),
@@ -757,10 +757,10 @@ const useApiStore = create(
           }
           set({ cacheGoals: newCache, cacheDashboardStats: null });
           // Invalidate goal post detail cache for this goal
-          try { get().invalidateGoalPostByGoal?.(id); } catch {}
+          try { get().invalidateGoalPostByGoal?.(id); } catch { }
           // Trigger a forced stats refresh since edits can change totals/points
-          try { await get().getDashboardStats({ force: true }); } catch {}
-          
+          try { await get().getDashboardStats({ force: true }); } catch { }
+
           return { success: true, goal };
         } catch (error) {
           const errorMessage = handleApiError(error);
@@ -768,12 +768,12 @@ const useApiStore = create(
           return { success: false, error: errorMessage };
         }
       },
-      
+
       deleteGoal: async (id) => {
         try {
           set({ loading: true, error: null });
           await goalsAPI.deleteGoal(id);
-          
+
           // Remove from current goals list
           set(state => ({
             goals: state.goals.filter(g => g._id !== id),
@@ -783,8 +783,8 @@ const useApiStore = create(
           // Invalidate all goal caches (unknown year) and dashboard stats
           set({ cacheGoals: {}, cacheDashboardStats: null });
           // Invalidate goal post detail cache for this goal
-          try { get().invalidateGoalPostByGoal?.(id); } catch {}
-          
+          try { get().invalidateGoalPostByGoal?.(id); } catch { }
+
           return { success: true };
         } catch (error) {
           const errorMessage = handleApiError(error);
@@ -792,12 +792,12 @@ const useApiStore = create(
           return { success: false, error: errorMessage };
         }
       },
-      
+
       toggleGoalCompletion: async (id, completionNote, shareCompletionNote = true) => {
         try {
           const response = await goalsAPI.toggleGoalCompletion(id, completionNote, shareCompletionNote);
           const { goal } = response.data.data;
-          
+
           // Update in current goals list
           set(state => ({
             goals: state.goals.map(g => g._id === id ? goal : g)
@@ -812,9 +812,9 @@ const useApiStore = create(
           }
           set({ cacheGoals: newCache, cacheDashboardStats: null });
           // Invalidate goal post detail cache for this goal
-          try { get().invalidateGoalPostByGoal?.(id); } catch {}
-          try { await get().getDashboardStats({ force: true }); } catch {}
-          
+          try { get().invalidateGoalPostByGoal?.(id); } catch { }
+          try { await get().getDashboardStats({ force: true }); } catch { }
+
           return { success: true, goal };
         } catch (error) {
           const errorMessage = handleApiError(error);
@@ -822,23 +822,23 @@ const useApiStore = create(
           return { success: false, error: errorMessage };
         }
       },
-      
+
       likeGoal: async (id) => {
         try {
           const response = await goalsAPI.likeGoal(id);
           const { isLiked, likeCount } = response.data.data;
-          
+
           // Update in current goals list
           set(state => ({
-            goals: state.goals.map(g => 
-              g._id === id 
+            goals: state.goals.map(g =>
+              g._id === id
                 ? { ...g, likeCount, isLiked }
                 : g
             )
           }));
-          
+
           // Invalidate goal post detail cache for this goal
-          try { get().invalidateGoalPostByGoal?.(id); } catch {}
+          try { get().invalidateGoalPostByGoal?.(id); } catch { }
           return { success: true, isLiked, likeCount };
         } catch (error) {
           const errorMessage = handleApiError(error);
@@ -868,7 +868,7 @@ const useApiStore = create(
           return { goals: [], pagination: null };
         }
       },
-      
+
       getYearlyGoals: async (year, userId) => {
         try {
           set({ loading: true, error: null });
@@ -882,8 +882,8 @@ const useApiStore = create(
           return { success: false, error: errorMessage };
         }
       },
-      
-         
+
+
       getShareableGoal: async (id) => {
         try {
           const response = await goalsAPI.getShareableGoal(id);
@@ -893,7 +893,7 @@ const useApiStore = create(
           return { success: false, error: errorMessage };
         }
       },
-      
+
       getOGImageUrl: (id) => {
         return goalsAPI.getOGImageUrl(id);
       },
@@ -931,7 +931,7 @@ const useApiStore = create(
             // Also cache the request id if not one of the above
             if (id && !goalId && !activityId) next[`goal:${String(id)}`] = { data: resp, ts: now };
             set({ cacheGoalPosts: next });
-          } catch {}
+          } catch { }
           return { success: true, ...resp };
         } catch (error) {
           const errorMessage = handleApiError(error);
@@ -952,11 +952,11 @@ const useApiStore = create(
           return { goals: [], pagination: null };
         }
       },
-      
+
       // =====================
       // USERS ACTIONS
       // =====================
-      
+
       getUsers: async (params = {}, opts = {}) => {
         try {
           const force = !!opts.force;
@@ -979,7 +979,7 @@ const useApiStore = create(
           return { success: false, error: errorMessage };
         }
       },
-      
+
       searchUsers: async (params = {}) => {
         try {
           const query = {};
@@ -995,12 +995,12 @@ const useApiStore = create(
           return { users: [], pagination: null };
         }
       },
-      
+
       getUser: async (id) => {
         try {
           set({ loading: true, error: null });
           const response = await usersAPI.getUser(id);
-          const {user, stats, isFollowing, isRequested} = response.data.data;
+          const { user, stats, isFollowing, isRequested } = response.data.data;
           set({ loading: false });
           return { success: true, user, stats, isFollowing, isRequested };
         } catch (error) {
@@ -1037,37 +1037,37 @@ const useApiStore = create(
           return { success: false, error: errorMessage };
         }
       },
-      
+
       // =====================
       // SOCIAL ACTIONS
       // =====================
-      
+
       followUser: async (userId) => {
         try {
           const response = await socialAPI.followUser(userId);
           const message = response.data?.message || '';
           const requested = response.data?.data?.requested === true || /request/i.test(message);
-          
+
           // Update local state
           set(state => ({
             followedUsers: requested ? state.followedUsers : [...state.followedUsers, userId],
-            users: state.users.map(user => 
-              user._id === userId 
+            users: state.users.map(user =>
+              user._id === userId
                 ? { ...user, isFollowing: !requested, isRequested: requested }
                 : user
             ),
-            leaderboard: state.leaderboard.map(user => 
-              user._id === userId 
+            leaderboard: state.leaderboard.map(user =>
+              user._id === userId
                 ? { ...user, isFollowing: true }
                 : user
             ),
-            suggestedUsers: state.suggestedUsers.map(user => 
-              user._id === userId 
+            suggestedUsers: state.suggestedUsers.map(user =>
+              user._id === userId
                 ? { ...user, isFollowing: !requested, isRequested: requested }
                 : user
             )
           }));
-          
+
           return { success: true, isRequested: requested };
         } catch (error) {
           const errorMessage = handleApiError(error);
@@ -1137,38 +1137,38 @@ const useApiStore = create(
           return { success: false, error: handleApiError(error), users: [] };
         }
       },
-      
+
       unfollowUser: async (userId) => {
         try {
           const response = await socialAPI.unfollowUser(userId);
-          
+
           // Update local state
           set(state => ({
             followedUsers: state.followedUsers.filter(id => id !== userId),
-            users: state.users.map(user => 
-              user._id === userId 
+            users: state.users.map(user =>
+              user._id === userId
                 ? { ...user, isFollowing: false }
                 : user
             ),
-            leaderboard: state.leaderboard.map(user => 
-              user._id === userId 
+            leaderboard: state.leaderboard.map(user =>
+              user._id === userId
                 ? { ...user, isFollowing: false }
                 : user
             ),
-            suggestedUsers: state.suggestedUsers.map(user => 
-              user._id === userId 
+            suggestedUsers: state.suggestedUsers.map(user =>
+              user._id === userId
                 ? { ...user, isFollowing: false }
                 : user
             )
           }));
-          
+
           return { success: true };
         } catch (error) {
           const errorMessage = handleApiError(error);
           return { success: false, error: errorMessage };
         }
       },
-      
+
       getFollowers: async (userId) => {
         try {
           const response = await socialAPI.getFollowers({ userId });
@@ -1180,7 +1180,7 @@ const useApiStore = create(
           return { success: false, error: errorMessage };
         }
       },
-      
+
       getFollowing: async (userId) => {
         try {
           const response = await socialAPI.getFollowing({ userId });
@@ -1209,10 +1209,12 @@ const useApiStore = create(
         try {
           const id = (followerId && typeof followerId === 'object') ? (followerId._id || followerId.id) : followerId;
           await socialAPI.acceptFollowRequest(id);
-          set(state => ({ followRequests: (state.followRequests || []).filter(r => {
-            const rid = r?.followerId?._id || r?.followerId || r?._id;
-            return String(rid) !== String(id);
-          }) }));
+          set(state => ({
+            followRequests: (state.followRequests || []).filter(r => {
+              const rid = r?.followerId?._id || r?.followerId || r?._id;
+              return String(rid) !== String(id);
+            })
+          }));
           return { success: true };
         } catch (error) {
           const errorMessage = handleApiError(error);
@@ -1224,10 +1226,12 @@ const useApiStore = create(
         try {
           const id = (followerId && typeof followerId === 'object') ? (followerId._id || followerId.id) : followerId;
           await socialAPI.rejectFollowRequest(id);
-          set(state => ({ followRequests: (state.followRequests || []).filter(r => {
-            const rid = r?.followerId?._id || r?.followerId || r?._id;
-            return String(rid) !== String(id);
-          }) }));
+          set(state => ({
+            followRequests: (state.followRequests || []).filter(r => {
+              const rid = r?.followerId?._id || r?.followerId || r?._id;
+              return String(rid) !== String(id);
+            })
+          }));
           return { success: true };
         } catch (error) {
           const errorMessage = handleApiError(error);
@@ -1251,11 +1255,11 @@ const useApiStore = create(
           return [];
         }
       },
-      
+
       // =====================
       // ACTIVITIES ACTIONS
       // =====================
-      
+
       getActivityFeed: async (params = {}, opts = {}) => {
         try {
           const force = !!opts.force;
@@ -1398,18 +1402,6 @@ const useApiStore = create(
         }
       },
 
-      getUserJournalStats: async (userId) => {
-        try {
-          const res = await journalsAPI.getStats(userId);
-          const stats = res?.data?.data?.stats || null;
-          set({ journalStats: stats });
-          return stats;
-        } catch (error) {
-          set({ journalStats: null });
-          return null;
-        }
-      },
-
       loadMoreNotifications: async () => {
         try {
           const { notificationsPagination } = get();
@@ -1422,26 +1414,26 @@ const useApiStore = create(
           const key = get()._cacheKeyFromParams({ page: nextPage, limit: notificationsPagination.limit });
           const unreadNow = get().unreadNotifications;
           get()._setCacheWithLimit('cacheNotifications', key, { notifications: more, pagination, unread: unreadNow });
-        } catch {}
+        } catch { }
       },
 
       markNotificationRead: async (id) => {
         try {
           await notificationsAPI.markAsRead(id);
-          set(state => ({ 
+          set(state => ({
             notifications: state.notifications.map(n => n._id === id ? { ...n, isRead: true, readAt: new Date().toISOString() } : n),
             unreadNotifications: Math.max((state.unreadNotifications || 0) - 1, 0)
           }));
-        } catch {}
+        } catch { }
       },
 
       markAllNotificationsRead: async () => {
         try {
           await notificationsAPI.markAllAsRead();
           set(state => ({ notifications: state.notifications.map(n => ({ ...n, isRead: true, readAt: new Date().toISOString() })), unreadNotifications: 0 }));
-        } catch {}
+        } catch { }
       },
-      
+
       getRecentActivities: async (params = {}) => {
         try {
           set({ loading: true, error: null });
@@ -1455,12 +1447,12 @@ const useApiStore = create(
           return [];
         }
       },
-      
+
       likeActivity: async (activityId, like) => {
         try {
           const response = await activitiesAPI.likeActivity(activityId, like);
           const { isLiked, likeCount } = response.data.data;
-          
+
           // Update in activity feed
           set(state => ({
             activityFeed: state.activityFeed.map(activity =>
@@ -1474,21 +1466,21 @@ const useApiStore = create(
                 : activity
             )
           }));
-          
+
           // Invalidate cached goal post for this activity
-          try { get().invalidateGoalPostByActivity?.(activityId); } catch {}
+          try { get().invalidateGoalPostByActivity?.(activityId); } catch { }
           return { success: true, isLiked, likeCount };
         } catch (error) {
           const errorMessage = handleApiError(error);
           return { success: false, error: errorMessage };
         }
       },
-      
+
       unlikeActivity: async (activityId) => {
         try {
           const response = await activitiesAPI.likeActivity(activityId, false);
           const { isLiked, likeCount } = response.data.data;
-          
+
           // Update in activity feed
           set(state => ({
             activityFeed: state.activityFeed.map(activity =>
@@ -1502,20 +1494,20 @@ const useApiStore = create(
                 : activity
             )
           }));
-          
+
           // Invalidate cached goal post for this activity
-          try { get().invalidateGoalPostByActivity?.(activityId); } catch {}
+          try { get().invalidateGoalPostByActivity?.(activityId); } catch { }
           return { success: true, isLiked, likeCount };
         } catch (error) {
           const errorMessage = handleApiError(error);
           return { success: false, error: errorMessage };
         }
       },
-      
+
       // =====================
       // LEADERBOARD ACTIONS
       // =====================
-      
+
       getGlobalLeaderboard: async (params = {}) => {
         try {
           set({ loading: true, error: null });
@@ -1529,7 +1521,7 @@ const useApiStore = create(
           return [];
         }
       },
-      
+
       getCategoryLeaderboard: async (category, params = {}) => {
         try {
           set({ loading: true, error: null });
@@ -1543,7 +1535,7 @@ const useApiStore = create(
           return { success: false, error: errorMessage };
         }
       },
-      
+
       getFriendsLeaderboard: async (params = {}) => {
         try {
           set({ loading: true, error: null });
@@ -1557,7 +1549,7 @@ const useApiStore = create(
           return { success: false, error: errorMessage };
         }
       },
-      
+
       getLeaderboardStats: async () => {
         try {
           const response = await leaderboardAPI.getLeaderboardStats();
@@ -1568,7 +1560,7 @@ const useApiStore = create(
           return { success: false, error: errorMessage };
         }
       },
-      
+
       loadInterests: async (limit = 64) => {
         try {
           const res = await usersAPI.getInterests({ limit });
@@ -1581,15 +1573,15 @@ const useApiStore = create(
           return [];
         }
       },
-      
+
       // =====================
       // HELPER METHODS
       // =====================
-      
+
       clearError: () => set({ error: null }),
-      
+
       setLoading: (loading) => set({ loading }),
-      
+
       // Initialize auth state from localStorage
       initializeAuth: () => {
         const token = localStorage.getItem('token');
@@ -1599,7 +1591,7 @@ const useApiStore = create(
           // Optionally fetch user data
           get().getMe();
           // Load feature flags on startup (non-blocking)
-          try { get().loadFeatures?.(); } catch {}
+          try { get().loadFeatures?.(); } catch { }
           // Auto-detect timezone and send to backend (fire-and-forget)
           try {
             const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
@@ -1610,9 +1602,9 @@ const useApiStore = create(
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                 credentials: 'include',
                 body: JSON.stringify({ timezone: tz || undefined, timezoneOffsetMinutes: offset })
-              }).catch(() => {});
+              }).catch(() => { });
             }
-          } catch {}
+          } catch { }
         }
       }
       ,
