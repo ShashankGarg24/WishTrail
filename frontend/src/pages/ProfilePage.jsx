@@ -714,7 +714,7 @@ const ProfilePage = () => {
                   <Target className="h-5 w-5" />
                   <span className="font-medium">Goals</span>
                 </button>
-                {isFeatureEnabled('journal') && <button
+                {isFeatureEnabled('journal') && isOwnProfile && <button
                   onClick={() => handleTabChange('journal')}
                   className={`flex items-center space-x-2 px-6 py-3 rounded-xl transition-all duration-200 shrink-0 ${activeTab === 'journal'
                     ? (isOwnProfile ? 'bg-primary-500 text-white shadow-lg' : 'bg-blue-500 text-white shadow-lg')
