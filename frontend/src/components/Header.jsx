@@ -8,7 +8,7 @@ import { notificationsAPI } from '../services/api'
 const FeedbackButton = lazy(() => import('./FeedbackButton'));
 
 const Header = () => {
-  const { isAuthenticated, logout, unreadNotifications, getNotifications, isFeatureEnabled, features } = useApiStore()
+  const { isAuthenticated, logout, unreadNotifications, getNotifications, isFeatureEnabled, features, user: currentUser } = useApiStore()
   const featuresReady = !!features
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
@@ -24,11 +24,11 @@ const Header = () => {
   const mainNavigation = [
     ...(isAuthenticated
       ? [
-          { name: 'Feed', href: '/feed' },
-          ...(isFeatureEnabled('community') ? [{ name: 'Communities', href: '/communities' }] : []),
-          { name: 'Dashboard', href: '/dashboard' },
-          ...(isFeatureEnabled('leaderboard') ? [{ name: 'Leaderboard', href: '/leaderboard?tab=global' }] : []),
-        ]
+        { name: 'Feed', href: '/feed' },
+        ...(isFeatureEnabled('community') ? [{ name: 'Communities', href: '/communities' }] : []),
+        { name: 'Dashboard', href: '/dashboard' },
+        ...(isFeatureEnabled('leaderboard') ? [{ name: 'Leaderboard', href: '/leaderboard?tab=global' }] : []),
+      ]
       : []),
   ]
 
@@ -68,7 +68,7 @@ const Header = () => {
 
   // On focus, ping backend to record lastActiveAt (rate-limited server-side)
   useEffect(() => {
-    const onFocus = () => { if (isAuthenticated) { notificationsAPI.ping().catch(() => {}); } };
+    const onFocus = () => { if (isAuthenticated) { notificationsAPI.ping().catch(() => { }); } };
     window.addEventListener('focus', onFocus);
     return () => window.removeEventListener('focus', onFocus);
   }, [isAuthenticated]);
@@ -83,7 +83,7 @@ const Header = () => {
         setToast({ message, type });
         if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
         toastTimerRef.current = setTimeout(() => setToast(null), Math.max(1500, Math.min(5000, d.duration || 2600)));
-      } catch {}
+      } catch { }
     };
     window.addEventListener('wt_toast', handler);
     return () => {
@@ -107,7 +107,7 @@ const Header = () => {
             navigate(u.pathname + u.search);
           }
         }
-      } catch {}
+      } catch { }
     };
     window.addEventListener('wt_push', handler);
     return () => window.removeEventListener('wt_push', handler);
@@ -120,12 +120,12 @@ const Header = () => {
     return () => window.removeEventListener('wt_open_settings', handler)
   }, [])
 
-    // Global event to open settings from anywhere
-    useEffect(() => {
-      const handler = () => setIsFeedbackOpen(true)
-      window.addEventListener('wt_open_feedback', handler)
-      return () => window.removeEventListener('wt_open_feedback', handler)
-    }, [])
+  // Global event to open settings from anywhere
+  useEffect(() => {
+    const handler = () => setIsFeedbackOpen(true)
+    window.addEventListener('wt_open_feedback', handler)
+    return () => window.removeEventListener('wt_open_feedback', handler)
+  }, [])
 
   return (
     <>
@@ -152,11 +152,10 @@ const Header = () => {
                   <Link
                     key={item.name}
                     to={item.href}
-                    className={`relative px-3 py-2 text-sm font-medium transition-colors ${
-                      isActive(item.href)
-                        ? 'text-primary-600 dark:text-primary-400'
-                        : 'text-gray-700 hover:text-primary-600 dark:text-gray-300 dark:hover:text-primary-400'
-                    }`}
+                    className={`relative px-3 py-2 text-sm font-medium transition-colors ${isActive(item.href)
+                      ? 'text-primary-600 dark:text-primary-400'
+                      : 'text-gray-700 hover:text-primary-600 dark:text-gray-300 dark:hover:text-primary-400'
+                      }`}
                   >
                     {item.name}
                     {isActive(item.href) && (
@@ -174,19 +173,18 @@ const Header = () => {
                 <div className="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
               </nav>
             )}
-          {/* Right side */}
+            {/* Right side */}
             <div className="flex items-center space-x-4">
               {/* Search */}
               {isAuthenticated && (
                 <button
                   onClick={() => navigate('/discover')}
-                  className={`flex items-center px-3 py-2 text-base font-medium rounded-lg transition-colors ${
-                    isActive('/discover')
-                      ? 'text-primary-600 bg-primary-50 dark:text-primary-400 dark:bg-primary-900/30'
-                      : 'text-gray-700 hover:text-primary-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:text-primary-400 dark:hover:bg-gray-800'
-                  }`}
-                    aria-label="Discover"
-                  >
+                  className={`flex items-center px-3 py-2 text-base font-medium rounded-lg transition-colors ${isActive('/discover')
+                    ? 'text-primary-600 bg-primary-50 dark:text-primary-400 dark:bg-primary-900/30'
+                    : 'text-gray-700 hover:text-primary-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:text-primary-400 dark:hover:bg-gray-800'
+                    }`}
+                  aria-label="Discover"
+                >
                   <Search className="h-5 w-5" />
                 </button>
               )}
@@ -194,11 +192,10 @@ const Header = () => {
               {isAuthenticated && (
                 <button
                   onClick={() => navigate('/notifications')}
-                  className={`relative p-3 rounded-xl py-2 text-base font-medium rounded-lg transition-colors ${
-                    isActive('/notifications')
-                      ? 'text-primary-600 bg-primary-50 dark:text-primary-400 dark:bg-primary-900/30'
-                      : 'text-gray-700 hover:text-primary-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:text-primary-400 dark:hover:bg-gray-800'
-                  }`}
+                  className={`relative p-3 rounded-xl py-2 text-base font-medium rounded-lg transition-colors ${isActive('/notifications')
+                    ? 'text-primary-600 bg-primary-50 dark:text-primary-400 dark:bg-primary-900/30'
+                    : 'text-gray-700 hover:text-primary-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:text-primary-400 dark:hover:bg-gray-800'
+                    }`}
                   aria-label="Notifications"
                 >
                   <Bell className="h-5 w-5" />
@@ -218,7 +215,7 @@ const Header = () => {
                   Get Started
                 </Link>
               )}
-             {/* Hamburger menu (desktop only) */}
+              {/* Hamburger menu (desktop only) */}
               {isAuthenticated && (
                 <motion.button
                   whileHover={{ scale: 1.05 }}
@@ -258,11 +255,10 @@ const Header = () => {
                           key={item.name}
                           to={item.href}
                           onClick={() => setIsMenuOpen(false)}
-                          className={`flex items-center px-3 py-2 text-base font-medium rounded-lg transition-colors ${
-                            isActive(item.href)
-                              ? 'text-primary-600 bg-primary-50 dark:text-primary-400 dark:bg-primary-900/30'
-                              : 'text-gray-700 hover:text-primary-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:text-primary-400 dark:hover:bg-gray-800'
-                          }`}
+                          className={`flex items-center px-3 py-2 text-base font-medium rounded-lg transition-colors ${isActive(item.href)
+                            ? 'text-primary-600 bg-primary-50 dark:text-primary-400 dark:bg-primary-900/30'
+                            : 'text-gray-700 hover:text-primary-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:text-primary-400 dark:hover:bg-gray-800'
+                            }`}
                         >
                           {item.name}
                         </Link>
@@ -274,28 +270,28 @@ const Header = () => {
                       </>
                     )}
                   </div>
-                 {/* User Menu */}
+                  {/* User Menu */}
                   {isAuthenticated ? (
                     <div>
                       <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
                         Account
                       </div>
                       <Link
-                        to="/profile?tab=overview"
+                        to={`/profile/@${currentUser?.username}?tab=overview`}
                         onClick={() => setIsMenuOpen(false)}
                         className="flex items-center space-x-3 px-3 py-2 text-base font-medium text-gray-700 hover:text-primary-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:text-primary-400 dark:hover:bg-gray-800 rounded-lg transition-colors"
                       >
                         <User className="h-5 w-5" />
                         <span>Profile</span>
                       </Link>
-                        <Link
-                          to="/dashboard"
-                          onClick={() => setIsMenuOpen(false)}
-                          className="flex items-center space-x-3 px-3 py-2 text-base font-medium text-gray-700 hover:text-primary-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:text-primary-400 dark:hover:bg-gray-800 rounded-lg transition-colors"
-                        >
-                          <BarChart3 className="h-5 w-5" />
-                          <span>Dashboard</span>
-                        </Link>
+                      <Link
+                        to="/dashboard"
+                        onClick={() => setIsMenuOpen(false)}
+                        className="flex items-center space-x-3 px-3 py-2 text-base font-medium text-gray-700 hover:text-primary-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:text-primary-400 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                      >
+                        <BarChart3 className="h-5 w-5" />
+                        <span>Dashboard</span>
+                      </Link>
                       <button
                         onClick={() => {
                           setIsMenuOpen(false);

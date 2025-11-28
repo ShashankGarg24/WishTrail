@@ -402,7 +402,7 @@ const DashboardPage = () => {
   const goalStats = dashboardStats ? [
     { label: 'Total Goals', value: dashboardStats.totalGoals, icon: Target, color: 'text-blue-500' },
     { label: 'Completed', value: dashboardStats.completedGoals, icon: CheckCircle, color: 'text-green-500' },
-    { label: 'In Progress', value: dashboardStats.totalGoals - dashboardStats.completedGoals, icon: Circle, color: 'text-yellow-500' },
+    { label: 'In Progress', value: Math.max(0, dashboardStats.totalGoals - dashboardStats.completedGoals), icon: Circle, color: 'text-yellow-500' },
     { label: 'Today', value: `${dashboardStats.todayCompletions || 0}/${dashboardStats.dailyLimit || 3}`, icon: Calendar, color: (dashboardStats.todayCompletions || 0) >= (dashboardStats.dailyLimit || 3) ? 'text-orange-500' : 'text-purple-500' },
     { label: 'Total Points', value: dashboardStats.totalPoints, icon: Star, color: 'text-yellow-500' },
     { label: 'Level', value: dashboardStats.level?.level || 'Novice', icon: Award, color: dashboardStats.level?.color || 'text-gray-500', emoji: dashboardStats.level?.icon }
@@ -429,7 +429,10 @@ const DashboardPage = () => {
 
   // Use dashboard stats for progress calculation (total for the year, not just current page)
   const progress = dashboardStats && dashboardStats.totalGoals > 0
-    ? Math.round((dashboardStats.completedGoals / dashboardStats.totalGoals) * 100)
+    ? Math.min(
+      Math.round((dashboardStats.completedGoals / dashboardStats.totalGoals) * 100),
+      100
+    )
     : 0
 
   const isScheduledToday = (habit) => {

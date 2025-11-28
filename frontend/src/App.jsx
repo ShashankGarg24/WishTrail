@@ -86,9 +86,7 @@ function App() {
             <Route path="/feed" element={<Suspense fallback={null}><FeedPage /></Suspense>} />
             <Route path="/discover" element={<Suspense fallback={null}><DiscoverPage /></Suspense>} />
             <Route path="/notifications" element={<Suspense fallback={null}><NotificationsPage /></Suspense>} />
-            {/* <Route path="/profile/:userId" element={<Suspense fallback={null}><ProfilePage /></Suspense>} /> */}
             <Route path="/profile/:username" element={<Suspense fallback={null}><ProfilePage /></Suspense>} />
-            <Route path="/profile" element={<Suspense fallback={null}><ProfilePage /></Suspense>} />
             <Route path="/inspiration" element={<Suspense fallback={null}><InspirationPage /></Suspense>} />
             <Route path="/settings" element={<Suspense fallback={null}><SettingsPage /></Suspense>} />
             {isFeatureEnabled('leaderboard') && <Route path="/leaderboard" element={<Suspense fallback={null}><LeaderboardPage /></Suspense>} />}
