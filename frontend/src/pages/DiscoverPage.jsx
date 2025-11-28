@@ -82,7 +82,7 @@ const DiscoverPage = () => {
   }, [openUserMenuId]);
 
   useEffect(() => {
-    try { if (typeof window !== 'undefined' && window.ReactNativeWebView) setInNativeApp(true) } catch {}
+    try { if (typeof window !== 'undefined' && window.ReactNativeWebView) setInNativeApp(true) } catch { }
   }, [])
 
   // Deep link: open via ?goalId=
@@ -93,18 +93,18 @@ const DiscoverPage = () => {
       if (gid) {
         openGoalModal(gid)
       }
-    } catch {}
+    } catch { }
   }, [location.search])
 
   useEffect(() => {
     if (!isAuthenticated) return
     fetchInitial()
     if (!interestsCatalog || interestsCatalog.length === 0) {
-      loadInterests().catch(() => {})
+      loadInterests().catch(() => { })
     }
   }, [isAuthenticated])
 
-    // Trigger fresh fetch whenever tab changes
+  // Trigger fresh fetch whenever tab changes
   useEffect(() => {
     if (!isAuthenticated) return;
     fetchInitial();
@@ -119,7 +119,7 @@ const DiscoverPage = () => {
 
   const handleTabChange = (tab) => {
     setSearchParams({ tab });
-    setActiveTab(tab); 
+    setActiveTab(tab);
   };
 
   useEffect(() => {
@@ -164,38 +164,38 @@ const DiscoverPage = () => {
           setCommunities(data);
           if (searchTerm.trim()) {
             const q = searchTerm.trim().toLowerCase();
-            setCommunityResults(data.filter(c => (c.name||'').toLowerCase().includes(q)));
+            setCommunityResults(data.filter(c => (c.name || '').toLowerCase().includes(q)));
           } else {
             setCommunityResults(data);
           }
         } catch (_) {
           setCommunities([]); setCommunityResults([]);
         }
-      } else 
-      // Goals subtab: either refresh search or fetch trending list
-      if (searchTerm.trim() || selectedInterest) {
-        try {
-          setLoadingGoals(true);
-          await handleSearch(searchTerm, selectedInterest);
-        } finally {
-          setLoadingGoals(false);
+      } else
+        // Goals subtab: either refresh search or fetch trending list
+        if (searchTerm.trim() || selectedInterest) {
+          try {
+            setLoadingGoals(true);
+            await handleSearch(searchTerm, selectedInterest);
+          } finally {
+            setLoadingGoals(false);
+          }
+        } else {
+          try {
+            setLoadingGoals(true);
+            setTrendingPage(1);
+            setTrendingHasMore(true);
+            const { goals, pagination } = await getTrendingGoals({ strategy: 'global', page: 1, limit: 18 });
+            setTrending(goals || []);
+            const totalPages = pagination?.pages || 1;
+            setTrendingHasMore(1 < totalPages);
+          } catch (_) {
+            setTrending([]);
+            setTrendingHasMore(false);
+          } finally {
+            setLoadingGoals(false);
+          }
         }
-      } else {
-        try {
-          setLoadingGoals(true);
-          setTrendingPage(1);
-          setTrendingHasMore(true);
-          const { goals, pagination } = await getTrendingGoals({ strategy: 'global', page: 1, limit: 18 });
-          setTrending(goals || []);
-          const totalPages = pagination?.pages || 1;
-          setTrendingHasMore(1 < totalPages);
-        } catch (_) {
-          setTrending([]);
-          setTrendingHasMore(false);
-        } finally {
-          setLoadingGoals(false);
-        }
-      }
     } catch (_) {
       setUsers([]); setTrending([])
       setDiscoverHasMore(false)
@@ -217,7 +217,7 @@ const DiscoverPage = () => {
     try {
       const params = new URLSearchParams(location.search)
       if (params.get('goalId')) navigate(-1)
-    } catch {}
+    } catch { }
   }
 
   // Lock body scroll when modal open
@@ -229,7 +229,7 @@ const DiscoverPage = () => {
     return undefined
   }, [goalModalOpen])
 
-    
+
   const mergeUniqueById = (prev, next) => {
     const seen = new Set((prev || []).map((i) => i?._id).filter(Boolean));
     const merged = [...(prev || [])];
@@ -247,10 +247,10 @@ const DiscoverPage = () => {
     try {
       await followUser(userId);
       // Update local state
-      setUsers(users.map(u => 
+      setUsers(users.map(u =>
         u._id === userId ? { ...u, isFollowing: true } : u
       ));
-      setSearchResults(searchResults.map(u => 
+      setSearchResults(searchResults.map(u =>
         u._id === userId ? { ...u, isFollowing: true } : u
       ));
     } catch (error) {
@@ -262,10 +262,10 @@ const DiscoverPage = () => {
     try {
       await unfollowUser(userId);
       // Update local state
-      setUsers(users.map(u => 
+      setUsers(users.map(u =>
         u._id === userId ? { ...u, isFollowing: false } : u
       ));
-      setSearchResults(searchResults.map(u => 
+      setSearchResults(searchResults.map(u =>
         u._id === userId ? { ...u, isFollowing: false } : u
       ));
     } catch (error) {
@@ -414,7 +414,7 @@ const DiscoverPage = () => {
         const data = resp?.data?.data || [];
         setCommunities(data);
         const q = t.toLowerCase();
-        setCommunityResults(q ? data.filter(c => (c.name||'').toLowerCase().includes(q)) : data);
+        setCommunityResults(q ? data.filter(c => (c.name || '').toLowerCase().includes(q)) : data);
       }
     } catch (error) {
       console.error('Error searching:', error);
@@ -461,8 +461,8 @@ const DiscoverPage = () => {
       else if (activeTab === "goals") handleTabChange("users")
     },
     trackMouse: false
-  })  
-      
+  })
+
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50 dark:from-slate-900 dark:via-gray-900 dark:to-zinc-900">
@@ -490,431 +490,413 @@ const DiscoverPage = () => {
   }
 
   return (
-    <div 
-    {...handleSwipe}
-    className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-slate-900 dark:via-gray-900 dark:to-zinc-900">
+    <div
+      {...handleSwipe}
+      className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-slate-900 dark:via-gray-900 dark:to-zinc-900">
       <div className="max-w-7xl mx-auto px-4 py-8">
         {!inNativeApp && (
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
-            <Users className="h-6 w-6 mr-2 text-blue-500" />
-            Discover
-          </h2>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => fetchInitial()}
-              aria-label="Refresh"
-              className={`h-9 w-9 inline-flex items-center justify-center rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors ${loading ? 'opacity-80' : ''}`}
-              disabled={loading}
-            >
-              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            </button>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
+              <Users className="h-6 w-6 mr-2 text-blue-500" />
+              Discover
+            </h2>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => fetchInitial()}
+                aria-label="Refresh"
+                className={`h-9 w-9 inline-flex items-center justify-center rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors ${loading ? 'opacity-80' : ''}`}
+                disabled={loading}
+              >
+                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              </button>
+            </div>
           </div>
-        </div>
         )}
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }} className="relative max-w-3xl mx-auto mb-8">
           <div className="relative">
             <input type="text" placeholder={activeTab === 'users' ? 'Search users by name or username...' : (activeTab === 'goals' ? 'Search goals by title...' : 'Search communities by name...')}
-             value={searchTerm} 
-             onChange={(e) => setSearchTerm(e.target.value)} 
-             className="w-full pl-4 pr-36 py-4 bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg border border-gray-200 dark:border-gray-700/50 rounded-2xl text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-lg" />
-            {/* <div role="tablist" aria-label="Discover mode" className="flex absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700/50 rounded-xl p-1 shadow-sm">
-              <button role="tab" 
-              aria-selected={activeTab === 'users'} 
-              className={`px-2.5 py-1.5 rounded-lg text-xs font-medium ${activeTab === 'users' ? 'bg-blue-500 text-white' : 'text-gray-700 dark:text-gray-300'}`} 
-              onClick={() => { handleTabChange('users'); setTrending([]);}}>Users</button>
-              <button 
-              role="tab" 
-              aria-selected={activeTab === 'goals'} 
-              className={`ml-1 px-2.5 py-1.5 rounded-lg text-xs font-medium ${activeTab === 'goals' ? 'bg-blue-500 text-white' : 'text-gray-700 dark:text-gray-300'}`} 
-              onClick={() => { handleTabChange('goals'); setUsers([]);}}>Goals</button>
-              {
-                isFeatureEnabled('community') && <button 
-                role="tab" 
-                aria-selected={activeTab === 'communities'} 
-                className={`ml-1 px-2.5 py-1.5 rounded-lg text-xs font-medium ${activeTab === 'communities' ? 'bg-blue-500 text-white' : 'text-gray-700 dark:text-gray-300'}`} 
-                onClick={() => { handleTabChange('communities'); setUsers([]); setTrending([]);}}>Communities</button>
-              }
-            </div> */}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-4 pr-36 py-4 bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg border border-gray-200 dark:border-gray-700/50 rounded-2xl text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-lg" />
           </div>
-            <div className="flex justify-center mt-4">
-              <div className="relative flex w-full max-w-sm border-b border-gray-300 dark:border-gray-700">
-                {["users", "goals", ...(isFeatureEnabled('community') ? ["communities"] : [])].map((tab) => (
-                  <button
-                    key={tab}
-                    onClick={() => handleTabChange(tab)}
-                    className={`
+          <div className="flex justify-center mt-4">
+            <div className="relative flex w-full max-w-sm border-b border-gray-300 dark:border-gray-700">
+              {["users", "goals", ...(isFeatureEnabled('community') ? ["communities"] : [])].map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => handleTabChange(tab)}
+                  className={`
                       flex-1 py-2 text-center text-sm font-medium capitalize
                       transition-colors duration-200
-                      ${activeTab === tab 
-                        ? "text-blue-600 dark:text-blue-400" 
-                        : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
-                      }
+                      ${activeTab === tab
+                      ? "text-blue-600 dark:text-blue-400"
+                      : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                    }
                     `}
-                  >
-                    {tab}
-                  </button>
-                ))}
+                >
+                  {tab}
+                </button>
+              ))}
 
-                {/* Sliding Underline */}
-                <motion.div
-                  className="absolute bottom-0 h-0.5 bg-blue-600 dark:bg-blue-400"
-                  layoutId="discoverTabUnderline"
-                  initial={false}
-                  animate={{
-                    left:
-                      activeTab === "users"
-                        ? "0%"
-                        : activeTab === "goals"
+              {/* Sliding Underline */}
+              <motion.div
+                className="absolute bottom-0 h-0.5 bg-blue-600 dark:bg-blue-400"
+                layoutId="discoverTabUnderline"
+                initial={false}
+                animate={{
+                  left:
+                    activeTab === "users"
+                      ? "0%"
+                      : activeTab === "goals"
                         ? "33%"
                         : "66%",
-                    width:
-                      isFeatureEnabled("community")
-                        ? "33%"
-                        : "50%"
-                  }}
-                  transition={{
-                    type: "spring",
-                    stiffness: 300,
-                    damping: 30
-                  }}
-                />
-              </div>
+                  width:
+                    isFeatureEnabled("community")
+                      ? "33%"
+                      : "50%"
+                }}
+                transition={{
+                  type: "spring",
+                  stiffness: 300,
+                  damping: 30
+                }}
+              />
             </div>
+          </div>
           <div className="mt-3">
-              <div className="relative">
-                <div className="flex gap-2 flex-nowrap overflow-x-auto no-scrollbar pr-16 items-center">
-                  {(() => {
-                    const items = (interestsCatalog && interestsCatalog.length > 0)
-                      ? interestsCatalog.map(x => x.interest)
-                      : ['fitness','health','travel','education','career','finance','hobbies','relationships','personal_growth','creativity','technology','business','lifestyle','spirituality','sports','music','art','reading','cooking','gaming','nature','volunteering'];
-                    const unique = Array.from(new Set([
-                      selectedInterest || null,
-                      ...items
-                    ].filter(Boolean)));
-                    return unique.map((i) => {
-                      const active = selectedInterest === i;
-                      return (
-                        <button
-                          key={i}
-                          onClick={() => setSelectedInterest(active ? '' : i)}
-                          className={`px-3 py-1.5 rounded-full text-xs font-medium border shrink-0 transition-colors ${active ? 'bg-blue-500 text-white border-blue-500' : 'bg-white/70 dark:bg-gray-800/50 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700/50'}`}
-                          aria-pressed={active}
-                          title={i.replace(/_/g,' ')}
-                        >
-                          {i.replace(/_/g,' ')}
-                        </button>
-                      );
-                    });
-                  })()}
-                  
-                </div>
-                <div className="pointer-events-none absolute right-12 top-0 h-full w-8 bg-gradient-to-l from-white/90 dark:from-gray-800/90 to-transparent rounded-r-2xl" />
-                <button
-                  onClick={() => setInterestsExpanded(prev => !prev)}
-                  className="absolute right-0 top-0 px-3 py-1.5 rounded-full text-xs font-medium border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-800/70 text-gray-600 dark:text-gray-300 opacity-80 hover:opacity-100 hover:bg-gray-200 dark:hover:bg-gray-700 inline-flex items-center gap-1"
-                  aria-expanded={interestsExpanded}
-                >
-                  <ChevronsDown className="h-4 w-4 opacity-90" />
-                  {interestsExpanded ? 'Collapse' : 'Expand'}
-                </button>
+            <div className="relative">
+              <div className="flex gap-2 flex-nowrap overflow-x-auto no-scrollbar pr-16 items-center">
+                {(() => {
+                  const items = (interestsCatalog && interestsCatalog.length > 0)
+                    ? interestsCatalog.map(x => x.interest)
+                    : ['fitness', 'health', 'travel', 'education', 'career', 'finance', 'hobbies', 'relationships', 'personal_growth', 'creativity', 'technology', 'business', 'lifestyle', 'spirituality', 'sports', 'music', 'art', 'reading', 'cooking', 'gaming', 'nature', 'volunteering'];
+                  const unique = Array.from(new Set([
+                    selectedInterest || null,
+                    ...items
+                  ].filter(Boolean)));
+                  return unique.map((i) => {
+                    const active = selectedInterest === i;
+                    return (
+                      <button
+                        key={i}
+                        onClick={() => setSelectedInterest(active ? '' : i)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium border shrink-0 transition-colors ${active ? 'bg-blue-500 text-white border-blue-500' : 'bg-white/70 dark:bg-gray-800/50 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700/50'}`}
+                        aria-pressed={active}
+                        title={i.replace(/_/g, ' ')}
+                      >
+                        {i.replace(/_/g, ' ')}
+                      </button>
+                    );
+                  });
+                })()}
+
+              </div>
+              <div className="pointer-events-none absolute right-12 top-0 h-full w-8 bg-gradient-to-l from-white/90 dark:from-gray-800/90 to-transparent rounded-r-2xl" />
+              <button
+                onClick={() => setInterestsExpanded(prev => !prev)}
+                className="absolute right-0 top-0 px-3 py-1.5 rounded-full text-xs font-medium border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-800/70 text-gray-600 dark:text-gray-300 opacity-80 hover:opacity-100 hover:bg-gray-200 dark:hover:bg-gray-700 inline-flex items-center gap-1"
+                aria-expanded={interestsExpanded}
+              >
+                <ChevronsDown className="h-4 w-4 opacity-90" />
+                {interestsExpanded ? 'Collapse' : 'Expand'}
+              </button>
+            </div>
+          </div>
+          {interestsExpanded && (
+            <div className="mt-3 bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl border border-gray-200 dark:border-gray-700/50 p-3">
+              <div className="max-h-72 overflow-auto pr-1 grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {(() => {
+                  const list = (interestsCatalog && interestsCatalog.length > 0)
+                    ? interestsCatalog.map(x => ({ interest: x.interest }))
+                    : ['fitness', 'health', 'travel', 'education', 'career', 'finance', 'hobbies', 'relationships', 'personal_growth', 'creativity', 'technology', 'business', 'lifestyle', 'spirituality', 'sports', 'music', 'art', 'reading', 'cooking', 'gaming', 'nature', 'volunteering'].map(i => ({ interest: i }));
+                  return list.map((x) => {
+                    const i = x.interest;
+                    const label = i.replace(/_/g, ' ');
+                    const active = selectedInterest === i;
+                    return (
+                      <button
+                        key={i}
+                        className={`w-full text-left px-3 py-2 rounded-md flex items-center justify-between ${active ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-200' : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200'}`}
+                        onClick={() => { setSelectedInterest(active ? '' : i); }}
+                      >
+                        <span className="truncate">{label}</span>
+                      </button>
+                    );
+                  });
+                })()}
               </div>
             </div>
-            {interestsExpanded && (
-              <div className="mt-3 bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl border border-gray-200 dark:border-gray-700/50 p-3">
-                <div className="max-h-72 overflow-auto pr-1 grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {(() => {
-                    const list = (interestsCatalog && interestsCatalog.length > 0)
-                      ? interestsCatalog.map(x => ({ interest: x.interest }))
-                      : ['fitness','health','travel','education','career','finance','hobbies','relationships','personal_growth','creativity','technology','business','lifestyle','spirituality','sports','music','art','reading','cooking','gaming','nature','volunteering'].map(i => ({ interest: i }));
-                    return list.map((x) => {
-                      const i = x.interest;
-                      const label = i.replace(/_/g,' ');
-                      const active = selectedInterest === i;
-                      return (
-                        <button
-                          key={i}
-                          className={`w-full text-left px-3 py-2 rounded-md flex items-center justify-between ${active ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-200' : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200'}`}
-                          onClick={() => { setSelectedInterest(active ? '' : i); }}
-                        >
-                          <span className="truncate">{label}</span>
-                        </button>
-                      );
-                    });
-                  })()}
-                </div>
-              </div>
-            )}
+          )}
         </motion.div>
 
         {(loading || isSearching || loadingGoals) ? (
-                  <SkeletonList count={9} grid avatar lines={3} />
-                ) : activeTab === 'users' ? (
-                  displayUsers.length > 0 ? (
-                    <>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {displayUsers.filter(u => u && u._id).map((userItem, index) => (
-                          <motion.div
-                            key={`${userItem._id}-${index}`}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.5, delay: 0.1 * index }}
-                            className="bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 hover:border-gray-300 dark:hover:border-gray-600/50 transition-all duration-200 shadow-lg hover:shadow-xl relative"
-                          >
-                            <div className="flex items-center space-x-4 mb-4">
-                              <img
-                                src={userItem.avatar || '/api/placeholder/64/64'}
-                                alt={userItem.name}
-                                className="w-16 h-16 rounded-full border-2 border-gray-200 dark:border-gray-600 cursor-pointer hover:border-blue-500 transition-colors"
-                                onClick={() => userItem.username && navigate(`/profile/@${userItem.username}?tab=overview`)}
-                              />
-                              <div className="flex-1">
-                                <h3 
-                                  className="font-semibold text-gray-900 dark:text-white text-lg cursor-pointer hover:text-blue-500 transition-colors"
-                                  onClick={() => userItem.username && navigate(`/profile/@${userItem.username}?tab=overview`)}
-                                >
-                                  {userItem.name}
-                                </h3>
-                                <p className="text-gray-500 dark:text-gray-400 text-sm">
-                                  @{userItem.username || userItem.email?.split('@')[0]}
-                                </p>
-                              </div>
-                            </div>
-
-                            <div className="space-y-2 mb-4">
-                              <div className="flex items-center text-gray-600 dark:text-gray-300 text-sm">
-                                <Target className="h-4 w-4 mr-2 text-blue-500" />
-                                <span>{userItem.totalGoals || 0} goals</span>
-                              </div>
-                              <div className="flex items-center text-gray-600 dark:text-gray-300 text-sm">
-                                <TrendingUp className="h-4 w-4 mr-2 text-green-500" />
-                                <span>{userItem.completedGoals || 0} completed</span>
-                              </div>
-                              <div className="flex items-center text-gray-600 dark:text-gray-300 text-sm">
-                                <Flame className="h-4 w-4 mr-2 text-orange-500" />
-                                <span>{userItem.currentStreak || 0} day streak</span>
-                              </div>
-                            </div>
-
-                            {userItem.recentGoals && userItem.recentGoals.length > 0 && (
-                              <div className="mb-4">
-                                <p className="text-gray-500 dark:text-gray-400 text-xs mb-2">Recent Goals:</p>
-                                <div className="space-y-1">
-                                  {userItem.recentGoals.slice(0, 2).map((goal, idx) => (
-                                    <div key={idx} className="flex items-center space-x-2">
-                                      <div className={`w-2 h-2 rounded-full ${getCategoryColor(goal.category)}`}></div>
-                                      <span className="text-gray-600 dark:text-gray-300 text-sm truncate">{goal.title}</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-
-                            <div className="flex space-x-2">
-                              {userItem._id !== user?._id && (
-                                <>
-                                   {userItem.isFollowing ? (
-                                    <button
-                                      onClick={() => handleUnfollow(userItem._id)}
-                                      className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-700 dark:text-white rounded-xl transition-colors duration-200 text-sm font-medium flex items-center justify-center space-x-1"
-                                    >
-                                      <UserCheck className="h-4 w-4" />
-                                      <span>Following</span>
-                                    </button>
-                                  ) : userItem.isRequested ? (
-                                    <button
-                                      onClick={async () => { await cancelFollowRequest(userItem._id); setUsers(prev => prev.map(u => u._id === userItem._id ? { ...u, isRequested: false } : u)); }}
-                                      className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-white rounded-xl transition-colors duration-200 text-sm font-medium flex items-center justify-center space-x-1"
-                                    >
-                                      <UserPlus className="h-4 w-4" />
-                                      <span>Requested</span>
-                                    </button>
-                                  ) : (
-                                    <button
-                                      onClick={() => handleFollow(userItem._id)}
-                                      className="flex-1 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-xl transition-colors duration-200 text-sm font-medium flex items-center justify-center space-x-1"
-                                    >
-                                      <UserPlus className="h-4 w-4" />
-                                      <span>Follow</span>
-                                    </button>
-                                  )}
-                                </>
-                              )}
-                            </div>
-                            {/* 3-dots for user card */}
-                            <div className="absolute right-2 top-2 z-30">
-                              <div className="relative">
-                                <button
-                                  data-user-menu-btn="true"
-                                  onClick={(e) => { e.stopPropagation(); setOpenUserMenuId(prev => prev === userItem._id ? null : userItem._id); }}
-                                  className="px-2 py-1 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
-                                >⋯</button>
-                                {openUserMenuId === userItem._id && (
-                                  <div
-                                    data-user-menu="true"
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-30"
-                                  >
-                                    <button
-                                      className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
-                                      onClick={() => { setReportTarget({ type: 'user', id: userItem._id, userId: userItem._id, username: userItem.username || '', label: userItem.username ? `@${userItem.username}` : 'user' }); setReportOpen(true); setOpenUserMenuId(null); }}
-                                    >Report</button>
-                                    <button
-                                      className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
-                                      onClick={() => { setBlockUserId(userItem._id); setBlockUsername(userItem.username || ''); setBlockOpen(true); setOpenUserMenuId(null); }}
-                                    >Block</button>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </motion.div>
-                        ))}
-                      </div>
-                      <div ref={discoverSentinelRef} className="h-10"></div>
-                      {loadingMoreDiscover && (
-                        <div className="flex items-center justify-center py-4">
-                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
-                        </div>
-                      )}
-                      {!discoverHasMore && users.length > 0 && (
-                        <div className="text-center text-xs text-gray-400 py-4">No more users</div>
-                      )}
-                    </>
-                  ) : (
-                    <div className="text-center py-12">
-                      <Users className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-600 dark:text-gray-400 text-lg">
-                        {searchTerm.trim() || selectedInterest ? 'No users found matching your search.' : 'No users to discover yet.'}
-                      </p>
-                    </div>
-                  )
-                ) : activeTab === 'goals' ? (
-                  (searchTerm.trim() || selectedInterest)
-                  ? (goalResults && goalResults.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {goalResults.map((g, idx) => (
-                        <motion.div
-                          key={`${g._id || idx}`}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ duration: 0.5, delay: 0.1 * idx }}
-                          className="bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-5 border border-gray-200 dark:border-gray-700/50 hover:border-gray-300 dark:hover:border-gray-600/50 transition-all duration-200 shadow-lg hover:shadow-xl"
+          <SkeletonList count={9} grid avatar lines={3} />
+        ) : activeTab === 'users' ? (
+          displayUsers.length > 0 ? (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {displayUsers.filter(u => u && u._id).map((userItem, index) => (
+                  <motion.div
+                    key={`${userItem._id}-${index}`}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.1 * index }}
+                    className="bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 hover:border-gray-300 dark:hover:border-gray-600/50 transition-all duration-200 shadow-lg hover:shadow-xl relative"
+                  >
+                    <div className="flex items-center space-x-4 mb-4">
+                      <img
+                        src={userItem.avatar || '/api/placeholder/64/64'}
+                        alt={userItem.name}
+                        className="w-16 h-16 rounded-full border-2 border-gray-200 dark:border-gray-600 cursor-pointer hover:border-blue-500 transition-colors"
+                        onClick={() => userItem.username && navigate(`/profile/@${userItem.username}?tab=overview`)}
+                      />
+                      <div className="flex-1">
+                        <h3
+                          className="font-semibold text-gray-900 dark:text-white text-lg cursor-pointer hover:text-blue-500 transition-colors"
+                          onClick={() => userItem.username && navigate(`/profile/@${userItem.username}?tab=overview`)}
                         >
-                          <div className="flex items-center gap-3 mb-3">
-                            <img 
-                            src={g.user?.avatar || '/api/placeholder/48/48'} 
-                            alt={g.user?.name || 'User'}
-                            className="w-10 h-10 rounded-full" />
-                            <div className="min-w-0">
-                              <div className="text-sm text-gray-700 dark:text-gray-300 truncate">{g.user?.name || 'User'}</div>
-                              <div className="text-xs text-gray-400">{g.completedAt ? new Date(g.completedAt).toLocaleDateString() : ''}</div>
+                          {userItem.name}
+                        </h3>
+                        <p className="text-gray-500 dark:text-gray-400 text-sm">
+                          @{userItem.username || userItem.email?.split('@')[0]}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 mb-4">
+                      <div className="flex items-center text-gray-600 dark:text-gray-300 text-sm">
+                        <Target className="h-4 w-4 mr-2 text-blue-500" />
+                        <span>{userItem.totalGoals || 0} goals</span>
+                      </div>
+                      <div className="flex items-center text-gray-600 dark:text-gray-300 text-sm">
+                        <TrendingUp className="h-4 w-4 mr-2 text-green-500" />
+                        <span>{userItem.completedGoals || 0} completed</span>
+                      </div>
+                      <div className="flex items-center text-gray-600 dark:text-gray-300 text-sm">
+                        <Flame className="h-4 w-4 mr-2 text-orange-500" />
+                        <span>{userItem.currentStreak || 0} day streak</span>
+                      </div>
+                    </div>
+
+                    {userItem.recentGoals && userItem.recentGoals.length > 0 && (
+                      <div className="mb-4">
+                        <p className="text-gray-500 dark:text-gray-400 text-xs mb-2">Recent Goals:</p>
+                        <div className="space-y-1">
+                          {userItem.recentGoals.slice(0, 2).map((goal, idx) => (
+                            <div key={idx} className="flex items-center space-x-2">
+                              <div className={`w-2 h-2 rounded-full ${getCategoryColor(goal.category)}`}></div>
+                              <span className="text-gray-600 dark:text-gray-300 text-sm truncate">{goal.title}</span>
                             </div>
-                          </div>
-                          <h3 className="font-semibold text-gray-900 dark:text-white line-clamp-2 break-anywhere mb-2">{g.title}</h3>
-                          <div className="flex items-center justify-between">
-                            <span className="inline-block px-2 py-1 rounded-full text-xs font-medium text-white bg-blue-500">{g.category}</span>
-                            <button className="text-sm text-blue-600 hover:underline" onClick={() => g._id && openGoalModal(g._id)}>View</button>
-                          </div>
-                        </motion.div>
-                      ))}
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex space-x-2">
+                      {userItem._id !== user?._id && (
+                        <>
+                          {userItem.isFollowing ? (
+                            <button
+                              onClick={() => handleUnfollow(userItem._id)}
+                              className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-700 dark:text-white rounded-xl transition-colors duration-200 text-sm font-medium flex items-center justify-center space-x-1"
+                            >
+                              <UserCheck className="h-4 w-4" />
+                              <span>Following</span>
+                            </button>
+                          ) : userItem.isRequested ? (
+                            <button
+                              onClick={async () => { await cancelFollowRequest(userItem._id); setUsers(prev => prev.map(u => u._id === userItem._id ? { ...u, isRequested: false } : u)); }}
+                              className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-white rounded-xl transition-colors duration-200 text-sm font-medium flex items-center justify-center space-x-1"
+                            >
+                              <UserPlus className="h-4 w-4" />
+                              <span>Requested</span>
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleFollow(userItem._id)}
+                              className="flex-1 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-xl transition-colors duration-200 text-sm font-medium flex items-center justify-center space-x-1"
+                            >
+                              <UserPlus className="h-4 w-4" />
+                              <span>Follow</span>
+                            </button>
+                          )}
+                        </>
+                      )}
                     </div>
-                  ) : (
-                    <div className="text-center py-12">
-                      <Target className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-600 dark:text-gray-400 text-lg">No goals found.</p>
-                    </div>
-                  ))
-                  : (
-                    trending && trending.length > 0 ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {trending.map((g, idx) => (
-                          <motion.div
-                            key={`${g._id || idx}`}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.5, delay: 0.1 * idx }}
-                            className="bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-5 border border-gray-200 dark:border-gray-700/50 hover:border-gray-300 dark:hover:border-gray-600/50 transition-all duration-200 shadow-lg hover:shadow-xl"
+                    {/* 3-dots for user card */}
+                    <div className="absolute right-2 top-2 z-30">
+                      <div className="relative">
+                        <button
+                          data-user-menu-btn="true"
+                          onClick={(e) => { e.stopPropagation(); setOpenUserMenuId(prev => prev === userItem._id ? null : userItem._id); }}
+                          className="px-2 py-1 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
+                        >⋯</button>
+                        {openUserMenuId === userItem._id && (
+                          <div
+                            data-user-menu="true"
+                            onClick={(e) => e.stopPropagation()}
+                            className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-30"
                           >
-                            <div className="flex items-center gap-3 mb-3">
-                              <img 
-                              src={g.user?.avatar || '/api/placeholder/48/48'} 
-                              alt={g.user?.name || 'User'}
-                              className="w-10 h-10 rounded-full" />
-                              <div className="min-w-0">
-                                <div className="text-sm text-gray-700 dark:text-gray-300 truncate">{g.user?.name || 'User'}</div>
-                                <div className="text-xs text-gray-400">{g.completedAt ? new Date(g.completedAt).toLocaleDateString() : ''}</div>
-                              </div>
-                            </div>
-                            <h3 className="font-semibold text-gray-900 dark:text-white line-clamp-2 break-anywhere mb-2">{g.title}</h3>
-                            <div className="flex items-center justify-between">
-                              <span className="inline-block px-2 py-1 rounded-full text-xs font-medium text-white bg-blue-500">{g.category}</span>
-                              <button className="text-sm text-blue-600 hover:underline" onClick={() => g._id && openGoalModal(g._id)}>View</button>
-                            </div>
-                          </motion.div>
-                        ))}
-                        <div ref={discoverSentinelRef} className="col-span-full h-10"></div>
-                        {loadingMoreDiscover && (
-                          <div className="col-span-full flex items-center justify-center py-4">
-                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
+                            <button
+                              className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
+                              onClick={() => { setReportTarget({ type: 'user', id: userItem._id, userId: userItem._id, username: userItem.username || '', label: userItem.username ? `@${userItem.username}` : 'user' }); setReportOpen(true); setOpenUserMenuId(null); }}
+                            >Report</button>
+                            <button
+                              className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
+                              onClick={() => { setBlockUserId(userItem._id); setBlockUsername(userItem.username || ''); setBlockOpen(true); setOpenUserMenuId(null); }}
+                            >Block</button>
                           </div>
                         )}
                       </div>
-                    ) : (
-                      <div className="text-center py-12">
-                        <Target className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                        <p className="text-gray-600 dark:text-gray-400 text-lg">No trending goals yet.</p>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+              <div ref={discoverSentinelRef} className="h-10"></div>
+              {loadingMoreDiscover && (
+                <div className="flex items-center justify-center py-4">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
+                </div>
+              )}
+              {!discoverHasMore && users.length > 0 && (
+                <div className="text-center text-xs text-gray-400 py-4">No more users</div>
+              )}
+            </>
+          ) : (
+            <div className="text-center py-12">
+              <Users className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600 dark:text-gray-400 text-lg">
+                {searchTerm.trim() || selectedInterest ? 'No users found matching your search.' : 'No users to discover yet.'}
+              </p>
+            </div>
+          )
+        ) : activeTab === 'goals' ? (
+          (searchTerm.trim() || selectedInterest)
+            ? (goalResults && goalResults.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {goalResults.map((g, idx) => (
+                  <motion.div
+                    key={`${g._id || idx}`}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.1 * idx }}
+                    className="bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-5 border border-gray-200 dark:border-gray-700/50 hover:border-gray-300 dark:hover:border-gray-600/50 transition-all duration-200 shadow-lg hover:shadow-xl"
+                  >
+                    <div className="flex items-center gap-3 mb-3">
+                      <img
+                        src={g.user?.avatar || '/api/placeholder/48/48'}
+                        alt={g.user?.name || 'User'}
+                        className="w-10 h-10 rounded-full" />
+                      <div className="min-w-0">
+                        <div className="text-sm text-gray-700 dark:text-gray-300 truncate">{g.user?.name || 'User'}</div>
+                        <div className="text-xs text-gray-400">{g.completedAt ? new Date(g.completedAt).toLocaleDateString() : ''}</div>
                       </div>
-                    )
-                  )
-                ) : (
-                  communityResults && communityResults.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {communityResults.map((c, idx) => (
-                        <motion.div
-                          key={`${c._id || idx}`}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ duration: 0.5, delay: 0.05 * idx }}
-                          className="bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl border border-gray-200 dark:border-gray-700/50 hover:border-gray-300 dark:hover:border-gray-600/50 transition-all duration-200 shadow-lg hover:shadow-xl overflow-hidden"
-                        >
-                          <div className="h-24 relative bg-gradient-to-r from-blue-500/20 to-purple-500/20">
-                            {c.bannerUrl && (
-                              <img src={c.bannerUrl} alt="Community banner" className="absolute inset-0 h-full w-full object-cover" />
-                            )}
-                          </div>
-                          <div className="p-5">
-                            <div className="flex items-center gap-3">
-                              {c.avatarUrl ? (
-                                <img src={c.avatarUrl} alt="Community avatar" className="h-10 w-10 rounded-full border object-cover" />
-                              ) : (
-                                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 text-white flex items-center justify-center text-sm font-semibold">
-                                  {c.name?.slice(0,2).toUpperCase()}
-                                </div>
-                              )}
-                              <div className="min-w-0">
-                                <div className="font-semibold truncate">{c.name}</div>
-                                <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{c.description || '—'}</div>
-                              </div>
-                            </div>
-                            <div className="mt-3 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-                              <span className="inline-flex items-center gap-1"><Users className="h-3.5 w-3.5" />{c.stats?.memberCount || 0} members</span>
-                              <span className="px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800">{c.visibility}</span>
-                            </div>
-                            <div className="mt-3 flex items-center gap-2">
-                              <button className="flex-1 px-3 py-2 rounded-lg bg-blue-600 text-white" onClick={() => navigate(`/communities/${c._id}`)}>View</button>
-                            </div>
-                          </div>
-                        </motion.div>
-                      ))}
                     </div>
-                  ) : (
-                    <div className="text-center py-12">
-                      <Users className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-600 dark:text-gray-400 text-lg">No communities found.</p>
+                    <h3 className="font-semibold text-gray-900 dark:text-white line-clamp-2 break-anywhere mb-2">{g.title}</h3>
+                    <div className="flex items-center justify-between">
+                      <span className="inline-block px-2 py-1 rounded-full text-xs font-medium text-white bg-blue-500">{g.category}</span>
+                      <button className="text-sm text-blue-600 hover:underline" onClick={() => g._id && openGoalModal(g._id)}>View</button>
                     </div>
-                  )
-                )
+                  </motion.div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <Target className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600 dark:text-gray-400 text-lg">No goals found.</p>
+              </div>
+            ))
+            : (
+              trending && trending.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {trending.map((g, idx) => (
+                    <motion.div
+                      key={`${g._id || idx}`}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.5, delay: 0.1 * idx }}
+                      className="bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-5 border border-gray-200 dark:border-gray-700/50 hover:border-gray-300 dark:hover:border-gray-600/50 transition-all duration-200 shadow-lg hover:shadow-xl"
+                    >
+                      <div className="flex items-center gap-3 mb-3">
+                        <img
+                          src={g.user?.avatar || '/api/placeholder/48/48'}
+                          alt={g.user?.name || 'User'}
+                          className="w-10 h-10 rounded-full" />
+                        <div className="min-w-0">
+                          <div className="text-sm text-gray-700 dark:text-gray-300 truncate">{g.user?.name || 'User'}</div>
+                          <div className="text-xs text-gray-400">{g.completedAt ? new Date(g.completedAt).toLocaleDateString() : ''}</div>
+                        </div>
+                      </div>
+                      <h3 className="font-semibold text-gray-900 dark:text-white line-clamp-2 break-anywhere mb-2">{g.title}</h3>
+                      <div className="flex items-center justify-between">
+                        <span className="inline-block px-2 py-1 rounded-full text-xs font-medium text-white bg-blue-500">{g.category}</span>
+                        <button className="text-sm text-blue-600 hover:underline" onClick={() => g._id && openGoalModal(g._id)}>View</button>
+                      </div>
+                    </motion.div>
+                  ))}
+                  <div ref={discoverSentinelRef} className="col-span-full h-10"></div>
+                  {loadingMoreDiscover && (
+                    <div className="col-span-full flex items-center justify-center py-4">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <Target className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600 dark:text-gray-400 text-lg">No trending goals yet.</p>
+                </div>
+              )
+            )
+        ) : (
+          communityResults && communityResults.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {communityResults.map((c, idx) => (
+                <motion.div
+                  key={`${c._id || idx}`}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.05 * idx }}
+                  className="bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl border border-gray-200 dark:border-gray-700/50 hover:border-gray-300 dark:hover:border-gray-600/50 transition-all duration-200 shadow-lg hover:shadow-xl overflow-hidden"
+                >
+                  <div className="h-24 relative bg-gradient-to-r from-blue-500/20 to-purple-500/20">
+                    {c.bannerUrl && (
+                      <img src={c.bannerUrl} alt="Community banner" className="absolute inset-0 h-full w-full object-cover" />
+                    )}
+                  </div>
+                  <div className="p-5">
+                    <div className="flex items-center gap-3">
+                      {c.avatarUrl ? (
+                        <img src={c.avatarUrl} alt="Community avatar" className="h-10 w-10 rounded-full border object-cover" />
+                      ) : (
+                        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 text-white flex items-center justify-center text-sm font-semibold">
+                          {c.name?.slice(0, 2).toUpperCase()}
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <div className="font-semibold truncate">{c.name}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{c.description || '—'}</div>
+                      </div>
+                    </div>
+                    <div className="mt-3 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                      <span className="inline-flex items-center gap-1"><Users className="h-3.5 w-3.5" />{c.stats?.memberCount || 0} members</span>
+                      <span className="px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800">{c.visibility}</span>
+                    </div>
+                    <div className="mt-3 flex items-center gap-2">
+                      <button className="flex-1 px-3 py-2 rounded-lg bg-blue-600 text-white" onClick={() => navigate(`/communities/${c._id}`)}>View</button>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <Users className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600 dark:text-gray-400 text-lg">No communities found.</p>
+            </div>
+          )
+        )
         }
         {/* Goal Post Modal */}
         {goalModalOpen && (
@@ -926,18 +908,18 @@ const DiscoverPage = () => {
           /></Suspense>
         )}
       </div>
-      
+
       {/* Report & Block Modals */}
       <Suspense fallback={null}><ReportModal
         isOpen={reportOpen}
         onClose={() => setReportOpen(false)}
         targetLabel={reportTarget.label}
-    onSubmit={async ({ reason, description }) => { 
-      await report({ targetType: reportTarget.type, targetId: reportTarget.id, reason, description }); 
-      if (reportTarget.userId) { setBlockUserId(reportTarget.userId); setBlockUsername(reportTarget.username || ''); setBlockOpen(true); }
-      setReportOpen(false);
-    }}
-    onReportAndBlock={reportTarget.type === 'user' ? async () => { if (reportTarget.id) { await blockUser(reportTarget.id); } } : undefined}
+        onSubmit={async ({ reason, description }) => {
+          await report({ targetType: reportTarget.type, targetId: reportTarget.id, reason, description });
+          if (reportTarget.userId) { setBlockUserId(reportTarget.userId); setBlockUsername(reportTarget.username || ''); setBlockOpen(true); }
+          setReportOpen(false);
+        }}
+        onReportAndBlock={reportTarget.type === 'user' ? async () => { if (reportTarget.id) { await blockUser(reportTarget.id); } } : undefined}
       /></Suspense>
       <Suspense fallback={null}><BlockModal
         isOpen={blockOpen}

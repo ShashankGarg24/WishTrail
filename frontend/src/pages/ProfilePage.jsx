@@ -690,45 +690,52 @@ const ProfilePage = () => {
           /* Full Profile Content */
           <>
             {/* Tabs */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-              className="flex justify-center mb-8"
-            >
-              <div className={(isOwnProfile
-                ? "bg-white dark:bg-gray-800"
-                : "bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg border border-gray-200 dark:border-gray-700/50") + " rounded-2xl p-2 shadow-lg flex overflow-x-auto whitespace-nowrap gap-1 no-scrollbar"}>
-                <button
-                  onClick={() => handleTabChange('overview')}
-                  className={`flex items-center space-x-2 px-6 py-3 rounded-xl transition-all duration-200 shrink-0 ${activeTab === 'overview'
-                    ? (isOwnProfile ? 'bg-primary-500 text-white shadow-lg' : 'bg-blue-500 text-white shadow-lg')
-                    : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
-                    }`}
-                >
-                  <User className="h-5 w-5" />
-                  <span className="font-medium">Overview</span>
-                </button>
-                <button
-                  onClick={() => handleTabChange('goals')}
-                  className={`flex items-center space-x-2 px-6 py-3 rounded-xl transition-all duration-200 shrink-0 ${activeTab === 'goals'
-                    ? (isOwnProfile ? 'bg-primary-500 text-white shadow-lg' : 'bg-blue-500 text-white shadow-lg')
-                    : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
-                    }`}
-                >
-                  <Target className="h-5 w-5" />
-                  <span className="font-medium">Goals</span>
-                </button>
-                {isFeatureEnabled('journal') && isOwnProfile && <button
-                  onClick={() => handleTabChange('journal')}
-                  className={`flex items-center space-x-2 px-6 py-3 rounded-xl transition-all duration-200 shrink-0 ${activeTab === 'journal'
-                    ? (isOwnProfile ? 'bg-primary-500 text-white shadow-lg' : 'bg-blue-500 text-white shadow-lg')
-                    : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
-                    }`}
-                >
-                  <BookOpen className="h-5 w-5" />
-                  <span className="font-medium">Journal</span>
-                </button>}
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }} className="relative max-w-3xl mx-auto mb-8">
+              <div className="flex justify-center mt-4">
+                <div className="relative flex w-full max-w-sm border-b border-gray-300 dark:border-gray-700">
+                  {["overview", "goals", ...(isFeatureEnabled('journal') && isOwnProfile ? ["journal"] : [])].map((tab) => (
+                    <button
+                      key={tab}
+                      onClick={() => handleTabChange(tab)}
+                      className={`
+                                  flex-1 py-2 text-center text-sm font-medium capitalize
+                                  transition-colors duration-200
+                                  ${activeTab === tab
+                          ? "text-blue-600 dark:text-blue-400"
+                          : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                        }
+                                `}
+                    >
+                      {tab}
+                    </button>
+                  ))}
+
+                  {/* Sliding Underline */}
+                  <motion.div
+                    className="absolute bottom-0 h-0.5 bg-blue-600 dark:bg-blue-400"
+                    layoutId="discoverTabUnderline"
+                    initial={false}
+                    animate={{
+                      left:
+                        activeTab === "overview"
+                          ? "0%"
+                          : activeTab === "goals"
+                            ? "33%"
+                            : activeTab === "journal"
+                              ? "66%"
+                              : "100%",
+                      width:
+                        "journal"
+                          ? "33%"
+                          : "50%"
+                    }}
+                    transition={{
+                      type: "spring",
+                      stiffness: 300,
+                      damping: 30
+                    }}
+                  />
+                </div>
               </div>
             </motion.div>
             {/* Tab Content */}
