@@ -18,7 +18,6 @@ const GoalDetailsModal = lazy(() => import('../components/GoalDetailsModal'));
 
 const ProfilePage = () => {
   const params = useParams();
-  const userIdParam = params.userId;
   const usernameParam = params.username;
   const navigate = useNavigate();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -66,10 +65,7 @@ const ProfilePage = () => {
     if (!currentUser) return false;
 
     let sanitizedUsername = usernameParam?.replace('@', '');
-    return (
-      currentUser._id === userIdParam ||
-      currentUser.username === sanitizedUsername
-    );
+    return currentUser.username === sanitizedUsername;
   })();
 
   const displayUser = isOwnProfile ? currentUser : profileUser;
@@ -107,7 +103,7 @@ const ProfilePage = () => {
     } else {
       fetchUserProfile();
     }
-  }, [isAuthenticated, userIdParam, usernameParam]);
+  }, [isAuthenticated, usernameParam]);
 
   // Outside click to close profile 3-dot menu
   useEffect(() => {
@@ -224,7 +220,7 @@ const ProfilePage = () => {
     setLoading(true);
     setError(null);
     try {
-      const idOrUsername = usernameParam || userIdParam;
+      const idOrUsername = usernameParam;
       const userResult = await getUser(idOrUsername);
       if (userResult.success) {
         setProfileUser(userResult.user);
