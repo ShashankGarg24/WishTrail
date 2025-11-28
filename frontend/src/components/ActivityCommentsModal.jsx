@@ -75,8 +75,8 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
       }
       setInput('')
       setReplyTo(null)
-      try { useApiStore.getState().invalidateGoalPostByActivity?.(activity._id) } catch {}
-    } catch (e) {}
+      try { useApiStore.getState().invalidateGoalPostByActivity?.(activity._id) } catch { }
+    } catch (e) { }
   }
 
   const handleKeyDown = (e) => {
@@ -87,16 +87,16 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
   }
 
   const handleUserClick = (userId) => {
-    navigate(`/profile/${userId}?tab=overview`);
+    navigate(`/profile/@${userId}?tab=overview`);
   };
 
   const toggleCommentLike = async (commentId) => {
     try {
       const res = await activitiesAPI.toggleCommentLike(activity._id, commentId)
       const { likeCount, isLiked } = res.data?.data || {}
-      setComments(prev => prev.map(c => c._id === commentId ? { ...c, likeCount, isLiked } : { ...c, replies: (c.replies||[]).map(r => r._id === commentId ? { ...r, likeCount, isLiked } : r) }))
-      try { useApiStore.getState().invalidateGoalPostByActivity?.(activity._id) } catch {}
-    } catch {}
+      setComments(prev => prev.map(c => c._id === commentId ? { ...c, likeCount, isLiked } : { ...c, replies: (c.replies || []).map(r => r._id === commentId ? { ...r, likeCount, isLiked } : r) }))
+      try { useApiStore.getState().invalidateGoalPostByActivity?.(activity._id) } catch { }
+    } catch { }
   }
 
   useEffect(() => {
@@ -123,7 +123,7 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
               return (
                 <div key={c._id} className="pb-1">
                   <div className="flex items-start gap-3">
-                    <img src={c.userId?.avatar} alt={c.userId?.name} className="w-8 h-8 rounded-full object-cover cursor-pointer" onClick={() => handleUserClick(c.userId?.username)}/>
+                    <img src={c.userId?.avatar} alt={c.userId?.name} className="w-8 h-8 rounded-full object-cover cursor-pointer" onClick={() => handleUserClick(c.userId?.username)} />
                     <div className="flex-1">
                       <div className="flex items-start justify-between">
                         <div className="text-xs text-gray-500">
@@ -163,7 +163,7 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
                       {(c.replies || []).map((r) => (
                         <div key={r._id}>
                           <div className="flex items-start gap-3">
-                            <img src={r.userId?.avatar} alt={r.userId?.name} className="w-7 h-7 rounded-full object-cover cursor-pointer" onClick={() => handleUserClick(r.userId?.username)}/>
+                            <img src={r.userId?.avatar} alt={r.userId?.name} className="w-7 h-7 rounded-full object-cover cursor-pointer" onClick={() => handleUserClick(r.userId?.username)} />
                             <div className="flex-1">
                               <div className="flex items-start justify-between">
                                 <div className="text-xs text-gray-500">
@@ -228,7 +228,7 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
               return (
                 <div key={c._id}>
                   <div className="flex items-start gap-3 ">
-                    <img src={c.userId?.avatar} alt={c.userId?.name} className="w-8 h-8 rounded-full object-cover cursor-pointer" onClick={() => handleUserClick(c.userId?.username)}/>
+                    <img src={c.userId?.avatar} alt={c.userId?.name} className="w-8 h-8 rounded-full object-cover cursor-pointer" onClick={() => handleUserClick(c.userId?.username)} />
                     <div className="flex-1">
                       <div className="flex items-start justify-between">
                         <div className="text-xs text-gray-500">
@@ -268,7 +268,7 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
                       {(c.replies || []).map((r) => (
                         <div key={r._id}>
                           <div className="flex items-start gap-3">
-                            <img src={r.userId?.avatar} alt={r.userId?.name} className="w-7 h-7 rounded-full object-cover cursor-pointer" onClick={() => handleUserClick(r.userId?.username)}/>
+                            <img src={r.userId?.avatar} alt={r.userId?.name} className="w-7 h-7 rounded-full object-cover cursor-pointer" onClick={() => handleUserClick(r.userId?.username)} />
                             <div className="flex-1">
                               <div className="flex items-start justify-between">
                                 <div className="text-xs text-gray-500">
@@ -357,7 +357,7 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
                 return (
                   <div key={c._id}>
                     <div className="flex items-start gap-3">
-                      <img src={c.userId?.avatar} alt={c.userId?.name} className="w-8 h-8 rounded-full object-cover cursor-pointer" onClick={() => handleUserClick(c.userId?.username)}/>
+                      <img src={c.userId?.avatar} alt={c.userId?.name} className="w-8 h-8 rounded-full object-cover cursor-pointer" onClick={() => handleUserClick(c.userId?.username)} />
                       <div className="flex-1">
                         <div className="flex items-start justify-between">
                           <div className="text-xs text-gray-500">
@@ -396,7 +396,7 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
                         {(c.replies || []).map((r) => (
                           <div key={r._id}>
                             <div className="flex items-start gap-3">
-                              <img src={r.userId?.avatar} alt={r.userId?.name} className="w-7 h-7 rounded-full object-cover cursor-pointer" onClick={() => handleUserClick(r.userId?.username)}/>
+                              <img src={r.userId?.avatar} alt={r.userId?.name} className="w-7 h-7 rounded-full object-cover cursor-pointer" onClick={() => handleUserClick(r.userId?.username)} />
                               <div className="flex-1">
                                 <div className="flex items-start justify-between">
                                   <div className="text-xs text-gray-500">

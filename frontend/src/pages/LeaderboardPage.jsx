@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { 
-  Trophy, 
-  Target, 
-  Users, 
+import {
+  Trophy,
+  Target,
+  Users,
   Crown,
   Clock
 } from 'lucide-react';
@@ -18,7 +18,7 @@ const LeaderboardPage = () => {
   const [leaderboardType, setLeaderboardType] = useState('points');
   const [timeframe, setTimeframe] = useState('all');
   const [selectedCategory, setSelectedCategory] = useState('');
-  
+
   const {
     isAuthenticated,
     loading,
@@ -32,7 +32,7 @@ const LeaderboardPage = () => {
 
   // Navigate to user profile
   const handleUserClick = (userId) => {
-    navigate(`/profile/${userId}?tab=overview`);
+    navigate(`/profile/@${userId}?tab=overview`);
   };
 
   useEffect(() => {
@@ -51,7 +51,7 @@ const LeaderboardPage = () => {
 
   const handleTabChange = (tab) => {
     setSearchParams({ tab });
-    setActiveTab(tab); 
+    setActiveTab(tab);
   };
 
   const loadLeaderboard = async () => {
@@ -128,7 +128,7 @@ const LeaderboardPage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 to-purple-50 dark:from-gray-900 dark:to-gray-800">
       <div className="max-w-7xl mx-auto px-4 py-8">
-        
+
         {/* Data Refresh Notice */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -163,11 +163,10 @@ const LeaderboardPage = () => {
                 <button
                   key={tab.id}
                   onClick={() => handleTabChange(tab.id)}
-                  className={`flex items-center space-x-2 px-6 py-3 rounded-xl transition-all duration-200 shrink-0 ${
-                    activeTab === tab.id
+                  className={`flex items-center space-x-2 px-6 py-3 rounded-xl transition-all duration-200 shrink-0 ${activeTab === tab.id
                       ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg transform scale-105'
                       : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
-                  }`}
+                    }`}
                 >
                   <tab.icon className="h-5 w-5" />
                   <span className="font-medium">{tab.label}</span>
@@ -267,7 +266,7 @@ const LeaderboardPage = () => {
                   transition={{ duration: 0.6, delay: 0.5 }}
                   className="text-center"
                 >
-                  <div 
+                  <div
                     onClick={() => handleUserClick(topThree[1].username)}
                     className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-xl border-4 border-gray-300 dark:border-gray-600 h-56 flex flex-col justify-between cursor-pointer hover:shadow-2xl transition-shadow duration-200"
                   >
@@ -300,7 +299,7 @@ const LeaderboardPage = () => {
                   transition={{ duration: 0.6, delay: 0.4 }}
                   className="text-center"
                 >
-                  <div 
+                  <div
                     onClick={() => handleUserClick(topThree[0].username)}
                     className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-xl border-4 border-yellow-400 h-64 flex flex-col justify-between relative cursor-pointer hover:shadow-2xl transition-shadow duration-200"
                   >
@@ -333,7 +332,7 @@ const LeaderboardPage = () => {
                   transition={{ duration: 0.6, delay: 0.6 }}
                   className="text-center"
                 >
-                  <div 
+                  <div
                     onClick={() => handleUserClick(topThree[2].username)}
                     className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-xl border-4 border-orange-400 h-52 flex flex-col justify-between cursor-pointer hover:shadow-2xl transition-shadow duration-200"
                   >
@@ -386,9 +385,8 @@ const LeaderboardPage = () => {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.5, delay: 0.05 * index }}
-                    className={`p-6 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer ${
-                      isCurrentUser ? 'bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500' : ''
-                    }`}
+                    className={`p-6 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer ${isCurrentUser ? 'bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500' : ''
+                      }`}
                     onClick={() => !isCurrentUser && handleUserClick(user.username)}
                   >
                     <div className="flex items-center justify-between">
@@ -445,16 +443,15 @@ const LeaderboardPage = () => {
               {remainingUsers.map((user, index) => {
                 const rank = index + 4;
                 const isCurrentUser = !!(currentUser && user && user.username && currentUser.username && String(user.username).toLowerCase() === String(currentUser.username).toLowerCase());
-                
+
                 return (
                   <motion.div
                     key={user._id || user.username || `${index}`}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.5, delay: 0.1 * index }}
-                    className={`p-6 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer ${
-                      isCurrentUser ? 'bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500' : ''
-                    }`}
+                    className={`p-6 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer ${isCurrentUser ? 'bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500' : ''
+                      }`}
                     onClick={() => !isCurrentUser && handleUserClick(user.username)}
                   >
                     <div className="flex items-center justify-between">
@@ -505,8 +502,8 @@ const LeaderboardPage = () => {
               No rankings available
             </h3>
             <p className="text-gray-500 dark:text-gray-500">
-              {activeTab === 'friends' 
-                ? "Follow some users to see their rankings here!" 
+              {activeTab === 'friends'
+                ? "Follow some users to see their rankings here!"
                 : "Start completing goals to appear on the leaderboard!"
               }
             </p>

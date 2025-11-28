@@ -62,7 +62,16 @@ const ProfilePage = () => {
   } = useApiStore();
 
   // Determine if viewing own profile or another user's profile
-  const isOwnProfile = !userIdParam && !usernameParam || (currentUser && (currentUser.username === usernameParam || currentUser._id === userIdParam));
+  const isOwnProfile = (() => {
+    if (!currentUser) return false;
+
+    let sanitizedUsername = usernameParam?.replace('@', '');
+    return (
+      currentUser._id === userIdParam ||
+      currentUser.username === sanitizedUsername
+    );
+  })();
+
   const displayUser = isOwnProfile ? currentUser : profileUser;
 
   const [isRequested, setIsRequested] = useState(false);

@@ -33,7 +33,7 @@ function App() {
     initializeAuth();
     // Load feature flags early
     loadFeatures();
-    
+
     if (isDarkMode) {
       document.documentElement.classList.add('dark')
     } else {
@@ -51,9 +51,9 @@ function App() {
         navigate(new URL(target, window.location.origin).pathname + new URL(target, window.location.origin).search, { replace: true })
       }
       if (feedback === '1') {
-        try { window.dispatchEvent(new CustomEvent('wt_open_feedback')); } catch {}
+        try { window.dispatchEvent(new CustomEvent('wt_open_feedback')); } catch { }
       }
-    } catch {}
+    } catch { }
   }, [location.search, navigate])
 
   // Detect if running inside the mobile app WebView
@@ -62,7 +62,7 @@ function App() {
       if (typeof window !== 'undefined' && window.ReactNativeWebView) {
         setInNativeApp(true)
       }
-    } catch {}
+    } catch { }
   }, [])
 
   return (
@@ -86,8 +86,8 @@ function App() {
             <Route path="/feed" element={<Suspense fallback={null}><FeedPage /></Suspense>} />
             <Route path="/discover" element={<Suspense fallback={null}><DiscoverPage /></Suspense>} />
             <Route path="/notifications" element={<Suspense fallback={null}><NotificationsPage /></Suspense>} />
-            <Route path="/profile/:userId" element={<Suspense fallback={null}><ProfilePage /></Suspense>} />
-            <Route path="/profile/@:username" element={<Suspense fallback={null}><ProfilePage /></Suspense>} />
+            {/* <Route path="/profile/:userId" element={<Suspense fallback={null}><ProfilePage /></Suspense>} /> */}
+            <Route path="/profile/:username" element={<Suspense fallback={null}><ProfilePage /></Suspense>} />
             <Route path="/profile" element={<Suspense fallback={null}><ProfilePage /></Suspense>} />
             <Route path="/inspiration" element={<Suspense fallback={null}><InspirationPage /></Suspense>} />
             <Route path="/settings" element={<Suspense fallback={null}><SettingsPage /></Suspense>} />
@@ -103,7 +103,7 @@ function App() {
         {isAuthenticated && <BottomTabBar />}
         {/* Footer on web at all sizes; hide only inside native app */}
         {!inNativeApp && (
-          <Footer/>
+          <Footer />
         )}
         <Suspense fallback={null}><FeedbackButton /></Suspense>
       </div>

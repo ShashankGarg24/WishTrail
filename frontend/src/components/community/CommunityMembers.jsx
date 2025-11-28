@@ -11,7 +11,7 @@ export function PendingMembers({ communityId }) {
   }, [communityId])
 
   const handleUserClick = (userId) => {
-    navigate(`/profile/${userId}?tab=overview`);
+    navigate(`/profile/@${userId}?tab=overview`);
   };
 
   const decide = async (userId, approve) => {
@@ -24,13 +24,13 @@ export function PendingMembers({ communityId }) {
     <div className="space-y-2">
       {list.map(m => (
         <div key={m._id} className="flex items-center gap-3 p-2 rounded-lg border border-gray-200 dark:border-gray-800">
-          <img src={m.userId?.avatar} 
-            alt="User" 
-            className="h-8 w-8 rounded-full cursor-pointer" 
+          <img src={m.userId?.avatar}
+            alt="User"
+            className="h-8 w-8 rounded-full cursor-pointer"
             onClick={() => handleUserClick(m.userId?.username)}
           />
-          <div className="text-sm flex-1 cursor-pointer" 
-          onClick={() => handleUserClick(m.userId?.username)}>{m.userId?.name}</div>
+          <div className="text-sm flex-1 cursor-pointer"
+            onClick={() => handleUserClick(m.userId?.username)}>{m.userId?.name}</div>
           <button onClick={() => decide(m.userId?._id, true)} className="px-2 py-1 rounded bg-green-600 text-white text-xs">Approve</button>
           <button onClick={() => decide(m.userId?._id, false)} className="px-2 py-1 rounded border border-gray-200 dark:border-gray-800 text-xs">Reject</button>
         </div>
@@ -47,7 +47,7 @@ export default function CommunityMembers({ id, role, community, members }) {
   const restrictAdd = s.onlyAdminsCanAddMembers !== false
   const showPending = isPrivateOrInvite && (restrictAdd ? role === 'admin' : true)
   const handleUserClick = (userId) => {
-    navigate(`/profile/${userId}?tab=overview`);
+    navigate(`/profile/@${userId}?tab=overview`);
   };
 
   return (
@@ -62,9 +62,9 @@ export default function CommunityMembers({ id, role, community, members }) {
         {members.map(m => (
           <div key={m._id} className="rounded-xl border border-gray-200 dark:border-gray-800 p-4 bg-white dark:bg-gray-900">
             <div className="flex items-center gap-3">
-              <img src={m.user?.avatar} 
-                alt="User" 
-                className="h-10 w-10 rounded-full cursor-pointer" 
+              <img src={m.user?.avatar}
+                alt="User"
+                className="h-10 w-10 rounded-full cursor-pointer"
                 onClick={() => handleUserClick(m.user?.username)}
               />
               <div className="min-w-0">

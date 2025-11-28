@@ -43,14 +43,14 @@ const ActivityFeed = ({ activities, title = "Recent Activities", showEmpty = tru
                 src={activity.userAvatar}
                 alt={activity.user}
                 className="w-10 h-10 rounded-full border-2 border-primary-500 object-cover cursor-pointer hover:ring-2 hover:ring-primary-300 transition-all"
-                onClick={() => activity.username && navigate(`/profile/${activity.username}?tab=overview`)}
+                onClick={() => activity.username && navigate(`/profile/@${activity.username}?tab=overview`)}
               />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center space-x-2 mb-1">
-                <span 
+                <span
                   className="font-medium text-gray-900 dark:text-white text-sm cursor-pointer hover:text-primary-500 transition-colors"
-                  onClick={() => activity.username && navigate(`/profile/${activity.username}?tab=overview`)}
+                  onClick={() => activity.username && navigate(`/profile/@${activity.username}?tab=overview`)}
                 >
                   {activity.user}
                 </span>

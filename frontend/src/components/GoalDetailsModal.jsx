@@ -152,7 +152,7 @@ export default function GoalDetailsModal({ isOpen, goalId, onClose, autoOpenComm
     }, [isOpen, autoOpenComments, data])
 
     const handleUserClick = (userId) => {
-        navigate(`/profile/${userId}?tab=overview`);
+        navigate(`/profile/@${userId}?tab=overview`);
     };
 
     const handleEventClick = (event) => {

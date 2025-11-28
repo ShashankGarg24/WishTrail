@@ -1,8 +1,8 @@
 import { useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  Star, 
-  Trophy, 
+import {
+  Star,
+  Trophy,
   CheckCircle,
   Clock
 } from 'lucide-react';
@@ -12,9 +12,9 @@ import { useNavigate } from 'react-router-dom';
 const InspirationPage = () => {
 
   const navigate = useNavigate();
-  
-  const { 
-    isAuthenticated, 
+
+  const {
+    isAuthenticated,
     loading,
     recentActivities,
     leaderboard,
@@ -33,7 +33,7 @@ const InspirationPage = () => {
     const now = new Date();
     const date = new Date(dateString);
     const diffInHours = Math.floor((now - date) / (1000 * 60 * 60));
-    
+
     if (diffInHours < 1) return 'Just now';
     if (diffInHours < 24) return `${diffInHours} hours ago`;
     const diffInDays = Math.floor(diffInHours / 24);
@@ -43,7 +43,7 @@ const InspirationPage = () => {
   const getCategoryColor = (category) => {
     const colors = {
       'Career': 'bg-blue-500',
-      'Health': 'bg-green-500', 
+      'Health': 'bg-green-500',
       'Personal Development': 'bg-purple-500',
       'Education': 'bg-yellow-500',
       'Finance': 'bg-red-500',
@@ -61,7 +61,7 @@ const InspirationPage = () => {
   };
 
   const getActivityIcon = (activity) => {
-    switch(activity.type) {
+    switch (activity.type) {
       case 'goal_completed':
         return '🎯';
       case 'goal_created':
@@ -93,7 +93,7 @@ const InspirationPage = () => {
   };
 
   const getActivityText = (activity) => {
-    switch(activity.type) {
+    switch (activity.type) {
       case 'goal_completed':
         return 'completed the goal - ';
       case 'goal_created':
@@ -176,18 +176,18 @@ const InspirationPage = () => {
                           src={activity?.avatar || '/api/placeholder/48/48'}
                           alt={activity?.name || 'User'}
                           className="w-12 h-12 rounded-full border-2 border-gray-300 dark:border-gray-500 cursor-pointer"
-                          onClick={() => navigate(`/profile/${activity?.userId?.username}?tab=overview`)}
+                          onClick={() => navigate(`/profile/@${activity?.userId?.username}?tab=overview`)}
                         />
                         <div className={`absolute -top-1 -right-1 w-6 h-6 rounded-full ${getCategoryColor(activity.data?.goalCategory)} flex items-center justify-center text-xs`}>
                           {getActivityIcon(activity)}
                         </div>
                       </div>
-                      
+
                       <div className="flex-1">
                         <div className="flex items-center space-x-2 mb-1">
-                          <span 
-                          className="font-semibold text-gray-900 dark:text-white cursor-pointer hover:text-blue-500"
-                          onClick={() => navigate(`/profile/${activity?.userId?.username}?tab=overview`)}
+                          <span
+                            className="font-semibold text-gray-900 dark:text-white cursor-pointer hover:text-blue-500"
+                            onClick={() => navigate(`/profile/@${activity?.userId?.username}?tab=overview`)}
                           >
                             {activity?.name || 'Unknown User'}
                           </span>
@@ -195,14 +195,14 @@ const InspirationPage = () => {
                             {activity.data?.goalCategory || 'General'}
                           </span>
                         </div>
-                        
+
                         <p className="text-gray-600 dark:text-gray-300 text-sm mb-2">
-                          {activity.type === 'goal_completed' || activity.type === 'goal_created' 
+                          {activity.type === 'goal_completed' || activity.type === 'goal_created'
                             ? `${getActivityText(activity)} ${activity.data?.goalTitle || 'Goal Achievement'}`
                             : getActivityText(activity)
                           }
                         </p>
-                        
+
                         <div className="flex items-center space-x-4 text-xs text-gray-500 dark:text-gray-400">
                           <span>{formatTimeAgo(activity.createdAt)}</span>
                           {/* <div className="flex items-center space-x-1">
@@ -221,10 +221,10 @@ const InspirationPage = () => {
                   </div>
                 )}
               </div>
-              </div>
-              {displayActivities && displayActivities.activities && displayActivities.activities.length > 6 && (
-                <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-white dark:from-gray-800/50 to-transparent pointer-events-none rounded-b-2xl"></div>
-              )}
+            </div>
+            {displayActivities && displayActivities.activities && displayActivities.activities.length > 6 && (
+              <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-white dark:from-gray-800/50 to-transparent pointer-events-none rounded-b-2xl"></div>
+            )}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -261,7 +261,7 @@ const InspirationPage = () => {
                   displayLeaderboard.map((user, index) => {
                     const badge = getAchievementBadge(user);
                     const rank = index + 1;
-                    
+
                     return (
                       <motion.div
                         key={user._id}
@@ -271,30 +271,29 @@ const InspirationPage = () => {
                         className="flex items-center space-x-4 p-4 bg-gray-100 dark:bg-gray-700/30 rounded-xl border border-gray-200 dark:border-gray-600/30 hover:bg-gray-200 dark:hover:bg-gray-700/50 transition-all duration-200"
                       >
                         <div className="relative flex-shrink-0">
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-lg ${
-                            rank === 1 ? 'bg-yellow-500' : 
-                            rank === 2 ? 'bg-gray-400' : 
-                            rank === 3 ? 'bg-amber-600' : 'bg-gray-600'
-                          }`}>
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-lg ${rank === 1 ? 'bg-yellow-500' :
+                              rank === 2 ? 'bg-gray-400' :
+                                rank === 3 ? 'bg-amber-600' : 'bg-gray-600'
+                            }`}>
                             #{rank}
                           </div>
                           <div className="absolute -top-1 -right-1 text-lg">
                             {getRankIcon(rank)}
                           </div>
                         </div>
-                        
+
                         <img
                           src={user.avatar || '/api/placeholder/48/48'}
                           alt={user.name}
                           className="w-12 h-12 rounded-full border-2 border-gray-300 dark:border-gray-500 cursor-pointer flex-shrink-0"
-                          onClick={() => navigate(`/profile/${user?.username}?tab=overview`)}
+                          onClick={() => navigate(`/profile/@${user?.username}?tab=overview`)}
                         />
-                        
+
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center space-x-2 mb-1">
-                            <span 
-                            className="font-semibold text-gray-900 dark:text-white cursor-pointer hover:text-blue-500 truncate"
-                            onClick={() => navigate(`/profile/${user?.username}?tab=overview`)}
+                            <span
+                              className="font-semibold text-gray-900 dark:text-white cursor-pointer hover:text-blue-500 truncate"
+                              onClick={() => navigate(`/profile/@${user?.username}?tab=overview`)}
                             >
                               {user.name}
                             </span>
@@ -302,7 +301,7 @@ const InspirationPage = () => {
                               {badge.label}
                             </span>
                           </div>
-                          
+
                           <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
                             <div className="flex items-center space-x-1">
                               <CheckCircle className="h-4 w-4" />
@@ -362,14 +361,14 @@ const InspirationPage = () => {
             </h3>
             <p className="text-primary-100 mb-6 text-lg">
               Start setting and achieving your goals today. Be part of this amazing community!
-          </p>
-          <a
-            href={isAuthenticated ? "/dashboard" : "/auth"}
+            </p>
+            <a
+              href={isAuthenticated ? "/dashboard" : "/auth"}
               className="inline-flex items-center px-8 py-4 bg-white text-primary-600 rounded-xl hover:bg-gray-100 transition-colors font-bold text-lg shadow-lg"
-          >
+            >
               <Star className="h-6 w-6 mr-2" />
               {isAuthenticated ? "Go to Dashboard" : "Get Started"}
-          </a>
+            </a>
           </div>
         </motion.div>
       </div>
