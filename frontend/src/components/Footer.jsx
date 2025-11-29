@@ -4,9 +4,9 @@ import useApiStore from '../store/apiStore'
 import { Link } from 'react-router-dom'
 
 const Footer = () => {
-  const { isAuthenticated } = useApiStore()
+  const { isAuthenticated, user: currentUser } = useApiStore()
   const currentYear = new Date().getFullYear()
-  
+
   const socialLinks = [
     {
       name: 'YouTube',
@@ -34,16 +34,16 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Brand */}
           <div className="space-y-4">
-          <Link to="/#" className="flex items-center space-x-2">
-            <div className="flex items-center space-x-2">
-              <Star className="h-8 w-8 text-primary-500" />
-              <span className="text-xl font-bold text-gradient">
-                WishTrail
-              </span>
-            </div>
+            <Link to="/#" className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2">
+                <Star className="h-8 w-8 text-primary-500" />
+                <span className="text-xl font-bold text-gradient">
+                  WishTrail
+                </span>
+              </div>
             </Link>
             <p className="text-gray-600 dark:text-gray-400 max-w-md">
-              Transform your dreams into achievable goals. Track your progress, 
+              Transform your dreams into achievable goals. Track your progress,
               get inspired, and make every year count.
             </p>
           </div>
@@ -54,38 +54,44 @@ const Footer = () => {
               Quick Links
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div>
-              <ul className="space-y-2">
-                {['Home', 'Inspiration', 'Feed', 'Discover', 'Communities', 'Leaderboard'].map((link) => {
-                  const lowerLink = link.toLowerCase();
-                  const isHiddenForAuth = !isAuthenticated && ['Feed', 'Discover', 'Communities', 'Leaderboard'].includes(link);
-                  if (isHiddenForAuth) return null;
+              <div>
+                <ul className="space-y-2">
+                  {['Home', 'Inspiration', 'Feed', 'Discover', 'Communities', 'Leaderboard'].map((link) => {
+                    const lowerLink = link.toLowerCase();
+                    const isHiddenForAuth = !isAuthenticated && ['Feed', 'Discover', 'Communities', 'Leaderboard'].includes(link);
+                    if (isHiddenForAuth) return null;
 
-                  return (
-                    <li key={link}>
-                      <a
-                        href={`/${lowerLink === 'home' ? '' : lowerLink}`}
-                        className="text-gray-600 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors"
-                      >
-                        {link}
-                      </a>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
+                    return (
+                      <li key={link}>
+                        <a
+                          href={`/${lowerLink === 'home' ? '' : lowerLink}`}
+                          className="text-gray-600 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors"
+                        >
+                          {link}
+                        </a>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
               {isAuthenticated && <div>
                 <ul className="space-y-2">
-                  {['Profile', 'Dashboard'].map((link) => (
-                    <li key={link}>
-                      <a
-                        href={`/${link.toLowerCase()}`}
-                        className="text-gray-600 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors"
-                      >
-                        {link}
-                      </a>
-                    </li>
-                  ))}
+                  <li key={'Profile'}>
+                    <a
+                      href={`/profile/@${currentUser.username}?tab=overview`}
+                      className="text-gray-600 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors"
+                    >
+                      {'Profile'}
+                    </a>
+                  </li>
+                  <li key={'Dashboard'}>
+                    <a
+                      href={`/dashboard`}
+                      className="text-gray-600 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors"
+                    >
+                      {'Dashboard'}
+                    </a>
+                  </li>
                 </ul>
               </div>}
             </div>
