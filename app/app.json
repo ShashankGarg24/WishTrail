@@ -5,6 +5,7 @@
         "version": "1.0.0",
         "orientation": "portrait",
         "scheme": "wishtrail",
+        "icon": "./assets/icon.png",
         "updates": {
             "fallbackToCacheTimeout": 0
         },
@@ -16,11 +17,16 @@
             "bundleIdentifier": "com.yourco.wishtrail",
             "associatedDomains": [
                 "applinks:wishtrail.vercel.app"
-            ]
+            ],
+            "icon": "./assets/icon.png"
         },
         "android": {
             "package": "com.yourco.wishtrail",
             "minSdkVersion": 25,
+            "adaptiveIcon": {
+                "foregroundImage": "./assets/icon.png",
+                "backgroundColor": "#ffffff"
+            },
             "intentFilters": [
                 {
                     "action": "VIEW",
