@@ -47,6 +47,8 @@ jobs:
         run: |
           # Remove package attribute from AndroidManifest.xml if present
           sed -i 's/ package="[^"]*"//' AndroidManifest.xml
+          # Remove theme attributes that reference non-existent styles
+          sed -i 's/ android:theme="@style\/[^"]*"//g' AndroidManifest.xml
 
       - name: Remove Duplicate Styles
         working-directory: app/android/app/src/main/res/values
