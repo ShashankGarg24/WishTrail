@@ -141,9 +141,7 @@ function App() {
   const askPushPermissionOnce = useCallback(async () => {
     try {
       if (!AsyncStorage) return;
-      const KEY = 'wt_push_perm_asked';
-      const asked = await AsyncStorage.getItem(KEY);
-      if (asked) return;
+      // Always request on app startup (don't check if already asked)
       if (Platform.OS === 'android' && Platform.Version >= 33) {
         try { await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS); } catch { }
       } else if (Platform.OS === 'ios') {
@@ -152,7 +150,7 @@ function App() {
           if (messaging) { try { await messaging().requestPermission(); } catch { } }
         } catch { }
       }
-      try { await AsyncStorage.setItem(KEY, '1'); } catch { }
+      try { await AsyncStorage.setItem('wt_push_perm_asked', '1'); } catch { }
     } catch { }
   }, []);
 
