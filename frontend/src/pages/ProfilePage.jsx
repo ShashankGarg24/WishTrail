@@ -393,153 +393,33 @@ const ProfilePage = () => {
             : "bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-8 border border-gray-200 dark:border-gray-700/50 mb-8"
           }
         >
-          <div className="flex flex-row items-start gap-4 md:gap-8">
-            {/* Profile Picture */}
-            <div className="relative">
-              <img
-                src={displayUser.avatar || '/api/placeholder/150/150'}
-                alt={displayUser.name}
-                className="w-20 h-20 md:w-36 md:h-36 rounded-full border-4 border-gray-300 dark:border-gray-600 object-cover"
-              />
-              {isOwnProfile ? (
-                <div className="absolute -bottom-2 -right-2 bg-primary-500 text-white rounded-full p-2">
-                  <Star className="h-6 w-6" />
-                </div>
-              ) : (
-                displayUser.level && (
-                  <div className="absolute -bottom-2 -right-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-3 py-1 rounded-full text-sm font-bold">
-                    {displayUser.level}
-                  </div>
-                )
-              )}
-            </div>
-
-            {/* Profile Info */}
-            <div className="flex-1">
-              {/* Name and Username Row (desktop) */}
-              <div className="hidden md:flex md:flex-row md:items-center md:space-x-4 mb-4">
-                <div className="flex items-center space-x-3 mb-3 md:mb-0">
-                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                    {displayUser.name}
-                  </h1>
-                </div>
-
-                {/* Username */}
-                <p className="text-xl text-gray-600 dark:text-gray-400 flex-1">
-                  @{displayUser.username}
-                </p>
-                {/* 3-dots menu for profile actions (aligned right) */}
-                <div className="relative inline-block">
-                  <button data-profile-menu-btn="true" onClick={() => setProfileMenuOpen(v => !v)} className="px-2 py-1 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800">⋯</button>
-                  {profileMenuOpen && (
-                    <div ref={profileMenuRef} data-profile-menu="true" className="absolute right-0 top-full mt-2 w-44 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-40">
-                      {isOwnProfile ? (
-                        <button
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
-                          onClick={() => { setIsEditModalOpen(true); setProfileMenuOpen(false); }}
-                        >Edit Profile</button>
-                      ) : (
-                        <>
-                          <button
-                            className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
-                            onClick={() => { setReportOpen(true); setProfileMenuOpen(false); }}
-                          >Report</button>
-                          <button
-                            className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
-                            onClick={() => { setBlockOpen(true); setProfileMenuOpen(false); }}
-                          >Block</button>
-                        </>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Mobile name/username under stats */}
-              <div className="md:hidden mt-2 mb-2">
-                <div className="text-lg font-semibold text-gray-900 dark:text-white">{displayUser.name}</div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">@{displayUser.username}</div>
-              </div>
-
-              {/* Stats Row */}
-              <div className="hidden md:flex items-center space-x-8 mb-4">
-                <button className="text-center" onClick={() => { handleTabChange('goals') }}>
-                  <div className="text-xl font-bold text-gray-900 dark:text-white">
-                    {isOwnProfile ? (displayUser.totalGoals || 0) : (userStats?.totalGoals || 0)}
-                  </div>
-                  <div className="text-gray-600 dark:text-gray-400 text-sm">Goals</div>
-                </button>
-                <button className="text-center" onClick={async () => {
-                  setFollowModalTab('followers'); setFollowModalOpen(true); setLoadingFollows(true);
-                  try {
-                    const uid = isOwnProfile ? currentUser?._id : (profileUser?._id || profileUser?.id);
-                    const res = await getFollowers(uid);
-                    if (res?.success) setFollowers(res.followers || []);
-                  } finally { setLoadingFollows(false); }
-                }}>
-                  <div className="text-xl font-bold text-gray-900 dark:text-white">
-                    {isOwnProfile ? (displayUser.followerCount || 0) : (userStats?.followers || 0)}
-                  </div>
-                  <div className="text-gray-600 dark:text-gray-400 text-sm">Followers</div>
-                </button>
-                <button className="text-center" onClick={async () => {
-                  setFollowModalTab('following'); setFollowModalOpen(true); setLoadingFollows(true);
-                  try {
-                    const uid = isOwnProfile ? currentUser?._id : (profileUser?._id || profileUser?.id);
-                    const res = await getFollowing(uid);
-                    if (res?.success) setFollowing(res.following || []);
-                  } finally { setLoadingFollows(false); }
-                }}>
-                  <div className="text-xl font-bold text-gray-900 dark:text-white">
-                    {isOwnProfile ? (displayUser.followingCount || 0) : (userStats?.followings || 0)}
-                  </div>
-                  <div className="text-gray-600 dark:text-gray-400 text-sm">Following</div>
-                </button>
-              </div>
-
-              {/* Mobile stats inline with avatar (already shown next to avatar) */}
-              <div className="md:hidden flex items-center justify-around gap-4 mb-2">
-                <button className="text-center" onClick={() => { handleTabChange('goals') }}>
-                  <div className="text-xl font-bold text-gray-900 dark:text-white">{isOwnProfile ? (displayUser.totalGoals || 0) : (userStats?.totalGoals || 0)}</div>
-                  <div className="text-gray-600 dark:text-gray-400 text-sm">Goals</div>
-                </button>
-                <button className="text-center" onClick={async () => { setFollowModalTab('followers'); setFollowModalOpen(true); setLoadingFollows(true); try { const uid = isOwnProfile ? currentUser?._id : (profileUser?._id || profileUser?.id); const res = await getFollowers(uid); if (res?.success) setFollowers(res.followers || []); } finally { setLoadingFollows(false); } }}>
-                  <div className="text-xl font-bold text-gray-900 dark:text-white">{isOwnProfile ? (displayUser.followerCount || 0) : (userStats?.followers || 0)}</div>
-                  <div className="text-gray-600 dark:text-gray-400 text-sm">Followers</div>
-                </button>
-                <button className="text-center" onClick={async () => { setFollowModalTab('following'); setFollowModalOpen(true); setLoadingFollows(true); try { const uid = isOwnProfile ? currentUser?._id : (profileUser?._id || profileUser?.id); const res = await getFollowing(uid); if (res?.success) setFollowing(res.following || []); } finally { setLoadingFollows(false); } }}>
-                  <div className="text-xl font-bold text-gray-900 dark:text-white">{isOwnProfile ? (displayUser.followingCount || 0) : (userStats?.followings || 0)}</div>
-                  <div className="text-gray-600 dark:text-gray-400 text-sm">Following</div>
-                </button>
-              </div>
-
+          <div className="flex flex-col md:flex-row md:items-start gap-6 md:gap-8 relative">
+            {/* Left Section - Bio and Details */}
+            <div className="flex-1 order-2 md:order-1">
               {/* Bio */}
               {displayUser.bio && (
-                <p className="text-gray-700 dark:text-gray-300 mb-4 leading-relaxed">
+                <p className="text-gray-700 dark:text-gray-300 mb-4 leading-relaxed text-sm md:text-base">
                   {displayUser.bio}
                 </p>
               )}
 
               {/* Location and Join Date */}
-              <div className="flex flex-col space-y-2 mb-4">
+              <div className="flex flex-col space-y-2 mb-4 text-sm">
                 {!isOwnProfile && displayUser.location && (
                   <div className="flex items-center text-gray-600 dark:text-gray-400">
                     <MapPin className="h-4 w-4 mr-2" />
-                    <span className="text-sm">{displayUser.location}</span>
+                    <span>{displayUser.location}</span>
                   </div>
                 )}
                 <div className="flex items-center text-gray-600 dark:text-gray-400">
                   <Calendar className="h-4 w-4 mr-2" />
-                  <span className="text-sm">Joined {formatDate(displayUser.createdAt || displayUser.joinedDate)}</span>
+                  <span>Joined {formatDate(displayUser.createdAt || displayUser.joinedDate)}</span>
                 </div>
               </div>
 
-              {/* Goals Anchor for smooth scroll */}
-              <div />
-
               {/* Social Links - only for own profile */}
               {isOwnProfile && (displayUser.website || displayUser.youtube || displayUser.instagram) && (
-                <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 dark:text-gray-400 mb-4">
+                <div className="flex flex-wrap items-center gap-3 text-sm text-gray-600 dark:text-gray-400 mb-4">
                   {displayUser.website && (
                     <a
                       href={formatUrl(displayUser.website)}
@@ -581,51 +461,142 @@ const ProfilePage = () => {
                 </div>
               )}
 
-              {/* Follow List Modal */}
-              <Suspense fallback={null}><FollowListModal
-                isOpen={followModalOpen}
-                onClose={() => setFollowModalOpen(false)}
-                activeTab={followModalTab}
-                onTabChange={async (tab) => {
-                  setFollowModalTab(tab)
-                  setLoadingFollows(true)
-                  try {
-                    const uid = isOwnProfile ? currentUser?._id : (profileUser?._id || profileUser?.id)
-                    if (tab === 'followers') {
-                      const res = await getFollowers(uid)
-                      if (res?.success) setFollowers(res.followers || [])
-                    } else {
-                      const res = await getFollowing(uid)
-                      if (res?.success) setFollowing(res.following || [])
-                    }
-                  } finally { setLoadingFollows(false) }
-                }}
-                followers={followers}
-                following={following}
-                followersCount={isOwnProfile ? (displayUser?.followerCount || 0) : (userStats?.followers || 0)}
-                followingCount={isOwnProfile ? (displayUser?.followingCount || 0) : (userStats?.followings || 0)}
-                loading={loadingFollows}
-                onOpenProfile={(u) => {
-                  try {
-                    const path = u?.username ? `/profile/@${u.username}` : (`/profile/${u?._id || u?.id}`)
-                    if (path) navigate(path)
-                    setFollowModalOpen(false)
-                  } catch { }
-                }}
-              /></Suspense>
-              {/* Action Button - Mobile */}
-              <div className="block md:hidden">
+              {/* Goals Anchor for smooth scroll */}
+              <div />
+            </div>
+
+            {/* Right Section - Photo, Name, Username, and Stats */}
+            <div className="flex flex-row md:flex-col items-start gap-4 md:gap-4 order-1 md:order-2 w-full md:w-auto">
+              {/* Profile Picture */}
+              <div className="relative flex-shrink-0">
+                <img
+                  src={displayUser.avatar || '/api/placeholder/150/150'}
+                  alt={displayUser.name}
+                  className="w-24 h-24 md:w-32 md:h-32 rounded-full border-4 border-gray-300 dark:border-gray-600 object-cover"
+                />
                 {isOwnProfile ? (
+                  <div className="absolute -bottom-2 -right-2 bg-primary-500 text-white rounded-full p-2">
+                    <Star className="h-6 w-6" />
+                  </div>
+                ) : (
+                  displayUser.level && (
+                    <div className="absolute -bottom-2 -right-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-3 py-1 rounded-full text-sm font-bold">
+                      {displayUser.level}
+                    </div>
+                  )
+                )}
+              </div>
+
+              {/* Name, Username, and Stats Container */}
+              <div className="flex flex-col flex-1 md:w-full">
+                {/* Name and Username */}
+                <div className="mb-4 md:mb-3">
+                  <h1 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white mb-0.5">
+                    {displayUser.name}
+                  </h1>
+                  <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">
+                    @{displayUser.username}
+                  </p>
+                </div>
+
+                {/* Stats Row */}
+                <div className="flex gap-4 md:gap-6">
+                  <button className="text-center flex-1 md:flex-none" onClick={() => { handleTabChange('goals') }}>
+                    <div className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
+                      {isOwnProfile ? (displayUser.totalGoals || 0) : (userStats?.totalGoals || 0)}
+                    </div>
+                    <div className="text-gray-600 dark:text-gray-400 text-xs md:text-sm">Goals</div>
+                  </button>
+                  <button className="text-center flex-1 md:flex-none" onClick={async () => {
+                    setFollowModalTab('followers'); setFollowModalOpen(true); setLoadingFollows(true);
+                    try {
+                      const uid = isOwnProfile ? currentUser?._id : (profileUser?._id || profileUser?.id);
+                      const res = await getFollowers(uid);
+                      if (res?.success) setFollowers(res.followers || []);
+                    } finally { setLoadingFollows(false); }
+                  }}>
+                    <div className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
+                      {isOwnProfile ? (displayUser.followerCount || 0) : (userStats?.followers || 0)}
+                    </div>
+                    <div className="text-gray-600 dark:text-gray-400 text-xs md:text-sm">Followers</div>
+                  </button>
+                  <button className="text-center flex-1 md:flex-none" onClick={async () => {
+                    setFollowModalTab('following'); setFollowModalOpen(true); setLoadingFollows(true);
+                    try {
+                      const uid = isOwnProfile ? currentUser?._id : (profileUser?._id || profileUser?.id);
+                      const res = await getFollowing(uid);
+                      if (res?.success) setFollowing(res.following || []);
+                    } finally { setLoadingFollows(false); }
+                  }}>
+                    <div className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
+                      {isOwnProfile ? (displayUser.followingCount || 0) : (userStats?.followings || 0)}
+                    </div>
+                    <div className="text-gray-600 dark:text-gray-400 text-xs md:text-sm">Following</div>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* 3-dots menu for profile actions - Desktop position */}
+            <div className="hidden md:block absolute top-0 right-0">
+              <div className="relative inline-block">
+                <button data-profile-menu-btn="true" onClick={() => setProfileMenuOpen(v => !v)} className="px-2 py-1 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800">⋮</button>
+                {profileMenuOpen && (
+                  <div ref={profileMenuRef} data-profile-menu="true" className="absolute right-0 top-full mt-2 w-44 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-40">
+                    {isOwnProfile ? (
+                      <button
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
+                        onClick={() => { setIsEditModalOpen(true); setProfileMenuOpen(false); }}
+                      >Edit Profile</button>
+                    ) : (
+                      <>
+                        <button
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
+                          onClick={() => { setReportOpen(true); setProfileMenuOpen(false); }}
+                        >Report</button>
+                        <button
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
+                          onClick={() => { setBlockOpen(true); setProfileMenuOpen(false); }}
+                        >Block</button>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-3 mt-6 md:mt-0 md:absolute md:top-8 md:right-8 flex-col md:flex-row">
+            {isOwnProfile ? (
+              <>
+                <div className="flex gap-2 w-full md:w-auto">
                   <button
                     onClick={() => setIsEditModalOpen(true)}
-                    className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-lg transition-colors font-medium border border-gray-300 dark:border-gray-600"
+                    className="flex-1 md:flex-none flex items-center justify-center space-x-2 px-4 py-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-lg transition-colors font-medium border border-gray-300 dark:border-gray-600"
                   >
                     <Edit2 className="h-4 w-4" />
                     <span>Edit Profile</span>
                   </button>
-                ) : (
-                  isAuthenticated && (
-                    <div className="w-full">
+                  {/* 3-dots menu for mobile - vertical dots */}
+                  <div className="md:hidden relative">
+                    <button data-profile-menu-btn="true" onClick={() => setProfileMenuOpen(v => !v)} className="px-3 py-3 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors border border-gray-300 dark:border-gray-600">⋮</button>
+                    {profileMenuOpen && (
+                      <div ref={profileMenuRef} data-profile-menu="true" className="absolute right-0 top-full mt-2 w-44 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-40">
+                        <button
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
+                          onClick={() => { setIsEditModalOpen(true); setProfileMenuOpen(false); }}
+                        >Edit Profile</button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                {isAuthenticated && (
+                  <div className="flex gap-2 w-full md:w-auto">
+                    <div className="flex-1 md:flex-none">
                       {isFollowing ? (
                         <button
                           onClick={handleUnfollow}
@@ -644,11 +615,60 @@ const ProfilePage = () => {
                         </button>
                       )}
                     </div>
-                  )
+                    {/* 3-dots menu for mobile on other profiles - vertical dots */}
+                    <div className="md:hidden relative">
+                      <button data-profile-menu-btn="true" onClick={() => setProfileMenuOpen(v => !v)} className="px-3 py-3 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors border border-gray-300 dark:border-gray-600">⋮</button>
+                      {profileMenuOpen && (
+                        <div ref={profileMenuRef} data-profile-menu="true" className="absolute right-0 top-full mt-2 w-44 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-40">
+                          <button
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
+                            onClick={() => { setReportOpen(true); setProfileMenuOpen(false); }}
+                          >Report</button>
+                          <button
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
+                            onClick={() => { setBlockOpen(true); setProfileMenuOpen(false); }}
+                          >Block</button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 )}
-              </div>
-            </div>
+              </>
+            )}
           </div>
+
+          {/* Follow List Modal */}
+          <Suspense fallback={null}><FollowListModal
+            isOpen={followModalOpen}
+            onClose={() => setFollowModalOpen(false)}
+            activeTab={followModalTab}
+            onTabChange={async (tab) => {
+              setFollowModalTab(tab)
+              setLoadingFollows(true)
+              try {
+                const uid = isOwnProfile ? currentUser?._id : (profileUser?._id || profileUser?.id)
+                if (tab === 'followers') {
+                  const res = await getFollowers(uid)
+                  if (res?.success) setFollowers(res.followers || [])
+                } else {
+                  const res = await getFollowing(uid)
+                  if (res?.success) setFollowing(res.following || [])
+                }
+              } finally { setLoadingFollows(false) }
+            }}
+            followers={followers}
+            following={following}
+            followersCount={isOwnProfile ? (displayUser?.followerCount || 0) : (userStats?.followers || 0)}
+            followingCount={isOwnProfile ? (displayUser?.followingCount || 0) : (userStats?.followings || 0)}
+            loading={loadingFollows}
+            onOpenProfile={(u) => {
+              try {
+                const path = u?.username ? `/profile/@${u.username}` : (`/profile/${u?._id || u?.id}`)
+                if (path) navigate(path)
+                setFollowModalOpen(false)
+              } catch { }
+            }}
+          /></Suspense>
         </motion.div>
 
         {/* Content Area */}
