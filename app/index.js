@@ -343,19 +343,22 @@ function App() {
     return () => clearTimeout(t);
   }, [injectAuthProbe]);
 
-  // On app start, inject any stored refresh token into the WebView global
-  useEffect(() => {
-    (async () => {
-      try {
-        if (SecureStore && SecureStore.getItemAsync) {
-          const rt = await SecureStore.getItemAsync('wt_refresh_token');
-          if (rt && rt.length > 0) {
-            try { webRef.current?.injectJavaScript(`window.__WT_REFRESH_TOKEN = ${JSON.stringify(rt)}; true;`); } catch { }
-          }
+  // Inject refresh token helper
+  const injectRefreshToken = useCallback(async () => {
+    try {
+      if (SecureStore && SecureStore.getItemAsync) {
+        const rt = await SecureStore.getItemAsync('wt_refresh_token');
+        if (rt && rt.length > 0) {
+          try { webRef.current?.injectJavaScript(`window.__WT_REFRESH_TOKEN = ${JSON.stringify(rt)}; true;`); } catch { }
         }
-      } catch { }
-    })();
+      }
+    } catch { }
   }, []);
+
+  // On app start, inject any stored refresh token
+  useEffect(() => {
+    injectRefreshToken();
+  }, [injectRefreshToken]);
 
   const onMessage = useCallback((event) => {
     try {
@@ -700,7 +703,7 @@ function App() {
         source={{ uri: initialUri }}
         originWhitelist={originWhitelist}
         onLoadStart={() => { setLoading(true); if (ptrAnimRef.current) { try { ptrAnimRef.current.stop(); } catch { } } setPtrLoading(false); setPtrVisible(false); setPtrProgress(0); ptrAnim.setValue(0); }}
-        onLoadEnd={() => { setLoading(false); setWebReady(true); if (pendingDeepLinkRef.current) { forwardDeepLinkToWeb(pendingDeepLinkRef.current); pendingDeepLinkRef.current = ''; } injectAuthProbe(); setTimeout(() => { if (ptrAnimRef.current) { try { ptrAnimRef.current.stop(); } catch { } } setPtrLoading(false); setPtrVisible(false); setPtrProgress(0); ptrAnim.setValue(0); }, 400); }}
+        onLoadEnd={() => { setLoading(false); setWebReady(true); if (pendingDeepLinkRef.current) { forwardDeepLinkToWeb(pendingDeepLinkRef.current); pendingDeepLinkRef.current = ''; } injectAuthProbe(); injectRefreshToken(); setTimeout(() => { if (ptrAnimRef.current) { try { ptrAnimRef.current.stop(); } catch { } } setPtrLoading(false); setPtrVisible(false); setPtrProgress(0); ptrAnim.setValue(0); }, 400); }}
         onShouldStartLoadWithRequest={onShouldStartLoadWithRequest}
         onMessage={onMessage}
         pullToRefreshEnabled={false}

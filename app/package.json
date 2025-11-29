@@ -16,6 +16,8 @@
     "expo-constants": "~17.1.7",
     "expo-dev-client": "~5.2.4",
     "expo-modules-core": "~2.5.0",
+    "expo-quick-actions": "^6.0.0",
+    "expo-secure-store": "^15.0.7",
     "expo-status-bar": "~2.2.3",
     "react": "19.0.0",
     "react-devtools-core": "^6.1.5",
