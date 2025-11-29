@@ -42,24 +42,6 @@ jobs:
         working-directory: app
         run: expo prebuild --platform android --clean
 
-      - name: Fix AndroidManifest.xml
-        working-directory: app/android/app/src/main
-        run: |
-          # Remove package attribute from AndroidManifest.xml if present
-          sed -i 's/ package="[^"]*"//' AndroidManifest.xml
-          # Remove theme attributes that reference non-existent styles
-          sed -i 's/ android:theme="@style\/[^"]*"//g' AndroidManifest.xml
-
-      - name: Remove Duplicate Styles
-        working-directory: app/android/app/src/main/res/values
-        run: rm -f styles.xml
-
-      - name: Remove PNG Icon Duplicates
-        working-directory: app/android/app/src/main/res
-        run: |
-          find . -type f \( -name "*.png" -o -name "*.webp" -o -name "ic_launcher*.xml" \) -delete
-          echo "Removed all icon resources"
-
       - name: Setup Android SDK
         uses: android-actions/setup-android@v2
 
