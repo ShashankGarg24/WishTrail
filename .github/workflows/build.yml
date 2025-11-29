@@ -46,6 +46,13 @@ jobs:
         working-directory: app/android/app/src/main/res/values
         run: rm -f styles.xml
 
+      - name: Remove PNG Icon Duplicates
+        working-directory: app/android/app/src/main/res
+        run: |
+          find . -name "ic_launcher*.png" -type f -delete
+          find . -name "ic_launcher*_round.png" -type f -delete
+          echo "Removed PNG duplicates"
+
       - name: Setup Android SDK
         uses: android-actions/setup-android@v2
 
