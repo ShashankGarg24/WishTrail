@@ -463,9 +463,7 @@ const ProfilePage = () => {
 
               {/* Stats Row */}
               <div className="hidden md:flex items-center space-x-8 mb-4">
-                <button className="text-center" onClick={() => {
-                  try { const el = document.getElementById('profile-goals-section'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch { }
-                }}>
+                <button className="text-center" onClick={() => { handleTabChange('goals') }}>
                   <div className="text-xl font-bold text-gray-900 dark:text-white">
                     {isOwnProfile ? (displayUser.totalGoals || 0) : (userStats?.totalGoals || 0)}
                   </div>
@@ -501,7 +499,7 @@ const ProfilePage = () => {
 
               {/* Mobile stats inline with avatar (already shown next to avatar) */}
               <div className="md:hidden flex items-center justify-around gap-4 mb-2">
-                <button className="text-center" onClick={() => { try { const el = document.getElementById('profile-goals-section'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch { } }}>
+                <button className="text-center" onClick={() => { handleTabChange('goals') }}>
                   <div className="text-xl font-bold text-gray-900 dark:text-white">{isOwnProfile ? (displayUser.totalGoals || 0) : (userStats?.totalGoals || 0)}</div>
                   <div className="text-gray-600 dark:text-gray-400 text-sm">Goals</div>
                 </button>
@@ -537,7 +535,7 @@ const ProfilePage = () => {
               </div>
 
               {/* Goals Anchor for smooth scroll */}
-              <div id="profile-goals-section" />
+              <div />
 
               {/* Social Links - only for own profile */}
               {isOwnProfile && (displayUser.website || displayUser.youtube || displayUser.instagram) && (
@@ -897,7 +895,7 @@ const ProfilePage = () => {
                 </div>
               )}
               {activeTab === 'goals' && (
-                <div id="profile-goals-section" className={isOwnProfile
+                <div className={isOwnProfile
                   ? "bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg"
                   : "bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50"
                 }>

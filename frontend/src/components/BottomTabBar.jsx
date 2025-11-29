@@ -31,54 +31,55 @@ const BottomTabBar = () => {
 
   return (
     <>
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50">
-        <div className="w-full pb-safe">
-          <div className="backdrop-blur bg-white/90 dark:bg-gray-900/90 border-t border-gray-200 dark:border-gray-800 shadow-2xl rounded-none">
-            <div className="flex items-stretch w-full">
-              <TabButton
-                active={path.startsWith('/feed') || path === '/'}
-                label="Feed"
-                Icon={Newspaper}
-                onClick={() => navigate('/feed')}
-              />
-              {isFeatureEnabled('community') && (
+      {isAuthenticated && (
+        <div className="md:hidden fixed bottom-0 left-0 right-0 z-50">
+          <div className="w-full pb-safe">
+            <div className="backdrop-blur bg-white/90 dark:bg-gray-900/90 border-t border-gray-200 dark:border-gray-800 shadow-2xl rounded-none">
+              <div className="flex items-stretch w-full">
                 <TabButton
-                  active={path.startsWith('/communities')}
-                  label="Communities"
-                  Icon={Users}
-                  onClick={() => navigate('/communities')}
+                  active={path.startsWith('/feed') || path === '/'}
+                  label="Feed"
+                  Icon={Newspaper}
+                  onClick={() => navigate('/feed')}
                 />
-              )}
-              <TabButton
-                active={path.startsWith('/dashboard')}
-                label="Dashboard"
-                Icon={BarChart3}
-                onClick={() => navigate('/dashboard')}
-              />
-              {isFeatureEnabled('leaderboard') && (
+                {isFeatureEnabled('community') && (
+                  <TabButton
+                    active={path.startsWith('/communities')}
+                    label="Communities"
+                    Icon={Users}
+                    onClick={() => navigate('/communities')}
+                  />
+                )}
                 <TabButton
-                  active={path.startsWith('/leaderboard')}
-                  label="Leaderboard"
-                  Icon={Trophy}
-                  onClick={() => navigate('/leaderboard')}
+                  active={path.startsWith('/dashboard')}
+                  label="Dashboard"
+                  Icon={BarChart3}
+                  onClick={() => navigate('/dashboard')}
                 />
-              )}
-              <TabButton
-                active={false}
-                label={isAuthenticated ? 'Account' : 'Login'}
-                Icon={User}
-                onClick={() => (isAuthenticated ? setAccountOpen(true) : navigate('/auth'))}
-              />
+                {isFeatureEnabled('leaderboard') && (
+                  <TabButton
+                    active={path.startsWith('/leaderboard')}
+                    label="Leaderboard"
+                    Icon={Trophy}
+                    onClick={() => navigate('/leaderboard')}
+                  />
+                )}
+                <TabButton
+                  active={false}
+                  label={isAuthenticated ? 'Account' : 'Login'}
+                  Icon={User}
+                  onClick={() => (isAuthenticated ? setAccountOpen(true) : navigate('/auth'))}
+                />
+              </div>
             </div>
           </div>
         </div>
-      </div>
-
+      )}
       {isAuthenticated && (
-      <Suspense fallback={null}>
-        <AccountMenuSheet open={accountOpen} onClose={() => setAccountOpen(false)} />
-      </Suspense>
-        )
+        <Suspense fallback={null}>
+          <AccountMenuSheet open={accountOpen} onClose={() => setAccountOpen(false)} />
+        </Suspense>
+      )
       }
     </>
   )
