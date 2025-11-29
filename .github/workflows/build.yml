@@ -57,12 +57,8 @@ jobs:
       - name: Remove PNG Icon Duplicates
         working-directory: app/android/app/src/main/res
         run: |
-          find . -name "ic_launcher*.png" -type f -delete
-          find . -name "ic_launcher*_round.png" -type f -delete
-          # Remove problematic adaptive icon XML files
-          rm -f mipmap-anydpi-v26/ic_launcher.xml
-          rm -f mipmap-anydpi-v26/ic_launcher_round.xml
-          echo "Removed PNG duplicates and adaptive icon XMLs"
+          find . -type f \( -name "*.png" -o -name "*.webp" -o -name "ic_launcher*.xml" \) -delete
+          echo "Removed all icon resources"
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v2
@@ -83,7 +79,7 @@ jobs:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-        run: ./gradlew assembleRelease --no-daemon -x processReleaseResources
+        run: ./gradlew assembleRelease --no-daemon
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
