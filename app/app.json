@@ -9,7 +9,7 @@
         "splash": {
             "image": "./assets/splash.png",
             "resizeMode": "cover",
-            "backgroundColor": "#ffffff"
+            "backgroundColor": "#11273c"
         },
         "updates": {
             "fallbackToCacheTimeout": 0
@@ -28,9 +28,10 @@
         "android": {
             "package": "com.yourco.wishtrail",
             "minSdkVersion": 25,
+            "enableDangerousExperimentalLeanBuilds": true,
             "adaptiveIcon": {
                 "foregroundImage": "./assets/icon.png",
-                "backgroundColor": "#ffffff"
+                "backgroundColor": "#11273c"
             },
             "intentFilters": [
                 {
