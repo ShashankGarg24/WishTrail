@@ -34,14 +34,6 @@ jobs:
       - name: Install Expo CLI
         run: npm install -g expo-cli
 
-      - name: Clean Android Directory
-        working-directory: app
-        run: rm -rf android
-
-      - name: Prebuild Android
-        working-directory: app
-        run: expo prebuild --platform android --clean
-
       - name: Setup Android SDK
         uses: android-actions/setup-android@v2
 
