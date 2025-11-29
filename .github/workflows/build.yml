@@ -77,17 +77,13 @@ jobs:
         working-directory: app/android
         run: chmod +x ./gradlew
 
-      - name: Generate Release Resources
-        working-directory: app/android
-        run: ./gradlew generateReleaseBuildConfig --no-daemon
-
       - name: Build Release APK
         working-directory: app/android
         env:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-        run: ./gradlew assembleRelease --no-daemon
+        run: ./gradlew assembleRelease --no-daemon -x processReleaseResources
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
