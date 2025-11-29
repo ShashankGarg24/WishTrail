@@ -77,6 +77,10 @@ jobs:
         working-directory: app/android
         run: chmod +x ./gradlew
 
+      - name: Generate Release Resources
+        working-directory: app/android
+        run: ./gradlew generateReleaseBuildConfig --no-daemon
+
       - name: Build Release APK
         working-directory: app/android
         env:
