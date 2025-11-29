@@ -137,6 +137,25 @@ function App() {
     } catch { }
   }, []);
 
+  // Ask for push notification permission once on first launch
+  const askPushPermissionOnce = useCallback(async () => {
+    try {
+      if (!AsyncStorage) return;
+      const KEY = 'wt_push_perm_asked';
+      const asked = await AsyncStorage.getItem(KEY);
+      if (asked) return;
+      if (Platform.OS === 'android' && Platform.Version >= 33) {
+        try { await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS); } catch { }
+      } else if (Platform.OS === 'ios') {
+        try {
+          let messaging; try { const mod = require('@react-native-firebase/messaging'); messaging = mod?.default || mod; } catch { }
+          if (messaging) { try { await messaging().requestPermission(); } catch { } }
+        } catch { }
+      }
+      try { await AsyncStorage.setItem(KEY, '1'); } catch { }
+    } catch { }
+  }, []);
+
   useEffect(() => {
     (async () => {
       try {
@@ -556,25 +575,6 @@ function App() {
       setInitialUri(target);
       setInitialResolved(true);
     })();
-  }, []);
-
-  // Ask for push notification permission once on first launch (after onboarding or immediately if onboarding was already seen)
-  const askPushPermissionOnce = useCallback(async () => {
-    try {
-      if (!AsyncStorage) return;
-      const KEY = 'wt_push_perm_asked';
-      const asked = await AsyncStorage.getItem(KEY);
-      if (asked) return;
-      if (Platform.OS === 'android' && Platform.Version >= 33) {
-        try { await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS); } catch { }
-      } else if (Platform.OS === 'ios') {
-        try {
-          let messaging; try { const mod = require('@react-native-firebase/messaging'); messaging = mod?.default || mod; } catch { }
-          if (messaging) { try { await messaging().requestPermission(); } catch { } }
-        } catch { }
-      }
-      try { await AsyncStorage.setItem(KEY, '1'); } catch { }
-    } catch { }
   }, []);
 
   useEffect(() => {
