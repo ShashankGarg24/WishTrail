@@ -59,7 +59,10 @@ jobs:
         run: |
           find . -name "ic_launcher*.png" -type f -delete
           find . -name "ic_launcher*_round.png" -type f -delete
-          echo "Removed PNG duplicates"
+          # Remove problematic adaptive icon XML files
+          rm -f mipmap-anydpi-v26/ic_launcher.xml
+          rm -f mipmap-anydpi-v26/ic_launcher_round.xml
+          echo "Removed PNG duplicates and adaptive icon XMLs"
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v2
