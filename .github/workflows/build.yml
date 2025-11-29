@@ -42,6 +42,10 @@ jobs:
         working-directory: app
         run: expo prebuild --platform android --clean
 
+      - name: Remove Duplicate Styles
+        working-directory: app/android/app/src/main/res/values
+        run: rm -f styles.xml
+
       - name: Setup Android SDK
         uses: android-actions/setup-android@v2
 
