@@ -42,6 +42,12 @@ jobs:
         working-directory: app
         run: expo prebuild --platform android --clean
 
+      - name: Fix AndroidManifest.xml
+        working-directory: app/android/app/src/main
+        run: |
+          # Remove package attribute from AndroidManifest.xml if present
+          sed -i 's/ package="[^"]*"//' AndroidManifest.xml
+
       - name: Remove Duplicate Styles
         working-directory: app/android/app/src/main/res/values
         run: rm -f styles.xml
