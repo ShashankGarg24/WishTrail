@@ -143,6 +143,10 @@ function App() {
         if (!AsyncStorage) { setShowOnboarding(true); return; }
         const seen = await AsyncStorage.getItem('wt_onboarding_seen');
         if (!seen) setShowOnboarding(true);
+        else {
+          // If onboarding was already completed, request permissions now
+          askPushPermissionOnce().catch(() => { });
+        }
       } catch { setShowOnboarding(true); }
     })();
   }, []);
