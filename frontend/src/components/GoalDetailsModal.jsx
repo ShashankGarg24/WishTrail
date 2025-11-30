@@ -175,20 +175,23 @@ export default function GoalDetailsModal({ isOpen, goalId, onClose, autoOpenComm
             ) : null}
             <div className={`relative w-full ${(!data?.share?.image) ? 'max-w-3xl' : 'max-w-6xl'} 
         mx-auto bg-white dark:bg-gray-900 rounded-2xl shadow-2xl 
-        ${isMobile ? 'overflow-y-auto' : 'overflow-hidden'} 
+        ${isMobile ? 'max-h-[90vh] overflow-y-auto' : 'overflow-hidden'} 
         border border-gray-200 dark:border-gray-800
         ${(!data?.share?.image) ? 'h-[85vh]' : 'h-[85vh]'}
         ${(loading || !data) ? 'hidden' : ''}`}>
                 {!loading && data && (
                     data?.share?.image ? (
-                        <div className="grid grid-cols-1 md:[grid-template-columns:minmax(0,1fr)_420px] items-stretch h-full min-h-0">
-                            {/* Left: Media */}
-                            <div className="bg-black flex items-center justify-center h-full">
+                        <div className="grid grid-cols-1 md:[grid-template-columns:minmax(0,1fr)_420px] items-stretch md:h-full min-h-0">
+                            {/* Left: Media - Fixed height on mobile, scrollable container on desktop */}
+                            <div className="bg-black flex items-center justify-center md:h-full h-[350px] flex-shrink-0">
                                 <img
-                                    src={data.share.image} alt="Completion" className="h-full w-auto max-w-full object-contain" />
+                                    src={data.share.image} 
+                                    alt="Completion" 
+                                    className="md:h-full md:w-auto h-full w-full object-contain" 
+                                />
                             </div>
                             {/* Right: Details with timeline and toggleable comments */}
-                            <div className="flex flex-col md:w-[420px] md:flex-shrink-0 h-full min-h-0">
+                            <div className="flex flex-col md:w-[420px] md:flex-shrink-0 md:h-full min-h-0">
                                 <div className="flex items-center gap-3 p-4 border-b border-gray-200 dark:border-gray-800">
                                     <img
                                         src={data?.user?.avatar || '/api/placeholder/40/40'}

@@ -108,7 +108,7 @@ const FeedPage = () => {
 
   // No-op: comments are handled inside GoalPostModal now
 
-  const fetchInitial = async () => {
+  const fetchInitial = async (forceRefresh = false) => {
     setLoading(true)
     try {
       // Load stories bar first for quick UI feel
@@ -119,7 +119,7 @@ const FeedPage = () => {
         const params = interests.length > 0
           ? { strategy: 'personalized', page: 1, limit: STORIES_LIMIT }
           : { strategy: 'global', page: 1, limit: STORIES_LIMIT }
-        const { goals } = await getTrendingGoals(params)
+        const { goals } = await getTrendingGoals(params, { force: forceRefresh })
         setStories((goals || []).slice(0, STORIES_LIMIT))
       } catch (_) {
         setStories([])
@@ -129,7 +129,7 @@ const FeedPage = () => {
 
       setActivitiesPage(1)
       setActivitiesHasMore(true)
-      const activitiesData = await getActivityFeed({ page: 1, limit: ACTIVITIES_PAGE_SIZE })
+      const activitiesData = await getActivityFeed({ page: 1, limit: ACTIVITIES_PAGE_SIZE }, { force: forceRefresh })
       setActivities(activitiesData.activities || [])
       const totalPages = activitiesData.pagination?.pages || 1
       setActivitiesHasMore(1 < totalPages)
@@ -340,7 +340,7 @@ const FeedPage = () => {
             </h2>
             <div className="flex items-center gap-2">
               <button
-                onClick={() => fetchInitial()}
+                onClick={() => fetchInitial(true)}
                 aria-label="Refresh"
                 className={`h-9 w-9 inline-flex items-center justify-center rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors ${loading ? 'opacity-80' : ''}`}
                 disabled={loading}

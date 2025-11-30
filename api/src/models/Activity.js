@@ -149,6 +149,7 @@ activitySchema.statics.createActivity = async function(userId, name, avatar, typ
       avatar,
       type,
       data,
+      isPublic: options.isPublic !== undefined ? options.isPublic : true,
       ...(options && options.communityId ? { communityId: options.communityId } : {})
     });
     

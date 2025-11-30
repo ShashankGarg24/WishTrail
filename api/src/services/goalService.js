@@ -161,7 +161,7 @@ class GoalService {
     });
     
     const currentUser = (await User.findById(userId).select('name avatar').lean());
-    // Create activity
+    // Create activity - respect goal's privacy setting
     await Activity.createActivity(
       userId,
       currentUser.name,
@@ -172,7 +172,8 @@ class GoalService {
         goalTitle: title,
         goalCategory: category,
         pointsEarned
-      }
+      },
+      { isPublic: goal.isPublic }
     );
     
     return goal;
@@ -313,7 +314,7 @@ class GoalService {
       await userService.updateUserStreak(userId);
     }
     
-    // Create completion activity (global)
+    // Create completion activity (global) - include completion details in metadata
     await Activity.createActivity(
       userId,
       user.name,
@@ -324,8 +325,13 @@ class GoalService {
         goalTitle: goal.title,
         goalCategory: goal.category,
         pointsEarned: goal.pointsEarned,
-        completionNote
-      }
+        completionNote,
+        metadata: {
+          completionNote: completionNote || '',
+          completionAttachmentUrl: completionProof || ''
+        }
+      },
+      { isPublic: goal.isPublic }
     );
     // Mirror into community feed if a community item references this goal
     try {
