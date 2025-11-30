@@ -471,21 +471,9 @@ const ProfilePage = () => {
               )}
 
               {/* Location and Join Date */}
-              <div className="flex flex-col space-y-2 mb-4 text-sm">
-                {!isOwnProfile && displayUser.location && (
-                  <div className="flex items-center text-gray-600 dark:text-gray-400">
-                    <MapPin className="h-4 w-4 mr-2" />
-                    <span>{displayUser.location}</span>
-                  </div>
-                )}
-                <div className="flex items-center text-gray-600 dark:text-gray-400">
-                  <Calendar className="h-4 w-4 mr-2" />
-                  <span>Joined {formatDate(displayUser.createdAt || displayUser.joinedDate)}</span>
-                </div>
-              </div>
 
-              {/* Social Links - only for own profile */}
-              {isOwnProfile && (displayUser.website || displayUser.youtube || displayUser.instagram) && (
+              {/* Social Links */}
+              {(displayUser.website || displayUser.youtube || displayUser.instagram) && (
                 <div className="flex flex-wrap items-center gap-3 text-sm text-gray-600 dark:text-gray-400 mb-4">
                   {displayUser.website && (
                     <a
@@ -560,25 +548,31 @@ const ProfilePage = () => {
               <>
                 {isAuthenticated && (
                   <div className="flex gap-2 w-full md:w-auto md:hidden">
-                    <div className="hidden">
-                      {isFollowing ? (
-                        <button
-                          onClick={handleUnfollow}
-                          className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-lg transition-colors font-medium border border-gray-300 dark:border-gray-600"
-                        >
-                          <UserCheck className="h-4 w-4" />
-                          <span>Following</span>
-                        </button>
-                      ) : (
-                        <button
-                          onClick={handleFollow}
-                          className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors font-medium"
-                        >
-                          <UserPlus className="h-4 w-4" />
-                          <span>Follow</span>
-                        </button>
-                      )}
-                    </div>
+                    {isFollowing ? (
+                      <button
+                        onClick={handleUnfollow}
+                        className="flex-1 md:flex-none flex items-center justify-center space-x-2 px-4 py-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-lg transition-colors font-medium border border-gray-300 dark:border-gray-600"
+                      >
+                        <UserCheck className="h-4 w-4" />
+                        <span>Following</span>
+                      </button>
+                    ) : isRequested ? (
+                      <button
+                        onClick={() => cancelFollowRequest(profileUser?._id)}
+                        className="flex-1 md:flex-none flex items-center justify-center space-x-2 px-4 py-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-lg transition-colors font-medium border border-gray-300 dark:border-gray-600"
+                      >
+                        <UserCheck className="h-4 w-4" />
+                        <span>Requested</span>
+                      </button>
+                    ) : (
+                      <button
+                        onClick={handleFollow}
+                        className="flex-1 md:flex-none flex items-center justify-center space-x-2 px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors font-medium"
+                      >
+                        <UserPlus className="h-4 w-4" />
+                        <span>Follow</span>
+                      </button>
+                    )}
                     {/* 3-dots menu for mobile on other profiles - vertical dots */}
                     <div className="relative">
                       <button data-profile-menu-btn="true" onClick={() => setProfileMenuOpen(v => !v)} className="px-3 py-3 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors border border-gray-300 dark:border-gray-600">⋮</button>
@@ -1084,21 +1078,10 @@ const ProfilePage = () => {
             className="relative"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg w-11/12 sm:w-64">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg w-11/12 sm:w-64 min-w-fit">
               <div className="space-y-1 p-3">
                 {isOwnProfile ? (
                   <>
-                    <button
-                      className="w-full text-center px-4 py-2 text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                      onClick={(e) => { 
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setIsEditModalOpen(true); 
-                        setProfileMenuOpen(false); 
-                      }}
-                    >
-                      Edit Profile
-                    </button>
                     <button
                       className="w-full text-center px-4 py-2 text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                       onClick={(e) => {
@@ -1115,43 +1098,6 @@ const ProfilePage = () => {
                   </>
                 ) : (
                   <>
-                    {isFollowing ? (
-                      <button
-                        className="w-full text-center px-4 py-2 text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                        onClick={(e) => { 
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleUnfollow(); 
-                          setProfileMenuOpen(false); 
-                        }}
-                      >
-                        Following
-                      </button>
-                    ) : isRequested ? (
-                      <button
-                        className="w-full text-center px-4 py-2 text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                        onClick={(e) => { 
-                          e.preventDefault();
-                          e.stopPropagation();
-                          cancelFollowRequest(profileUser?._id); 
-                          setProfileMenuOpen(false); 
-                        }}
-                      >
-                        Requested
-                      </button>
-                    ) : (
-                      <button
-                        className="w-full text-center px-4 py-2 text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                        onClick={(e) => { 
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleFollow(); 
-                          setProfileMenuOpen(false); 
-                        }}
-                      >
-                        Follow
-                      </button>
-                    )}
                     <button
                       className="w-full text-center px-4 py-2 text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                       onClick={(e) => {
