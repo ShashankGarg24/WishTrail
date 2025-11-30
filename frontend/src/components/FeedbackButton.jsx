@@ -12,8 +12,6 @@ const ScrollLockGuard = () => {
 
 const FeedbackButton = ({ isOpen: controlledOpen, onClose }) => {
   const { isAuthenticated } = useApiStore()
-  if (!isAuthenticated) return null
-
 
   const [internalOpen, setInternalOpen] = useState(false)
   const [title, setTitle] = useState('')
@@ -26,6 +24,8 @@ const FeedbackButton = ({ isOpen: controlledOpen, onClose }) => {
   const [previewUrl, setPreviewUrl] = useState('')
   const MAX_WORDS = 200
   const MAX_TITLE_WORDS = 20
+
+  if (!isAuthenticated) return null
 
   const isControlled = typeof controlledOpen === 'boolean'
   const open = isControlled ? controlledOpen : internalOpen
