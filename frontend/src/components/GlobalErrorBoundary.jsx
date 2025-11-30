@@ -1,14 +1,15 @@
 import React from 'react'
+import ErrorScreen from './ErrorScreen'
 
 function Fallback({ error, resetErrorBoundary }) {
   return (
-    <div className="min-h-screen flex items-center justify-center p-6">
-      <div className="max-w-md w-full text-center bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 shadow">
-        <div className="text-2xl font-semibold text-gray-900 dark:text-white mb-2">Something went wrong</div>
-        <div className="text-sm text-gray-500 dark:text-gray-400 mb-4 truncate">{error?.message || 'An unexpected error occurred.'}</div>
-        <button onClick={resetErrorBoundary} className="btn-primary">Try again</button>
-      </div>
-    </div>
+    <ErrorScreen 
+      type="generic"
+      message={error?.message || 'An unexpected error occurred.'}
+      showHomeButton={true}
+      showRetryButton={true}
+      onRetry={resetErrorBoundary}
+    />
   )
 }
 

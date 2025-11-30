@@ -5,6 +5,7 @@ import Header from './components/Header'
 import ScrollMemory from './components/ScrollMemory'
 import BottomTabBar from './components/BottomTabBar'
 import Footer from './components/Footer'
+import { configService } from './services/configService'
 const HomePage = lazy(() => import('./pages/HomePage'))
 const AuthPage = lazy(() => import('./pages/AuthPage'))
 const DashboardPage = lazy(() => import('./pages/DashboardPage'))
@@ -18,6 +19,12 @@ const CommunitiesPage = lazy(() => import('./pages/CommunitiesPage'))
 const CommunityDetailPage = lazy(() => import('./pages/CommunityDetailPage'))
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'))
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
+const MaintenancePage = lazy(() => import('./pages/MaintenancePage'))
+const GenericErrorPage = lazy(() => import('./pages/GenericErrorPage'))
+const NetworkErrorPage = lazy(() => import('./pages/NetworkErrorPage'))
+const ServerErrorPage = lazy(() => import('./pages/ServerErrorPage'))
+const PermissionErrorPage = lazy(() => import('./pages/PermissionErrorPage'))
+const AuthExpiredPage = lazy(() => import('./pages/AuthExpiredPage'))
 import { SpeedInsights } from '@vercel/speed-insights/react';
 const FeedbackButton = lazy(() => import('./components/FeedbackButton'))
 const SettingsPage = lazy(() => import('./pages/SettingsPage'))
@@ -27,6 +34,23 @@ function App() {
   const location = useLocation()
   const navigate = useNavigate()
   const [inNativeApp, setInNativeApp] = useState(false)
+  const [maintenanceMode, setMaintenanceMode] = useState(null)
+  const [maintenanceMessage, setMaintenanceMessage] = useState('')
+
+  // Check maintenance mode on app load
+  useEffect(() => {
+    const checkMaintenance = async () => {
+      try {
+        const { isMaintenanceMode, message } = await configService.checkMaintenanceMode()
+        setMaintenanceMode(isMaintenanceMode)
+        setMaintenanceMessage(message)
+      } catch (error) {
+        console.error('Failed to check maintenance mode:', error)
+        setMaintenanceMode(false)
+      }
+    }
+    checkMaintenance()
+  }, [])
 
   useEffect(() => {
     // Initialize authentication state
@@ -65,6 +89,20 @@ function App() {
     } catch { }
   }, [])
 
+  // Show maintenance page if maintenance mode is enabled
+  if (maintenanceMode === null) {
+    // Still checking maintenance status
+    return null
+  }
+
+  if (maintenanceMode) {
+    return (
+      <Suspense fallback={null}>
+        <MaintenancePage message={maintenanceMessage} />
+      </Suspense>
+    )
+  }
+
   return (
     <div className="flex flex-col min-h-screen bg-white dark:bg-gray-900 transition-colors duration-300">
       {/* Background Elements */}
@@ -94,6 +132,12 @@ function App() {
             {isFeatureEnabled('community') && <Route path="/communities/:id" element={<Suspense fallback={null}><CommunityDetailPage /></Suspense>} />}
             {/* Goal deeplink opens modal within feed/discover */}
             <Route path="/goal/:goalId" element={<Suspense fallback={null}><FeedPage /></Suspense>} />
+            {/* Error pages */}
+            <Route path="/error/generic" element={<Suspense fallback={null}><GenericErrorPage /></Suspense>} />
+            <Route path="/error/network" element={<Suspense fallback={null}><NetworkErrorPage /></Suspense>} />
+            <Route path="/error/500" element={<Suspense fallback={null}><ServerErrorPage /></Suspense>} />
+            <Route path="/error/permission" element={<Suspense fallback={null}><PermissionErrorPage /></Suspense>} />
+            <Route path="/error/auth" element={<Suspense fallback={null}><AuthExpiredPage /></Suspense>} />
             <Route path="*" element={<Suspense fallback={null}><NotFoundPage /></Suspense>} />
           </Routes>
         </main>

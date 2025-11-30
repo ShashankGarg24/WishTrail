@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WishTrail Error Screens Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin-bottom: 40px;
+        }
+        .section h2 {
+            color: #667eea;
+            font-size: 18px;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+        .button-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+        }
+        button {
+            padding: 15px 20px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: left;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        .error-btn {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+        .maintenance-btn {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+        }
+        .test-btn {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            color: white;
+        }
+        .info {
+            background: #f0f4ff;
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+            margin-bottom: 20px;
+        }
+        .code {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            overflow-x: auto;
+            margin-top: 10px;
+        }
+        .emoji {
+            font-size: 24px;
+            margin-right: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 WishTrail Error Screens Tester</h1>
+        <p class="subtitle">Click any button to open the corresponding screen in a new tab</p>
+
+        <div class="info">
+            <strong>📝 Note:</strong> Make sure your frontend is running on <code>http://localhost:5173</code>
+        </div>
+
+        <div class="section">
+            <h2>🚨 Error Screens</h2>
+            <div class="button-grid">
+                <button class="error-btn" onclick="openUrl('/error/generic')">
+                    <span class="emoji">⚠️</span> Generic Error
+                </button>
+                <button class="error-btn" onclick="openUrl('/error/network')">
+                    <span class="emoji">📡</span> Network Error
+                </button>
+                <button class="error-btn" onclick="openUrl('/error/500')">
+                    <span class="emoji">💥</span> Server Error (500)
+                </button>
+                <button class="error-btn" onclick="openUrl('/error/permission')">
+                    <span class="emoji">🔒</span> Permission Error
+                </button>
+                <button class="error-btn" onclick="openUrl('/error/auth')">
+                    <span class="emoji">🚪</span> Auth Expired
+                </button>
+                <button class="error-btn" onclick="openUrl('/invalid-page-test-404')">
+                    <span class="emoji">🔍</span> 404 Not Found
+                </button>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🔧 Maintenance Mode</h2>
+            <div class="info">
+                To test maintenance mode, run this in MongoDB:
+                <div class="code">
+db.configs.insertOne({
+  key: "maintenance_mode",
+  value: true,
+  description: "Testing",
+  createdAt: new Date(),
+  updatedAt: new Date()
+})
+                </div>
+                Then reload your app. To disable:
+                <div class="code">
+db.configs.deleteOne({ key: "maintenance_mode" })
+                </div>
+            </div>
+            <div class="button-grid">
+                <button class="maintenance-btn" onclick="openMaintenance()">
+                    <span class="emoji">🛠️</span> Enable Maintenance
+                </button>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🧪 Quick Tests</h2>
+            <div class="button-grid">
+                <button class="test-btn" onclick="testDarkMode()">
+                    <span class="emoji">🌓</span> Toggle Dark Mode
+                </button>
+                <button class="test-btn" onclick="openAll()">
+                    <span class="emoji">🎯</span> Open All Errors
+                </button>
+                <button class="test-btn" onclick="testResponsive()">
+                    <span class="emoji">📱</span> Responsive Test
+                </button>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>📋 Checklist</h2>
+            <label style="display: block; margin: 10px 0;">
+                <input type="checkbox"> All error screens load correctly
+            </label>
+            <label style="display: block; margin: 10px 0;">
+                <input type="checkbox"> Animations are smooth
+            </label>
+            <label style="display: block; margin: 10px 0;">
+                <input type="checkbox"> Dark mode works on all screens
+            </label>
+            <label style="display: block; margin: 10px 0;">
+                <input type="checkbox"> Buttons navigate correctly
+            </label>
+            <label style="display: block; margin: 10px 0;">
+                <input type="checkbox"> Responsive on mobile devices
+            </label>
+            <label style="display: block; margin: 10px 0;">
+                <input type="checkbox"> Maintenance mode displays properly
+            </label>
+        </div>
+    </div>
+
+    <script>
+        const baseUrl = 'http://localhost:5173';
+
+        function openUrl(path) {
+            window.open(baseUrl + path, '_blank');
+        }
+
+        function openMaintenance() {
+            alert('To enable maintenance mode:\n\n1. Open MongoDB shell\n2. Run: use wishtrail\n3. Run: db.configs.insertOne({key:"maintenance_mode",value:true,createdAt:new Date(),updatedAt:new Date()})\n4. Reload your app\n\nTo disable: db.configs.deleteOne({key:"maintenance_mode"})');
+        }
+
+        function testDarkMode() {
+            const win = window.open(baseUrl + '/error/generic', '_blank');
+            setTimeout(() => {
+                if (win) {
+                    win.document.documentElement.classList.toggle('dark');
+                }
+            }, 1000);
+        }
+
+        function openAll() {
+            const paths = [
+                '/error/generic',
+                '/error/network',
+                '/error/500',
+                '/error/permission',
+                '/error/auth',
+                '/invalid-page-404'
+            ];
+            
+            if (confirm('This will open 6 tabs. Continue?')) {
+                paths.forEach((path, index) => {
+                    setTimeout(() => openUrl(path), index * 200);
+                });
+            }
+        }
+
+        function testResponsive() {
+            alert('To test responsive design:\n\n1. Open any error page\n2. Press F12 (DevTools)\n3. Click device toggle (Ctrl+Shift+M)\n4. Select different devices\n5. Check layout on each screen size');
+        }
+    </script>
+</body>
+</html>

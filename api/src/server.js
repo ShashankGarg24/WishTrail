@@ -104,6 +104,9 @@ const createApp = async () => {
   app.use(cookieParser());
   app.use('/uploads', express.static('src/uploads'));
 
+  // Maintenance mode check
+  app.use(require('./middleware/maintenanceMode'));
+
   const apiRouter = express.Router();
 
   apiRouter.get('/health', (req, res) => {
@@ -135,6 +138,8 @@ const createApp = async () => {
   apiRouter.use('/communities', require('./routes/communityRoutes'));
   // Feature flags
   apiRouter.use('/features', require('./routes/featureFlagRoutes'));
+  // Config management
+  apiRouter.use('/config', require('./routes/configRoutes'));
   // Cron endpoints for serverless environments; protect with CRON_SECRET
   apiRouter.use('/cron', require('./routes/cronRoutes'));
 

@@ -8,6 +8,7 @@ Complete documentation of all database schemas for the WishTrail application.
 |--------|---------|-------------|----------|
 | **User** | User management, authentication, gamification | `users` | ✅ Core |
 | **Goal** | Goal management, progress tracking, points | `goals` | ✅ Core |
+| **Config** | System-wide configuration, maintenance mode | `configs` | ✅ Core |
 | **Activity** | Activity feeds, user timeline | `activities` | 🔥 High |
 | **Follow** | Social relationships, following system | `follows` | 🔥 High |
 | **Like** | Content engagement, likes system | `likes` | 🔥 High |
@@ -147,9 +148,51 @@ Complete documentation of all database schemas for the WishTrail application.
 
 ---
 
+### **3. Config Schema**
+
+**Collection**: `configs`  
+**Purpose**: System-wide configuration, feature flags, maintenance mode
+
+```javascript
+{
+  // === IDENTITY ===
+  key: String (required, unique, lowercase, indexed)
+  
+  // === VALUE ===
+  value: Mixed (required, any type)
+  
+  // === METADATA ===
+  description: String (default: '')
+  updatedBy: ObjectId ref User
+  
+  timestamps: true
+}
+```
+
+**Key Indexes**:
+- `{ key: 1 }` (unique)
+
+**Key Methods**:
+- `getValue(key, defaultValue)` - Static get config value
+- `setValue(key, value, updatedBy, description)` - Static set config value
+- `isMaintenanceMode()` - Static check maintenance mode
+
+**Common Config Keys**:
+- `maintenance_mode` - Boolean for system maintenance
+- `feature_*` - Feature flags (e.g., `feature_communities`)
+- `system_*` - System settings (e.g., `system_max_goals_per_user`)
+
+**Use Cases**:
+- ✅ Maintenance mode control
+- ✅ Feature flag management
+- ✅ System-wide settings
+- ✅ Dynamic configuration without deployment
+
+---
+
 ## 🔥 **HIGH PRIORITY SCHEMAS**
 
-### **3. Activity Schema**
+### **4. Activity Schema**
 
 **Collection**: `activities`  
 **Purpose**: Activity feeds, user timeline, social engagement
@@ -198,7 +241,7 @@ Complete documentation of all database schemas for the WishTrail application.
 
 ---
 
-### **4. Follow Schema**
+### **5. Follow Schema**
 
 **Collection**: `follows`  
 **Purpose**: Social relationships, following system
@@ -232,7 +275,7 @@ Complete documentation of all database schemas for the WishTrail application.
 
 ---
 
-### **5. Like Schema**
+### **6. Like Schema**
 
 **Collection**: `likes`  
 **Purpose**: Content engagement, likes system
