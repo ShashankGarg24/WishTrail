@@ -352,16 +352,30 @@ const FeedPage = () => {
         )}
 
         {/* Stories bar: inspiring + trending goals */}
-        <div className="mb-2">
-          <div className="relative">
-            <div className="flex gap-1 overflow-x-auto no-scrollbar pr-12 items-start">
-              {/* Explore pill at the end (but visually kept in view with sticky gradient) */}
+        <div className="mb-6">
+          <div className="mb-3 flex items-center justify-between px-1">
+            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+              <span className="text-lg">🌟</span>
+              Trending Goals
+            </h3>
+            {!storiesLoading && stories.length > 0 && (
+              <button
+                onClick={() => navigate('/discover?tab=discover&mode=goals')}
+                className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors flex items-center gap-1"
+              >
+                See All
+                <ArrowRightCircle className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+          <div className="relative bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-4 shadow-sm overflow-hidden">
+            <div className="flex gap-8 overflow-x-auto no-scrollbar pr-12 pl-3 py-2 items-start pb-1">
               {storiesLoading && (
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-6">
                   {[...Array(6)].map((_, i) => (
-                    <div key={i} className="flex flex-col items-center gap-2">
+                    <div key={i} className="flex flex-col items-center gap-2 shrink-0">
                       <div className="h-16 w-16 rounded-full bg-gray-200 dark:bg-gray-800 animate-pulse" />
-                      <div className="h-2 w-14 rounded bg-gray-200 dark:bg-gray-800 animate-pulse" />
+                      <div className="h-3 w-14 rounded bg-gray-200 dark:bg-gray-800 animate-pulse" />
                     </div>
                   ))}
                 </div>
@@ -370,43 +384,57 @@ const FeedPage = () => {
                 <button
                   key={g._id || idx}
                   onClick={() => g._id && openGoalModal(g._id)}
-                  className="group relative shrink-0 w-20 focus:outline-none flex flex-col items-center justify-start"
+                  className="group relative shrink-0 w-[72px] focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-2xl p-2 -m-2 transition-all duration-200 hover:bg-gray-50 dark:hover:bg-gray-800/50"
                   title={g.title}
                   aria-label={`Open goal ${g.title}`}
                 >
-                  <div className={`relative mx-auto h-16 w-16 rounded-full p-[2px] bg-gradient-to-br ${getCategoryGradient(g.category)} transition-transform duration-200 group-hover:scale-105 mb-1`}>
-                    <div className="h-full w-full rounded-full bg-white dark:bg-gray-900 p-[2px]">
-                      <img
-                        src={g.user?.avatar || '/api/placeholder/40/40'}
-                        alt={g.user?.name || 'User'}
-                        className="h-full w-full rounded-full object-cover" />
+                  <div className="flex flex-col items-center justify-start gap-2">
+                    <div className={`relative h-16 w-16 rounded-full p-[3px] bg-gradient-to-br ${getCategoryGradient(g.category)} transition-all duration-200 group-hover:scale-110 group-hover:shadow-lg`}>
+                      <div className="h-full w-full rounded-full bg-white dark:bg-gray-900 p-[3px]">
+                        <img
+                          src={g.user?.avatar || '/api/placeholder/40/40'}
+                          alt={g.user?.name || 'User'}
+                          className="h-full w-full rounded-full object-cover" 
+                        />
+                      </div>
+                      {/* Hover overlay with user name */}
+                      <div className="absolute inset-0 rounded-full bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-end justify-center pb-1.5">
+                        <span className="text-[9px] font-medium text-white truncate px-2 max-w-full">
+                          {g.user?.name || 'User'}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                  <div className="mt-2 w-full text-center">
-                    <div className="h-[28px] overflow-hidden leading-[14px]">
-                      <div className="text-[11px] text-gray-800 dark:text-gray-200 leading-[14px] line-clamp-1">
+                    <div className="w-full text-center">
+                      <div className="text-xs font-medium text-gray-800 dark:text-gray-200 leading-tight line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                         {g.title}
                       </div>
                     </div>
                   </div>
                 </button>
               ))}
-              {/* Explore shortcut */}
-              <button
-                onClick={() => navigate('/discover?tab=discover&mode=goals')}
-                className="group shrink-0 w-20 focus:outline-none"
-                title="Explore goals"
-                aria-label="Explore goals"
-              >
-                <div className="relative mx-auto h-16 w-16 rounded-full p-[2px] bg-gradient-to-br from-blue-500 via-sky-500 to-cyan-400 transition-transform duration-200 group-hover:scale-105">
-                  <div className="h-full w-full rounded-full bg-white dark:bg-gray-900 flex items-center justify-center">
-                    <ArrowRightCircle className="h-7 w-7 text-blue-600 dark:text-blue-300" />
+              {/* Explore shortcut - always visible */}
+              {!storiesLoading && (
+                <button
+                  onClick={() => navigate('/discover?tab=discover&mode=goals')}
+                  className="group shrink-0 w-[72px] focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-2xl p-2 -m-2 transition-all duration-200 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                  title="Explore more goals"
+                  aria-label="Explore more goals"
+                >
+                  <div className="flex flex-col items-center justify-start gap-2">
+                    <div className="relative h-16 w-16 rounded-full p-[3px] bg-gradient-to-br from-blue-500 via-sky-500 to-cyan-400 transition-all duration-200 group-hover:scale-110 group-hover:shadow-lg">
+                      <div className="h-full w-full rounded-full bg-white dark:bg-gray-900 flex items-center justify-center">
+                        <ArrowRightCircle className="h-7 w-7 text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform" />
+                      </div>
+                    </div>
+                    <div className="text-xs font-semibold text-blue-600 dark:text-blue-400 group-hover:text-blue-700 dark:group-hover:text-blue-300 transition-colors">
+                      Explore
+                    </div>
                   </div>
-                </div>
-                <div className="mt-2 text-[11px] text-center text-blue-600 dark:text-blue-300 font-medium">Explore</div>
-              </button>
+                </button>
+              )}
             </div>
-            <div className="pointer-events-none absolute right-0 top-0 h-full w-12 bg-gradient-to-l from-white/90 dark:from-gray-900/90 to-transparent rounded-r-2xl" />
+            {/* Fade gradient on right edge */}
+            <div className="pointer-events-none absolute right-0 top-0 h-full w-16 bg-gradient-to-l from-white dark:from-gray-900 via-white/80 dark:via-gray-900/80 to-transparent rounded-r-2xl" />
           </div>
         </div>
 
