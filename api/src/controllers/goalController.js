@@ -33,7 +33,10 @@ const Goal = require('../models/Goal');
 const CommunityItem = require('../models/CommunityItem');
 const User = require('../models/User');
 const Activity = require('../models/Activity');
+const ActivityComment = require('../models/ActivityComment');
 const Like = require('../models/Like');
+const Habit = require('../models/Habit');
+const CommunityActivity = require('../models/CommunityActivity');
 const { createCanvas, loadImage, registerFont } = require('canvas');
 const Notification = require('../models/Notification');
 const path = require('path');
@@ -457,40 +460,171 @@ const updateGoal = async (req, res, next) => {
 // @route   DELETE /api/v1/goals/:id
 // @access  Private
 const deleteGoal = async (req, res, next) => {
+  const session = await mongoose.startSession();
+  
   try {
-    const session = await mongoose.startSession();
-    let goal = await Goal.findById(req.params.id);
-    if (!goal) {
-      return res.status(404).json({
-        success: false,
-        message: 'Goal not found'
-      });
-    }
-    // Check ownership
-    if (goal.userId.toString() !== req.user.id.toString()) {
-      return res.status(403).json({
-        success: false,
-        message: 'Access denied'
-      });
-    }
-    // Don't allow deleting completed goals
-    if (goal.completed) {
-      return res.status(400).json({
-        success: false,
-        message: 'Cannot delete completed goals'
-      });
-    }
+    // withTransaction automatically handles commit/abort
     await session.withTransaction(async () => {
-      await Goal.deleteOne({ _id: req.params.id }, { session });
-      await User.updateOne({ _id: req.user.id }, { $inc: { totalGoals: -1 } }, { session });
+      // 1. Find and validate goal
+      const goal = await Goal.findById(req.params.id).session(session);
+      if (!goal) {
+        throw new Error('Goal not found');
+      }
+      
+      // Check ownership
+      if (goal.userId.toString() !== req.user.id.toString()) {
+        throw new Error('Access denied');
+      }
+
+      const goalId = goal._id;
+      const userId = goal.userId;
+      const wasCompleted = goal.completed;
+      const pointsEarned = goal.pointsEarned || 0;
+
+      // 2. Delete all activities related to this goal
+      const deletedActivities = await Activity.find({ 'data.goalId': goalId })
+        .select('_id')
+        .session(session)
+        .lean();
+      const activityIds = deletedActivities.map(a => a._id);
+
+      if (activityIds.length > 0) {
+        // Delete activities
+        await Activity.deleteMany({ _id: { $in: activityIds } }, { session });
+        
+        // Delete comments on these activities
+        await ActivityComment.deleteMany({ activityId: { $in: activityIds } }, { session });
+        
+        // Delete likes on these activities
+        await Like.deleteMany({ 
+          targetType: 'activity', 
+          targetId: { $in: activityIds } 
+        }, { session });
+      }
+
+      // 3. Delete likes on the goal itself
+      await Like.deleteMany({ 
+        targetType: 'goal', 
+        targetId: goalId 
+      }, { session });
+
+      // 4. Delete notifications related to this goal
+      await Notification.deleteMany({ 
+        'data.goalId': goalId 
+      }, { session });
+
+      // 5. Unlink habits (keep habits, just remove goalId reference)
+      await Habit.updateMany(
+        { goalId: goalId },
+        { $unset: { goalId: 1 } },
+        { session }
+      );
+
+      // 6. Remove this goal from other goals' subGoals (unlink, don't delete parent goals)
+      await Goal.updateMany(
+        { 'subGoals.linkedGoalId': goalId },
+        { $pull: { subGoals: { linkedGoalId: goalId } } },
+        { session }
+      );
+
+      // 7. Handle community-related cleanup
+      // If this is a community mirror goal, just delete it (don't affect source)
+      // If this is a source goal for community, deactivate community mirrors
+      if (goal.isCommunitySource) {
+        // This is a source goal - deactivate all mirrors
+        await Goal.updateMany(
+          { 'communityInfo.sourceId': goalId },
+          { $set: { isActive: false } },
+          { session }
+        );
+        
+        // Deactivate community items that reference this goal
+        await CommunityItem.updateMany(
+          { type: 'goal', sourceId: goalId },
+          { $set: { isActive: false } },
+          { session }
+        );
+      }
+      // If it's a mirror, we just delete it (handled by Goal.deleteOne below)
+
+      // 8. Delete community activities related to this goal
+      await CommunityActivity.deleteMany({ 
+        'data.goalId': goalId 
+      }, { session });
+
+      // 9. Update user statistics
+      const userUpdate = {
+        $inc: { 
+          totalGoals: -1,
+          ...(wasCompleted && { completedGoals: -1 }),
+          ...(wasCompleted && pointsEarned > 0 && { totalPoints: -pointsEarned })
+        }
+      };
+
+      // Clean up daily completions if goal was completed
+      if (wasCompleted && goal.completedAt) {
+        const dateKey = new Date(goal.completedAt).toISOString().split('T')[0];
+        const pullKey = `dailyCompletions.${dateKey}`;
+        await User.updateOne(
+          { _id: userId },
+          { 
+            ...userUpdate,
+            $pull: { [pullKey]: { goalId: goalId } }
+          },
+          { session }
+        );
+      } else {
+        await User.updateOne({ _id: userId }, userUpdate, { session });
+      }
+
+      // 10. Delete the goal itself (hard delete)
+      await Goal.deleteOne({ _id: goalId }, { session });
     });
+
+    // Transaction completed successfully
     session.endSession();
+
+    // 11. Invalidate caches
+    try {
+      const cacheService = require('../services/cacheService');
+      await cacheService.invalidateTrendingGoals();
+      await cacheService.invalidatePattern('goals:*');
+      await cacheService.invalidatePattern('user:*');
+    } catch (cacheError) {
+      console.error('Cache invalidation error:', cacheError);
+    }
 
     res.status(200).json({
       success: true,
       message: 'Goal deleted successfully'
     });
   } catch (error) {
+    // withTransaction already handled abort, just end session
+    session.endSession();
+    
+    // Handle specific error types
+    if (error.message === 'Goal not found') {
+      return res.status(404).json({
+        success: false,
+        message: error.message
+      });
+    }
+    if (error.message === 'Access denied') {
+      return res.status(403).json({
+        success: false,
+        message: error.message
+      });
+    }
+    
+    // Handle MongoDB encryption key errors
+    if (error.code === 211 || error.codeName === 'KeyNotFound') {
+      console.error('MongoDB encryption key error:', error.message);
+      return res.status(500).json({
+        success: false,
+        message: 'Database connection error. Please try again in a few moments.'
+      });
+    }
+    
     next(error);
   }
 };
@@ -577,25 +711,14 @@ const toggleGoalCompletion = async (req, res, next) => {
       } catch (_) { }
 
       if (goal.completed) {
-        // UNCOMPLETE
-        const prevCompletedAt = goal.completedAt ? new Date(goal.completedAt) : null;
-        const prevDayKey = prevCompletedAt ? prevCompletedAt.toISOString().split('T')[0] : todayKey;
-        const prevPoints = goal.pointsEarned || 0;
-
-        await Goal.updateOne({ _id: goal._id, completed: true }, {
-          $set: {
-            completed: false,
-            completedAt: null,
-            completionNote: '',
-            pointsEarned: 0,
-            shareCompletionNote: true,
-            completionAttachmentUrl: ''
-          }
-        }, { session });
-
-        await User.updateOne({ _id: user._id }, { $inc: { completedGoals: -1, totalPoints: -prevPoints } }, { session });
-        const pullKey = `dailyCompletions.${prevDayKey}`;
-        await User.updateOne({ _id: user._id }, { $pull: { [pullKey]: { goalId: goal._id } } }, { session });
+        // UNCOMPLETE - BLOCKED
+        // Prevent uncompleting goals - once completed, goals cannot be undone
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Completed goals cannot be uncompleted' 
+        });
 
         await Activity.deleteOne({ userId: user._id, type: 'goal_completed', 'data.goalId': goal._id }).session(session);
 

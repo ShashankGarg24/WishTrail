@@ -234,7 +234,8 @@ class GoalService {
   }
   
   /**
-   * Delete a goal
+   * Delete a goal (Hard delete with cascading cleanup)
+   * Note: This method is kept for compatibility but main logic is in goalController
    */
   async deleteGoal(goalId, userId) {
     const goal = await Goal.findById(goalId);
@@ -248,10 +249,15 @@ class GoalService {
       throw new Error('Access denied');
     }
     
-    // Soft delete
-    goal.isActive = false;
-    await goal.save();
-    try { await cacheService.invalidateTrendingGoals(); } catch (_) {}
+    // Note: Full cascading delete is handled in goalController with transaction
+    // This method is kept for service-level calls if needed
+    await Goal.deleteOne({ _id: goalId });
+    
+    try { 
+      await cacheService.invalidateTrendingGoals(); 
+      await cacheService.invalidatePattern('goals:*');
+      await cacheService.invalidatePattern('user:*');
+    } catch (_) {}
     
     return { message: 'Goal deleted successfully' };
   }
@@ -369,19 +375,8 @@ class GoalService {
     }
     
     if (goal.completed) {
-      // Uncomplete the goal
-      goal.completed = false;
-      goal.completedAt = null;
-      goal.completionNote = null;
-      goal.completionProof = null;
-      
-      // Deduct points from user
-      const user = await User.findById(userId);
-      if (user) {
-        user.totalPoints = Math.max(0, (user.totalPoints || 0) - goal.pointsEarned);
-        user.completedGoals = Math.max(0, (user.completedGoals || 0) - 1);
-        await user.save();
-      }
+      // Prevent uncompleting goals - once completed, goals cannot be undone
+      throw new Error('Completed goals cannot be uncompleted');
     } else {
       // Complete the goal
       return await this.completeGoal(goalId, userId);

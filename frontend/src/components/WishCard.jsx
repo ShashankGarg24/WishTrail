@@ -7,6 +7,7 @@ const CompletionModal = lazy(() => import('./CompletionModal'));
 const ShareModal = lazy(() => import('./ShareModal'));
 const GoalDivisionEditor = lazy(() => import('./GoalDivisionEditor'));
 const CreateGoalWizard = lazy(() => import('./CreateGoalWizard'));
+const DeleteConfirmModal = lazy(() => import('./DeleteConfirmModal'));
 
 const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewingOwnGoals = true, onOpenGoal, footer, isReadOnly = false }) => {
   const { 
@@ -23,13 +24,12 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
   const [isShareModalOpen, setIsShareModalOpen] = useState(false)
   const [isDivisionOpen, setIsDivisionOpen] = useState(false)
   const [isEditWizardOpen, setIsEditWizardOpen] = useState(false)
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
 
   const handleToggle = () => {
     if (wish.completed) {
-      // Show confirmation before uncompleting
-      if (window.confirm('Are you sure you want to mark this goal as incomplete? This will remove your completion note and achievements.')) {
-        onToggle?.(wish._id)
-      }
+      // Completed goals cannot be uncompleted
+      return;
     } else if (wish.isLocked) {
       return;
     } else {
@@ -49,14 +49,16 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
   }
 
   const handleDelete = () => {
-    if (window.confirm('Are you sure you want to delete this goal?')) {
-      // Use the onDelete prop which properly handles dashboard stats refresh
-      if (onDelete) {
-        onDelete(wish._id)
-      } else {
-        // Fallback to direct call if no onDelete prop provided
-        deleteGoal(wish._id)
-      }
+    setIsDeleteModalOpen(true)
+  }
+
+  const confirmDelete = () => {
+    // Use the onDelete prop which properly handles dashboard stats refresh
+    if (onDelete) {
+      onDelete(wish._id)
+    } else {
+      // Fallback to direct call if no onDelete prop provided
+      deleteGoal(wish._id)
     }
   }
 
@@ -152,14 +154,14 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center space-x-3">
           <button
-            onClick={(e) => { e.stopPropagation(); if (isReadOnly) return; handleToggle(); }}
+            onClick={(e) => { e.stopPropagation(); if (isReadOnly || wish.completed) return; handleToggle(); }}
             className={`flex-shrink-0 transition-colors ${
               (wish.isLocked && !wish.completed) || isReadOnly ? 'cursor-not-allowed' : ''
             }`}
-            disabled={loading || (wish.isLocked && !wish.completed) || isReadOnly}
+            disabled={loading || (wish.isLocked && !wish.completed) || isReadOnly || wish.completed}
             title={
               wish.completed 
-                  ? 'Mark as incomplete' 
+                  ? 'Goal completed permanently' 
                 : wish.isLocked 
                   ? (() => {
                       const ms = typeof wish.timeUntilCanComplete === 'number' ? wish.timeUntilCanComplete : (wish.canCompleteAfter ? (new Date(wish.canCompleteAfter) - new Date()) : 0)
@@ -453,6 +455,16 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
           onClose={() => setIsShareModalOpen(false)}
           goal={wish}
           user={user}
+        /></Suspense>,
+        document.body
+      )}
+      {/* Delete Confirm Modal - Rendered at document body level */}
+      {isDeleteModalOpen && createPortal(
+        <Suspense fallback={null}><DeleteConfirmModal
+          isOpen={isDeleteModalOpen}
+          onClose={() => setIsDeleteModalOpen(false)}
+          onConfirm={confirmDelete}
+          goalTitle={wish.title}
         /></Suspense>,
         document.body
       )}
