@@ -700,50 +700,40 @@ const DashboardPage = () => {
             {/* Habits List (cards like goals) */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.4 }}>
               {Array.isArray(habits) && habits.filter(h => !h.isCommunitySource && !h.communityInfo).length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                   {habits.filter(h => !h.isCommunitySource && !h.communityInfo).map((h, idx) => (
                     <div
                       key={h._id || idx}
                       onClick={() => setSelectedHabit(h)}
-                      className="glass-card-hover p-5 rounded-2xl border border-gray-200 dark:border-gray-800 flex flex-col gap-2 cursor-pointer"
+                      className="group glass-card-hover p-6 rounded-2xl border border-gray-200 dark:border-gray-800 cursor-pointer hover:border-primary-300 dark:hover:border-primary-700 transition-all duration-200"
                     >
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="font-semibold text-gray-900 dark:text-white truncate" title={h.name}>{h.name}</div>
-                          {h.description && <div className="text-sm text-gray-600 dark:text-gray-400 truncate" title={h.description}>{h.description}</div>}
-                        </div>
-                        <div className="text-xs px-2 py-0.5 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 whitespace-nowrap">
-                          {frequencyLabel(h)}
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400">
-                        <div className="flex items-center gap-4">
-                          <span>🔥 {h.currentStreak || 0} / Best {h.longestStreak || 0}</span>
-                          <span>✅ {h.totalCompletions || 0}</span>
+                      {/* Header */}
+                      <div className="flex items-start justify-between gap-3 mb-4">
+                        <div className="min-w-0 flex-1">
+                          <h3 className="font-semibold text-lg text-gray-900 dark:text-white truncate mb-1" title={h.name}>{h.name}</h3>
+                          {h.description && (
+                            <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2" title={h.description}>{h.description}</p>
+                          )}
                         </div>
                         {isScheduledToday(h) ? (
-                          <div className="inline-flex items-center gap-1 text-orange-600" title="Scheduled today">
-                            <Clock className="h-4 w-4" /> Today
+                          <div className="flex items-center gap-1 text-xs font-medium text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-2.5 py-1 rounded-full whitespace-nowrap">
+                            <Clock className="h-3.5 w-3.5" /> Today
                           </div>
                         ) : (
-                          <div className="inline-flex items-center gap-1 text-gray-500" title="Not scheduled today">
-                            <Clock className="h-4 w-4" /> Not today
+                          <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-500 bg-gray-100 dark:bg-gray-800 px-2.5 py-1 rounded-full whitespace-nowrap">
+                            <Clock className="h-3.5 w-3.5" /> Off
                           </div>
                         )}
                       </div>
-                      <div className="flex items-center justify-end gap-2 pt-2">
-                        <button
-                          onClick={async (e) => { e.stopPropagation(); handleStatusToast('skipped'); try { await logHabit(h._id, 'skipped'); } catch { } }}
-                          className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-white text-sm ${isScheduledToday(h) ? 'bg-yellow-600/90 hover:bg-yellow-600' : 'bg-gray-300 dark:bg-gray-700 cursor-not-allowed'}`}
-                        >
-                          <SkipForward className="h-4 w-4" /> Skip
-                        </button>
-                        <button
-                          onClick={async (e) => { e.stopPropagation(); handleStatusToast('done'); try { await logHabit(h._id, 'done'); } catch { } }}
-                          className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-white text-sm ${isScheduledToday(h) ? 'bg-green-600/90 hover:bg-green-600' : 'bg-gray-300 dark:bg-gray-700 cursor-not-allowed'}`}
-                        >
-                          <CheckCircle className="h-4 w-4" /> Done
-                        </button>
+
+                      {/* Frequency Badge */}
+                      <div className="flex items-center justify-between">
+                        <div className="text-xs px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium">
+                          {frequencyLabel(h)}
+                        </div>
+                        <div className="text-xs text-primary-600 dark:text-primary-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                          Click for details →
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -753,62 +743,58 @@ const DashboardPage = () => {
               )}
             </motion.div>
 
-            {/* Community Habits Section (use same habit card UI) */}
-            <div className="mt-10">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Community habits</h3>
+            {/* Community Habits Section */}
+            <div className="mt-12">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Community Habits</h3>
+                {(habits || []).filter(h => h.communityInfo).length > 0 && (
+                  <a href="/discover?tab=communities" className="text-sm text-primary-600 dark:text-primary-400 hover:underline">
+                    Discover more →
+                  </a>
+                )}
+              </div>
               {(habits || []).filter(h => h.communityInfo).length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                   {(habits || []).filter(h => h.communityInfo).map((h, idx) => {
                     return (
-                      <div key={h._id} className="relative group bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-6 hover:shadow-lg transition-all duration-300">
-                        <div className="flex items-start justify-between mb-4">
+                      <div key={h._id} onClick={() => setSelectedHabit(h)} className="group glass-card-hover p-6 rounded-2xl border border-gray-200 dark:border-gray-800 cursor-pointer hover:border-primary-300 dark:hover:border-primary-700 transition-all duration-200">
+                        {/* Header with community badge */}
+                        <div className="flex items-start justify-between gap-3 mb-4">
                           <div className="min-w-0 flex-1">
-                            <h3 className="font-semibold text-gray-900 dark:text-white truncate">{h.name}</h3>
-                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{frequencyLabel(h)}</p>
+                            <div className="flex items-center gap-2 mb-1">
+                              <h3 className="font-semibold text-lg text-gray-900 dark:text-white truncate" title={h.name}>{h.name}</h3>
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 font-medium">Community</span>
+                            </div>
                             {h.description && (
-                              <p className="text-xs text-gray-500 dark:text-gray-500 mt-2 line-clamp-2">{h.description}</p>
+                              <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2" title={h.description}>{h.description}</p>
                             )}
                           </div>
-                          <div className="text-right">
-                            <div className="text-lg font-bold text-primary-600 dark:text-primary-400">{h.currentStreak || 0}</div>
-                            <div className="text-xs text-gray-500">current streak</div>
-                          </div>
                         </div>
-                        <div className="flex items-center justify-end gap-2 pt-2">
-                          <button
-                            onClick={async (e) => { e.stopPropagation(); handleStatusToast('skipped'); try { await logHabit(h._id, 'skipped'); } catch { } }}
-                            className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-white text-sm ${isScheduledToday(h) ? 'bg-yellow-600/90 hover:bg-yellow-600' : 'bg-gray-300 dark:bg-gray-700 cursor-not-allowed'}`}
-                            disabled={false}
-                          >
-                            <SkipForward className="h-4 w-4" /> Skip
-                          </button>
-                          <button
-                            onClick={async (e) => { e.stopPropagation(); handleStatusToast('done'); try { await logHabit(h._id, 'done'); } catch { } }}
-                            className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-white text-sm ${isScheduledToday(h) ? 'bg-green-600/90 hover:bg-green-600' : 'bg-gray-300 dark:bg-gray-700 cursor-not-allowed'}`}
-                            disabled={false}
-                          >
-                            <CheckCircle className="h-4 w-4" /> Done
-                          </button>
-                          <a
-                            href={`/communities/${h.communityInfo?.communityId}?tab=items`}
-                            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-primary-500 text-white text-sm"
-                          >
-                            Open community
-                          </a>
+
+                        {/* Frequency and action */}
+                        <div className="flex items-center justify-between">
+                          <div className="text-xs px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium">
+                            {frequencyLabel(h)}
+                          </div>
+                          <div className="text-xs text-primary-600 dark:text-primary-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                            Click for details →
+                          </div>
                         </div>
                       </div>
                     )
                   })}
                 </div>
               ) : (
-                <div className="text-center py-6 text-gray-500 dark:text-gray-400">
-                  <p>No community habits joined yet.</p>
-                  <p className="text-sm">Join community habits to see them here!</p>
+                <div className="glass-card-hover p-8 rounded-2xl text-center">
+                  <div className="text-gray-500 dark:text-gray-400 mb-4">
+                    <p className="font-medium mb-1">No community habits joined yet</p>
+                    <p className="text-sm">Join community habits to track them with others!</p>
+                  </div>
                   <a
                     href="/discover?tab=communities"
-                    className="inline-flex items-center gap-2 mt-3 px-3 py-2 rounded-lg bg-primary-500 text-white hover:bg-primary-600"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary-500 text-white hover:bg-primary-600 transition-colors"
                   >
-                    <Compass className="h-4 w-4" /> Explore communities
+                    <Compass className="h-4 w-4" /> Explore Communities
                   </a>
                 </div>
               )}

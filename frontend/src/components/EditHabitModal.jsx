@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { X, Calendar, Bell, Plus, Minus, Info } from 'lucide-react';
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock';
 
 const dayOptions = [
@@ -64,58 +65,158 @@ export default function EditHabitModal({ isOpen, onClose, habit, onSave }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[102] flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-full max-w-md mx-4 p-6 border border-gray-200 dark:border-gray-800">
-        <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Edit Habit</h3>
-        {error && <div className="text-sm text-red-600 dark:text-red-400 mb-3">{error}</div>}
-        <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="fixed inset-0 z-[102] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white dark:bg-gray-900 rounded-3xl shadow-2xl w-full max-w-2xl border border-gray-200 dark:border-gray-800 max-h-[90vh] overflow-hidden flex flex-col">
+        {/* Header */}
+        <div className="bg-gradient-to-br from-primary-500 to-primary-600 dark:from-primary-600 dark:to-primary-700 px-8 py-6 text-white flex items-center justify-between">
           <div>
-            <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">Name</label>
-            <input value={name} onChange={(e) => setName(e.target.value)} required className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white" />
+            <h3 className="text-2xl font-bold">Edit Habit</h3>
+            <p className="text-sm text-white/80 mt-1">Update your habit details</p>
           </div>
-          <div>
-            <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">Description</label>
-            <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white" />
-          </div>
-          <div>
-            <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">Frequency</label>
-            <select value={frequency} onChange={(e) => setFrequency(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white">
-              <option value="daily">Daily</option>
-              <option value="weekly">Weekly</option>
-              <option value="custom">Custom days</option>
-            </select>
-          </div>
-          {(frequency === 'weekly' || frequency === 'custom') && (
-            <div>
-              <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">Days</label>
-              <div className="flex flex-wrap gap-2">
-                {dayOptions.map(d => (
-                  <button type="button" key={d.value} onClick={() => toggleDay(d.value)} className={`px-3 py-1.5 rounded-full text-sm border ${daysOfWeek.includes(d.value) ? 'bg-blue-500 text-white border-blue-500' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600'}`}>
-                    {d.label}
-                  </button>
-                ))}
+          <button onClick={onClose} className="p-2 rounded-full hover:bg-white/20 transition-colors" aria-label="Close">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto">
+          <div className="px-8 py-6 space-y-6">
+            {error && (
+              <div className="flex items-start gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-700 dark:text-red-300">
+                <Info className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                <span className="text-sm">{error}</span>
+              </div>
+            )}
+
+            {/* Basic Info Section */}
+            <div className="space-y-4">
+              <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Basic Information</h4>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Habit Name <span className="text-red-500">*</span>
+                </label>
+                <input 
+                  value={name} 
+                  onChange={(e) => setName(e.target.value)} 
+                  placeholder="e.g., Morning meditation, Exercise, Read before bed"
+                  required 
+                  className="w-full px-4 py-3 rounded-xl border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-primary-500 dark:focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-colors" 
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Description (optional)</label>
+                <textarea 
+                  value={description} 
+                  onChange={(e) => setDescription(e.target.value)} 
+                  placeholder="Add any notes or motivation for this habit"
+                  rows={3} 
+                  className="w-full px-4 py-3 rounded-xl border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-primary-500 dark:focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-colors resize-none" 
+                />
               </div>
             </div>
-          )}
-          <div>
-            <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">Reminders</label>
-            <div className="space-y-2">
-              {reminders.map((t, idx) => (
-                <div key={idx} className="flex items-center gap-2">
-                  <input type="time" value={t} onChange={(e) => setReminders(prev => prev.map((v,i) => i===idx ? e.target.value : v))} className="flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white" />
-                  {reminders.length > 1 && (
-                    <button type="button" onClick={() => setReminders(prev => prev.filter((_,i) => i!==idx))} className="px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">Remove</button>
-                  )}
+
+            {/* Schedule Section */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-primary-600 dark:text-primary-400" />
+                <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Schedule</h4>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Frequency <span className="text-red-500">*</span>
+                </label>
+                <select 
+                  value={frequency} 
+                  onChange={(e) => setFrequency(e.target.value)} 
+                  className="w-full px-4 py-3 rounded-xl border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-primary-500 dark:focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-colors"
+                >
+                  <option value="daily">Every day</option>
+                  <option value="weekly">Specific days of the week</option>
+                  <option value="custom">Custom schedule</option>
+                </select>
+              </div>
+
+              {(frequency === 'weekly' || frequency === 'custom') && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Select Days</label>
+                  <div className="flex flex-wrap gap-2">
+                    {dayOptions.map(d => (
+                      <button 
+                        type="button" 
+                        key={d.value} 
+                        onClick={() => toggleDay(d.value)} 
+                        className={`px-4 py-2.5 rounded-xl text-sm font-medium border-2 transition-all ${
+                          daysOfWeek.includes(d.value) 
+                            ? 'bg-primary-500 text-white border-primary-500 shadow-lg shadow-primary-500/30' 
+                            : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-primary-300 dark:hover:border-primary-600'
+                        }`}
+                      >
+                        {d.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              ))}
-              <button type="button" onClick={() => setReminders(prev => [...prev, ''])} className="px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">Add reminder</button>
+              )}
+            </div>
+
+            {/* Reminders Section */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Bell className="h-4 w-4 text-primary-600 dark:text-primary-400" />
+                <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Reminders (optional)</h4>
+              </div>
+
+              <div className="space-y-3">
+                {reminders.map((t, idx) => (
+                  <div key={idx} className="flex items-center gap-3">
+                    <input 
+                      type="time" 
+                      value={t} 
+                      onChange={(e) => setReminders(prev => prev.map((v,i) => i===idx ? e.target.value : v))} 
+                      className="flex-1 px-4 py-3 rounded-xl border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-primary-500 dark:focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-colors" 
+                    />
+                    {reminders.length > 1 && (
+                      <button 
+                        type="button" 
+                        onClick={() => setReminders(prev => prev.filter((_,i) => i!==idx))} 
+                        className="p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border-2 border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
+                        title="Remove reminder"
+                      >
+                        <Minus className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+                <button 
+                  type="button" 
+                  onClick={() => setReminders(prev => [...prev, ''])} 
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gray-100 dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors font-medium"
+                >
+                  <Plus className="h-4 w-4" /> Add Reminder
+                </button>
+              </div>
             </div>
           </div>
-          <div className="flex items-center justify-end gap-2 pt-2">
-            <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200">Cancel</button>
-            <button type="submit" disabled={submitting} className="px-4 py-2 rounded-lg bg-primary-500 hover:bg-primary-600 text-white disabled:opacity-70">
-              {submitting ? 'Saving…' : 'Save'}
+
+          {/* Footer */}
+          <div className="bg-gray-50 dark:bg-gray-800/50 px-8 py-5 border-t border-gray-200 dark:border-gray-700 flex items-center justify-end gap-3">
+            <button 
+              type="button" 
+              onClick={onClose} 
+              className="px-6 py-2.5 rounded-xl bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            >
+              Cancel
+            </button>
+            <button 
+              type="submit" 
+              disabled={submitting} 
+              className="px-6 py-2.5 rounded-xl bg-primary-500 hover:bg-primary-600 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-primary-500/30 transition-all"
+            >
+              {submitting ? 'Saving…' : 'Save Changes'}
             </button>
           </div>
         </form>
