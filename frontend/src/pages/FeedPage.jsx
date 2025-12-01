@@ -360,7 +360,7 @@ const FeedPage = () => {
             </h3>
             {!storiesLoading && stories.length > 0 && (
               <button
-                onClick={() => navigate('/discover?tab=discover&mode=goals')}
+                onClick={() => navigate('/discover?tab=goals')}
                 className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors flex items-center gap-1"
               >
                 See All
