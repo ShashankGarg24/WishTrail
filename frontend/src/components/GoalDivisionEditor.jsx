@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import useApiStore from '../store/apiStore'
+import { goalsAPI } from '../services/api'
 import { motion } from 'framer-motion'
 const CreateHabitModal = lazy(() => import('./CreateHabitModal'));
 const CreateWishModal = lazy(() => import('./CreateWishModal'));
@@ -19,11 +20,15 @@ export default function GoalDivisionEditor({ goal, habits, onClose, draftMode = 
   const [showHabits, setShowHabits] = useState(true)
   const [autoAdjusted, setAutoAdjusted] = useState(false)
   const [didInitNormalize, setDidInitNormalize] = useState(false)
+  const [additionalGoals, setAdditionalGoals] = useState([])
 
+  // Initialize only once when component mounts or when switching between draft/non-draft mode
   useEffect(() => {
     if (draftMode) {
-      setLocalSubGoals(Array.isArray(value?.subGoals) ? value.subGoals.map(s => ({ ...s })) : [])
-      setLocalHabitLinks(Array.isArray(value?.habitLinks) ? value.habitLinks.map(h => ({ ...h })) : [])
+      const subGoals = Array.isArray(value?.subGoals) ? value.subGoals.map(s => ({ ...s })) : []
+      const habitLinks = Array.isArray(value?.habitLinks) ? value.habitLinks.map(h => ({ ...h })) : []
+      setLocalSubGoals(subGoals)
+      setLocalHabitLinks(habitLinks)
       setDidInitNormalize(false)
       return
     }
@@ -31,6 +36,35 @@ export default function GoalDivisionEditor({ goal, habits, onClose, draftMode = 
     setLocalHabitLinks(Array.isArray(goal?.habitLinks) ? goal.habitLinks.map(h => ({ ...h })) : [])
     setDidInitNormalize(false)
   }, [draftMode, goal?._id])
+  
+  // Fetch all user goals (without year filter) to ensure linked goals from other years are available
+  useEffect(() => {
+    const fetchAllGoals = async () => {
+      const subGoalsData = draftMode ? (Array.isArray(value?.subGoals) ? value.subGoals : []) : (Array.isArray(goal?.subGoals) ? goal.subGoals : [])
+      const hasLinkedGoals = subGoalsData.some(sg => sg.linkedGoalId)
+      
+      if (!hasLinkedGoals) return
+      
+      try {
+        // Fetch ALL user's goals without year filter and with high limit to avoid pagination
+        const response = await goalsAPI.getGoals({ includeProgress: false, limit: 1000 })
+        if (response.data?.data?.goals) {
+          setAdditionalGoals(response.data.data.goals)
+        }
+      } catch (error) {
+        console.error('Failed to fetch all goals:', error)
+      }
+    }
+    
+    fetchAllGoals()
+  }, [draftMode, goal?._id, value])
+  
+  // Sync local changes back to parent in draft mode
+  useEffect(() => {
+    if (draftMode && onChange) {
+      onChange({ subGoals: localSubGoals, habitLinks: localHabitLinks })
+    }
+  }, [localSubGoals, localHabitLinks, draftMode])
 
   const totalWeight = useMemo(() => {
     const sg = localSubGoals.reduce((s, g) => s + (Number(g.weight) || 0), 0)
@@ -160,20 +194,45 @@ export default function GoalDivisionEditor({ goal, habits, onClose, draftMode = 
           </button>
           {showSubs && (
           <div className="space-y-2 max-h-80 overflow-auto pr-1">
-            {localSubGoals.map((sg, idx) => (
+            {localSubGoals.map((sg, idx) => {
+              const allGoals = useApiStore.getState().goals || [];
+              
+              // Merge store goals with additionally fetched goals
+              const combinedGoals = [...allGoals, ...additionalGoals]
+              
+              // Filter available goals
+              let availableGoals = combinedGoals.filter(g => {
+                try { 
+                  // Always include the currently linked goal
+                  if (sg.linkedGoalId && String(g._id) === String(sg.linkedGoalId)) return true;
+                  
+                  // Exclude current goal to prevent self-linking (in non-draft mode)
+                  if (!draftMode && goal && String(g._id) === String(goal._id)) return false;
+                  
+                  // Exclude goals that already have sub-goals
+                  if (Array.isArray(g.subGoals) && g.subGoals.length > 0) return false;
+                  
+                  return true;
+                } catch { return true }
+              });
+              
+              // Remove duplicates based on _id
+              const seen = new Set()
+              availableGoals = availableGoals.filter(g => {
+                const id = String(g._id)
+                if (seen.has(id)) return false
+                seen.add(id)
+                return true
+              })
+              
+              availableGoals = availableGoals.slice(0, 50);
+              
+              return (
               <div key={idx} className="grid grid-cols-12 gap-3 items-center">
                 <div className="col-span-7">
                   <select value={sg.linkedGoalId || ''} onChange={(e) => setLocalSubGoals(prev => prev.map((s,i) => i===idx ? { ...s, linkedGoalId: e.target.value || undefined } : s))} className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white">
                     <option value="">Link goal…</option>
-                    {(useApiStore.getState().goals || []).filter(g => {
-                      try { 
-                        // Exclude current goal to prevent self-linking
-                        if (goal && String(g._id) === String(goal._id)) return false;
-                        // Exclude goals that already have sub-goals
-                        if (Array.isArray(g.subGoals) && g.subGoals.length > 0) return false;
-                        return true;
-                      } catch { return true }
-                    }).slice(0, 50).map(g => (
+                    {availableGoals.map(g => (
                       <option key={g._id} value={g._id}>{g.title}</option>
                     ))}
                   </select>
@@ -184,7 +243,7 @@ export default function GoalDivisionEditor({ goal, habits, onClose, draftMode = 
                   <button title="Remove" onClick={() => removeSubGoal(idx)} className="p-2 rounded-md bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400"><Trash2 className="h-4 w-4" /></button>
                 </div>
               </div>
-            ))}
+            )})}
             {localSubGoals.length === 0 && <div className="text-sm text-gray-500 dark:text-gray-400">No sub-goals added.</div>}
             <div className="pt-2 flex items-center justify-end gap-2">
               <button onClick={addSubGoal} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200"><Link className="h-4 w-4" />Link</button>

@@ -7,12 +7,6 @@ const connectDB = async () => {
     const conn = await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/wishtrail', {
       useNewUrlParser: true,
       useUnifiedTopology: true,
-      serverSelectionTimeoutMS: 5000,
-      socketTimeoutMS: 45000,
-      maxPoolSize: 10,
-      minPoolSize: 2,
-      retryWrites: true,
-      retryReads: true,
     });
 
     console.log(`MongoDB Connected: ${conn.connection.host}`);
@@ -32,13 +26,7 @@ const connectDB = async () => {
       if (!feedConnection) {
         feedConnection = await mongoose.createConnection(feedUri, {
           useNewUrlParser: true,
-          useUnifiedTopology: true,
-          serverSelectionTimeoutMS: 5000,
-          socketTimeoutMS: 45000,
-          maxPoolSize: 10,
-          minPoolSize: 2,
-          retryWrites: true,
-          retryReads: true,
+          useUnifiedTopology: true
         }).asPromise();
         console.log(`Feed MongoDB Connected: ${feedConnection.host || feedUri}`);
         feedConnection.on('error', (err) => {

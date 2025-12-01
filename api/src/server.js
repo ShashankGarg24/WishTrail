@@ -109,24 +109,14 @@ const createApp = async () => {
 
   const apiRouter = express.Router();
 
-  apiRouter.get('/health', async (req, res) => {
+  apiRouter.get('/health', (req, res) => {
     console.log("✅ /health hit");
-    
-    // Check MongoDB connection status
-    const mongoose = require('mongoose');
-    const dbStatus = {
-      connected: mongoose.connection.readyState === 1,
-      state: ['disconnected', 'connected', 'connecting', 'disconnecting'][mongoose.connection.readyState] || 'unknown',
-      host: mongoose.connection.host || 'unknown'
-    };
-    
-    res.status(dbStatus.connected ? 200 : 503).json({
-      status: dbStatus.connected ? 'success' : 'degraded',
+    res.status(200).json({
+      status: 'success',
       message: 'WishTrail API is running!',
       timestamp: new Date().toISOString(),
       environment: process.env.NODE_ENV,
-      version: apiVersion,
-      database: dbStatus
+      version: apiVersion
     });
   });
 

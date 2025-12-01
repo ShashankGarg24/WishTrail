@@ -1,8 +1,8 @@
-import { X, Trash2, AlertTriangle } from 'lucide-react'
+import { X, Trash2, AlertTriangle, Loader2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useEffect } from 'react'
 
-const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, goalTitle }) => {
+const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, goalTitle, isDeleting = false }) => {
   // Prevent background scroll when modal is open
   useEffect(() => {
     if (isOpen) {
@@ -17,9 +17,8 @@ const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, goalTitle }) => {
 
   if (!isOpen) return null
 
-  const handleConfirm = () => {
-    onConfirm()
-    onClose()
+  const handleConfirm = async () => {
+    await onConfirm()
   }
 
   return (
@@ -129,16 +128,27 @@ const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, goalTitle }) => {
             <div className="flex items-center justify-end space-x-3 p-6 bg-gray-50 dark:bg-gray-900/50">
               <button
                 onClick={onClose}
-                className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors font-medium"
+                disabled={isDeleting}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>
               <button
                 onClick={handleConfirm}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors font-medium flex items-center space-x-2"
+                disabled={isDeleting}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors font-medium flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Trash2 className="h-4 w-4" />
-                <span>Delete Goal</span>
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="h-4 w-4" />
+                    <span>Delete Goal</span>
+                  </>
+                )}
               </button>
             </div>
           </motion.div>

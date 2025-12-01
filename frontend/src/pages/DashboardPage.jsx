@@ -559,9 +559,23 @@ const DashboardPage = () => {
               )}
               {goalsPagination && goalsPagination.pages > 1 && (
                 <div className="flex items-center justify-center gap-2 mt-6">
-                  <button disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))} className="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 disabled:opacity-50">Prev</button>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">Page {goalsPagination.page} of {goalsPagination.pages}</div>
-                  <button disabled={page >= goalsPagination.pages} onClick={() => setPage(p => Math.min(goalsPagination.pages, p + 1))} className="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 disabled:opacity-50">Next</button>
+                  <button 
+                    disabled={page <= 1 || loading} 
+                    onClick={() => setPage(p => Math.max(1, p - 1))} 
+                    className="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
+                  >
+                    Prev
+                  </button>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                    {loading ? 'Loading...' : `Page ${goalsPagination.page} of ${goalsPagination.pages}`}
+                  </div>
+                  <button 
+                    disabled={page >= goalsPagination.pages || loading} 
+                    onClick={() => setPage(p => Math.min(goalsPagination.pages, p + 1))} 
+                    className="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
+                  >
+                    Next
+                  </button>
                 </div>
               )}
             </motion.div>

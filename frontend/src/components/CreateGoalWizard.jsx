@@ -41,6 +41,11 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
       setStep(1)
       setSaving(false)
 
+      // Load habits if not already loaded (needed for habit links dropdown)
+      if (editMode && (!habits || habits.length === 0)) {
+        loadHabits({}).catch(() => {})
+      }
+
       // Format target date for HTML date input if it exists
       let formattedTargetDate = ''
       if (initialData?.targetDate) {
@@ -63,8 +68,10 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
 
       // Load existing sub-goals and habit links if in edit mode
       if (editMode && initialData) {
-        setLocalSubGoals(Array.isArray(initialData.subGoals) ? initialData.subGoals.map(s => ({ ...s })) : [])
-        setLocalHabitLinks(Array.isArray(initialData.habitLinks) ? initialData.habitLinks.map(h => ({ ...h })) : [])
+        const subGoals = Array.isArray(initialData.subGoals) ? initialData.subGoals.map(s => ({ ...s })) : []
+        const habitLinks = Array.isArray(initialData.habitLinks) ? initialData.habitLinks.map(h => ({ ...h })) : []
+        setLocalSubGoals(subGoals)
+        setLocalHabitLinks(habitLinks)
       } else {
         setLocalSubGoals([])
         setLocalHabitLinks([])
@@ -98,6 +105,12 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
     { value: 'medium-term', label: 'Medium-term (1-6 months)' },
     { value: 'long-term', label: 'Long-term (6+ months)' }
   ]
+
+  // Memoize the value prop to prevent infinite loops
+  const divisionEditorValue = useMemo(() => ({
+    subGoals: localSubGoals,
+    habitLinks: localHabitLinks
+  }), [localSubGoals, localHabitLinks])
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target
@@ -436,9 +449,10 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
           <div className="space-y-4">
             <Suspense fallback={null}>
               <GoalDivisionEditor
+                key={`draft-${editMode ? goalId : 'new'}`}
                 draftMode
                 renderInline
-                value={{ subGoals: localSubGoals, habitLinks: localHabitLinks }}
+                value={divisionEditorValue}
                 onChange={(v) => {
                   if (!v) return
                   if (Array.isArray(v.subGoals)) setLocalSubGoals(v.subGoals.map(s => ({ ...s })))

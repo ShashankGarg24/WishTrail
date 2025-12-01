@@ -7,6 +7,7 @@ When a goal is deleted, the following entities and relationships need to be clea
 
 ## 🎯 Direct Relations (Must Delete/Update)
 
+
 ### 1. **Activity Model** (`Activity.js`)
 - **Field**: `data.goalId` (ObjectId reference to Goal)
 - **Impact**: Activities of type `goal_completed` and `goal_created`

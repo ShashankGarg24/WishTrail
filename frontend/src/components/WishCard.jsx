@@ -25,6 +25,7 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
   const [isDivisionOpen, setIsDivisionOpen] = useState(false)
   const [isEditWizardOpen, setIsEditWizardOpen] = useState(false)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const handleToggle = () => {
     if (wish.completed) {
@@ -52,13 +53,21 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
     setIsDeleteModalOpen(true)
   }
 
-  const confirmDelete = () => {
-    // Use the onDelete prop which properly handles dashboard stats refresh
-    if (onDelete) {
-      onDelete(wish._id)
-    } else {
-      // Fallback to direct call if no onDelete prop provided
-      deleteGoal(wish._id)
+  const confirmDelete = async () => {
+    setIsDeleting(true)
+    try {
+      // Use the onDelete prop which properly handles dashboard stats refresh
+      if (onDelete) {
+        await onDelete(wish._id)
+      } else {
+        // Fallback to direct call if no onDelete prop provided
+        await deleteGoal(wish._id)
+      }
+      setIsDeleteModalOpen(false)
+    } catch (error) {
+      console.error('Error deleting goal:', error)
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -465,6 +474,7 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
           onClose={() => setIsDeleteModalOpen(false)}
           onConfirm={confirmDelete}
           goalTitle={wish.title}
+          isDeleting={isDeleting}
         /></Suspense>,
         document.body
       )}
