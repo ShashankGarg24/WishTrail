@@ -54,15 +54,35 @@ async function createHabit(userId, payload) {
   return doc;
 }
 
-async function listHabits(userId, { includeArchived = false } = {}) {
+async function listHabits(userId, { includeArchived = false, page = 1, limit = 50 } = {}) {
   const q = { userId, isActive: true };
   if (!includeArchived) q.isArchived = false;
-  const habits = await Habit.find(q).sort({ createdAt: -1 }).lean();
+  
+  // Pagination
+  const pageNum = Math.max(1, parseInt(page, 10));
+  const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10)));
+  const skip = (pageNum - 1) * limitNum;
+  
+  // Get total count and paginated habits
+  const [total, habits] = await Promise.all([
+    Habit.countDocuments(q),
+    Habit.find(q).sort({ createdAt: -1 }).skip(skip).limit(limitNum).lean()
+  ]);
+  
   const enriched = habits.map(h => ({
     ...h,
     consistency: computeConsistency(h.totalCompletions || 0, h.createdAt)
   }));
-  return enriched;
+  
+  return {
+    habits: enriched,
+    pagination: {
+      page: pageNum,
+      limit: limitNum,
+      total,
+      pages: Math.ceil(total / limitNum)
+    }
+  };
 }
 
 async function getHabit(userId, habitId) {

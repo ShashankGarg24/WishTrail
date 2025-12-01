@@ -77,6 +77,7 @@ const useApiStore = create(
       cacheDashboardStats: null, // { data, ts }
       // Habits cache
       habits: [],
+      habitsPagination: null,
       cacheHabitsTs: 0,
       habitAnalytics: null,
       cacheHabitAnalyticsTs: 0,
@@ -510,17 +511,26 @@ const useApiStore = create(
       // =====================
       loadHabits: async (opts = {}) => {
         try {
+          set({ loading: true, error: null });
           const force = !!opts.force;
+          const page = opts.page || 1;
+          const limit = opts.limit || 50;
+          const includeArchived = opts.includeArchived || false;
+          
           const ts = get().cacheHabitsTs || 0;
           const ttl = get().cacheTTLs.habits;
-          if (!force && ts && Date.now() - ts < ttl && Array.isArray(get().habits) && get().habits.length > 0) {
-            return { success: true, habits: get().habits };
+          if (!force && ts && Date.now() - ts < ttl && Array.isArray(get().habits) && get().habits.length > 0 && page === 1) {
+            set({ loading: false });
+            return { success: true, habits: get().habits, pagination: get().habitsPagination };
           }
-          const res = await habitsAPI.list();
+          
+          const res = await habitsAPI.list({ page, limit, includeArchived });
           const habits = res?.data?.data?.habits || [];
-          set({ habits, cacheHabitsTs: Date.now() });
-          return { success: true, habits };
+          const pagination = res?.data?.data?.pagination || null;
+          set({ habits, habitsPagination: pagination, cacheHabitsTs: Date.now(), loading: false });
+          return { success: true, habits, pagination };
         } catch (error) {
+          set({ loading: false, error: handleApiError(error) });
           return { success: false, error: handleApiError(error) };
         }
       },

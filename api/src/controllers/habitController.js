@@ -14,8 +14,10 @@ exports.createHabit = async (req, res, next) => {
 exports.listHabits = async (req, res, next) => {
   try {
     const includeArchived = req.query.includeArchived === 'true' || req.query.includeArchived === true;
-    const habits = await habitService.listHabits(req.user.id || req.user._id, { includeArchived });
-    res.status(200).json({ success: true, data: { habits } });
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 50;
+    const result = await habitService.listHabits(req.user.id || req.user._id, { includeArchived, page, limit });
+    res.status(200).json({ success: true, data: result });
   } catch (error) { next(error); }
 };
 

@@ -29,6 +29,7 @@ const DashboardPage = () => {
   const [isHabitIdeasOpen, setIsHabitIdeasOpen] = useState(false)
   const [communityItems, setCommunityItems] = useState([])
   const [page, setPage] = useState(1)
+  const [habitPage, setHabitPage] = useState(1)
   const [extraYears, setExtraYears] = useState([])
   const [isAddYearOpen, setIsAddYearOpen] = useState(false)
 
@@ -47,6 +48,7 @@ const DashboardPage = () => {
     deleteGoal,
     addDashboardYear,
     habits,
+    habitsPagination,
     loadHabits,
     logHabit,
     habitAnalytics,
@@ -99,6 +101,15 @@ const DashboardPage = () => {
 
   const canAddYear = candidateYears.length > 0
 
+  // Separate user habits from community habits (so pagination only affects user habits)
+  const userHabits = useMemo(() => {
+    return (habits || []).filter(h => !h.isCommunitySource && !h.communityInfo);
+  }, [habits]);
+
+  const communityHabits = useMemo(() => {
+    return (habits || []).filter(h => h.communityInfo);
+  }, [habits]);
+
   const [pendingAddYear, setPendingAddYear] = useState(null)
   const openAddYear = () => setIsAddYearOpen(true)
   const chooseYear = async (y) => {
@@ -146,11 +157,11 @@ const DashboardPage = () => {
   useEffect(() => {
     if (!isAuthenticated) return
     if (activeTab === 'habits') {
-      try { loadHabits({}).catch(() => { }) } catch { }
+      try { loadHabits({ page: habitPage, limit: 9, force: true }).catch(() => { }) } catch { }
       try { loadHabitAnalytics({}).catch(() => { }) } catch { }
       try { loadHabitStats({}).catch(() => { }) } catch { }
     }
-  }, [activeTab, isAuthenticated])
+  }, [activeTab, isAuthenticated, habitPage])
 
   // Load community goals (not paginated with personal goals)
   useEffect(() => {
@@ -708,9 +719,9 @@ const DashboardPage = () => {
 
             {/* Habits List (cards like goals) */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.4 }}>
-              {Array.isArray(habits) && habits.filter(h => !h.isCommunitySource && !h.communityInfo).length > 0 ? (
+              {userHabits.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                  {habits.filter(h => !h.isCommunitySource && !h.communityInfo).map((h, idx) => (
+                  {userHabits.map((h, idx) => (
                     <div
                       key={h._id || idx}
                       onClick={() => setSelectedHabit(h)}
@@ -750,21 +761,42 @@ const DashboardPage = () => {
               ) : (
                 <div className="text-center py-12 text-gray-500 dark:text-gray-400">No habits yet. Create your first habit!</div>
               )}
+              {habitsPagination && habitsPagination.pages > 1 && (
+                <div className="flex items-center justify-center gap-2 mt-6">
+                  <button 
+                    disabled={habitPage <= 1 || loading} 
+                    onClick={() => setHabitPage(p => Math.max(1, p - 1))} 
+                    className="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
+                  >
+                    Prev
+                  </button>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                    {loading ? 'Loading...' : `Page ${habitsPagination.page} of ${habitsPagination.pages}`}
+                  </div>
+                  <button 
+                    disabled={habitPage >= habitsPagination.pages || loading} 
+                    onClick={() => setHabitPage(p => Math.min(habitsPagination.pages, p + 1))} 
+                    className="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
             </motion.div>
 
             {/* Community Habits Section */}
             <div className="mt-12">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Community Habits</h3>
-                {(habits || []).filter(h => h.communityInfo).length > 0 && (
+                {communityHabits.length > 0 && (
                   <a href="/discover?tab=communities" className="text-sm text-primary-600 dark:text-primary-400 hover:underline">
                     Discover more →
                   </a>
                 )}
               </div>
-              {(habits || []).filter(h => h.communityInfo).length > 0 ? (
+              {communityHabits.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                  {(habits || []).filter(h => h.communityInfo).map((h, idx) => {
+                  {communityHabits.map((h, idx) => {
                     return (
                       <div key={h._id} onClick={() => setSelectedHabit(h)} className="group glass-card-hover p-6 rounded-2xl border border-gray-200 dark:border-gray-800 cursor-pointer hover:border-primary-300 dark:hover:border-primary-700 transition-all duration-200">
                         {/* Header with community badge */}
@@ -810,7 +842,7 @@ const DashboardPage = () => {
             </div>
 
             {/* Legacy Community Habits Section - disabled for cleaner dashboard */}
-            {false && communityItems && communityItems.filter(i => i.type === 'habit').length > 0 && (habits || []).filter(h => h.communityInfo).length === 0 && (
+            {false && communityItems && communityItems.filter(i => i.type === 'habit').length > 0 && communityHabits.length === 0 && (
               <div className="mt-10">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Community habits (legacy)</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
