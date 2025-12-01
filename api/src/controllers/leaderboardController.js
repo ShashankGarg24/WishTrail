@@ -8,7 +8,7 @@ const Follow = require('../models/Follow');
 // @access  Public
 const getGlobalLeaderboard = async (req, res, next) => {
   try {
-    const { type = 'points', page = 1, limit = 50, timeframe = 'all' } = req.query;
+    const { type = 'points', page = 1, limit = 50, timeframe = 'all', category } = req.query;
     const parsedPage = parseInt(page);
     const parsedLimit = parseInt(limit);
 
@@ -17,7 +17,8 @@ const getGlobalLeaderboard = async (req, res, next) => {
       type,
       page: parsedPage,
       limit: parsedLimit,
-      timeframe
+      timeframe,
+      category: category || null
     };
 
     // Try to get from cache first
@@ -91,47 +92,66 @@ const getGlobalLeaderboard = async (req, res, next) => {
     const now = new Date();
     let startDate = null;
 
-    if (timeframe !== 'all' && ['points', 'goals'].includes(type)) {
-      switch (timeframe) {
-        case 'week':
-          startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-          break;
-        case 'month':
-          startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-          break;
-        case 'year':
-          startDate = new Date(now.getFullYear(), 0, 1);
-          break;
+    // Handle category and/or timeframe filters
+    if (category || (timeframe !== 'all' && ['points', 'goals'].includes(type))) {
+      // Determine timeframe filter
+      if (timeframe !== 'all') {
+        switch (timeframe) {
+          case 'week':
+            startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            break;
+          case 'month':
+            startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+            break;
+          case 'year':
+            startDate = new Date(now.getFullYear(), 0, 1);
+            break;
+        }
       }
 
+      // Build goals lookup with filters
+      const goalsMatch = {
+        $expr: { $eq: ['$userId', '$$userId'] },
+        completed: true
+      };
+      
       if (startDate) {
-        pipeline.push(
-          {
-            $lookup: {
-              from: 'goals',
-              let: { userId: '$_id' },
-              pipeline: [
-                {
-                  $match: {
-                    $expr: { $eq: ['$userId', '$$userId'] },
-                    completed: true,
-                    completedAt: { $gte: startDate }
-                  }
-                }
-              ],
-              as: 'recentGoals'
-            }
-          },
-          {
-            $addFields: {
-              recentPoints: { $sum: '$recentGoals.pointsEarned' },
-              recentGoalsCount: { $size: '$recentGoals' }
-            }
-          }
-        );
-
-        sortField = type === 'points' ? 'recentPoints' : 'recentGoalsCount';
+        goalsMatch.completedAt = { $gte: startDate };
       }
+      
+      if (category) {
+        goalsMatch.category = category;
+      }
+
+      pipeline.push(
+        {
+          $lookup: {
+            from: 'goals',
+            let: { userId: '$_id' },
+            pipeline: [
+              { $match: goalsMatch }
+            ],
+            as: 'filteredGoals'
+          }
+        },
+        {
+          $addFields: {
+            recentPoints: { $sum: '$filteredGoals.pointsEarned' },
+            recentGoalsCount: { $size: '$filteredGoals' }
+          }
+        }
+      );
+
+      // Only show users who have goals matching the filters
+      if (category || timeframe !== 'all') {
+        pipeline.push({
+          $match: {
+            recentGoalsCount: { $gt: 0 }
+          }
+        });
+      }
+
+      sortField = type === 'points' ? 'recentPoints' : 'recentGoalsCount';
     }
 
     pipeline.push(

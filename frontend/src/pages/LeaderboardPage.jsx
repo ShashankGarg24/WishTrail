@@ -30,7 +30,7 @@ const LeaderboardPage = () => {
   const [timeframe, setTimeframe] = useState('all');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [openDropdown, setOpenDropdown] = useState(null);
-  const [filtersExpanded, setFiltersExpanded] = useState(true);
+  const [filtersExpanded, setFiltersExpanded] = useState(false);
 
   const {
     isAuthenticated,
@@ -179,7 +179,7 @@ const LeaderboardPage = () => {
           transition={{ duration: 0.5, delay: 0.2 }}
           className="mb-6"
         >
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
             {/* Filter Header - Clickable */}
             <button
               onClick={() => setFiltersExpanded(!filtersExpanded)}
@@ -203,7 +203,6 @@ const LeaderboardPage = () => {
                   animate={{ height: 'auto', opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
                   transition={{ duration: 0.3 }}
-                  className="overflow-hidden"
                 >
                   <div className="px-4 pb-4 pt-0 border-t border-gray-200 dark:border-gray-700">
                     <div className="flex flex-wrap items-center gap-2 mt-3">
@@ -563,12 +562,12 @@ const LeaderboardPage = () => {
                           <div className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400 mt-0.5">
                             <span className="flex items-center gap-0.5">
                               <Target className="h-3 w-3" />
-                              {user.completedGoals || 0}
+                              {user.completedGoals || 0} done
                             </span>
                             <span>•</span>
                             <span className="flex items-center gap-0.5">
-                              <TrendingUp className="h-3 w-3" />
-                              {user.currentStreak || 0}
+                              <Trophy className="h-3 w-3" />
+                              {user.totalGoals ?? 0} total
                             </span>
                           </div>
                         </div>
@@ -661,11 +660,6 @@ const LeaderboardPage = () => {
                             <span className="flex items-center gap-1">
                               <Trophy className="h-3 w-3" />
                               <span className="font-medium">{user.totalGoals ?? 0}</span> total
-                            </span>
-                            <span className="text-gray-300 dark:text-gray-600">•</span>
-                            <span className="flex items-center gap-1">
-                              <TrendingUp className="h-3 w-3" />
-                              <span className="font-medium">{user.currentStreak || 0}</span> streak
                             </span>
                           </div>
                         </div>
