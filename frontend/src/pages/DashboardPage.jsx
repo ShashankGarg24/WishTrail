@@ -549,7 +549,7 @@ const DashboardPage = () => {
             {/* Goals List */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.5 }}>
               {visibleGoals.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                   {visibleGoals.map((goal, index) => (
                     <WishCard key={goal._id} wish={goal} year={selectedYear} index={index} onToggle={() => handleToggleGoal(goal._id)} onDelete={() => handleDeleteGoal(goal._id)} onComplete={handleCompleteGoal} isViewingOwnGoals={true} onOpenGoal={(id) => setOpenGoalId(id)} />
                   ))}
@@ -581,10 +581,17 @@ const DashboardPage = () => {
             </motion.div>
 
             {/* Community Goals Section (render using WishCard style) */}
-            <div className="mt-10">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Community goals</h3>
+            <div className="mt-12">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Community Goals</h3>
+                {communityGoals.length > 0 && (
+                  <a href="/discover?tab=communities" className="text-sm text-primary-600 dark:text-primary-400 hover:underline">
+                    Discover more →
+                  </a>
+                )}
+              </div>
               {communityGoals.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                   {communityGoals.map((goal, index) => (
                     <WishCard
                       key={goal._id}
@@ -610,14 +617,16 @@ const DashboardPage = () => {
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-6 text-gray-500 dark:text-gray-400">
-                  <p>No community goals joined yet.</p>
-                  <p className="text-sm">Join community goals to see them here!</p>
+                <div className="glass-card-hover p-8 rounded-2xl text-center">
+                  <div className="text-gray-500 dark:text-gray-400 mb-4">
+                    <p className="font-medium mb-1">No community goals joined yet</p>
+                    <p className="text-sm">Join community goals to track them with others!</p>
+                  </div>
                   <a
                     href="/discover?tab=communities"
-                    className="inline-flex items-center gap-2 mt-3 px-3 py-2 rounded-lg bg-primary-500 text-white hover:bg-primary-600"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary-500 text-white hover:bg-primary-600 transition-colors"
                   >
-                    <Compass className="h-4 w-4" /> Explore communities
+                    <Compass className="h-4 w-4" /> Explore Communities
                   </a>
                 </div>
               )}
