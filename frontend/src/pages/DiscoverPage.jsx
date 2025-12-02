@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback, lazy, Suspense } from 'react'
-import { motion } from 'framer-motion'
-import { Users, Target, RefreshCw, ChevronsDown, TrendingUp, Flame, UserPlus, UserCheck, Compass } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Users, Target, RefreshCw, TrendingUp, Flame, UserPlus, UserCheck, Compass, Search, Sparkles } from 'lucide-react'
 import { communitiesAPI } from '../services/api'
 import useApiStore from '../store/apiStore'
 import SkeletonList from '../components/loader/SkeletonList'
@@ -28,7 +28,9 @@ const DiscoverPage = () => {
     isFeatureEnabled
   } = useApiStore()
 
-  const DISCOVER_PAGE_SIZE = 9
+  const DISCOVER_PAGE_SIZE = 6
+  const INITIAL_RECOMMENDATIONS_LIMIT = 6
+  const INITIAL_TRENDING_LIMIT = 9
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('users')
   const [searchParams, setSearchParams] = useSearchParams();
@@ -41,7 +43,6 @@ const DiscoverPage = () => {
   const [discoverHasMore, setDiscoverHasMore] = useState(true)
   const [isSearching, setIsSearching] = useState(false)
   const discoverSentinelRef = useRef(null)
-  const [interestsExpanded, setInterestsExpanded] = useState(false)
   const [searchResults, setSearchResults] = useState([]);
   const [loadingGoals, setLoadingGoals] = useState(false);
   const [openUserMenuId, setOpenUserMenuId] = useState(null);
@@ -123,24 +124,20 @@ const DiscoverPage = () => {
   };
 
   useEffect(() => {
-    // Only trigger search if there's a valid search term
-    if (searchTerm.trim() && searchTerm.trim().length >= 2) {
+    // Trigger search when user types or filters
+    if (searchTerm.trim() || selectedInterest) {
       const debounceTimer = setTimeout(() => {
         handleSearch(searchTerm, selectedInterest);
-      }, 300);
+      }, 400);
       return () => clearTimeout(debounceTimer);
-    } else if (!selectedInterest) {
+    } else {
+      // Clear search results when no search term or filter
       setSearchResults([]);
+      setGoalResults([]);
       setIsSearching(false);
       if (activeTab === 'communities') setCommunityResults(communities);
     }
   }, [searchTerm, selectedInterest, activeTab, communities]);
-
-  useEffect(() => {
-    if (selectedInterest && (!searchTerm || searchTerm.trim().length < 2)) {
-      handleSearch('', selectedInterest);
-    }
-  }, [selectedInterest]);
 
   const fetchInitial = async () => {
     setLoading(true)
@@ -148,10 +145,10 @@ const DiscoverPage = () => {
       if (activeTab === 'users') {
         setDiscoverPage(1)
         setDiscoverHasMore(true)
-        const usersData = await getUsers({ page: 1, limit: DISCOVER_PAGE_SIZE })
+        const usersData = await getUsers({ page: 1, limit: INITIAL_RECOMMENDATIONS_LIMIT })
         if (usersData.success) {
           const filteredUsers = (usersData.users || []).filter(u => u && u._id && u._id !== user?._id)
-          setUsers(filteredUsers.slice(0, DISCOVER_PAGE_SIZE))
+          setUsers(filteredUsers.slice(0, INITIAL_RECOMMENDATIONS_LIMIT))
           const totalPages = usersData.pagination?.pages || 1
           setDiscoverHasMore(1 < totalPages)
         } else {
@@ -185,7 +182,7 @@ const DiscoverPage = () => {
             setLoadingGoals(true);
             setTrendingPage(1);
             setTrendingHasMore(true);
-            const { goals, pagination } = await getTrendingGoals({ strategy: 'global', page: 1, limit: 18 });
+            const { goals, pagination } = await getTrendingGoals({ strategy: 'global', page: 1, limit: INITIAL_TRENDING_LIMIT });
             setTrending(goals || []);
             const totalPages = pagination?.pages || 1;
             setTrendingHasMore(1 < totalPages);
@@ -495,198 +492,177 @@ const DiscoverPage = () => {
       className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-slate-900 dark:via-gray-900 dark:to-zinc-900">
       <div className="max-w-7xl mx-auto px-4 py-8">
         {!inNativeApp && (
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
-              <Users className="h-6 w-6 mr-2 text-blue-500" />
-              Discover
-            </h2>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => fetchInitial()}
-                aria-label="Refresh"
-                className={`h-9 w-9 inline-flex items-center justify-center rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors ${loading ? 'opacity-80' : ''}`}
-                disabled={loading}
-              >
-                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-              </button>
+          <motion.div 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-center justify-between mb-8"
+          >
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <Compass className="h-8 w-8 text-blue-500" />
+                Discover
+              </h1>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                {activeTab === 'users' ? 'Find inspiring people to follow' : 
+                 activeTab === 'goals' ? 'Explore trending achievements' : 
+                 'Join amazing communities'}
+              </p>
             </div>
-          </div>
+            <button
+              onClick={() => fetchInitial()}
+              aria-label="Refresh"
+              className={`h-10 w-10 inline-flex items-center justify-center rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm hover:shadow ${loading ? 'opacity-60' : ''}`}
+              disabled={loading}
+            >
+              <RefreshCw className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
+            </button>
+          </motion.div>
         )}
 
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }} className="relative max-w-3xl mx-auto mb-8">
-          <div className="relative">
-            <input type="text" placeholder={activeTab === 'users' ? 'Search users by name or username...' : (activeTab === 'goals' ? 'Search goals by title...' : 'Search communities by name...')}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }} 
+          animate={{ opacity: 1, y: 0 }} 
+          transition={{ duration: 0.4, delay: 0.1 }} 
+          className="relative max-w-4xl mx-auto mb-8"
+        >
+          {/* Search Bar */}
+          <div className="relative mb-6">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+            <input 
+              type="text" 
+              placeholder={activeTab === 'users' ? 'Search users by name or username...' : (activeTab === 'goals' ? 'Search goals by title...' : 'Search communities by name...')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-4 pr-36 py-4 bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg border border-gray-200 dark:border-gray-700/50 rounded-2xl text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-lg" />
+              className="w-full pl-12 pr-4 py-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all shadow-sm hover:shadow-md" 
+            />
           </div>
-          <div className="flex justify-center mt-4">
-            <div className="relative flex w-full max-w-sm border-b border-gray-300 dark:border-gray-700">
+          {/* Tabs */}
+          <div className="flex justify-center mb-6">
+            <div className="inline-flex bg-gray-100 dark:bg-gray-800 rounded-xl p-1 gap-1">
               {["users", "goals", ...(isFeatureEnabled('community') ? ["communities"] : [])].map((tab) => (
                 <button
                   key={tab}
                   onClick={() => handleTabChange(tab)}
                   className={`
-                      flex-1 py-2 text-center text-sm font-medium capitalize
-                      transition-colors duration-200
-                      ${activeTab === tab
-                      ? "text-blue-600 dark:text-blue-400"
-                      : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                    relative px-6 py-2.5 rounded-lg text-sm font-medium capitalize transition-all duration-200
+                    ${activeTab === tab
+                      ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm"
+                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
                     }
-                    `}
+                  `}
                 >
                   {tab}
                 </button>
               ))}
-
-              {/* Sliding Underline */}
-              <motion.div
-                className="absolute bottom-0 h-0.5 bg-blue-600 dark:bg-blue-400"
-                layoutId="discoverTabUnderline"
-                initial={false}
-                animate={{
-                  left:
-                    activeTab === "users"
-                      ? "0%"
-                      : activeTab === "goals"
-                        ? "33%"
-                        : "66%",
-                  width:
-                    isFeatureEnabled("community")
-                      ? "33%"
-                      : "50%"
-                }}
-                transition={{
-                  type: "spring",
-                  stiffness: 300,
-                  damping: 30
-                }}
-              />
             </div>
           </div>
-          <div className="mt-3">
-            <div className="relative">
-              <div className="flex gap-2 flex-nowrap overflow-x-auto no-scrollbar pr-16 items-center">
-                {(() => {
-                  const items = (interestsCatalog && interestsCatalog.length > 0)
-                    ? interestsCatalog.map(x => x.interest)
-                    : ['fitness', 'health', 'travel', 'education', 'career', 'finance', 'hobbies', 'relationships', 'personal_growth', 'creativity', 'technology', 'business', 'lifestyle', 'spirituality', 'sports', 'music', 'art', 'reading', 'cooking', 'gaming', 'nature', 'volunteering'];
-                  const unique = Array.from(new Set([
-                    selectedInterest || null,
-                    ...items
-                  ].filter(Boolean)));
-                  return unique.map((i) => {
-                    const active = selectedInterest === i;
-                    return (
-                      <button
-                        key={i}
-                        onClick={() => setSelectedInterest(active ? '' : i)}
-                        className={`px-3 py-1.5 rounded-full text-xs font-medium border shrink-0 transition-colors ${active ? 'bg-blue-500 text-white border-blue-500' : 'bg-white/70 dark:bg-gray-800/50 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700/50'}`}
-                        aria-pressed={active}
-                        title={i.replace(/_/g, ' ')}
-                      >
-                        {i.replace(/_/g, ' ')}
-                      </button>
-                    );
-                  });
-                })()}
-
-              </div>
-              <div className="pointer-events-none absolute right-12 top-0 h-full w-8 bg-gradient-to-l from-white/90 dark:from-gray-800/90 to-transparent rounded-r-2xl" />
-              <button
-                onClick={() => setInterestsExpanded(prev => !prev)}
-                className="absolute right-0 top-0 px-3 py-1.5 rounded-full text-xs font-medium border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-800/70 text-gray-600 dark:text-gray-300 opacity-80 hover:opacity-100 hover:bg-gray-200 dark:hover:bg-gray-700 inline-flex items-center gap-1"
-                aria-expanded={interestsExpanded}
-              >
-                <ChevronsDown className="h-4 w-4 opacity-90" />
-                {interestsExpanded ? 'Collapse' : 'Expand'}
-              </button>
+          {/* Interest Filter */}
+          <div className="relative">
+            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+              {(() => {
+                const items = (interestsCatalog && interestsCatalog.length > 0)
+                  ? interestsCatalog.map(x => x.interest).slice(0, 12)
+                  : ['fitness', 'health', 'travel', 'education', 'career', 'finance', 'hobbies', 'relationships', 'personal_growth', 'creativity', 'technology', 'business'];
+                
+                return items.map((i) => {
+                  const active = selectedInterest === i;
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => setSelectedInterest(active ? '' : i)}
+                      className={`
+                        px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all
+                        ${active 
+                          ? 'bg-blue-500 text-white shadow-md' 
+                          : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600'
+                        }
+                      `}
+                      aria-pressed={active}
+                    >
+                      {i.replace(/_/g, ' ')}
+                    </button>
+                  );
+                });
+              })()}
             </div>
           </div>
-          {interestsExpanded && (
-            <div className="mt-3 bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl border border-gray-200 dark:border-gray-700/50 p-3">
-              <div className="max-h-72 overflow-auto pr-1 grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {(() => {
-                  const list = (interestsCatalog && interestsCatalog.length > 0)
-                    ? interestsCatalog.map(x => ({ interest: x.interest }))
-                    : ['fitness', 'health', 'travel', 'education', 'career', 'finance', 'hobbies', 'relationships', 'personal_growth', 'creativity', 'technology', 'business', 'lifestyle', 'spirituality', 'sports', 'music', 'art', 'reading', 'cooking', 'gaming', 'nature', 'volunteering'].map(i => ({ interest: i }));
-                  return list.map((x) => {
-                    const i = x.interest;
-                    const label = i.replace(/_/g, ' ');
-                    const active = selectedInterest === i;
-                    return (
-                      <button
-                        key={i}
-                        className={`w-full text-left px-3 py-2 rounded-md flex items-center justify-between ${active ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-200' : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200'}`}
-                        onClick={() => { setSelectedInterest(active ? '' : i); }}
-                      >
-                        <span className="truncate">{label}</span>
-                      </button>
-                    );
-                  });
-                })()}
-              </div>
-            </div>
-          )}
         </motion.div>
 
+        {/* Content Section */}
         {(loading || isSearching || loadingGoals) ? (
           <SkeletonList count={9} grid avatar lines={3} />
         ) : activeTab === 'users' ? (
           displayUsers.length > 0 ? (
             <>
+              {/* Section Header */}
+              {!(searchTerm.trim() || selectedInterest) && (
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-5 w-5 text-blue-500" />
+                    <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Suggested Users</h2>
+                  </div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Search to discover more</p>
+                </div>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {displayUsers.filter(u => u && u._id).map((userItem, index) => (
                   <motion.div
                     key={`${userItem._id}-${index}`}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: 0.1 * index }}
-                    className="bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 hover:border-gray-300 dark:hover:border-gray-600/50 transition-all duration-200 shadow-lg hover:shadow-xl relative"
+                    transition={{ duration: 0.4, delay: Math.min(0.05 * index, 0.3) }}
+                    className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 transition-all duration-200 shadow-sm hover:shadow-md relative group"
                   >
-                    <div className="flex items-center space-x-4 mb-4">
-                      <img
-                        src={userItem.avatar || '/api/placeholder/64/64'}
-                        alt={userItem.name}
-                        className="w-16 h-16 rounded-full border-2 border-gray-200 dark:border-gray-600 cursor-pointer hover:border-blue-500 transition-colors"
-                        onClick={() => userItem.username && navigate(`/profile/@${userItem.username}?tab=overview`)}
-                      />
-                      <div className="flex-1">
+                    <div className="flex items-center space-x-4 mb-5">
+                      <div className="relative">
+                        <img
+                          src={userItem.avatar || '/api/placeholder/64/64'}
+                          alt={userItem.name}
+                          className="w-16 h-16 rounded-full border-2 border-gray-200 dark:border-gray-600 cursor-pointer hover:border-blue-500 transition-all hover:scale-105"
+                          onClick={() => userItem.username && navigate(`/profile/@${userItem.username}?tab=overview`)}
+                        />
+                        {userItem.currentStreak > 0 && (
+                          <div className="absolute -bottom-1 -right-1 bg-orange-500 rounded-full p-1">
+                            <Flame className="h-3 w-3 text-white" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
                         <h3
-                          className="font-semibold text-gray-900 dark:text-white text-lg cursor-pointer hover:text-blue-500 transition-colors"
+                          className="font-semibold text-gray-900 dark:text-white text-lg cursor-pointer hover:text-blue-500 transition-colors truncate"
                           onClick={() => userItem.username && navigate(`/profile/@${userItem.username}?tab=overview`)}
                         >
                           {userItem.name}
                         </h3>
-                        <p className="text-gray-500 dark:text-gray-400 text-sm">
+                        <p className="text-gray-500 dark:text-gray-400 text-sm truncate">
                           @{userItem.username || userItem.email?.split('@')[0]}
                         </p>
                       </div>
                     </div>
 
-                    <div className="space-y-2 mb-4">
-                      <div className="flex items-center text-gray-600 dark:text-gray-300 text-sm">
-                        <Target className="h-4 w-4 mr-2 text-blue-500" />
-                        <span>{userItem.totalGoals || 0} goals</span>
+                    <div className="grid grid-cols-3 gap-3 mb-5">
+                      <div className="text-center p-2 bg-blue-50 dark:bg-blue-900/10 rounded-lg">
+                        <div className="text-blue-600 dark:text-blue-400 font-semibold text-lg">{userItem.totalGoals || 0}</div>
+                        <div className="text-xs text-gray-600 dark:text-gray-400">Goals</div>
                       </div>
-                      <div className="flex items-center text-gray-600 dark:text-gray-300 text-sm">
-                        <TrendingUp className="h-4 w-4 mr-2 text-green-500" />
-                        <span>{userItem.completedGoals || 0} completed</span>
+                      <div className="text-center p-2 bg-green-50 dark:bg-green-900/10 rounded-lg">
+                        <div className="text-green-600 dark:text-green-400 font-semibold text-lg">{userItem.completedGoals || 0}</div>
+                        <div className="text-xs text-gray-600 dark:text-gray-400">Done</div>
                       </div>
-                      <div className="flex items-center text-gray-600 dark:text-gray-300 text-sm">
-                        <Flame className="h-4 w-4 mr-2 text-orange-500" />
-                        <span>{userItem.currentStreak || 0} day streak</span>
+                      <div className="text-center p-2 bg-orange-50 dark:bg-orange-900/10 rounded-lg">
+                        <div className="text-orange-600 dark:text-orange-400 font-semibold text-lg">{userItem.currentStreak || 0}</div>
+                        <div className="text-xs text-gray-600 dark:text-gray-400">Streak</div>
                       </div>
                     </div>
 
                     {userItem.recentGoals && userItem.recentGoals.length > 0 && (
-                      <div className="mb-4">
-                        <p className="text-gray-500 dark:text-gray-400 text-xs mb-2">Recent Goals:</p>
-                        <div className="space-y-1">
+                      <div className="mb-5 pb-5 border-b border-gray-100 dark:border-gray-700">
+                        <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Recent Goals</p>
+                        <div className="space-y-2">
                           {userItem.recentGoals.slice(0, 2).map((goal, idx) => (
-                            <div key={idx} className="flex items-center space-x-2">
-                              <div className={`w-2 h-2 rounded-full ${getCategoryColor(goal.category)}`}></div>
-                              <span className="text-gray-600 dark:text-gray-300 text-sm truncate">{goal.title}</span>
+                            <div key={idx} className="flex items-start gap-2">
+                              <div className={`w-1.5 h-1.5 rounded-full mt-1.5 ${getCategoryColor(goal.category)}`}></div>
+                              <span className="text-sm text-gray-700 dark:text-gray-300 line-clamp-1 flex-1">{goal.title}</span>
                             </div>
                           ))}
                         </div>
@@ -764,74 +740,134 @@ const DiscoverPage = () => {
               )}
             </>
           ) : (
-            <div className="text-center py-12">
-              <Users className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600 dark:text-gray-400 text-lg">
-                {searchTerm.trim() || selectedInterest ? 'No users found matching your search.' : 'No users to discover yet.'}
-              </p>
-            </div>
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="text-center py-16 px-4"
+            >
+              <div className="max-w-md mx-auto">
+                <div className="w-20 h-20 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center mx-auto mb-4">
+                  <Users className="h-10 w-10 text-blue-500" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                  {searchTerm.trim() || selectedInterest ? 'No users found' : 'Start Exploring'}
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400 mb-6">
+                  {searchTerm.trim() || selectedInterest 
+                    ? 'Try adjusting your search or filters to find more people.' 
+                    : 'Discover inspiring people and follow their journey.'}
+                </p>
+                {(searchTerm.trim() || selectedInterest) && (
+                  <button
+                    onClick={() => { setSearchTerm(''); setSelectedInterest(''); }}
+                    className="px-6 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-xl transition-colors"
+                  >
+                    Clear Filters
+                  </button>
+                )}
+              </div>
+            </motion.div>
           )
         ) : activeTab === 'goals' ? (
           (searchTerm.trim() || selectedInterest)
             ? (goalResults && goalResults.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <>
+                {/* Search Results Header */}
+                <div className="flex items-center gap-2 mb-6">
+                  <Search className="h-5 w-5 text-blue-500" />
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Search Results</h2>
+                  <span className="text-sm text-gray-500 dark:text-gray-400">({goalResults.length})</span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {goalResults.map((g, idx) => (
                   <motion.div
                     key={`${g._id || idx}`}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: 0.1 * idx }}
-                    className="bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-5 border border-gray-200 dark:border-gray-700/50 hover:border-gray-300 dark:hover:border-gray-600/50 transition-all duration-200 shadow-lg hover:shadow-xl"
+                    transition={{ duration: 0.4, delay: Math.min(0.05 * idx, 0.3) }}
+                    onClick={() => g._id && openGoalModal(g._id)}
+                    className="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer group"
                   >
-                    <div className="flex items-center gap-3 mb-3">
+                    <div className="flex items-center gap-3 mb-4">
                       <img
                         src={g.user?.avatar || '/api/placeholder/48/48'}
                         alt={g.user?.name || 'User'}
-                        className="w-10 h-10 rounded-full" />
-                      <div className="min-w-0">
-                        <div className="text-sm text-gray-700 dark:text-gray-300 truncate">{g.user?.name || 'User'}</div>
-                        <div className="text-xs text-gray-400">{g.completedAt ? new Date(g.completedAt).toLocaleDateString() : ''}</div>
+                        className="w-10 h-10 rounded-full border border-gray-200 dark:border-gray-700" 
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{g.user?.name || 'User'}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">{g.completedAt ? new Date(g.completedAt).toLocaleDateString() : ''}</div>
                       </div>
                     </div>
-                    <h3 className="font-semibold text-gray-900 dark:text-white line-clamp-2 break-anywhere mb-2">{g.title}</h3>
+                    <h3 className="font-semibold text-gray-900 dark:text-white line-clamp-2 mb-3 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{g.title}</h3>
                     <div className="flex items-center justify-between">
-                      <span className="inline-block px-2 py-1 rounded-full text-xs font-medium text-white bg-blue-500">{g.category}</span>
-                      <button className="text-sm text-blue-600 hover:underline" onClick={() => g._id && openGoalModal(g._id)}>View</button>
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/20">{g.category}</span>
+                      <span className="text-sm text-blue-600 dark:text-blue-400 font-medium group-hover:underline">View →</span>
                     </div>
                   </motion.div>
                 ))}
               </div>
+              </>
             ) : (
-              <div className="text-center py-12">
-                <Target className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600 dark:text-gray-400 text-lg">No goals found.</p>
-              </div>
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="text-center py-16 px-4"
+              >
+                <div className="max-w-md mx-auto">
+                  <div className="w-20 h-20 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center mx-auto mb-4">
+                    <Target className="h-10 w-10 text-blue-500" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No goals found</h3>
+                  <p className="text-gray-600 dark:text-gray-400 mb-6">
+                    Try different search terms or filters to discover amazing goals.
+                  </p>
+                  <button
+                    onClick={() => { setSearchTerm(''); setSelectedInterest(''); }}
+                    className="px-6 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-xl transition-colors"
+                  >
+                    Clear Filters
+                  </button>
+                </div>
+              </motion.div>
             ))
             : (
               trending && trending.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <>
+                  {/* Trending Section Header */}
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-2">
+                      <TrendingUp className="h-5 w-5 text-orange-500" />
+                      <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Trending Goals</h2>
+                    </div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Search to discover more</p>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {trending.map((g, idx) => (
                     <motion.div
                       key={`${g._id || idx}`}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.5, delay: 0.1 * idx }}
-                      className="bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-5 border border-gray-200 dark:border-gray-700/50 hover:border-gray-300 dark:hover:border-gray-600/50 transition-all duration-200 shadow-lg hover:shadow-xl"
+                      transition={{ duration: 0.4, delay: Math.min(0.05 * idx, 0.3) }}
+                      onClick={() => g._id && openGoalModal(g._id)}
+                      className="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-200 dark:border-gray-700 hover:border-orange-300 dark:hover:border-orange-600 transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer group"
                     >
-                      <div className="flex items-center gap-3 mb-3">
+                      <div className="flex items-center gap-3 mb-4">
                         <img
                           src={g.user?.avatar || '/api/placeholder/48/48'}
                           alt={g.user?.name || 'User'}
-                          className="w-10 h-10 rounded-full" />
-                        <div className="min-w-0">
-                          <div className="text-sm text-gray-700 dark:text-gray-300 truncate">{g.user?.name || 'User'}</div>
-                          <div className="text-xs text-gray-400">{g.completedAt ? new Date(g.completedAt).toLocaleDateString() : ''}</div>
+                          className="w-10 h-10 rounded-full border border-gray-200 dark:border-gray-700" 
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{g.user?.name || 'User'}</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">{g.completedAt ? new Date(g.completedAt).toLocaleDateString() : ''}</div>
                         </div>
+                        <TrendingUp className="h-4 w-4 text-orange-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                       </div>
-                      <h3 className="font-semibold text-gray-900 dark:text-white line-clamp-2 break-anywhere mb-2">{g.title}</h3>
+                      <h3 className="font-semibold text-gray-900 dark:text-white line-clamp-2 mb-3 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">{g.title}</h3>
                       <div className="flex items-center justify-between">
-                        <span className="inline-block px-2 py-1 rounded-full text-xs font-medium text-white bg-blue-500">{g.category}</span>
-                        <button className="text-sm text-blue-600 hover:underline" onClick={() => g._id && openGoalModal(g._id)}>View</button>
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-orange-700 dark:text-orange-300 bg-orange-50 dark:bg-orange-900/20">{g.category}</span>
+                        <span className="text-sm text-orange-600 dark:text-orange-400 font-medium group-hover:underline">View →</span>
                       </div>
                     </motion.div>
                   ))}
@@ -842,59 +878,104 @@ const DiscoverPage = () => {
                     </div>
                   )}
                 </div>
+                </>
               ) : (
-                <div className="text-center py-12">
-                  <Target className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-600 dark:text-gray-400 text-lg">No trending goals yet.</p>
-                </div>
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="text-center py-16 px-4"
+                >
+                  <div className="max-w-md mx-auto">
+                    <div className="w-20 h-20 rounded-full bg-orange-100 dark:bg-orange-900/20 flex items-center justify-center mx-auto mb-4">
+                      <TrendingUp className="h-10 w-10 text-orange-500" />
+                    </div>
+                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No trending goals yet</h3>
+                    <p className="text-gray-600 dark:text-gray-400">
+                      Be the first to complete amazing goals and inspire others!
+                    </p>
+                  </div>
+                </motion.div>
               )
             )
         ) : (
           communityResults && communityResults.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <>
+              {/* Communities Header */}
+              <div className="flex items-center gap-2 mb-6">
+                <Users className="h-5 w-5 text-purple-500" />
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                  {searchTerm.trim() || selectedInterest ? 'Search Results' : 'Discover Communities'}
+                </h2>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {communityResults.map((c, idx) => (
                 <motion.div
                   key={`${c._id || idx}`}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: 0.05 * idx }}
-                  className="bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl border border-gray-200 dark:border-gray-700/50 hover:border-gray-300 dark:hover:border-gray-600/50 transition-all duration-200 shadow-lg hover:shadow-xl overflow-hidden"
+                  transition={{ duration: 0.4, delay: Math.min(0.05 * idx, 0.3) }}
+                  onClick={() => navigate(`/communities/${c._id}`)}
+                  className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600 transition-all duration-200 shadow-sm hover:shadow-md overflow-hidden cursor-pointer group"
                 >
-                  <div className="h-24 relative bg-gradient-to-r from-blue-500/20 to-purple-500/20">
+                  <div className="h-28 relative bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-pink-500/20">
                     {c.bannerUrl && (
                       <img src={c.bannerUrl} alt="Community banner" className="absolute inset-0 h-full w-full object-cover" />
                     )}
                   </div>
                   <div className="p-5">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 mb-3">
                       {c.avatarUrl ? (
-                        <img src={c.avatarUrl} alt="Community avatar" className="h-10 w-10 rounded-full border object-cover" />
+                        <img src={c.avatarUrl} alt="Community avatar" className="h-12 w-12 rounded-full border-2 border-white dark:border-gray-700 object-cover -mt-8 shadow-sm" />
                       ) : (
-                        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 text-white flex items-center justify-center text-sm font-semibold">
+                        <div className="h-12 w-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 text-white flex items-center justify-center text-sm font-bold -mt-8 shadow-sm border-2 border-white dark:border-gray-800">
                           {c.name?.slice(0, 2).toUpperCase()}
                         </div>
                       )}
-                      <div className="min-w-0">
-                        <div className="font-semibold truncate">{c.name}</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{c.description || '—'}</div>
+                      <div className="min-w-0 flex-1">
+                        <div className="font-semibold text-gray-900 dark:text-white truncate group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">{c.name}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 line-clamp-1">{c.description || 'No description'}</div>
                       </div>
                     </div>
-                    <div className="mt-3 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-                      <span className="inline-flex items-center gap-1"><Users className="h-3.5 w-3.5" />{c.stats?.memberCount || 0} members</span>
-                      <span className="px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800">{c.visibility}</span>
-                    </div>
-                    <div className="mt-3 flex items-center gap-2">
-                      <button className="flex-1 px-3 py-2 rounded-lg bg-blue-600 text-white" onClick={() => navigate(`/communities/${c._id}`)}>View</button>
+                    <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-gray-700">
+                      <div className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400">
+                        <Users className="h-4 w-4" />
+                        <span className="font-medium">{c.stats?.memberCount || 0}</span>
+                      </div>
+                      <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 capitalize">{c.visibility}</span>
                     </div>
                   </div>
                 </motion.div>
               ))}
             </div>
+            </>
           ) : (
-            <div className="text-center py-12">
-              <Users className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600 dark:text-gray-400 text-lg">No communities found.</p>
-            </div>
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="text-center py-16 px-4"
+            >
+              <div className="max-w-md mx-auto">
+                <div className="w-20 h-20 rounded-full bg-purple-100 dark:bg-purple-900/20 flex items-center justify-center mx-auto mb-4">
+                  <Users className="h-10 w-10 text-purple-500" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                  {searchTerm.trim() || selectedInterest ? 'No communities found' : 'No communities yet'}
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400 mb-6">
+                  {searchTerm.trim() || selectedInterest 
+                    ? 'Try different search terms or filters to find communities.' 
+                    : 'Communities will appear here once they are created.'}
+                </p>
+                {(searchTerm.trim() || selectedInterest) && (
+                  <button
+                    onClick={() => { setSearchTerm(''); setSelectedInterest(''); }}
+                    className="px-6 py-2.5 bg-purple-500 hover:bg-purple-600 text-white rounded-xl transition-colors"
+                  >
+                    Clear Filters
+                  </button>
+                )}
+              </div>
+            </motion.div>
           )
         )
         }
