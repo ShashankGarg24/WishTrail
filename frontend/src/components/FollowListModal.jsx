@@ -1,24 +1,24 @@
 import { useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Users } from 'lucide-react'
+import { X, Users, Loader2 } from 'lucide-react'
 
 const ListItem = ({ user, onOpenProfile }) => {
   const name = user?.name || 'Unknown'
-  const phone = user?.phone || user?.phoneNumber || '—'
+  const username = user?.username || ''
   const avatar = user?.avatar || ''
 
   return (
-    <button onClick={() => onOpenProfile?.(user)} className="w-full text-left p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center gap-3">
-      <img src={avatar} alt={name} className="w-10 h-10 rounded-full object-cover bg-gray-200" />
+    <button onClick={() => onOpenProfile?.(user)} className="w-full text-left p-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center gap-3 transition-colors">
+      <img src={avatar} alt={name} className="w-10 h-10 rounded-full object-cover bg-gray-200 dark:bg-gray-700" />
       <div className="min-w-0 flex-1">
-        <div className="font-medium text-gray-900 dark:text-white truncate">{name}</div>
-        <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{phone}</div>
+        <div className="text-sm font-medium text-gray-900 dark:text-white truncate">{name}</div>
+        {username && <div className="text-xs text-gray-500 dark:text-gray-400 truncate">@{username}</div>}
       </div>
     </button>
   )
 }
 
-const FollowListModal = ({ isOpen, onClose, activeTab = 'followers', onTabChange, followers = [], following = [], followersCount = 0, followingCount = 0, loading = false, onOpenProfile }) => {
+const FollowListModal = ({ isOpen, onClose, activeTab = 'followers', onTabChange, followers = [], following = [], followersCount = 0, followingCount = 0, loading = false, onOpenProfile, hasMore = false, onLoadMore, loadingMore = false }) => {
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape') onClose?.() }
     if (isOpen) window.addEventListener('keydown', handler)
@@ -66,12 +66,27 @@ const FollowListModal = ({ isOpen, onClose, activeTab = 'followers', onTabChange
             {!loading && list.length > 0 && (
               <div className="space-y-2">
                 {list.map((item, idx) => {
-                  const user = activeTab === 'followers'
-                    ? (typeof item?.followerId === 'object' ? item?.followerId : item)
-                    : (typeof item?.followingId === 'object' ? item?.followingId : item)
+                  // Backend populates followerId for followers and followingId for following
+                  const user = activeTab === 'followers' ? item?.followerId : item?.followingId;
                   const key = (user && (user._id || user.id)) || item?._id || item?.id || idx
                   return <ListItem key={key} user={user} onOpenProfile={onOpenProfile} />
                 })}
+                {hasMore && (
+                  <button
+                    onClick={onLoadMore}
+                    disabled={loadingMore}
+                    className="w-full py-3 text-sm font-medium text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg border border-gray-200 dark:border-gray-700 transition-colors disabled:opacity-50"
+                  >
+                    {loadingMore ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Loading...
+                      </span>
+                    ) : (
+                      'Load More'
+                    )}
+                  </button>
+                )}
               </div>
             )}
           </div>

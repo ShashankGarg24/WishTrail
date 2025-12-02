@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, lazy, Suspense } from "react";
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { Calendar, Target, TrendingUp, Star, Edit2, ExternalLink, Youtube, Instagram, MapPin, Globe, Trophy, BookOpen, Clock, CheckCircle, Circle, User, UserPlus, UserCheck, ArrowLeft, Lock, Sparkles, Download } from "lucide-react";
+import { Calendar, Target, TrendingUp, Star, Edit2, ExternalLink, Youtube, Instagram, MapPin, Globe, Trophy, BookOpen, Clock, CheckCircle, Circle, User, UserPlus, UserCheck, ArrowLeft, Lock, Sparkles, Download, Flame } from "lucide-react";
 const FollowListModal = lazy(() => import("../components/FollowListModal"));
 import { motion } from "framer-motion";
 import useApiStore from "../store/apiStore";
@@ -27,6 +27,13 @@ const ProfilePage = () => {
   const [activeTab, setActiveTab] = useState(initialTab);
   const [userGoals, setUserGoals] = useState([]);
   const [profileUser, setProfileUser] = useState(null);
+  
+  // Pagination for goals
+  const GOALS_PER_PAGE = 9;
+  const PROGRESS_GOALS_PER_PAGE = 6;
+  const [goalsPage, setGoalsPage] = useState(1);
+  const [hasMoreGoals, setHasMoreGoals] = useState(true);
+  const [loadingMoreGoals, setLoadingMoreGoals] = useState(false);
   const [userStats, setUserStats] = useState(null);
   const [isFollowing, setIsFollowing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -40,6 +47,13 @@ const ProfilePage = () => {
   const [followers, setFollowers] = useState([]);
   const [following, setFollowing] = useState([]);
   const [loadingFollows, setLoadingFollows] = useState(false);
+  const [followersPage, setFollowersPage] = useState(1);
+  const [followingPage, setFollowingPage] = useState(1);
+  const [hasMoreFollowers, setHasMoreFollowers] = useState(false);
+  const [hasMoreFollowing, setHasMoreFollowing] = useState(false);
+  const [loadingMoreFollows, setLoadingMoreFollows] = useState(false);
+  
+  const FOLLOW_LIMIT = 20;
 
   const {
     user: currentUser,
@@ -200,9 +214,12 @@ const ProfilePage = () => {
   const fetchOwnProfile = async () => {
     setLoading(true);
     try {
-      const result = await getGoals({});
+      const result = await getGoals({ page: 1, limit: GOALS_PER_PAGE });
       if (result.success) {
         setUserGoals(result.goals || []);
+        const totalPages = result.pagination?.pages || 1;
+        setHasMoreGoals(1 < totalPages);
+        setGoalsPage(1);
       }
     } catch (error) {
       console.error('Error fetching own goals:', error);
@@ -223,9 +240,12 @@ const ProfilePage = () => {
         setIsFollowing(userResult.isFollowing);
         setIsRequested(!!userResult.isRequested);
         if (userResult.user && (!userResult.user.isPrivate || userResult.isFollowing)) {
-          const goalsResult = await getUserGoals(userResult.user._id, { limit: 10 });
+          const goalsResult = await getUserGoals(userResult.user._id, { page: 1, limit: GOALS_PER_PAGE });
           if (goalsResult.success) {
-            setUserGoals(goalsResult.goals);
+            setUserGoals(goalsResult.goals || []);
+            const totalPages = goalsResult.pagination?.pages || 1;
+            setHasMoreGoals(1 < totalPages);
+            setGoalsPage(1);
           }
         }
       }
@@ -265,6 +285,29 @@ const ProfilePage = () => {
       }
     } catch (error) {
       console.error('Error unfollowing user:', error);
+    }
+  };
+
+  const loadMoreGoals = async () => {
+    if (loadingMoreGoals || !hasMoreGoals) return;
+    setLoadingMoreGoals(true);
+    try {
+      const nextPage = goalsPage + 1;
+      const result = isOwnProfile 
+        ? await getGoals({ page: nextPage, limit: GOALS_PER_PAGE })
+        : await getUserGoals(profileUser._id, { page: nextPage, limit: GOALS_PER_PAGE });
+      
+      if (result.success) {
+        setUserGoals(prev => [...prev, ...(result.goals || [])]);
+        setGoalsPage(nextPage);
+        const totalPages = result.pagination?.pages || nextPage;
+        setHasMoreGoals(nextPage < totalPages);
+      }
+    } catch (error) {
+      console.error('Error loading more goals:', error);
+      setHasMoreGoals(false);
+    } finally {
+      setLoadingMoreGoals(false);
     }
   };
 
@@ -396,12 +439,16 @@ const ProfilePage = () => {
                 <img
                   src={displayUser.avatar || '/api/placeholder/150/150'}
                   alt={displayUser.name}
-                  className="w-24 h-24 md:w-32 md:h-32 rounded-full border-4 border-gray-300 dark:border-gray-600 object-cover"
+                  className="w-20 h-20 md:w-24 md:h-24 rounded-full border-4 border-gray-300 dark:border-gray-600 object-cover"
                 />
                 {isOwnProfile ? (
-                  <div className="absolute -bottom-2 -right-2 bg-primary-500 text-white rounded-full p-2">
-                    <Star className="h-6 w-6" />
-                  </div>
+                  <button
+                    onClick={() => setIsEditModalOpen(true)}
+                    className="absolute -bottom-1 -right-1 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-full p-1 hover:scale-110 transition-transform cursor-pointer shadow-md"
+                    title="Click to change your mood"
+                  >
+                    <span className="text-lg">{displayUser.currentMood || '⭐'}</span>
+                  </button>
                 ) : (
                   displayUser.level && (
                     <div className="absolute -bottom-2 -right-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-3 py-1 rounded-full text-sm font-bold">
@@ -433,10 +480,14 @@ const ProfilePage = () => {
                   </button>
                   <button className="text-center flex-1 md:flex-none" onClick={async () => {
                     setFollowModalTab('followers'); setFollowModalOpen(true); setLoadingFollows(true);
+                    setFollowersPage(1); setFollowers([]);
                     try {
                       const uid = isOwnProfile ? currentUser?._id : (profileUser?._id || profileUser?.id);
-                      const res = await getFollowers(uid);
-                      if (res?.success) setFollowers(res.followers || []);
+                      const res = await getFollowers(uid, { page: 1, limit: FOLLOW_LIMIT });
+                      if (res?.success) {
+                        setFollowers(res.followers || []);
+                        setHasMoreFollowers((res.followers?.length || 0) >= FOLLOW_LIMIT);
+                      }
                     } finally { setLoadingFollows(false); }
                   }}>
                     <div className="text-xl md:text-lg font-bold text-gray-900 dark:text-white">
@@ -446,10 +497,14 @@ const ProfilePage = () => {
                   </button>
                   <button className="text-center flex-1 md:flex-none" onClick={async () => {
                     setFollowModalTab('following'); setFollowModalOpen(true); setLoadingFollows(true);
+                    setFollowingPage(1); setFollowing([]);
                     try {
                       const uid = isOwnProfile ? currentUser?._id : (profileUser?._id || profileUser?.id);
-                      const res = await getFollowing(uid);
-                      if (res?.success) setFollowing(res.following || []);
+                      const res = await getFollowing(uid, { page: 1, limit: FOLLOW_LIMIT });
+                      if (res?.success) {
+                        setFollowing(res.following || []);
+                        setHasMoreFollowing((res.following?.length || 0) >= FOLLOW_LIMIT);
+                      }
                     } finally { setLoadingFollows(false); }
                   }}>
                     <div className="text-xl md:text-lg font-bold text-gray-900 dark:text-white">
@@ -469,8 +524,6 @@ const ProfilePage = () => {
                   {displayUser.bio}
                 </p>
               )}
-
-              {/* Location and Join Date */}
 
               {/* Social Links */}
               {(displayUser.website || displayUser.youtube || displayUser.instagram) && (
@@ -515,9 +568,6 @@ const ProfilePage = () => {
                   )}
                 </div>
               )}
-
-              {/* Goals Anchor for smooth scroll */}
-              <div />
             </div>
 
             {/* 3-dots menu button - Desktop position */}
@@ -594,11 +644,19 @@ const ProfilePage = () => {
               try {
                 const uid = isOwnProfile ? currentUser?._id : (profileUser?._id || profileUser?.id)
                 if (tab === 'followers') {
-                  const res = await getFollowers(uid)
-                  if (res?.success) setFollowers(res.followers || [])
+                  setFollowersPage(1); setFollowers([]);
+                  const res = await getFollowers(uid, { page: 1, limit: FOLLOW_LIMIT })
+                  if (res?.success) {
+                    setFollowers(res.followers || [])
+                    setHasMoreFollowers((res.followers?.length || 0) >= FOLLOW_LIMIT)
+                  }
                 } else {
-                  const res = await getFollowing(uid)
-                  if (res?.success) setFollowing(res.following || [])
+                  setFollowingPage(1); setFollowing([]);
+                  const res = await getFollowing(uid, { page: 1, limit: FOLLOW_LIMIT })
+                  if (res?.success) {
+                    setFollowing(res.following || [])
+                    setHasMoreFollowing((res.following?.length || 0) >= FOLLOW_LIMIT)
+                  }
                 }
               } finally { setLoadingFollows(false) }
             }}
@@ -607,6 +665,31 @@ const ProfilePage = () => {
             followersCount={isOwnProfile ? (displayUser?.followerCount || 0) : (userStats?.followers || 0)}
             followingCount={isOwnProfile ? (displayUser?.followingCount || 0) : (userStats?.followings || 0)}
             loading={loadingFollows}
+            hasMore={followModalTab === 'followers' ? hasMoreFollowers : hasMoreFollowing}
+            loadingMore={loadingMoreFollows}
+            onLoadMore={async () => {
+              setLoadingMoreFollows(true)
+              try {
+                const uid = isOwnProfile ? currentUser?._id : (profileUser?._id || profileUser?.id)
+                if (followModalTab === 'followers') {
+                  const nextPage = followersPage + 1
+                  const res = await getFollowers(uid, { page: nextPage, limit: FOLLOW_LIMIT })
+                  if (res?.success) {
+                    setFollowers(prev => [...prev, ...(res.followers || [])])
+                    setFollowersPage(nextPage)
+                    setHasMoreFollowers((res.followers?.length || 0) >= FOLLOW_LIMIT)
+                  }
+                } else {
+                  const nextPage = followingPage + 1
+                  const res = await getFollowing(uid, { page: nextPage, limit: FOLLOW_LIMIT })
+                  if (res?.success) {
+                    setFollowing(prev => [...prev, ...(res.following || [])])
+                    setFollowingPage(nextPage)
+                    setHasMoreFollowing((res.following?.length || 0) >= FOLLOW_LIMIT)
+                  }
+                }
+              } finally { setLoadingMoreFollows(false) }
+            }}
             onOpenProfile={(u) => {
               try {
                 const path = u?.username ? `/profile/@${u.username}` : (`/profile/${u?._id || u?.id}`)
@@ -706,150 +789,165 @@ const ProfilePage = () => {
               transition={{ duration: 0.5, delay: 0.2 }}
             >
               {activeTab === 'overview' && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* User Stats */}
-                  <div className={isOwnProfile
-                    ? "bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg"
-                    : "bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50"
-                  }>
-                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6 flex items-center">
-                      <Trophy className="h-6 w-6 mr-2 text-yellow-600 dark:text-yellow-400" />
-                      {isOwnProfile ? 'Your Statistics' : 'Statistics'}
+                  <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-5 flex items-center gap-2">
+                      <Trophy className="h-5 w-5 text-yellow-500" />
+                      Statistics
                     </h3>
                     {isProfileAccessible() ? (
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="text-center p-4 bg-gray-50 dark:bg-gray-700/30 rounded-xl cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
-                          onClick={() => handleTabChange('goals')}
-                        >
-                          <div className="text-2xl font-bold text-gray-900 dark:text-white">
-                            {isOwnProfile ? (displayUser.totalGoals || 0) : (userStats?.totalGoals || 0)}
+                      <>
+                        <div className="grid grid-cols-2 gap-3 mb-5">
+                          <div className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-xl border border-blue-200 dark:border-blue-800/30 cursor-pointer hover:shadow-md transition-shadow"
+                            onClick={() => handleTabChange('goals')}
+                          >
+                            <Target className="h-5 w-5 text-blue-600 dark:text-blue-400 mb-2" />
+                            <div className="text-2xl font-bold text-blue-900 dark:text-blue-100">
+                              {isOwnProfile ? (displayUser.totalGoals || 0) : (userStats?.totalGoals || 0)}
+                            </div>
+                            <div className="text-blue-700 dark:text-blue-300 text-xs font-medium">Total Goals</div>
                           </div>
-                          <div className="text-gray-600 dark:text-gray-400 text-sm">Total Goals</div>
-                        </div>
-                        <div className="text-center p-4 bg-gray-50 dark:bg-gray-700/30 rounded-xl">
-                          <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                            {isOwnProfile ? (displayUser.completedGoals || 0) : (userStats?.completedGoals || 0)}
+                          <div className="p-4 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-xl border border-green-200 dark:border-green-800/30">
+                            <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400 mb-2" />
+                            <div className="text-2xl font-bold text-green-900 dark:text-green-100">
+                              {isOwnProfile ? (displayUser.completedGoals || 0) : (userStats?.completedGoals || 0)}
+                            </div>
+                            <div className="text-green-700 dark:text-green-300 text-xs font-medium">Completed</div>
                           </div>
-                          <div className="text-gray-600 dark:text-gray-400 text-sm">Completed</div>
-                        </div>
-                        <div className="text-center p-4 bg-gray-50 dark:bg-gray-700/30 rounded-xl">
-                          <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-                            {isOwnProfile ? (displayUser.currentStreak || 0) : (userStats?.currentStreak || 0)}
+                          <div className="p-4 bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 rounded-xl border border-orange-200 dark:border-orange-800/30">
+                            <Flame className="h-5 w-5 text-orange-600 dark:text-orange-400 mb-2" />
+                            <div className="text-2xl font-bold text-orange-900 dark:text-orange-100">
+                              {isOwnProfile ? (displayUser.currentStreak || 0) : (userStats?.currentStreak || 0)}
+                            </div>
+                            <div className="text-orange-700 dark:text-orange-300 text-xs font-medium">Day Streak</div>
                           </div>
-                          <div className="text-gray-600 dark:text-gray-400 text-sm">Day Streak</div>
-                        </div>
-                        <div className="text-center p-4 bg-gray-50 dark:bg-gray-700/30 rounded-xl">
-                          <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                            {isOwnProfile ? (displayUser.totalPoints || 0) : (userStats?.totalPoints || 0)}
+                          <div className="p-4 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-xl border border-purple-200 dark:border-purple-800/30">
+                            <Star className="h-5 w-5 text-purple-600 dark:text-purple-400 mb-2" />
+                            <div className="text-2xl font-bold text-purple-900 dark:text-purple-100">
+                              {isOwnProfile ? (displayUser.totalPoints || 0) : (userStats?.totalPoints || 0)}
+                            </div>
+                            <div className="text-purple-700 dark:text-purple-300 text-xs font-medium">Points</div>
                           </div>
-                          <div className="text-gray-600 dark:text-gray-400 text-sm">Points</div>
                         </div>
-                      </div>
-                    ) : (
-                      <div className="text-center py-8">
-                        <div className="bg-gray-100 dark:bg-gray-700/50 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                          <Lock className="h-8 w-8 text-gray-600 dark:text-gray-400" />
-                        </div>
-                        <p className="text-gray-500 dark:text-gray-400">Statistics are private</p>
-                      </div>
-                    )}
 
-                    {/* Achievement Level for own profile */}
-                    {isOwnProfile && (
-                      <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-700/30 rounded-xl">
-                        <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Achievement Level</h4>
-                        <div className="flex items-center space-x-3">
-                          <div className="flex-1">
+                        {/* Achievement Level for own profile */}
+                        {isOwnProfile && (
+                          <div className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/10 dark:to-purple-900/10 rounded-xl border border-blue-200 dark:border-blue-800/30">
+                            <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                              <TrendingUp className="h-4 w-4 text-blue-500" />
+                              Achievement Progress
+                            </h4>
                             <div className="flex items-center justify-between mb-2">
                               <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                                 {displayUser.level || 'Novice'}
                               </span>
-                              <span className="text-sm text-gray-500 dark:text-gray-400">
-                                {displayUser.totalPoints || 0} points
+                              <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+                                {displayUser.totalPoints || 0} pts
                               </span>
                             </div>
-                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
                               <div
-                                className="bg-primary-500 h-2 rounded-full transition-all duration-300"
+                                className="bg-gradient-to-r from-blue-500 to-purple-500 h-2.5 rounded-full transition-all duration-300"
                                 style={{
                                   width: `${Math.min(((displayUser.totalPoints || 0) % 100), 100)}%`
                                 }}
                               ></div>
                             </div>
                           </div>
-                          <div className="p-3 bg-primary-100 dark:bg-primary-900/20 rounded-full">
-                            <TrendingUp className="h-6 w-6 text-primary-600 dark:text-primary-400" />
-                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="text-center py-12">
+                        <div className="bg-gray-100 dark:bg-gray-700/50 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                          <Lock className="h-8 w-8 text-gray-400" />
                         </div>
+                        <p className="text-gray-500 dark:text-gray-400 text-sm">Statistics are private</p>
                       </div>
                     )}
                   </div>
-                  {/* Hobby Analytics (replaces Interests) */}
-                  <div className={isOwnProfile
-                    ? "bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg"
-                    : "bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50"
-                  }>
-                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6 flex items-center">
-                      <TrendingUp className="h-6 w-6 mr-2 text-emerald-600 dark:text-emerald-400" />
+                  {/* Hobby Analytics */}
+                  <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-5 flex items-center gap-2">
+                      <TrendingUp className="h-5 w-5 text-emerald-500" />
                       Hobby Analytics
                     </h3>
                     {isProfileAccessible() ? (
                       <div className="space-y-4">
-                        {/* Embed Habit Analytics inline (no nested card) */}
                         <HabitAnalyticsCard days={30} embedded />
                       </div>
                     ) : (
-                      <div className="text-center py-8">
+                      <div className="text-center py-12">
                         <div className="bg-gray-100 dark:bg-gray-700/50 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                          <Lock className="h-8 w-8 text-gray-600 dark:text-gray-400" />
+                          <Lock className="h-8 w-8 text-gray-400" />
                         </div>
-                        <p className="text-gray-500 dark:text-gray-400">Analytics are private</p>
+                        <p className="text-gray-500 dark:text-gray-400 text-sm">Analytics are private</p>
                       </div>
                     )}
                   </div>
                   {/* Current Goals */}
                   <div className="lg:col-span-2">
-                    <div className={isOwnProfile
-                      ? "bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg"
-                      : "bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50"
-                    }>
-                      <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6 flex items-center">
-                        <Clock className="h-6 w-6 mr-2 text-blue-600 dark:text-blue-400" />
-                        Current Goals in Progress
-                      </h3>
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+                      <div className="flex items-center justify-between mb-5">
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                          <Clock className="h-5 w-5 text-blue-500" />
+                          Goals in Progress
+                        </h3>
+                        {userGoals.filter(goal => !goal.completed).length > 0 && (
+                          <button 
+                            onClick={() => handleTabChange('goals')}
+                            className="text-sm text-blue-600 dark:text-blue-400 hover:underline font-medium"
+                          >
+                            View All
+                          </button>
+                        )}
+                      </div>
                       {isProfileAccessible() ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 cursor-pointer">
-                          {userGoals.filter(goal => !goal.completed).slice(0, 6).map((goal, index) => (
-                            <div
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {userGoals.filter(goal => !goal.completed).slice(0, PROGRESS_GOALS_PER_PAGE).map((goal, index) => (
+                            <motion.div
                               key={goal._id}
-                              className="p-4 bg-gray-50 dark:bg-gray-700/30 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700/50"
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ duration: 0.3, delay: index * 0.05 }}
+                              className="p-4 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-700/30 dark:to-gray-700/10 rounded-xl border border-gray-200 dark:border-gray-700 hover:shadow-md hover:border-blue-300 dark:hover:border-blue-600 transition-all cursor-pointer group"
                               onClick={() => setOpenGoalId(goal._id)}
                             >
-                              <div className="flex items-center justify-between mb-2">
-                                <h4 className="font-medium text-gray-900 dark:text-white">{goal.title}</h4>
-                                <Circle className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                              <div className="flex items-start justify-between mb-3">
+                                <h4 className="font-semibold text-gray-900 dark:text-white text-sm line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors flex-1">{goal.title}</h4>
+                                <Circle className="h-4 w-4 text-blue-500 flex-shrink-0 ml-2" />
                               </div>
-                              <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-400">
-                                <span className={`px-2 py-1 rounded-full text-xs font-medium text-white ${getCategoryColor(goal.category)}`}>
+                              <div className="flex items-center justify-between text-xs">
+                                <span className={`px-2 py-1 rounded-md font-medium text-white ${getCategoryColor(goal.category)}`}>
                                   {goal.category}
                                 </span>
-                                <span>Started {formatTimeAgo(goal.createdAt)}</span>
+                                <span className="text-gray-500 dark:text-gray-400">{formatTimeAgo(goal.createdAt)}</span>
                               </div>
-                            </div>
+                            </motion.div>
                           ))}
                           {userGoals.filter(goal => !goal.completed).length === 0 && (
-                            <div className="col-span-full text-center py-8">
-                              <Target className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                              <p className="text-gray-500 dark:text-gray-400">No goals in progress</p>
+                            <div className="col-span-full text-center py-12">
+                              <div className="bg-gray-100 dark:bg-gray-700/50 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                                <Target className="h-8 w-8 text-gray-400" />
+                              </div>
+                              <p className="text-gray-500 dark:text-gray-400 text-sm">No goals in progress</p>
+                              {isOwnProfile && (
+                                <button 
+                                  onClick={() => navigate('/dashboard')}
+                                  className="mt-4 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-xl text-sm font-medium transition-colors"
+                                >
+                                  Create Your First Goal
+                                </button>
+                              )}
                             </div>
                           )}
                         </div>
                       ) : (
-                        <div className="text-center py-8">
+                        <div className="text-center py-12">
                           <div className="bg-gray-100 dark:bg-gray-700/50 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                            <Lock className="h-8 w-8 text-gray-600 dark:text-gray-400" />
+                            <Lock className="h-8 w-8 text-gray-400" />
                           </div>
-                          <p className="text-gray-500 dark:text-gray-400">Goals are private</p>
+                          <p className="text-gray-500 dark:text-gray-400 text-sm">Goals are private</p>
                         </div>
                       )}
                     </div>
@@ -858,53 +956,95 @@ const ProfilePage = () => {
                 </div>
               )}
               {activeTab === 'goals' && (
-                <div className={isOwnProfile
-                  ? "bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg"
-                  : "bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50"
-                }>
-                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center">
-                    <Target className="h-6 w-6 mr-2 text-blue-600 dark:text-blue-400" />
+                <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
+                    <Target className="h-6 w-6 text-blue-500" />
                     {isOwnProfile ? 'All Goals' : 'Goals'}
                   </h3>
                   {isProfileAccessible() ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 cursor-pointer">
-                      {userGoals.map((goal, index) => (
-                        <motion.div
-                          key={goal._id}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ duration: 0.5, delay: 0.1 * index }}
-                          onClick={() => setOpenGoalId(goal._id)}
-                          className="bg-gray-50 dark:bg-gray-700/30 rounded-xl p-6 border border-gray-200 dark:border-gray-600/30 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-all duration-200"
-                        >
-                          <div className="flex items-center justify-between mb-4">
-                            <span className={`px-3 py-1 rounded-full text-xs font-medium text-white ${getCategoryColor(goal.category)}`}>
-                              {goal.category}
-                            </span>
-                            {goal.completed && <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />}
-                          </div>
+                    <>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                        {userGoals.map((goal, index) => (
+                          <motion.div
+                            key={goal._id}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.3, delay: Math.min(index * 0.03, 0.3) }}
+                            onClick={() => setOpenGoalId(goal._id)}
+                            className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-700/50 dark:to-gray-800/30 rounded-xl p-5 border border-gray-200 dark:border-gray-700 hover:shadow-md hover:border-blue-300 dark:hover:border-blue-600 transition-all cursor-pointer group"
+                          >
+                            <div className="flex items-start justify-between mb-3">
+                              <span className={`px-3 py-1 rounded-lg text-xs font-semibold text-white ${getCategoryColor(goal.category)} shadow-sm`}>
+                                {goal.category}
+                              </span>
+                              {goal.completed ? (
+                                <CheckCircle className="h-5 w-5 text-green-500" />
+                              ) : (
+                                <Circle className="h-5 w-5 text-blue-500" />
+                              )}
+                            </div>
 
-                          <h4 className="font-semibold text-gray-900 dark:text-white text-lg mb-2">{goal.title}</h4>
-                          {goal.description && (
-                            <p className="text-gray-600 dark:text-gray-300 text-sm mb-4">{goal.description}</p>
-                          )}
+                            <h4 className="font-semibold text-gray-900 dark:text-white text-base mb-2 line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{goal.title}</h4>
+                            {goal.description && (
+                              <p className="text-gray-600 dark:text-gray-400 text-sm mb-3 line-clamp-2">{goal.description}</p>
+                            )}
 
-                          <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
-                            <span>Created {formatTimeAgo(goal.createdAt)}</span>
+                            <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 pt-3 border-t border-gray-200 dark:border-gray-700">
+                              <span>{goal.completed ? 'Completed' : 'Created'} {formatTimeAgo(goal.completed ? goal.completedAt : goal.createdAt)}</span>
+                              <span className="text-blue-600 dark:text-blue-400 font-medium group-hover:underline">View →</span>
+                            </div>
+                          </motion.div>
+                        ))}
+                        {userGoals.length === 0 && (
+                          <div className="col-span-full text-center py-16">
+                            <div className="bg-gray-100 dark:bg-gray-700/50 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                              <Target className="h-8 w-8 text-gray-400" />
+                            </div>
+                            <p className="text-gray-500 dark:text-gray-400 text-lg font-medium mb-2">No goals yet</p>
+                            {isOwnProfile && (
+                              <>
+                                <p className="text-gray-400 text-sm mb-4">Start your journey by creating your first goal</p>
+                                <button 
+                                  onClick={() => navigate('/dashboard')}
+                                  className="px-6 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-medium transition-colors shadow-sm"
+                                >
+                                  Create Goal
+                                </button>
+                              </>
+                            )}
                           </div>
-                        </motion.div>
-                      ))}
-                      {userGoals.length === 0 && (
-                        <div className="col-span-full text-center py-12">
-                          <Target className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                          <p className="text-gray-500 dark:text-gray-400 text-lg">No goals yet</p>
+                        )}
+                      </div>
+                      
+                      {/* Pagination Controls */}
+                      {hasMoreGoals && (
+                        <div className="flex justify-center mt-8">
+                          <button
+                            onClick={loadMoreGoals}
+                            disabled={loadingMoreGoals}
+                            className="px-6 py-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                          >
+                            {loadingMoreGoals ? (
+                              <>
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900 dark:border-white"></div>
+                                Loading...
+                              </>
+                            ) : (
+                              'Load More Goals'
+                            )}
+                          </button>
                         </div>
                       )}
-                    </div>
+                      {!hasMoreGoals && userGoals.length > 0 && (
+                        <div className="text-center mt-8 text-sm text-gray-400">
+                          No more goals to load
+                        </div>
+                      )}
+                    </>
                   ) : (
-                    <div className="text-center py-8">
+                    <div className="text-center py-16">
                       <div className="bg-gray-100 dark:bg-gray-700/50 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                        <Lock className="h-8 w-8 text-gray-600 dark:text-gray-400" />
+                        <Lock className="h-8 w-8 text-gray-400" />
                       </div>
                       <p className="text-gray-500 dark:text-gray-400">Goals are private</p>
                     </div>
@@ -1082,6 +1222,17 @@ const ProfilePage = () => {
               <div className="space-y-1 p-3">
                 {isOwnProfile ? (
                   <>
+                    <button
+                      className="w-full text-center px-4 py-2 text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setIsEditModalOpen(true);
+                        setProfileMenuOpen(false);
+                      }}
+                    >
+                      Edit Profile
+                    </button>
                     <button
                       className="w-full text-center px-4 py-2 text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                       onClick={(e) => {

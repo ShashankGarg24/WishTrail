@@ -1,9 +1,26 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, User, Mail, MapPin, Globe, Youtube, Instagram, Camera, Save, ExternalLink, Heart, AlertCircle } from 'lucide-react'
+import { X, User, Mail, MapPin, Globe, Youtube, Instagram, Camera, Save, ExternalLink, Heart, AlertCircle, Smile } from 'lucide-react'
 import useApiStore from '../store/apiStore'
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
 import { uploadAPI } from '../services/api'
+
+const MOOD_EMOJIS = [
+  '😊', '😄', '😃', '😁', '😆', '😅', '🤣', '😂', '🙂', '🙃',
+  '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛',
+  '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🥸', '🤩', '🥳',
+  '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣', '😖',
+  '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬', '🤯',
+  '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓', '🤗', '🤔',
+  '🤭', '🤫', '🤥', '😶', '😐', '😑', '😬', '🙄', '😯', '😦',
+  '😧', '😮', '😲', '🥱', '😴', '🤤', '😪', '😵', '🤐', '🥴',
+  '🤢', '🤮', '🤧', '😷', '🤒', '🤕', '🤑', '🤠', '😈', '👿',
+  '👻', '💀', '☠️', '👽', '👾', '🤖', '🎃', '😺', '😸', '😹',
+  '😻', '😼', '😽', '🙀', '😿', '😾', '⭐', '✨', '💫', '🌟',
+  '🔥', '💥', '💯', '💢', '💬', '👁️', '🧠', '💪', '👍', '👎',
+  '👏', '🙌', '👐', '🤝', '🙏', '✌️', '🤞', '🤟', '🤘', '🤙',
+  '💜', '❤️', '🧡', '💛', '💚', '💙', '💖', '💗', '💓', '💞'
+]
 
 const INTERESTS_OPTIONS = [
   { id: 'fitness', label: 'Fitness', icon: '💪' },
@@ -41,8 +58,11 @@ const ProfileEditModal = ({ isOpen, onClose }) => {
     youtube: user?.youtube || '',
     instagram: user?.instagram || '',
     avatar: user?.avatar || '',
-    interests: user?.interests || []
+    interests: user?.interests || [],
+    currentMood: user?.currentMood || '⭐'
   })
+
+  const [showMoodPicker, setShowMoodPicker] = useState(false)
 
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [locationQuery, setLocationQuery] = useState('');
@@ -61,7 +81,8 @@ const ProfileEditModal = ({ isOpen, onClose }) => {
         youtube: user.youtube || '',
         instagram: user.instagram || '',
         avatar: user.avatar || '',
-        interests: user.interests || []
+        interests: user.interests || [],
+        currentMood: user.currentMood || '⭐'
       })
     }
   }, [isOpen, user])
@@ -126,8 +147,10 @@ const ProfileEditModal = ({ isOpen, onClose }) => {
       youtube: user?.youtube || '',
       instagram: user?.instagram || '',
       avatar: user?.avatar || '',
-      interests: user?.interests || []
+      interests: user?.interests || [],
+      currentMood: user?.currentMood || '⭐'
     })
+    setShowMoodPicker(false)
     onClose()
   }
 
@@ -196,40 +219,48 @@ const ProfileEditModal = ({ isOpen, onClose }) => {
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-2xl border border-gray-200 dark:border-gray-700"
+          className="relative w-full max-w-4xl max-h-[90vh] bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden"
         >
           {/* Header */}
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-              Edit Profile
-            </h2>
-            <button
-              onClick={handleCancel}
-              className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            >
-              <X className="h-5 w-5 text-gray-500" />
-            </button>
+          <div className="px-6 py-4 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                  Edit Profile
+                </h2>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Update your profile information</p>
+              </div>
+              <button
+                onClick={handleCancel}
+                className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors"
+              >
+                <X className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+              </button>
+            </div>
           </div>
+
+          {/* Content */}
+          <div className="overflow-y-auto max-h-[calc(90vh-80px)] px-6 py-6">
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Profile Picture */}
-            <div className="text-center">
-              <div className="relative inline-block">
+            <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
+              <div className="relative">
                 <img
                   src={formData.avatar}
                   alt="Profile"
-                  className="w-24 h-24 rounded-full border-4 border-primary-500 object-cover"
+                  className="w-20 h-20 rounded-full border-2 border-gray-300 dark:border-gray-600 object-cover"
                 />
                 {avatarUploading && (
-                  <div className="absolute inset-0 bg-black/30 rounded-full flex items-center justify-center">
-                    <div className="h-6 w-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">
+                    <div className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   </div>
                 )}
                 <label
                   htmlFor="avatar-upload"
-                  className="absolute -bottom-2 -right-2 p-2 bg-primary-500 text-white rounded-full hover:bg-primary-600 transition-colors cursor-pointer"
+                  className="absolute -bottom-1 -right-1 p-1.5 bg-primary-500 text-white rounded-full hover:bg-primary-600 transition-colors cursor-pointer shadow-md"
                 >
-                  <Camera className="h-4 w-4" />
+                  <Camera className="h-3.5 w-3.5" />
                 </label>
                 <input
                   id="avatar-upload"
@@ -239,33 +270,39 @@ const ProfileEditModal = ({ isOpen, onClose }) => {
                   className="hidden"
                 />
               </div>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                Click the camera icon to change your profile picture
-              </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">JPG/JPEG/PNG, max 1 MB</p>
-              {avatarError && (
-                <div className="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center justify-center gap-1">
-                  <AlertCircle className="h-4 w-4" />
-                  <span>{avatarError}</span>
-                </div>
-              )}
+              <div className="flex-1">
+                <h3 className="text-sm font-medium text-gray-900 dark:text-white">Profile Picture</h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Click camera icon to upload • JPG/PNG • Max 1MB
+                </p>
+                {avatarError && (
+                  <div className="mt-2 text-xs text-red-600 dark:text-red-400 flex items-center gap-1">
+                    <AlertCircle className="h-3.5 w-3.5" />
+                    <span>{avatarError}</span>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Basic Information */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Full Name
-                </label>
+            <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">
+                Basic Information
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Full Name
+                  </label>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <input
                     id="name"
                     name="name"
                     type="text"
                     value={formData.name}
                     onChange={handleInputChange}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+                    className="w-full pl-9 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 text-sm"
                     placeholder="Enter your full name"
                   />
                 </div>
@@ -276,42 +313,46 @@ const ProfileEditModal = ({ isOpen, onClose }) => {
                   Email Address
                 </label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <input
                     id="email"
                     name="email"
                     type="email"
                     value={formData.email}
                     onChange={handleInputChange}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+                    className="w-full pl-9 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 text-sm"
                     placeholder="Enter your email"
                   />
                 </div>
               </div>
+              </div>
+
+              {/* Bio */}
+              <div className="md:col-span-2">
+                <label htmlFor="bio" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  About You
+                </label>
+                <textarea
+                  id="bio"
+                  name="bio"
+                  rows={3}
+                  value={formData.bio}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 resize-none text-sm"
+                  placeholder="Tell us about yourself..."
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">{formData.bio.length}/500 characters</p>
+              </div>
             </div>
 
-            {/* Bio */}
-            <div>
-              <label htmlFor="bio" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Bio
-              </label>
-              <textarea
-                id="bio"
-                name="bio"
-                rows={3}
-                value={formData.bio}
-                onChange={handleInputChange}
-                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 resize-none"
-                placeholder="Tell us about yourself..."
-              />
-            </div>
             {/* Location */}
-            <div>
-              <label htmlFor="location" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
+              <label htmlFor="location" className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+                <MapPin className="inline-block h-4 w-4 mr-1" />
                 Location
               </label>
               <div className="relative">
-                <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input
                   id="location"
                   name="location"
@@ -320,46 +361,80 @@ const ProfileEditModal = ({ isOpen, onClose }) => {
                   onChange={handleLocationInputChange}
                   autoComplete="off"
                   onFocus={() => setShowSuggestions(true)}
-                  onBlur={() => setTimeout(() => setShowSuggestions(false), 100)} // delay for click
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+                  onBlur={() => setTimeout(() => setShowSuggestions(false), 100)}
+                  className="w-full pl-9 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 text-sm"
                   placeholder="Enter your city"
                 />
-                {/* Autocomplete dropdown */}
                 {showSuggestions && Array.isArray(locationSuggestions) && locationSuggestions.length > 0 && (
-                  
-                <ul className="absolute z-10 mt-1 w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-60 overflow-y-auto text-sm text-gray-900 dark:text-white">
-                  {locationSuggestions.map((place) => (
-                    <li
-                      key={place.place_id}
-                      onClick={() => {
-                        const formatted = formatLocation(place);
-                        setFormData((prev) => ({
-                          ...prev,
-                          location: formatted
-                        }));
-                        setLocationQuery(formatted);
-                        setShowSuggestions(false);
-                      }}
-                      className="px-4 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
-                    >
-                      {formatLocation(place)}
-                    </li>
-                  ))}
-                </ul>
-              )}
+                  <ul className="absolute z-10 mt-1 w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto text-sm text-gray-900 dark:text-white">
+                    {locationSuggestions.map((place) => (
+                      <li
+                        key={place.place_id}
+                        onClick={() => {
+                          const formatted = formatLocation(place);
+                          setFormData((prev) => ({
+                            ...prev,
+                            location: formatted
+                          }));
+                          setLocationQuery(formatted);
+                          setShowSuggestions(false);
+                        }}
+                        className="px-4 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                      >
+                        {formatLocation(place)}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+
+            {/* Current Mood */}
+            <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
+              <label className="block text-sm font-medium text-gray-900 dark:text-white mb-3">
+                <Smile className="inline-block h-4 w-4 mr-1" />
+                Current Mood
+              </label>
+              <div className="flex items-start gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowMoodPicker(!showMoodPicker)}
+                  className="flex-shrink-0 w-12 h-12 rounded-lg border-2 border-gray-300 dark:border-gray-600 hover:border-primary-500 dark:hover:border-primary-400 bg-white dark:bg-gray-800 flex items-center justify-center text-2xl transition-colors"
+                  title="Click to change mood"
+                >
+                  {formData.currentMood}
+                </button>
+                {showMoodPicker && (
+                  <div className="flex-1 p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800">
+                    <div className="grid grid-cols-8 sm:grid-cols-10 md:grid-cols-12 gap-1.5 max-h-48 overflow-y-auto">
+                      {MOOD_EMOJIS.map((emoji, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => {
+                            setFormData(prev => ({ ...prev, currentMood: emoji }))
+                            setShowMoodPicker(false)
+                          }}
+                          className={`w-9 h-9 rounded-md flex items-center justify-center text-xl transition-all hover:bg-white dark:hover:bg-gray-700 ${
+                            formData.currentMood === emoji ? 'bg-white dark:bg-gray-700 ring-2 ring-primary-500' : ''
+                          }`}
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
             {/* Interests */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
-                <Heart className="inline-block h-4 w-4 mr-2 text-pink-600 dark:text-pink-400" />
+            <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
+              <label className="block text-sm font-medium text-gray-900 dark:text-white mb-3">
+                <Heart className="inline-block h-4 w-4 mr-1" />
                 Your Interests
               </label>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                Choose interests that represent you. Others can see these on your profile.
-              </p>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 max-h-64 overflow-y-auto p-4 border border-gray-200 dark:border-gray-600 rounded-lg">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 max-h-64 overflow-y-auto p-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800">
                 {INTERESTS_OPTIONS.map(interest => (
                   <button
                     key={interest.id}
@@ -384,25 +459,26 @@ const ProfileEditModal = ({ isOpen, onClose }) => {
             </div>
 
             {/* Social Links */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                Social Links
-              </h3>
+            <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
+              <label className="block text-sm font-medium text-gray-900 dark:text-white mb-3">
+                <ExternalLink className="inline-block h-4 w-4 mr-1" />
+                Social Links <span className="text-xs text-gray-500 dark:text-gray-400">(Optional)</span>
+              </label>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-3">
                 <div>
                   <label htmlFor="website" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Website
                   </label>
                   <div className="relative">
-                    <Globe className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                    <Globe className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                     <input
                       id="website"
                       name="website"
                       type="url"
                       value={formData.website}
                       onChange={handleInputChange}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+                      className="w-full pl-9 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 text-sm"
                       placeholder="https://your-website.com"
                     />
                   </div>
@@ -413,14 +489,14 @@ const ProfileEditModal = ({ isOpen, onClose }) => {
                     YouTube
                   </label>
                   <div className="relative">
-                    <Youtube className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                    <Youtube className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                     <input
                       id="youtube"
                       name="youtube"
                       type="url"
                       value={formData.youtube}
                       onChange={handleInputChange}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+                      className="w-full pl-9 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 text-sm"
                       placeholder="https://youtube.com/@yourusername"
                     />
                   </div>
@@ -431,14 +507,14 @@ const ProfileEditModal = ({ isOpen, onClose }) => {
                     Instagram
                   </label>
                   <div className="relative">
-                    <Instagram className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                    <Instagram className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                     <input
                       id="instagram"
                       name="instagram"
                       type="url"
                       value={formData.instagram}
                       onChange={handleInputChange}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+                      className="w-full pl-9 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 text-sm"
                       placeholder="https://instagram.com/yourusername"
                     />
                   </div>
@@ -447,35 +523,37 @@ const ProfileEditModal = ({ isOpen, onClose }) => {
             </div>
 
             {/* Action Buttons */}
-            <div className="flex space-x-3 pt-6">
+            <div className="flex gap-3 pt-6 border-t border-gray-200 dark:border-gray-700">
               <button
                 type="button"
                 onClick={handleCancel}
-                className="flex-1 py-3 px-4 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                className="flex-1 py-3 px-4 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-medium"
                 disabled={loading}
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="flex-1 py-3 px-4 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
+                className="flex-1 py-3 px-4 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium flex items-center justify-center gap-2"
                 disabled={loading}
               >
                 {loading ? (
                   <>
-                    <div className="inline-block animate-spin mr-2">
-                      <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                    <div className="inline-block animate-spin">
+                      <div className="h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
                     </div>
-                    Saving...
+                    Saving changes...
                   </>
                 ) : (
                   <>
-                    Save
+                    <Save className="h-5 w-5" />
+                    Save Changes
                   </>
                 )}
               </button>
             </div>
           </form>
+          </div>
         </motion.div>
       </div>
     </AnimatePresence>

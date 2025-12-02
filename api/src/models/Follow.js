@@ -180,27 +180,31 @@ followSchema.statics.rejectFollowRequest = async function(followerId, followingI
   return await request.save();
 };
 // Static method to get user's followers
-followSchema.statics.getFollowers = function(userId, limit = 50) {
+followSchema.statics.getFollowers = function(userId, options = {}) {
+  const { limit = 50, skip = 0 } = options;
   return this.find({
     followingId: userId,
     isActive: true,
     status: 'accepted'
   })
   .sort({ createdAt: -1 })
+  .skip(skip)
   .limit(limit)
-  .populate('followerId', 'name avatar bio location level totalPoints completedGoals');
+  .populate('followerId', 'name username avatar bio location level totalPoints completedGoals');
 };
 
 // Static method to get users that a user is following
-followSchema.statics.getFollowing = function(userId, limit = 50) {
+followSchema.statics.getFollowing = function(userId, options = {}) {
+  const { limit = 50, skip = 0 } = options;
   return this.find({
     followerId: userId,
     isActive: true,
     status: 'accepted'
   })
   .sort({ createdAt: -1 })
+  .skip(skip)
   .limit(limit)
-  .populate('followingId', 'name avatar bio location level totalPoints completedGoals');
+  .populate('followingId', 'name username avatar bio location level totalPoints completedGoals');
 };
 
 // Static method to get follower count

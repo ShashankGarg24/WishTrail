@@ -78,6 +78,11 @@ const userSchema = new mongoose.Schema({
     maxlength: [100, 'Location cannot exceed 100 characters'],
     default: ''
   },
+  currentMood: {
+    type: String,
+    maxlength: [10, 'Mood emoji cannot exceed 10 characters'],
+    default: '⭐'
+  },
 
   // Timezone preferences (auto-detected)
   timezone: {

@@ -177,7 +177,7 @@ class AuthService {
    * Update user profile
    */
   async updateProfile(userId, updateData) {
-    const allowedUpdates = ['name', 'bio', 'location', 'dateOfBirth', 'avatar', 'interests'];
+    const allowedUpdates = ['name', 'bio', 'location', 'dateOfBirth', 'avatar', 'interests', 'currentMood', 'website', 'youtube', 'instagram'];
     const updates = {};
     
     // Filter allowed updates

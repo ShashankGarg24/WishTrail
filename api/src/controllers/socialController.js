@@ -217,7 +217,7 @@ const unfollowUser = async (req, res, next) => {
 // @access  Private
 const getFollowers = async (req, res, next) => {
   try {
-    const { userId } = req.query;
+    const { userId, page = 1, limit = 20 } = req.query;
     const targetUserId = userId || req.user.id;
     
     // If checking another user's followers, ensure they can view
@@ -231,7 +231,8 @@ const getFollowers = async (req, res, next) => {
       }
     }
     
-    const followers = await Follow.getFollowers(targetUserId);
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const followers = await Follow.getFollowers(targetUserId, { limit: parseInt(limit), skip });
     
     res.status(200).json({
       success: true,
@@ -247,7 +248,7 @@ const getFollowers = async (req, res, next) => {
 // @access  Private
 const getFollowing = async (req, res, next) => {
   try {
-    const { userId } = req.query;
+    const { userId, page = 1, limit = 20 } = req.query;
     const targetUserId = userId || req.user.id;
     
     // If checking another user's following, ensure they can view
@@ -261,7 +262,8 @@ const getFollowing = async (req, res, next) => {
       }
     }
     
-    const following = await Follow.getFollowing(targetUserId);
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const following = await Follow.getFollowing(targetUserId, { limit: parseInt(limit), skip });
     
     res.status(200).json({
       success: true,
