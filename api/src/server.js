@@ -26,6 +26,7 @@ const createApp = async () => {
   require('./cron/journalJobs');
   require('./cron/habitReminderJobs');
   require('./cron/inactivityJobs');
+  require('./cron/notificationJobs');
   console.log('✅ Initialization complete');
 
   const app = express();

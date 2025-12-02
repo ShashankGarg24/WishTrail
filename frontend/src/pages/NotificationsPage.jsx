@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react'
-import { motion } from 'framer-motion'
-import { Bell, RefreshCw, Check, X } from 'lucide-react'
+import { Bell, RefreshCw, Check, X, CheckCheck } from 'lucide-react'
 import useApiStore from '../store/apiStore'
-import SkeletonList from '../components/loader/SkeletonList'
 import SkeletonNotifications from '../components/loader/SkeletonNotifications'
 import { useNavigate } from 'react-router-dom'
 
@@ -11,14 +9,17 @@ const NotificationsPage = () => {
     isAuthenticated,
     getNotifications,
     notifications,
+    notificationsPagination,
     unreadNotifications,
     markNotificationRead,
     markAllNotificationsRead,
     acceptFollowRequest,
     rejectFollowRequest,
+    loadMoreNotifications,
   } = useApiStore()
 
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [inNativeApp, setInNativeApp] = useState(false)
   const navigate = useNavigate()
 
@@ -34,11 +35,26 @@ const NotificationsPage = () => {
   const fetchInitialData = async (opts = {}) => {
     setLoading(true);
     try {
-      await getNotifications({ page: 1, limit: 20, scope: 'social' }, opts);
+      await getNotifications({ page: 1, limit: 15, scope: 'social' }, opts);
     } catch (error) {
       console.error('Error fetching notification data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleLoadMore = async () => {
+    if (loadingMore || !notificationsPagination) return;
+    const { page, pages } = notificationsPagination;
+    if (page >= pages) return;
+    
+    setLoadingMore(true);
+    try {
+      await loadMoreNotifications();
+    } catch (error) {
+      console.error('Error loading more notifications:', error);
+    } finally {
+      setLoadingMore(false);
     }
   };
 
@@ -56,117 +72,159 @@ const NotificationsPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-slate-900 dark:via-gray-900 dark:to-zinc-900">
-      <div className="max-w-7xl mx-auto px-4 py-8">
-      {!inNativeApp && (
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
-          <Bell className="h-6 w-6 mr-2 text-purple-500" />
-          Notifications
-        </h2>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => fetchInitialData({ force: true })}
-            aria-label="Refresh"
-            className={`h-9 w-9 inline-flex items-center justify-center rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors ${loading ? 'opacity-80' : ''}`}
-            disabled={loading}
-          >
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-          </button>
-          {unreadNotifications > 0 && (
-            <button onClick={markAllNotificationsRead} className="text-sm text-blue-600 hover:underline">Mark all as read</button>
-          )}
-        </div>
-      </div>
-      )}
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-900">
+      <div className="max-w-4xl mx-auto px-4 py-6">
+        {/* Header */}
+        {!inNativeApp && (
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary-500 to-purple-500 flex items-center justify-center shadow-lg">
+                  <Bell className="h-6 w-6 text-white" />
+                </div>
+                {unreadNotifications > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[20px] h-5 bg-red-500 rounded-full text-white text-xs font-bold flex items-center justify-center px-1.5 shadow-lg">
+                    {unreadNotifications > 9 ? '9+' : unreadNotifications}
+                  </span>
+                )}
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Notifications</h1>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  {unreadNotifications > 0 ? `${unreadNotifications} unread` : 'All caught up!'}
+                </p>
+              </div>
+            </div>
 
-      {loading ? (
-        <SkeletonNotifications count={6} />
-      ) : (notifications || []).length > 0 ? (
-        <>
-          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => fetchInitialData({ force: true })}
+                disabled={loading}
+                className="p-2.5 rounded-xl hover:bg-white dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 transition-all shadow-sm"
+              >
+                <RefreshCw className={`h-5 w-5 text-gray-700 dark:text-gray-300 ${loading ? 'animate-spin' : ''}`} />
+              </button>
+              {unreadNotifications > 0 && (
+                <button
+                  onClick={markAllNotificationsRead}
+                  className="px-4 py-2.5 bg-primary-500 text-white rounded-xl text-sm font-medium hover:bg-primary-600 transition-all shadow-sm flex items-center gap-2"
+                >
+                  <CheckCheck className="h-4 w-4" />
+                  <span className="hidden sm:inline">Mark all read</span>
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Notifications List */}
+        {loading ? (
+          <SkeletonNotifications count={6} />
+        ) : (notifications || []).length > 0 ? (
+          <div className="space-y-6">
             {(() => {
               const now = new Date();
               const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
               const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
               const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-              const groups = { today: [], week: [], month: [], older: [] };
+              const groups = { today: [], week: [], month: [] };
               (notifications || []).forEach((n) => {
                 const created = new Date(n.createdAt);
                 if (created >= startOfToday) groups.today.push(n);
                 else if (created >= sevenDaysAgo) groups.week.push(n);
                 else if (created >= thirtyDaysAgo) groups.month.push(n);
-                else groups.older.push(n);
               });
 
               const renderGroup = (title, items) => items.length > 0 && (
-                <div className="space-y-2" key={title}>
-                  <div className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 px-1">{title}</div>
-                  {items.map((n) => {
-                    const actorName = n.data?.actorName || n.data?.followerName || n.data?.likerName || 'Someone';
-                    const actorAvatar = n.data?.actorAvatar || n.data?.followerAvatar || n.data?.likerAvatar;
-                    const messageWithoutActor = (() => {
-                      const m = n?.message || '';
-                      const name = actorName || '';
-                      if (name && m.toLowerCase().startsWith(name.toLowerCase())) {
-                        return m.slice(name.length).replace(/^\s*,?\s*/, '');
-                      }
-                      return m;
-                    })();
-                    const isUnread = !n.isRead;
-                    const baseClass = isUnread ? 'bg-blue-50 dark:bg-gray-800/60 border-blue-200 dark:border-gray-700' : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800';
-                    return (
-                      <div 
-                        key={n._id} 
-                        className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${baseClass}`}
-                        onClick={() => {
-                          if (n.type === 'follow_request' || n.type === 'new_follower') navigate(`/profile/@${n.data.actorId.username}?tab=overview`)
-                          else if (n.data?.goalId?._id) navigate(`/feed?goalId=${n.data.goalId._id}`)
-                          markNotificationRead(n._id)
-                        }}
-                      >
-                        <img
-                          src={actorAvatar || '/api/placeholder/40/40'}
-                          alt={actorName}
-                          className="w-10 h-10 rounded-full cursor-pointer"
+                <div key={title} className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <div className="h-px flex-1 bg-gradient-to-r from-transparent via-gray-300 dark:via-gray-700 to-transparent"></div>
+                    <span className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 px-2">{title}</span>
+                    <div className="h-px flex-1 bg-gradient-to-r from-transparent via-gray-300 dark:via-gray-700 to-transparent"></div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    {items.map((n) => {
+                      const actorName = n.data?.actorName || n.data?.followerName || n.data?.likerName || 'Someone';
+                      const actorAvatar = n.data?.actorAvatar || n.data?.followerAvatar || n.data?.likerAvatar;
+                      const isUnread = !n.isRead;
+                      
+                      return (
+                        <div
+                          key={n._id}
+                          className={`bg-white dark:bg-gray-800 rounded-xl p-4 cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all ${
+                            isUnread ? 'ring-2 ring-primary-500/50 shadow-md' : 'shadow-sm'
+                          }`}
                           onClick={() => {
-                            if (n.data?.actorId?.username) navigate(`/profile/@${n.data.actorId.username}?tab=overview`)
-                            else if (n.data?.actorId?._id) navigate(`/profile/${n.data.actorId._id}`)
+                            if (n.type === 'follow_request' || n.type === 'new_follower') navigate(`/profile/@${n.data.actorId.username}?tab=overview`)
+                            else if (n.data?.goalId?._id) navigate(`/feed?goalId=${n.data.goalId._id}`)
+                            markNotificationRead(n._id)
                           }}
-                        />
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm text-gray-800 dark:text-gray-200">
-                            <button
-                              className="font-medium hover:underline"
-                              onClick={() => {
-                                if (n.data?.actorId?.username) navigate(`/profile/@${n.data.actorId.username}?tab=overview`)
-                                else if (n.data?.actorId?._id) navigate(`/profile/${n.data.actorId._id}`)
-                              }}
-                            >
-                              {actorName}
-                            </button>
-                            <span className="text-gray-600 dark:text-gray-400"> {messageWithoutActor}</span>
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className="relative flex-shrink-0">
+                              <img
+                                src={actorAvatar || '/api/placeholder/48/48'}
+                                alt={actorName}
+                                className="w-12 h-12 rounded-full ring-2 ring-white dark:ring-gray-700"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (n.data?.actorId?.username) navigate(`/profile/@${n.data.actorId.username}?tab=overview`)
+                                  else if (n.data?.actorId?._id) navigate(`/profile/${n.data.actorId._id}`)
+                                }}
+                              />
+                              {isUnread && (
+                                <span className="absolute -top-1 -right-1 w-3 h-3 bg-primary-500 rounded-full ring-2 ring-white dark:ring-gray-800"></span>
+                              )}
+                            </div>
+                            
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm text-gray-900 dark:text-gray-100">
+                                <span className="font-semibold">{actorName}</span>
+                                <span className="text-gray-600 dark:text-gray-400"> {n.message?.replace(actorName, '').trim()}</span>
+                              </p>
+                              <div className="flex items-center gap-2 mt-1.5">
+                                <span className="text-xs text-gray-500 dark:text-gray-400">{formatTimeAgo(n.createdAt)}</span>
+                                {isUnread && (
+                                  <span className="text-xs px-2 py-0.5 bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 rounded-full font-medium">
+                                    New
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            {n.type === 'follow_request' && n.data?.followerId && (
+                              <div className="flex gap-2 ml-2">
+                                <button
+                                  onClick={async (e) => { 
+                                    e.stopPropagation();
+                                    await acceptFollowRequest(n.data.followerId?._id || n.data.followerId); 
+                                    await markNotificationRead(n._id); 
+                                  }}
+                                  className="p-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors shadow-sm"
+                                  title="Accept"
+                                >
+                                  <Check className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={async (e) => { 
+                                    e.stopPropagation();
+                                    await rejectFollowRequest(n.data.followerId?._id || n.data.followerId); 
+                                    await markNotificationRead(n._id); 
+                                  }}
+                                  className="p-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg transition-colors"
+                                  title="Reject"
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+                              </div>
+                            )}
                           </div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400">{formatTimeAgo(n.createdAt)}</div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          {n.type === 'follow_request' && n.data?.followerId && (
-                            <>
-                              <button 
-                                onClick={async () => { await acceptFollowRequest(n.data.followerId?._id || n.data.followerId); await markNotificationRead(n._id); }} 
-                                className="px-3 py-1.5 rounded-lg bg-green-500 hover:bg-green-600 text-white text-xs inline-flex items-center gap-1"
-                                ><Check className="w-4 h-4" />Accept</button>
-                              <button 
-                                onClick={async () => { await rejectFollowRequest(n.data.followerId?._id || n.data.followerId); await markNotificationRead(n._id); }} 
-                                className="px-3 py-1.5 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-xs inline-flex items-center gap-1"
-                              ><X className="w-4 h-4" />Reject</button>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
               );
 
@@ -175,19 +233,39 @@ const NotificationsPage = () => {
                   {renderGroup('Today', groups.today)}
                   {renderGroup('Last 7 days', groups.week)}
                   {renderGroup('Last 30 days', groups.month)}
-                  {renderGroup('Older', groups.older)}
                 </>
               );
             })()}
+
+            {/* Load More Button */}
+            {notificationsPagination && notificationsPagination.page < notificationsPagination.pages && (
+              <div className="flex justify-center mt-6">
+                <button
+                  onClick={handleLoadMore}
+                  disabled={loadingMore}
+                  className="px-6 py-3 bg-white dark:bg-gray-800 border-2 border-primary-500 text-primary-600 dark:text-primary-400 rounded-xl font-medium hover:bg-primary-50 dark:hover:bg-gray-700 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loadingMore ? (
+                    <div className="flex items-center gap-2">
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                      Loading...
+                    </div>
+                  ) : (
+                    'Load More'
+                  )}
+                </button>
+              </div>
+            )}
           </div>
-        </>
-      ) : (
-        <div className="text-center py-12">
-          <Bell className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-600 dark:text-gray-400 text-lg">No notifications yet.</p>
-          <p className="text-gray-500 dark:text-gray-500 text-sm mt-2">When people interact with you, you'll see updates here.</p>
-        </div>
-      )}
+        ) : (
+          <div className="text-center py-16">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-primary-100 to-purple-100 dark:from-primary-900/30 dark:to-purple-900/30 mb-4">
+              <Bell className="h-8 w-8 text-primary-500 dark:text-primary-400" />
+            </div>
+            <p className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-1">No notifications yet</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">When people interact with you, you'll see updates here</p>
+          </div>
+        )}
       </div>
     </div>
   )

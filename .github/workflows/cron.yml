@@ -4,6 +4,8 @@ on:
   schedule:
     # Nightly quotes (LLM per-interest generation) at 01:00 UTC
     - cron: '0 1 * * *'
+    # Delete old notifications at 02:00 UTC
+    - cron: '0 2 * * *'
     # Morning quotes + journal prompts hourly (services filter local time)
     - cron: '0 * * * *'
     # Inactivity reminders hourly at :15
@@ -20,6 +22,17 @@ jobs:
       - name: Trigger nightly quotes
         run: |
           curl -fsS -X POST "$API_BASE/cron/nightly-quotes?key=$CRON_SECRET"
+        env:
+          API_BASE: https://wishtrail-web.onrender.com/api/v1
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+
+  delete-old-notifications:
+    if: github.event.schedule == '0 2 * * *' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger delete old notifications
+        run: |
+          curl -fsS -X POST "$API_BASE/cron/delete-old-notifications?key=$CRON_SECRET"
         env:
           API_BASE: https://wishtrail-web.onrender.com/api/v1
           CRON_SECRET: ${{ secrets.CRON_SECRET }}

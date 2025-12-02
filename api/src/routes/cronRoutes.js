@@ -6,6 +6,7 @@ const { notifyDailyPrompt } = require('../services/journalService');
 const { isEnabled } = require('../services/featureFlagService');
 const { sendMorningQuotes, generateNightlyQuotes } = require('../services/motivationService');
 const { sendDueInactivityReminders } = require('../services/inactivityService');
+const Notification = require('../models/Notification');
 
 function verifyCronKey(req, res, next) {
   const secret = process.env.CRON_SECRET || '';
@@ -73,6 +74,19 @@ router.post('/inactivity-reminders', verifyCronKey, async (req, res) => {
     const durationMs = Date.now() - startedAt;
     try { console.log('[cron] inactivity-reminders', { durationMs }); } catch {}
     res.json({ success: true, data: r, durationMs });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e?.message || 'failed' });
+  }
+});
+
+router.post('/delete-old-notifications', verifyCronKey, async (req, res) => {
+  try {
+    const startedAt = Date.now();
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const result = await Notification.deleteMany({ createdAt: { $lt: thirtyDaysAgo } });
+    const durationMs = Date.now() - startedAt;
+    try { console.log('[cron] delete-old-notifications', { durationMs, deletedCount: result.deletedCount }); } catch {}
+    res.json({ success: true, deletedCount: result.deletedCount, durationMs });
   } catch (e) {
     res.status(500).json({ success: false, error: e?.message || 'failed' });
   }
