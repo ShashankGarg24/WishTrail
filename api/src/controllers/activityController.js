@@ -78,7 +78,7 @@ const getRecentActivities = async (req, res, next) => {
           .sort({ createdAt: -1 })
           .limit(parsedLimit)
           .skip((parsedPage - 1) * parsedLimit)
-          .populate('userId', 'name avatar level')
+          .populate('userId', 'name avatar level username')
           .populate('data.goalId', 'title category')
           .populate('data.targetUserId', 'name avatar')
           .lean()

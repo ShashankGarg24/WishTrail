@@ -1,10 +1,14 @@
-import { useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Star,
   Trophy,
   CheckCircle,
-  Clock
+  Clock,
+  TrendingUp,
+  Users,
+  Sparkles,
+  ArrowRight
 } from 'lucide-react';
 import useApiStore from '../store/apiStore';
 import { useNavigate } from 'react-router-dom';
@@ -12,6 +16,7 @@ import { useNavigate } from 'react-router-dom';
 const InspirationPage = () => {
 
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('recent');
 
   const {
     isAuthenticated,
@@ -115,262 +120,360 @@ const InspirationPage = () => {
   const displayLeaderboard = (leaderboard || []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-slate-900 dark:via-gray-900 dark:to-zinc-900">
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Data Refresh Notice */}
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-slate-900 dark:via-gray-900 dark:to-zinc-900">
+      <div className="max-w-7xl mx-auto px-4 py-6 sm:py-8">
+        {/* Hero Section */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="text-center mb-8"
+        >
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-primary-100 to-purple-100 dark:from-primary-900/30 dark:to-purple-900/30 text-primary-700 dark:text-primary-300 text-sm font-medium mb-4">
+            <Sparkles className="h-4 w-4" />
+            <span>Get Inspired by Our Community</span>
+          </div>
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-3">
+            See What's Happening
+          </h1>
+          <p className="text-base sm:text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+            Discover amazing achievements and connect with goal-setters worldwide
+          </p>
+        </motion.div>
+
+        {/* Stats Cards */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="mb-8"
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8"
         >
-          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 max-w-4xl mx-auto">
-            <div className="flex items-center justify-center space-x-2 text-blue-700 dark:text-blue-300">
-              <div className="flex items-center space-x-1 text-blue-600 dark:text-blue-400">
-                <Clock className="h-4 w-4" />
-                <span className="text-xs">
-                  Updated every 10 minutes. You may be viewing slightly outdated information.
-                </span>
-              </div>
+          <div className="glass-card-hover p-5 rounded-2xl text-center">
+            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 mb-3">
+              <CheckCircle className="h-6 w-6" />
             </div>
+            <div className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
+              {displayActivities?.activities?.length || 0}
+            </div>
+            <div className="text-sm text-gray-600 dark:text-gray-400">Recent Activities</div>
+          </div>
+          
+          <div className="glass-card-hover p-5 rounded-2xl text-center">
+            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 mb-3">
+              <Trophy className="h-6 w-6" />
+            </div>
+            <div className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
+              {displayLeaderboard?.length || 0}
+            </div>
+            <div className="text-sm text-gray-600 dark:text-gray-400">Top Achievers</div>
+          </div>
+          
+          <div className="glass-card-hover p-5 rounded-2xl text-center">
+            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 mb-3">
+              <Users className="h-6 w-6" />
+            </div>
+            <div className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
+              {(displayLeaderboard?.reduce((sum, u) => sum + (u.completedGoals || 0), 0) || 0)}
+            </div>
+            <div className="text-sm text-gray-600 dark:text-gray-400">Goals Completed</div>
+          </div>
+        </motion.div>
+
+        {/* Tab Switcher */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+          className="flex justify-center mb-6"
+        >
+          <div className="inline-flex rounded-xl bg-white dark:bg-gray-800 p-1 shadow-md">
+            <button
+              onClick={() => setActiveTab('recent')}
+              className={`px-6 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+                activeTab === 'recent'
+                  ? 'bg-gradient-to-r from-primary-500 to-purple-500 text-white shadow-lg'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <TrendingUp className="h-4 w-4" />
+                <span>Recent Activities</span>
+              </div>
+            </button>
+            <button
+              onClick={() => setActiveTab('top')}
+              className={`px-6 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+                activeTab === 'top'
+                  ? 'bg-gradient-to-r from-primary-500 to-purple-500 text-white shadow-lg'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Trophy className="h-4 w-4" />
+                <span>Top Achievers</span>
+              </div>
+            </button>
           </div>
         </motion.div>
 
         {/* Loading State */}
-        {loading && isAuthenticated && (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        {loading && (
+          <div className="flex items-center justify-center py-16">
+            <div className="flex flex-col items-center gap-3">
+              <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary-200 dark:border-primary-800 border-t-primary-500"></div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Loading inspiration...</p>
+            </div>
           </div>
         )}
 
-        {/* Main Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Recent Achievements */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg"
-          >
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center">
-                <div className="bg-green-500 rounded-full p-2 mr-3">
-                  <CheckCircle className="h-6 w-6 text-white" />
+        {/* Main Content with Tabs */}
+        <AnimatePresence mode="wait">
+          {activeTab === 'recent' && (
+            <motion.div
+              key="recent"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+              className="glass-card-hover rounded-2xl p-6 mb-8"
+            >
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  <div className="w-1 h-6 bg-gradient-to-b from-primary-500 to-purple-500 rounded-full"></div>
+                  Recent Activities
+                </h2>
+                <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                  <Clock className="h-3.5 w-3.5" />
+                  <span>Live updates</span>
                 </div>
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Recent Activities</h2>
               </div>
-            </div>
-            <div className="relative">
-              <div className="space-y-4 max-h-96 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[600px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent">
                 {displayActivities && displayActivities.activities && displayActivities.activities.length > 0 ? (
                   displayActivities.activities.map((activity, index) => (
                     <motion.div
-                      key={activity._id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.5, delay: 0.1 * Math.min(index, 5) }}
-                      className="flex items-start space-x-4 p-4 bg-gray-100 dark:bg-gray-700/30 rounded-xl border border-gray-200 dark:border-gray-600/30 hover:bg-gray-200 dark:hover:bg-gray-700/50 transition-all duration-200"
+                      key={activity._id || `activity-${index}`}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.3, delay: 0.05 * Math.min(index, 8) }}
+                      className="flex items-start space-x-3 p-4 bg-white dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700/50 hover:shadow-lg hover:border-primary-300 dark:hover:border-primary-700 transition-all duration-200 cursor-pointer group"
+                      onClick={() => {
+                        const username = activity?.userId?.username || activity?.username;
+                        if (username) navigate(`/profile/@${username}?tab=overview`);
+                      }}
                     >
-                      <div className="relative">
+                      <div className="relative flex-shrink-0">
                         <img
                           src={activity?.avatar || '/api/placeholder/48/48'}
                           alt={activity?.name || 'User'}
-                          className="w-12 h-12 rounded-full border-2 border-gray-300 dark:border-gray-500 cursor-pointer"
-                          onClick={() => navigate(`/profile/@${activity?.userId?.username}?tab=overview`)}
+                          className="w-11 h-11 rounded-full border-2 border-white dark:border-gray-700 shadow-sm"
                         />
-                        <div className={`absolute -top-1 -right-1 w-6 h-6 rounded-full ${getCategoryColor(activity.data?.goalCategory)} flex items-center justify-center text-xs`}>
+                        <div className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full ${getCategoryColor(activity.data?.goalCategory)} flex items-center justify-center text-xs shadow-md`}>
                           {getActivityIcon(activity)}
                         </div>
                       </div>
 
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2 mb-1">
-                          <span
-                            className="font-semibold text-gray-900 dark:text-white cursor-pointer hover:text-blue-500"
-                            onClick={() => navigate(`/profile/@${activity?.userId?.username}?tab=overview`)}
-                          >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                          <span className="font-semibold text-gray-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors truncate">
                             {activity?.name || 'Unknown User'}
                           </span>
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium text-white ${getCategoryColor(activity.data?.goalCategory)}`}>
-                            {activity.data?.goalCategory || 'General'}
-                          </span>
+                          {activity.data?.goalCategory && (
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium text-white ${getCategoryColor(activity.data?.goalCategory)} flex-shrink-0`}>
+                              {activity.data?.goalCategory}
+                            </span>
+                          )}
                         </div>
 
-                        <p className="text-gray-600 dark:text-gray-300 text-sm mb-2">
+                        <p className="text-gray-600 dark:text-gray-400 text-sm mb-2 line-clamp-2">
                           {activity.type === 'goal_completed' || activity.type === 'goal_created'
                             ? `${getActivityText(activity)} ${activity.data?.goalTitle || 'Goal Achievement'}`
                             : getActivityText(activity)
                           }
                         </p>
 
-                        <div className="flex items-center space-x-4 text-xs text-gray-500 dark:text-gray-400">
+                        <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                          <Clock className="h-3 w-3" />
                           <span>{formatTimeAgo(activity.createdAt)}</span>
-                          {/* <div className="flex items-center space-x-1">
-                            <Flame className="h-3 w-3 text-orange-500" />
-                            <span>{calculateStreak(activity.user || {})} day streak</span>
-                          </div> */}
                         </div>
                       </div>
                     </motion.div>
                   ))
                 ) : !loading && (
-                  <div className="text-center py-8">
-                    <CheckCircle className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-600 dark:text-gray-400">No recent activities to show.</p>
-                    <p className="text-gray-500 dark:text-gray-500 text-sm mt-2">Follow some users to see their progress!</p>
+                  <div className="col-span-full text-center py-12">
+                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-800 mb-4">
+                      <CheckCircle className="h-8 w-8 text-gray-400" />
+                    </div>
+                    <p className="text-gray-600 dark:text-gray-400 font-medium mb-1">No recent activities yet</p>
+                    <p className="text-gray-500 dark:text-gray-500 text-sm">Check back soon for updates!</p>
                   </div>
                 )}
               </div>
-            </div>
-            {displayActivities && displayActivities.activities && displayActivities.activities.length > 6 && (
-              <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-white dark:from-gray-800/50 to-transparent pointer-events-none rounded-b-2xl"></div>
-            )}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5, delay: 0.8 }}
-              className="mt-6 text-center"
-            >
-              <a
-                href={isAuthenticated ? "/feed" : "/auth"}
-                className="px-6 py-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-xl transition-colors duration-200 font-medium"
-              >
-                {isAuthenticated ? "View All Activities" : "Join to See More"}
-              </a>
-            </motion.div>
-          </motion.div>
-
-          {/* Top Goal Achievers */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6, delay: 0.4 }}
-            className="bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50 shadow-lg"
-          >
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center">
-                <div className="bg-yellow-500 rounded-full p-2 mr-3">
-                  <Trophy className="h-6 w-6 text-white" />
+              {displayActivities && displayActivities.activities && displayActivities.activities.length > 0 && (
+                <div className="mt-6 text-center">
+                  <a
+                    href={isAuthenticated ? "/feed" : "/auth"}
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-primary-500 to-purple-500 hover:from-primary-600 hover:to-purple-600 text-white rounded-xl transition-all duration-200 font-medium shadow-lg hover:shadow-xl"
+                  >
+                    <span>{isAuthenticated ? "View All Activities" : "Join to See More"}</span>
+                    <ArrowRight className="h-4 w-4" />
+                  </a>
                 </div>
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Top Achievers</h2>
+              )}
+            </motion.div>
+          )}
+
+          {activeTab === 'top' && (
+            <motion.div
+              key="top"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+              className="glass-card-hover rounded-2xl p-6 mb-8"
+            >
+
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  <div className="w-1 h-6 bg-gradient-to-b from-yellow-500 to-orange-500 rounded-full"></div>
+                  Top Achievers
+                </h2>
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 text-xs font-medium">
+                  <Trophy className="h-3.5 w-3.5" />
+                  <span>Ranked by Points</span>
+                </div>
               </div>
-            </div>
-            <div className="relative">
-              <div className="space-y-4 max-h-96 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent">
+              <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent">
                 {displayLeaderboard && displayLeaderboard.length > 0 ? (
                   displayLeaderboard.map((user, index) => {
                     const badge = getAchievementBadge(user);
                     const rank = index + 1;
+                    const isPodium = rank <= 3;
 
                     return (
                       <motion.div
-                        key={user._id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.5, delay: 0.1 * Math.min(index, 5) }}
-                        className="flex items-center space-x-4 p-4 bg-gray-100 dark:bg-gray-700/30 rounded-xl border border-gray-200 dark:border-gray-600/30 hover:bg-gray-200 dark:hover:bg-gray-700/50 transition-all duration-200"
+                        key={user._id || `user-${index}`}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.3, delay: 0.05 * Math.min(index, 8) }}
+                        onClick={() => {
+                          if (user?.username) navigate(`/profile/@${user.username}?tab=overview`);
+                        }}
+                        className={`flex items-center space-x-3 p-4 rounded-xl border transition-all duration-200 cursor-pointer group ${
+                          isPodium
+                            ? 'bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border-yellow-300 dark:border-yellow-700/50 hover:shadow-lg'
+                            : 'bg-white dark:bg-gray-800/50 border-gray-200 dark:border-gray-700/50 hover:shadow-lg hover:border-primary-300 dark:hover:border-primary-700'
+                        }`}
                       >
                         <div className="relative flex-shrink-0">
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-lg ${rank === 1 ? 'bg-yellow-500' :
-                              rank === 2 ? 'bg-gray-400' :
-                                rank === 3 ? 'bg-amber-600' : 'bg-gray-600'
-                            }`}>
-                            #{rank}
-                          </div>
-                          <div className="absolute -top-1 -right-1 text-lg">
-                            {getRankIcon(rank)}
+                          <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-base shadow-md ${
+                            rank === 1 ? 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-white' :
+                            rank === 2 ? 'bg-gradient-to-br from-gray-300 to-gray-500 text-white' :
+                            rank === 3 ? 'bg-gradient-to-br from-amber-500 to-amber-700 text-white' : 
+                            'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                          }`}>
+                            {isPodium ? getRankIcon(rank) : `#${rank}`}
                           </div>
                         </div>
 
                         <img
                           src={user.avatar || '/api/placeholder/48/48'}
                           alt={user.name}
-                          className="w-12 h-12 rounded-full border-2 border-gray-300 dark:border-gray-500 cursor-pointer flex-shrink-0"
-                          onClick={() => navigate(`/profile/@${user?.username}?tab=overview`)}
+                          className={`w-12 h-12 rounded-full flex-shrink-0 shadow-md ${
+                            isPodium ? 'border-3 border-yellow-400 dark:border-yellow-600' : 'border-2 border-white dark:border-gray-700'
+                          }`}
                         />
 
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center space-x-2 mb-1">
-                            <span
-                              className="font-semibold text-gray-900 dark:text-white cursor-pointer hover:text-blue-500 truncate"
-                              onClick={() => navigate(`/profile/@${user?.username}?tab=overview`)}
-                            >
+                          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                            <span className="font-semibold text-gray-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors truncate">
                               {user.name}
                             </span>
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium text-white ${badge.color}`}>
-                              {badge.label}
-                            </span>
+                            {isPodium && (
+                              <span className={`px-2 py-0.5 rounded-full text-xs font-medium text-white ${badge.color} flex-shrink-0`}>
+                                {badge.label}
+                              </span>
+                            )}
                           </div>
 
-                          <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
-                            <div className="flex items-center space-x-1">
-                              <CheckCircle className="h-4 w-4" />
-                              <span>{user.completedGoals || 0} goals</span>
+                          <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
+                            <div className="flex items-center gap-1">
+                              <CheckCircle className="h-3.5 w-3.5 text-green-500" />
+                              <span className="font-medium">{user.completedGoals || 0}</span>
                             </div>
-                            <div className="flex items-center space-x-1">
-                              <Star className="h-4 w-4" />
-                              <span>{user.totalPoints || 0} points</span>
+                            <div className="flex items-center gap-1">
+                              <Star className="h-3.5 w-3.5 text-yellow-500" />
+                              <span className="font-medium">{user.totalPoints || 0}</span>
                             </div>
-                            {/* <div className="flex items-center space-x-1">
-                              <Calendar className="h-4 w-4" />
-                              <span>{calculateStreak(user || {})} days</span>
-                            </div> */}
                           </div>
                         </div>
                       </motion.div>
                     );
                   })
                 ) : !loading && (
-                  <div className="text-center py-8">
-                    <Trophy className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-600 dark:text-gray-400">No achievers to show yet.</p>
-                    <p className="text-gray-500 dark:text-gray-500 text-sm mt-2">Complete some goals to appear here!</p>
+                  <div className="text-center py-12">
+                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-800 mb-4">
+                      <Trophy className="h-8 w-8 text-gray-400" />
+                    </div>
+                    <p className="text-gray-600 dark:text-gray-400 font-medium mb-1">No achievers yet</p>
+                    <p className="text-gray-500 dark:text-gray-500 text-sm">Be the first to complete goals!</p>
                   </div>
                 )}
               </div>
-              {displayLeaderboard && displayLeaderboard.length > 6 && (
-                <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-white dark:from-gray-800/50 to-transparent pointer-events-none rounded-b-2xl"></div>
+              {displayLeaderboard && displayLeaderboard.length > 0 && (
+                <div className="mt-6 text-center">
+                  <a
+                    href={isAuthenticated ? "/leaderboard?tab=global" : "/auth"}
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white rounded-xl transition-all duration-200 font-medium shadow-lg hover:shadow-xl"
+                  >
+                    <span>{isAuthenticated ? "View Full Leaderboard" : "Join to See More"}</span>
+                    <ArrowRight className="h-4 w-4" />
+                  </a>
+                </div>
               )}
-            </div>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5, delay: 0.8 }}
-              className="mt-6 text-center"
-            >
-              <a
-                href={isAuthenticated ? "/leaderboard?tab=global" : "/auth"}
-                className="px-6 py-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-xl transition-colors duration-200 font-medium"
-              >
-                {isAuthenticated ? "View Full Leaderboard" : "Join to See More"}
-              </a>
             </motion.div>
-          </motion.div>
-        </div>
+          )}
+        </AnimatePresence>
 
         {/* Call to Action */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.6 }}
-          className="mt-12 text-center"
-        >
-          <div className="bg-gradient-to-r from-primary-500 to-purple-600 rounded-2xl p-8 text-white shadow-2xl">
-            <h3 className="text-3xl font-bold mb-4">
-              🚀 Ready to Join the Action?
-            </h3>
-            <p className="text-primary-100 mb-6 text-lg">
-              Start setting and achieving your goals today. Be part of this amazing community!
-            </p>
-            <a
-              href={isAuthenticated ? "/dashboard" : "/auth"}
-              className="inline-flex items-center px-8 py-4 bg-white text-primary-600 rounded-xl hover:bg-gray-100 transition-colors font-bold text-lg shadow-lg"
-            >
-              <Star className="h-6 w-6 mr-2" />
-              {isAuthenticated ? "Go to Dashboard" : "Get Started"}
-            </a>
-          </div>
-        </motion.div>
+        {!isAuthenticated && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.4 }}
+            className="mt-8"
+          >
+            <div className="relative overflow-hidden bg-gradient-to-br from-primary-500 via-purple-600 to-pink-600 rounded-2xl p-8 sm:p-12 text-white shadow-2xl">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32"></div>
+              <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full -ml-24 -mb-24"></div>
+              
+              <div className="relative z-10 text-center max-w-2xl mx-auto">
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ duration: 0.5, delay: 0.6 }}
+                  className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm mb-6"
+                >
+                  <Sparkles className="h-8 w-8" />
+                </motion.div>
+                
+                <h3 className="text-3xl sm:text-4xl font-bold mb-4">
+                  Ready to Start Your Journey?
+                </h3>
+                <p className="text-white/90 mb-8 text-base sm:text-lg">
+                  Join thousands of goal-setters achieving their dreams. Track progress, stay motivated, and celebrate wins together!
+                </p>
+                <a
+                  href="/auth"
+                  className="inline-flex items-center gap-3 px-8 py-4 bg-white text-primary-600 rounded-xl hover:bg-gray-100 transition-all duration-200 font-bold text-lg shadow-xl hover:shadow-2xl hover:scale-105"
+                >
+                  <Star className="h-6 w-6" />
+                  <span>Get Started Free</span>
+                  <ArrowRight className="h-5 w-5" />
+                </a>
+              </div>
+            </div>
+          </motion.div>
+        )}
       </div>
     </div>
   );
