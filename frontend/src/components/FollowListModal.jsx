@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Users, Loader2 } from 'lucide-react'
 
@@ -25,14 +26,46 @@ const FollowListModal = ({ isOpen, onClose, activeTab = 'followers', onTabChange
     return () => window.removeEventListener('keydown', handler)
   }, [isOpen, onClose])
 
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [isOpen])
+
   if (!isOpen) return null
 
   const list = activeTab === 'followers' ? followers : following
 
-  return (
-    <AnimatePresence>
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4" onClick={onClose}>
-        <motion.div initial={{ scale: 0.96, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.96, opacity: 0 }} className="bg-white dark:bg-gray-900 w-full max-w-2xl rounded-2xl border border-gray-200 dark:border-gray-700 shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+  const modalContent = (
+    <AnimatePresence mode="wait">
+      {isOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <motion.div 
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0 }} 
+            transition={{ duration: 0.2 }}
+            className="absolute inset-0 bg-black/50" 
+            onClick={onClose}
+          />
+          
+          {/* Modal */}
+          <motion.div 
+            initial={{ scale: 0.96, opacity: 0, y: 20 }} 
+            animate={{ scale: 1, opacity: 1, y: 0 }} 
+            exit={{ scale: 0.96, opacity: 0, y: 20 }} 
+            transition={{ duration: 0.2 }}
+            className="relative bg-white dark:bg-gray-900 w-full max-w-md rounded-2xl border border-gray-200 dark:border-gray-700 shadow-2xl flex flex-col" 
+            style={{ height: '600px', maxHeight: '85vh' }}
+            onClick={(e) => e.stopPropagation()}
+          >
           <div className="px-4 pt-4 pb-2 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Users className="h-5 w-5 text-primary-500" />
@@ -52,16 +85,16 @@ const FollowListModal = ({ isOpen, onClose, activeTab = 'followers', onTabChange
             </div>
           </div>
 
-          <div className="p-4 max-h-[70vh] overflow-auto space-y-2">
+          <div className="flex-1 overflow-y-auto p-4 space-y-2">
             {loading && (
               <div className="space-y-2">
-                {Array.from({ length: 6 }).map((_, i) => (
+                {Array.from({ length: 5 }).map((_, i) => (
                   <div key={i} className="h-14 rounded-lg bg-gray-100 dark:bg-gray-800 animate-pulse" />
                 ))}
               </div>
             )}
             {!loading && list.length === 0 && (
-              <div className="text-sm text-gray-500 dark:text-gray-400">No {activeTab} yet.</div>
+              <div className="py-8 text-center text-sm text-gray-500 dark:text-gray-400">No {activeTab} yet.</div>
             )}
             {!loading && list.length > 0 && (
               <div className="space-y-2">
@@ -91,9 +124,12 @@ const FollowListModal = ({ isOpen, onClose, activeTab = 'followers', onTabChange
             )}
           </div>
         </motion.div>
-      </motion.div>
+        </div>
+      )}
     </AnimatePresence>
   )
+
+  return createPortal(modalContent, document.body)
 }
 
 export default FollowListModal

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, lazy, Suspense } from "react";
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { Calendar, Target, TrendingUp, Star, Edit2, ExternalLink, Youtube, Instagram, MapPin, Globe, Trophy, BookOpen, Clock, CheckCircle, Circle, User, UserPlus, UserCheck, ArrowLeft, Lock, Sparkles, Download, Flame } from "lucide-react";
+import { Target, TrendingUp, Star, Edit2, ExternalLink, Youtube, Instagram, MapPin, Globe, Trophy, BookOpen, Clock, CheckCircle, Circle, User, UserPlus, UserCheck, ArrowLeft, Lock, Sparkles, Download, Flame } from "lucide-react";
 const FollowListModal = lazy(() => import("../components/FollowListModal"));
 import { motion } from "framer-motion";
 import useApiStore from "../store/apiStore";
@@ -14,7 +14,6 @@ const JournalPromptModal = lazy(() => import("../components/JournalPromptModal")
 const JournalEntryModal = lazy(() => import("../components/JournalEntryModal"));
 const JournalExportModal = lazy(() => import("../components/JournalExportModal"));
 const HabitAnalyticsCard = lazy(() => import("../components/HabitAnalyticsCard"));
-const GoalPostModal = lazy(() => import('../components/GoalPostModal'));
 const GoalDetailsModal = lazy(() => import('../components/GoalDetailsModal'));
 
 const ProfilePage = () => {
@@ -41,7 +40,6 @@ const ProfilePage = () => {
   const [reportOpen, setReportOpen] = useState(false);
   const [blockOpen, setBlockOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
-  const profileMenuRef = useRef(null);
   const [followModalOpen, setFollowModalOpen] = useState(false);
   const [followModalTab, setFollowModalTab] = useState('followers');
   const [followers, setFollowers] = useState([]);
@@ -68,7 +66,6 @@ const ProfilePage = () => {
     cancelFollowRequest,
     getUserJournalHighlights,
     getMyJournalEntries,
-    journalHighlights,
     journalEntries,
     getFollowers,
     getFollowing,
