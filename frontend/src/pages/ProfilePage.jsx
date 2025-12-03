@@ -98,6 +98,7 @@ const ProfilePage = () => {
   const [scrollCommentsOnOpen, setScrollCommentsOnOpen] = useState(false)
   const [shareSheetOpen, setShareSheetOpen] = useState(false)
   const shareUrlRef = useRef('')
+  const [isMobile, setIsMobile] = useState(false)
 
   const isProfileAccessible = () => {
     if (isOwnProfile) return true;
@@ -105,6 +106,13 @@ const ProfilePage = () => {
     if (!profileUser.isPrivate || isFollowing) return true;
     return false;
   };
+
+  useEffect(() => {
+    const compute = () => setIsMobile(typeof window !== 'undefined' && window.innerWidth < 768)
+    compute()
+    window.addEventListener('resize', compute)
+    return () => window.removeEventListener('resize', compute)
+  }, [])
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -439,17 +447,19 @@ const ProfilePage = () => {
                   className="w-20 h-20 md:w-24 md:h-24 rounded-full border-4 border-gray-300 dark:border-gray-600 object-cover"
                 />
                 {isOwnProfile ? (
-                  <button
-                    onClick={() => setIsEditModalOpen(true)}
-                    className="absolute -bottom-1 -right-1 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-full p-1 hover:scale-110 transition-transform cursor-pointer shadow-md"
-                    title="Click to change your mood"
-                  >
-                    <span className="text-lg">{displayUser.currentMood || '⭐'}</span>
-                  </button>
+                  displayUser.currentMood && (
+                    <button
+                      onClick={() => setIsEditModalOpen(true)}
+                      className="absolute -bottom-1 -right-1 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-full p-1 hover:scale-110 transition-transform cursor-pointer shadow-md"
+                      title="Click to change your mood"
+                    >
+                      <span className="text-lg">{displayUser.currentMood}</span>
+                    </button>
+                  )
                 ) : (
-                  displayUser.level && (
-                    <div className="absolute -bottom-2 -right-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-3 py-1 rounded-full text-sm font-bold">
-                      {displayUser.level}
+                  displayUser.currentMood && (
+                    <div className="absolute -bottom-1 -right-1 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-full p-1 shadow-md">
+                      <span className="text-lg">{displayUser.currentMood}</span>
                     </div>
                   )
                 )}
@@ -1050,22 +1060,18 @@ const ProfilePage = () => {
               )}
               {activeTab === 'journal' && (
                 <div className={isOwnProfile
-                  ? "bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg"
-                  : "bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50"
+                  ? "bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-gray-700"
+                  : "bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-5 border border-gray-200 dark:border-gray-700/50"
                 }>
-                  <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
-                      <BookOpen className="h-6 w-6 mr-2 text-indigo-600 dark:text-indigo-400" />
-                      {isOwnProfile ? 'Your Journal' : 'Journal'}
-                    </h3>
+                  <div className="flex items-center justify-between mb-5">
                     {isOwnProfile && (
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => setExportOpen(true)}
-                          className="px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 inline-flex items-center gap-2"
+                          className="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 inline-flex items-center gap-1.5 text-sm transition-colors"
                           title="Export your journal"
                         >
-                          <Download className="h-4 w-4" /> Export
+                          <Download className="h-3.5 w-3.5" /> Export
                         </button>
                         <button
                           onClick={() => setIsJournalOpen(true)}
@@ -1081,30 +1087,31 @@ const ProfilePage = () => {
                   {/* Journal Feed (own profile) */}
                   {isOwnProfile && (
                     <div>
-                      <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Recent Journal</h4>
                       {journalFeed.length === 0 && !journalLoading && (
-                        <div className="text-center py-10">
-                          <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                          <p className="text-gray-600 dark:text-gray-400">No entries yet.</p>
+                        <div className="text-center py-12">
+                          <div className="bg-gray-50 dark:bg-gray-800 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                            <BookOpen className="h-8 w-8 text-gray-400" />
+                          </div>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">No journal entries yet</p>
                           {isOwnProfile && (
-                            <button onClick={() => setIsJournalOpen(true)} disabled={hasTodayJournal} className={`mt-4 px-4 py-2 rounded-lg ${hasTodayJournal ? 'bg-gray-300 dark:bg-gray-700 text-gray-600 dark:text-gray-300 cursor-not-allowed' : 'bg-indigo-500 hover:bg-indigo-600 text-white'}`}>{hasTodayJournal ? 'Journal Submitted' : 'Write Your First Journal'}</button>
+                            <button onClick={() => setIsJournalOpen(true)} disabled={hasTodayJournal} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${hasTodayJournal ? 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed' : 'bg-indigo-500 hover:bg-indigo-600 text-white'}`}>{hasTodayJournal ? 'Submitted Today' : 'Write Your First Entry'}</button>
                           )}
                         </div>
                       )}
-                      <div className="space-y-3 max-h-[520px] overflow-auto pr-1">
+                      <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
                         {journalFeed.map((e) => (
-                          <button key={e._id} onClick={() => { setSelectedEntry(e); setEntryModalOpen(true); }} className="w-full text-left p-4 bg-gray-50 dark:bg-gray-700/30 rounded-xl border border-gray-200 dark:border-gray-600/30 hover:bg-gray-100 dark:hover:bg-gray-700/40 transition-colors">
-                            <div className="flex items-center justify-between mb-2 text-sm text-gray-500 dark:text-gray-400">
-                              <span>{formatTimeAgo(e.createdAt)}</span>
-                              <span className="inline-flex items-center gap-2">
-                                <span className="px-2 py-0.5 rounded-full text-xs bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200">{e.visibility}</span>
-                                <span className="px-2 py-0.5 rounded-full text-xs bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200">{e.mood?.replace('_', ' ') || 'neutral'}</span>
+                          <button key={e._id} onClick={() => { setSelectedEntry(e); setEntryModalOpen(true); }} className="w-full text-left p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-sm transition-all">
+                            <div className="flex items-center justify-between mb-2.5">
+                              <span className="text-xs text-gray-500 dark:text-gray-400">{formatTimeAgo(e.createdAt)}</span>
+                              <span className="inline-flex items-center gap-1.5">
+                                <span className="px-2 py-0.5 rounded-md text-xs bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 font-medium">{e.visibility}</span>
+                                <span className="px-2 py-0.5 rounded-md text-xs bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 font-medium capitalize">{e.mood?.replace('_', ' ') || 'neutral'}</span>
                               </span>
                             </div>
-                            <p className="text-gray-800 dark:text-gray-200 line-clamp-2 mb-2">{e.content}</p>
+                            <p className="text-sm text-gray-800 dark:text-gray-200 line-clamp-3 leading-relaxed">{e.content}</p>
                             {e?.ai?.motivation && (
-                              <div className="p-3 bg-gradient-to-r from-indigo-50 to-sky-50 dark:from-indigo-900/10 dark:to-sky-900/10 border border-indigo-200/60 dark:border-indigo-800/40 rounded-lg text-sm text-indigo-800 dark:text-indigo-200 flex items-start gap-2">
-                                <Sparkles className="h-4 w-4 mt-0.5 text-indigo-500" />
+                              <div className="mt-3 p-2.5 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200/50 dark:border-indigo-800/30 rounded-lg text-xs text-indigo-700 dark:text-indigo-300 flex items-start gap-2">
+                                <Sparkles className="h-3.5 w-3.5 mt-0.5 text-indigo-500 flex-shrink-0" />
                                 <span className="leading-relaxed">{e.ai.motivation}</span>
                               </div>
                             )}
@@ -1113,8 +1120,8 @@ const ProfilePage = () => {
                       </div>
                       <div className="flex items-center justify-center mt-4">
                         {journalHasMore ? (
-                          <button onClick={loadMoreJournal} disabled={journalLoading} className="px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-lg border border-gray-200 dark:border-gray-600">
-                            {journalLoading ? 'Loading…' : 'Load more'}
+                          <button onClick={loadMoreJournal} disabled={journalLoading} className="px-4 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium transition-colors disabled:opacity-50">
+                            {journalLoading ? 'Loading…' : 'Load More'}
                           </button>
                         ) : (
                           journalFeed.length > 0 && <div className="text-xs text-gray-400">No more entries</div>
@@ -1219,7 +1226,7 @@ const ProfilePage = () => {
               <div className="space-y-1 p-3">
                 {isOwnProfile ? (
                   <>
-                    <button
+                    {!isMobile && <button
                       className="w-full text-center px-4 py-2 text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                       onClick={(e) => {
                         e.preventDefault();
@@ -1229,7 +1236,7 @@ const ProfilePage = () => {
                       }}
                     >
                       Edit Profile
-                    </button>
+                    </button>}
                     <button
                       className="w-full text-center px-4 py-2 text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                       onClick={(e) => {

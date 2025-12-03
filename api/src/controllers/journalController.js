@@ -74,30 +74,118 @@ exports.exportMyJournal = async (req, res, next) => {
     const user = await User.findById(userId).select('name avatar createdAt').lean();
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
+    // Validate date range
+    if (from && to) {
+      const fromDate = new Date(from);
+      const toDate = new Date(to);
+      if (toDate < fromDate) {
+        return res.status(400).json({ success: false, message: 'End date cannot be before start date' });
+      }
+    }
+
     const filter = { userId, isActive: true };
     if (from || to) {
       filter.createdAt = {};
-      if (from) filter.createdAt.$gte = new Date(from);
-      if (to) filter.createdAt.$lte = new Date(to);
+      if (from) {
+        const fromDate = new Date(from);
+        fromDate.setHours(0, 0, 0, 0);
+        filter.createdAt.$gte = fromDate;
+      }
+      if (to) {
+        const toDate = new Date(to);
+        toDate.setHours(23, 59, 59, 999);
+        filter.createdAt.$lte = toDate;
+      }
     }
     const entries = await JournalEntry.find(filter).sort({ createdAt: 1 }).lean();
+    
+    if (entries.length === 0) {
+      return res.status(404).json({ success: false, message: 'No journal entries found for the selected date range' });
+    }
 
     if (String(format).toLowerCase() === 'text') {
       res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-      const title = `WishTrail Journal of ${user.name}`;
       const lines = [];
-      lines.push(`${title}`);
-      lines.push('');
-      for (const e of entries) {
-        const dt = new Date(e.createdAt).toLocaleString();
-        lines.push(`=== ${dt} ===`);
-        if (e.promptText) lines.push(`[Prompt] ${e.promptText}`);
-        lines.push(e.content);
-        if (includeMot && e.ai?.motivation) lines.push(`Motivation: ${e.ai.motivation}`);
+      
+      if (String(style).toLowerCase() === 'diary') {
+        // Diary style - like an actual journal
+        lines.push('═══════════════════════════════════════════════════════════════');
+        lines.push(`                    ${user.name}'s Journal`);
+        lines.push('═══════════════════════════════════════════════════════════════');
         lines.push('');
+        lines.push('');
+        
+        for (const e of entries) {
+          const dt = new Date(e.createdAt);
+          const dateStr = dt.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+          const timeStr = dt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+          
+          lines.push('───────────────────────────────────────────────────────────────');
+          lines.push(`  ${dateStr}`);
+          lines.push(`  ${timeStr}`);
+          lines.push('───────────────────────────────────────────────────────────────');
+          lines.push('');
+          
+          if (e.promptText) {
+            lines.push(`  Prompt: "${e.promptText}"`);
+            lines.push('');
+          }
+          
+          // Indent the content for diary feel
+          const contentLines = e.content.split('\n');
+          contentLines.forEach(line => {
+            lines.push(`    ${line}`);
+          });
+          
+          if (includeMot && e.ai?.motivation) {
+            lines.push('');
+            lines.push('  ✨ Motivation:');
+            const motLines = e.ai.motivation.split('\n');
+            motLines.forEach(line => {
+              lines.push(`    ${line}`);
+            });
+          }
+          
+          lines.push('');
+          lines.push('');
+        }
+        
+        lines.push('═══════════════════════════════════════════════════════════════');
+        lines.push('         This is your journey. Keep growing 🌱');
+        lines.push('                    — WishTrail');
+        lines.push('═══════════════════════════════════════════════════════════════');
+      } else {
+        // Simple style - clean and minimal
+        lines.push(`${user.name}'s Journal`);
+        lines.push(`Exported on ${new Date().toLocaleDateString()}`);
+        lines.push('');
+        lines.push('─────────────────────────────────────────────────');
+        lines.push('');
+        
+        for (const e of entries) {
+          const dt = new Date(e.createdAt).toLocaleString();
+          lines.push(`Date: ${dt}`);
+          
+          if (e.promptText) {
+            lines.push(`Prompt: ${e.promptText}`);
+          }
+          
+          lines.push('');
+          lines.push(e.content);
+          
+          if (includeMot && e.ai?.motivation) {
+            lines.push('');
+            lines.push(`💡 ${e.ai.motivation}`);
+          }
+          
+          lines.push('');
+          lines.push('─────────────────────────────────────────────────');
+          lines.push('');
+        }
+        
+        lines.push('This is your journey. Keep growing 🌱');
       }
-      lines.push('');
-      lines.push('This is your journey. Keep growing 🌱');
+      
       return res.status(200).send(lines.join('\n'));
     }
 
@@ -110,12 +198,29 @@ exports.exportMyJournal = async (req, res, next) => {
     const writeCover = async () => {
       const start = entries[0]?.createdAt ? new Date(entries[0].createdAt) : (user.createdAt ? new Date(user.createdAt) : new Date());
       const end = entries[entries.length - 1]?.createdAt ? new Date(entries[entries.length - 1].createdAt) : new Date();
-      const range = `${start.toLocaleString('en-US', { month: 'short' })}–${end.toLocaleString('en-US', { month: 'short' })} ${end.getFullYear()}`;
+      const range = `${start.toLocaleString('en-US', { month: 'short', day: 'numeric' })} – ${end.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+      
+      // Decorative top border
+      if (style === 'diary') {
+        doc.moveDown(2);
+        const y1 = doc.y;
+        doc.save();
+        doc.roundedRect(doc.page.margins.left + 50, y1, doc.page.width - 100 - doc.page.margins.left - doc.page.margins.right, 4, 2).fill('#6366f1');
+        doc.restore();
+        doc.moveDown(3);
+      }
+      
       // Title & range with classic serif
-      doc.font('Times-Bold').fontSize(26).fillColor('#111').text(`WishTrail Journal of ${user.name}`, { align: 'center' });
-      doc.moveDown(0.6);
-      doc.font('Times-Roman').fontSize(13).fillColor('#6b7280').text(range, { align: 'center' });
-      doc.moveDown(2);
+      doc.font('Times-Bold').fontSize(28).fillColor('#1f2937').text(`${user.name}'s Journal`, { align: 'center' });
+      doc.moveDown(0.4);
+      doc.font('Times-Italic').fontSize(14).fillColor('#6b7280').text(range, { align: 'center' });
+      
+      if (style === 'diary') {
+        doc.moveDown(0.8);
+        doc.font('Times-Roman').fontSize(11).fillColor('#9ca3af').text(`${entries.length} ${entries.length === 1 ? 'Entry' : 'Entries'}`, { align: 'center' });
+      }
+      
+      doc.moveDown(2.5);
       // Avatar circle
       if (user.avatar) {
         try {
@@ -143,40 +248,134 @@ exports.exportMyJournal = async (req, res, next) => {
     };
 
     const writeSignature = () => {
-      doc.moveDown(6);
-      doc.font('Times-Bold').fontSize(18).fillColor('#111').text('This is your journey. Keep growing 🌱', { align: 'center' });
-      doc.moveDown(4);
-      doc.font('Times-Roman').fontSize(12).fillColor('#555').text('— WishTrail', { align: 'center' });
+      doc.moveDown(5);
+      
+      if (style === 'diary') {
+        // Decorative closing for diary
+        const centerY = doc.y;
+        doc.save();
+        doc.strokeColor('#c7d2fe').lineWidth(2);
+        doc.moveTo(doc.page.margins.left + 100, centerY).lineTo(doc.page.margins.left + 220, centerY).stroke();
+        doc.restore();
+        doc.moveDown(2);
+        
+        doc.font('Times-BoldItalic').fontSize(18).fillColor('#4338ca').text('Your Journey Continues...', { align: 'center' });
+        doc.moveDown(1);
+        doc.font('Times-Italic').fontSize(14).fillColor('#6b7280').text('Keep growing 🌱', { align: 'center' });
+        doc.moveDown(3);
+        doc.font('Times-Roman').fontSize(11).fillColor('#9ca3af').text('— WishTrail', { align: 'center' });
+        
+        doc.moveDown(2);
+        doc.save();
+        doc.strokeColor('#c7d2fe').lineWidth(2);
+        doc.moveTo(doc.page.margins.left + 100, doc.y).lineTo(doc.page.margins.left + 220, doc.y).stroke();
+        doc.restore();
+      } else {
+        // Simple closing
+        doc.font('Times-Bold').fontSize(16).fillColor('#111').text('This is your journey. Keep growing 🌱', { align: 'center' });
+        doc.moveDown(3);
+        doc.font('Times-Roman').fontSize(11).fillColor('#6b7280').text('— WishTrail', { align: 'center' });
+      }
     };
 
     const writeEntry = (e) => {
       const dt = new Date(e.createdAt);
-      const header = dt.toLocaleString();
       if (style === 'diary') {
-        // Date header box
-        doc.roundedRect(doc.x, doc.y, 220, 22, 6).fill('#eef2ff');
-        doc.fillColor('#3730a3').font('Helvetica-Bold').fontSize(11).text(header, doc.x + 8, doc.y - 16);
-        doc.moveDown(0.8);
+        // Diary style - like an actual journal entry (full page per entry)
+        const dateStr = dt.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        const timeStr = dt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        
+        // Start from a consistent position
+        doc.y = doc.page.margins.top + 60;
+        
+        // Decorative top border (centered)
+        const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+        const centerX = doc.page.margins.left + pageWidth / 2;
+        const lineY = doc.y;
+        doc.save();
+        doc.strokeColor('#c7d2fe').lineWidth(2);
+        doc.moveTo(centerX - 240, lineY).lineTo(centerX + 240, lineY).stroke();
+        doc.strokeColor('#818cf8').lineWidth(1);
+        doc.moveTo(centerX - 240, lineY + 4).lineTo(centerX + 240, lineY + 4).stroke();
+        doc.restore();
+        doc.moveDown(1.2);
+        
+        // Date with handwritten style (centered)
+        doc.font('Times-Bold').fontSize(14).fillColor('#4338ca').text(dateStr, { align: 'center' });
+        doc.font('Times-Roman').fontSize(10).fillColor('#6b7280').text(timeStr, { align: 'center' });
+        doc.moveDown(1.5);
+        
+        // Prompt in decorative box
         if (e.promptText) {
-          doc.font('Helvetica-Oblique').fontSize(10).fillColor('#6b7280').text(e.promptText);
-          doc.moveDown(0.3);
+          const promptY = doc.y;
+          doc.save();
+          doc.roundedRect(doc.page.margins.left + 30, promptY - 2, pageWidth - 60, 35, 6).fillAndStroke('#fef3c7', '#fbbf24');
+          doc.restore();
+          doc.font('Times-Italic').fontSize(11).fillColor('#92400e').text(`"${e.promptText}"`, doc.page.margins.left + 40, promptY + 8, { width: pageWidth - 80, align: 'center' });
+          doc.moveDown(2);
         }
-        doc.font('Times-Roman').fontSize(12).fillColor('#111').text(e.content, { align: 'left' });
+        
+        // Content with handwritten feel (better spacing for full page)
+        const contentY = doc.y;
+        doc.font('Times-Roman').fontSize(12).fillColor('#1f2937').text(e.content, { 
+          align: 'justify', 
+          lineGap: 4,
+          width: pageWidth - 40,
+          indent: 20
+        });
+        
+        // Motivation section with decorative element
+        if (includeMot && e.ai?.motivation) {
+          doc.moveDown(1.5);
+          const motY = doc.y;
+          const motHeight = Math.min(80, doc.heightOfString(e.ai.motivation, { width: pageWidth - 100 }) + 20);
+          
+          // Decorative background box
+          doc.save();
+          doc.roundedRect(doc.page.margins.left + 20, motY, pageWidth - 40, motHeight, 8).fillAndStroke('#f3e8ff', '#c084fc');
+          doc.restore();
+          
+          doc.font('Times-BoldItalic').fontSize(11).fillColor('#6d28d9').text('✨ Daily Motivation', doc.page.margins.left + 35, motY + 10);
+          doc.moveDown(0.5);
+          doc.font('Times-Italic').fontSize(11).fillColor('#4c1d95').text(e.ai.motivation, doc.page.margins.left + 35, doc.y, { 
+            width: pageWidth - 70,
+            lineGap: 2
+          });
+        }
+        
+        // Bottom decorative element (at bottom of page)
+        const bottomY = doc.page.height - doc.page.margins.bottom - 40;
+        doc.save();
+        doc.strokeColor('#e0e7ff').lineWidth(0.8);
+        for (let i = 0; i < 3; i++) {
+          doc.moveTo(centerX - 50, bottomY + i * 3).lineTo(centerX + 50, bottomY + i * 3).stroke();
+        }
+        doc.restore();
+      } else {
+        // Simple style - clean and minimal
+        const header = dt.toLocaleString();
+        doc.font('Helvetica-Bold').fontSize(12).fillColor('#111').text(`${header}`);
+        doc.moveDown(0.3);
+        
+        if (e.promptText) {
+          doc.font('Helvetica-Oblique').fontSize(10).fillColor('#6b7280').text(`Prompt: ${e.promptText}`);
+          doc.moveDown(0.4);
+        }
+        
+        doc.font('Helvetica').fontSize(11).fillColor('#374151').text(e.content);
+        
         if (includeMot && e.ai?.motivation) {
           doc.moveDown(0.4);
-          doc.font('Times-Italic').fontSize(11).fillColor('#065f46').text(`Motivation: ${e.ai.motivation}`);
+          doc.font('Helvetica-Oblique').fontSize(10).fillColor('#059669').text(`💡 ${e.ai.motivation}`);
         }
+        
         doc.moveDown(1.0);
-      } else {
-        // Simple style
-        doc.font('Helvetica-Bold').fontSize(12).fillColor('#111').text(`=== ${header} ===`);
-        if (e.promptText) doc.font('Helvetica-Oblique').fontSize(10).fillColor('#6b7280').text(`[Prompt] ${e.promptText}`);
-        doc.font('Helvetica').fontSize(12).fillColor('#111').text(e.content);
-        if (includeMot && e.ai?.motivation) {
-          doc.moveDown(0.3);
-          doc.font('Helvetica-Oblique').fontSize(11).fillColor('#065f46').text(`Motivation: ${e.ai.motivation}`);
-        }
-        doc.moveDown(0.8);
+        // Simple separator
+        doc.save();
+        doc.strokeColor('#e5e7eb').lineWidth(0.5);
+        doc.moveTo(doc.x, doc.y).lineTo(doc.x + 450, doc.y).stroke();
+        doc.restore();
+        doc.moveDown(0.5);
       }
     };
 
@@ -191,32 +390,58 @@ exports.exportMyJournal = async (req, res, next) => {
       const top = doc.page.margins.top;
       const bottom = doc.page.height - doc.page.margins.bottom;
       doc.save();
-      // Header title
-      doc.font('Helvetica').fontSize(9).fillColor('#6b7280').text(`WishTrail Journal • ${user.name}`, left, top - 30, { width: right - left, align: 'left' });
-      // Footer page number
-      doc.font('Helvetica').fontSize(9).fillColor('#9ca3af').text(`${pageNo}`, left, bottom + 6, { width: right - left, align: 'center' });
-      // Left margin rule
-      doc.strokeColor('#e5e7eb').lineWidth(1).moveTo(left + 20, top - 10).lineTo(left + 20, bottom - 10).stroke();
-      // Lined paper effect
-      doc.strokeColor('#eef2f7').lineWidth(0.5);
-      for (let y = top + 30; y < bottom - 20; y += 18) {
-        doc.moveTo(left, y).lineTo(right, y).stroke();
+      
+      if (style === 'diary') {
+        // Minimal header/footer for diary style to keep it clean
+        doc.font('Times-Roman').fontSize(8).fillColor('#9ca3af').text(`${user.name}'s Journal`, left, top - 25, { width: right - left, align: 'center' });
+        doc.font('Times-Roman').fontSize(8).fillColor('#d1d5db').text(`${pageNo}`, left, bottom + 8, { width: right - left, align: 'center' });
+      } else {
+        // Full decoration for simple style
+        doc.font('Helvetica').fontSize(9).fillColor('#6b7280').text(`WishTrail Journal • ${user.name}`, left, top - 30, { width: right - left, align: 'left' });
+        doc.font('Helvetica').fontSize(9).fillColor('#9ca3af').text(`${pageNo}`, left, bottom + 6, { width: right - left, align: 'center' });
+        // Left margin rule
+        doc.strokeColor('#e5e7eb').lineWidth(1).moveTo(left + 20, top - 10).lineTo(left + 20, bottom - 10).stroke();
+        // Lined paper effect
+        doc.strokeColor('#eef2f7').lineWidth(0.5);
+        for (let y = top + 30; y < bottom - 20; y += 18) {
+          doc.moveTo(left, y).lineTo(right, y).stroke();
+        }
       }
+      
       doc.restore();
-      doc.moveDown(1);
+      if (style !== 'diary') {
+        doc.moveDown(1);
+      }
     };
     doc.on('pageAdded', () => { try { decoratePage(); } catch (_) { } });
 
     // Cover
     await writeCover();
+    
     // Start content on new decorated page
     doc.addPage();
     inContent = true;
-    // Content
-    for (const e of entries) {
+    
+    // Content - each diary entry on its own page for diary style
+    for (let i = 0; i < entries.length; i++) {
+      const e = entries[i];
       writeEntry(e);
-      if (doc.y > doc.page.height - doc.page.margins.bottom - 120) doc.addPage();
+      
+      // For diary style, each entry gets its own page
+      // For simple style, add page only if content overflows
+      if (style === 'diary') {
+        // Add new page for next entry (unless it's the last entry)
+        if (i < entries.length - 1) {
+          doc.addPage();
+        }
+      } else {
+        // Simple style: add page only if near bottom
+        if (i < entries.length - 1 && doc.y > doc.page.height - doc.page.margins.bottom - 120) {
+          doc.addPage();
+        }
+      }
     }
+    
     // Signature on its own page
     inContent = false;
     doc.addPage();

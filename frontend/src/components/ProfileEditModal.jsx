@@ -406,7 +406,7 @@ const ProfileEditModal = ({ isOpen, onClose }) => {
                 </button>
                 {showMoodPicker && (
                   <div className="flex-1 p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800">
-                    <div className="grid grid-cols-8 sm:grid-cols-10 md:grid-cols-12 gap-1.5 max-h-48 overflow-y-auto">
+                    <div className="grid grid-cols-6 sm:grid-cols-10 md:grid-cols-12 gap-2 sm:gap-1.5 max-h-48 overflow-y-auto overflow-x-hidden px-1">
                       {MOOD_EMOJIS.map((emoji, idx) => (
                         <button
                           key={idx}
@@ -527,28 +527,23 @@ const ProfileEditModal = ({ isOpen, onClose }) => {
               <button
                 type="button"
                 onClick={handleCancel}
-                className="flex-1 py-3 px-4 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-medium"
+                className="flex-1 py-2.5 px-4 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-sm font-medium"
                 disabled={loading}
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="flex-1 py-3 px-4 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium flex items-center justify-center gap-2"
+                className="flex-1 py-2.5 px-4 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium flex items-center justify-center gap-2"
                 disabled={loading}
               >
                 {loading ? (
                   <>
-                    <div className="inline-block animate-spin">
-                      <div className="h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
-                    </div>
-                    Saving changes...
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Saving...
                   </>
                 ) : (
-                  <>
-                    <Save className="h-5 w-5" />
-                    Save Changes
-                  </>
+                  'Save'
                 )}
               </button>
             </div>
