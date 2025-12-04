@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Plus, Users, Compass, Search, Users2 } from 'lucide-react'
+import { Plus, Users, Compass, Search, Users2, Loader2 } from 'lucide-react'
 import { communitiesAPI } from '../services/api'
 import useApiStore from '../store/apiStore'
 
@@ -34,22 +34,34 @@ export default function CommunitiesPage() {
   const [form, setForm] = useState({ name: '', description: '', visibility: 'public', interests: [], memberLimit: 1 })
 
   useEffect(() => {
-    let active = true
+    let active = true;
     async function load() {
+      setLoading(true);
       try {
-        setLoading(true)
         const [a, b] = await Promise.all([
           communitiesAPI.listMine(),
           communitiesAPI.discover({})
-        ])
-        if (!active) return
-        setMine(a?.data?.data || [])
-        setDiscover(b?.data?.data || [])
-      } finally { setLoading(false) }
+        ]);
+
+        if (!active) return;
+
+        const mineData = a?.data?.data || [];
+        const discoverData = b?.data?.data || [];
+
+        setMine(mineData);
+        setDiscover(discoverData);
+
+        // 👉 mark loading false only AFTER data is placed in state synchronously
+        setTimeout(() => {
+          if (active) setLoading(false);
+        }, 0); 
+      } catch(err){}
     }
-    if (isAuthenticated) load()
-    return () => { active = false }
-  }, [isAuthenticated])
+
+    if (isAuthenticated) load();
+    return () => { active = false };
+  }, [isAuthenticated]);
+
 
   const filteredDiscover = useMemo(() => {
     if (!query) return discover
@@ -89,8 +101,10 @@ export default function CommunitiesPage() {
 
       <div className="mb-8">
         <h2 className="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-3">My Communities</h2>
-        {loading && mine.length === 0 ? (
-          <div className="text-sm text-gray-500">Loading…</div>
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+          </div>
         ) : mine.length === 0 ? (
           <div className="text-sm text-gray-500">
             <div>You haven’t joined any communities yet.</div>
