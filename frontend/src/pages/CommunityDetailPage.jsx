@@ -10,7 +10,7 @@ const DeleteCommunityModal = lazy(() => import('../components/community/DeleteCo
 import io from 'socket.io-client'
 
 const Tab = ({ active, label, Icon, onClick }) => (
-  <button onClick={onClick} className={`px-4 py-2 rounded-lg text-sm font-medium inline-flex items-center gap-2 ${active ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200'}`}>
+  <button onClick={onClick} className={`px-5 py-2.5 rounded-xl text-sm font-semibold inline-flex items-center gap-2 transition-all duration-300 ${active ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg shadow-blue-500/30' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
     <Icon className="h-4 w-4" /> {label}
   </button>
 )
@@ -296,37 +296,45 @@ export default function CommunityDetailPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
-      <div className="relative overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-800 mb-6">
-        <div className="h-28 sm:h-36 bg-gradient-to-r from-blue-500/20 to-purple-500/20 relative">
+      <div className="relative overflow-hidden rounded-3xl border-2 border-gray-200 dark:border-gray-800 mb-8 shadow-xl">
+        <div className="h-32 sm:h-48 bg-gradient-to-br from-blue-500/30 via-purple-500/25 to-pink-500/20 relative">
           {headerImages.bannerUrl ? (
             <img src={headerImages.bannerUrl} alt="Community banner" className="absolute inset-0 h-full w-full object-cover" />
           ) : null}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/10 to-transparent" />
         </div>
-        <div className="p-4 sm:p-6 -mt-8">
-          <div className="flex items-center gap-3">
+        <div className="p-6 sm:p-8 -mt-12">
+          <div className="flex items-start gap-4">
             {headerImages.avatarUrl ? (
-              <img src={headerImages.avatarUrl} alt="Community avatar" className="h-14 w-14 rounded-full border object-cover" />
+              <img src={headerImages.avatarUrl} alt="Community avatar" className="h-20 w-20 sm:h-24 sm:w-24 rounded-2xl border-4 border-white dark:border-gray-900 object-cover shadow-lg" />
             ) : (
-              <div className="h-14 w-14 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 text-white flex items-center justify-center text-lg font-bold">
+              <div className="h-20 w-20 sm:h-24 sm:w-24 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 text-white flex items-center justify-center text-2xl font-bold shadow-lg border-4 border-white dark:border-gray-900">
                 {community.name?.slice(0,2).toUpperCase()}
               </div>
             )}
-            <div className="min-w-0">
-              <div className="font-bold text-xl truncate">{community.name}</div>
-              <div className="text-xs text-gray-500 dark:text-gray-400">{community.stats?.memberCount || 0} members • {community.visibility}</div>
+            <div className="min-w-0 flex-1 pt-4">
+              <div className="font-bold text-2xl sm:text-3xl truncate text-gray-900 dark:text-white">{community.name}</div>
+              <div className="flex items-center gap-4 mt-2 text-sm">
+                <span className="inline-flex items-center gap-1.5 text-gray-600 dark:text-gray-400">
+                  <Users className="h-4 w-4" />
+                  <span className="font-semibold">{community.stats?.memberCount || 0}</span> members
+                </span>
+                <span className="px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium border border-blue-200 dark:border-blue-800">{community.visibility}</span>
+              </div>
             </div>
-            <div className="flex-1" />
-            {!isMember ? (
-              <button onClick={async () => { await communitiesAPI.join(community._id); window.location.reload(); }} className="px-3 py-2 rounded-lg bg-blue-600 text-white">Join</button>
-            ) : (
-              <button onClick={async () => { await communitiesAPI.leave(community._id); navigate('/communities'); }} className="px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-800">Leave</button>
-            )}
+            <div className="flex-shrink-0 pt-4">
+              {!isMember ? (
+                <button onClick={async () => { await communitiesAPI.join(community._id); window.location.reload(); }} className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold hover:from-blue-600 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105">Join Community</button>
+              ) : (
+                <button onClick={async () => { await communitiesAPI.leave(community._id); navigate('/communities'); }} className="px-5 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">Leave</button>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="mb-6 -mx-4 px-4 overflow-x-auto">
-        <div className="flex gap-2 w-max">
+      <div className="mb-8 -mx-4 px-4 overflow-x-auto">
+        <div className="flex gap-3 w-max">
           {isMember && (
             <Tab active={tab==='feed'} label="Feed" Icon={Newspaper} onClick={() => { switchTab('feed'); setTimeout(scrollToMessageBox, 0) }} />
           )}
@@ -341,7 +349,7 @@ export default function CommunityDetailPage() {
 
       {tab === 'feed' && isMember && (
         <div className="relative min-h-[60vh] flex flex-col">
-          <div ref={feedScrollRef} className="space-y-3 flex-1 overflow-y-auto pr-1">
+          <div ref={feedScrollRef} className="space-y-4 flex-1 overflow-y-auto pr-1">
           <div className="h-1" />
           {feed
             .slice() // clone so we can sort safely
@@ -350,53 +358,55 @@ export default function CommunityDetailPage() {
             .map(a => (
             <div key={a._id} className="px-2">
               {a.kind==='chat' ? (
-                <div className="flex items-end gap-2 mb-2">
-                  <img src={a.avatar || a.userId?.avatar} alt="User" className="h-7 w-7 rounded-full" />
-                  <div className="max-w-[75%] rounded-2xl px-3 py-2 bg-gray-100 dark:bg-gray-800 text-sm">
-                  <div className="text-xs text-gray-500 mb-0.5">{a.name || a.userId?.name} • <span title={new Date(a.createdAt).toLocaleString()}>{formatRelativeTime(a.createdAt)}</span></div>
-                    <div className="whitespace-pre-wrap text-gray-800 dark:text-gray-200">{a.text}</div>
+                <div className="flex items-end gap-3 mb-3 group">
+                  <img src={a.avatar || a.userId?.avatar} alt="User" className="h-9 w-9 rounded-full ring-2 ring-white dark:ring-gray-900 shadow-sm" />
+                  <div className="max-w-[75%] rounded-2xl px-4 py-3 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-800/80 text-sm shadow-sm border border-gray-200/50 dark:border-gray-700/50">
+                  <div className="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-1">{a.name || a.userId?.name} <span className="font-normal text-gray-500 dark:text-gray-400" title={new Date(a.createdAt).toLocaleString()}>• {formatRelativeTime(a.createdAt)}</span></div>
+                    <div className="whitespace-pre-wrap text-gray-900 dark:text-gray-100">{a.text}</div>
                     {(['admin','moderator'].includes(role)) && (
-                      <div className="mt-1">
-                        <button onClick={async () => { if (confirm('Delete message?')) { try { await communitiesAPI.deleteChat(id, a._id); setFeed(curr => curr.filter(x => x._id!==a._id)) } catch {} } }} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border border-red-200 text-red-600 text-[11px]">Delete</button>
+                      <div className="mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={async () => { if (confirm('Delete message?')) { try { await communitiesAPI.deleteChat(id, a._id); setFeed(curr => curr.filter(x => x._id!==a._id)) } catch {} } }} className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-[11px] font-medium hover:bg-red-100 dark:hover:bg-red-900/30">Delete</button>
                       </div>
                     )}
                   </div>
                 </div>
               ) : (
-                <div className="flex justify-center my-3">
-                  <div className="text-[13px] text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 px-3 py-1.5 rounded-full text-center">
-                    <span className="font-medium mr-1">{a.name || a.userId?.name}</span>
-                    <span className="opacity-70">{(() => {
-                      const t = a?.type;
-                      if (t === 'goal_created') return `created a goal: "${a?.data?.goalTitle || ''}"`;
-                      if (t === 'goal_completed') return `completed a goal: "${a?.data?.goalTitle || ''}"`;
-                      if (t === 'goal_joined') return `joined a goal/habit: "${a?.data?.goalTitle || a?.data?.metadata?.habitName || ''}"`;
-                      if (t === 'streak_milestone') {
-                        const nm = a?.data?.metadata?.habitName;
-                        return `streak in habit${nm ? `: "${nm}"` : ''} — ${a?.data?.streakCount}-day streak`;
-                      }
-                      if (t === 'community_member_joined') return 'joined the community';
-                      if (t === 'community_member_left') return 'left the community';
-                      if (t === 'community_item_added') {
-                        const t1 = a?.data?.goalTitle || a?.data?.metadata?.habitName || '';
-                        return t1 ? `added a community item: "${t1}"` : 'added a community item';
-                      }
-                      return a.message || '';
-                    })()}</span>
-                    <span className="ml-2 text-[11px] opacity-60" title={new Date(a.createdAt).toLocaleString()}>{formatRelativeTime(a.createdAt)}</span>
+                <div className="flex justify-center my-4">
+                  <div className="inline-flex flex-col items-start gap-2 max-w-2xl">
+                    <div className="text-sm text-gray-700 dark:text-gray-300 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 px-5 py-2.5 rounded-2xl border border-blue-100 dark:border-blue-800/30 shadow-sm">
+                      <span className="font-bold mr-1.5 text-blue-600 dark:text-blue-400">{a.name || a.userId?.name}</span>
+                      <span className="opacity-80">{(() => {
+                        const t = a?.type;
+                        if (t === 'goal_created') return `created a goal: "${a?.data?.goalTitle || ''}"`;
+                        if (t === 'goal_completed') return `completed a goal: "${a?.data?.goalTitle || ''}"`;
+                        if (t === 'goal_joined') return `joined a goal/habit: "${a?.data?.goalTitle || a?.data?.metadata?.habitName || ''}"`;
+                        if (t === 'streak_milestone') {
+                          const nm = a?.data?.metadata?.habitName;
+                          return `streak in habit${nm ? `: "${nm}"` : ''} — ${a?.data?.streakCount}-day streak`;
+                        }
+                        if (t === 'community_member_joined') return 'joined the community';
+                        if (t === 'community_member_left') return 'left the community';
+                        if (t === 'community_item_added') {
+                          const t1 = a?.data?.goalTitle || a?.data?.metadata?.habitName || '';
+                          return t1 ? `added a community item: "${t1}"` : 'added a community item';
+                        }
+                        return a.message || '';
+                      })()}</span>
+                      <span className="ml-2 text-xs opacity-70 font-medium" title={new Date(a.createdAt).toLocaleString()}>{formatRelativeTime(a.createdAt)}</span>
+                    </div>
                     {/* reactions (allowed subset only) */}
                     {(() => {
                       const allowed = new Set(['goal_completed','community_item_added','goal_joined','streak_milestone']);
                       if (!allowed.has(String(a?.type))) return null;
                       return (
-                        <span className="ml-2">
+                        <div className="flex items-center gap-1.5 pl-2">
                           {['👍','🎉','💯'].map(ej => (
-                            <button key={ej} onClick={async () => { try { const r = await communitiesAPI.react(id, { targetType: 'update', targetId: a._id, emoji: ej }); setFeed(curr => curr.map(x => x._id===a._id? { ...x, reactions: r?.data?.data?.reactions } : x)) } catch {} }} className="inline-flex items-center gap-1 px-1 py-0.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700">
-                              <span>{ej}</span>
-                              <span className="text-[10px] opacity-70">{a?.reactions?.[ej]?.count || 0}</span>
+                            <button key={ej} onClick={async () => { try { const r = await communitiesAPI.react(id, { targetType: 'update', targetId: a._id, emoji: ej }); setFeed(curr => curr.map(x => x._id===a._id? { ...x, reactions: r?.data?.data?.reactions } : x)) } catch {} }} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/30 border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 transition-all hover:scale-110 shadow-sm">
+                              <span className="text-base leading-none">{ej}</span>
+                              {(a?.reactions?.[ej]?.count || 0) > 0 && <span className="text-xs font-semibold text-gray-600 dark:text-gray-300">{a?.reactions?.[ej]?.count}</span>}
                             </button>
                           ))}
-                        </span>
+                        </div>
                       );
                     })()}
                   </div>
@@ -404,7 +414,7 @@ export default function CommunityDetailPage() {
               )}
             </div>
           ))}
-          {feed.length === 0 && <div className="text-sm text-gray-500">No activity yet.</div>}
+          {feed.length === 0 && <div className="glass-card-hover rounded-2xl p-8 text-center"><div className="text-gray-500 dark:text-gray-400">No activity yet. Start a conversation!</div></div>}
           </div>
           {/* <div className="sticky bottom-[72px] md:bottom-0 w-full px-0 pt-2 bg-gradient-to-t from-white/90 dark:from-gray-900/90 to-transparent">
             <div className="flex items-center gap-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl px-3 py-2 shadow-sm mx-0">

@@ -4,21 +4,25 @@ import { communitiesAPI } from '../services/api'
 import useApiStore from '../store/apiStore'
 
 const CommunityCard = ({ community, onClick }) => (
-  <button onClick={onClick} className="group relative overflow-hidden rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 hover:shadow-lg transition-all">
-    <div className="h-24 bg-gradient-to-r from-blue-500/20 to-purple-500/20" />
-    <div className="p-4 text-left">
-      <div className="flex items-center gap-3">
-        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 text-white flex items-center justify-center text-sm font-semibold">
+  <button onClick={onClick} className="group relative overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 hover:shadow-2xl hover:border-blue-300 dark:hover:border-blue-600 transition-all duration-300 hover:scale-[1.02]">
+    <div className="h-32 bg-gradient-to-br from-blue-500/30 via-purple-500/25 to-pink-500/20 relative">
+      <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+    </div>
+    <div className="p-5 text-left -mt-6">
+      <div className="flex items-start gap-3">
+        <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 text-white flex items-center justify-center text-base font-bold shadow-lg ring-4 ring-white dark:ring-gray-900 group-hover:scale-110 transition-transform duration-300">
           {community.name?.slice(0,2).toUpperCase()}
         </div>
-        <div className="min-w-0">
-          <div className="font-semibold truncate">{community.name}</div>
-          <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{community.description || '—'}</div>
+        <div className="min-w-0 flex-1 pt-1">
+          <div className="font-bold text-base truncate text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{community.name}</div>
+          <div className="text-xs text-gray-600 dark:text-gray-400 truncate mt-0.5">{community.description || 'No description'}</div>
         </div>
       </div>
-      <div className="mt-3 flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
-        <span className="inline-flex items-center gap-1"><Users className="h-3.5 w-3.5" />{community.stats?.memberCount || 0} members</span>
-        {community.visibility && <span className="px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">{community.visibility}</span>}
+      <div className="mt-4 flex items-center justify-between text-xs">
+        <div className="flex items-center gap-4">
+          <span className="inline-flex items-center gap-1.5 text-gray-600 dark:text-gray-400"><Users className="h-4 w-4" /><span className="font-medium">{community.stats?.memberCount || 0}</span></span>
+          {community.visibility && <span className="px-2.5 py-1 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium border border-blue-200 dark:border-blue-800">{community.visibility}</span>}
+        </div>
       </div>
     </div>
   </button>
@@ -89,35 +93,50 @@ export default function CommunitiesPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
-      <div className="flex items-center justify-between gap-3 mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
-          <Users2 className="h-6 w-6 mr-2 text-blue-500" />
-          Communities
-        </h2>
-        <button onClick={() => setShowCreate(true)} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-500 active:scale-[.99]">
-          <Plus className="h-4 w-4" /> Create
+      <div className="flex items-center justify-between gap-3 mb-8">
+        <div>
+          <h2 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+              <Users2 className="h-6 w-6 text-white" />
+            </div>
+            Communities
+          </h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 ml-13">Connect, collaborate, and achieve together</p>
+        </div>
+        <button onClick={() => setShowCreate(true)} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold hover:from-blue-600 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105">
+          <Plus className="h-5 w-5" /> Create
         </button>
       </div>
 
       <div className="mb-8">
-        <h2 className="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-3">My Communities</h2>
+        <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+          <div className="h-1 w-1 rounded-full bg-blue-500" />
+          My Communities
+        </h2>
         {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+          <div className="flex items-center justify-center py-16">
+            <div className="text-center">
+              <Loader2 className="h-10 w-10 animate-spin text-blue-500 mx-auto mb-3" />
+              <p className="text-sm text-gray-500 dark:text-gray-400">Loading communities...</p>
+            </div>
           </div>
         ) : mine.length === 0 ? (
-          <div className="text-sm text-gray-500">
-            <div>You haven’t joined any communities yet.</div>
+          <div className="glass-card-hover rounded-2xl p-10 text-center">
+            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center mx-auto mb-4">
+              <Users2 className="h-8 w-8 text-white" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No communities yet</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">Join communities to connect with others and share goals</p>
             <a
               href="/discover?tab=communities"
-              className="inline-flex items-center gap-2 mt-3 px-3 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-500"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold hover:from-blue-600 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105"
             >
-              {/* Using text label to avoid importing extra icon here */}
-              Explore communities
+              <Compass className="h-5 w-5" />
+              Explore Communities
             </a>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {mine.map(c => (
               <CommunityCard key={c._id} community={c} onClick={() => (window.location.href = `/communities/${c._id}`)} />
             ))}
@@ -128,22 +147,27 @@ export default function CommunitiesPage() {
       {/* Discover moved to DiscoverPage */}
 
       {showCreate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setShowCreate(false)} />
-          <div className="relative z-10 w-full max-w-md rounded-2xl bg-white dark:bg-gray-900 p-6 shadow-xl border border-gray-200 dark:border-gray-800">
-            <h3 className="text-lg font-semibold mb-4">Create Community</h3>
-            <div className="space-y-3">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="absolute inset-0 bg-black/60" onClick={() => setShowCreate(false)} />
+          <div className="relative z-10 w-full max-w-md rounded-3xl bg-white dark:bg-gray-900 p-8 shadow-2xl border border-gray-200 dark:border-gray-800">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                <Plus className="h-6 w-6 text-white" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white">Create Community</h3>
+            </div>
+            <div className="space-y-4">
               <div>
-                <label className="block text-xs font-medium mb-1">Name</label>
-                <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900" />
+                <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">Community Name</label>
+                <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Enter community name..." className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-blue-500 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all outline-none" />
               </div>
               <div>
-                <label className="block text-xs font-medium mb-1">Description</label>
-                <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={3} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900" />
+                <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">Description</label>
+                <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={3} placeholder="Describe your community..." className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-blue-500 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all outline-none resize-none" />
               </div>
               <div>
-                <label className="block text-xs font-medium mb-1">Visibility</label>
-                <select value={form.visibility} onChange={e => setForm({ ...form, visibility: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+                <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">Visibility</label>
+                <select value={form.visibility} onChange={e => setForm({ ...form, visibility: e.target.value })} className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-blue-500 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all outline-none">
                   <option value="public">Public</option>
                   <option value="private">Private</option>
                   <option value="invite-only">Invite-only</option>
@@ -151,12 +175,12 @@ export default function CommunitiesPage() {
               </div>
               <InterestsPicker value={form.interests} onChange={(next) => setForm({ ...form, interests: next })} />
               <div>
-                <label className="block text-xs font-medium mb-1">Member limit (max 100)</label>
-                <input type="number" min={1} max={100} value={form.memberLimit} onChange={e => setForm({ ...form, memberLimit: Math.max(1, Math.min(100, parseInt(e.target.value || '1'))) })} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900" />
+                <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">Member Limit</label>
+                <input type="number" min={1} max={100} value={form.memberLimit} onChange={e => setForm({ ...form, memberLimit: Math.max(1, Math.min(100, parseInt(e.target.value || '1'))) })} className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-blue-500 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all outline-none" placeholder="Max 100" />
               </div>
-              <div className="flex justify-end gap-2 pt-2">
-                <button onClick={() => setShowCreate(false)} className="px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-800">Cancel</button>
-                <button onClick={handleCreate} className="px-3 py-2 rounded-lg bg-blue-600 text-white">Create</button>
+              <div className="flex justify-end gap-3 pt-4">
+                <button onClick={() => setShowCreate(false)} className="px-5 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">Cancel</button>
+                <button onClick={handleCreate} className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold hover:from-blue-600 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl">Create</button>
               </div>
             </div>
           </div>
