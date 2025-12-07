@@ -160,6 +160,22 @@ export default function CommunityDetailPage() {
               setLoaded(prev => ({ ...prev, members: true }))
             } catch {}
           }
+          // Load items for dashboard stats
+          if (!loaded.items) {
+            try {
+              const i = await communitiesAPI.items(id)
+              const list = i?.data?.data || []
+              if (cancelled) return
+              setItems(list)
+              try {
+                const progressPairs = await Promise.all(list.map(it => communitiesAPI.itemProgress(id, it._id).then(r => [it._id, r?.data?.data]).catch(() => [it._id, { personal: 0, community: 0 }])))
+                const map = {}
+                for (const [key, val] of progressPairs) map[key] = val
+                if (!cancelled) setItemProgress(map)
+              } catch {}
+              setLoaded(prev => ({ ...prev, items: true }))
+            } catch {}
+          }
         }
         if (tab === 'items' && !loaded.items) {
           const i = await communitiesAPI.items(id)
@@ -303,30 +319,29 @@ export default function CommunityDetailPage() {
           ) : null}
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/10 to-transparent" />
         </div>
-        <div className="p-6 sm:p-8 -mt-12">
-          <div className="flex items-start gap-4">
+        <div className="p-6 sm:p-8 pt-16 sm:pt-20">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 -mt-16 sm:-mt-20">
             {headerImages.avatarUrl ? (
-              <img src={headerImages.avatarUrl} alt="Community avatar" className="h-20 w-20 sm:h-24 sm:w-24 rounded-2xl border-4 border-white dark:border-gray-900 object-cover shadow-lg" />
+              <img src={headerImages.avatarUrl} alt="Community avatar" className="h-20 w-20 sm:h-24 sm:w-24 rounded-2xl border-4 border-white dark:border-gray-900 object-cover shadow-lg flex-shrink-0" />
             ) : (
-              <div className="h-20 w-20 sm:h-24 sm:w-24 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 text-white flex items-center justify-center text-2xl font-bold shadow-lg border-4 border-white dark:border-gray-900">
+              <div className="h-20 w-20 sm:h-24 sm:w-24 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 text-white flex items-center justify-center text-2xl font-bold shadow-lg border-4 border-white dark:border-gray-900 flex-shrink-0">
                 {community.name?.slice(0,2).toUpperCase()}
               </div>
             )}
-            <div className="min-w-0 flex-1 pt-4">
-              <div className="font-bold text-2xl sm:text-3xl truncate text-gray-900 dark:text-white">{community.name}</div>
-              <div className="flex items-center gap-4 mt-2 text-sm">
+            <div className="min-w-0 flex-1">
+              <div className="font-bold text-xl sm:text-2xl md:text-3xl text-gray-900 dark:text-white mb-2">{community.name}</div>
+              <div className="flex flex-wrap items-center gap-3 text-sm">
                 <span className="inline-flex items-center gap-1.5 text-gray-600 dark:text-gray-400">
                   <Users className="h-4 w-4" />
                   <span className="font-semibold">{community.stats?.memberCount || 0}</span> members
                 </span>
-                <span className="px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium border border-blue-200 dark:border-blue-800">{community.visibility}</span>
               </div>
             </div>
-            <div className="flex-shrink-0 pt-4">
+            <div className="flex-shrink-0 w-full sm:w-auto">
               {!isMember ? (
-                <button onClick={async () => { await communitiesAPI.join(community._id); window.location.reload(); }} className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold hover:from-blue-600 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105">Join Community</button>
+                <button onClick={async () => { await communitiesAPI.join(community._id); window.location.reload(); }} className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold hover:from-blue-600 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105">Join Community</button>
               ) : (
-                <button onClick={async () => { await communitiesAPI.leave(community._id); navigate('/communities'); }} className="px-5 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">Leave</button>
+                <button onClick={async () => { await communitiesAPI.leave(community._id); navigate('/communities'); }} className="w-full sm:w-auto px-5 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">Leave</button>
               )}
             </div>
           </div>
@@ -426,7 +441,7 @@ export default function CommunityDetailPage() {
       )}
 
       {tab === 'dashboard' && (
-        <Suspense fallback={null}><CommunityDashboard dashboard={dashboard} members={members} analytics={analytics} /></Suspense>
+        <Suspense fallback={null}><CommunityDashboard dashboard={dashboard} members={members} analytics={analytics} items={items} itemProgress={itemProgress} /></Suspense>
       )}
 
       {tab === 'items' && (

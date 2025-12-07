@@ -290,6 +290,8 @@ export const communitiesAPI = {
   // Membership moderation
   pendingMembers: (id) => api.get(`/communities/${id}/members/pending`),
   approveMember: (id, userId, approve = true) => api.post(`/communities/${id}/members/${userId}/approve`, { approve }),
+  removeMember: (id, userId) => api.delete(`/communities/${id}/members/${userId}`),
+  memberAnalytics: (id, userId) => api.get(`/communities/${id}/members/${userId}/analytics`),
 };
 
 // Journals API

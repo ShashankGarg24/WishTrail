@@ -37,7 +37,7 @@ const shallowEqual = (a, b) => {
 }
 
 export default function CommunitySettings({ community, role, setShowDeleteModal, DeleteModal, onCommunityChange }) {
-  const [activeSection, setActiveSection] = useState('profile')
+  const [activeSection, setActiveSection] = useState('')
   const justSavedProfileRef = useRef(false)
   const justSavedPermissionsRef = useRef(false)
 
@@ -153,10 +153,6 @@ export default function CommunitySettings({ community, role, setShowDeleteModal,
       case 'profile':
         return (
           <div className="p-6 sm:p-8">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-xl">👤</div>
-              <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Community Profile</h3>
-            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">Name</label>
@@ -318,7 +314,7 @@ export default function CommunitySettings({ community, role, setShowDeleteModal,
                     : 'bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 shadow-lg hover:shadow-xl'
                   }`}
               >
-                {profileSaving ? '⏳ Saving…' : '💾 Save Changes'}
+                {profileSaving ? 'Saving…' : 'Save Changes'}
               </button>
               {profileStatus && (
                 <span className={`text-sm font-semibold flex items-center gap-1 ${profileStatus === 'Saved' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
@@ -331,10 +327,6 @@ export default function CommunitySettings({ community, role, setShowDeleteModal,
       case 'permissions':
         return (
           <div className="p-6 sm:p-8">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white text-xl">🛡️</div>
-              <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Permissions</h3>
-            </div>
             <div className="space-y-3">
               <label className="flex items-start gap-4 p-5 rounded-xl border-2 border-gray-200 dark:border-gray-800 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-purple-50/50 dark:hover:from-blue-900/10 dark:hover:to-purple-900/10 cursor-pointer transition-all duration-300 group">
                 <input
@@ -344,7 +336,7 @@ export default function CommunitySettings({ community, role, setShowDeleteModal,
                   className="mt-1 h-5 w-5 rounded border-2 border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-2 focus:ring-blue-500/20"
                 />
                 <div className="flex-1">
-                  <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">🎯 Only admins can add goals</div>
+                  <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Only admins can add goals</div>
                   <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Others can suggest goals</div>
                 </div>
               </label>
@@ -356,7 +348,7 @@ export default function CommunitySettings({ community, role, setShowDeleteModal,
                   className="mt-1 h-5 w-5 rounded border-2 border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-2 focus:ring-blue-500/20"
                 />
                 <div className="flex-1">
-                  <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">⚡ Only admins can add habits</div>
+                  <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Only admins can add habits</div>
                   <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Others can suggest habits</div>
                 </div>
               </label>
@@ -368,7 +360,7 @@ export default function CommunitySettings({ community, role, setShowDeleteModal,
                   className="mt-1 h-5 w-5 rounded border-2 border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-2 focus:ring-blue-500/20"
                 />
                 <div className="flex-1">
-                  <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">🖼️ Only admins can change images</div>
+                  <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Only admins can change images</div>
                   <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Profile and background images</div>
                 </div>
               </label>
@@ -380,7 +372,7 @@ export default function CommunitySettings({ community, role, setShowDeleteModal,
                   className="mt-1 h-5 w-5 rounded border-2 border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-2 focus:ring-blue-500/20"
                 />
                 <div className="flex-1">
-                  <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">👥 Only admins can add members</div>
+                  <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Only admins can add members</div>
                   <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Others can invite members</div>
                 </div>
               </label>
@@ -392,7 +384,7 @@ export default function CommunitySettings({ community, role, setShowDeleteModal,
                   className="mt-1 h-5 w-5 rounded border-2 border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-2 focus:ring-blue-500/20"
                 />
                 <div className="flex-1">
-                  <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">🚫 Only admins can remove members</div>
+                  <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Only admins can remove members</div>
                   <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Members cannot remove other members</div>
                 </div>
               </label>
@@ -404,7 +396,7 @@ export default function CommunitySettings({ community, role, setShowDeleteModal,
                   className="mt-1 h-5 w-5 rounded border-2 border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-2 focus:ring-blue-500/20"
                 />
                 <div className="flex-1">
-                  <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">📊 Allow member contributions</div>
+                  <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Allow member contributions</div>
                   <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Members can contribute progress on community goals/habits</div>
                 </div>
               </label>
@@ -418,7 +410,7 @@ export default function CommunitySettings({ community, role, setShowDeleteModal,
                     : 'bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 shadow-lg hover:shadow-xl'
                   }`}
               >
-                {permissionsSaving ? '⏳ Saving…' : '💾 Save Changes'}
+                {permissionsSaving ? 'Saving…' : 'Save Changes'}
               </button>
               {permissionsStatus && (
                 <span className={`text-sm font-semibold flex items-center gap-1 ${permissionsStatus === 'Saved' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
@@ -431,15 +423,11 @@ export default function CommunitySettings({ community, role, setShowDeleteModal,
       case 'danger':
         return (
           <div className="p-6 sm:p-8">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center text-white text-xl">⚠️</div>
-              <h3 className="text-2xl font-bold text-red-600 dark:text-red-400">Danger Zone</h3>
-            </div>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 ml-13">Irreversible and destructive actions</p>
             <div className="p-6 rounded-2xl border-2 border-red-300 dark:border-red-800 bg-gradient-to-br from-red-50 to-red-100/50 dark:from-red-900/20 dark:to-red-900/10 shadow-lg">
               <div className="mb-5">
                 <h4 className="text-base font-bold text-red-900 dark:text-red-100 mb-2 flex items-center gap-2">
-                  🗑️ Delete Community
+                  Delete Community
                 </h4>
                 <p className="text-sm text-red-700 dark:text-red-300">Once you delete a community, there is no going back. All data will be permanently lost. Please be certain.</p>
               </div>
@@ -447,7 +435,7 @@ export default function CommunitySettings({ community, role, setShowDeleteModal,
                 className="px-6 py-3 rounded-xl bg-gradient-to-r from-red-600 to-red-700 text-white hover:from-red-700 hover:to-red-800 transition-all duration-300 font-semibold text-sm shadow-lg hover:shadow-xl"
                 onClick={() => setShowDeleteModal(true)}
               >
-                🗑️ Delete Community Permanently
+                Delete
               </button>
             </div>
           </div>

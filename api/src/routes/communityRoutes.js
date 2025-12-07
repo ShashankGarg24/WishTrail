@@ -61,6 +61,8 @@ router.delete('/:id', protect, requireFeature('community'), controller.deleteCom
 router.get('/:id/members', protect, requireFeature('community'), controller.members);
 router.get('/:id/members/pending', protect, requireFeature('community'), controller.pendingMembers);
 router.post('/:id/members/:userId/approve', protect, requireFeature('community'), controller.approveMember);
+router.delete('/:id/members/:userId', protect, requireFeature('community'), controller.removeMember);
+router.get('/:id/members/:userId/analytics', protect, requireFeature('community'), controller.memberAnalytics);
 
 module.exports = router;
 

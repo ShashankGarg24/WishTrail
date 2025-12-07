@@ -179,6 +179,18 @@ module.exports = {
       const data = await communityService.getFeed(req.params.id, { limit, filter, before });
       res.status(200).json({ success: true, data });
     } catch (e) { next(e); }
+  },
+  async removeMember(req, res, next) {
+    try {
+      const data = await communityService.removeMember(req.params.id, req.params.userId, req.user.id);
+      res.status(200).json({ success: true, data });
+    } catch (e) { next(e); }
+  },
+  async memberAnalytics(req, res, next) {
+    try {
+      const data = await communityService.getMemberAnalytics(req.params.id, req.params.userId, req.user.id);
+      res.status(200).json({ success: true, data });
+    } catch (e) { next(e); }
   }
 };
 

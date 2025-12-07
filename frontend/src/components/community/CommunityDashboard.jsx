@@ -10,7 +10,24 @@ function StatCard({ label, value, accent, icon: Icon, gradient }) {
   )
 }
 
-export default function CommunityDashboard({ dashboard, members, analytics }) {
+export default function CommunityDashboard({ dashboard, members, analytics, items = [], itemProgress = {} }) {
+  // Calculate goal/habit statistics from real data
+  const totalGoals = items.filter(item => item.type === 'goal').length
+  const totalHabits = items.filter(item => item.type === 'habit').length
+  const totalItems = items.length
+  
+  // Calculate active goals (with progress > 0 and < 100)
+  const activeGoals = items.filter(item => {
+    const progress = itemProgress[item._id]?.community || 0
+    return item.type === 'goal' && progress > 0 && progress < 100
+  }).length
+  
+  // Calculate completed goals (progress = 100)
+  const completedGoals = items.filter(item => {
+    const progress = itemProgress[item._id]?.community || 0
+    return item.type === 'goal' && progress >= 100
+  }).length
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
@@ -34,6 +51,32 @@ export default function CommunityDashboard({ dashboard, members, analytics }) {
           value={`${dashboard?.stats?.completionRate ?? 0}%`} 
           accent="text-green-600 dark:text-green-400"
           gradient="from-green-50 to-green-100/50 dark:from-green-900/20 dark:to-green-900/10"
+        />
+      </div>
+      
+      {/* Goals & Habits Statistics */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <StatCard 
+          label="Total Goals" 
+          value={totalGoals} 
+          gradient="from-cyan-50 to-cyan-100/50 dark:from-cyan-900/20 dark:to-cyan-900/10"
+        />
+        <StatCard 
+          label="Total Habits" 
+          value={totalHabits} 
+          gradient="from-indigo-50 to-indigo-100/50 dark:from-indigo-900/20 dark:to-indigo-900/10"
+        />
+        <StatCard 
+          label="Active Goals" 
+          value={activeGoals} 
+          accent="text-orange-600 dark:text-orange-400"
+          gradient="from-orange-50 to-orange-100/50 dark:from-orange-900/20 dark:to-orange-900/10"
+        />
+        <StatCard 
+          label="Completed Goals" 
+          value={completedGoals} 
+          accent="text-emerald-600 dark:text-emerald-400"
+          gradient="from-emerald-50 to-emerald-100/50 dark:from-emerald-900/20 dark:to-emerald-900/10"
         />
       </div>
       <div className="rounded-2xl border-2 border-gray-200 dark:border-gray-800 p-6 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-900/80 shadow-lg">

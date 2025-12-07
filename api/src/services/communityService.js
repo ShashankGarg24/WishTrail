@@ -1321,6 +1321,99 @@ async function deleteCommunity(communityId) {
   return true;
 }
 
+async function removeMember(communityId, targetUserId, requesterId) {
+  // Check requester's role
+  const requesterMember = await CommunityMember.findOne({ communityId, userId: requesterId, status: 'active' }).lean();
+  if (!requesterMember) throw Object.assign(new Error('Forbidden'), { statusCode: 403 });
+  
+  // Check community settings to see who can remove members
+  const community = await Community.findById(communityId).lean();
+  const settings = community?.settings || {};
+  const onlyAdminsCanRemove = settings.onlyAdminsCanRemoveMembers !== false;
+  
+  // Check permissions
+  const isAdmin = requesterMember.role === 'admin';
+  if (onlyAdminsCanRemove && !isAdmin) {
+    throw Object.assign(new Error('Only admins can remove members'), { statusCode: 403 });
+  }
+  
+  // Cannot remove yourself
+  if (String(targetUserId) === String(requesterId)) {
+    throw Object.assign(new Error('Cannot remove yourself'), { statusCode: 400 });
+  }
+  
+  // Remove the member
+  await CommunityMember.deleteOne({ communityId, userId: targetUserId });
+  
+  // Log activity
+  try {
+    const targetUser = await User.findById(targetUserId).select('name avatar').lean();
+    await CommunityActivity.create({
+      communityId,
+      userId: requesterId,
+      type: 'community_member_removed',
+      data: { 
+        metadata: { 
+          kind: 'community_member_removed',
+          targetUser: { id: targetUserId, name: targetUser?.name }
+        } 
+      }
+    });
+  } catch (_) {}
+  
+  return { ok: true };
+}
+
+async function getMemberAnalytics(communityId, targetUserId, requesterId) {
+  // Verify requester is a member
+  const requesterMember = await CommunityMember.findOne({ communityId, userId: requesterId, status: 'active' }).lean();
+  if (!requesterMember) throw Object.assign(new Error('Forbidden'), { statusCode: 403 });
+  
+  // Get all community items
+  const items = await CommunityItem.find({ communityId, status: 'approved' }).lean();
+  
+  // Separate goals and habits
+  const goalIds = items.filter(i => i.type === 'goal').map(i => i.sourceId);
+  const habitIds = items.filter(i => i.type === 'habit').map(i => i.sourceId);
+  
+  // Get user's goals and habits that are linked to community items
+  const Goal = require('../models/Goal');
+  const Habit = require('../models/Habit');
+  
+  const [userGoals, userHabits] = await Promise.all([
+    Goal.find({ 
+      userId: targetUserId, 
+      _id: { $in: goalIds }
+    }).lean(),
+    Habit.find({ 
+      userId: targetUserId, 
+      _id: { $in: habitIds }
+    }).lean()
+  ]);
+  
+  // Calculate stats
+  const goalsCreated = userGoals.length;
+  const goalsCompleted = userGoals.filter(g => g.completed || (g.progress?.percent >= 100)).length;
+  const goalsInProgress = userGoals.filter(g => !g.completed && (g.progress?.percent > 0 && g.progress?.percent < 100)).length;
+  
+  const habitsCreated = userHabits.length;
+  const habitsCompleted = userHabits.filter(h => h.isArchived && h.currentStreak >= 30).length;
+  const habitsInProgress = userHabits.filter(h => !h.isArchived && h.currentStreak > 0).length;
+  
+  return {
+    goals: {
+      created: goalsCreated,
+      completed: goalsCompleted,
+      inProgress: goalsInProgress
+    },
+    habits: {
+      created: habitsCreated,
+      completed: habitsCompleted,
+      inProgress: habitsInProgress
+    }
+  };
+}
+
 module.exports = {
   createCommunity,
   listMyCommunities,
@@ -1351,6 +1444,8 @@ module.exports = {
   deleteChatMessage,
   toggleReaction,
   getItemAnalytics,
+  removeMember,
+  getMemberAnalytics,
 };
 
 
