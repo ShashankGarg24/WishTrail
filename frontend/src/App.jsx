@@ -6,6 +6,8 @@ import ScrollMemory from './components/ScrollMemory'
 import BottomTabBar from './components/BottomTabBar'
 import Footer from './components/Footer'
 import { configService } from './services/configService'
+import { initializeWebPush } from './services/webPush'
+import { notificationsAPI } from './services/api'
 const HomePage = lazy(() => import('./pages/HomePage'))
 const AuthPage = lazy(() => import('./pages/AuthPage'))
 const DashboardPage = lazy(() => import('./pages/DashboardPage'))
@@ -28,9 +30,10 @@ const AuthExpiredPage = lazy(() => import('./pages/AuthExpiredPage'))
 import { SpeedInsights } from '@vercel/speed-insights/react';
 const FeedbackButton = lazy(() => import('./components/FeedbackButton'))
 const SettingsPage = lazy(() => import('./pages/SettingsPage'))
+const WebPushDebug = lazy(() => import('./components/WebPushDebug'))
 
 function App() {
-  const { isDarkMode, initializeAuth, isAuthenticated, loadFeatures, isFeatureEnabled } = useApiStore()
+  const { isDarkMode, initializeAuth, isAuthenticated, loadFeatures, isFeatureEnabled, getNotifications } = useApiStore()
   const location = useLocation()
   const navigate = useNavigate()
   const [inNativeApp, setInNativeApp] = useState(false)
@@ -89,6 +92,56 @@ function App() {
     } catch { }
   }, [])
 
+  // Initialize web push notifications for authenticated users
+  useEffect(() => {
+    // Only initialize for authenticated users on web (not in native app)
+    if (!isAuthenticated || inNativeApp) {
+      return;
+    }
+
+    let unsubscribe = null;
+    let timeoutId = null;
+
+    // Initialize web push with a small delay to avoid blocking initial render
+    timeoutId = setTimeout(async () => {
+      try {
+        const result = await initializeWebPush(
+          notificationsAPI.registerDevice,
+          (payload) => {
+            // Handle foreground notifications
+            console.log('[App] Foreground notification received:', payload);
+            
+            // Refresh notifications count when a new notification arrives
+            try {
+              const store = useApiStore.getState();
+              if (store.getNotifications) {
+                store.getNotifications({ page: 1, limit: 1 }, { force: true });
+              }
+            } catch (error) {
+              console.error('[App] Error refreshing notifications:', error);
+            }
+          }
+        );
+
+        if (result && result.unsubscribe) {
+          unsubscribe = result.unsubscribe;
+        }
+      } catch (error) {
+        console.error('[App] Error setting up web push:', error);
+      }
+    }, 2000); // 2 second delay after authentication
+
+    // Cleanup listener on unmount
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      if (unsubscribe && typeof unsubscribe === 'function') {
+        unsubscribe();
+      }
+    };
+  }, [isAuthenticated, inNativeApp])
+
   // Show maintenance page if maintenance mode is enabled
   if (maintenanceMode === null) {
     // Still checking maintenance status
@@ -142,12 +195,15 @@ function App() {
           </Routes>
         </main>
         {/* Bottom nav (web) */}
+        {console.log(isAuthenticated)}
         {isAuthenticated && <BottomTabBar />}
         {/* Footer on web at all sizes; hide only inside native app */}
         {!inNativeApp && (
           <Footer />
         )}
         <Suspense fallback={null}><FeedbackButton /></Suspense>
+        {/* Web Push Debug - Only in development */}
+        {!inNativeApp && import.meta.env.DEV && <Suspense fallback={null}><WebPushDebug /></Suspense>}
       </div>
       <SpeedInsights />
     </div>

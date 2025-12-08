@@ -55,7 +55,6 @@ export default function GoalDetailsModal({ isOpen, goalId, onClose, autoOpenComm
 
                         // Subgoal events
                         const subGoals = resp.data?.goal?.subGoals || []
-                        console.log(subGoals)
                         subGoals.forEach((subGoal, index) => {
                             // Subgoal created event
                             events.push({
@@ -73,7 +72,6 @@ export default function GoalDetailsModal({ isOpen, goalId, onClose, autoOpenComm
                             })
 
                             // Subgoal completed event
-                            console.log(subGoal)
                             if (subGoal.completedAt) {
                                 events.push({
                                     id: `subgoal-completed-${index}`,
