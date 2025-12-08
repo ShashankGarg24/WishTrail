@@ -10,6 +10,7 @@ export default function InterestsMultiSelect({ value = [], onChange }) {
   const selected = Array.isArray(value) ? value : [];
   const toggle = (val) => {
     const active = selected.includes(val);
+    if (!active && selected.length >= 5) return; // Max 5 interests
     const next = active ? selected.filter(i => i !== val) : [...selected, val];
     onChange?.(next);
   };
@@ -25,7 +26,7 @@ export default function InterestsMultiSelect({ value = [], onChange }) {
         })}
       </div>
       {selected.length > 0 && (
-        <div className="text-xs text-gray-500">{selected.length} selected</div>
+        <div className="text-xs text-gray-500 dark:text-gray-400">{selected.length}/5 selected</div>
       )}
     </div>
   );

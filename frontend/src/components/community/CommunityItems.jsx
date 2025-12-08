@@ -332,7 +332,10 @@ function ItemAnalyticsModal({ open, onClose, analytics }) {
 }
 
 export default function CommunityItems({ id, role, settings, items, itemProgress, onRefreshProgress, joinedItems = new Set(), onToggleJoin }) {
-  const allowAnyMemberToAdd = (settings?.onlyAdminsCanAddItems === false) || (settings?.onlyAdminsCanAddGoals === false) || (settings?.onlyAdminsCanAddHabits === false)
+  // Check if any member can add goals OR habits (either being allowed means show Add button)
+  const canAddGoals = (settings?.onlyAdminsCanAddGoals === false) || ['admin', 'moderator'].includes(role)
+  const canAddHabits = (settings?.onlyAdminsCanAddHabits === false) || ['admin', 'moderator'].includes(role)
+  const allowAnyMemberToAdd = canAddGoals || canAddHabits
   const onlyAdmins = !allowAnyMemberToAdd
   const [showAddModal, setShowAddModal] = useState(false)
   const [showSuggestModal, setShowSuggestModal] = useState(false)

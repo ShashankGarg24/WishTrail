@@ -5,12 +5,12 @@ const communitySchema = new mongoose.Schema({
     type: String,
     required: [true, 'Community name is required'],
     trim: true,
-    maxlength: [100, 'Name cannot exceed 100 characters']
+    maxlength: [20, 'Name cannot exceed 20 characters']
   },
   description: {
     type: String,
     trim: true,
-    maxlength: [1000, 'Description cannot exceed 1000 characters'],
+    maxlength: [500, 'Description cannot exceed 500 characters'],
     default: ''
   },
   avatarUrl: {
@@ -29,7 +29,10 @@ const communitySchema = new mongoose.Schema({
     default: 'public',
     index: true
   },
-  interests: [{ type: String, trim: true }],
+  interests: { 
+    type: [{ type: String, trim: true }],
+    validate: [arr => arr.length <= 5, 'Maximum 5 interests allowed']
+  },
   ownerId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',

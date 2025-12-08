@@ -37,7 +37,7 @@ const shallowEqual = (a, b) => {
 }
 
 export default function CommunitySettings({ community, role, setShowDeleteModal, DeleteModal, onCommunityChange }) {
-  const [activeSection, setActiveSection] = useState('')
+  const [activeSection, setActiveSection] = useState('profile')
   const justSavedProfileRef = useRef(false)
   const justSavedPermissionsRef = useRef(false)
 
@@ -155,13 +155,15 @@ export default function CommunitySettings({ community, role, setShowDeleteModal,
           <div className="p-6 sm:p-8">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">Name</label>
+                <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">Name (max 20 chars)</label>
                 <input
                   value={profileForm.name}
-                  onChange={(e) => setProfileForm(prev => ({ ...prev, name: e.target.value }))}
+                  onChange={(e) => setProfileForm(prev => ({ ...prev, name: e.target.value.slice(0, 20) }))}
+                  maxLength={20}
                   className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:border-blue-500 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all outline-none"
                   placeholder="Enter community name"
                 />
+                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{profileForm.name?.length || 0}/20</div>
               </div>
               <div>
                 <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">Visibility</label>
@@ -176,14 +178,16 @@ export default function CommunitySettings({ community, role, setShowDeleteModal,
                 </select>
               </div>
               <div className="sm:col-span-2">
-                <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">Description</label>
+                <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">Description (max 500 chars)</label>
                 <textarea
                   value={profileForm.description}
-                  onChange={(e) => setProfileForm(prev => ({ ...prev, description: e.target.value }))}
+                  onChange={(e) => setProfileForm(prev => ({ ...prev, description: e.target.value.slice(0, 500) }))}
+                  maxLength={500}
                   rows={3}
                   className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:border-blue-500 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all outline-none resize-none"
                   placeholder="Describe your community..."
                 />
+                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{profileForm.description?.length || 0}/500</div>
               </div>
               <div>
                 <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">Avatar</label>
@@ -209,7 +213,7 @@ export default function CommunitySettings({ community, role, setShowDeleteModal,
                         const file = e.target.files?.[0]; if (!file) return;
                         setAvatarError('')
                         if (!file.type.startsWith('image/')) { setAvatarError('Please select an image file'); return }
-                        if (file.size > 5 * 1024 * 1024) { setAvatarError('Max image size is 5 MB'); return }
+                        if (file.size > 500 * 1024) { setAvatarError('Max image size is 500 KB'); return }
                         try {
                           setAvatarPreview(URL.createObjectURL(file))
                         } catch { }
@@ -257,7 +261,7 @@ export default function CommunitySettings({ community, role, setShowDeleteModal,
                         const file = e.target.files?.[0]; if (!file) return;
                         setBannerError('')
                         if (!file.type.startsWith('image/')) { setBannerError('Please select an image file'); return }
-                        if (file.size > 5 * 1024 * 1024) { setBannerError('Max image size is 5 MB'); return }
+                        if (file.size > 500 * 1024) { setBannerError('Max image size is 500 KB'); return }
                         try {
                           setBannerPreview(URL.createObjectURL(file))
                         } catch { }
@@ -451,12 +455,6 @@ export default function CommunitySettings({ community, role, setShowDeleteModal,
       <div className="hidden md:flex h-[600px]">
         {/* Left Sidebar */}
         <div className="w-64 border-r-2 border-gray-200 dark:border-gray-800 bg-gradient-to-br from-gray-50 to-gray-100/50 dark:from-gray-950 dark:to-gray-900 flex flex-col">
-          <div className="p-5 border-b-2 border-gray-200 dark:border-gray-800">
-            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-sm">⚙️</div>
-              Settings
-            </h2>
-          </div>
           <nav className="flex-1 p-3 space-y-2">
             {menuItems.map((item) => {
               const Icon = item.icon
@@ -486,12 +484,6 @@ export default function CommunitySettings({ community, role, setShowDeleteModal,
 
       {/* Mobile View */}
       <div className="md:hidden">
-        <div className="p-5 border-b-2 border-gray-200 dark:border-gray-800 bg-gradient-to-r from-blue-500 to-purple-600">
-          <h2 className="text-lg font-bold text-white flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-white/20 backdrop-blur-sm flex items-center justify-center text-xl">⚙️</div>
-            Settings
-          </h2>
-        </div>
         {menuItems.map((item) => {
           const Icon = item.icon
           const isActive = activeSection === item.id

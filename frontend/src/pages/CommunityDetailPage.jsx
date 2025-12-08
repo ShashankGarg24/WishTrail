@@ -34,6 +34,7 @@ export default function CommunityDetailPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [joinedItems, setJoinedItems] = useState(new Set())
   const [loaded, setLoaded] = useState({ feed: false, items: false, members: false, dashboard: false, joinedItems: false })
+  const [showFullDescription, setShowFullDescription] = useState(false)
   
   const loadJoinedItems = async () => {
     try {
@@ -329,7 +330,24 @@ export default function CommunityDetailPage() {
               </div>
             )}
             <div className="min-w-0 flex-1">
-              <div className="font-bold text-xl sm:text-2xl md:text-3xl text-gray-900 dark:text-white mb-2">{community.name}</div>
+              <div className="font-bold text-xl sm:text-2xl md:text-3xl text-gray-900 dark:text-white mb-2 break-words">{community.name}</div>
+              {community.description && (
+                <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                  {community.description.length > 150 ? (
+                    <>
+                      <span className="break-words">{showFullDescription ? community.description : `${community.description.slice(0, 150)}...`}</span>
+                      <button 
+                        onClick={() => setShowFullDescription(!showFullDescription)}
+                        className="ml-2 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
+                      >
+                        {showFullDescription ? 'less' : 'more'}
+                      </button>
+                    </>
+                  ) : (
+                    <span className="break-words">{community.description}</span>
+                  )}
+                </div>
+              )}
               <div className="flex flex-wrap items-center gap-3 text-sm">
                 <span className="inline-flex items-center gap-1.5 text-gray-600 dark:text-gray-400">
                   <Users className="h-4 w-4" />
@@ -429,7 +447,7 @@ export default function CommunityDetailPage() {
               )}
             </div>
           ))}
-          {feed.length === 0 && <div className="glass-card-hover rounded-2xl p-8 text-center"><div className="text-gray-500 dark:text-gray-400">No activity yet. Start a conversation!</div></div>}
+          {feed.length === 0 && <div className="glass-card-hover rounded-2xl p-8 text-center"><div className="text-gray-500 dark:text-gray-400">No updates yet.</div></div>}
           </div>
           {/* <div className="sticky bottom-[72px] md:bottom-0 w-full px-0 pt-2 bg-gradient-to-t from-white/90 dark:from-gray-900/90 to-transparent">
             <div className="flex items-center gap-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl px-3 py-2 shadow-sm mx-0">

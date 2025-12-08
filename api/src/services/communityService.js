@@ -21,6 +21,7 @@ async function createCommunity(ownerId, payload) {
     const requestedLimitRaw = parseInt(payload.memberLimit || '');
     const requestedLimit = isNaN(requestedLimitRaw) ? 1 : requestedLimitRaw;
     const memberLimit = Math.max(1, Math.min(100, requestedLimit));
+    const interests = Array.isArray(payload.interests) ? payload.interests.slice(0, 5) : [];
     const doc = await Community.create([{
       name: payload.name,
       description: payload.description || '',
@@ -28,7 +29,7 @@ async function createCommunity(ownerId, payload) {
       avatarUrl: payload.avatarUrl || '',
       bannerUrl: payload.bannerUrl || '',
       visibility: payload.visibility || 'public',
-      interests: Array.isArray(payload.interests) ? payload.interests : [],
+      interests,
       settings: { memberLimit }
     }], { session });
     created = doc[0];
@@ -86,7 +87,12 @@ async function updateCommunity(requesterId, communityId, payload) {
     if (typeof payload.avatarUrl !== 'undefined') set.avatarUrl = payload.avatarUrl;
     if (typeof payload.bannerUrl !== 'undefined') set.bannerUrl = payload.bannerUrl;
   }
-  if (Array.isArray(payload.interests)) set.interests = payload.interests;
+  if (Array.isArray(payload.interests)) {
+    if (payload.interests.length > 5) {
+      throw Object.assign(new Error('Maximum 5 interests allowed'), { statusCode: 400 });
+    }
+    set.interests = payload.interests;
+  }
   if (payload.memberLimit !== undefined) {
     const requestedRaw = parseInt(payload.memberLimit || '');
     const requested = isNaN(requestedRaw) ? 1 : requestedRaw;

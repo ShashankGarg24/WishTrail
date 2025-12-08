@@ -40,8 +40,8 @@ const CommunityCard = ({ community, onClick }) => (
           </div>
         )}
         <div className="min-w-0 flex-1">
-          <div className="font-bold text-sm sm:text-base truncate text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{community.name}</div>
-          <div className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2 sm:truncate mt-1">{community.description || 'No description'}</div>
+          <div className="font-bold text-sm sm:text-base text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors break-words line-clamp-2">{community.name}</div>
+          <div className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2 mt-1">{community.description || 'No description'}</div>
         </div>
       </div>
       <div className="space-y-2">
