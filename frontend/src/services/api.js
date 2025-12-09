@@ -254,7 +254,6 @@ export const notificationsAPI = {
   deleteNotification: (id) => api.delete(`/notifications/${id}`),
   getSettings: () => api.get('/notifications/settings'),
   updateSettings: (settings) => api.put('/notifications/settings', { settings }),
-  ping: () => api.post('/notifications/ping'),
   registerDevice: (payload) => api.post('/notifications/devices/register', payload),
   unregisterDevice: (token) => api.post('/notifications/devices/unregister', { token })
 };

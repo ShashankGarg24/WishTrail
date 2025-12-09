@@ -207,24 +207,6 @@ function App() {
     }
   };
 
-  useEffect(() => {
-    const sub = AppState.addEventListener('change', (state) => {
-      const prev = appState.current;
-      appState.current = state;
-      if (prev.match(/inactive|background/) && state === 'active') {
-        webRef.current?.injectJavaScript(`window.dispatchEvent(new Event('focus')); true;`);
-        if (!authToken) injectAuthProbe();
-        try {
-          const API = (Constants.expoConfig?.extra?.API_URL || Constants?.manifest?.extra?.API_URL || '').replace(/\/$/, '');
-          if (API && authToken) {
-            fetch(`${API}/notifications/ping`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` } }).catch(() => { });
-          }
-        } catch { }
-      }
-    });
-    return () => sub.remove();
-  }, []);
-
   // Start/stop richer onboarding animations on slide change and overlay visibility
   useEffect(() => {
     if (!showOnboarding) return;

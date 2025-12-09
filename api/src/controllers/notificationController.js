@@ -216,16 +216,6 @@ const updateSettings = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-// @desc    Record a foreground app ping (last active)
-// @route   POST /api/v1/notifications/ping
-// @access  Private
-const ping = async (req, res, next) => {
-  try {
-    await User.updateOne({ _id: req.user.id }, { $set: { lastActiveAt: new Date() } });
-    return res.status(200).json({ success: true });
-  } catch (err) { next(err); }
-};
-
 module.exports = {
   registerDevice: exports.registerDevice,
   unregisterDevice: exports.unregisterDevice,

@@ -14,7 +14,6 @@ router.get('/', notificationController.getNotifications);
 router.get('/devices', notificationController.listDevices);
 router.get('/settings', notificationController.getSettings);
 router.put('/settings', notificationController.updateSettings);
-router.post('/ping', notificationController.ping);
 router.patch('/:id/read', notificationController.markAsRead);
 router.patch('/read-all', notificationController.markAllAsRead);
 router.delete('/:id', notificationController.deleteNotification);
