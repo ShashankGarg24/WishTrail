@@ -22,6 +22,15 @@ exports.registerDevice = async (req, res, next) => {
     if (!userId) return res.status(401).json({ success: false, message: 'Not authorized' });
     let doc;
     try {
+      // First, check for and remove any duplicate tokens for this user
+      const existing = await DeviceToken.find({ userId, token }).lean();
+      if (existing.length > 1) {
+        console.log('[notifications] Found duplicate tokens, cleaning up:', existing.length);
+        // Keep the first one, delete the rest
+        const keepId = existing[0]._id;
+        await DeviceToken.deleteMany({ userId, token, _id: { $ne: keepId } });
+      }
+      
       doc = await DeviceToken.findOneAndUpdate(
         { userId, token },
         { $set: { platform, provider, lastSeenAt: new Date(), isActive: true, timezone: timezone || undefined, timezoneOffsetMinutes: timezoneOffsetMinutes ?? undefined } },

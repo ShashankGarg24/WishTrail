@@ -164,6 +164,8 @@ async function sendFcmInternal(tokens, notification) {
     .filter(t => t.platform !== 'web' && (t.provider === 'fcm' || (t.token && !t.token.startsWith('ExponentPushToken'))))
     .map(t => t.token);
 
+  console.log('[push] Separated tokens:', { web: webTokens.length, mobile: mobileTokens.length });
+
   const invalidFcm = [];
   let successCount = 0;
 

@@ -204,6 +204,15 @@ export const registerDeviceWithBackend = async (token, apiFunction) => {
       return null;
     }
 
+    // Check if we already registered this token in this session
+    const sessionKey = 'webpush_registered_token';
+    const registeredToken = sessionStorage.getItem(sessionKey);
+    
+    if (registeredToken === token) {
+      console.log('[WebPush] Token already registered in this session, skipping duplicate registration');
+      return { ok: true, cached: true };
+    }
+
     // Get timezone information
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     const timezoneOffsetMinutes = -new Date().getTimezoneOffset();
@@ -218,6 +227,10 @@ export const registerDeviceWithBackend = async (token, apiFunction) => {
 
     const response = await apiFunction(payload);
     console.log('[WebPush] Device registered with backend successfully');
+    
+    // Store token in session to prevent duplicate registrations
+    sessionStorage.setItem(sessionKey, token);
+    
     return response;
   } catch (error) {
     console.error('[WebPush] Error registering device with backend:', error);

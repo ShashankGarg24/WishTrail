@@ -1,7 +1,3 @@
-// Import Firebase scripts for FCM
-importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
-
 // Service worker installation - skip waiting to activate immediately
 self.addEventListener('install', () => self.skipWaiting());
 
@@ -10,7 +6,9 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(self.clients.claim());
 });
 
-// Handle push notifications from FCM
+// NOTE: Push notifications are handled by firebase-messaging-sw.js
+// Do NOT handle push events here to avoid duplicates
+/* REMOVED - causing duplicate notifications
 self.addEventListener('push', (event) => {
   console.log('[SW] Push event received:', event);
   
@@ -72,6 +70,7 @@ self.addEventListener('push', (event) => {
     self.registration.showNotification(title, options)
   );
 });
+*/
 
 // Handle notification clicks
 self.addEventListener('notificationclick', (event) => {

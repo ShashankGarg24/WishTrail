@@ -198,7 +198,6 @@ function App() {
           </Routes>
         </main>
         {/* Bottom nav (web) */}
-        {console.log(isAuthenticated)}
         {isAuthenticated && <BottomTabBar />}
         {/* Footer on web at all sizes; hide only inside native app */}
         {!inNativeApp && (
