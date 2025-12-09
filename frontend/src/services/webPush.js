@@ -156,10 +156,32 @@ export const setupForegroundMessageListener = (callback) => {
     const unsubscribe = onMessage(messaging, (payload) => {
       console.log('[WebPush] Foreground message received:', payload);
       
-      // Don't show notification here - let service worker handle it to avoid duplicates
-      // The service worker will handle both foreground and background messages
+      // Show notification when app is in foreground
+      // Service worker's onBackgroundMessage only fires when app is in background
+      const title = payload.data?.title || payload.notification?.title || 'WishTrail';
+      const body = payload.data?.body || payload.notification?.body || '';
+      const icon = payload.data?.icon || payload.notification?.icon || '/icons/icon-192.png';
+      const url = payload.data?.url || payload.fcmOptions?.link || '/notifications';
       
-      // Just call user callback if provided for in-app updates
+      if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.ready.then((registration) => {
+          registration.showNotification(title, {
+            body,
+            icon,
+            badge: payload.data?.badge || '/icons/badge-72.png',
+            data: {
+              url,
+              type: payload.data?.type || '',
+              id: payload.data?.id || ''
+            },
+            tag: payload.data?.id || Date.now().toString(),
+            requireInteraction: false,
+            vibrate: [200, 100, 200]
+          });
+        });
+      }
+      
+      // Call user callback if provided for in-app updates
       if (callback && typeof callback === 'function') {
         callback(payload);
       }

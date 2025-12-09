@@ -143,12 +143,24 @@ async function sendFcmInternal(tokens, notification) {
 
   const dataUrl = buildDeepLink(notification);
   
+  // Deduplicate tokens first
+  const uniqueTokens = [];
+  const seenTokens = new Set();
+  for (const t of tokens) {
+    if (!seenTokens.has(t.token)) {
+      seenTokens.add(t.token);
+      uniqueTokens.push(t);
+    }
+  }
+  
+  console.log('[push] Token deduplication:', { original: tokens.length, unique: uniqueTokens.length });
+  
   // Separate web and mobile tokens to avoid duplicates
-  const webTokens = tokens
+  const webTokens = uniqueTokens
     .filter(t => t.platform === 'web' && t.provider === 'fcm')
     .map(t => t.token);
   
-  const mobileTokens = tokens
+  const mobileTokens = uniqueTokens
     .filter(t => t.platform !== 'web' && (t.provider === 'fcm' || (t.token && !t.token.startsWith('ExponentPushToken'))))
     .map(t => t.token);
 
