@@ -30,7 +30,6 @@ const AuthExpiredPage = lazy(() => import('./pages/AuthExpiredPage'))
 import { SpeedInsights } from '@vercel/speed-insights/react';
 const FeedbackButton = lazy(() => import('./components/FeedbackButton'))
 const SettingsPage = lazy(() => import('./pages/SettingsPage'))
-const WebPushDebug = lazy(() => import('./components/WebPushDebug'))
 
 function App() {
   const { isDarkMode, initializeAuth, isAuthenticated, loadFeatures, isFeatureEnabled, getNotifications } = useApiStore()
@@ -101,9 +100,12 @@ function App() {
 
     let unsubscribe = null;
     let timeoutId = null;
+    let hasInitialized = false;
 
     // Initialize web push with a small delay to avoid blocking initial render
     timeoutId = setTimeout(async () => {
+      if (hasInitialized) return;
+      hasInitialized = true;
       try {
         const result = await initializeWebPush(
           notificationsAPI.registerDevice,
@@ -133,6 +135,7 @@ function App() {
 
     // Cleanup listener on unmount
     return () => {
+      hasInitialized = false;
       if (timeoutId) {
         clearTimeout(timeoutId);
       }
@@ -202,8 +205,6 @@ function App() {
           <Footer />
         )}
         <Suspense fallback={null}><FeedbackButton /></Suspense>
-        {/* Web Push Debug - Only in development */}
-        {!inNativeApp && import.meta.env.DEV && <Suspense fallback={null}><WebPushDebug /></Suspense>}
       </div>
       <SpeedInsights />
     </div>

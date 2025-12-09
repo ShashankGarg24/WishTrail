@@ -43,12 +43,16 @@ try {
   messaging.onBackgroundMessage((payload) => {
     console.log('[SW] Background message received:', payload);
     
-    const notificationTitle = payload.notification?.title || payload.data?.title || 'WishTrail';
+    const notificationTitle = payload.data?.title || payload.notification?.title || 'WishTrail';
     const notificationOptions = {
-      body: payload.notification?.body || payload.data?.body || '',
-      icon: payload.notification?.icon || payload.data?.icon || '/icons/icon-192.png',
-      badge: '/icons/badge-72.png',
-      data: payload.data || {},
+      body: payload.data?.body || payload.notification?.body || '',
+      icon: payload.data?.icon || '/icons/icon-192.png',
+      badge: payload.data?.badge || '/icons/badge-72.png',
+      data: {
+        url: payload.data?.url || '/notifications',
+        type: payload.data?.type || '',
+        id: payload.data?.id || ''
+      },
       tag: payload.data?.id || Date.now().toString(),
       requireInteraction: false,
       vibrate: [200, 100, 200],
