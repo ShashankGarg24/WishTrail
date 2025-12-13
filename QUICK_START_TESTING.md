@@ -348,7 +348,7 @@ If you encounter issues:
    - Test database queries separately
 
 4. **Contact Support**
-   - Email: support@wishtrail.com
+   - Email: thewishtrail@gmail.com
    - Create GitHub issue
 
 ---

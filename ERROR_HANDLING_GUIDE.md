@@ -83,7 +83,7 @@ import ErrorScreen from '../components/ErrorScreen';
   onRetry={() => console.log('Retry clicked')}
   customAction={{
     label: 'Contact Support',
-    onClick: () => window.location.href = 'mailto:support@wishtrail.com',
+    onClick: () => window.location.href = 'mailto:thewishtrail@gmail.com',
     icon: MailIcon
   }}
 />
@@ -306,7 +306,7 @@ import ErrorScreen from '../components/ErrorScreen';
 
 function CustomErrorPage() {
   const handleContactSupport = () => {
-    window.location.href = 'mailto:support@wishtrail.com';
+    window.location.href = 'mailto:thewishtrail@gmail.com';
   };
 
   return (
@@ -452,7 +452,7 @@ Simply navigate to:
 ## 📞 Support
 
 For issues or questions about the error handling system, contact:
-- Email: support@wishtrail.com
+- Email: thewishtrail@gmail.com
 - GitHub: Open an issue in the repository
 
 ---

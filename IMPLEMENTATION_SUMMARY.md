@@ -310,7 +310,7 @@ When adding new error types:
 ## 📞 Support
 
 For questions or issues:
-- Email: support@wishtrail.com
+- Email: thewishtrail@gmail.com
 - Docs: `ERROR_HANDLING_GUIDE.md`
 
 ---

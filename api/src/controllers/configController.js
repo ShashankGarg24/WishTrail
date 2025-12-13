@@ -142,4 +142,49 @@ module.exports = {
       next(error);
     }
   }
+  ,
+
+  /**
+   * Get coming soon status (Public endpoint)
+   */
+  async getComingSoonStatus(req, res, next) {
+    try {
+      const isComingSoon = await Config.getValue('coming_soon', false);
+      const config = await Config.findOne({ key: 'coming_soon' });
+
+      res.status(200).json({
+        success: true,
+        data: {
+          comingSoon: isComingSoon,
+          message: config?.description || 'This site will be launching soon.'
+        }
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
+   * Toggle coming soon mode (Admin only)
+   */
+  async toggleComingSoon(req, res, next) {
+    try {
+      const { enabled, message } = req.body;
+
+      const config = await Config.setValue(
+        'coming_soon',
+        enabled === true,
+        req.user?._id,
+        message || 'Coming soon mode enabled'
+      );
+
+      res.status(200).json({
+        success: true,
+        message: `Coming soon mode ${enabled ? 'enabled' : 'disabled'}`,
+        data: { config }
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 };

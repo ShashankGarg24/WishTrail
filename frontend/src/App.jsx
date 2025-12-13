@@ -22,6 +22,7 @@ const CommunityDetailPage = lazy(() => import('./pages/CommunityDetailPage'))
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'))
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
 const MaintenancePage = lazy(() => import('./pages/MaintenancePage'))
+const ComingSoonPage = lazy(() => import('./pages/ComingSoonPage'))
 const GenericErrorPage = lazy(() => import('./pages/GenericErrorPage'))
 const NetworkErrorPage = lazy(() => import('./pages/NetworkErrorPage'))
 const ServerErrorPage = lazy(() => import('./pages/ServerErrorPage'))
@@ -38,20 +39,28 @@ function App() {
   const [inNativeApp, setInNativeApp] = useState(false)
   const [maintenanceMode, setMaintenanceMode] = useState(null)
   const [maintenanceMessage, setMaintenanceMessage] = useState('')
+  const [comingSoonMode, setComingSoonMode] = useState(null)
+  const [comingSoonMessage, setComingSoonMessage] = useState('')
 
-  // Check maintenance mode on app load
+  // Check maintenance and coming-soon mode on app load
   useEffect(() => {
-    const checkMaintenance = async () => {
+    const checkModes = async () => {
       try {
-        const { isMaintenanceMode, message } = await configService.checkMaintenanceMode()
-        setMaintenanceMode(isMaintenanceMode)
-        setMaintenanceMessage(message)
+        const [mRes, cRes] = await Promise.all([
+          configService.checkMaintenanceMode(),
+          configService.checkComingSoon()
+        ]);
+        setMaintenanceMode(mRes.isMaintenanceMode);
+        setMaintenanceMessage(mRes.message || '');
+        setComingSoonMode(cRes.isComingSoon);
+        setComingSoonMessage(cRes.message || '');
       } catch (error) {
-        console.error('Failed to check maintenance mode:', error)
-        setMaintenanceMode(false)
+        console.error('Failed to check site modes:', error);
+        setMaintenanceMode(false);
+        setComingSoonMode(false);
       }
-    }
-    checkMaintenance()
+    };
+    checkModes();
   }, [])
 
   useEffect(() => {
@@ -145,10 +154,18 @@ function App() {
     };
   }, [isAuthenticated, inNativeApp])
 
-  // Show maintenance page if maintenance mode is enabled
-  if (maintenanceMode === null) {
-    // Still checking maintenance status
+  // Show coming soon / maintenance pages if enabled
+  if (comingSoonMode === null || maintenanceMode === null) {
+    // Still checking status
     return null
+  }
+
+  if (comingSoonMode) {
+    return (
+      <Suspense fallback={null}>
+        <ComingSoonPage message={comingSoonMessage} />
+      </Suspense>
+    )
   }
 
   if (maintenanceMode) {

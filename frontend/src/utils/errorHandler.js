@@ -17,8 +17,9 @@ export const handleApiError = (error, navigate) => {
   const data = error.response?.data;
 
   // Check for maintenance mode
-  if (status === 503 && data?.maintenanceMode) {
-    window.location.reload(); // Reload to trigger maintenance check in App.jsx
+  // Check for maintenance or coming-soon mode
+  if (status === 503 && (data?.maintenanceMode || data?.comingSoon)) {
+    window.location.reload(); // Reload to trigger checks in App.jsx
     return;
   }
 

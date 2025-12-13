@@ -639,7 +639,7 @@ class EmailService {
         <p>This change was made on <strong>${new Date().toLocaleDateString()}</strong> at <strong>${new Date().toLocaleTimeString()}</strong>.</p>
         
         <div class="warning">
-          <p><strong>⚠️ Security Notice:</strong> If you didn't make this change, please contact our support team immediately at <a href="mailto:support@wishtrail.com">support@wishtrail.com</a></p>
+          <p><strong>⚠️ Security Notice:</strong> If you didn't make this change, please contact our support team immediately at <a href="mailto:thewishtrail@gmail.com">thewishtrail@gmail.com</a></p>
         </div>
         
         <p>For your security, all existing sessions have been logged out. You'll need to log in again with your new password.</p>

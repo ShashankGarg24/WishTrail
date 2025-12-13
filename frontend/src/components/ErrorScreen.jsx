@@ -248,10 +248,10 @@ const ErrorScreen = ({
             >
               Need help? Contact us at{' '}
               <a 
-                href="mailto:support@wishtrail.com" 
+                href="mailto:thewishtrail@gmail.com" 
                 className="text-blue-600 dark:text-blue-400 hover:underline"
               >
-                support@wishtrail.com
+                thewishtrail@gmail.com
               </a>
             </motion.p>
           )}

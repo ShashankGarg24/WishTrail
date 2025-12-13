@@ -36,6 +36,43 @@ export const configService = {
   },
 
   /**
+   * Check if the system is in coming soon mode
+   */
+  async checkComingSoon() {
+    try {
+      const response = await axios.get(`${API_CONFIG.BASE_URL}/config/coming-soon`, {
+        timeout: 5000
+      });
+      return {
+        isComingSoon: response.data?.data?.comingSoon || false,
+        message: response.data?.data?.message || ''
+      };
+    } catch (error) {
+      if (error.response?.status === 503) {
+        return {
+          isComingSoon: true,
+          message: error.response?.data?.message || 'Site launching soon.'
+        };
+      }
+      console.error('Failed to check coming soon status:', error);
+      return { isComingSoon: false, message: '' };
+    }
+  },
+
+  async toggleComingSoon(enabled, message, token) {
+    const response = await axios.put(
+      `${API_CONFIG.BASE_URL}/config/coming-soon`,
+      { enabled, message },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    );
+    return response.data;
+  },
+
+  /**
    * Get all configuration settings (Admin only)
    */
   async getAllConfigs(token) {

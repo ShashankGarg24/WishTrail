@@ -161,10 +161,10 @@ const MaintenancePage = ({ message, estimatedTime }) => {
             <p className="text-sm text-gray-500 dark:text-gray-500">
               Questions? Contact us at{' '}
               <a
-                href="mailto:support@wishtrail.com"
+                href="mailto:thewishtrail@gmail.com"
                 className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
               >
-                support@wishtrail.com
+                thewishtrail@gmail.com
               </a>
             </p>
           </motion.div>

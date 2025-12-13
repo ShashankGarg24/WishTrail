@@ -106,6 +106,10 @@ const createApp = async () => {
   app.use('/uploads', express.static('src/uploads'));
 
   // Maintenance mode check
+  // Coming soon check (blocks site when enabled)
+  app.use(require('./middleware/comingSoon'));
+
+  // Maintenance mode check
   app.use(require('./middleware/maintenanceMode'));
 
   const apiRouter = express.Router();
