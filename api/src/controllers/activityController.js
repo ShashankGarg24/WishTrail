@@ -415,7 +415,7 @@ const getActivityComments = async (req, res, next) => {
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
         .limit(limit)
-        .populate('userId', 'name avatar')
+        .populate('userId', 'name avatar username')
         .lean(),
       ActivityComment.countDocuments({ activityId: id, parentCommentId: null, isActive: true })
     ]);
@@ -423,7 +423,7 @@ const getActivityComments = async (req, res, next) => {
     const rootIds = roots.map(r => r._id);
     const replies = await ActivityComment.find({ parentCommentId: { $in: rootIds }, isActive: true })
       .sort({ createdAt: 1 })
-      .populate('userId', 'name avatar')
+      .populate('userId', 'name avatar username')
       .lean();
 
     // Enrich with like counts and isLiked
@@ -469,7 +469,7 @@ const addActivityComment = async (req, res, next) => {
     }
     const comment = await ActivityComment.create({ activityId: id, userId: req.user.id, text: text.trim() });
     const [populated] = await Promise.all([
-      ActivityComment.findById(comment._id).populate('userId', 'name avatar').lean(),
+      ActivityComment.findById(comment._id).populate('userId', 'name avatar username').lean(),
       Notification.createActivityCommentNotification(req.user.id, activity)
     ]);
 
@@ -511,7 +511,7 @@ const replyToActivityComment = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Parent comment not found' });
     }
     const reply = await ActivityComment.create({ activityId: id, userId: req.user.id, text: text.trim(), parentCommentId: commentId, mentionUserId: mentionUserId || null });
-    const populated = await ActivityComment.findById(reply._id).populate('userId', 'name avatar').lean();
+    const populated = await ActivityComment.findById(reply._id).populate('userId', 'name avatar username').lean();
     await Notification.createCommentReplyNotification(req.user.id, parent, activity);
     if (mentionUserId) {
       await Notification.createMentionNotification(req.user.id, mentionUserId, { activityId: id, commentId });

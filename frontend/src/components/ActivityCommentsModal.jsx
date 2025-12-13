@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Send } from 'lucide-react'
+import { X, Send, Heart, MessageCircle } from 'lucide-react'
 import { activitiesAPI } from '../services/api'
 import useApiStore from '../store/apiStore'
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
@@ -52,8 +52,15 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
   }
 
   const startReply = (comment) => {
-    setReplyTo({ commentId: comment._id, userId: comment.userId?._id || comment.userId, userName: comment.userId?.name || 'user' })
-    setInput(`@${(comment.userId?.name || 'user').replace(/\s+/g, '')} `)
+    const username = comment.userId?.username || 'user'
+    setReplyTo({ commentId: comment._id, userId: comment.userId?._id || comment.userId, userName: username })
+    setInput(`@${username} `)
+  }
+
+  const startReplyToReply = (parentComment, replyUser) => {
+    const username = replyUser.username || 'user'
+    setReplyTo({ commentId: parentComment._id, userId: replyUser._id || replyUser, userName: username })
+    setInput(`@${username} `)
   }
 
   const toggleReplies = (commentId) => {
@@ -90,6 +97,12 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
     navigate(`/profile/@${userId}?tab=overview`);
   };
 
+  const handleTagClick = (tag) => {
+    // Extract username from @username format
+    const username = tag.replace('@', '');
+    navigate(`/profile/@${username}?tab=overview`);
+  };
+
   const toggleCommentLike = async (commentId) => {
     try {
       const res = await activitiesAPI.toggleCommentLike(activity._id, commentId)
@@ -112,6 +125,15 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
   if (embedded) {
     return (
       <div className="w-full">
+        <div className="mb-3">
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+            <MessageCircle className="h-4 w-4 text-primary-500" />
+            Comments
+            {comments.length > 0 && (
+              <span className="text-xs font-normal text-gray-500">({comments.length})</span>
+            )}
+          </h3>
+        </div>
         <div className="space-y-4">
           {loading ? (
             <div className="text-sm text-gray-500">Loading comments...</div>
@@ -122,17 +144,29 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
               const replyCount = (c.replies || []).length;
               return (
                 <div key={c._id} className="pb-1">
-                  <div className="flex items-start gap-3">
-                    <img src={c.userId?.avatar} alt={c.userId?.name} className="w-8 h-8 rounded-full object-cover cursor-pointer" onClick={() => handleUserClick(c.userId?.username)} />
-                    <div className="flex-1">
-                      <div className="flex items-start justify-between">
-                        <div className="text-xs text-gray-500">
-                          <span className="font-semibold text-gray-900 dark:text-white mr-2 cursor-pointer" onClick={() => handleUserClick(c.userId?.username)}>{c.userId?.name}</span>
-                          <span className="text-gray-500">{formatTimeAgo(c.createdAt)}</span>
+                  <div className="flex items-start gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                    <img 
+                      src={c.userId?.avatar} 
+                      alt={c.userId?.name} 
+                      className="w-10 h-10 rounded-full object-cover cursor-pointer ring-2 ring-gray-200 dark:ring-gray-700 hover:ring-primary-500 transition-all" 
+                      onClick={() => handleUserClick(c.userId?.username)} 
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between mb-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-sm text-gray-900 dark:text-white cursor-pointer hover:text-primary-600 dark:hover:text-primary-400 transition-colors" onClick={() => handleUserClick(c.userId?.username)}>{c.userId?.name}</span>
+                          <span className="text-[10px] text-gray-400">•</span>
+                          <span className="text-[10px] text-gray-500 dark:text-gray-400">{formatTimeAgo(c.createdAt)}</span>
                         </div>
-                        <button onClick={() => toggleCommentLike(c._id)} className={`text-xs hover:text-red-600 ${c.isLiked ? 'text-red-600' : 'text-gray-500'} flex items-center gap-1`}>♥ {c.likeCount || 0}</button>
+                        <button 
+                          onClick={() => toggleCommentLike(c._id)} 
+                          className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium transition-all ${c.isLiked ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
+                        >
+                          <Heart className={`h-3.5 w-3.5 ${c.isLiked ? 'fill-current' : ''}`} />
+                          {c.likeCount || 0}
+                        </button>
                       </div>
-                      <div className="mt-1 text-sm text-gray-700 dark:text-gray-300">{c.text}</div>
+                      <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{c.text}</div>
                       <div className="mt-1 flex items-center gap-3">
                         <button onClick={() => startReply(c)} className="text-xs text-blue-600">Reply</button>
                         {replyCount > 0 && (
@@ -148,10 +182,10 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
                             onChange={(e) => setInput(e.target.value)}
                             onKeyDown={handleKeyDown}
                             placeholder={`Replying to ${replyTo.userName}`}
-                            className="flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                            className="flex-1 px-2 py-1.5 text-xs rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                           />
-                          <button onClick={handlePost} className="px-3 py-2 rounded-lg bg-blue-600 text-white disabled:opacity-50" disabled={!input.trim()}>
-                            <Send className="h-4 w-4" />
+                          <button onClick={handlePost} className="px-2 py-1.5 rounded-lg bg-blue-600 text-white disabled:opacity-50" disabled={!input.trim()}>
+                            <Send className="h-3.5 w-3.5" />
                           </button>
                           <button onClick={() => { setReplyTo(null); setInput(''); }} className="text-xs text-gray-500">Cancel</button>
                         </div>
@@ -159,20 +193,40 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
                     </div>
                   </div>
                   {expandedReplies[c._id] && replyCount > 0 && (
-                    <div className="mt-3 pt-2 pl-11 space-y-3 border-t border-gray-200 dark:border-gray-800">
+                    <div className="mt-3 pt-2 pl-11 space-y-4 border-t border-gray-200 dark:border-gray-800">
                       {(c.replies || []).map((r) => (
                         <div key={r._id}>
-                          <div className="flex items-start gap-3">
-                            <img src={r.userId?.avatar} alt={r.userId?.name} className="w-7 h-7 rounded-full object-cover cursor-pointer" onClick={() => handleUserClick(r.userId?.username)} />
-                            <div className="flex-1">
-                              <div className="flex items-start justify-between">
-                                <div className="text-xs text-gray-500">
-                                  <span className="font-semibold text-gray-900 dark:text-white mr-2 cursor-pointer" onClick={() => handleUserClick(r.userId?.username)}>{r.userId?.name}</span>
-                                  <span className="text-gray-500">{formatTimeAgo(r.createdAt)}</span>
+                          <div className="flex items-start gap-3 p-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                            <img src={r.userId?.avatar} alt={r.userId?.name} className="w-8 h-8 rounded-full object-cover cursor-pointer ring-2 ring-gray-200 dark:ring-gray-700 hover:ring-primary-500 transition-all" onClick={() => handleUserClick(r.userId?.username)} />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start justify-between mb-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-bold text-xs text-gray-900 dark:text-white cursor-pointer hover:text-primary-600 dark:hover:text-primary-400 transition-colors" onClick={() => handleUserClick(r.userId?.username)}>{r.userId?.name}</span>
+                                  <span className="text-[10px] text-gray-400">•</span>
+                                  <span className="text-[10px] text-gray-500 dark:text-gray-400">{formatTimeAgo(r.createdAt)}</span>
                                 </div>
-                                <button onClick={() => toggleCommentLike(r._id)} className={`text-xs hover:text-red-600 ${r.isLiked ? 'text-red-600' : 'text-gray-500'} flex items-center gap-1`}>♥ {r.likeCount || 0}</button>
+                                <button 
+                                  onClick={() => toggleCommentLike(r._id)} 
+                                  className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-lg text-[10px] font-medium transition-all ${r.isLiked ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
+                                >
+                                  <Heart className={`h-3 w-3 ${r.isLiked ? 'fill-current' : ''}`} />
+                                  {r.likeCount || 0}
+                                </button>
                               </div>
-                              <div className="mt-1 text-sm text-gray-700 dark:text-gray-300">{r.text}</div>
+                              <div className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">
+                                {r.text.split(/(@\w+)/g).map((part, i) => 
+                                  part.startsWith('@') ? (
+                                    <span 
+                                      key={i} 
+                                      className="text-blue-500 font-medium cursor-pointer hover:text-blue-600 hover:underline" 
+                                      onClick={() => handleTagClick(part)}
+                                    >
+                                      {part}
+                                    </span>
+                                  ) : part
+                                )}
+                              </div>
+                              <button onClick={() => startReplyToReply(c, r.userId)} className="mt-0.5 text-[10px] text-blue-600">Reply</button>
                             </div>
                           </div>
                         </div>
@@ -186,16 +240,20 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
         </div>
 
         {!replyTo && (
-          <div className="flex items-center gap-2 mt-4 pt-3 border-t border-gray-200 dark:border-gray-800 sticky bottom-2 bg-white/95 dark:bg-gray-900/95 backdrop-blur supports-[backdrop-filter]:bg-white/70 supports-[backdrop-filter]:dark:bg-gray-900/70 z-10">
+          <div className="flex items-center gap-2 mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 sticky bottom-0 bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl z-10 rounded-b-xl">
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder={'Add a comment'}
-              className="flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+              placeholder={'Write a comment...'}
+              className="flex-1 px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
             />
-            <button onClick={handlePost} className="px-3 py-2 rounded-lg bg-blue-600 text-white disabled:opacity-50" disabled={!input.trim()}>
-              <Send className="h-4 w-4" />
+            <button 
+              onClick={handlePost} 
+              className="p-2.5 rounded-xl bg-gradient-to-r from-primary-500 to-blue-500 text-white disabled:opacity-50 disabled:cursor-not-allowed hover:from-primary-600 hover:to-blue-600 transition-all shadow-lg hover:shadow-xl" 
+              disabled={!input.trim()}
+            >
+              <Send className="h-5 w-5" />
             </button>
           </div>
         )}
@@ -233,11 +291,11 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
                       <div className="flex items-start justify-between">
                         <div className="text-xs text-gray-500">
                           <span className="font-semibold text-gray-900 dark:text-white mr-2 cursor-pointer" onClick={() => handleUserClick(c.userId?.username)}>{c.userId?.name}</span>
-                          <span className="text-gray-500">{formatTimeAgo(c.createdAt)}</span>
+                          <span className="text-[10px] text-gray-500">{formatTimeAgo(c.createdAt)}</span>
                         </div>
                         <button onClick={() => toggleCommentLike(c._id)} className={`text-xs hover:text-red-600 ${c.isLiked ? 'text-red-600' : 'text-gray-500'} flex items-center gap-1`}>♥ {c.likeCount || 0}</button>
                       </div>
-                      <div className="mt-1 text-sm text-gray-700 dark:text-gray-300">{c.text}</div>
+                      <div className="mt-1 text-xs text-gray-700 dark:text-gray-300">{c.text}</div>
                       <div className="mt-1 flex items-center gap-3">
                         <button onClick={() => startReply(c)} className="text-xs text-blue-600">Reply</button>
                         {replyCount > 0 && (
@@ -253,10 +311,10 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
                             onChange={(e) => setInput(e.target.value)}
                             onKeyDown={handleKeyDown}
                             placeholder={`Replying to ${replyTo.userName}`}
-                            className="flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                            className="flex-1 px-2 py-1.5 text-xs rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                           />
-                          <button onClick={handlePost} className="px-3 py-2 rounded-lg bg-blue-600 text-white disabled:opacity-50" disabled={!input.trim()}>
-                            <Send className="h-4 w-4" />
+                          <button onClick={handlePost} className="px-2 py-1.5 rounded-lg bg-blue-600 text-white disabled:opacity-50" disabled={!input.trim()}>
+                            <Send className="h-3.5 w-3.5" />
                           </button>
                           <button onClick={() => { setReplyTo(null); setInput(''); }} className="text-xs text-gray-500">Cancel</button>
                         </div>
@@ -264,20 +322,33 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
                     </div>
                   </div>
                   {expandedReplies[c._id] && replyCount > 0 && (
-                    <div className="mt-3 pt-2 pl-11 space-y-3 border-t border-gray-200 dark:border-gray-800">
+                    <div className="mt-3 pt-2 pl-11 space-y-4 border-t border-gray-200 dark:border-gray-800">
                       {(c.replies || []).map((r) => (
                         <div key={r._id}>
                           <div className="flex items-start gap-3">
-                            <img src={r.userId?.avatar} alt={r.userId?.name} className="w-7 h-7 rounded-full object-cover cursor-pointer" onClick={() => handleUserClick(r.userId?.username)} />
+                            <img src={r.userId?.avatar} alt={r.userId?.name} className="w-8 h-8 rounded-full object-cover cursor-pointer" onClick={() => handleUserClick(r.userId?.username)} />
                             <div className="flex-1">
                               <div className="flex items-start justify-between">
                                 <div className="text-xs text-gray-500">
                                   <span className="font-semibold text-gray-900 dark:text-white mr-2 cursor-pointer" onClick={() => handleUserClick(r.userId?.username)}>{r.userId?.name}</span>
-                                  <span className="text-gray-500">{formatTimeAgo(r.createdAt)}</span>
+                                  <span className="text-[10px] text-gray-500">{formatTimeAgo(r.createdAt)}</span>
                                 </div>
                                 <button onClick={() => toggleCommentLike(r._id)} className={`text-xs hover:text-red-600 ${r.isLiked ? 'text-red-600' : 'text-gray-500'} flex items-center gap-1`}>♥ {r.likeCount || 0}</button>
                               </div>
-                              <div className="mt-1 text-sm text-gray-700 dark:text-gray-300">{r.text}</div>
+                              <div className="mt-1 text-xs text-gray-700 dark:text-gray-300">
+                                {r.text.split(/(@\w+)/g).map((part, i) => 
+                                  part.startsWith('@') ? (
+                                    <span 
+                                      key={i} 
+                                      className="text-blue-500 font-medium cursor-pointer hover:text-blue-600 hover:underline" 
+                                      onClick={() => handleTagClick(part)}
+                                    >
+                                      {part}
+                                    </span>
+                                  ) : part
+                                )}
+                              </div>
+                              <button onClick={() => startReplyToReply(c, r.userId)} className="mt-0.5 text-[10px] text-blue-600">Reply</button>
                             </div>
                           </div>
                         </div>
@@ -362,11 +433,11 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
                         <div className="flex items-start justify-between">
                           <div className="text-xs text-gray-500">
                             <span className="font-semibold text-gray-900 dark:text-white mr-2 cursor-pointer" onClick={() => handleUserClick(c.userId?.username)}>{c.userId?.name}</span>
-                            <span className="text-gray-500">{formatTimeAgo(c.createdAt)}</span>
+                            <span className="text-[10px] text-gray-500">{formatTimeAgo(c.createdAt)}</span>
                           </div>
                           <button onClick={() => toggleCommentLike(c._id)} className={`text-xs hover:text-red-600 ${c.isLiked ? 'text-red-600' : 'text-gray-500'} flex items-center gap-1`}>♥ {c.likeCount || 0}</button>
                         </div>
-                        <div className="mt-1 text-sm text-gray-700 dark:text-gray-300">{c.text}</div>
+                        <div className="mt-1 text-xs text-gray-700 dark:text-gray-300">{c.text}</div>
                         <div className="mt-1 flex items-center gap-3">
                           <button onClick={() => startReply(c)} className="text-xs text-blue-600">Reply</button>
                           {replyCount > 0 && (
@@ -380,11 +451,12 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
                             <input
                               value={input}
                               onChange={(e) => setInput(e.target.value)}
+                              onKeyDown={handleKeyDown}
                               placeholder={`Replying to ${replyTo.userName}`}
-                              className="flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                              className="flex-1 px-2 py-1.5 text-xs rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                             />
-                            <button onClick={handlePost} className="px-3 py-2 rounded-lg bg-blue-600 text-white disabled:opacity-50" disabled={!input.trim()}>
-                              <Send className="h-4 w-4" />
+                            <button onClick={handlePost} className="px-2 py-1.5 rounded-lg bg-blue-600 text-white disabled:opacity-50" disabled={!input.trim()}>
+                              <Send className="h-3.5 w-3.5" />
                             </button>
                             <button onClick={() => { setReplyTo(null); setInput(''); }} className="text-xs text-gray-500">Cancel</button>
                           </div>
@@ -392,20 +464,33 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
                       </div>
                     </div>
                     {expandedReplies[c._id] && replyCount > 0 && (
-                      <div className="mt-2 pl-11 space-y-2">
+                      <div className="mt-3 pl-11 space-y-4">
                         {(c.replies || []).map((r) => (
                           <div key={r._id}>
                             <div className="flex items-start gap-3">
-                              <img src={r.userId?.avatar} alt={r.userId?.name} className="w-7 h-7 rounded-full object-cover cursor-pointer" onClick={() => handleUserClick(r.userId?.username)} />
+                              <img src={r.userId?.avatar} alt={r.userId?.name} className="w-8 h-8 rounded-full object-cover cursor-pointer" onClick={() => handleUserClick(r.userId?.username)} />
                               <div className="flex-1">
                                 <div className="flex items-start justify-between">
                                   <div className="text-xs text-gray-500">
                                     <span className="font-semibold text-gray-900 dark:text-white mr-2 cursor-pointer" onClick={() => handleUserClick(r.userId?.username)}>{r.userId?.name}</span>
-                                    <span className="text-gray-500">{formatTimeAgo(r.createdAt)}</span>
+                                    <span className="text-[10px] text-gray-500">{formatTimeAgo(r.createdAt)}</span>
                                   </div>
                                   <button onClick={() => toggleCommentLike(r._id)} className={`text-xs hover:text-red-600 ${r.isLiked ? 'text-red-600' : 'text-gray-500'} flex items-center gap-1`}>♥ {r.likeCount || 0}</button>
                                 </div>
-                                <div className="mt-1 text-sm text-gray-700 dark:text-gray-300">{r.text}</div>
+                                <div className="mt-1 text-xs text-gray-700 dark:text-gray-300">
+                                  {r.text.split(/(@\w+)/g).map((part, i) => 
+                                    part.startsWith('@') ? (
+                                      <span 
+                                        key={i} 
+                                        className="text-blue-500 font-medium cursor-pointer hover:text-blue-600 hover:underline" 
+                                        onClick={() => handleTagClick(part)}
+                                      >
+                                        {part}
+                                      </span>
+                                    ) : part
+                                  )}
+                                </div>
+                                <button onClick={() => startReplyToReply(c, r.userId)} className="mt-0.5 text-[10px] text-blue-600">Reply</button>
                               </div>
                             </div>
                           </div>

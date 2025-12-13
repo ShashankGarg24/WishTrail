@@ -25,10 +25,18 @@ const FeedbackButton = ({ isOpen: controlledOpen, onClose }) => {
   const MAX_WORDS = 200
   const MAX_TITLE_WORDS = 20
 
-  if (!isAuthenticated) return null
-
   const isControlled = typeof controlledOpen === 'boolean'
   const open = isControlled ? controlledOpen : internalOpen
+
+  useEffect(() => {
+    if (open) {
+      lockBodyScroll();
+      return () => unlockBodyScroll();
+    }
+    return undefined;
+  }, [open]);
+
+  if (!isAuthenticated) return null
 
   const openModal = () => {
     try { if (previewUrl) URL.revokeObjectURL(previewUrl) } catch {}
@@ -52,14 +60,6 @@ const FeedbackButton = ({ isOpen: controlledOpen, onClose }) => {
     setSuccess('')
     setError('')
   }
-
-  useEffect(() => {
-    if (open) {
-      lockBodyScroll();
-      return () => unlockBodyScroll();
-    }
-    return undefined;
-  }, [open]);
 
   const countWords = (text) => (text || '').trim().split(/\s+/).filter(Boolean).length
 

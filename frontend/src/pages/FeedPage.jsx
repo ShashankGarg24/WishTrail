@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Activity, Heart, MessageCircle, RefreshCw, Compass, ArrowRightCircle, Send, Newspaper } from 'lucide-react'
+import { Activity, Heart, MessageCircle, RefreshCw, Compass, ArrowRightCircle, Send, Newspaper, Sparkles } from 'lucide-react'
 import useApiStore from '../store/apiStore'
 import SkeletonList from '../components/loader/SkeletonList'
 const ActivityCommentsModal = lazy(() => import('../components/ActivityCommentsModal'));
@@ -330,52 +330,58 @@ const FeedPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-slate-900 dark:via-gray-900 dark:to-zinc-900">
-      <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-900">
+      <div className="max-w-4xl mx-auto px-4 py-6">
         {!inNativeApp && (
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
-              <Newspaper className="h-6 w-6 mr-2 text-green-500" />
-              Feed
-            </h2>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => fetchInitial(true)}
-                aria-label="Refresh"
-                className={`h-9 w-9 inline-flex items-center justify-center rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors ${loading ? 'opacity-80' : ''}`}
-                disabled={loading}
-              >
-                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-              </button>
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center shadow-lg">
+                <Newspaper className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Social Feed</h1>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  {activities.length > 0 ? `${activities.length} activities` : 'Stay connected'}
+                </p>
+              </div>
             </div>
+
+            <button
+              onClick={() => fetchInitial(true)}
+              disabled={loading}
+              className="p-2.5 rounded-xl hover:bg-white dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 transition-all shadow-sm"
+            >
+              <RefreshCw className={`h-5 w-5 text-gray-700 dark:text-gray-300 ${loading ? 'animate-spin' : ''}`} />
+            </button>
           </div>
         )}
 
         {/* Stories bar: inspiring + trending goals */}
         <div className="mb-6">
-          <div className="mb-3 flex items-center justify-between px-1">
-            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
-              <span className="text-lg">🌟</span>
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-yellow-500" />
               Trending Goals
-            </h3>
+            </h2>
             {!storiesLoading && stories.length > 0 && (
               <button
                 onClick={() => navigate('/discover?tab=goals')}
-                className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors flex items-center gap-1"
+                className="text-sm font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors flex items-center gap-1.5"
               >
-                See All
-                <ArrowRightCircle className="h-3.5 w-3.5" />
+                Explore All
+                <ArrowRightCircle className="h-4 w-4" />
               </button>
             )}
           </div>
-          <div className="relative bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-4 shadow-sm overflow-hidden">
-            <div className="flex gap-8 overflow-x-auto no-scrollbar pr-12 pl-3 py-2 items-start pb-1">
+          
+          <div className="relative bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-3 shadow-sm overflow-hidden">
+            <div className="flex gap-4 overflow-x-auto no-scrollbar pr-12 py-1 items-start">
               {storiesLoading && (
-                <div className="flex items-center gap-6">
+                <div className="flex items-center gap-4">
                   {[...Array(6)].map((_, i) => (
-                    <div key={i} className="flex flex-col items-center gap-2 shrink-0">
-                      <div className="h-16 w-16 rounded-full bg-gray-200 dark:bg-gray-800 animate-pulse" />
-                      <div className="h-3 w-14 rounded bg-gray-200 dark:bg-gray-800 animate-pulse" />
+                    <div key={i} className="flex flex-col items-center gap-1.5 shrink-0">
+                      <div className="h-14 w-14 rounded-full bg-gray-200 dark:bg-gray-700 animate-pulse" />
+                      <div className="h-2.5 w-12 rounded bg-gray-200 dark:bg-gray-700 animate-pulse" />
                     </div>
                   ))}
                 </div>
@@ -384,28 +390,28 @@ const FeedPage = () => {
                 <button
                   key={g._id || idx}
                   onClick={() => g._id && openGoalModal(g._id)}
-                  className="group relative shrink-0 w-[72px] focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-2xl p-2 -m-2 transition-all duration-200 hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                  className="group relative shrink-0 w-16 focus:outline-none focus:ring-2 focus:ring-primary-500 rounded-xl p-1 -m-1 transition-all duration-200"
                   title={g.title}
                   aria-label={`Open goal ${g.title}`}
                 >
-                  <div className="flex flex-col items-center justify-start gap-2">
-                    <div className={`relative h-16 w-16 rounded-full p-[3px] bg-gradient-to-br ${getCategoryGradient(g.category)} transition-all duration-200 group-hover:scale-110 group-hover:shadow-lg`}>
-                      <div className="h-full w-full rounded-full bg-white dark:bg-gray-900 p-[3px]">
+                  <div className="flex flex-col items-center justify-start gap-1.5">
+                    <div className={`relative h-14 w-14 rounded-full p-[2px] bg-gradient-to-br ${getCategoryGradient(g.category)} transition-all duration-300 group-hover:scale-105 group-hover:shadow-lg`}>
+                      <div className="h-full w-full rounded-full bg-white dark:bg-gray-800 p-[2px]">
                         <img
-                          src={g.user?.avatar || '/api/placeholder/40/40'}
+                          src={g.user?.avatar || '/api/placeholder/48/48'}
                           alt={g.user?.name || 'User'}
                           className="h-full w-full rounded-full object-cover" 
                         />
                       </div>
                       {/* Hover overlay with user name */}
-                      <div className="absolute inset-0 rounded-full bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-end justify-center pb-1.5">
-                        <span className="text-[9px] font-medium text-white truncate px-2 max-w-full">
+                      <div className="absolute inset-0 rounded-full bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-end justify-center pb-1">
+                        <span className="text-[9px] font-medium text-white truncate px-1.5 max-w-full drop-shadow">
                           {g.user?.name || 'User'}
                         </span>
                       </div>
                     </div>
-                    <div className="w-full text-center">
-                      <div className="text-xs font-medium text-gray-800 dark:text-gray-200 leading-tight line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                    <div className="w-full text-center px-0.5">
+                      <div className="text-[11px] font-medium text-gray-700 dark:text-gray-300 leading-tight line-clamp-2 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
                         {g.title}
                       </div>
                     </div>
@@ -416,17 +422,17 @@ const FeedPage = () => {
               {!storiesLoading && (
                 <button
                   onClick={() => navigate('/discover?tab=discover&mode=goals')}
-                  className="group shrink-0 w-[72px] focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-2xl p-2 -m-2 transition-all duration-200 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                  className="group shrink-0 w-16 focus:outline-none focus:ring-2 focus:ring-primary-500 rounded-xl p-1 -m-1 transition-all duration-200"
                   title="Explore more goals"
                   aria-label="Explore more goals"
                 >
-                  <div className="flex flex-col items-center justify-start gap-2">
-                    <div className="relative h-16 w-16 rounded-full p-[3px] bg-gradient-to-br from-blue-500 via-sky-500 to-cyan-400 transition-all duration-200 group-hover:scale-110 group-hover:shadow-lg">
-                      <div className="h-full w-full rounded-full bg-white dark:bg-gray-900 flex items-center justify-center">
-                        <ArrowRightCircle className="h-7 w-7 text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform" />
+                  <div className="flex flex-col items-center justify-start gap-1.5">
+                    <div className="relative h-14 w-14 rounded-full p-[2px] bg-gradient-to-br from-primary-500 via-blue-500 to-cyan-400 transition-all duration-300 group-hover:scale-105 group-hover:shadow-lg">
+                      <div className="h-full w-full rounded-full bg-white dark:bg-gray-800 flex items-center justify-center">
+                        <Compass className="h-6 w-6 text-primary-600 dark:text-primary-400 group-hover:scale-110 transition-transform" />
                       </div>
                     </div>
-                    <div className="text-xs font-semibold text-blue-600 dark:text-blue-400 group-hover:text-blue-700 dark:group-hover:text-blue-300 transition-colors">
+                    <div className="text-[11px] font-bold text-primary-600 dark:text-primary-400 group-hover:text-primary-700 dark:group-hover:text-primary-300 transition-colors">
                       Explore
                     </div>
                   </div>
@@ -434,7 +440,7 @@ const FeedPage = () => {
               )}
             </div>
             {/* Fade gradient on right edge */}
-            <div className="pointer-events-none absolute right-0 top-0 h-full w-16 bg-gradient-to-l from-white dark:from-gray-900 via-white/80 dark:via-gray-900/80 to-transparent rounded-r-2xl" />
+            <div className="pointer-events-none absolute right-0 top-0 h-full w-16 bg-gradient-to-l from-white dark:from-gray-800 via-white/80 dark:via-gray-800/80 to-transparent rounded-r-2xl" />
           </div>
         </div>
 
@@ -448,43 +454,93 @@ const FeedPage = () => {
                   key={activity._id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: 0.1 * index }}
-                  className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm relative overflow-visible"
+                  transition={{ duration: 0.5, delay: 0.05 * index }}
+                  className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow relative overflow-visible"
                 >
-                  <div className="flex items-center gap-3 px-4 pt-4 pb-3">
+                  {/* Header with user info */}
+                  <div className="flex items-start gap-3 p-4 pb-3">
                     <img
                       src={activity?.user?.avatar || activity?.avatar || '/api/placeholder/48/48'}
                       alt={activity?.user?.name || activity?.name || 'User'}
-                      className="w-10 h-10 rounded-full object-cover cursor-pointer"
+                      className="w-12 h-12 rounded-full object-cover cursor-pointer ring-2 ring-gray-100 dark:ring-gray-700 hover:ring-primary-500 transition-all"
                       onClick={() => activity.user?.username && navigate(`/profile/@${activity.user.username}?tab=overview`)}
                     />
                     <div className="flex-1 min-w-0">
-                      <div className="flex items_center gap-2">
+                      <div className="flex items-center gap-2 mb-1">
                         <button
-                          className="font-semibold text-gray-900 dark:text-white hover:text-blue-500 truncate"
+                          className="font-semibold text-gray-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 transition-colors truncate"
                           onClick={() => activity.user?.username && navigate(`/profile/@${activity.user.username}?tab=overview`)}
                         >
                           {activity?.user?.name || activity?.name || 'Unknown User'}
                         </button>
                         <span className="text-xs text-gray-400">•</span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">{formatTimeAgo(activity.createdAt)}</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">{formatTimeAgo(activity.createdAt)}</span>
                       </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                      <div className="text-sm text-gray-600 dark:text-gray-400">
                         {getActivityText(activity)}
                       </div>
                     </div>
+
+                    {/* Three dot menu */}
+                    <div className="relative">
+                      <button
+                        data-activity-menu-btn="true"
+                        onClick={(e) => { e.stopPropagation(); setOpenActivityMenuId(prev => prev === activity._id ? null : activity._id); }}
+                        className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      >
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                        </svg>
+                      </button>
+                      {openActivityMenuId === activity._id && (
+                        <div
+                          data-activity-menu="true"
+                          onClick={(e) => e.stopPropagation()}
+                          className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-30 overflow-hidden"
+                        >
+                          <button
+                            className="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                            onClick={() => { setReportTarget({ type: 'activity', id: activity._id, label: 'activity', username: activity?.user?.username || '', userId: activity?.user?._id || null }); setReportOpen(true); setOpenActivityMenuId(null); }}
+                          >Report Activity</button>
+                          {activity.user?._id && (
+                            <button
+                              className="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                              onClick={async () => { try { await unfollowUser(activity.user._id); } catch { }; setOpenActivityMenuId(null); }}
+                            >Unfollow User</button>
+                          )}
+                          {activity.user?._id && (
+                            <button
+                              className="w-full text-left px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                              onClick={() => { setBlockUserId(activity.user._id); setBlockUsername(activity?.user?.username || ''); setBlockOpen(true); setOpenActivityMenuId(null); }}
+                            >Block User</button>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
 
-                  {/* Media/Content */}
-                  <div className="px-4 pb-4 cursor-pointer" onClick={() => openGoalModal(activity?.data?.goalId?._id)}>
-                    <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-4 border border-gray-100 dark:border-gray-800">
+                  {/* Content Card */}
+                  <div className="px-4 pb-4">
+                    <div 
+                      className="bg-gradient-to-br from-gray-50 to-gray-100/50 dark:from-gray-700/30 dark:to-gray-800/30 rounded-xl p-4 border border-gray-200 dark:border-gray-700/50 cursor-pointer hover:border-primary-300 dark:hover:border-primary-600/50 transition-all group" 
+                      onClick={() => openGoalModal(activity?.data?.goalId?._id)}
+                    >
                       {(activity.type === 'goal_completed' || activity.type === 'goal_created') ? (
                         <>
-                          <h4 className="font-semibold text-gray-900 dark:text-white mb-2">
-                            {activity.data?.goalTitle || 'Goal Achievement'}
-                          </h4>
+                          <div className="flex items-start justify-between gap-3 mb-3">
+                            <h4 className="font-semibold text-gray-900 dark:text-white text-base group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
+                              {activity.data?.goalTitle || 'Goal Achievement'}
+                            </h4>
+                            {activity.type === 'goal_completed' && (
+                              <div className="shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center shadow-sm">
+                                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                                </svg>
+                              </div>
+                            )}
+                          </div>
                           {activity.data?.goalCategory && (
-                            <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium text-white ${getCategoryColor(activity.data.goalCategory)}`}>
+                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold text-white ${getCategoryColor(activity.data.goalCategory)} shadow-sm`}>
                               {activity.data.goalCategory}
                             </span>
                           )}
@@ -494,19 +550,19 @@ const FeedPage = () => {
                             const sharedImage = activity?.data?.metadata?.completionAttachmentUrl || activity?.data?.completionAttachmentUrl || ''
                             if (!sharedNote && !sharedImage) return null
                             return (
-                              <div className="mt-3 space-y-3 cursorcursor-pointer" onClick={() => openGoalModal(activity?.data?.goalId?._id)}>
+                              <div className="mt-3 space-y-3">
                                 {sharedImage && (
-                                  <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700">
+                                  <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-600 shadow-sm">
                                     <img
                                       src={sharedImage}
                                       alt="Completion attachment"
-                                      className="w-full max-h-96 object-cover hover:scale-[1.01] transition-transform duration-200 cursor-zoom-in"
+                                      className="w-full max-h-96 object-cover hover:scale-105 transition-transform duration-300"
                                     />
                                   </div>
                                 )}
                                 {sharedNote && (
-                                  <div className="bg-white/80 dark:bg-gray-900/40 rounded-xl p-3 border border-gray-200 dark:border-gray-700">
-                                    <p className="text_sm text-gray-700 dark:text-gray-300 whitespace-pre-line">
+                                  <div className="bg-white/90 dark:bg-gray-800/80 rounded-xl p-4 border border-gray-200 dark:border-gray-600 backdrop-blur-sm">
+                                    <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line leading-relaxed">
                                       {sharedNote}
                                     </p>
                                   </div>
@@ -517,38 +573,50 @@ const FeedPage = () => {
                         </>
                       )
                         : activity.type === 'streak_milestone' ? (
-                          <div className="flex items-center space-x-2">
-                            <span className="text-gray-900 dark:text-white font-medium">
-                              Achieved a {activity.data?.streakCount || 0} day streak!
-                            </span>
-                            <span className="text-2xl">🔥</span>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center shadow-sm">
+                                <span className="text-xl">🔥</span>
+                              </div>
+                              <span className="text-gray-900 dark:text-white font-semibold">
+                                Achieved a {activity.data?.streakCount || 0} day streak!
+                              </span>
+                            </div>
                           </div>
                         ) : activity.type === 'level_up' ? (
-                          <div className="flex items-center space-x-2">
-                            <span className="text-gray-900 dark:text-white font-medium">
-                              Leveled up to {activity.data?.newLevel || 'next level'}
-                            </span>
-                            <span className="text-2xl">⬆️</span>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-indigo-500 flex items-center justify-center shadow-sm">
+                                <span className="text-xl">⬆️</span>
+                              </div>
+                              <span className="text-gray-900 dark:text-white font-semibold">
+                                Leveled up to {activity.data?.newLevel || 'next level'}
+                              </span>
+                            </div>
                           </div>
                         ) : activity.type === 'achievement_earned' ? (
-                          <div className="flex items-center space-x-2">
-                            <span className="text-gray-900 dark:text-white font-medium">
-                              Earned "{activity.data?.achievementName || 'achievement'}" badge
-                            </span>
-                            <span className="text-2xl">🏆</span>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-400 to-amber-500 flex items-center justify-center shadow-sm">
+                                <span className="text-xl">🏆</span>
+                              </div>
+                              <span className="text-gray-900 dark:text-white font-semibold">
+                                Earned "{activity.data?.achievementName || 'achievement'}" badge
+                              </span>
+                            </div>
                           </div>
                         ) : (
-                          <h4 className="font-medium text-gray-900 dark:text-white mb-2">
+                          <h4 className="font-medium text-gray-900 dark:text-white">
                             Activity Update
                           </h4>
                         )}
                     </div>
 
                     {/* Action bar */}
-                    <div className="flex items-center gap-4 pt-2 px-1">
+                    <div className="flex items-center gap-2 mt-3">
                       <button
                         onClick={(e) => { e.stopPropagation(); toggleActivityLikeOptimistic(activity._id); }}
-                        className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm transition-colors ${activity.isLiked ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-300' : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
+                        className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${activity.isLiked ? 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400 ring-1 ring-red-200 dark:ring-red-800' : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'}`}
                         disabled={!!likePending[activity._id]}
                       >
                         <Heart className={`h-4 w-4 ${activity.isLiked ? 'fill-current' : ''}`} />
@@ -556,62 +624,32 @@ const FeedPage = () => {
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); if (isMobile) { setCommentsOpenActivityId(activity._id); } else { setScrollCommentsOnOpen(true); openGoalModal(activity?.data?.goalId?._id); } }}
-                        className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm transition-colors ${scrollCommentsOnOpen ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all"
                       >
-                        <MessageCircle className={`h-4 w-4 ${scrollCommentsOnOpen ? 'text-blue-600' : ''}`} />
+                        <MessageCircle className="h-4 w-4" />
                         <span>{(activity.commentCount || 0)}</span>
                       </button>
-                      <button onClick={(e) => {
-                        e.stopPropagation();
-                        try {
-                          const gid = activity?.data?.goalId?._id || activity?.data?.goalId;
-                          const url = gid ? `${window.location.origin}/feed?goalId=${gid}` : window.location.href;
-                          if (isMobile) {
-                            shareUrlRef.current = url
-                            setShareSheetOpen(true)
-                          } else {
-                            Promise.resolve(navigator.clipboard.writeText(url))
-                              .then(() => { try { window.dispatchEvent(new CustomEvent('wt_toast', { detail: { message: 'Link copied to clipboard', type: 'success', duration: 2000 } })); } catch { } })
-                              .catch(() => { })
-                          }
-                        } catch { }
-                      }} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm transition-colors bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700">
-                        <Send className="h-4 w-4 -rotate-80" />
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          try {
+                            const gid = activity?.data?.goalId?._id || activity?.data?.goalId;
+                            const url = gid ? `${window.location.origin}/feed?goalId=${gid}` : window.location.href;
+                            if (isMobile) {
+                              shareUrlRef.current = url
+                              setShareSheetOpen(true)
+                            } else {
+                              Promise.resolve(navigator.clipboard.writeText(url))
+                                .then(() => { try { window.dispatchEvent(new CustomEvent('wt_toast', { detail: { message: 'Link copied to clipboard', type: 'success', duration: 2000 } })); } catch { } })
+                                .catch(() => { })
+                            }
+                          } catch { }
+                        }} 
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all"
+                        title="Share"
+                      >
+                        <Send className="h-4 w-4" />
                       </button>
-                    </div>
-                  </div>
-
-                  <div className="absolute right-2 top-2 z-30">
-                    <div className="relative">
-                      <button
-                        data-activity-menu-btn="true"
-                        onClick={(e) => { e.stopPropagation(); setOpenActivityMenuId(prev => prev === activity._id ? null : activity._id); }}
-                        className="px-2 py-1 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
-                      >⋯</button>
-                      {openActivityMenuId === activity._id && (
-                        <div
-                          data-activity-menu="true"
-                          onClick={(e) => e.stopPropagation()}
-                          className="absolute right-0 mt-2 w-44 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-30"
-                        >
-                          <button
-                            className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
-                            onClick={() => { setReportTarget({ type: 'activity', id: activity._id, label: 'activity', username: activity?.user?.username || '', userId: activity?.user?._id || null }); setReportOpen(true); setOpenActivityMenuId(null); }}
-                          >Report</button>
-                          {activity.user?._id && (
-                            <button
-                              className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
-                              onClick={async () => { try { await unfollowUser(activity.user._id); } catch { }; setOpenActivityMenuId(null); }}
-                            >Unfollow user</button>
-                          )}
-                          {activity.user?._id && (
-                            <button
-                              className="w-full text-left px-3 py-2 text-sm hover:bg_gray-100 dark:hover:bg-gray-700"
-                              onClick={() => { setBlockUserId(activity.user._id); setBlockUsername(activity?.user?.username || ''); setBlockOpen(true); setOpenActivityMenuId(null); }}
-                            >Block user</button>
-                          )}
-                        </div>
-                      )}
                     </div>
                   </div>
                 </motion.div>
@@ -619,19 +657,37 @@ const FeedPage = () => {
             </div>
             <div ref={activitiesSentinelRef} className="h-10" />
             {loadingMoreActivities && (
-              <div className="flex items-center justify-center py-4">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500" />
+              <div className="flex items-center justify-center py-6">
+                <div className="animate-spin rounded-full h-8 w-8 border-3 border-primary-500 border-t-transparent" />
               </div>
             )}
             {!activitiesHasMore && activities.length > 0 && (
-              <div className="text-center text-xs text-gray-400 py-4">No more activities</div>
+              <div className="text-center py-6">
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 rounded-full border border-gray-200 dark:border-gray-700 text-sm text-gray-500 dark:text-gray-400">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                  You're all caught up!
+                </div>
+              </div>
             )}
           </>
         ) : (
-          <div className="text-center py-12">
-            <Activity className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600 dark:text-gray-400 text-lg">No recent activity from friends.</p>
-            <p className="text-gray-500 dark:text-gray-500 text-sm mt-2">Follow some users to see their goal completions here!</p>
+          <div className="text-center py-16">
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 mb-4">
+              <Activity className="h-10 w-10 text-gray-400" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">No activities yet</h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-sm mx-auto">
+              Follow some users to see their goal completions and achievements here!
+            </p>
+            <button
+              onClick={() => navigate('/discover?tab=users')}
+              className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-primary-500 to-purple-500 text-white rounded-xl font-medium hover:from-primary-600 hover:to-purple-600 transition-all shadow-lg hover:shadow-xl"
+            >
+              <Compass className="h-5 w-5" />
+              Discover Users
+            </button>
           </div>
         )}
 
