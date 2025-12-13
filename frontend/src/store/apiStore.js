@@ -1302,19 +1302,19 @@ const useApiStore = create(
           const ttl = get().cacheTTLs.notifications;
           const cached = get().cacheNotifications[key];
           if (!force && cached && get()._isFresh(cached.ts, ttl)) {
-            const { notifications, pagination, unread } = cached.data;
+            const { notifications = [], pagination, unread = 0 } = cached.data || {};
             set({ notifications, notificationsPagination: pagination, unreadNotifications: unread });
             return { success: true, notifications, pagination, unread };
           }
           set({ loading: true, error: null });
           const response = await notificationsAPI.getNotifications(params);
-          const { notifications, pagination, unread } = response.data.data;
+          const { notifications = [], pagination, unread = 0 } = response.data?.data || {};
           set({ notifications, notificationsPagination: pagination, unreadNotifications: unread, loading: false });
           get()._setCacheWithLimit('cacheNotifications', key, { notifications, pagination, unread });
           return { success: true, notifications, pagination, unread };
         } catch (error) {
           const errorMessage = handleApiError(error);
-          set({ loading: false, error: errorMessage });
+          set({ loading: false, error: errorMessage, notifications: [], notificationsPagination: null, unreadNotifications: 0 });
           return { success: false, error: errorMessage };
         }
       },
@@ -1419,7 +1419,7 @@ const useApiStore = create(
           const nextPage = notificationsPagination.page + 1;
           const response = await notificationsAPI.getNotifications({ page: nextPage, limit: notificationsPagination.limit });
           const { notifications: more, pagination } = response.data.data;
-          set(state => ({ notifications: [...state.notifications, ...more], notificationsPagination: pagination }));
+          set(state => ({ notifications: [...(state.notifications || []), ...(more || [])], notificationsPagination: pagination }));
           // also keep cache entry for this page to avoid immediate refetch
           const key = get()._cacheKeyFromParams({ page: nextPage, limit: notificationsPagination.limit });
           const unreadNow = get().unreadNotifications;
@@ -1431,7 +1431,7 @@ const useApiStore = create(
         try {
           await notificationsAPI.markAsRead(id);
           set(state => ({
-            notifications: state.notifications.map(n => n._id === id ? { ...n, isRead: true, readAt: new Date().toISOString() } : n),
+            notifications: (state.notifications || []).map(n => n._id === id ? { ...n, isRead: true, readAt: new Date().toISOString() } : n),
             unreadNotifications: Math.max((state.unreadNotifications || 0) - 1, 0)
           }));
         } catch { }
@@ -1440,7 +1440,7 @@ const useApiStore = create(
       markAllNotificationsRead: async () => {
         try {
           await notificationsAPI.markAllAsRead();
-          set(state => ({ notifications: state.notifications.map(n => ({ ...n, isRead: true, readAt: new Date().toISOString() })), unreadNotifications: 0 }));
+          set(state => ({ notifications: (state.notifications || []).map(n => ({ ...n, isRead: true, readAt: new Date().toISOString() })), unreadNotifications: 0 }));
         } catch { }
       },
 
@@ -1651,6 +1651,30 @@ const useApiStore = create(
         user: state.user,
         isAuthenticated: state.isAuthenticated
       }),
+      merge: (persistedState, currentState) => {
+        // Ensure arrays are always initialized even after hydration
+        return {
+          ...currentState,
+          ...persistedState,
+          // Explicitly ensure critical arrays are never undefined
+          notifications: currentState.notifications || [],
+          goals: currentState.goals || [],
+          users: currentState.users || [],
+          activityFeed: currentState.activityFeed || [],
+          habits: currentState.habits || [],
+          followedUsers: currentState.followedUsers || [],
+          followers: currentState.followers || [],
+          following: currentState.following || [],
+          blockedUsers: currentState.blockedUsers || [],
+          followRequests: currentState.followRequests || [],
+          journalEntries: currentState.journalEntries || [],
+          journalHighlights: currentState.journalHighlights || [],
+          leaderboard: currentState.leaderboard || [],
+          goalsSearchResults: currentState.goalsSearchResults || [],
+          interestsCatalog: currentState.interestsCatalog || [],
+          recentActivities: currentState.recentActivities || [],
+        };
+      },
     }
   )
 );

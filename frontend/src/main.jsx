@@ -7,10 +7,10 @@ import GlobalErrorBoundary from './components/GlobalErrorBoundary.jsx'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <GlobalErrorBoundary>
-      <BrowserRouter>
+    <BrowserRouter>
+      <GlobalErrorBoundary>
         <App />
-      </BrowserRouter>
-    </GlobalErrorBoundary>
+      </GlobalErrorBoundary>
+    </BrowserRouter>
   </React.StrictMode>,
 ) 

@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   WifiOff, 
@@ -25,7 +25,14 @@ const ErrorScreen = ({
   onRetry,
   customAction
 }) => {
-  const navigate = useNavigate();
+  // Safe navigation - check if we're inside Router context
+  let navigate = null;
+  try {
+    navigate = useNavigate();
+  } catch (e) {
+    // Not inside Router context, use fallback
+    navigate = null;
+  }
 
   // Error type configurations
   const errorConfigs = {
@@ -162,7 +169,7 @@ const ErrorScreen = ({
           >
             {showBackButton && (
               <button
-                onClick={() => navigate(-1)}
+                onClick={() => navigate ? navigate(-1) : window.history.back()}
                 className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-white/80 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-800 transition-colors"
               >
                 <ArrowLeft size={18} />
@@ -181,23 +188,43 @@ const ErrorScreen = ({
             )}
 
             {showHomeButton && (
-              <Link
-                to="/"
-                className="inline-flex items-center justify-center gap-2 btn-primary px-6 py-3"
-              >
-                <Home size={18} />
-                Go Home
-              </Link>
+              navigate ? (
+                <Link
+                  to="/"
+                  className="inline-flex items-center justify-center gap-2 btn-primary px-6 py-3"
+                >
+                  <Home size={18} />
+                  Go Home
+                </Link>
+              ) : (
+                <a
+                  href="/"
+                  className="inline-flex items-center justify-center gap-2 btn-primary px-6 py-3"
+                >
+                  <Home size={18} />
+                  Go Home
+                </a>
+              )
             )}
 
             {type === 'auth' && (
-              <Link
-                to="/auth"
-                className="inline-flex items-center justify-center gap-2 btn-primary px-6 py-3"
-              >
-                <LogOut size={18} />
-                Sign In
-              </Link>
+              navigate ? (
+                <Link
+                  to="/auth"
+                  className="inline-flex items-center justify-center gap-2 btn-primary px-6 py-3"
+                >
+                  <LogOut size={18} />
+                  Sign In
+                </Link>
+              ) : (
+                <a
+                  href="/auth"
+                  className="inline-flex items-center justify-center gap-2 btn-primary px-6 py-3"
+                >
+                  <LogOut size={18} />
+                  Sign In
+                </a>
+              )
             )}
 
             {customAction && (

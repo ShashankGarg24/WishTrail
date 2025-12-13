@@ -227,6 +227,5 @@ module.exports = {
   testPush,
   getSettings,
   updateSettings,
-  ping
 };
 

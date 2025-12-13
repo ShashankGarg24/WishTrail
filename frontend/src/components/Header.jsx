@@ -66,13 +66,6 @@ const Header = () => {
     navigate('/')
   }
 
-  // On focus, ping backend to record lastActiveAt (rate-limited server-side)
-  useEffect(() => {
-    const onFocus = () => { if (isAuthenticated) { notificationsAPI.ping().catch(() => { }); } };
-    window.addEventListener('focus', onFocus);
-    return () => window.removeEventListener('focus', onFocus);
-  }, [isAuthenticated]);
-
   // Global toast listener (use window.dispatchEvent(new CustomEvent('wt_toast', { detail: { message, type } })))
   useEffect(() => {
     const handler = (evt) => {
