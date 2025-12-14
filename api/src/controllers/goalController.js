@@ -74,7 +74,7 @@ const getGoalPost = async (req, res, next) => {
     const activity = await Activity.findOne({
       'data.goalId': goal._id,
       userId: goal.userId._id,
-      type: { $in: ['goal_completed', 'goal_created'] }
+      type: { $in: ['goal_activity', 'goal_completed', 'goal_created'] }
     }).sort({ createdAt: -1 }).lean();
     let likeCount = goal.likeCount || 0;
     let isLiked = false;

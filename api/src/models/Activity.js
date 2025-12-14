@@ -241,6 +241,14 @@ activitySchema.statics.createOrUpdateGoalActivity = async function(userId, name,
       activity.createdAt = new Date(); // Move to top by updating createdAt
 
       await activity.save();
+      
+      // Invalidate caches
+      try {
+        const cacheService = require('../services/cacheService');
+        await cacheService.invalidateAllActivities();
+        await cacheService.invalidateUserActivities(userId);
+      } catch (_) {}
+      
       return activity;
     } else {
       // Create new activity
@@ -267,7 +275,16 @@ activitySchema.statics.createOrUpdateGoalActivity = async function(userId, name,
         ...(options && options.communityId ? { communityId: options.communityId } : {})
       });
 
-      return await newActivity.save();
+      const saved = await newActivity.save();
+      
+      // Invalidate caches
+      try {
+        const cacheService = require('../services/cacheService');
+        await cacheService.invalidateAllActivities();
+        await cacheService.invalidateUserActivities(userId);
+      } catch (_) {}
+      
+      return saved;
     }
   } catch (error) {
     console.error('Error creating/updating goal activity:', error);

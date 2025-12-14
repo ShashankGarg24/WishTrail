@@ -69,7 +69,7 @@ const getRecentActivities = async (req, res, next) => {
         const filter = {
         isActive: true,
         isPublic: true,
-        type: { $in: ['goal_completed', 'goal_created', 'level_up', 'streak_milestone', 'achievement_earned'] }
+        type: { $in: ['goal_activity', 'goal_completed', 'goal_created', 'level_up', 'streak_milestone', 'achievement_earned'] }
       };
 
       const [totalActivities, activityList] = await Promise.all([
