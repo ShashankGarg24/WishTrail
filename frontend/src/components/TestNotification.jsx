@@ -39,7 +39,6 @@ export default function TestNotification() {
           requireInteraction: false,
         });
         
-        console.log('Test notification shown');
       } else {
         // Fallback to standard Notification API
         new Notification('Test Notification', {

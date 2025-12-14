@@ -1057,8 +1057,6 @@ const useApiStore = create(
           const response = await socialAPI.followUser(userId);
           const message = response.data?.message || '';
           const requested = response.data?.data?.requested === true || /request/i.test(message);
-
-          console.log(message, requested);
           // Update local state
           set(state => ({
             followedUsers: requested ? state.followedUsers : [...state.followedUsers, userId],

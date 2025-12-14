@@ -342,24 +342,27 @@ try {
         communityIds.add(String(doc.communityId));
       }
 
-      const sourceGoalId = doc?.data?.goalId || null;
-      const sourceHabitId = doc?.data?.metadata?.habitId || null;
-      const match = [];
-      if (sourceGoalId) match.push({ type: 'goal', sourceId: sourceGoalId });
-      if (sourceHabitId) match.push({ type: 'habit', sourceId: sourceHabitId });
-      if (match.length > 0) {
-        const items = await CommunityItem.find({ $or: match, isActive: true, status: 'approved' }).select('communityId').lean();
-        for (const it of items) communityIds.add(String(it.communityId));
+      // Check if the goal/habit in this activity is a community-linked personal copy
+      const activityGoalId = doc?.data?.goalId || null;
+      const activityHabitId = doc?.data?.metadata?.habitId || null;
+      
+      if (activityGoalId) {
+        const Goal = require('./Goal');
+        const goal = await Goal.findById(activityGoalId).select('communityInfo').lean();
+        if (goal?.communityInfo?.communityId) {
+          communityIds.add(String(goal.communityInfo.communityId));
+        }
+      }
+      
+      if (activityHabitId) {
+        const Habit = require('./Habit');
+        const habit = await Habit.findById(activityHabitId).select('communityInfo').lean();
+        if (habit?.communityInfo?.communityId) {
+          communityIds.add(String(habit.communityInfo.communityId));
+        }
       }
 
-      // Fallback: if no direct community linkage via item or explicit communityId,
-      // mirror to all communities where the actor is an active member
-      if (communityIds.size === 0) {
-        try {
-          const memberships = await CommunityMember.find({ userId: doc.userId, status: 'active' }).select('communityId').lean();
-          for (const m of memberships) communityIds.add(String(m.communityId));
-        } catch (_) {}
-      }
+      // Only show activities for goals/habits that are explicitly part of a community
       if (communityIds.size === 0) return;
 
       // Create per-community activity documents if not already present

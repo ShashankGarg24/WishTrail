@@ -24,7 +24,6 @@ export const initializeFirebaseMessaging = async () => {
     // Check if FCM is supported in this browser
     const supported = await isSupported();
     if (!supported) {
-      console.log('[WebPush] Firebase Messaging is not supported in this browser');
       return null;
     }
 
@@ -43,7 +42,6 @@ export const initializeFirebaseMessaging = async () => {
 
     // Get messaging instance
     messaging = getMessaging(firebaseApp);
-    console.log('[WebPush] Firebase Messaging initialized successfully');
     
     return messaging;
   } catch (error) {
@@ -72,10 +70,8 @@ export const requestNotificationPermission = async () => {
     }
 
     const permission = await Notification.requestPermission();
-    console.log('[WebPush] Notification permission:', permission);
     return permission;
   } catch (error) {
-    console.error('[WebPush] Error requesting notification permission:', error);
     return null;
   }
 };
@@ -109,14 +105,12 @@ export const getFCMToken = async () => {
         const config = getFirebaseConfig();
         const configParam = encodeURIComponent(JSON.stringify(config));
         registration = await navigator.serviceWorker.register(`/firebase-messaging-sw.js?firebaseConfig=${configParam}`);
-        console.log('[WebPush] Service worker registered:', registration);
       } catch (error) {
         console.warn('[WebPush] Failed to register firebase-messaging-sw.js, trying sw.js:', error);
         registration = await navigator.serviceWorker.register('/sw.js');
       }
       
       await navigator.serviceWorker.ready;
-      console.log('[WebPush] Service worker ready');
       
       // Get FCM token
       const token = await getToken(messaging, {
@@ -125,19 +119,14 @@ export const getFCMToken = async () => {
       });
 
       if (token) {
-        console.log('[WebPush] FCM token obtained:', token.substring(0, 20) + '...');
         return token;
       } else {
-        console.warn('[WebPush] No registration token available. Request permission first.');
         return null;
       }
     } else {
-      console.warn('[WebPush] Service workers are not supported');
       return null;
     }
   } catch (error) {
-    console.error('[WebPush] Error getting FCM token:', error);
-    console.error('[WebPush] Error details:', error.message, error.code);
     return null;
   }
 };
@@ -149,12 +138,10 @@ export const getFCMToken = async () => {
 export const setupForegroundMessageListener = (callback) => {
   try {
     if (!messaging) {
-      console.warn('[WebPush] Messaging not initialized for foreground listener');
       return null;
     }
 
     const unsubscribe = onMessage(messaging, (payload) => {
-      console.log('[WebPush] Foreground message received:', payload);
       
       // Show notification when app is in foreground
       // Service worker's onBackgroundMessage only fires when app is in background
@@ -209,7 +196,6 @@ export const registerDeviceWithBackend = async (token, apiFunction) => {
     const registeredToken = sessionStorage.getItem(sessionKey);
     
     if (registeredToken === token) {
-      console.log('[WebPush] Token already registered in this session, skipping duplicate registration');
       return { ok: true, cached: true };
     }
 
@@ -226,14 +212,12 @@ export const registerDeviceWithBackend = async (token, apiFunction) => {
     };
 
     const response = await apiFunction(payload);
-    console.log('[WebPush] Device registered with backend successfully');
     
     // Store token in session to prevent duplicate registrations
     sessionStorage.setItem(sessionKey, token);
     
     return response;
   } catch (error) {
-    console.error('[WebPush] Error registering device with backend:', error);
     return null;
   }
 };
@@ -244,65 +228,38 @@ export const registerDeviceWithBackend = async (token, apiFunction) => {
  */
 export const initializeWebPush = async (registerDeviceAPI, onMessageCallback) => {
   try {
-    console.log('[WebPush] 🚀 Starting web push initialization...');
     
     // Check if running in native app (skip web push in that case)
     if (typeof window !== 'undefined' && window.ReactNativeWebView) {
-      console.log('[WebPush] Running in native app, skipping web push initialization');
       return null;
     }
 
-    console.log('[WebPush] Step 1/5: Initializing Firebase Messaging...');
     // Initialize Firebase Messaging
     const msg = await initializeFirebaseMessaging();
     if (!msg) {
-      console.error('[WebPush] ❌ Firebase Messaging initialization failed');
       return null;
     }
-    console.log('[WebPush] ✅ Firebase Messaging initialized');
 
-    console.log('[WebPush] Step 2/5: Checking notification permission...');
     // Request notification permission
     const permission = await requestNotificationPermission();
-    console.log('[WebPush] Current permission:', permission);
     if (permission !== 'granted') {
-      console.warn('[WebPush] ⚠️ Notification permission not granted:', permission);
       return null;
     }
-    console.log('[WebPush] ✅ Notification permission granted');
 
-    console.log('[WebPush] Step 3/5: Getting FCM token...');
     // Get FCM token
     const token = await getFCMToken();
     if (!token) {
-      console.error('[WebPush] ❌ Failed to get FCM token');
       return null;
     }
-    console.log('[WebPush] ✅ FCM token obtained:', token.substring(0, 30) + '...');
 
-    console.log('[WebPush] Step 4/5: Registering device with backend...');
-    // Register device with backend
-    const registered = await registerDeviceWithBackend(token, registerDeviceAPI);
-    if (!registered) {
-      console.error('[WebPush] ❌ Failed to register device with backend');
-      // Continue anyway - token is obtained
-    } else {
-      console.log('[WebPush] ✅ Device registered with backend');
-    }
-
-    console.log('[WebPush] Step 5/5: Setting up foreground message listener...');
     // Setup foreground message listener
     const unsubscribe = setupForegroundMessageListener(onMessageCallback);
-    console.log('[WebPush] ✅ Foreground message listener set up');
 
-    console.log('[WebPush] 🎉 Web push initialization complete!');
     return {
       token,
       unsubscribe,
     };
   } catch (error) {
-    console.error('[WebPush] ❌ Error initializing web push:', error);
-    console.error('[WebPush] Error stack:', error.stack);
     return null;
   }
 };

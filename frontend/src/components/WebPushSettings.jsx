@@ -42,10 +42,8 @@ export default function WebPushSettings() {
       
       if (result === 'granted') {
         // Notification permission granted, the app will automatically register the token
-        console.log('Push notifications enabled');
       }
     } catch (error) {
-      console.error('Error requesting notification permission:', error);
     } finally {
       setIsRequesting(false);
     }

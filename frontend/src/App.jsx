@@ -120,7 +120,6 @@ function App() {
           notificationsAPI.registerDevice,
           (payload) => {
             // Handle foreground notifications
-            console.log('[App] Foreground notification received:', payload);
             
             // Refresh notifications count when a new notification arrives
             try {
