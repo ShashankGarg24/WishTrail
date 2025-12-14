@@ -4,6 +4,7 @@ import { Plus, Calendar, Target, CheckCircle, Circle, Star, Award, Lightbulb, Cl
 const HabitDetailModal = lazy(() => import('../components/HabitDetailModal'));
 const CreateHabitModal = lazy(() => import('../components/CreateHabitModal'));
 const EditHabitModal = lazy(() => import('../components/EditHabitModal'));
+const DeleteConfirmModal = lazy(() => import('../components/DeleteConfirmModal'));
 import useApiStore from '../store/apiStore'
 const CreateGoalWizard = lazy(() => import('../components/CreateGoalWizard'));
 const WishCard = lazy(() => import('../components/WishCard'));
@@ -23,6 +24,9 @@ const DashboardPage = () => {
   const [isHabitModalOpen, setIsHabitModalOpen] = useState(false)
   const [selectedHabit, setSelectedHabit] = useState(null)
   const [isEditHabitOpen, setIsEditHabitOpen] = useState(false)
+  const [isHabitDeleteModalOpen, setIsHabitDeleteModalOpen] = useState(false)
+  const [habitToDelete, setHabitToDelete] = useState(null)
+  const [isDeletingHabit, setIsDeletingHabit] = useState(false)
   const [initialGoalData, setInitialGoalData] = useState(null)
   const [initialHabitData, setInitialHabitData] = useState(null)
   const [isSuggestionsOpen, setIsSuggestionsOpen] = useState(false)
@@ -741,7 +745,7 @@ const DashboardPage = () => {
                                 <Pencil className="h-4 w-4 text-gray-400 hover:text-primary-500" />
                               </button>
                               <button
-                                onClick={(e) => { e.stopPropagation(); if (window.confirm(`Delete habit "${h.name}"?`)) { useApiStore.getState().deleteHabit(h._id); } }}
+                                onClick={(e) => { e.stopPropagation(); setHabitToDelete(h); setIsHabitDeleteModalOpen(true); }}
                                 className="p-1 rounded-full hover:bg-white/10 transition-colors"
                                 title="Delete habit"
                               >
@@ -1005,8 +1009,34 @@ const DashboardPage = () => {
           onClose={() => setSelectedHabit(null)}
           onLog={handleHabitLog}
           onEdit={() => setIsEditHabitOpen(true)}
-          onDelete={async () => { const res = await useApiStore.getState().deleteHabit(selectedHabit._id); if (res.success) { setSelectedHabit(null) } }} />
+          onDelete={async () => { setHabitToDelete(selectedHabit); setIsHabitDeleteModalOpen(true); }} />
         </Suspense>
+      )}
+
+      {/* Habit Delete Confirmation Modal */}
+      {isHabitDeleteModalOpen && habitToDelete && (
+        <Suspense fallback={null}><DeleteConfirmModal
+          isOpen={isHabitDeleteModalOpen}
+          onClose={() => { setIsHabitDeleteModalOpen(false); setHabitToDelete(null); }}
+          onConfirm={async () => {
+            setIsDeletingHabit(true);
+            try {
+              const res = await useApiStore.getState().deleteHabit(habitToDelete._id);
+              if (res.success) {
+                setIsHabitDeleteModalOpen(false);
+                setHabitToDelete(null);
+                if (selectedHabit?._id === habitToDelete._id) {
+                  setSelectedHabit(null);
+                }
+              }
+            } finally {
+              setIsDeletingHabit(false);
+            }
+          }}
+          goalTitle={habitToDelete.name}
+          isDeleting={isDeletingHabit}
+          itemType="habit"
+        /></Suspense>
       )}
 
       {/* Goal Details Modal (with timeline) */}

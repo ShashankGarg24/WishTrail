@@ -2,7 +2,7 @@ import { X, Trash2, AlertTriangle, Loader2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useEffect } from 'react'
 
-const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, goalTitle, isDeleting = false }) => {
+const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, goalTitle, isDeleting = false, itemType = 'goal' }) => {
   // Prevent background scroll when modal is open
   useEffect(() => {
     if (isOpen) {
@@ -20,6 +20,10 @@ const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, goalTitle, isDeleting 
   const handleConfirm = async () => {
     await onConfirm()
   }
+
+  const isHabit = itemType === 'habit'
+  const itemLabel = isHabit ? 'Habit' : 'Goal'
+  const itemLabelLower = itemLabel.toLowerCase()
 
   return (
     <AnimatePresence>
@@ -49,7 +53,7 @@ const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, goalTitle, isDeleting 
                   <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400" />
                 </div>
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                  Delete Goal
+                  Delete {itemLabel}
                 </h2>
               </div>
               <button
@@ -63,7 +67,7 @@ const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, goalTitle, isDeleting 
             {/* Content */}
             <div className="p-6">
               <p className="text-gray-700 dark:text-gray-300 mb-4">
-                Are you sure you want to permanently delete this goal?
+                Are you sure you want to permanently delete this {itemLabelLower}?
               </p>
               {goalTitle && (
                 <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg mb-4">
@@ -81,42 +85,56 @@ const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, goalTitle, isDeleting 
                 <ul className="text-sm text-red-700 dark:text-red-400 space-y-1 ml-4">
                   <li className="flex items-start">
                     <span className="mr-2">•</span>
-                    <span>The goal and all its progress</span>
+                    <span>The {itemLabelLower} and all its {isHabit ? 'history' : 'progress'}</span>
                   </li>
+                  {!isHabit && (
+                    <li className="flex items-start">
+                      <span className="mr-2">•</span>
+                      <span>All activities and posts related to this {itemLabelLower}</span>
+                    </li>
+                  )}
+                  {!isHabit && (
+                    <li className="flex items-start">
+                      <span className="mr-2">•</span>
+                      <span>All likes and comments on this {itemLabelLower}</span>
+                    </li>
+                  )}
                   <li className="flex items-start">
                     <span className="mr-2">•</span>
-                    <span>All activities and posts related to this goal</span>
+                    <span>All {isHabit ? 'logs and completion records' : 'notifications about this ' + itemLabelLower}</span>
                   </li>
-                  <li className="flex items-start">
-                    <span className="mr-2">•</span>
-                    <span>All likes and comments on this goal</span>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="mr-2">•</span>
-                    <span>All notifications about this goal</span>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="mr-2">•</span>
-                    <span>Your earned points (if completed)</span>
-                  </li>
+                  {!isHabit && (
+                    <li className="flex items-start">
+                      <span className="mr-2">•</span>
+                      <span>Your earned points (if completed)</span>
+                    </li>
+                  )}
+                  {isHabit && (
+                    <li className="flex items-start">
+                      <span className="mr-2">•</span>
+                      <span>All reminders for this {itemLabelLower}</span>
+                    </li>
+                  )}
                 </ul>
               </div>
 
-              <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                <p className="text-sm font-medium text-blue-900 dark:text-blue-300 mb-2">
-                  Will be preserved:
-                </p>
-                <ul className="text-sm text-blue-700 dark:text-blue-400 space-y-1 ml-4">
-                  <li className="flex items-start">
-                    <span className="mr-2">✓</span>
-                    <span>Linked habits (will be unlinked but not deleted)</span>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="mr-2">✓</span>
-                    <span>Sub-goals (will be unlinked but not deleted)</span>
-                  </li>
-                </ul>
-              </div>
+              {!isHabit && (
+                <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                  <p className="text-sm font-medium text-blue-900 dark:text-blue-300 mb-2">
+                    Will be preserved:
+                  </p>
+                  <ul className="text-sm text-blue-700 dark:text-blue-400 space-y-1 ml-4">
+                    <li className="flex items-start">
+                      <span className="mr-2">✓</span>
+                      <span>Linked habits (will be unlinked but not deleted)</span>
+                    </li>
+                    <li className="flex items-start">
+                      <span className="mr-2">✓</span>
+                      <span>Sub-goals (will be unlinked but not deleted)</span>
+                    </li>
+                  </ul>
+                </div>
+              )}
               
               <p className="text-sm text-red-600 dark:text-red-400 flex items-start space-x-2">
                 <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
@@ -146,7 +164,7 @@ const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, goalTitle, isDeleting 
                 ) : (
                   <>
                     <Trash2 className="h-4 w-4" />
-                    <span>Delete Goal</span>
+                    <span>Delete {itemLabel}</span>
                   </>
                 )}
               </button>
