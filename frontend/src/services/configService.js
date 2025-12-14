@@ -2,7 +2,7 @@ import axios from 'axios';
 import { API_CONFIG } from '../config/api';
 
 // Set to true to disable config checks in local environment
-const DISABLE_CONFIG_CHECKS = true;
+const DISABLE_CONFIG_CHECKS = false;
 
 /**
  * Configuration Service

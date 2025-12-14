@@ -240,7 +240,7 @@ const ProfileEditModal = ({ isOpen, onClose }) => {
           </div>
 
           {/* Content */}
-          <div className="overflow-y-auto max-h-[calc(90vh-80px)] px-6 py-6">
+          <div className="overflow-y-auto scrollbar-hide max-h-[calc(90vh-80px)] px-6 py-6">
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Profile Picture */}
@@ -366,7 +366,7 @@ const ProfileEditModal = ({ isOpen, onClose }) => {
                   placeholder="Enter your city"
                 />
                 {showSuggestions && Array.isArray(locationSuggestions) && locationSuggestions.length > 0 && (
-                  <ul className="absolute z-10 mt-1 w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto text-sm text-gray-900 dark:text-white">
+                  <ul className="absolute z-10 mt-1 w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto scrollbar-hide text-sm text-gray-900 dark:text-white">
                     {locationSuggestions.map((place) => (
                       <li
                         key={place.place_id}
@@ -406,7 +406,7 @@ const ProfileEditModal = ({ isOpen, onClose }) => {
                 </button>
                 {showMoodPicker && (
                   <div className="flex-1 p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800">
-                    <div className="grid grid-cols-6 sm:grid-cols-10 md:grid-cols-12 gap-2 sm:gap-1.5 max-h-48 overflow-y-auto overflow-x-hidden px-1">
+                    <div className="grid grid-cols-6 sm:grid-cols-10 md:grid-cols-12 gap-2 sm:gap-1.5 max-h-48 overflow-y-auto scrollbar-hide overflow-x-hidden px-1">
                       {MOOD_EMOJIS.map((emoji, idx) => (
                         <button
                           key={idx}
@@ -434,7 +434,7 @@ const ProfileEditModal = ({ isOpen, onClose }) => {
                 <Heart className="inline-block h-4 w-4 mr-1" />
                 Your Interests
               </label>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 max-h-64 overflow-y-auto p-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 max-h-64 overflow-y-auto scrollbar-hide p-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800">
                 {INTERESTS_OPTIONS.map(interest => (
                   <button
                     key={interest.id}

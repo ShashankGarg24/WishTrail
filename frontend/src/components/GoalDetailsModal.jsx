@@ -173,7 +173,7 @@ export default function GoalDetailsModal({ isOpen, goalId, onClose, autoOpenComm
             ) : null}
             <div className={`relative w-full ${(!data?.share?.image) ? 'max-w-3xl' : 'max-w-6xl'} 
         mx-auto bg-white dark:bg-gray-800 rounded-3xl shadow-2xl 
-        ${isMobile ? 'max-h-[90vh] overflow-y-auto' : 'overflow-hidden'} 
+        ${isMobile ? 'max-h-[90vh] overflow-y-auto scrollbar-hide' : 'overflow-hidden'} 
         border border-gray-200 dark:border-gray-700
         ${(!data?.share?.image) ? 'h-[85vh]' : 'h-[85vh]'}
         ${(loading || !data) ? 'hidden' : ''}`}>
@@ -207,7 +207,7 @@ export default function GoalDetailsModal({ isOpen, goalId, onClose, autoOpenComm
                                         </svg>
                                     </button>
                                 </div>
-                                <div ref={rightPanelScrollRef} className={`flex-1 min-h-0 overflow-auto px-6 pb-0`}>
+                                <div ref={rightPanelScrollRef} className={`flex-1 min-h-0 overflow-auto scrollbar-hide px-6 pb-0`}>
                                     <div className="py-6 space-y-4">
                                         {/* Title and Timeline Toggle */}
                                         <div className="flex items-start justify-between gap-4">
@@ -367,7 +367,7 @@ export default function GoalDetailsModal({ isOpen, goalId, onClose, autoOpenComm
                                 </div>
                                 <button onClick={close} className="px-3 py-1.5 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800">✕</button>
                             </div>
-                            <div ref={rightPanelScrollRef} className={`flex-1 min-h-0 overflow-auto`}>
+                            <div ref={rightPanelScrollRef} className={`flex-1 min-h-0 overflow-auto scrollbar-hide`}>
                                 <div className="p-6 space-y-4">
                                     {/* Title and Timeline Toggle */}
                                     <div className="flex items-start justify-between gap-4">

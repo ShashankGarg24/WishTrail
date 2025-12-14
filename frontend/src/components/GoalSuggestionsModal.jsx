@@ -35,7 +35,7 @@ const GoalSuggestionsModal = ({ isOpen, onClose, interests = [], onSelect, limit
           initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.95, opacity: 0 }}
-          className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-y-auto p-4 border border-gray-200 dark:border-gray-700 shadow-2xl"
+          className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-y-auto scrollbar-hide p-4 border border-gray-200 dark:border-gray-700 shadow-2xl"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-center justify-between mb-2">

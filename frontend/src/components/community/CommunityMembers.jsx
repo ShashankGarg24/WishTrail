@@ -103,7 +103,7 @@ function MemberAnalyticsModal({ open, onClose, analytics, userName }) {
         </div>
 
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto px-6 sm:px-8 pb-12 sm:pb-16">
+        <div className="flex-1 overflow-y-auto scrollbar-hide px-6 sm:px-8 pb-12 sm:pb-16">
           {analytics ? (
             <div className="space-y-6 mt-6">
               {/* Goals Stats */}

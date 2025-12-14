@@ -70,7 +70,7 @@ export function AddItemModal({ open, onClose, communityId }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
       <div className="absolute inset-0 bg-black/60" onClick={() => onClose(false)} />
-      <div className="relative z-10 w-full max-w-lg rounded-3xl bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-900/90 p-6 sm:p-8 shadow-2xl border-2 border-gray-200 dark:border-gray-700 max-h-[90vh] overflow-y-auto">
+      <div className="relative z-10 w-full max-w-lg rounded-3xl bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-900/90 p-6 sm:p-8 shadow-2xl border-2 border-gray-200 dark:border-gray-700 max-h-[90vh] overflow-y-auto scrollbar-hide">
         <div className="flex items-center justify-between mb-6 pb-4 border-b-2 border-gray-200 dark:border-gray-700">
           <div className="text-2xl font-bold text-gray-900 dark:text-white">Add Goal/Habit</div>
           <button onClick={() => onClose(false)} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-2xl leading-none">&times;</button>
@@ -117,7 +117,7 @@ export function AddItemModal({ open, onClose, communityId }) {
                 <div className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Search Your {type === 'goal' ? 'Goals' : 'Habits'}</div>
                 <input placeholder={`Search...`} value={filter} onChange={e => setFilter(e.target.value)} className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 dark:focus:border-blue-500" />
               </div>
-              <div className="max-h-64 overflow-auto rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+              <div className="max-h-64 overflow-auto scrollbar-hide rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
                 {(type === 'goal' ? myGoals : myHabits)
                   .filter(item => {
                     const q = filter.trim().toLowerCase()
@@ -211,7 +211,7 @@ function ItemAnalyticsModal({ open, onClose, analytics }) {
         </div>
 
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto px-6 sm:px-8 pb-12 sm:pb-16">
+        <div className="flex-1 overflow-y-auto scrollbar-hide px-6 sm:px-8 pb-12 sm:pb-16">
           {/* Stats Summary Cards */}
           {analytics && (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
