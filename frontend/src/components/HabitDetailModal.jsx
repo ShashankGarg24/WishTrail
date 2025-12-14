@@ -91,30 +91,14 @@ export default function HabitDetailModal({ habit, isOpen, onClose, onLog, onEdit
         </div>
 
         {/* Actions Footer */}
-        <div className="bg-gray-50 dark:bg-gray-800/50 px-8 py-5 border-t border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between gap-3">
-            {/* Left: Management Actions */}
-            <div className="flex items-center gap-2">
-              <button 
-                onClick={() => onEdit?.(habit)} 
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-              >
-                <Pencil className="h-4 w-4" /> Edit
-              </button>
-              <button 
-                onClick={() => onDelete?.(habit)} 
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-white dark:bg-gray-800 border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 text-sm font-medium hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-              >
-                <Trash2 className="h-4 w-4" /> Delete
-              </button>
-            </div>
-
-            {/* Right: Log Actions */}
+        <div className="bg-gray-50 dark:bg-gray-800/50 px-4 sm:px-8 py-4 sm:py-5 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-center gap-3">
+            {/* Log Actions */}
             <div className="flex items-center gap-2">
               <button
                 onClick={() => onLog?.('skipped')}
                 disabled={!isScheduledToday}
-                className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-white text-sm font-medium transition-all ${isScheduledToday ? 'bg-yellow-500 hover:bg-yellow-600 shadow-lg shadow-yellow-500/30' : 'bg-gray-300 dark:bg-gray-700 cursor-not-allowed opacity-50'}`}
+                className={`flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-white text-sm font-medium transition-all ${isScheduledToday ? 'bg-yellow-500 hover:bg-yellow-600 shadow-lg shadow-yellow-500/30' : 'bg-gray-300 dark:bg-gray-700 cursor-not-allowed opacity-50'}`}
                 title={isScheduledToday ? 'Skip today' : 'Not scheduled today'}
               >
                 <SkipForward className="h-4 w-4" /> Skip
@@ -122,7 +106,7 @@ export default function HabitDetailModal({ habit, isOpen, onClose, onLog, onEdit
               <button
                 onClick={() => onLog?.('done')}
                 disabled={!isScheduledToday}
-                className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-white text-sm font-medium transition-all ${isScheduledToday ? 'bg-green-500 hover:bg-green-600 shadow-lg shadow-green-500/30' : 'bg-gray-300 dark:bg-gray-700 cursor-not-allowed opacity-50'}`}
+                className={`flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-white text-sm font-medium transition-all ${isScheduledToday ? 'bg-green-500 hover:bg-green-600 shadow-lg shadow-green-500/30' : 'bg-gray-300 dark:bg-gray-700 cursor-not-allowed opacity-50'}`}
                 title={isScheduledToday ? 'Mark done today' : 'Not scheduled today'}
               >
                 <CheckCircle className="h-4 w-4" /> Mark Done

@@ -1,9 +1,6 @@
 import axios from 'axios';
 import { API_CONFIG } from '../config/api';
 
-// Set to true to disable config checks in local environment
-const DISABLE_CONFIG_CHECKS = false;
-
 /**
  * Configuration Service
  * Handles system configuration and maintenance mode checks
@@ -13,9 +10,6 @@ export const configService = {
    * Check if the system is in maintenance mode
    */
   async checkMaintenanceMode() {
-    if (DISABLE_CONFIG_CHECKS) {
-      return { isMaintenanceMode: false, message: '' };
-    }
     try {
       const response = await axios.get(`${API_CONFIG.BASE_URL}/config/maintenance`, {
         timeout: 5000 // 5 second timeout
@@ -45,10 +39,6 @@ export const configService = {
    * Check if the system is in coming soon mode
    */
   async checkComingSoon() {
-    if (DISABLE_CONFIG_CHECKS) {
-      console.log('Config checks disabled - returning false');
-      return { isComingSoon: false, message: '' };
-    }
     try {
       const response = await axios.get(`${API_CONFIG.BASE_URL}/config/coming-soon`, {
         timeout: 5000

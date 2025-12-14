@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, lazy, Suspense } from 'react'
 import { motion } from 'framer-motion'
-import { Plus, Calendar, Target, CheckCircle, Circle, Star, Award, Lightbulb, Clock, XCircle, SkipForward, Activity, Compass } from 'lucide-react'
+import { Plus, Calendar, Target, CheckCircle, Circle, Star, Award, Lightbulb, Clock, XCircle, SkipForward, Activity, Compass, Pencil, Trash2 } from 'lucide-react'
 const HabitDetailModal = lazy(() => import('../components/HabitDetailModal'));
 const CreateHabitModal = lazy(() => import('../components/CreateHabitModal'));
 const EditHabitModal = lazy(() => import('../components/EditHabitModal'));
@@ -725,34 +725,47 @@ const DashboardPage = () => {
                     <div
                       key={h._id || idx}
                       onClick={() => setSelectedHabit(h)}
-                      className="group glass-card-hover p-6 rounded-2xl border border-gray-200 dark:border-gray-800 cursor-pointer hover:border-primary-300 dark:hover:border-primary-700 transition-all duration-200"
+                      className="glass-card-hover p-6 rounded-2xl border border-gray-200 dark:border-gray-800 cursor-pointer hover:border-primary-300 dark:hover:border-primary-700 transition-all duration-200"
                     >
-                      {/* Header */}
+                      {/* Header with Edit/Delete Actions */}
                       <div className="flex items-start justify-between gap-3 mb-4">
                         <div className="min-w-0 flex-1">
-                          <h3 className="font-semibold text-lg text-gray-900 dark:text-white truncate mb-1" title={h.name}>{h.name}</h3>
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <h3 className="font-semibold text-lg text-gray-900 dark:text-white truncate flex-1" title={h.name}>{h.name}</h3>
+                            <div className="flex items-center gap-1 flex-shrink-0">
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setSelectedHabit(h); setIsEditHabitOpen(true); }}
+                                className="p-1 rounded-full hover:bg-white/10 transition-colors"
+                                title="Edit habit"
+                              >
+                                <Pencil className="h-4 w-4 text-gray-400 hover:text-primary-500" />
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); if (window.confirm(`Delete habit "${h.name}"?`)) { useApiStore.getState().deleteHabit(h._id); } }}
+                                className="p-1 rounded-full hover:bg-white/10 transition-colors"
+                                title="Delete habit"
+                              >
+                                <Trash2 className="h-4 w-4 text-gray-400 hover:text-red-500" />
+                              </button>
+                            </div>
+                          </div>
                           {h.description && (
-                            <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2" title={h.description}>{h.description}</p>
+                            <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 mb-3" title={h.description}>{h.description}</p>
                           )}
-                        </div>
-                        {isScheduledToday(h) ? (
-                          <div className="flex items-center gap-1 text-xs font-medium text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-2.5 py-1 rounded-full whitespace-nowrap">
-                            <Clock className="h-3.5 w-3.5" /> Today
+                          <div className="flex items-center gap-2">
+                            {isScheduledToday(h) ? (
+                              <div className="flex items-center gap-1 text-xs font-medium text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-2.5 py-1 rounded-full">
+                                <Clock className="h-3.5 w-3.5" /> Today
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-500 bg-gray-100 dark:bg-gray-800 px-2.5 py-1 rounded-full">
+                                <Clock className="h-3.5 w-3.5" /> Off
+                              </div>
+                            )}
+                            <div className="text-xs px-2.5 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium">
+                              {frequencyLabel(h)}
+                            </div>
                           </div>
-                        ) : (
-                          <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-500 bg-gray-100 dark:bg-gray-800 px-2.5 py-1 rounded-full whitespace-nowrap">
-                            <Clock className="h-3.5 w-3.5" /> Off
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Frequency Badge */}
-                      <div className="flex items-center justify-between">
-                        <div className="text-xs px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium">
-                          {frequencyLabel(h)}
-                        </div>
-                        <div className="text-xs text-primary-600 dark:text-primary-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                          Click for details →
                         </div>
                       </div>
                     </div>
