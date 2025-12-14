@@ -1058,20 +1058,21 @@ const useApiStore = create(
           const message = response.data?.message || '';
           const requested = response.data?.data?.requested === true || /request/i.test(message);
 
+          console.log(message, requested);
           // Update local state
           set(state => ({
             followedUsers: requested ? state.followedUsers : [...state.followedUsers, userId],
-            users: state.users.map(user =>
+            users: state?.users?.map(user =>
               user._id === userId
                 ? { ...user, isFollowing: !requested, isRequested: requested }
                 : user
             ),
-            leaderboard: state.leaderboard.map(user =>
+            leaderboard: state?.leaderboard?.map(user =>
               user._id === userId
                 ? { ...user, isFollowing: true }
                 : user
             ),
-            suggestedUsers: state.suggestedUsers.map(user =>
+            suggestedUsers: state?.suggestedUsers?.map(user =>
               user._id === userId
                 ? { ...user, isFollowing: !requested, isRequested: requested }
                 : user
@@ -1089,8 +1090,8 @@ const useApiStore = create(
         try {
           await socialAPI.cancelFollowRequest(userId);
           set(state => ({
-            users: state.users.map(u => u._id === userId ? { ...u, isRequested: false } : u),
-            suggestedUsers: state.suggestedUsers.map(u => u._id === userId ? { ...u, isRequested: false } : u)
+            users: state?.users?.map(u => u._id === userId ? { ...u, isRequested: false } : u),
+            suggestedUsers: state?.suggestedUsers?.map(u => u._id === userId ? { ...u, isRequested: false } : u)
           }));
           return { success: true };
         } catch (error) {
@@ -1155,17 +1156,17 @@ const useApiStore = create(
           // Update local state
           set(state => ({
             followedUsers: state.followedUsers.filter(id => id !== userId),
-            users: state.users.map(user =>
+            users: state?.users?.map(user =>
               user._id === userId
                 ? { ...user, isFollowing: false }
                 : user
             ),
-            leaderboard: state.leaderboard.map(user =>
+            leaderboard: state?.leaderboard?.map(user =>
               user._id === userId
                 ? { ...user, isFollowing: false }
                 : user
             ),
-            suggestedUsers: state.suggestedUsers.map(user =>
+            suggestedUsers: state?.suggestedUsers?.map(user =>
               user._id === userId
                 ? { ...user, isFollowing: false }
                 : user

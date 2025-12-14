@@ -7,6 +7,7 @@ import useApiStore from "../store/apiStore";
 import { journalsAPI } from "../services/api";
 import { habitsAPI } from '../services/api';
 import ShareSheet from '../components/ShareSheet';
+import toast from 'react-hot-toast';
 const ProfileEditModal = lazy(() => import("../components/ProfileEditModal"));
 const ReportModal = lazy(() => import("../components/ReportModal"));
 const BlockModal = lazy(() => import("../components/BlockModal"));
@@ -263,33 +264,123 @@ const ProfilePage = () => {
   };
 
   const handleFollow = async () => {
+    // Store previous state for rollback
+    const wasRequested = isRequested;
+    const wasFollowing = isFollowing;
+    const isPrivate = profileUser?.isPrivate;
+    
+    // Update UI immediately (optimistic)
+    if (isPrivate) {
+      setIsRequested(true);
+      setIsFollowing(false);
+    } else {
+      setIsFollowing(true);
+      setIsRequested(false);
+      // Update follower count for public profiles
+      setUserStats(prev => ({
+        ...prev,
+        followers: (prev?.followers || 0) + 1
+      }));
+    }
+
     try {
       const result = await followUser(profileUser?._id);
       if (result.success) {
-        if (profileUser?.isPrivate || result.isRequested) {
-          setIsRequested(true);
+        // Show success toast
+        if (result.isRequested || isPrivate) {
+          toast.success('Follow request sent');
+          // Keep the optimistic state (already set above)
         } else {
-          setIsFollowing(true);
+          toast.success('Followed successfully');
+          // Keep the optimistic state (already set above)
         }
-        fetchUserProfile();
+      } else {
+        // Revert on error
+        setIsRequested(wasRequested);
+        setIsFollowing(wasFollowing);
+        if (!isPrivate && wasFollowing !== true) {
+          setUserStats(prev => ({
+            ...prev,
+            followers: Math.max((prev?.followers || 0) - 1, 0)
+          }));
+        }
+        toast.error(result.error || 'Failed to follow user');
       }
     } catch (error) {
+      // Revert on error
+      setIsRequested(wasRequested);
+      setIsFollowing(wasFollowing);
+      if (!isPrivate && wasFollowing !== true) {
+        setUserStats(prev => ({
+          ...prev,
+          followers: Math.max((prev?.followers || 0) - 1, 0)
+        }));
+      }
       console.error('Error following user:', error);
+      toast.error('Failed to follow user');
     }
   };
 
   const handleUnfollow = async () => {
+    // Store previous state for rollback
+    const wasFollowing = isFollowing;
+    
+    // Update UI immediately (optimistic)
+    setIsFollowing(false);
+    setUserStats(prev => ({
+      ...prev,
+      followers: Math.max((prev?.followers || 0) - 1, 0)
+    }));
+    if (profileUser?.isPrivate) {
+      setUserGoals([]);
+    }
+
     try {
       const result = await unfollowUser(profileUser?._id);
       if (result.success) {
-        setIsFollowing(false);
-        if (profileUser?.isPrivate) {
-          setUserGoals([]);
-        }
-        fetchUserProfile();
+        toast.success('Unfollowed successfully');
+        // Keep the optimistic state (already set above)
+      } else {
+        // Revert on error
+        setIsFollowing(wasFollowing);
+        setUserStats(prev => ({
+          ...prev,
+          followers: (prev?.followers || 0) + 1
+        }));
+        toast.error(result.error || 'Failed to unfollow user');
       }
     } catch (error) {
+      // Revert on error
+      setIsFollowing(wasFollowing);
+      setUserStats(prev => ({
+        ...prev,
+        followers: (prev?.followers || 0) + 1
+      }));
       console.error('Error unfollowing user:', error);
+      toast.error('Failed to unfollow user');
+    }
+  };
+
+  const handleCancelRequest = async () => {
+    // Optimistically update UI
+    const wasRequested = isRequested;
+    setIsRequested(false);
+
+    try {
+      const result = await cancelFollowRequest(profileUser?._id);
+      if (result.success) {
+        toast.success('Request cancelled');
+        setIsRequested(false);
+      } else {
+        // Revert on error
+        setIsRequested(wasRequested);
+        toast.error(result.error || 'Failed to cancel request');
+      }
+    } catch (error) {
+      // Revert on error
+      setIsRequested(wasRequested);
+      console.error('Error cancelling request:', error);
+      toast.error('Failed to cancel request');
     }
   };
 
@@ -587,7 +678,7 @@ const ProfilePage = () => {
           <div className="flex gap-3 mt-6 md:mt-0 md:absolute md:top-8 md:right-8 flex-col md:flex-row">
             {isOwnProfile ? (
               <>
-                <div className="flex gap-2 w-full md:w-auto md:hidden">
+                <div className="flex gap-2 w-full md:w-auto">
                   <button
                     onClick={() => setIsEditModalOpen(true)}
                     className="flex-1 md:flex-none flex items-center justify-center space-x-2 px-4 py-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-lg transition-colors font-medium border border-gray-300 dark:border-gray-600"
@@ -596,7 +687,7 @@ const ProfilePage = () => {
                     <span>Edit Profile</span>
                   </button>
                   {/* 3-dots menu for mobile - vertical dots */}
-                  <div className="relative">
+                  <div className="relative md:hidden">
                     <button data-profile-menu-btn="true" onClick={() => setProfileMenuOpen(v => !v)} className="px-3 py-3 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors border border-gray-300 dark:border-gray-600">⋮</button>
                   </div>
                 </div>
@@ -604,7 +695,7 @@ const ProfilePage = () => {
             ) : (
               <>
                 {isAuthenticated && (
-                  <div className="flex gap-2 w-full md:w-auto md:hidden">
+                  <div className="flex gap-2 w-full md:w-auto">
                     {isFollowing ? (
                       <button
                         onClick={handleUnfollow}
@@ -615,7 +706,7 @@ const ProfilePage = () => {
                       </button>
                     ) : isRequested ? (
                       <button
-                        onClick={() => cancelFollowRequest(profileUser?._id)}
+                        onClick={handleCancelRequest}
                         className="flex-1 md:flex-none flex items-center justify-center space-x-2 px-4 py-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-lg transition-colors font-medium border border-gray-300 dark:border-gray-600"
                       >
                         <UserCheck className="h-4 w-4" />
@@ -631,7 +722,7 @@ const ProfilePage = () => {
                       </button>
                     )}
                     {/* 3-dots menu for mobile on other profiles - vertical dots */}
-                    <div className="relative">
+                    <div className="relative md:hidden">
                       <button data-profile-menu-btn="true" onClick={() => setProfileMenuOpen(v => !v)} className="px-3 py-3 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors border border-gray-300 dark:border-gray-600">⋮</button>
                     </div>
                   </div>
