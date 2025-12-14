@@ -22,6 +22,7 @@ const activitySchema = new mongoose.Schema({
     type: String,
     required: [true, 'Activity type is required'],
     enum: [
+      'goal_activity',
       'goal_completed',
       'goal_created',
       'user_followed',
@@ -43,6 +44,18 @@ const activitySchema = new mongoose.Schema({
     goalTitle: String,
     goalCategory: String,
     pointsEarned: Number,
+    completionNote: String,
+    completionAttachmentUrl: String,
+    isCompleted: Boolean,
+    completedAt: Date,
+    subGoalsCount: Number,
+    completedSubGoalsCount: Number,
+    lastUpdateType: String, // 'created', 'completed', 'subgoal_added', 'subgoal_completed'
+    updates: [{
+      type: { type: String },
+      timestamp: { type: Date, default: Date.now },
+      data: { type: mongoose.Schema.Types.Mixed }
+    }],
     
     // For user-related activities
     targetUserId: {
@@ -123,6 +136,17 @@ activitySchema.index({ 'data.metadata.habitId': 1, createdAt: -1 });
 // Virtual for activity message
 activitySchema.virtual('message').get(function() {
   const messages = {
+    'goal_activity': (() => {
+      if (this.data?.isCompleted) {
+        return `completed "${this.data.goalTitle}"`;
+      } else if (this.data?.lastUpdateType === 'subgoal_completed') {
+        return `completed a subgoal for "${this.data.goalTitle}"`;
+      } else if (this.data?.lastUpdateType === 'subgoal_added') {
+        return `added subgoals to "${this.data.goalTitle}"`;
+      } else {
+        return `created a new goal "${this.data.goalTitle}"`;
+      }
+    })(),
     'goal_completed': `completed "${this.data.goalTitle}"`,
     'goal_created': `created a new goal "${this.data.goalTitle}"`,
     'user_followed': `started following ${this.data.targetUserName}`,
@@ -159,6 +183,98 @@ activitySchema.statics.createActivity = async function(userId, name, avatar, typ
     throw error;
   }
 };
+
+// Static method to create or update goal activity (consolidated)
+activitySchema.statics.createOrUpdateGoalActivity = async function(userId, name, avatar, updateType, goalData, options = {}) {
+  try {
+    const { goalId, goalTitle, goalCategory, pointsEarned, completionNote, completionAttachmentUrl, 
+            subGoalsCount, completedSubGoalsCount, subGoalTitle, subGoalIndex } = goalData;
+
+    // Find existing goal activity
+    let activity = await this.findOne({
+      userId,
+      'data.goalId': goalId,
+      type: { $in: ['goal_activity', 'goal_created'] }
+    });
+
+    const updateData = {
+      type: updateType,
+      timestamp: new Date(),
+      data: {}
+    };
+
+    if (updateType === 'completed') {
+      updateData.data = { pointsEarned, completionNote, completionAttachmentUrl };
+    } else if (updateType === 'subgoal_added') {
+      updateData.data = { subGoalTitle, index: subGoalIndex };
+    } else if (updateType === 'subgoal_completed') {
+      updateData.data = { subGoalTitle, index: subGoalIndex };
+    }
+
+    if (activity) {
+      // Update existing activity
+      activity.type = 'goal_activity';
+      activity.name = name; // Update in case name changed
+      activity.avatar = avatar; // Update in case avatar changed
+      activity.data.goalTitle = goalTitle;
+      activity.data.goalCategory = goalCategory;
+      activity.data.lastUpdateType = updateType;
+      activity.data.subGoalsCount = subGoalsCount;
+      activity.data.completedSubGoalsCount = completedSubGoalsCount;
+      
+      if (updateType === 'completed') {
+        activity.data.isCompleted = true;
+        activity.data.completedAt = new Date();
+        activity.data.pointsEarned = pointsEarned;
+        activity.data.completionNote = completionNote || '';
+        activity.data.completionAttachmentUrl = completionAttachmentUrl || '';
+        activity.isPublic = options.isPublic !== undefined ? options.isPublic : true;
+      }
+
+      if (!activity.data.updates) {
+        activity.data.updates = [];
+      }
+      activity.data.updates.push(updateData);
+
+      // Update timestamps to bring to top
+      activity.updatedAt = new Date();
+      activity.createdAt = new Date(); // Move to top by updating createdAt
+
+      await activity.save();
+      return activity;
+    } else {
+      // Create new activity
+      const newActivity = new this({
+        userId,
+        name,
+        avatar,
+        type: 'goal_activity',
+        data: {
+          goalId,
+          goalTitle,
+          goalCategory,
+          isCompleted: updateType === 'completed',
+          completedAt: updateType === 'completed' ? new Date() : null,
+          pointsEarned: updateType === 'completed' ? pointsEarned : 0,
+          completionNote: updateType === 'completed' ? (completionNote || '') : '',
+          completionAttachmentUrl: updateType === 'completed' ? (completionAttachmentUrl || '') : '',
+          subGoalsCount: subGoalsCount || 0,
+          completedSubGoalsCount: completedSubGoalsCount || 0,
+          lastUpdateType: updateType,
+          updates: [updateData]
+        },
+        isPublic: options.isPublic !== undefined ? options.isPublic : true,
+        ...(options && options.communityId ? { communityId: options.communityId } : {})
+      });
+
+      return await newActivity.save();
+    }
+  } catch (error) {
+    console.error('Error creating/updating goal activity:', error);
+    throw error;
+  }
+};
+
 
 // Static method to get recent activities
 activitySchema.statics.getRecentActivities = function(limit = 15, userId = null) {

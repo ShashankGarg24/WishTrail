@@ -328,15 +328,17 @@ const createGoal = async (req, res, next) => {
       await User.updateOne({ _id: req.user.id }, { $inc: { totalGoals: 1 } }, { session });
 
       const currentUser = await User.findById(req.user.id).session(session).select('name avatar');
-      await Activity.createActivity(
+      await Activity.createOrUpdateGoalActivity(
         req.user.id,
         currentUser.name,
         currentUser.avatar,
-        'goal_created',
+        'created',
         {
           goalId: goal._id,
           goalTitle: goal.title,
-          goalCategory: goal.category
+          goalCategory: goal.category,
+          subGoalsCount: goal.subGoals?.length || 0,
+          completedSubGoalsCount: 0
         }
       );
     });
@@ -726,23 +728,23 @@ const toggleGoalCompletion = async (req, res, next) => {
         if (shareCompletionNote && completionNote) metadata.completionNote = completionNote;
         if (attachmentUrl) metadata.completionAttachmentUrl = attachmentUrl;
 
-        const activity = new Activity({
-          userId: user._id,
-          name: user.name,
-          avatar: user.avatar,
-          type: 'goal_completed',
-          isPublic: !!shareCompletionNote,
-          data: {
+        await Activity.createOrUpdateGoalActivity(
+          user._id,
+          user.name,
+          user.avatar,
+          'completed',
+          {
             goalId: goal._id,
             goalTitle: goal.title,
             goalCategory: goal.category,
             pointsEarned: points,
             completionNote: shareCompletionNote ? (completionNote || '') : '',
             completionAttachmentUrl: attachmentUrl || '',
-            metadata
-          }
-        });
-        await activity.save({ session });
+            subGoalsCount: goal.subGoals?.length || 0,
+            completedSubGoalsCount: (goal.subGoals || []).filter(sg => sg.completed).length
+          },
+          { isPublic: !!shareCompletionNote }
+        );
 
         // Mention detection in completion note (if public)
         try {
@@ -752,10 +754,20 @@ const toggleGoalCompletion = async (req, res, next) => {
               const U = require('../models/User');
               const users = await U.find({ username: { $in: mentionMatches } }).select('_id').lean();
               const mentionedIds = Array.from(new Set(users.map(u => String(u._id))));
-              await Promise.all(mentionedIds
-                .filter(uid => uid !== String(user._id))
-                .map(uid => Notification.createMentionNotification(user._id, uid, { activityId: activity._id }))
-              );
+              
+              // Get the activity for mention notifications
+              const savedActivity = await Activity.findOne({
+                userId: user._id,
+                'data.goalId': goal._id,
+                type: 'goal_activity'
+              }).lean();
+              
+              if (savedActivity) {
+                await Promise.all(mentionedIds
+                  .filter(uid => uid !== String(user._id))
+                  .map(uid => Notification.createMentionNotification(user._id, uid, { activityId: savedActivity._id }))
+                );
+              }
             }
           }
         } catch (_) { }

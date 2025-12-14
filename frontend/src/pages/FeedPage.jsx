@@ -218,10 +218,20 @@ const FeedPage = () => {
 
   const getActivityText = (activity) => {
     switch (activity.type) {
+      case 'goal_activity':
+        if (activity.data?.isCompleted) {
+          return 'completed a goal';
+        } else if (activity.data?.lastUpdateType === 'subgoal_completed') {
+          return 'completed a subgoal';
+        } else if (activity.data?.lastUpdateType === 'subgoal_added') {
+          return 'added subgoals';
+        } else {
+          return 'created a goal';
+        }
       case 'goal_completed':
         return 'completed a goal'
       case 'goal_created':
-        return 'created a new goal'
+        return 'created a goal'
       default:
         return 'had some activity'
     }
@@ -525,13 +535,13 @@ const FeedPage = () => {
                       className="bg-gradient-to-br from-gray-50 to-gray-100/50 dark:from-gray-700/30 dark:to-gray-800/30 rounded-xl p-4 border border-gray-200 dark:border-gray-700/50 cursor-pointer hover:border-primary-300 dark:hover:border-primary-600/50 transition-all group" 
                       onClick={() => openGoalModal(activity?.data?.goalId?._id)}
                     >
-                      {(activity.type === 'goal_completed' || activity.type === 'goal_created') ? (
+                      {(activity.type === 'goal_completed' || activity.type === 'goal_created' || activity.type === 'goal_activity') ? (
                         <>
                           <div className="flex items-start justify-between gap-3 mb-3">
                             <h4 className="font-semibold text-gray-900 dark:text-white text-base group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
                               {activity.data?.goalTitle || 'Goal Achievement'}
                             </h4>
-                            {activity.type === 'goal_completed' && (
+                            {(activity.type === 'goal_completed' || (activity.type === 'goal_activity' && activity.data?.isCompleted)) && (
                               <div className="shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center shadow-sm">
                                 <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
@@ -570,6 +580,26 @@ const FeedPage = () => {
                               </div>
                             )
                           })()}
+
+                          {/* Show subgoal progress for goal_activity type */}
+                          {activity.type === 'goal_activity' && activity.data?.subGoalsCount > 0 && (
+                            <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                              <div className="flex items-center justify-between text-sm mb-2">
+                                <span className="text-gray-600 dark:text-gray-400">Subgoals</span>
+                                <span className="font-semibold text-primary-600 dark:text-primary-400">
+                                  {activity.data.completedSubGoalsCount || 0} / {activity.data.subGoalsCount}
+                                </span>
+                              </div>
+                              <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                <div 
+                                  className="h-full bg-gradient-to-r from-primary-500 to-purple-500 transition-all duration-500"
+                                  style={{ 
+                                    width: `${activity.data.subGoalsCount > 0 ? (activity.data.completedSubGoalsCount / activity.data.subGoalsCount * 100) : 0}%` 
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          )}
                         </>
                       )
                         : activity.type === 'streak_milestone' ? (

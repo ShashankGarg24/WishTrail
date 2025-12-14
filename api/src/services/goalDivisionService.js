@@ -184,7 +184,35 @@ async function setSubGoals(goalId, userId, subGoals) {
   }
 
   await Goal.updateOne({ _id: goal._id }, { $set: { subGoals: clean } });
-  return await Goal.findById(goal._id).lean();
+  const updatedGoal = await Goal.findById(goal._id).lean();
+
+  // Update activity feed if subgoals were added
+  try {
+    const Activity = require('../models/Activity');
+    const User = require('../models/User');
+    const user = await User.findById(userId).select('name avatar').lean();
+    
+    if (user && clean.length > 0) {
+      const completedCount = clean.filter(sg => sg.completed).length;
+      await Activity.createOrUpdateGoalActivity(
+        userId,
+        user.name,
+        user.avatar,
+        'subgoal_added',
+        {
+          goalId: goal._id,
+          goalTitle: goal.title,
+          goalCategory: goal.category,
+          subGoalsCount: clean.length,
+          completedSubGoalsCount: completedCount
+        }
+      );
+    }
+  } catch (err) {
+    console.error('Failed to update activity for subgoal addition:', err);
+  }
+
+  return updatedGoal;
 }
 
 /**
@@ -198,10 +226,43 @@ async function toggleSubGoal(goalId, userId, index, completed, note) {
   if (!Number.isInteger(i) || i < 0 || i >= (goal.subGoals?.length || 0)) {
     throw Object.assign(new Error('Invalid sub-goal index'), { statusCode: 400 });
   }
+  
+  const previouslyCompleted = goal.subGoals[i].completed;
   goal.subGoals[i].completed = !!completed;
   goal.subGoals[i].completedAt = completed ? new Date() : undefined;
   if (typeof note === 'string') goal.subGoals[i].note = note;
   await goal.save();
+
+  // Update activity feed if subgoal completion status changed
+  if (previouslyCompleted !== !!completed) {
+    try {
+      const Activity = require('../models/Activity');
+      const User = require('../models/User');
+      const user = await User.findById(userId).select('name avatar').lean();
+      
+      if (user) {
+        const completedCount = (goal.subGoals || []).filter(sg => sg.completed).length;
+        await Activity.createOrUpdateGoalActivity(
+          userId,
+          user.name,
+          user.avatar,
+          completed ? 'subgoal_completed' : 'subgoal_uncompleted',
+          {
+            goalId: goal._id,
+            goalTitle: goal.title,
+            goalCategory: goal.category,
+            subGoalsCount: goal.subGoals?.length || 0,
+            completedSubGoalsCount: completedCount,
+            subGoalTitle: goal.subGoals[i].title,
+            subGoalIndex: i
+          }
+        );
+      }
+    } catch (err) {
+      console.error('Failed to update activity for subgoal toggle:', err);
+    }
+  }
+
   return goal.toObject();
 }
 
