@@ -101,6 +101,12 @@ api.interceptors.response.use(
       if (!newToken) throw new Error('No access token in refresh response');
       localStorage.setItem('token', newToken);
       api.defaults.headers.common.Authorization = `Bearer ${newToken}`;
+      
+      // 🔥 UPDATE: Sync the new token with Zustand store
+      if (typeof window !== 'undefined' && window.__updateAuthToken) {
+        window.__updateAuthToken(newToken);
+      }
+      
       // If backend returned a rotated refresh token (app), capture and forward it
       try {
         const isNative = typeof window !== 'undefined' && !!window.ReactNativeWebView;
@@ -118,6 +124,12 @@ api.interceptors.response.use(
       // On refresh failure, clear token and avoid infinite reload loops
       try { localStorage.removeItem('token'); } catch { }
       try { delete api.defaults.headers.common.Authorization; } catch { }
+      
+      // 🔥 UPDATE: Clear Zustand store state on refresh failure
+      if (typeof window !== 'undefined' && window.__updateAuthToken) {
+        window.__updateAuthToken(null);
+      }
+      
       processQueue(refreshErr, null);
       // Only navigate if not already on auth, and do it once
       try {
@@ -355,13 +367,20 @@ export const handleApiError = (error) => {
   return error.message || 'An unexpected error occurred';
 };
 
-export const setAuthToken = (token) => {
+export const setAuthToken = (token, updateStore = false) => {
   if (token) {
     localStorage.setItem('token', token);
     api.defaults.headers.common.Authorization = `Bearer ${token}`;
+    // Update Zustand store if requested (avoid circular imports by using window)
+    if (updateStore && typeof window !== 'undefined' && window.__updateAuthToken) {
+      window.__updateAuthToken(token);
+    }
   } else {
     localStorage.removeItem('token');
     delete api.defaults.headers.common.Authorization;
+    if (updateStore && typeof window !== 'undefined' && window.__updateAuthToken) {
+      window.__updateAuthToken(null);
+    }
   }
 };
 

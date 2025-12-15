@@ -1615,6 +1615,21 @@ const useApiStore = create(
             }
           } catch { }
         }
+        
+        // 🔥 NEW: Register callback for axios interceptor to update store after refresh
+        if (typeof window !== 'undefined') {
+          window.__updateAuthToken = (newToken) => {
+            if (newToken) {
+              set({ token: newToken, isAuthenticated: true });
+            } else {
+              set({ 
+                token: null, 
+                isAuthenticated: false,
+                user: null
+              });
+            }
+          };
+        }
       }
       ,
       // =====================

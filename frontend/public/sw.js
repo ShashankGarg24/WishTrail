@@ -74,7 +74,6 @@ self.addEventListener('push', (event) => {
 
 // Handle notification clicks
 self.addEventListener('notificationclick', (event) => {
-  console.log('[SW] Notification click:', event);
   
   event.notification.close();
   
@@ -99,7 +98,6 @@ self.addEventListener('notificationclick', (event) => {
 
 // Handle notification close event (optional - for analytics)
 self.addEventListener('notificationclose', (event) => {
-  console.log('[SW] Notification closed:', event);
   // You can send analytics here if needed
 });
 

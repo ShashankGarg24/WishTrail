@@ -18,7 +18,6 @@ try {
     firebaseConfig = JSON.parse(decodeURIComponent(urlParams.get('firebaseConfig')));
   }
 } catch (e) {
-  console.warn('[SW] Could not parse config from URL params:', e);
 }
 
 // Fallback to hardcoded config (loaded from .env during build)
@@ -41,7 +40,6 @@ try {
   
   // Handle background messages
   messaging.onBackgroundMessage((payload) => {
-    console.log('[SW] Background message received:', payload);
     
     const notificationTitle = payload.data?.title || payload.notification?.title || 'WishTrail';
     const notificationOptions = {
@@ -61,24 +59,19 @@ try {
     return self.registration.showNotification(notificationTitle, notificationOptions);
   });
 } catch (error) {
-  console.error('[SW] Firebase initialization error:', error);
 }
 
 // Service worker lifecycle
 self.addEventListener('install', (event) => {
-  console.log('[SW] Installing...');
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Activating...');
   event.waitUntil(self.clients.claim());
 });
 
 // Handle notification clicks
-self.addEventListener('notificationclick', (event) => {
-  console.log('[SW] Notification click:', event);
-  
+self.addEventListener('notificationclick', (event) => {  
   event.notification.close();
   
   const urlToOpen = event.notification.data?.url || '/notifications';
