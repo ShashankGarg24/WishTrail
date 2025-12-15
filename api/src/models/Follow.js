@@ -190,7 +190,7 @@ followSchema.statics.getFollowers = function(userId, options = {}) {
   .sort({ createdAt: -1 })
   .skip(skip)
   .limit(limit)
-  .populate('followerId', 'name username avatar bio location level totalPoints completedGoals');
+  .populate('followerId', 'name username avatar');
 };
 
 // Static method to get users that a user is following

@@ -3,6 +3,7 @@ const User = require('../models/User');
 const JournalEntry = require('../models/JournalEntry');
 const PDFDocument = require('pdfkit');
 const axios = require('axios');
+const { sanitizeJournalEntry } = require('../utility/sanitizer');
 
 exports.getPrompt = async (req, res, next) => {
   try {
@@ -43,8 +44,11 @@ exports.getMyEntries = async (req, res, next) => {
     const limit = Math.min(parseInt(req.query.limit) || 20, 50);
     const skip = parseInt(req.query.skip) || 0;
     const entries = await journalService.listMyEntries(req.user._id, { limit, skip });
-    // Ensure ai and aiSignals (motivation) are present in response
-    res.status(200).json({ success: true, data: { entries } });
+    
+    // ✅ Sanitize entries - remove __v and internal fields
+    const sanitizedEntries = entries.map(e => sanitizeJournalEntry(e, true, req.user._id));
+    
+    res.status(200).json({ success: true, data: { entries: sanitizedEntries } });
   } catch (error) {
     next(error);
   }
@@ -56,7 +60,11 @@ exports.getUserHighlights = async (req, res, next) => {
     const limit = Math.min(parseInt(req.query.limit) || 12, 24);
     const viewerId = req.user?._id;
     const highlights = await journalService.getUserHighlights(targetUserId, viewerId, { limit });
-    res.status(200).json({ success: true, data: { highlights } });
+    
+    // ✅ Sanitize highlights - remove sensitive user data from nested objects
+    const sanitizedHighlights = highlights.map(h => sanitizeJournalEntry(h, false, viewerId));
+    
+    res.status(200).json({ success: true, data: { highlights: sanitizedHighlights } });
   } catch (error) {
     next(error);
   }

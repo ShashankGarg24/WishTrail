@@ -1,4 +1,5 @@
 const habitService = require('../services/habitService');
+const { sanitizeHabit } = require('../utility/sanitizer');
 
 exports.createHabit = async (req, res, next) => {
   try {
@@ -17,6 +18,12 @@ exports.listHabits = async (req, res, next) => {
     const page = parseInt(req.query.page, 10) || 1;
     const limit = parseInt(req.query.limit, 10) || 50;
     const result = await habitService.listHabits(req.user.id || req.user._id, { includeArchived, page, limit });
+    
+    // ✅ Sanitize habits - remove __v and internal fields
+    if (result.habits && Array.isArray(result.habits)) {
+      result.habits = result.habits.map(h => sanitizeHabit(h));
+    }
+    
     res.status(200).json({ success: true, data: result });
   } catch (error) { next(error); }
 };
@@ -24,7 +31,11 @@ exports.listHabits = async (req, res, next) => {
 exports.getHabit = async (req, res, next) => {
   try {
     const habit = await habitService.getHabit(req.user.id || req.user._id, req.params.id);
-    res.status(200).json({ success: true, data: { habit } });
+    
+    // ✅ Sanitize habit - remove __v
+    const sanitizedHabit = sanitizeHabit(habit);
+    
+    res.status(200).json({ success: true, data: { habit: sanitizedHabit } });
   } catch (error) { next(error); }
 };
 

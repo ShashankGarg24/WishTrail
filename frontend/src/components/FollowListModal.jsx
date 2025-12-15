@@ -99,10 +99,9 @@ const FollowListModal = ({ isOpen, onClose, activeTab = 'followers', onTabChange
             {!loading && list.length > 0 && (
               <div className="space-y-2">
                 {list.map((item, idx) => {
-                  // Backend populates followerId for followers and followingId for following
-                  const user = activeTab === 'followers' ? item?.followerId : item?.followingId;
-                  const key = (user && (user._id || user.id)) || item?._id || item?.id || idx
-                  return <ListItem key={key} user={user} onOpenProfile={onOpenProfile} />
+                  // Backend now returns flat objects with {name, username, avatar}
+                  const key = item?.username || idx
+                  return <ListItem key={key} user={item} onOpenProfile={onOpenProfile} />
                 })}
                 {hasMore && (
                   <button

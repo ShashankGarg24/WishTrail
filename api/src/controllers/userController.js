@@ -3,6 +3,7 @@ const Block = require('../models/Block');
 const userService = require('../services/userService');
 const { validationResult } = require('express-validator');
 const authService = require('../services/authService');
+const { sanitizeUser, sanitizeGoals } = require('../utility/sanitizer');
 
 // Lightweight block status check
 const getBlockStatus = async (req, res, next) => {
@@ -46,9 +47,14 @@ const getUser = async (req, res, next) => {
   try {
     const { id: idOrUsername } = req.params;
     const {user, stats, isFollowing, isRequested} = await userService.getUserByIdOrUsername(idOrUsername, req.user.id);
+    
+    // ✅ Sanitize user data - hide sensitive fields for other users
+    const isSelf = user._id.toString() === req.user.id.toString();
+    const sanitizedUser = sanitizeUser(user, isSelf);
+    
     res.status(200).json({
       success: true,
-      data: {user: user, stats: stats, isFollowing: isFollowing, isRequested: isRequested}
+      data: {user: sanitizedUser, stats: stats, isFollowing: isFollowing, isRequested: isRequested}
     });
   } catch (error) {
     next(error);
@@ -208,6 +214,12 @@ const getUserGoals = async (req, res, next) => {
     }
 
     const result = await goalService.getGoals(id, req.query);
+
+    // ✅ Sanitize goals - if userId is populated, remove sensitive user data
+    if (result.goals && Array.isArray(result.goals)) {
+      const isOwner = id === req.user.id;
+      result.goals = sanitizeGoals(result.goals, isOwner, req.user.id);
+    }
 
     res.status(200).json({
       success: true,

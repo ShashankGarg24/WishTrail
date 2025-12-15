@@ -43,10 +43,10 @@ const JournalEntryModal = ({ isOpen, onClose, entry }) => {
               </div>
             </div>
 
-            {motivation && (
+            {entry?.motivation && (
               <div className="p-4 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200/50 dark:border-indigo-800/30 rounded-xl">
                 <div className="text-xs font-semibold text-indigo-700 dark:text-indigo-300 mb-2 uppercase tracking-wide">AI Motivation</div>
-                <div className="text-sm text-gray-800 dark:text-gray-100 leading-relaxed">{motivation}</div>
+                <div className="text-sm text-gray-800 dark:text-gray-100 leading-relaxed">{entry?.motivation}</div>
               </div>
             )}
           </div>

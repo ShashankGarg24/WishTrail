@@ -1178,9 +1178,10 @@ const useApiStore = create(
         }
       },
 
-      getFollowers: async (userId) => {
+      getFollowers: async (username, params = {}) => {
         try {
-          const response = await socialAPI.getFollowers({ userId });
+          const queryParams = username ? { username, ...params } : params;
+          const response = await socialAPI.getFollowers(queryParams);
           const { followers } = response.data.data;
           set({ followers });
           return { success: true, followers };
@@ -1190,9 +1191,10 @@ const useApiStore = create(
         }
       },
 
-      getFollowing: async (userId) => {
+      getFollowing: async (username, params = {}) => {
         try {
-          const response = await socialAPI.getFollowing({ userId });
+          const queryParams = username ? { username, ...params } : params;
+          const response = await socialAPI.getFollowing(queryParams);
           const { following } = response.data.data;
           set({ following });
           return { success: true, following };

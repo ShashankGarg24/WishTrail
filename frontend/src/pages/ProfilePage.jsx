@@ -580,8 +580,8 @@ const ProfilePage = () => {
                     setFollowModalTab('followers'); setFollowModalOpen(true); setLoadingFollows(true);
                     setFollowersPage(1); setFollowers([]);
                     try {
-                      const uid = isOwnProfile ? currentUser?._id : (profileUser?._id || profileUser?.id);
-                      const res = await getFollowers(uid, { page: 1, limit: FOLLOW_LIMIT });
+                      const username = isOwnProfile ? currentUser?.username : profileUser?.username;
+                      const res = await getFollowers(username, { page: 1, limit: FOLLOW_LIMIT });
                       if (res?.success) {
                         setFollowers(res.followers || []);
                         setHasMoreFollowers((res.followers?.length || 0) >= FOLLOW_LIMIT);
@@ -597,8 +597,8 @@ const ProfilePage = () => {
                     setFollowModalTab('following'); setFollowModalOpen(true); setLoadingFollows(true);
                     setFollowingPage(1); setFollowing([]);
                     try {
-                      const uid = isOwnProfile ? currentUser?._id : (profileUser?._id || profileUser?.id);
-                      const res = await getFollowing(uid, { page: 1, limit: FOLLOW_LIMIT });
+                      const username = isOwnProfile ? currentUser?.username : profileUser?.username;
+                      const res = await getFollowing(username, { page: 1, limit: FOLLOW_LIMIT });
                       if (res?.success) {
                         setFollowing(res.following || []);
                         setHasMoreFollowing((res.following?.length || 0) >= FOLLOW_LIMIT);
@@ -740,17 +740,17 @@ const ProfilePage = () => {
               setFollowModalTab(tab)
               setLoadingFollows(true)
               try {
-                const uid = isOwnProfile ? currentUser?._id : (profileUser?._id || profileUser?.id)
+                const username = isOwnProfile ? currentUser?.username : profileUser?.username;
                 if (tab === 'followers') {
                   setFollowersPage(1); setFollowers([]);
-                  const res = await getFollowers(uid, { page: 1, limit: FOLLOW_LIMIT })
+                  const res = await getFollowers(username, { page: 1, limit: FOLLOW_LIMIT })
                   if (res?.success) {
                     setFollowers(res.followers || [])
                     setHasMoreFollowers((res.followers?.length || 0) >= FOLLOW_LIMIT)
                   }
                 } else {
                   setFollowingPage(1); setFollowing([]);
-                  const res = await getFollowing(uid, { page: 1, limit: FOLLOW_LIMIT })
+                  const res = await getFollowing(username, { page: 1, limit: FOLLOW_LIMIT })
                   if (res?.success) {
                     setFollowing(res.following || [])
                     setHasMoreFollowing((res.following?.length || 0) >= FOLLOW_LIMIT)
@@ -768,10 +768,10 @@ const ProfilePage = () => {
             onLoadMore={async () => {
               setLoadingMoreFollows(true)
               try {
-                const uid = isOwnProfile ? currentUser?._id : (profileUser?._id || profileUser?.id)
+                const username = isOwnProfile ? currentUser?.username : profileUser?.username;
                 if (followModalTab === 'followers') {
                   const nextPage = followersPage + 1
-                  const res = await getFollowers(uid, { page: nextPage, limit: FOLLOW_LIMIT })
+                  const res = await getFollowers(username, { page: nextPage, limit: FOLLOW_LIMIT })
                   if (res?.success) {
                     setFollowers(prev => [...prev, ...(res.followers || [])])
                     setFollowersPage(nextPage)
@@ -779,7 +779,7 @@ const ProfilePage = () => {
                   }
                 } else {
                   const nextPage = followingPage + 1
-                  const res = await getFollowing(uid, { page: nextPage, limit: FOLLOW_LIMIT })
+                  const res = await getFollowing(username, { page: nextPage, limit: FOLLOW_LIMIT })
                   if (res?.success) {
                     setFollowing(prev => [...prev, ...(res.following || [])])
                     setFollowingPage(nextPage)
@@ -1200,10 +1200,10 @@ const ProfilePage = () => {
                               </span>
                             </div>
                             <p className="text-sm text-gray-800 dark:text-gray-200 line-clamp-3 leading-relaxed">{e.content}</p>
-                            {e?.ai?.motivation && (
+                            {e?.motivation && (
                               <div className="mt-3 p-2.5 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200/50 dark:border-indigo-800/30 rounded-lg text-xs text-indigo-700 dark:text-indigo-300 flex items-start gap-2">
                                 <Sparkles className="h-3.5 w-3.5 mt-0.5 text-indigo-500 flex-shrink-0" />
-                                <span className="leading-relaxed">{e.ai.motivation}</span>
+                                <span className="leading-relaxed">{e.motivation}</span>
                               </div>
                             )}
                           </button>

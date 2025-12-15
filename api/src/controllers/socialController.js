@@ -4,6 +4,7 @@ const Activity = require('../models/Activity');
 const Notification = require('../models/Notification');
 const Block = require('../models/Block');
 const activityService = require('../services/activityService');
+const { sanitizeFollow } = require('../utility/sanitizer');
 
 // @desc    Follow a user
 // @route   POST /api/v1/social/follow/:userId
@@ -213,12 +214,25 @@ const unfollowUser = async (req, res, next) => {
 };
 
 // @desc    Get user's followers
-// @route   GET /api/v1/social/followers
+// @route   GET /api/v1/social/followers?username=johndoe
 // @access  Private
 const getFollowers = async (req, res, next) => {
   try {
-    const { userId, page = 1, limit = 20 } = req.query;
-    const targetUserId = userId || req.user.id;
+    const { username, page = 1, limit = 20 } = req.query;
+    
+    // Resolve username to userId if provided
+    let targetUserId = req.user.id;
+    if (username) {
+      const userService = require('../services/userService');
+      const { user } = await userService.getUserByIdOrUsername(username, req.user.id);
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found'
+        });
+      }
+      targetUserId = user._id.toString();
+    }
     
     // If checking another user's followers, ensure they can view
     if (targetUserId !== req.user.id) {
@@ -234,9 +248,20 @@ const getFollowers = async (req, res, next) => {
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const followers = await Follow.getFollowers(targetUserId, { limit: parseInt(limit), skip });
     
+    // ✅ Extract minimal user info - only name, username, avatar
+    const sanitizedFollowers = followers.map(f => {
+      if (!f.followerId) return null;
+      const user = f.followerId.toObject ? f.followerId.toObject() : f.followerId;
+      return {
+        name: user.name,
+        username: user.username,
+        avatar: user.avatar
+      };
+    }).filter(Boolean);
+    
     res.status(200).json({
       success: true,
-      data: { followers }
+      data: { followers: sanitizedFollowers }
     });
   } catch (error) {
     next(error);
@@ -244,12 +269,25 @@ const getFollowers = async (req, res, next) => {
 };
 
 // @desc    Get users that user is following
-// @route   GET /api/v1/social/following
+// @route   GET /api/v1/social/following?username=johndoe
 // @access  Private
 const getFollowing = async (req, res, next) => {
   try {
-    const { userId, page = 1, limit = 20 } = req.query;
-    const targetUserId = userId || req.user.id;
+    const { username, page = 1, limit = 20 } = req.query;
+    
+    // Resolve username to userId if provided
+    let targetUserId = req.user.id;
+    if (username) {
+      const userService = require('../services/userService');
+      const { user } = await userService.getUserByIdOrUsername(username, req.user.id);
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found'
+        });
+      }
+      targetUserId = user._id.toString();
+    }
     
     // If checking another user's following, ensure they can view
     if (targetUserId !== req.user.id) {
@@ -265,9 +303,20 @@ const getFollowing = async (req, res, next) => {
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const following = await Follow.getFollowing(targetUserId, { limit: parseInt(limit), skip });
     
+    // ✅ Extract minimal user info - only name, username, avatar
+    const sanitizedFollowing = following.map(f => {
+      if (!f.followingId) return null;
+      const user = f.followingId.toObject ? f.followingId.toObject() : f.followingId;
+      return {
+        name: user.name,
+        username: user.username,
+        avatar: user.avatar
+      };
+    }).filter(Boolean);
+    
     res.status(200).json({
       success: true,
-      data: { following }
+      data: { following: sanitizedFollowing }
     });
   } catch (error) {
     next(error);
