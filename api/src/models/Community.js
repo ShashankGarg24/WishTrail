@@ -83,6 +83,16 @@ communitySchema.index({ visibility: 1, 'stats.memberCount': -1 });
 communitySchema.index({ interests: 1, 'stats.memberCount': -1 });
 communitySchema.index({ createdAt: -1 });
 
+// Text index for full-text search on name
+communitySchema.index({ name: 'text'}, { 
+  weights: { name: 10},
+  name: 'community_text_search'
+});
+
+// Compound indexes for discover optimization
+communitySchema.index({ isActive: 1, visibility: 1, 'stats.memberCount': -1 });
+communitySchema.index({ isActive: 1, visibility: 1, interests: 1, 'stats.memberCount': -1 });
+
 communitySchema.virtual('slug').get(function() {
   const base = (this.name || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
   return `${base}-${String(this._id).slice(-6)}`;

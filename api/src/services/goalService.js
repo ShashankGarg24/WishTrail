@@ -568,60 +568,136 @@ class GoalService {
    * Search goals
    */
   async searchGoals(searchTerm, params = {}) {
-    const { limit = 20, page = 1, category, interest } = params;
+    const { limit = 20, page = 1, category, interest, requestingUserId } = params;
 
     const t = (searchTerm || '').trim().toLowerCase();
     const hasText = t.length >= 2;
     const escapeRegex = (s) => String(s || '').replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
     const safe = hasText ? escapeRegex(t) : '';
 
+    // Get blocked user IDs and following IDs
+    let blockedUserIds = [];
+    let followingIds = [];
+    const mongoose = require('mongoose');
+    
+    if (requestingUserId) {
+      const Block = require('../models/Block');
+      const Follow = require('../models/Follow');
+      
+      const [blocks, following] = await Promise.all([
+        Block.find({
+          $or: [
+            { blockerId: requestingUserId, isActive: true },
+            { blockedId: requestingUserId, isActive: true }
+          ]
+        }).select('blockerId blockedId').lean(),
+        Follow.find({ 
+          followerId: requestingUserId, 
+          status: 'accepted', 
+          isActive: true 
+        }).select('followingId').lean()
+      ]);
+      
+      blockedUserIds = blocks.map(b => 
+        String(b.blockerId) === String(requestingUserId) ? b.blockedId : b.blockerId
+      );
+      followingIds = following.map(f => f.followingId);
+      
+      // Add requesting user to blocked list to exclude their own goals
+      blockedUserIds.push(new mongoose.Types.ObjectId(requestingUserId));
+    }
+
+    // Build optimized base match query (uses compound index)
+    // Show all goals: completed, active, sub-goals (not just completed)
     const baseMatch = {
-      completed: true,
       isPublic: true,
       isActive: true
+      // No completed filter - show both completed and active goals
     };
 
-    // Join with user to ensure only public/active users
-    const pipeline = [
-      { $match: baseMatch },
-      { $lookup: { from: 'users', localField: 'userId', foreignField: '_id', as: 'user' } },
-      { $unwind: '$user' },
-      { $match: { 'user.isActive': true, 'user.isPrivate': { $ne: true } } },
-    ];
-
-    // Filter by category or interest (map interest to category if needed)
+    // Add category filter to base match (index optimization)
     if (category) {
-      pipeline.push({ $match: { category } });
-    }
-    if (interest) {
-      const mappedCategory = mapInterestToCategory(interest);
-      pipeline.push({ $match: { category: mappedCategory } });
+      baseMatch.category = category;
+    } else if (interest) {
+      baseMatch.category = mapInterestToCategory(interest);
     }
 
+    // Add text filter to base match if provided (index optimization)
     if (hasText) {
-      // Compute lowercase title on the fly to support older docs without titleLower
-      pipeline.push({ $addFields: { _titleLower: { $toLower: { $ifNull: ['$titleLower', '$title'] } } } });
-      pipeline.push({ $match: { _titleLower: { $regex: new RegExp(safe) } } });
+      baseMatch.titleLower = { $regex: new RegExp(safe) };
     }
 
-    const skip = (Math.max(1, parseInt(page)) - 1) * parseInt(limit);
-    pipeline.push(
-      { $sort: { completedAt: -1, pointsEarned: -1 } },
-      { $facet: {
+    // Optimized pipeline with fewer stages
+    const pipeline = [
+      // First match uses compound index: isPublic, isActive, completed, category, titleLower
+      { $match: baseMatch },
+      
+      // Lookup users (only necessary fields)
+      { 
+        $lookup: { 
+          from: 'users', 
+          localField: 'userId', 
+          foreignField: '_id', 
+          as: 'user',
+          pipeline: [
+            { $match: { 
+              isActive: true,
+              _id: { $nin: blockedUserIds } // Excludes blocked users AND requesting user
+            } },
+            { $project: { _id: 1, name: 1, avatar: 1, username: 1, isPrivate: 1, 'preferences.privacy': 1 } }
+          ]
+        } 
+      },
+      { $unwind: '$user' },
+      // Filter for privacy: show goals from public users OR friends (users I follow)
+      // Support both isPrivate boolean and preferences.privacy enum
+      { $match: { 
+        $or: [
+          { 'user.isPrivate': { $ne: true }, 'user.preferences.privacy': { $in: ['public', null] } }, // Public users
+          { 'user.preferences.privacy': 'friends', 'user._id': { $in: followingIds } }, // Friends-only if I follow them
+          { 'user.isPrivate': true, 'user._id': { $in: followingIds } } // Private users if I follow them
+        ]
+      } },
+      
+      // Use facet for counting and pagination in single pass
+      { 
+        $facet: {
           data: [
-            { $skip: skip },
+            // Sort: completed goals by completion date, active goals by creation date
+            { $sort: { completed: -1, completedAt: -1, createdAt: -1, pointsEarned: -1 } },
+            { $skip: (Math.max(1, parseInt(page)) - 1) * parseInt(limit) },
             { $limit: parseInt(limit) },
-            { $project: { title: 1, category: 1, completedAt: 1, pointsEarned: 1, likeCount: 1, user: { _id: 1, name: 1, avatar: 1 } } }
+            { 
+              $project: { 
+                _id: 1,
+                title: 1, 
+                description: 1,
+                category: 1,
+                priority: 1,
+                duration: 1,
+                completed: 1,
+                completedAt: 1, 
+                targetDate: 1,
+                startDate: 1,
+                pointsEarned: 1, 
+                likeCount: 1,
+                completionNote: 1,
+                subGoals: 1,
+                user: 1,
+                createdAt: 1
+              }
+            }
           ],
           total: [ { $count: 'count' } ]
         }
       }
-    );
+    ];
 
     const res = await Goal.aggregate(pipeline);
     const arr = res && res[0] ? res[0] : { data: [], total: [] };
     const goals = arr.data || [];
     const total = (arr.total && arr.total[0] && arr.total[0].count) ? arr.total[0].count : 0;
+    
     return {
       goals,
       pagination: {

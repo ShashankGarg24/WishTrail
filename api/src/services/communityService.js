@@ -47,12 +47,35 @@ async function listMyCommunities(userId) {
   return communities.map(c => ({ ...c.toObject(), role: roleById.get(String(c._id)) }));
 }
 
-async function discoverCommunities(userId, { interests = [], limit = 10 } = {}) {
+async function discoverCommunities(userId, { interests = [], limit = 10, search = '' } = {}) {
+  // Show public and invite-only communities (users can request to join)
+  // Exclude private communities
   const q = { isActive: true, visibility: { $in: ['public', 'invite-only'] } };
+  
+  // Use text search if search term is provided (uses text index)
+  if (search && search.trim().length >= 2) {
+    q.$text = { $search: search.trim() };
+  }
+  
+  // Filter by interests (uses compound index)
   if (Array.isArray(interests) && interests.length > 0) {
     q.interests = { $in: interests };
   }
-  const list = await Community.find(q).sort({ 'stats.memberCount': -1, createdAt: -1 }).limit(Math.min(50, limit));
+  
+  // Build query with optimized projection
+  let query = Community.find(q)
+    .select('name description avatarUrl bannerUrl visibility interests stats createdAt ownerId')
+    .limit(Math.min(50, limit))
+    .lean(); // Use lean for faster queries
+  
+  // Sort by text score if using text search, otherwise by member count
+  if (search && search.trim().length >= 2) {
+    query = query.sort({ score: { $meta: 'textScore' }, 'stats.memberCount': -1 });
+  } else {
+    query = query.sort({ 'stats.memberCount': -1, createdAt: -1 });
+  }
+  
+  const list = await query;
   return list;
 }
 

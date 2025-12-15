@@ -310,6 +310,11 @@ userSchema.index({ totalPoints: -1 });
 userSchema.index({ completedGoals: -1 });
 userSchema.index({ createdAt: -1 });
 
+// Compound indexes for search optimization
+userSchema.index({ isActive: 1, totalPoints: -1 }); // For discover/leaderboard
+userSchema.index({ isActive: 1, interests: 1, totalPoints: -1 }); // For interest-based search
+userSchema.index({ isActive: 1, username: 1, name: 1 }); // For name/username search
+
 // Virtual for completion rate
 userSchema.virtual('completionRate').get(function() {
   if (this.totalGoals === 0) return 0;

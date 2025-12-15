@@ -17,7 +17,12 @@ module.exports = {
   async discoverCommunities(req, res, next) {
     try {
       const interests = (req.query.interests || '').split(',').filter(Boolean);
-      const data = await communityService.discoverCommunities(req.user.id, { interests, limit: parseInt(req.query.limit) || 10 });
+      const search = req.query.search || req.query.q || '';
+      const data = await communityService.discoverCommunities(req.user.id, { 
+        interests, 
+        search,
+        limit: parseInt(req.query.limit) || 10 
+      });
       res.status(200).json({ success: true, data });
     } catch (e) { next(e); }
   },

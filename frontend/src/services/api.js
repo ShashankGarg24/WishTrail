@@ -9,6 +9,60 @@ const api = axios.create({
   withCredentials: true
 });
 
+// 🔥 NEW: Proactive token refresh (refresh 5 minutes before expiry)
+let tokenRefreshTimer = null;
+
+const scheduleTokenRefresh = () => {
+  if (tokenRefreshTimer) clearTimeout(tokenRefreshTimer);
+  
+  const token = localStorage.getItem('token');
+  if (!token) return;
+  
+  try {
+    // Decode JWT to get expiration (simple base64 decode, no verification needed)
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    const expiresAt = payload.exp * 1000; // Convert to milliseconds
+    const now = Date.now();
+    const timeUntilExpiry = expiresAt - now;
+    
+    // Refresh 5 minutes before expiry (or immediately if already past that point)
+    const refreshTime = Math.max(0, timeUntilExpiry - 5 * 60 * 1000);
+    
+    if (refreshTime > 0) {
+      tokenRefreshTimer = setTimeout(async () => {
+        try {
+          const headers = {};
+          try {
+            const isNative = typeof window !== 'undefined' && !!window.ReactNativeWebView;
+            if (isNative && typeof window.__WT_REFRESH_TOKEN === 'string' && window.__WT_REFRESH_TOKEN.length > 0) {
+              headers['x-refresh-token'] = window.__WT_REFRESH_TOKEN;
+            }
+          } catch { }
+          
+          const res = await api.post('/auth/refresh', null, { withCredentials: true, headers });
+          const newToken = res?.data?.data?.token;
+          
+          if (newToken) {
+            localStorage.setItem('token', newToken);
+            api.defaults.headers.common.Authorization = `Bearer ${newToken}`;
+            
+            if (typeof window !== 'undefined' && window.__updateAuthToken) {
+              window.__updateAuthToken(newToken);
+            }
+            
+            // Schedule next refresh
+            scheduleTokenRefresh();
+          }
+        } catch (err) {
+          console.error('Proactive token refresh failed:', err);
+        }
+      }, refreshTime);
+    }
+  } catch (err) {
+    // Invalid token format, ignore
+  }
+};
+
 // Request interceptor to add auth token
 api.interceptors.request.use(
   (config) => {
@@ -78,6 +132,12 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
 
+    // Prevent duplicate refresh requests by marking this request
+    if (originalRequest._retry) {
+      return Promise.reject(error);
+    }
+    originalRequest._retry = true;
+
     if (isRefreshing) {
       // Queue this request until refresh completes
       return new Promise((resolve, reject) => {
@@ -107,6 +167,9 @@ api.interceptors.response.use(
         window.__updateAuthToken(newToken);
       }
       
+      // 🔥 NEW: Schedule next proactive refresh after successful refresh
+      scheduleTokenRefresh();
+      
       // If backend returned a rotated refresh token (app), capture and forward it
       try {
         const isNative = typeof window !== 'undefined' && !!window.ReactNativeWebView;
@@ -128,6 +191,12 @@ api.interceptors.response.use(
       // 🔥 UPDATE: Clear Zustand store state on refresh failure
       if (typeof window !== 'undefined' && window.__updateAuthToken) {
         window.__updateAuthToken(null);
+      }
+      
+      // 🔥 NEW: Clear refresh timer on failure
+      if (tokenRefreshTimer) {
+        clearTimeout(tokenRefreshTimer);
+        tokenRefreshTimer = null;
       }
       
       processQueue(refreshErr, null);
@@ -375,11 +444,18 @@ export const setAuthToken = (token, updateStore = false) => {
     if (updateStore && typeof window !== 'undefined' && window.__updateAuthToken) {
       window.__updateAuthToken(token);
     }
+    // 🔥 NEW: Schedule proactive refresh when token is set
+    scheduleTokenRefresh();
   } else {
     localStorage.removeItem('token');
     delete api.defaults.headers.common.Authorization;
     if (updateStore && typeof window !== 'undefined' && window.__updateAuthToken) {
       window.__updateAuthToken(null);
+    }
+    // Clear refresh timer
+    if (tokenRefreshTimer) {
+      clearTimeout(tokenRefreshTimer);
+      tokenRefreshTimer = null;
     }
   }
 };

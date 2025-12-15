@@ -277,6 +277,11 @@ goalSchema.index({ completed: 1, isDiscoverable: 1, titleLower: 1, category: 1 }
 goalSchema.index({ isPublic: 1, isActive: 1, completed: 1, likeCount: -1, completedAt: -1 });
 goalSchema.index({ isPublic: 1, isActive: 1, completed: 1, category: 1, likeCount: -1, completedAt: -1 });
 
+// Compound indexes for search optimization
+goalSchema.index({ isPublic: 1, isActive: 1, completed: 1, titleLower: 1 }); // For text search
+goalSchema.index({ isPublic: 1, isActive: 1, completed: 1, category: 1, completedAt: -1 }); // For category filter + sort
+goalSchema.index({ userId: 1, isActive: 1, completed: 1 }); // For user's own goals lookup
+
 // Virtual for days until target
 goalSchema.virtual('daysUntilTarget').get(function () {
     if (!this.targetDate) return null;

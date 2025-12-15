@@ -354,72 +354,137 @@ class UserService {
 
     const escapeRegex = (s) => String(s || '').replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
 
-    const match = { isActive: true };
+    // Get blocked user IDs (both directions: users I blocked + users who blocked me)
+    let blockedUserIds = [];
+    if (requestingUserId) {
+      const Block = require('../models/Block');
+      const blocks = await Block.find({
+        $or: [
+          { blockerId: requestingUserId, isActive: true },
+          { blockedId: requestingUserId, isActive: true }
+        ]
+      }).select('blockerId blockedId').lean();
+      
+      blockedUserIds = blocks.map(b => 
+        String(b.blockerId) === String(requestingUserId) ? b.blockedId : b.blockerId
+      );
+    }
+
+    const match = { 
+      isActive: true,
+      _id: { $nin: [...blockedUserIds, requestingUserId] } // Exclude blocked users and self
+    };
+    
     if (interest && String(interest).trim()) {
       match.interests = String(interest).trim();
     }
 
     const q = (searchTerm || '').trim();
     const hasQ = q.length >= 2;
-    const sw = hasQ ? `^${escapeRegex(q.toLowerCase())}` : null;
-    const ct = hasQ ? escapeRegex(q.toLowerCase()) : null;
 
-    const aggregate = [
-      { $match: match },
-      {
-        $addFields: {
-          _uname: { $toLower: { $ifNull: ['$username', ''] } },
-          _name: { $toLower: { $ifNull: ['$name', ''] } }
-        }
-      },
-      {
-        $addFields: hasQ ? {
-          rank: {
-            $switch: {
-              branches: [
-                { case: { $regexMatch: { input: '$_uname', regex: sw } }, then: 4 },
-                { case: { $regexMatch: { input: '$_name',  regex: sw } }, then: 3 },
-                { case: { $regexMatch: { input: '$_uname', regex: ct } }, then: 2 },
-                { case: { $regexMatch: { input: '$_name',  regex: ct } }, then: 1 },
-              ],
-              default: 0
+    // Build optimized aggregation pipeline
+    const pipeline = [];
+    
+    // First stage: filter by isActive and interest (uses index)
+    pipeline.push({ $match: match });
+
+    // If we have search term, add ranking logic
+    if (hasQ) {
+      const sw = `^${escapeRegex(q.toLowerCase())}`; // starts with
+      const ct = escapeRegex(q.toLowerCase()); // contains
+
+      pipeline.push(
+        {
+          $addFields: {
+            _uname: { $toLower: { $ifNull: ['$username', ''] } },
+            _name: { $toLower: { $ifNull: ['$name', ''] } }
+          }
+        },
+        {
+          $addFields: {
+            rank: {
+              $switch: {
+                branches: [
+                  { case: { $regexMatch: { input: '$_uname', regex: sw } }, then: 4 },
+                  { case: { $regexMatch: { input: '$_name',  regex: sw } }, then: 3 },
+                  { case: { $regexMatch: { input: '$_uname', regex: ct } }, then: 2 },
+                  { case: { $regexMatch: { input: '$_name',  regex: ct } }, then: 1 },
+                ],
+                default: 0
+              }
             }
           }
-        } : { rank: 0 }
-      },
-      {
-        $facet: {
-          data: [
-            { $sort: { rank: -1, totalPoints: -1, completedGoals: -1, createdAt: -1 } },
-            { $skip: (Math.max(1, parseInt(page)) - 1) * parseInt(limit) },
-            { $limit: parseInt(limit) },
-            { $project: { password: 0, refreshToken: 0, _uname: 0, _name: 0 } }
-          ],
-          total: [
-            { $count: 'count' }
-          ]
-        }
-      }
-    ];
+        },
+        // Filter out non-matches when searching
+        { $match: { rank: { $gt: 0 } } }
+      );
+    }
 
-    const res = await User.aggregate(aggregate);
+    // Add total count and paginated results using $facet
+    pipeline.push({
+      $facet: {
+        data: [
+          { $sort: hasQ 
+            ? { rank: -1, totalPoints: -1, completedGoals: -1 }
+            : { totalPoints: -1, completedGoals: -1, createdAt: -1 }
+          },
+          { $skip: (Math.max(1, parseInt(page)) - 1) * parseInt(limit) },
+          { $limit: parseInt(limit) },
+          // Project only needed fields for better performance
+          { $project: {
+            _id: 1,
+            name: 1,
+            username: 1,
+            avatar: 1,
+            bio: 1,
+            level: 1,
+            totalPoints: 1,
+            completedGoals: 1,
+            currentStreak: 1,
+            totalGoals: 1,
+            interests: 1,
+            isPrivate: 1
+          }}
+        ],
+        total: [
+          { $count: 'count' }
+        ]
+      }
+    });
+
+    const res = await User.aggregate(pipeline);
     const arr = res && res[0] ? res[0] : { data: [], total: [] };
     const users = arr.data || [];
     const total = (arr.total && arr.total[0] && arr.total[0].count) ? arr.total[0].count : 0;
 
+    // Enrich with following status (use lean queries for speed)
     let enrichedUsers = users;
-    if (requestingUserId) {
-      enrichedUsers = await Promise.all(
-        users.map(async (user) => {
-          const isFollowing = await Follow.isFollowing(requestingUserId, user._id);
-          let isRequested = false;
-          if (!isFollowing) {
-            const pending = await require('../models/Follow').findOne({ followerId: requestingUserId, followingId: user._id, status: 'pending', isActive: false });
-            isRequested = !!pending;
-          }
-          return { ...user, isFollowing, isRequested };
-        })
-      );
+    if (requestingUserId && users.length > 0) {
+      const userIds = users.map(u => u._id);
+      
+      // Batch fetch all following relationships at once (much faster than individual queries)
+      const followingRecords = await Follow.find({
+        followerId: requestingUserId,
+        followingId: { $in: userIds },
+        isActive: true
+      }).select('followingId status').lean();
+      
+      const followingMap = new Map();
+      const requestedMap = new Map();
+      
+      followingRecords.forEach(f => {
+        if (f.status === 'accepted') {
+          followingMap.set(String(f.followingId), true);
+        } else if (f.status === 'pending') {
+          requestedMap.set(String(f.followingId), true);
+        }
+      });
+      
+      enrichedUsers = users.map(user => ({
+        ...user,
+        isFollowing: followingMap.get(String(user._id)) || false,
+        isRequested: requestedMap.get(String(user._id)) || false
+      }));
     }
 
     return {

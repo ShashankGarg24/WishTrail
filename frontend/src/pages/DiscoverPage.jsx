@@ -5,7 +5,7 @@ import { communitiesAPI } from '../services/api'
 import useApiStore from '../store/apiStore'
 import SkeletonList from '../components/loader/SkeletonList'
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
-const GoalPostModal = lazy(() => import('../components/GoalPostModal'));
+const GoalDetailsModal = lazy(() => import('../components/GoalDetailsModal'));
 const ReportModal = lazy(() => import('../components/ReportModal'));
 const BlockModal = lazy(() => import('../components/BlockModal'));
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
@@ -99,16 +99,22 @@ const DiscoverPage = () => {
 
   useEffect(() => {
     if (!isAuthenticated) return
-    fetchInitial()
+    // Don't fetch initial content - only load interests catalog
     if (!interestsCatalog || interestsCatalog.length === 0) {
       loadInterests().catch(() => { })
     }
   }, [isAuthenticated])
 
-  // Trigger fresh fetch whenever tab changes
+  // Tab changes now only clear state, don't fetch
   useEffect(() => {
     if (!isAuthenticated) return;
-    fetchInitial();
+    // Clear results when switching tabs
+    setSearchResults([]);
+    setGoalResults([]);
+    setUsers([]);
+    setTrending([]);
+    setCommunities([]);
+    setCommunityResults([]);
   }, [activeTab, isAuthenticated]);
 
   useEffect(() => {
@@ -134,12 +140,14 @@ const DiscoverPage = () => {
       // Clear search results when no search term or filter
       setSearchResults([]);
       setGoalResults([]);
+      setCommunityResults([]);
       setIsSearching(false);
-      if (activeTab === 'communities') setCommunityResults(communities);
     }
-  }, [searchTerm, selectedInterest, activeTab, communities]);
+  }, [searchTerm, selectedInterest, activeTab]);
 
   const fetchInitial = async () => {
+    // Only fetch when user actively searches or filters
+    // This is now only called from handleSearch
     setLoading(true)
     try {
       if (activeTab === 'users') {
@@ -376,14 +384,14 @@ const DiscoverPage = () => {
     if (!t && !interestValue) {
       setSearchResults([]);
       setGoalResults([]);
-      setCommunityResults(communities);
+      setCommunityResults([]);
       setIsSearching(false);
       return;
     }
     if (t && t.length < 2 && !interestValue) {
       setSearchResults([]);
       setGoalResults([]);
-      setCommunityResults(communities);
+      setCommunityResults([]);
       setIsSearching(false);
       return;
     }
@@ -407,11 +415,19 @@ const DiscoverPage = () => {
         const totalPages = pagination?.pages || 1;
         setGoalSearchHasMore(1 < totalPages);
       } else if (activeTab === 'communities' && isFeatureEnabled('community')) {
-        const resp = await communitiesAPI.discover({ interests: interestValue || '', limit: 50 });
-        const data = resp?.data?.data || [];
-        setCommunities(data);
-        const q = t.toLowerCase();
-        setCommunityResults(q ? data.filter(c => (c.name || '').toLowerCase().includes(q)) : data);
+        // Only fetch from API if we don't have data or interest changed
+        if (communities.length === 0 || interestValue) {
+          const resp = await communitiesAPI.discover({ interests: interestValue || '', limit: 50 });
+          const data = resp?.data?.data || [];
+          setCommunities(data);
+          // Apply text filter client-side
+          const q = t.toLowerCase();
+          setCommunityResults(q ? data.filter(c => (c.name || '').toLowerCase().includes(q) || (c.description || '').toLowerCase().includes(q)) : data);
+        } else {
+          // Just filter existing communities client-side
+          const q = t.toLowerCase();
+          setCommunityResults(q ? communities.filter(c => (c.name || '').toLowerCase().includes(q) || (c.description || '').toLowerCase().includes(q)) : communities);
+        }
       }
     } catch (error) {
       console.error('Error searching:', error);
@@ -750,12 +766,12 @@ const DiscoverPage = () => {
                   <Users className="h-10 w-10 text-blue-500" />
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                  {searchTerm.trim() || selectedInterest ? 'No users found' : 'Start Exploring'}
+                  {searchTerm.trim() || selectedInterest ? 'No users found' : 'Discover People'}
                 </h3>
                 <p className="text-gray-600 dark:text-gray-400 mb-6">
                   {searchTerm.trim() || selectedInterest 
                     ? 'Try adjusting your search or filters to find more people.' 
-                    : 'Discover inspiring people and follow their journey.'}
+                    : 'Use the search bar or select interests to discover inspiring people and follow their journey.'}
                 </p>
                 {(searchTerm.trim() || selectedInterest) && (
                   <button
@@ -786,17 +802,20 @@ const DiscoverPage = () => {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.4, delay: Math.min(0.05 * idx, 0.3) }}
                     onClick={() => g._id && openGoalModal(g._id)}
-                    className="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer group"
+                    className="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-200 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-lg cursor-pointer group"
                   >
                     <div className="flex items-center gap-3 mb-4">
                       <img
                         src={g.user?.avatar || '/api/placeholder/48/48'}
                         alt={g.user?.name || 'User'}
-                        className="w-10 h-10 rounded-full border border-gray-200 dark:border-gray-700" 
+                        className="w-10 h-10 rounded-full border border-gray-200 dark:border-gray-700 group-hover:border-blue-400 dark:group-hover:border-blue-500 transition-all" 
                       />
                       <div className="min-w-0 flex-1">
                         <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{g.user?.name || 'User'}</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">{g.completedAt ? new Date(g.completedAt).toLocaleDateString() : ''}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                          {g.completed && <span className="inline-block w-2 h-2 rounded-full bg-green-500"></span>}
+                          {g.completedAt ? new Date(g.completedAt).toLocaleDateString() : (g.createdAt ? new Date(g.createdAt).toLocaleDateString() : '')}
+                        </div>
                       </div>
                     </div>
                     <h3 className="font-semibold text-gray-900 dark:text-white line-clamp-2 mb-3 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{g.title}</h3>
@@ -837,7 +856,7 @@ const DiscoverPage = () => {
                   {/* Trending Section Header */}
                   <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-2">
-                      <TrendingUp className="h-5 w-5 text-orange-500" />
+                      <TrendingUp className="h-5 w-5 text-blue-500" />
                       <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Trending Goals</h2>
                     </div>
                     <p className="text-sm text-gray-500 dark:text-gray-400">Search to discover more</p>
@@ -850,24 +869,27 @@ const DiscoverPage = () => {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.4, delay: Math.min(0.05 * idx, 0.3) }}
                       onClick={() => g._id && openGoalModal(g._id)}
-                      className="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-200 dark:border-gray-700 hover:border-orange-300 dark:hover:border-orange-600 transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer group"
+                      className="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-200 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-lg cursor-pointer group"
                     >
                       <div className="flex items-center gap-3 mb-4">
                         <img
                           src={g.user?.avatar || '/api/placeholder/48/48'}
                           alt={g.user?.name || 'User'}
-                          className="w-10 h-10 rounded-full border border-gray-200 dark:border-gray-700" 
+                          className="w-10 h-10 rounded-full border border-gray-200 dark:border-gray-700 group-hover:border-blue-400 dark:group-hover:border-blue-500 transition-all" 
                         />
                         <div className="min-w-0 flex-1">
                           <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{g.user?.name || 'User'}</div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400">{g.completedAt ? new Date(g.completedAt).toLocaleDateString() : ''}</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                            {g.completed && <span className="inline-block w-2 h-2 rounded-full bg-green-500"></span>}
+                            {g.completedAt ? new Date(g.completedAt).toLocaleDateString() : (g.createdAt ? new Date(g.createdAt).toLocaleDateString() : '')}
+                          </div>
                         </div>
-                        <TrendingUp className="h-4 w-4 text-orange-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <TrendingUp className="h-4 w-4 text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                       </div>
-                      <h3 className="font-semibold text-gray-900 dark:text-white line-clamp-2 mb-3 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">{g.title}</h3>
+                      <h3 className="font-semibold text-gray-900 dark:text-white line-clamp-2 mb-3 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{g.title}</h3>
                       <div className="flex items-center justify-between">
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-orange-700 dark:text-orange-300 bg-orange-50 dark:bg-orange-900/20">{g.category}</span>
-                        <span className="text-sm text-orange-600 dark:text-orange-400 font-medium group-hover:underline">View →</span>
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/20">{g.category}</span>
+                        <span className="text-sm text-blue-600 dark:text-blue-400 font-medium group-hover:underline">View →</span>
                       </div>
                     </motion.div>
                   ))}
@@ -886,12 +908,12 @@ const DiscoverPage = () => {
                   className="text-center py-16 px-4"
                 >
                   <div className="max-w-md mx-auto">
-                    <div className="w-20 h-20 rounded-full bg-orange-100 dark:bg-orange-900/20 flex items-center justify-center mx-auto mb-4">
-                      <TrendingUp className="h-10 w-10 text-orange-500" />
+                    <div className="w-20 h-20 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center mx-auto mb-4">
+                      <TrendingUp className="h-10 w-10 text-blue-500" />
                     </div>
-                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No trending goals yet</h3>
+                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Discover Goals</h3>
                     <p className="text-gray-600 dark:text-gray-400">
-                      Be the first to complete amazing goals and inspire others!
+                      Use the search bar or select interests to find inspiring goals and achievements!
                     </p>
                   </div>
                 </motion.div>
@@ -959,12 +981,12 @@ const DiscoverPage = () => {
                   <Users className="h-10 w-10 text-purple-500" />
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                  {searchTerm.trim() || selectedInterest ? 'No communities found' : 'No communities yet'}
+                  {searchTerm.trim() || selectedInterest ? 'No communities found' : 'Discover Communities'}
                 </h3>
                 <p className="text-gray-600 dark:text-gray-400 mb-6">
                   {searchTerm.trim() || selectedInterest 
                     ? 'Try different search terms or filters to find communities.' 
-                    : 'Communities will appear here once they are created.'}
+                    : 'Use the search bar or select interests to discover amazing communities to join.'}
                 </p>
                 {(searchTerm.trim() || selectedInterest) && (
                   <button
@@ -979,9 +1001,9 @@ const DiscoverPage = () => {
           )
         )
         }
-        {/* Goal Post Modal */}
+        {/* Goal Details Modal (same as Feed) */}
         {goalModalOpen && (
-          <Suspense fallback={null}><GoalPostModal
+          <Suspense fallback={null}><GoalDetailsModal
             isOpen={goalModalOpen}
             goalId={openGoalId}
             autoOpenComments={scrollCommentsOnOpen}

@@ -9,6 +9,7 @@ const searchGoals = async (req, res, next) => {
     const { q = '', category, interest, page = 1, limit = 20 } = req.query;
 
     // Cache only interest-based searches (with or without q)
+    // Note: Cache doesn't include user-specific filters (blocking, following)
     const cacheService = require('../services/cacheService');
     const cacheParams = { q, interest, category, page: parseInt(page), limit: parseInt(limit) };
     let cached = null;
@@ -18,7 +19,13 @@ const searchGoals = async (req, res, next) => {
 
     let payload = cached;
     if (!payload) {
-      payload = await goalService.searchGoals(q, { category, interest, page, limit });
+      payload = await goalService.searchGoals(q, { 
+        category, 
+        interest, 
+        page, 
+        limit,
+        requestingUserId: req.user.id // Pass user ID for privacy/blocking filters
+      });
       if (interest || category) {
         await cacheService.setGoalSearch(payload, cacheParams);
       }
