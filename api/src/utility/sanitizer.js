@@ -137,7 +137,6 @@ const sanitizeJournalEntry = (entry, isOwner = false, viewerId = null) => {
   
   // Return only essential fields
   const sanitized = {
-    _id: obj._id,
     content: obj.content,
     mood: obj.mood,
     visibility: obj.visibility,

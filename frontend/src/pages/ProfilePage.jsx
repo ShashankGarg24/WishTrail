@@ -194,8 +194,8 @@ const ProfilePage = () => {
       const res = await journalsAPI.getMyEntries(params);
       const entries = res?.data?.data?.entries || [];
       setJournalFeed(prev => {
-        const seen = new Set(prev.map(x => x?._id).filter(Boolean));
-        const filtered = entries.filter(e => e && e._id && !seen.has(e._id));
+        const seen = new Set(prev.map(x => x?.createdAt).filter(Boolean));
+        const filtered = entries.filter(e => e && e.createdAt && !seen.has(e.createdAt));
         return [...prev, ...filtered];
       });
       setJournalSkip(prev => prev + entries.length);
