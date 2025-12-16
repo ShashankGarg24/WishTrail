@@ -1361,9 +1361,9 @@ const useApiStore = create(
         }
       },
 
-      createJournalEntry: async ({ content, promptKey, visibility = 'private', mood = 'neutral', tags = [] }) => {
+      createJournalEntry: async ({ content, promptKey, visibility = 'private', tags = [] }) => {
         try {
-          const res = await journalsAPI.createEntry({ content, promptKey, visibility, mood, tags });
+          const res = await journalsAPI.createEntry({ content, promptKey, visibility, tags });
           const entry = res?.data?.data?.entry;
           if (entry) {
             set(state => ({ journalEntries: [entry, ...state.journalEntries] }));
@@ -1380,7 +1380,13 @@ const useApiStore = create(
           const res = await journalsAPI.updateEntry(id, payload);
           const entry = res?.data?.data?.entry;
           if (entry) {
-            set(state => ({ journalEntries: state.journalEntries.map(e => e._id === entry._id ? entry : e) }));
+            const entryId = entry.id || entry._id;
+            set(state => ({ 
+              journalEntries: state.journalEntries.map(e => {
+                const eId = e.id || e._id;
+                return eId === entryId ? entry : e;
+              })
+            }));
           }
           return { success: true, entry };
         } catch (error) {
@@ -1397,18 +1403,6 @@ const useApiStore = create(
           return entries;
         } catch (error) {
           set({ journalEntries: [] });
-          return [];
-        }
-      },
-
-      getUserJournalHighlights: async (userId, params = {}) => {
-        try {
-          const res = await journalsAPI.getHighlights(userId, params);
-          const highlights = res?.data?.data?.highlights || [];
-          set({ journalHighlights: highlights });
-          return highlights;
-        } catch (error) {
-          set({ journalHighlights: [] });
           return [];
         }
       },

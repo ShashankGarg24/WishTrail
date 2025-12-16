@@ -19,9 +19,6 @@ router.get('/me', protect, requireFeature('journal'), journalController.getMyEnt
 // Export my journal
 router.get('/export', protect, requireFeature('journal'), journalController.exportMyJournal);
 
-// Get user highlights (public/friends/private-aware)
-router.get('/highlights/:userId', optionalAuth, requireFeature('journal'), journalController.getUserHighlights);
-
 module.exports = router;
 
 

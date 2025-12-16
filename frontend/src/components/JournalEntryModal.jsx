@@ -18,7 +18,7 @@ const JournalEntryModal = ({ isOpen, onClose, entry }) => {
     return undefined;
   }, [isOpen]);
   if (!isOpen || !entry) return null;
-  const motivation = entry?.ai?.motivation || '';
+  const motivation = entry?.motivation || '';
   const s = entry?.aiSignals || {};
   return (
     <AnimatePresence>

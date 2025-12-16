@@ -1191,7 +1191,7 @@ const ProfilePage = () => {
                       )}
                       <div className="space-y-3 max-h-[500px] overflow-y-auto scrollbar-hide pr-1">
                         {journalFeed.map((e) => (
-                          <button key={e._id} onClick={() => { setSelectedEntry(e); setEntryModalOpen(true); }} className="w-full text-left p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-sm transition-all">
+                          <button key={e.id || e._id} onClick={() => { setSelectedEntry(e); setEntryModalOpen(true); }} className="w-full text-left p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-sm transition-all">
                             <div className="flex items-center justify-between mb-2.5">
                               <span className="text-xs text-gray-500 dark:text-gray-400">{formatTimeAgo(e.createdAt)}</span>
                               <span className="inline-flex items-center gap-1.5">
@@ -1240,7 +1240,12 @@ const ProfilePage = () => {
             onSubmitted={async () => {
               try {
                 await getUserJournalHighlights(currentUser?._id, { limit: 12 });
-                await getMyJournalEntries({ limit: 10 });
+                const entries = await getMyJournalEntries({ limit: 10 });
+                // Update local journalFeed with fresh entries
+                if (Array.isArray(entries) && entries.length > 0) {
+                  setJournalFeed(entries);
+                  setJournalSkip(entries.length);
+                }
               } catch { }
             }}
           /></Suspense>

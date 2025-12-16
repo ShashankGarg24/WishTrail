@@ -124,7 +124,7 @@ const sanitizeGoals = (goals, isOwner = false, viewerId = null) => {
 
 /**
  * Sanitize journal entry for API responses
- * Minimal fields: _id, content, mood, visibility, dayKey, createdAt, motivation
+ * Minimal fields: id, content, mood, visibility, dayKey, motivation, createdAt
  * @param {Object} entry - Journal entry object
  * @param {Boolean} isOwner - Whether the requester owns this entry
  * @param {String} viewerId - ID of the user viewing
@@ -141,7 +141,8 @@ const sanitizeJournalEntry = (entry, isOwner = false, viewerId = null) => {
     mood: obj.mood,
     visibility: obj.visibility,
     dayKey: obj.dayKey,
-    createdAt: obj.createdAt
+    createdAt: obj.createdAt,
+    id: obj._id ? obj._id.toString() : undefined
   };
   
   // Include AI motivation if available (flatten from ai.motivation to motivation)

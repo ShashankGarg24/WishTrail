@@ -21,7 +21,11 @@ exports.createEntry = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Content is required' });
     }
     const entry = await journalService.createEntry(req.user._id, { content, promptKey, visibility, mood, tags });
-    res.status(201).json({ success: true, data: { entry } });
+    
+    // ✅ Sanitize entry response - return only essential fields
+    const sanitizedEntry = sanitizeJournalEntry(entry, true, req.user._id);
+    
+    res.status(201).json({ success: true, data: { entry: sanitizedEntry } });
   } catch (error) {
     next(error);
   }
@@ -33,7 +37,11 @@ exports.updateEntry = async (req, res, next) => {
     const { mood, visibility } = req.body;
     if (!entryId) return res.status(400).json({ success: false, message: 'entryId required' });
     const updated = await journalService.updateEntry(req.user._id, entryId, { mood, visibility });
-    res.status(200).json({ success: true, data: { entry: updated } });
+    
+    // ✅ Sanitize updated entry response
+    const sanitizedEntry = sanitizeJournalEntry(updated, true, req.user._id);
+    
+    res.status(200).json({ success: true, data: { entry: sanitizedEntry } });
   } catch (error) {
     next(error);
   }

@@ -38,16 +38,21 @@ const JournalPromptModal = ({ isOpen, onClose, onSubmitted }) => {
       if (entry) {
         setMood(entry.mood || 'neutral');
       }
-      if (entry?.ai?.motivation) {
+      if (entry?.motivation) {
+        const entryId = entry?.id || entry?._id;
+        console.log('Setting llmResult with entryId:', entryId);
         setLlmResult({
-          entryId: entry?._id,
-          motivation: entry?.ai?.motivation || ''
+          entryId: entryId,
+          motivation: entry?.motivation || ''
         });
       } else {
+        console.log('No motivation found, closing modal');
         setContent('');
         onSubmitted?.();
         onClose();
       }
+    } catch (error) {
+      console.error('Error creating journal entry:', error);
     } finally {
       setSubmitting(false);
     }
@@ -124,8 +129,15 @@ const JournalPromptModal = ({ isOpen, onClose, onSubmitted }) => {
                   onClick={async () => {
                     try {
                       if (llmResult?.entryId) {
-                        await updateJournalEntry(llmResult.entryId, { mood, visibility });
+                        const result = await updateJournalEntry(llmResult.entryId, { mood, visibility });
+                        if (!result?.success) {
+                          console.error('Failed to update journal entry:', result?.error);
+                        }
+                      } else {
+                        console.error('No entryId found in llmResult:', llmResult);
                       }
+                    } catch (error) {
+                      console.error('Error updating journal entry:', error);
                     } finally {
                       setLlmResult(null);
                       setContent('');

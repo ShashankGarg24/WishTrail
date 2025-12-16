@@ -382,7 +382,6 @@ export const journalsAPI = {
   createEntry: (payload) => api.post('/journals', payload),
   updateEntry: (id, payload) => api.patch(`/journals/${id}`, payload),
   getMyEntries: (params) => api.get('/journals/me', { params }),
-  getHighlights: (userId, params) => api.get(`/journals/highlights/${userId}`, { params }),
   export: (params) => api.get('/journals/export', { params, responseType: 'blob' })
 };
 
