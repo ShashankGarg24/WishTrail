@@ -15,7 +15,6 @@ router.use(requireFeature('habits'));
 router.get('/', habitController.listHabits);
 router.post('/', habitController.createHabit);
 router.get('/stats', habitController.getStats);
-router.get('/analytics', habitController.getAnalytics);
 router.get('/:id', habitController.getHabit);
 router.put('/:id', habitController.updateHabit);
 router.patch('/:id/archive', habitController.archiveHabit);

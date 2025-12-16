@@ -1,5 +1,5 @@
 const habitService = require('../services/habitService');
-const { sanitizeHabit } = require('../utility/sanitizer');
+const { sanitizeHabit, sanitizeHabitForProfile } = require('../utility/sanitizer');
 
 exports.createHabit = async (req, res, next) => {
   try {
@@ -19,9 +19,9 @@ exports.listHabits = async (req, res, next) => {
     const limit = parseInt(req.query.limit, 10) || 50;
     const result = await habitService.listHabits(req.user.id || req.user._id, { includeArchived, page, limit });
     
-    // ✅ Sanitize habits - remove __v and internal fields
+    // ✅ Sanitize habits - use minimal fields for profile view
     if (result.habits && Array.isArray(result.habits)) {
-      result.habits = result.habits.map(h => sanitizeHabit(h));
+      result.habits = result.habits.map(h => sanitizeHabitForProfile(h));
     }
     
     res.status(200).json({ success: true, data: result });

@@ -1,28 +1,9 @@
-import { useEffect, useState } from 'react';
-import useApiStore from '../store/apiStore';
-import { TrendingUp, Flame, CheckCircle, XCircle, SkipForward } from 'lucide-react';
+import { TrendingUp, Flame, CheckCircle, XCircle, SkipForward, ArrowRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
-export default function HabitAnalyticsCard({ days = 30, embedded = false }) {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [data, setData] = useState(null);
-
-  const { loadHabitAnalytics, habitAnalytics } = useApiStore();
-  useEffect(() => {
-    let active = true;
-    const load = async () => {
-      setLoading(true); setError(null);
-      const res = await loadHabitAnalytics({ force: false });
-      if (!active) return;
-      if (res.success) setData(res.data || null);
-      else setError(res.error || 'Failed to load habit analytics');
-      setLoading(false);
-    };
-    load();
-    return () => { active = false; };
-  }, [loadHabitAnalytics]);
-
-  if (loading) {
+export default function HabitAnalyticsCard({ analytics, days = 30, embedded = false }) {
+  const navigate = useNavigate();
+  if (!analytics) {
     return embedded ? (
       <div className="grid grid-cols-3 gap-4">
         {[0,1,2].map(i => <div key={i} className="h-16 bg-gray-100 dark:bg-gray-800 rounded" />)}
@@ -37,18 +18,8 @@ export default function HabitAnalyticsCard({ days = 30, embedded = false }) {
     );
   }
 
-  if (error || !data) {
-    return embedded ? (
-      <div className="text-sm text-gray-500 dark:text-gray-400">{error || 'No analytics yet.'}</div>
-    ) : (
-      <div className="glass-card-hover p-6 rounded-xl">
-        <div className="text-sm text-gray-500 dark:text-gray-400">{error || 'No analytics yet.'}</div>
-      </div>
-    );
-  }
-
-  const totals = habitAnalytics.analytics.totals || { done: 0, missed: 0, skipped: 0 };
-  const top = Array.isArray(data.topHabits) ? data.topHabits : [];
+  const totals = analytics.habits || { done: 0, missed: 0, skipped: 0 };
+  const top = Array.isArray(analytics.topHabits) ? analytics.topHabits : [];
 
   const Inner = (
     <>
@@ -77,17 +48,46 @@ export default function HabitAnalyticsCard({ days = 30, embedded = false }) {
       </div>
       {top.length > 0 && (
         <div>
-          <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 inline-flex items-center gap-2"><TrendingUp className="h-4 w-4"/> Top Streaks</div>
+          <div className="flex items-center justify-between mb-3">
+            <div className="text-sm font-semibold text-gray-700 dark:text-gray-300 inline-flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-emerald-500" /> 
+              Top Habits
+            </div>
+            <button
+              onClick={() => navigate('?tab=habits')}
+              className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 inline-flex items-center gap-1 transition-colors"
+            >
+              View All <ArrowRight className="h-3 w-3" />
+            </button>
+          </div>
           <div className="space-y-2">
-            {top.map(h => (
-              <div key={h._id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/40 rounded-lg">
-                <div className="min-w-0">
-                  <div className="text-sm font-medium text-gray-900 dark:text-white truncate">{h.name}</div>
-                  <div className="text-xs text-gray-500">Total: {h.totalCompletions || 0}</div>
+            {top.map((h) => (
+              <div 
+                key={h.id} 
+                className="flex items-center justify-between p-3 bg-gradient-to-r from-gray-50 to-gray-100/50 dark:from-gray-800/40 dark:to-gray-800/20 rounded-lg hover:from-emerald-50 hover:to-teal-50 dark:hover:from-emerald-900/20 dark:hover:to-teal-900/20 transition-all duration-200 cursor-pointer border border-transparent hover:border-emerald-200 dark:hover:border-emerald-800/30"
+              >
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-medium text-gray-900 dark:text-white truncate">{h.name}</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                      Completed {h.totalCompletions || 0} {(h.totalCompletions || 0) === 1 ? 'time' : 'times'}
+                    </div>
+                  </div>
                 </div>
-                <div className="inline-flex items-center gap-2 text-orange-600 dark:text-orange-400">
-                  <Flame className="h-4 w-4" />
-                  <span className="text-sm">{h.currentStreak || 0}</span>
+                <div className="flex items-center gap-3 flex-shrink-0">
+                  <div className="text-right">
+                    <div className="inline-flex items-center gap-1 text-orange-600 dark:text-orange-400">
+                      <Flame className="h-4 w-4" />
+                      <span className="text-sm font-bold">{h.currentStreak || 0}</span>
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">current</div>
+                  </div>
+                  {h.longestStreak > 0 && (
+                    <div className="text-right border-l border-gray-300 dark:border-gray-600 pl-3">
+                      <div className="text-sm font-semibold text-gray-700 dark:text-gray-300">{h.longestStreak}</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">best</div>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}

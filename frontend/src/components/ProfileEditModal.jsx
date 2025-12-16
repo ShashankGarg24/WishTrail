@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, User, Mail, MapPin, Globe, Youtube, Instagram, Camera, Save, ExternalLink, Heart, AlertCircle, Smile } from 'lucide-react'
+import { X, User, Mail, MapPin, Globe, Youtube, Instagram, Camera, Save, ExternalLink, Heart, AlertCircle, Smile, Loader2 } from 'lucide-react'
 import useApiStore from '../store/apiStore'
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
 import { uploadAPI } from '../services/api'
@@ -68,6 +68,10 @@ const ProfileEditModal = ({ isOpen, onClose }) => {
   const [locationQuery, setLocationQuery] = useState('');
   const [avatarError, setAvatarError] = useState('')
   const [avatarUploading, setAvatarUploading] = useState(false)
+  const [urlErrors, setUrlErrors] = useState({
+    youtube: '',
+    instagram: ''
+  })
 
   // Sync form data when modal opens or user data changes
   useEffect(() => {
@@ -111,10 +115,49 @@ const ProfileEditModal = ({ isOpen, onClose }) => {
       ...prev,
       [name]: value
     }))
+    
+    // Clear URL errors when user types
+    if (name === 'youtube' || name === 'instagram') {
+      setUrlErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }))
+    }
+  }
+  
+  const validateSocialUrls = () => {
+    const errors = {
+      youtube: '',
+      instagram: ''
+    }
+    
+    // Validate YouTube URL
+    if (formData.youtube && formData.youtube.trim() !== '') {
+      const youtubePattern = /^(https?:\/\/)?(www\.)?(youtube\.com\/(c\/|channel\/|user\/|@)?|youtu\.be\/).+/i
+      if (!youtubePattern.test(formData.youtube)) {
+        errors.youtube = 'Please enter a valid YouTube URL'
+      }
+    }
+    
+    // Validate Instagram URL
+    if (formData.instagram && formData.instagram.trim() !== '') {
+      const instagramPattern = /^(https?:\/\/)?(www\.)?instagram\.com\/[a-zA-Z0-9_.]+\/?$/i
+      if (!instagramPattern.test(formData.instagram)) {
+        errors.instagram = 'Please enter a valid Instagram URL'
+      }
+    }
+    
+    setUrlErrors(errors)
+    return !errors.youtube && !errors.instagram
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    
+    // Validate social URLs
+    if (!validateSocialUrls()) {
+      return
+    }
     
     try {
       // Update user profile
@@ -496,10 +539,18 @@ const ProfileEditModal = ({ isOpen, onClose }) => {
                       type="url"
                       value={formData.youtube}
                       onChange={handleInputChange}
-                      className="w-full pl-9 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 text-sm"
+                      className={`w-full pl-9 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 text-sm ${
+                        urlErrors.youtube ? 'border-red-500 dark:border-red-500' : 'border-gray-300 dark:border-gray-600'
+                      }`}
                       placeholder="https://youtube.com/@yourusername"
                     />
                   </div>
+                  {urlErrors.youtube && (
+                    <div className="mt-1.5 text-xs text-red-600 dark:text-red-400 flex items-center gap-1">
+                      <AlertCircle className="h-3.5 w-3.5" />
+                      <span>{urlErrors.youtube}</span>
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -514,10 +565,18 @@ const ProfileEditModal = ({ isOpen, onClose }) => {
                       type="url"
                       value={formData.instagram}
                       onChange={handleInputChange}
-                      className="w-full pl-9 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 text-sm"
+                      className={`w-full pl-9 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 text-sm ${
+                        urlErrors.instagram ? 'border-red-500 dark:border-red-500' : 'border-gray-300 dark:border-gray-600'
+                      }`}
                       placeholder="https://instagram.com/yourusername"
                     />
                   </div>
+                  {urlErrors.instagram && (
+                    <div className="mt-1.5 text-xs text-red-600 dark:text-red-400 flex items-center gap-1">
+                      <AlertCircle className="h-3.5 w-3.5" />
+                      <span>{urlErrors.instagram}</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

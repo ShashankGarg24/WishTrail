@@ -3,7 +3,7 @@ const Block = require('../models/Block');
 const userService = require('../services/userService');
 const { validationResult } = require('express-validator');
 const authService = require('../services/authService');
-const { sanitizeUser, sanitizeGoals } = require('../utility/sanitizer');
+const { sanitizeUser, sanitizeGoals, sanitizeGoalsForProfile } = require('../utility/sanitizer');
 
 // Lightweight block status check
 const getBlockStatus = async (req, res, next) => {
@@ -215,10 +215,9 @@ const getUserGoals = async (req, res, next) => {
 
     const result = await goalService.getGoals(id, req.query);
 
-    // ✅ Sanitize goals - if userId is populated, remove sensitive user data
+    // ✅ Sanitize goals - Use minimal fields for profile page display
     if (result.goals && Array.isArray(result.goals)) {
-      const isOwner = id === req.user.id;
-      result.goals = sanitizeGoals(result.goals, isOwner, req.user.id);
+      result.goals = sanitizeGoalsForProfile(result.goals);
     }
 
     res.status(200).json({
@@ -388,6 +387,54 @@ const updateTimezone = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+// @desc    Get user analytics (goals + habits overall stats)
+// @route   GET /api/v1/users/analytics
+// @access  Private
+const getAnalytics = async (req, res, next) => {
+  try {
+    const Goal = require('../models/Goal');
+    const habitService = require('../services/habitService');
+    
+    const userId = req.user.id;
+    
+    // Get user to extract totalPoints, level, streaks
+    const user = await User.findById(userId).select('totalPoints level currentStreak longestStreak');
+    
+    // Get goals stats
+    const [totalGoals, completedGoals] = await Promise.all([
+      Goal.countDocuments({ userId, deletedAt: null }),
+      Goal.countDocuments({ userId, completed: true, deletedAt: null })
+    ]);
+    
+    // Get habits analytics (30 days by default)
+    const habitAnalytics = await habitService.analytics(userId, { days: 30 });
+    
+    const analytics = {
+      habits: {
+        done: habitAnalytics.done || 0,
+        missed: habitAnalytics.missed || 0,
+        skipped: habitAnalytics.skipped || 0
+      },
+      goals: {
+        totalPoints: user?.totalPoints || 0,
+        level: user?.level || 'Beginner',
+        totalGoals: totalGoals || 0,
+        completedGoals: completedGoals || 0,
+        currentStreak: user?.currentStreak || 0,
+        longestStreak: user?.longestStreak || 0
+      },
+      topHabits: habitAnalytics.topHabits || []
+    };
+    
+    res.status(200).json({
+      success: true,
+      data: { analytics }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getBlockStatus,
   getUsers,
@@ -404,5 +451,6 @@ module.exports = {
   deleteUser,
   listInterests,
   updateTimezone,
-  addDashboardYear
+  addDashboardYear,
+  getAnalytics
 }; 

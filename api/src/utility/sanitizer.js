@@ -46,6 +46,37 @@ const PRIVATE_USER_FIELDS = [
 ];
 
 /**
+ * Sanitize user for /auth/me endpoint - minimal profile fields
+ * @param {Object} user - User object
+ * @returns {Object} Minimal user object for auth/me
+ */
+const sanitizeAuthMe = (user) => {
+  if (!user) return null;
+  
+  const obj = user.toObject ? user.toObject() : { ...user };
+  
+  return {
+    name: obj.name,
+    email: obj.email,
+    bio: obj.bio,
+    location: obj.location,
+    avatar: obj.avatar,
+    followingCount: obj.followingCount,
+    followerCount: obj.followerCount,
+    totalGoals: obj.totalGoals,
+    interests: obj.interests,
+    isPrivate: obj.isPrivate,
+    gender: obj.gender,
+    username: obj.username,
+    timezone: obj.timezone,
+    currentMood: obj.currentMood,
+    instagram: obj.instagram || '',
+    website: obj.website || '',
+    youtube: obj.youtube || ''
+  };
+};
+
+/**
  * Sanitize user object for API responses
  * @param {Object} user - User object (Mongoose document or plain object)
  * @param {Boolean} isSelf - Whether the user is viewing their own profile
@@ -111,6 +142,26 @@ const sanitizeGoal = (goal, isOwner = false, viewerId = null) => {
 };
 
 /**
+ * Sanitize goal for profile page - minimal fields only
+ * @param {Object} goal - Goal object
+ * @returns {Object} Minimal goal object for profile display
+ */
+const sanitizeGoalForProfile = (goal) => {
+  if (!goal) return null;
+  
+  const obj = goal.toObject ? goal.toObject() : { ...goal };
+  
+  return {
+    title: obj.title,
+    description: obj.description,
+    category: obj.category,
+    createdAt: obj.createdAt,
+    completedAt: obj.completedAt,
+    id: obj._id ? obj._id.toString() : undefined
+  };
+};
+
+/**
  * Sanitize array of goals
  * @param {Array} goals - Array of goal objects
  * @param {Boolean} isOwner - Whether the requester owns these goals
@@ -120,6 +171,16 @@ const sanitizeGoal = (goal, isOwner = false, viewerId = null) => {
 const sanitizeGoals = (goals, isOwner = false, viewerId = null) => {
   if (!Array.isArray(goals)) return [];
   return goals.map(goal => sanitizeGoal(goal, isOwner, viewerId)).filter(Boolean);
+};
+
+/**
+ * Sanitize array of goals for profile page - minimal fields
+ * @param {Array} goals - Array of goal objects
+ * @returns {Array} Array of minimal goal objects
+ */
+const sanitizeGoalsForProfile = (goals) => {
+  if (!Array.isArray(goals)) return [];
+  return goals.map(goal => sanitizeGoalForProfile(goal)).filter(Boolean);
 };
 
 /**
@@ -144,6 +205,7 @@ const sanitizeJournalEntry = (entry, isOwner = false, viewerId = null) => {
     createdAt: obj.createdAt,
     id: obj._id ? obj._id.toString() : undefined
   };
+  console.log('Sanitizing journal entry:', sanitized);
   
   // Include AI motivation if available (flatten from ai.motivation to motivation)
   if (obj.ai && obj.ai.motivation) {
@@ -167,6 +229,32 @@ const sanitizeHabit = (habit) => {
   delete obj.__v;
   
   return obj;
+};
+
+/**
+ * Sanitize habit for profile page - minimal fields only
+ * @param {Object} habit - Habit object
+ * @returns {Object} Minimal habit object for profile display
+ */
+const sanitizeHabitForProfile = (habit) => {
+  if (!habit) return null;
+  
+  const obj = habit.toObject ? habit.toObject() : { ...habit };
+  
+  return {
+    id: obj._id ? obj._id.toString() : undefined,
+    name: obj.name,
+    description: obj.description || '',
+    frequency: obj.frequency,
+    daysOfWeek: obj.daysOfWeek || [],
+    timezone: obj.timezone,
+    reminders: (obj.reminders || []).map(r => ({
+      time: r.time
+    })),
+    currentStreak: obj.currentStreak || 0,
+    longestStreak: obj.longestStreak || 0,
+    totalCompletions: obj.totalCompletions || 0
+  };
 };
 
 /**
@@ -270,10 +358,14 @@ const sanitizeError = (error, isDevelopment = false) => {
 module.exports = {
   sanitizeUser,
   sanitizeUsers,
+  sanitizeAuthMe,
   sanitizeGoal,
   sanitizeGoals,
+  sanitizeGoalForProfile,
+  sanitizeGoalsForProfile,
   sanitizeJournalEntry,
   sanitizeHabit,
+  sanitizeHabitForProfile,
   sanitizeNotification,
   sanitizeFollow,
   sanitizeArray,

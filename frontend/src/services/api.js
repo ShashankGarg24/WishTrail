@@ -261,6 +261,7 @@ export const usersAPI = {
   getUser: (id) => api.get(`/users/${id}`),
   getDashboardStats: () => api.get('/users/dashboard'),
   getProfileSummary: () => api.get('/users/profile'),
+  getUserAnalytics: () => api.get('/users/analytics'),
   getSuggestedUsers: (params) => api.get('/users/suggestions', { params }),
   getInterests: (params) => api.get('/users/interests', { params }),
   searchUsers: (params) => api.get('/users/search', { params }),
@@ -396,7 +397,6 @@ export const habitsAPI = {
   stats: () => api.get('/habits/stats'),
   log: (id, payload) => api.post(`/habits/${id}/log`, payload),
   heatmap: (id, params) => api.get(`/habits/${id}/heatmap`, { params }),
-  analytics: (params) => api.get('/habits/analytics', { params }),
 };
 
 // Location API

@@ -2,6 +2,7 @@ const DeviceToken = require('../models/DeviceToken');
 const authService = require('../services/authService');
 const jwt = require('jsonwebtoken');
 const { validationResult } = require('express-validator');
+const { sanitizeAuthMe } = require('../utility/sanitizer');
 
 // @desc    Complete user profile and register after OTP verification
 // @route   POST /api/v1/auth/complete-profile
@@ -131,10 +132,11 @@ const logout = async (req, res, next) => {
 const getMe = async (req, res, next) => {
   try {
     const user = await authService.getCurrentUser(req.user.id);
+    const sanitizedUser = sanitizeAuthMe(user);
 
     res.status(200).json({
       success: true,
-      data: { user }
+      data: { user: sanitizedUser }
     });
   } catch (error) {
     next(error);
@@ -158,11 +160,12 @@ const updateProfile = async (req, res, next) => {
     }
 
     const user = await authService.updateProfile(req.user.id, req.body);
+    const sanitizedUser = sanitizeAuthMe(user);
 
     res.status(200).json({
       success: true,
       message: 'Profile updated successfully',
-      data: { user }
+      data: { user: sanitizedUser }
     });
   } catch (error) {
     next(error);

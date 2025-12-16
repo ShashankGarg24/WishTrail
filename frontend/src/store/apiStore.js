@@ -583,23 +583,6 @@ const useApiStore = create(
         }
       },
 
-      loadHabitAnalytics: async (opts = {}) => {
-        try {
-          const force = !!opts.force;
-          const ts = get().cacheHabitAnalyticsTs || 0;
-          const ttl = get().cacheTTLs.habitAnalytics;
-          if (!force && ts && Date.now() - ts < ttl && get().habitAnalytics) {
-            return { success: true, data: get().habitAnalytics };
-          }
-          const res = await habitsAPI.analytics({ days: 30 });
-          const data = res?.data?.data || null;
-          set({ habitAnalytics: data, cacheHabitAnalyticsTs: Date.now() });
-          return { success: true, data };
-        } catch (error) {
-          return { success: false, error: handleApiError(error) };
-        }
-      },
-
       loadHabitStats: async (opts = {}) => {
         try {
           const force = !!opts.force;
@@ -1044,6 +1027,17 @@ const useApiStore = create(
         } catch (error) {
           const errorMessage = handleApiError(error);
           set({ loading: false, error: errorMessage });
+          return { success: false, error: errorMessage };
+        }
+      },
+
+      getUserAnalytics: async () => {
+        try {
+          const response = await usersAPI.getUserAnalytics();
+          const { analytics } = response.data.data;
+          return { success: true, analytics };
+        } catch (error) {
+          const errorMessage = handleApiError(error);
           return { success: false, error: errorMessage };
         }
       },

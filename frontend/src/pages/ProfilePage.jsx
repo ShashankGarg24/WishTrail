@@ -15,6 +15,7 @@ const JournalPromptModal = lazy(() => import("../components/JournalPromptModal")
 const JournalEntryModal = lazy(() => import("../components/JournalEntryModal"));
 const JournalExportModal = lazy(() => import("../components/JournalExportModal"));
 const HabitAnalyticsCard = lazy(() => import("../components/HabitAnalyticsCard"));
+const HabitDetailModal = lazy(() => import("../components/HabitDetailModal"));
 const GoalDetailsModal = lazy(() => import('../components/GoalDetailsModal'));
 
 const ProfilePage = () => {
@@ -70,8 +71,11 @@ const ProfilePage = () => {
     journalEntries,
     getFollowers,
     getFollowing,
+    getUserAnalytics,
     isFeatureEnabled
   } = useApiStore();
+
+  const [analytics, setAnalytics] = useState(null);
 
   // Determine if viewing own profile or another user's profile
   const isOwnProfile = (() => {
@@ -93,9 +97,15 @@ const ProfilePage = () => {
   const [journalHasMore, setJournalHasMore] = useState(true);
   const [journalLoading, setJournalLoading] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
-  const [habitStats, setHabitStats] = useState(null);
   const [myHabits, setMyHabits] = useState([]);
+  const [userHabits, setUserHabits] = useState([]);
+  const [habitsPage, setHabitsPage] = useState(1);
+  const [hasMoreHabits, setHasMoreHabits] = useState(false);
+  const [loadingMoreHabits, setLoadingMoreHabits] = useState(false);
+  const HABITS_PER_PAGE = 9;
   const [openGoalId, setOpenGoalId] = useState(null)
+  const [openHabitId, setOpenHabitId] = useState(null)
+  const [habitModalOpen, setHabitModalOpen] = useState(false)
   const [scrollCommentsOnOpen, setScrollCommentsOnOpen] = useState(false)
   const [shareSheetOpen, setShareSheetOpen] = useState(false)
   const shareUrlRef = useRef('')
@@ -152,39 +162,53 @@ const ProfilePage = () => {
   }, [searchParams]);
 
   useEffect(() => {
+    
     // Load Journal when tab opens
     const fetchJournal = async () => {
       try {
-        const targetId = (isOwnProfile ? currentUser?._id : profileUser?._id);
-        if (activeTab === 'journal' && targetId) {
+        
+        if (activeTab === 'journal' && isOwnProfile && currentUser?.username) {
           // Reset feed and load first page (own profile only)
-          if (isOwnProfile) {
-            setJournalFeed([]);
-            setJournalSkip(0);
-            setJournalHasMore(true);
-            await loadMoreJournal();
+          setJournalFeed([]);
+          setJournalSkip(0);
+          setJournalHasMore(true);
+          setJournalLoading(true);
+          
+          try {
+            const params = { limit: JOURNAL_LIMIT, skip: 0 };
+            const res = await journalsAPI.getMyEntries(params);
+            const entries = res?.data?.data?.entries || [];
+            setJournalFeed(entries);
+            setJournalSkip(entries.length);
+            if (entries.length < JOURNAL_LIMIT) setJournalHasMore(false);
+          } catch (err) {
+            setJournalHasMore(false);
+          } finally {
+            setJournalLoading(false);
           }
         }
-      } catch (e) { }
+      } catch (e) {
+      }
     };
     fetchJournal();
+    
+    // Load habits when habits tab opens
+    if (activeTab === 'habits' && isOwnProfile && userHabits.length === 0) {
+      fetchUserHabits();
+    }
+    
     // Load habit analytics (no heatmap)
     const fetchHabits = async () => {
       try {
         if (activeTab !== 'overview') return;
         if (!isOwnProfile) return;
-        const [listRes, analyticsRes] = await Promise.all([
-          habitsAPI.list(),
-          habitsAPI.analytics({ days: 30 })
-        ]);
+
         const habits = listRes?.data?.data?.habits || [];
         setMyHabits(habits);
-        const analytics = analyticsRes?.data?.data || null;
-        setHabitStats(analytics);
       } catch (_) { }
     };
     fetchHabits();
-  }, [activeTab, profileUser?._id, currentUser?._id]);
+  }, [activeTab, profileUser?.username, currentUser?.username, isOwnProfile]);
 
   const loadMoreJournal = async () => {
     if (!isOwnProfile || journalLoading || !journalHasMore) return;
@@ -220,17 +244,38 @@ const ProfilePage = () => {
   const fetchOwnProfile = async () => {
     setLoading(true);
     try {
-      const result = await getGoals({ page: 1, limit: GOALS_PER_PAGE });
-      if (result.success) {
-        setUserGoals(result.goals || []);
-        const totalPages = result.pagination?.pages || 1;
+      const [goalsResult, analyticsResult] = await Promise.all([
+        getGoals({ page: 1, limit: GOALS_PER_PAGE }),
+        getUserAnalytics()
+      ]);
+      
+      if (goalsResult.success) {
+        setUserGoals(goalsResult.goals || []);
+        const totalPages = goalsResult.pagination?.pages || 1;
         setHasMoreGoals(1 < totalPages);
         setGoalsPage(1);
       }
+      
+      if (analyticsResult.success) {
+        setAnalytics(analyticsResult.analytics);
+      }
     } catch (error) {
-      console.error('Error fetching own goals:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchUserHabits = async () => {
+    if (!isOwnProfile) return;
+    try {
+      const result = await habitsAPI.list({ page: 1, limit: HABITS_PER_PAGE });
+      if (result.data.success) {
+        setUserHabits(result.data.data.habits || []);
+        const totalPages = result.data.data.pagination?.pages || 1;
+        setHasMoreHabits(1 < totalPages);
+        setHabitsPage(1);
+      }
+    } catch (error) {
     }
   };
 
@@ -256,7 +301,6 @@ const ProfilePage = () => {
         }
       }
     } catch (error) {
-      console.error('Error fetching user profile:', error);
       setError('Failed to load user profile');
     } finally {
       setLoading(false);
@@ -316,7 +360,6 @@ const ProfilePage = () => {
           followers: Math.max((prev?.followers || 0) - 1, 0)
         }));
       }
-      console.error('Error following user:', error);
       toast.error('Failed to follow user');
     }
   };
@@ -356,7 +399,6 @@ const ProfilePage = () => {
         ...prev,
         followers: (prev?.followers || 0) + 1
       }));
-      console.error('Error unfollowing user:', error);
       toast.error('Failed to unfollow user');
     }
   };
@@ -379,7 +421,6 @@ const ProfilePage = () => {
     } catch (error) {
       // Revert on error
       setIsRequested(wasRequested);
-      console.error('Error cancelling request:', error);
       toast.error('Failed to cancel request');
     }
   };
@@ -400,7 +441,6 @@ const ProfilePage = () => {
         setHasMoreGoals(nextPage < totalPages);
       }
     } catch (error) {
-      console.error('Error loading more goals:', error);
       setHasMoreGoals(false);
     } finally {
       setLoadingMoreGoals(false);
@@ -634,8 +674,6 @@ const ProfilePage = () => {
                       className="flex items-center space-x-1 hover:text-primary-500 transition-colors"
                     >
                       <Globe className="h-4 w-4" />
-                      <span>Website</span>
-                      <ExternalLink className="h-3 w-3" />
                     </a>
                   )}
 
@@ -647,8 +685,6 @@ const ProfilePage = () => {
                       className="flex items-center space-x-1 hover:text-red-500 transition-colors"
                     >
                       <Youtube className="h-4 w-4" />
-                      <span>YouTube</span>
-                      <ExternalLink className="h-3 w-3" />
                     </a>
                   )}
 
@@ -660,8 +696,6 @@ const ProfilePage = () => {
                       className="flex items-center space-x-1 hover:text-pink-500 transition-colors"
                     >
                       <Instagram className="h-4 w-4" />
-                      <span>Instagram</span>
-                      <ExternalLink className="h-3 w-3" />
                     </a>
                   )}
                 </div>
@@ -681,14 +715,16 @@ const ProfilePage = () => {
                 <div className="flex gap-2 w-full md:w-auto">
                   <button
                     onClick={() => setIsEditModalOpen(true)}
-                    className="flex-1 md:flex-none flex items-center justify-center space-x-2 px-4 py-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-lg transition-colors font-medium border border-gray-300 dark:border-gray-600"
+                    className="flex-1 md:hidden flex items-center justify-center space-x-2 px-4 py-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-lg transition-colors font-medium border border-gray-300 dark:border-gray-600"
                   >
                     <Edit2 className="h-4 w-4" />
                     <span>Edit Profile</span>
                   </button>
-                  {/* 3-dots menu for mobile - vertical dots */}
-                  <div className="relative md:hidden">
-                    <button data-profile-menu-btn="true" onClick={() => setProfileMenuOpen(v => !v)} className="px-3 py-3 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors border border-gray-300 dark:border-gray-600">⋮</button>
+                  {/* 3-dots menu - vertical dots on mobile, horizontal on desktop */}
+                  <div className="relative">
+                    <button data-profile-menu-btn="true" onClick={() => setProfileMenuOpen(v => !v)} className="px-3 py-3 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors border border-gray-300 dark:border-gray-600">
+                      <span className="md:hidden">⋮</span>
+                    </button>
                   </div>
                 </div>
               </>
@@ -838,7 +874,7 @@ const ProfilePage = () => {
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }} className="relative max-w-3xl mx-auto mb-8">
               <div className="flex justify-center mt-4">
                 <div className="relative flex w-full max-w-sm border-b border-gray-300 dark:border-gray-700">
-                  {["overview", "goals", ...(isFeatureEnabled('journal') && isOwnProfile ? ["journal"] : [])].map((tab) => (
+                  {["overview", "goals", ...(isFeatureEnabled('habits') && isOwnProfile ? ["habits"] : []), ...(isFeatureEnabled('journal') && isOwnProfile ? ["journal"] : [])].map((tab) => (
                     <button
                       key={tab}
                       onClick={() => handleTabChange(tab)}
@@ -861,15 +897,17 @@ const ProfilePage = () => {
                     layoutId="discoverTabUnderline"
                     initial={false}
                     animate={{
-                      left:
-                        activeTab === "overview"
-                          ? "0%"
-                          : activeTab === "goals"
-                            ? isFeatureEnabled('journal') && isOwnProfile ? "33.33%" : "50%"
-                            : activeTab === "journal"
-                              ? "66.66%"
-                              : "0%",
-                      width: isFeatureEnabled('journal') && isOwnProfile ? "33.33%" : "50%"
+                      left: (() => {
+                        const tabs = ["overview", "goals", ...(isFeatureEnabled('habits') && isOwnProfile ? ["habits"] : []), ...(isFeatureEnabled('journal') && isOwnProfile ? ["journal"] : [])];
+                        const activeIndex = tabs.indexOf(activeTab);
+                        const tabCount = tabs.length;
+                        return `${(activeIndex / tabCount) * 100}%`;
+                      })(),
+                      width: (() => {
+                        const tabs = ["overview", "goals", ...(isFeatureEnabled('habits') && isOwnProfile ? ["habits"] : []), ...(isFeatureEnabled('journal') && isOwnProfile ? ["journal"] : [])];
+                        const tabCount = tabs.length;
+                        return `${100 / tabCount}%`;
+                      })()
                     }}
                     transition={{
                       type: "spring",
@@ -892,7 +930,7 @@ const ProfilePage = () => {
                   <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-5 flex items-center gap-2">
                       <Trophy className="h-5 w-5 text-yellow-500" />
-                      Statistics
+                      Goal Statistics
                     </h3>
                     {isProfileAccessible() ? (
                       <>
@@ -909,21 +947,21 @@ const ProfilePage = () => {
                           <div className="p-4 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-xl border border-green-200 dark:border-green-800/30">
                             <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400 mb-2" />
                             <div className="text-2xl font-bold text-green-900 dark:text-green-100">
-                              {isOwnProfile ? (displayUser.completedGoals || 0) : (userStats?.completedGoals || 0)}
+                              {isOwnProfile ? (analytics?.goals?.completedGoals || 0) : (userStats?.completedGoals || 0)}
                             </div>
                             <div className="text-green-700 dark:text-green-300 text-xs font-medium">Completed</div>
                           </div>
                           <div className="p-4 bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 rounded-xl border border-orange-200 dark:border-orange-800/30">
                             <Flame className="h-5 w-5 text-orange-600 dark:text-orange-400 mb-2" />
                             <div className="text-2xl font-bold text-orange-900 dark:text-orange-100">
-                              {isOwnProfile ? (displayUser.currentStreak || 0) : (userStats?.currentStreak || 0)}
+                              {isOwnProfile ? (analytics?.goals?.currentStreak || 0) : (userStats?.currentStreak || 0)}
                             </div>
                             <div className="text-orange-700 dark:text-orange-300 text-xs font-medium">Day Streak</div>
                           </div>
                           <div className="p-4 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-xl border border-purple-200 dark:border-purple-800/30">
                             <Star className="h-5 w-5 text-purple-600 dark:text-purple-400 mb-2" />
                             <div className="text-2xl font-bold text-purple-900 dark:text-purple-100">
-                              {isOwnProfile ? (displayUser.totalPoints || 0) : (userStats?.totalPoints || 0)}
+                              {isOwnProfile ? (analytics?.goals?.totalPoints || 0) : (userStats?.totalPoints || 0)}
                             </div>
                             <div className="text-purple-700 dark:text-purple-300 text-xs font-medium">Points</div>
                           </div>
@@ -938,17 +976,17 @@ const ProfilePage = () => {
                             </h4>
                             <div className="flex items-center justify-between mb-2">
                               <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                {displayUser.level || 'Novice'}
+                                {analytics?.goals?.level || 'Novice'}
                               </span>
                               <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-                                {displayUser.totalPoints || 0} pts
+                                {analytics?.goals?.totalPoints || 0} pts
                               </span>
                             </div>
                             <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
                               <div
                                 className="bg-gradient-to-r from-blue-500 to-purple-500 h-2.5 rounded-full transition-all duration-300"
                                 style={{
-                                  width: `${Math.min(((displayUser.totalPoints || 0) % 100), 100)}%`
+                                  width: `${Math.min(((analytics?.goals?.totalPoints || 0) % 100), 100)}%`
                                 }}
                               ></div>
                             </div>
@@ -964,15 +1002,15 @@ const ProfilePage = () => {
                       </div>
                     )}
                   </div>
-                  {/* Hobby Analytics */}
+                  {/* Habit Analytics */}
                   <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-5 flex items-center gap-2">
                       <TrendingUp className="h-5 w-5 text-emerald-500" />
-                      Hobby Analytics
+                      Habit Statistics
                     </h3>
                     {isProfileAccessible() ? (
                       <div className="space-y-4">
-                        <HabitAnalyticsCard days={30} embedded />
+                        <HabitAnalyticsCard analytics={analytics} days={30} embedded />
                       </div>
                     ) : (
                       <div className="text-center py-12">
@@ -1004,12 +1042,12 @@ const ProfilePage = () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                           {userGoals.filter(goal => !goal.completed).slice(0, PROGRESS_GOALS_PER_PAGE).map((goal, index) => (
                             <motion.div
-                              key={goal._id}
+                              key={goal.id}
                               initial={{ opacity: 0, y: 10 }}
                               animate={{ opacity: 1, y: 0 }}
                               transition={{ duration: 0.3, delay: index * 0.05 }}
                               className="p-4 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-700/30 dark:to-gray-700/10 rounded-xl border border-gray-200 dark:border-gray-700 hover:shadow-md hover:border-blue-300 dark:hover:border-blue-600 transition-all cursor-pointer group"
-                              onClick={() => setOpenGoalId(goal._id)}
+                              onClick={() => setOpenGoalId(goal.id)}
                             >
                               <div className="flex items-start justify-between mb-3">
                                 <h4 className="font-semibold text-gray-900 dark:text-white text-sm line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors flex-1">{goal.title}</h4>
@@ -1064,18 +1102,18 @@ const ProfilePage = () => {
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                         {userGoals.map((goal, index) => (
                           <motion.div
-                            key={goal._id}
+                            key={goal.id}
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.3, delay: Math.min(index * 0.03, 0.3) }}
-                            onClick={() => setOpenGoalId(goal._id)}
+                            onClick={() => setOpenGoalId(goal.id)}
                             className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-700/50 dark:to-gray-800/30 rounded-xl p-5 border border-gray-200 dark:border-gray-700 hover:shadow-md hover:border-blue-300 dark:hover:border-blue-600 transition-all cursor-pointer group"
                           >
                             <div className="flex items-start justify-between mb-3">
                               <span className={`px-3 py-1 rounded-lg text-xs font-semibold text-white ${getCategoryColor(goal.category)} shadow-sm`}>
                                 {goal.category}
                               </span>
-                              {goal.completed ? (
+                              {goal.completedAt ? (
                                 <CheckCircle className="h-5 w-5 text-green-500" />
                               ) : (
                                 <Circle className="h-5 w-5 text-blue-500" />
@@ -1088,7 +1126,7 @@ const ProfilePage = () => {
                             )}
 
                             <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 pt-3 border-t border-gray-200 dark:border-gray-700">
-                              <span>{goal.completed ? 'Completed' : 'Created'} {formatTimeAgo(goal.completed ? goal.completedAt : goal.createdAt)}</span>
+                              <span>{goal.completedAt ? 'Completed' : 'Created'} {formatTimeAgo(goal.completedAt ? goal.completedAt : goal.createdAt)}</span>
                               <span className="text-blue-600 dark:text-blue-400 font-medium group-hover:underline">View →</span>
                             </div>
                           </motion.div>
@@ -1145,6 +1183,103 @@ const ProfilePage = () => {
                         <Lock className="h-8 w-8 text-gray-400" />
                       </div>
                       <p className="text-gray-500 dark:text-gray-400">Goals are private</p>
+                    </div>
+                  )}
+                </div>
+              )}
+              {activeTab === 'habits' && (
+                <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
+                    <Flame className="h-6 w-6 text-orange-500" />
+                    My Habits
+                  </h3>
+                  {userHabits.length > 0 ? (
+                    <>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {userHabits.map((habit, index) => (
+                          <motion.div
+                            key={habit.id || habit._id}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.3, delay: Math.min(index * 0.03, 0.3) }}
+                            onClick={() => {
+                              setOpenHabitId(habit.id || habit._id);
+                              setHabitModalOpen(true);
+                            }}
+                            className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-700/50 dark:to-gray-800/30 rounded-xl p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md hover:border-orange-300 dark:hover:border-orange-600 transition-all cursor-pointer"
+                          >
+                            <div className="flex items-start justify-between mb-3">
+                              <h4 className="font-semibold text-gray-900 dark:text-white text-base">{habit.name}</h4>
+                              {habit.currentStreak > 0 && (
+                                <div className="flex items-center gap-1 text-orange-600 dark:text-orange-400">
+                                  <Flame className="h-4 w-4" />
+                                  <span className="text-sm font-bold">{habit.currentStreak}</span>
+                                </div>
+                              )}
+                            </div>
+                            {habit.description && (
+                              <p className="text-gray-600 dark:text-gray-400 text-sm mb-3 line-clamp-2">{habit.description}</p>
+                            )}
+                            <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 pt-3 border-t border-gray-200 dark:border-gray-700">
+                              <span>{habit.totalCompletions || 0} completions</span>
+                              {habit.longestStreak > 0 && (
+                                <span className="text-emerald-600 dark:text-emerald-400 font-medium">Best: {habit.longestStreak}</span>
+                              )}
+                            </div>
+                          </motion.div>
+                        ))}
+                      </div>
+                      {hasMoreHabits && (
+                        <div className="flex justify-center mt-8">
+                          <button
+                            onClick={async () => {
+                              setLoadingMoreHabits(true);
+                              try {
+                                const nextPage = habitsPage + 1;
+                                const result = await habitsAPI.list({ page: nextPage, limit: HABITS_PER_PAGE });
+                                if (result.data.success) {
+                                  setUserHabits(prev => [...prev, ...(result.data.data.habits || [])]);
+                                  setHabitsPage(nextPage);
+                                  setHasMoreHabits(result.data.data.pagination.page < result.data.data.pagination.pages);
+                                }
+                              } catch (error) {
+                              } finally {
+                                setLoadingMoreHabits(false);
+                              }
+                            }}
+                            disabled={loadingMoreHabits}
+                            className="px-6 py-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                          >
+                            {loadingMoreHabits ? (
+                              <>
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900 dark:border-white"></div>
+                                Loading...
+                              </>
+                            ) : (
+                              'Load More Habits'
+                            )}
+                          </button>
+                        </div>
+                      )}
+                      {!hasMoreHabits && userHabits.length > 0 && (
+                        <div className="text-center mt-8 text-sm text-gray-400">
+                          No more habits to load
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="text-center py-16">
+                      <div className="bg-gray-100 dark:bg-gray-700/50 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                        <Flame className="h-8 w-8 text-gray-400" />
+                      </div>
+                      <p className="text-gray-500 dark:text-gray-400 text-lg font-medium mb-2">No habits yet</p>
+                      <p className="text-gray-400 text-sm mb-4">Start building positive habits today</p>
+                      <button 
+                        onClick={() => navigate('/dashboard')}
+                        className="px-6 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-medium transition-colors shadow-sm"
+                      >
+                        Create Habit
+                      </button>
                     </div>
                   )}
                 </div>
@@ -1298,6 +1433,41 @@ const ProfilePage = () => {
           goalId={openGoalId}
           autoOpenComments={scrollCommentsOnOpen}
           onClose={closeGoalModal}
+        /></Suspense>
+      )}
+      {/* Habit Detail Modal */}
+      {habitModalOpen && openHabitId && (
+        <Suspense fallback={null}><HabitDetailModal
+          habit={userHabits.find(h => (h.id || h._id) === openHabitId)}
+          isOpen={habitModalOpen}
+          onClose={() => {
+            setHabitModalOpen(false);
+            setOpenHabitId(null);
+          }}
+          onLog={async (status) => {
+            try {
+              await habitsAPI.log(openHabitId, { status });
+              toast.success(`Habit ${status === 'done' ? 'completed' : status}!`);
+              fetchUserHabits(); // Refresh the habits list
+            } catch (error) {
+              toast.error('Failed to log habit');
+            }
+          }}
+          onEdit={() => {
+            // Navigate to edit or open edit modal if needed
+            toast.info('Edit functionality coming soon');
+          }}
+          onDelete={async () => {
+            try {
+              await habitsAPI.remove(openHabitId);
+              toast.success('Habit deleted');
+              setHabitModalOpen(false);
+              setOpenHabitId(null);
+              fetchUserHabits(); // Refresh the habits list
+            } catch (error) {
+              toast.error('Failed to delete habit');
+            }
+          }}
         /></Suspense>
       )}
       {/* Profile Menu Modal */}

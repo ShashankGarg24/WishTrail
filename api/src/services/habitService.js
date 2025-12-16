@@ -414,7 +414,16 @@ async function analytics(userId, { days = 30 } = {}) {
   }
   // top streaks snapshot
   const habits = await Habit.find({ userId, isActive: true }).select('name currentStreak longestStreak totalCompletions').lean();
-  const top = habits.sort((a,b) => (b.currentStreak||0) - (a.currentStreak||0)).slice(0, 5);
+  const top = habits
+    .sort((a,b) => (b.currentStreak||0) - (a.currentStreak||0))
+    .slice(0, 5)
+    .map(h => ({
+      id: h._id,
+      name: h.name,
+      currentStreak: h.currentStreak || 0,
+      longestStreak: h.longestStreak || 0,
+      totalCompletions: h.totalCompletions || 0
+    }));
   return { totals, byHabit, topHabits: top };
 }
 

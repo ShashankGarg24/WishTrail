@@ -6,6 +6,7 @@ const PasswordReset = require('../models/PasswordReset');
 const OTP = require('../models/Otp');
 const emailService = require('./emailService');
 const BloomFilterService = require('../utility/BloomFilterService');
+const { ALLOWED_MOOD_EMOJIS } = require('../config/constants');
 
 class AuthService {
 
@@ -179,6 +180,29 @@ class AuthService {
   async updateProfile(userId, updateData) {
     const allowedUpdates = ['name', 'bio', 'location', 'dateOfBirth', 'avatar', 'interests', 'currentMood', 'website', 'youtube', 'instagram'];
     const updates = {};
+    
+    // Validate mood emoji if provided
+    if (updateData.currentMood !== undefined && updateData.currentMood !== '') {
+      if (!ALLOWED_MOOD_EMOJIS.includes(updateData.currentMood)) {
+        throw new Error('Invalid mood emoji. Please select from the allowed list.');
+      }
+    }
+    
+    // Validate YouTube URL if provided
+    if (updateData.youtube && updateData.youtube.trim() !== '') {
+      const youtubePattern = /^(https?:\/\/)?(www\.)?(youtube\.com\/(c\/|channel\/|user\/|@)?|youtu\.be\/).+/i;
+      if (!youtubePattern.test(updateData.youtube)) {
+        throw new Error('Invalid YouTube URL format');
+      }
+    }
+    
+    // Validate Instagram URL if provided
+    if (updateData.instagram && updateData.instagram.trim() !== '') {
+      const instagramPattern = /^(https?:\/\/)?(www\.)?instagram\.com\/[a-zA-Z0-9_.]+\/?$/i;
+      if (!instagramPattern.test(updateData.instagram)) {
+        throw new Error('Invalid Instagram URL format');
+      }
+    }
     
     // Filter allowed updates
     Object.keys(updateData).forEach(key => {

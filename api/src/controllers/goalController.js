@@ -1,6 +1,7 @@
 const { validationResult } = require('express-validator');
 const goalService = require('../services/goalService');
 const mongoose = require('mongoose');
+const { sanitizeGoalsForProfile } = require('../utility/sanitizer');
 // @desc    Search goals (completed, discoverable, public users)
 // @route   GET /api/v1/goals/search?q=&category=&interest=&page=&limit=
 // @access  Private
@@ -190,10 +191,13 @@ const getGoals = async (req, res, next) => {
     }
     const total = await Goal.countDocuments(query);
 
+    // ✅ Sanitize goals - use minimal fields when not requesting progress (profile view)
+    const sanitizedGoals = wantProgress ? goals : sanitizeGoalsForProfile(goals);
+
     res.status(200).json({
       success: true,
       data: {
-        goals,
+        goals: sanitizedGoals,
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),

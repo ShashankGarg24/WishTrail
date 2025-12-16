@@ -271,7 +271,7 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
 
         {/* Priority */}
         <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(wish.priority)}`}>
-          {wish.priority.charAt(0).toUpperCase() + wish.priority.slice(1)}
+          {wish?.priority?.charAt(0).toUpperCase() + wish?.priority?.slice(1)}
         </span>
 
         {/* Duration */}
