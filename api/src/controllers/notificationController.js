@@ -1,4 +1,8 @@
 const DeviceToken = require('../models/DeviceToken');
+const Notification = require('../models/Notification');
+const { sendFcmToUser } = require('../services/pushService');
+const User = require('../models/User');
+const { sanitizeNotification } = require('../utility/sanitizer');
 
 exports.registerDevice = async (req, res, next) => {
   try {
@@ -75,10 +79,6 @@ exports.unregisterDevice = async (req, res) => {
   }
 };
 
-const Notification = require('../models/Notification');
-const { sendFcmToUser } = require('../services/pushService');
-const User = require('../models/User');
-
 // @desc    Get current user's notifications
 // @route   GET /api/v1/notifications
 // @access  Private
@@ -90,10 +90,11 @@ const getNotifications = async (req, res, next) => {
     // Default scope is social-only for in-app panel
     const scopeValue = (scope || 'social').toLowerCase();
     const socialTypes = [
-      'new_follower','follow_request','follow_request_accepted',
+      'new_follower','follow_request_accepted',
       'activity_comment','comment_reply','mention',
       'activity_liked','comment_liked','goal_liked'
     ];
+    // Note: 'follow_request' is excluded - it's in a separate section via /follow-requests
 
     // Build base query
     const baseQuery = { userId: req.user.id };
@@ -115,14 +116,22 @@ const getNotifications = async (req, res, next) => {
         .populate('data.goalId', 'title category')
         .populate('data.likerId', 'name avatar username')
         .populate('data.actorId', 'name avatar username')
-        .populate('data.activityId', 'type')
+        .populate('data.activityId', 'type message')
         .populate('data.commentId'),
       Notification.countDocuments(baseQuery),
       // Unread count should reflect same scope/category
       Notification.countDocuments({ userId: req.user.id, isRead: false, ...(type ? { type } : (scopeValue === 'social' ? { type: { $in: socialTypes } } : {})) })
     ]);
 
-    return res.status(200).json({ success: true, data: { notifications: items, pagination: { page: parsedPage, limit: parsedLimit, total, pages: Math.ceil(total / parsedLimit) }, unread } });
+    console.log('[getNotifications] Query:', JSON.stringify(baseQuery));
+    console.log('[getNotifications] Found items:', items.length, 'Types:', items.map(i => i.type));
+
+    // Sanitize notifications
+    const sanitizedNotifications = items.map(notification => sanitizeNotification(notification));
+    
+    console.log('[getNotifications] Sanitized count:', sanitizedNotifications.length);
+
+    return res.status(200).json({ success: true, data: { notifications: sanitizedNotifications, pagination: { page: parsedPage, limit: parsedLimit, total, pages: Math.ceil(total / parsedLimit) }, unread } });
   } catch (err) {
     next(err);
   }
@@ -134,7 +143,8 @@ const getNotifications = async (req, res, next) => {
 const markAsRead = async (req, res, next) => {
   try {
     const updated = await Notification.markAsRead(req.params.id, req.user.id);
-    return res.status(200).json({ success: true, data: { notification: updated } });
+    const sanitized = sanitizeNotification(updated);
+    return res.status(200).json({ success: true, data: { notification: sanitized } });
   } catch (err) {
     next(err);
   }
@@ -158,7 +168,8 @@ const markAllAsRead = async (req, res, next) => {
 const deleteNotification = async (req, res, next) => {
   try {
     const deleted = await Notification.deleteNotification(req.params.id, req.user.id);
-    return res.status(200).json({ success: true, data: { notification: deleted } });
+    const sanitized = sanitizeNotification(deleted);
+    return res.status(200).json({ success: true, data: { notification: sanitized } });
   } catch (err) {
     next(err);
   }
@@ -216,10 +227,135 @@ const updateSettings = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+// @desc    Get follow requests (paginated, separate from regular notifications)
+// @route   GET /api/v1/notifications/follow-requests
+// @access  Private
+const getFollowRequests = async (req, res, next) => {
+  try {
+    const { page = 1, limit = 20 } = req.query;
+    const parsedPage = parseInt(page);
+    const parsedLimit = parseInt(limit);
+    const skip = (parsedPage - 1) * parsedLimit;
+
+    const baseQuery = { 
+      userId: req.user.id, 
+      type: 'follow_request'
+    };
+
+    const [items, total] = await Promise.all([
+      Notification.find(baseQuery)
+        .sort({ createdAt: -1 })
+        .limit(parsedLimit)
+        .skip(skip)
+        .populate('data.followerId', 'name avatar username')
+        .populate('data.actorId', 'name avatar username'),
+      Notification.countDocuments(baseQuery)
+    ]);
+
+    const sanitizedRequests = items.map(notification => sanitizeNotification(notification));
+    
+    return res.status(200).json({ 
+      success: true, 
+      data: { 
+        requests: sanitizedRequests, 
+        pagination: { 
+          page: parsedPage, 
+          limit: parsedLimit, 
+          total, 
+          pages: Math.ceil(total / parsedLimit) 
+        } 
+      } 
+    });
+  } catch (err) {
+    console.error('[getFollowRequests] Error:', err);
+    next(err);
+  }
+};
+
+// @desc    Accept a follow request
+// @route   POST /api/v1/notifications/follow-requests/:notificationId/accept
+// @access  Private
+const acceptFollowRequest = async (req, res, next) => {
+  try {
+    const { notificationId } = req.params;
+    const userId = req.user.id;
+
+    // Find the notification
+    const notification = await Notification.findOne({ 
+      _id: notificationId, 
+      userId, 
+      type: 'follow_request' 
+    });
+
+    if (!notification) {
+      return res.status(404).json({ success: false, message: 'Follow request not found' });
+    }
+
+    const followerId = notification.data.followerId;
+
+    // Accept the follow request
+    const Follow = require('../models/Follow');
+    await Follow.acceptFollowRequest(followerId, userId);
+
+    // Convert the notification from follow_request to new_follower
+    await Notification.convertFollowRequestToNewFollower(followerId, userId);
+
+    // Notify the requester that their request was accepted
+    await Notification.createFollowAcceptedNotification(userId, followerId);
+
+    return res.status(200).json({ 
+      success: true, 
+      message: 'Follow request accepted' 
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Reject a follow request
+// @route   POST /api/v1/notifications/follow-requests/:notificationId/reject
+// @access  Private
+const rejectFollowRequest = async (req, res, next) => {
+  try {
+    const { notificationId } = req.params;
+    const userId = req.user.id;
+
+    // Find the notification
+    const notification = await Notification.findOne({ 
+      _id: notificationId, 
+      userId, 
+      type: 'follow_request' 
+    });
+
+    if (!notification) {
+      return res.status(404).json({ success: false, message: 'Follow request not found' });
+    }
+
+    const followerId = notification.data.followerId;
+
+    // Reject the follow request
+    const Follow = require('../models/Follow');
+    await Follow.rejectFollowRequest(followerId, userId);
+
+    // Delete the notification
+    await Notification.deleteFollowRequestNotification(followerId, userId);
+
+    return res.status(200).json({ 
+      success: true, 
+      message: 'Follow request rejected' 
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   registerDevice: exports.registerDevice,
   unregisterDevice: exports.unregisterDevice,
   getNotifications,
+  getFollowRequests,
+  acceptFollowRequest,
+  rejectFollowRequest,
   markAsRead,
   markAllAsRead,
   deleteNotification,

@@ -11,6 +11,9 @@ router.post('/devices/register', optionalAuth, notificationController.registerDe
 router.use(protect);
 
 router.get('/', notificationController.getNotifications);
+router.get('/follow-requests', notificationController.getFollowRequests);
+router.post('/follow-requests/:notificationId/accept', notificationController.acceptFollowRequest);
+router.post('/follow-requests/:notificationId/reject', notificationController.rejectFollowRequest);
 router.get('/devices', notificationController.listDevices);
 router.get('/settings', notificationController.getSettings);
 router.put('/settings', notificationController.updateSettings);

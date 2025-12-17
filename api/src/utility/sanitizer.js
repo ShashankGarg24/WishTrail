@@ -267,18 +267,136 @@ const sanitizeNotification = (notification) => {
   
   const obj = notification.toObject ? notification.toObject() : { ...notification };
   
-  // Remove internal fields
-  delete obj.__v;
+  // Calculate age
+  const getAge = (date) => {
+    const now = new Date();
+    const diff = now - new Date(date);
+    const seconds = Math.floor(diff / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+    
+    if (seconds < 60) return 'just now';
+    if (minutes < 60) return `${minutes}m ago`;
+    if (hours < 24) return `${hours}h ago`;
+    if (days < 7) return `${days}d ago`;
+    if (days < 30) return `${Math.floor(days / 7)}w ago`;
+    return `${Math.floor(days / 30)}mo ago`;
+  };
   
-  // Sanitize data field to remove any sensitive info
-  if (obj.data) {
-    delete obj.data.email;
-    delete obj.data.phone;
-    delete obj.data.password;
-    delete obj.data.token;
+  const sanitized = {
+    id: obj.id,
+    type: obj.type,
+    title: obj.title,
+    message: obj.message,
+    isRead: obj.isRead,
+    createdAt: obj.createdAt,
+    age: getAge(obj.createdAt),
+    data: {}
+  };
+  
+  // Add actions for follow requests with notificationId
+  if (obj.type === 'follow_request') {
+    sanitized.actions = [
+      { 
+        type: 'accept', 
+        label: 'Accept',
+        notificationId: obj.id || obj._id 
+      },
+      { 
+        type: 'reject', 
+        label: 'Reject',
+        notificationId: obj.id || obj._id 
+      }
+    ];
+    console.log('[sanitizeNotification] Added actions to follow_request:', sanitized.actions);
   }
   
-  return obj;
+  // Sanitize data based on what's populated
+  if (obj.data) {
+    // Goal data
+    if (obj.data.goalId) {
+      if (typeof obj.data.goalId === 'object' && obj.data.goalId._id) {
+        sanitized.data.goalId = obj.data.goalId._id;
+        sanitized.data.goalTitle = obj.data.goalId.title;
+      } else {
+        sanitized.data.goalId = obj.data.goalId;
+      }
+    }
+    
+    // Actor data (for comments, likes, etc.) - unified as 'actor'
+    const actorSource = obj.data.actorId || obj.data.followerId || obj.data.likerId;
+    if (actorSource) {
+      if (typeof actorSource === 'object' && actorSource._id) {
+        sanitized.data.actor = {
+          name: actorSource.name,
+          username: actorSource.username,
+          avatar: actorSource.avatar
+        };
+      } else {
+        // Fallback to stored name/avatar if not populated
+        sanitized.data.actor = {
+          name: obj.data.actorName || obj.data.followerName || obj.data.likerName,
+          username: null,
+          avatar: obj.data.actorAvatar || obj.data.followerAvatar || obj.data.likerAvatar
+        };
+      }
+    }
+    
+    // Activity data
+    if (obj.data.activityId) {
+      if (typeof obj.data.activityId === 'object' && obj.data.activityId._id) {
+        sanitized.data.activityId = obj.data.activityId._id
+      } else {
+        sanitized.data.activityId = obj.data.activityId;
+      }
+    }
+    
+    // Comment data
+    if (obj.data.commentId) {
+      if (typeof obj.data.commentId === 'object' && obj.data.commentId._id) {
+        sanitized.data.commentId = obj.data.commentId._id;
+      } else {
+        sanitized.data.commentId = obj.data.commentId;
+      }
+    }
+    
+    // Habit data
+    if (obj.data.habitId) {
+      sanitized.data.habitId = typeof obj.data.habitId === 'object' ? obj.data.habitId._id : obj.data.habitId;
+    }
+    
+    // Achievement data
+    if (obj.data.achievementName) {
+      sanitized.data.achievement = {
+        name: obj.data.achievementName,
+        icon: obj.data.achievementIcon
+      };
+    }
+    
+    // Level data
+    if (obj.data.newLevel) {
+      sanitized.data.level = {
+        old: obj.data.oldLevel,
+        new: obj.data.newLevel
+      };
+    }
+    
+    // Streak data
+    if (obj.data.streakCount) {
+      sanitized.data.streak = {
+        count: obj.data.streakCount,
+        type: obj.data.streakType
+      };
+    }
+    
+    // Community data
+    if (obj.communityId) {
+      sanitized.data.communityId = typeof obj.communityId === 'object' ? obj.communityId._id : obj.communityId;
+    }
+  }
+  
+  return sanitized;
 };
 
 /**

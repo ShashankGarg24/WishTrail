@@ -54,7 +54,8 @@ const followUser = async (req, res, next) => {
 
     // Follow the user directly for public profile
     await Follow.followUser(followerId, userId);
-    await Notification.createFollowNotification(followerId, userId);
+    const notif = await Notification.createFollowNotification(followerId, userId);
+    console.log('[Follow] Notification created:', notif ? 'Yes' : 'No', 'for follower:', followerId, 'following:', userId);
     
     // Check if activity already exists
     const existingActivity = await Activity.findOne({

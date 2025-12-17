@@ -164,6 +164,14 @@ followSchema.statics.acceptFollowRequest = async function(followerId, followingI
   request.status = 'accepted';
   request.isActive = true;
   request.followedAt = new Date();
+  
+  // Update user counts
+  const User = require('./User');
+  await Promise.all([
+    User.findByIdAndUpdate(followingId, { $inc: { followerCount: 1 } }),
+    User.findByIdAndUpdate(followerId, { $inc: { followingCount: 1 } })
+  ]);
+  
   return await request.save();
 };
 

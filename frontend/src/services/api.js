@@ -291,14 +291,14 @@ export const socialAPI = {
   getFollowStats: (params) => api.get('/social/stats', { params }),
   getActivityFeed: (params) => api.get('/social/feed', { params }),
   getPopularUsers: (params) => api.get('/social/popular', { params }),
-  getFollowRequests: (params) => api.get('/social/follow/requests', { params }),
+  getFollowRequests: (params) => api.get('/notifications/follow-requests', { params }),
   acceptFollowRequest: (followerId) => {
     const id = (followerId && typeof followerId === 'object') ? (followerId._id || followerId.id) : followerId;
-    return api.post(`/social/follow/requests/${id}/accept`);
+    return api.post(`/notifications/follow-requests/${id}/accept`);
   },
   rejectFollowRequest: (followerId) => {
     const id = (followerId && typeof followerId === 'object') ? (followerId._id || followerId.id) : followerId;
-    return api.post(`/social/follow/requests/${id}/reject`);
+    return api.post(`/notifications/follow-requests/${id}/reject`);
   },
   cancelFollowRequest: (userId) => api.delete(`/social/follow/requests/${userId}`),
 };

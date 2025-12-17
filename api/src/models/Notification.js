@@ -176,11 +176,7 @@ const notificationSchema = new mongoose.Schema({
   // Expiration (for cleanup)
   expiresAt: {
     type: Date,
-    default: function() {
-      // Notifications expire after 30 days
-      return new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-    },
-    index: { expireAfterSeconds: 0 }
+    default: null  // Will be set in createNotification based on type
   },
   
   // Priority level
@@ -228,6 +224,15 @@ notificationSchema.pre('save', function(next) {
 // Static method to create notification
 notificationSchema.statics.createNotification = async function(notificationData) {
   try {
+    // Set expiration based on type (only if not explicitly set)
+    if (typeof notificationData.expiresAt === 'undefined') {
+      if (notificationData.type === 'follow_request') {
+        notificationData.expiresAt = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000); // 1 year
+      } else {
+        notificationData.expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+      }
+    }
+    
     // Default push channel on selected types if not explicitly set
     const pushPreferredTypes = new Set([
       'habit_reminder','goal_due_soon','weekly_summary','monthly_summary','journal_prompt','inactivity_reminder',
@@ -372,25 +377,27 @@ notificationSchema.statics.deleteNotification = async function(notificationId, u
 
 // Static method to create follow notification
 notificationSchema.statics.createFollowNotification = async function(followerId, followingId) {
+  console.log('[createFollowNotification] Called with followerId:', followerId, 'followingId:', followingId);
   const User = mongoose.model('User');
-  const follower = await User.findById(followerId).select('name avatar');
+  const follower = await User.findById(followerId).select('name avatar username');
   
-  if (!follower) return;
+  if (!follower) {
+    console.log('[createFollowNotification] Follower not found');
+    return;
+  }
 
-  // Only notify on first follow ever. If relationship ever existed previously, do not notify again.
-  const Follow = mongoose.model('Follow');
-  try {
-    const hist = await Follow.findOne({ followerId, followingId }).lean();
-    if (hist && (hist.isActive || hist.followedAt)) {
-      // Relationship existed before; skip new follower notification on re-follow
-      return null;
-    }
-  } catch (_) {}
+  // Check if notification already exists (dedup)
+  const existing = await this.findOne({ 
+    userId: followingId, 
+    type: 'new_follower', 
+    'data.followerId': followerId 
+  });
+  if (existing) {
+    console.log('[createFollowNotification] Notification already exists');
+    return existing;
+  }
 
-  // Also dedup any existing new_follower entry
-  const existing = await this.findOne({ userId: followingId, type: 'new_follower', 'data.followerId': followerId });
-  if (existing) return existing;
-
+  console.log('[createFollowNotification] Creating new notification for:', follower.name);
   return this.createNotification({
     userId: followingId,
     type: 'new_follower',
@@ -399,7 +406,10 @@ notificationSchema.statics.createFollowNotification = async function(followerId,
     data: {
       followerId: followerId,
       followerName: follower.name,
-      followerAvatar: follower.avatar
+      followerAvatar: follower.avatar,
+      actorId: followerId,
+      actorName: follower.name,
+      actorAvatar: follower.avatar
     }
   });
 };
@@ -430,6 +440,7 @@ notificationSchema.statics.createFollowRequestNotification = async function(foll
       actorAvatar: follower.avatar
     },
     priority: 'high'
+    // expiresAt will be set to null automatically in createNotification
   });
 };
 
@@ -455,7 +466,8 @@ notificationSchema.statics.convertFollowRequestToNewFollower = async function(fo
         'data.followerName': follower.name,
         'data.followerAvatar': follower.avatar,
         isRead: false,
-        readAt: null
+        readAt: null,
+        expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) // 1 year after acceptance
       }
     },
     { new: true }
@@ -746,6 +758,37 @@ notificationSchema.statics.createHabitReminderNotification = async function(user
 // Static method to cleanup expired notifications
 notificationSchema.statics.cleanupExpiredNotifications = async function() {
   try {
+    // First, find expired follow_request notifications to clean up the Follow records
+    const expiredFollowRequests = await this.find({
+      type: 'follow_request',
+      expiresAt: { $lt: new Date() }
+    }).select('data.followerId userId').lean();
+    
+    console.log(`Found ${expiredFollowRequests.length} expired follow_request notifications`);
+    
+    // Delete the corresponding pending Follow records
+    if (expiredFollowRequests.length > 0) {
+      const Follow = require('./Follow');
+      const deletePromises = expiredFollowRequests.map(notif => {
+        const followerId = notif.data?.followerId;
+        const followingId = notif.userId;
+        
+        if (followerId && followingId) {
+          return Follow.deleteOne({
+            followerId,
+            followingId,
+            status: 'pending'
+          });
+        }
+        return Promise.resolve();
+      });
+      
+      const followResults = await Promise.all(deletePromises);
+      const deletedFollows = followResults.filter(r => r && r.deletedCount > 0).length;
+      console.log(`Deleted ${deletedFollows} pending Follow records`);
+    }
+    
+    // Now delete all expired notifications
     const result = await this.deleteMany({
       expiresAt: { $lt: new Date() }
     });

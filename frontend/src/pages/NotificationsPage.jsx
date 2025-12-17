@@ -16,6 +16,8 @@ const NotificationsPage = () => {
     acceptFollowRequest,
     rejectFollowRequest,
     loadMoreNotifications,
+    getFollowRequests,
+    followRequests,
   } = useApiStore()
 
   const [loading, setLoading] = useState(false);
@@ -36,7 +38,10 @@ const NotificationsPage = () => {
   const fetchInitialData = async (opts = {}) => {
     setLoading(true);
     try {
-      await getNotifications({ page: 1, limit: 15, scope: 'social' }, opts);
+      await Promise.all([
+        getNotifications({ page: 1, limit: 15, scope: 'social' }, opts),
+        getFollowRequests({ page: 1, limit: 10 })
+      ]);
     } catch (error) {
       console.error('Error fetching notification data:', error);
     } finally {
@@ -131,8 +136,99 @@ const NotificationsPage = () => {
         {/* Notifications List */}
         {loading ? (
           <SkeletonNotifications count={6} />
-        ) : (notifications || []).length > 0 ? (
+        ) : ((notifications || []).length > 0 || (followRequests || []).length > 0) ? (
           <div className="space-y-6">
+            {/* Follow Requests Section */}
+            {(followRequests || []).length > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="h-px flex-1 bg-gradient-to-r from-transparent via-gray-300 dark:via-gray-700 to-transparent"></div>
+                  <span className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 px-2">Follow Requests</span>
+                  <div className="h-px flex-1 bg-gradient-to-r from-transparent via-gray-300 dark:via-gray-700 to-transparent"></div>
+                </div>
+                
+                <div className="space-y-2">
+                  {(followRequests || []).map((n) => {
+                    const actorName = n.data?.actor?.name || 'Someone';
+                    const actorAvatar = n.data?.actor?.avatar || '/api/placeholder/48/48';
+                    const actorUsername = n.data?.actor?.username;
+                    const isUnread = !n.isRead;
+                    
+                    return (
+                      <div
+                        key={n.id}
+                        className={`bg-white dark:bg-gray-800 rounded-xl p-4 hover:shadow-lg transition-all ${
+                          isUnread ? 'ring-2 ring-primary-500/50 shadow-md' : 'shadow-sm'
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="relative flex-shrink-0">
+                            <img
+                              src={actorAvatar}
+                              alt={actorName}
+                              className="w-12 h-12 rounded-full ring-2 ring-white dark:ring-gray-700 cursor-pointer"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (actorUsername) navigate(`/profile/@${actorUsername}?tab=overview`)
+                              }}
+                            />
+                            {isUnread && (
+                              <span className="absolute -top-1 -right-1 w-3 h-3 bg-primary-500 rounded-full ring-2 ring-white dark:ring-gray-800"></span>
+                            )}
+                          </div>
+                          
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-gray-900 dark:text-gray-100">
+                              <span className="font-semibold cursor-pointer hover:text-primary-500" onClick={() => actorUsername && navigate(`/profile/@${actorUsername}?tab=overview`)}>
+                                {actorName}
+                              </span>
+                              <span className="text-gray-600 dark:text-gray-400"> wants to follow you</span>
+                            </p>
+                            <div className="flex items-center gap-2 mt-1.5">
+                              <span className="text-xs text-gray-500 dark:text-gray-400">{n.age || formatTimeAgo(n.createdAt)}</span>
+                              {isUnread && (
+                                <span className="text-xs px-2 py-0.5 bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 rounded-full font-medium">
+                                  New
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex gap-2 ml-2">
+                            <button
+                              onClick={async (e) => { 
+                                e.stopPropagation();
+                                await acceptFollowRequest(n.id);
+                                await getFollowRequests({ page: 1, limit: 10 });
+                              }}
+                              className="p-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors shadow-sm"
+                              title="Accept"
+                            >
+                              <Check className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={async (e) => { 
+                                e.stopPropagation();
+                                await rejectFollowRequest(n.id);
+                                await getFollowRequests({ page: 1, limit: 10 });
+                              }}
+                              className="p-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg transition-colors"
+                              title="Reject"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Regular Notifications */}
+            {(notifications || []).length > 0 && (
+            <div className="space-y-6">
             {(() => {
               const now = new Date();
               const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -157,20 +253,21 @@ const NotificationsPage = () => {
                   
                   <div className="space-y-2">
                     {items.map((n) => {
-                      const actorName = n.data?.actorName || n.data?.followerName || n.data?.likerName || 'Someone';
-                      const actorAvatar = n.data?.actorAvatar || n.data?.followerAvatar || n.data?.likerAvatar;
+                      const actorName = n.data?.actor?.name || 'Someone';
+                      const actorAvatar = n.data?.actor?.avatar || '/api/placeholder/48/48';
+                      const goalTitle = n.data?.goalTitle;
                       const isUnread = !n.isRead;
                       
                       return (
                         <div
-                          key={n._id}
+                          key={n.id}
                           className={`bg-white dark:bg-gray-800 rounded-xl p-4 cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all ${
                             isUnread ? 'ring-2 ring-primary-500/50 shadow-md' : 'shadow-sm'
                           }`}
                           onClick={() => {
-                            if (n.type === 'follow_request' || n.type === 'new_follower') navigate(`/profile/@${n.data.actorId.username}?tab=overview`)
-                            else if (n.data?.goalId?._id) navigate(`/feed?goalId=${n.data.goalId._id}`)
-                            markNotificationRead(n._id)
+                            if (n.type === 'new_follower') navigate(`/profile/@${n.data.actor.username}?tab=overview`)
+                            else if (n.data?.goalId) navigate(`/feed?goalId=${n.data.goalId}`)
+                            markNotificationRead(n.id)
                           }}
                         >
                           <div className="flex items-start gap-3">
@@ -181,8 +278,7 @@ const NotificationsPage = () => {
                                 className="w-12 h-12 rounded-full ring-2 ring-white dark:ring-gray-700"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  if (n.data?.actorId?.username) navigate(`/profile/@${n.data.actorId.username}?tab=overview`)
-                                  else if (n.data?.actorId?._id) navigate(`/profile/${n.data.actorId._id}`)
+                                  if (n.data?.actor?.username) navigate(`/profile/@${n.data.actor.username}?tab=overview`)
                                 }}
                               />
                               {isUnread && (
@@ -195,6 +291,13 @@ const NotificationsPage = () => {
                                 <span className="font-semibold">{actorName}</span>
                                 <span className="text-gray-600 dark:text-gray-400"> {n.message?.replace(actorName, '').trim()}</span>
                               </p>
+                              {goalTitle && (
+                                <div className="mt-1.5 px-2.5 py-1 bg-gradient-to-r from-primary-50 to-purple-50 dark:from-primary-900/20 dark:to-purple-900/20 rounded-lg border border-primary-200 dark:border-primary-800 inline-block">
+                                  <p className="text-xs font-medium text-primary-700 dark:text-primary-300 truncate">
+                                    {goalTitle}
+                                  </p>
+                                </div>
+                              )}
                               <div className="flex items-center gap-2 mt-1.5">
                                 <span className="text-xs text-gray-500 dark:text-gray-400">{formatTimeAgo(n.createdAt)}</span>
                                 {isUnread && (
@@ -204,33 +307,6 @@ const NotificationsPage = () => {
                                 )}
                               </div>
                             </div>
-
-                            {n.type === 'follow_request' && n.data?.followerId && (
-                              <div className="flex gap-2 ml-2">
-                                <button
-                                  onClick={async (e) => { 
-                                    e.stopPropagation();
-                                    await acceptFollowRequest(n.data.followerId?._id || n.data.followerId); 
-                                    await markNotificationRead(n._id); 
-                                  }}
-                                  className="p-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors shadow-sm"
-                                  title="Accept"
-                                >
-                                  <Check className="w-4 h-4" />
-                                </button>
-                                <button
-                                  onClick={async (e) => { 
-                                    e.stopPropagation();
-                                    await rejectFollowRequest(n.data.followerId?._id || n.data.followerId); 
-                                    await markNotificationRead(n._id); 
-                                  }}
-                                  className="p-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg transition-colors"
-                                  title="Reject"
-                                >
-                                  <X className="w-4 h-4" />
-                                </button>
-                              </div>
-                            )}
                           </div>
                         </div>
                       );
@@ -247,6 +323,8 @@ const NotificationsPage = () => {
                 </>
               );
             })()}
+            </div>
+            )}
 
             {/* Load More Button */}
             {notificationsPagination && notificationsPagination.page < notificationsPagination.pages && (
