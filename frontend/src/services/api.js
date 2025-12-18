@@ -334,8 +334,6 @@ export const notificationsAPI = {
   markAsRead: (id) => api.patch(`/notifications/${id}/read`),
   markAllAsRead: () => api.patch('/notifications/read-all'),
   deleteNotification: (id) => api.delete(`/notifications/${id}`),
-  getSettings: () => api.get('/notifications/settings'),
-  updateSettings: (settings) => api.put('/notifications/settings', { settings }),
   registerDevice: (payload) => api.post('/notifications/devices/register', payload),
   unregisterDevice: (token) => api.post('/notifications/devices/unregister', { token })
 };
@@ -422,6 +420,28 @@ export const feedbackAPI = {
 // Features API
 export const featuresAPI = {
   list: () => api.get('/features')
+}
+
+export const settingsAPI = {
+  // Privacy settings
+  getPrivacySettings: () => api.get('/settings/privacy'),
+  updatePrivacySettings: (data) => api.post('/settings/privacy', data),
+  
+  // Theme settings
+  getThemeSettings: () => api.get('/settings/theme'),
+  updateThemeSettings: (data) => api.post('/settings/theme', data),
+  
+  // Blocked users
+  getBlockedUsers: (params) => api.get('/settings/blocked', { params }),
+  blockUser: (userId) => api.post('/settings/blocked', { userId }),
+  unblockUser: (username) => api.delete(`/settings/blocked/${username}`),
+  
+  // Notification settings
+  getNotificationSettings: () => api.get('/settings/notifications'),
+  updateNotificationSettings: (data) => api.post('/settings/notifications', data),
+  
+  // Password
+  updatePassword: (data) => api.post('/settings/password', data)
 }
 
 // Utility functions

@@ -141,6 +141,7 @@ const createApp = async () => {
   apiRouter.use('/moderation', require('./routes/moderationRoutes'));
   apiRouter.use('/notifications', require('./routes/notificationRoutes'));
   apiRouter.use('/communities', require('./routes/communityRoutes'));
+  apiRouter.use('/settings', require('./routes/settingsRoutes'));
   // Feature flags
   apiRouter.use('/features', require('./routes/featureFlagRoutes'));
   // Config management

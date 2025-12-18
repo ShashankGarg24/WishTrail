@@ -15,8 +15,6 @@ router.get('/follow-requests', notificationController.getFollowRequests);
 router.post('/follow-requests/:notificationId/accept', notificationController.acceptFollowRequest);
 router.post('/follow-requests/:notificationId/reject', notificationController.rejectFollowRequest);
 router.get('/devices', notificationController.listDevices);
-router.get('/settings', notificationController.getSettings);
-router.put('/settings', notificationController.updateSettings);
 router.patch('/:id/read', notificationController.markAsRead);
 router.patch('/read-all', notificationController.markAllAsRead);
 router.delete('/:id', notificationController.deleteNotification);

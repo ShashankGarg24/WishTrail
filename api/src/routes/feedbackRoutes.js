@@ -74,7 +74,7 @@ router.post('/', protect, upload.single('screenshot'), async (req, res, next) =>
       console.warn('FEEDBACK_SHEET_WEBHOOK_URL not set. Skipping Google Sheet append.');
     }
 
-    return res.status(201).json({ success: true, message: 'Feedback submitted', data: feedbackPayload });
+    return res.status(201).json({ success: true, message: 'Feedback submitted'});
   } catch (error) {
     if (error && error.code === 'LIMIT_FILE_SIZE') {
       return res.status(413).json({ success: false, message: 'Image must be under 1 MB' });

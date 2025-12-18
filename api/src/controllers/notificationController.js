@@ -207,26 +207,6 @@ const testPush = async (req, res, next) => {
 };
 
 // @desc    Get current user's notification settings
-// @route   GET /api/v1/notifications/settings
-// @access  Private
-const getSettings = async (req, res, next) => {
-  try {
-    const user = await User.findById(req.user.id).select('notificationSettings timezone timezoneOffsetMinutes');
-    return res.status(200).json({ success: true, data: { settings: user.notificationSettings, timezone: user.timezone, timezoneOffsetMinutes: user.timezoneOffsetMinutes } });
-  } catch (err) { next(err); }
-};
-
-// @desc    Update current user's notification settings
-// @route   PUT /api/v1/notifications/settings
-// @access  Private
-const updateSettings = async (req, res, next) => {
-  try {
-    const payload = req.body && req.body.settings ? req.body.settings : req.body;
-    const user = await User.findByIdAndUpdate(req.user.id, { $set: { notificationSettings: payload } }, { new: true, runValidators: true }).select('notificationSettings');
-    return res.status(200).json({ success: true, data: { settings: user.notificationSettings } });
-  } catch (err) { next(err); }
-};
-
 // @desc    Get follow requests (paginated, separate from regular notifications)
 // @route   GET /api/v1/notifications/follow-requests
 // @access  Private
@@ -360,8 +340,6 @@ module.exports = {
   markAllAsRead,
   deleteNotification,
   listDevices: exports.listDevices,
-  testPush,
-  getSettings,
-  updateSettings,
+  testPush
 };
 

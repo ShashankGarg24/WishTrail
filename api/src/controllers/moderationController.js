@@ -2,6 +2,7 @@ const Report = require('../models/Report');
 const Block = require('../models/Block');
 const Follow = require('../models/Follow');
 const User = require('../models/User');
+const { sanitizeBlockedUsers } = require('../utility/sanitizer');
 
 // @desc Report a user or activity
 // @route POST /api/v1/moderation/report
@@ -55,13 +56,11 @@ const listBlocked = async (req, res, next) => {
     const docs = await Block.find({ blockerId: req.user.id, isActive: true })
       .populate('blockedId', 'name username avatar')
       .lean();
-    const users = docs.map(d => ({
-      _id: d?.blockedId?._id,
-      name: d?.blockedId?.name,
-      username: d?.blockedId?.username,
-      avatar: d?.blockedId?.avatar
-    })).filter(u => u && u._id);
-    res.json({ success: true, data: { users } });
+    
+    const users = docs.map(d => d?.blockedId).filter(Boolean);
+    const sanitized = sanitizeBlockedUsers(users);
+    console.log('Sanitized blocked users:', sanitized);
+    res.json({ success: true, data: { users: sanitized } });
   } catch (err) { next(err); }
 };
 

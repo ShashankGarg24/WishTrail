@@ -1,20 +1,56 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { settingsAPI } from "../../services/api";
+import { AlertCircle } from "lucide-react";
 
 export default function PrivacySettings() {
   const [isPrivate, setIsPrivate] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    fetchPrivacySettings();
+  }, []);
+
+  const fetchPrivacySettings = async () => {
+    try {
+      const response = await settingsAPI.getPrivacySettings();
+      setIsPrivate(response.data.data.isPrivate);
+    } catch (error) {
+      console.error('Failed to fetch privacy settings:', error);
+    } finally {
+      setInitialLoading(false);
+    }
+  };
 
   const handlePrivacyToggle = async () => {
     setLoading(true);
-    // 🔄 Call API to toggle privacy
-    setTimeout(() => {
+    setError("");
+    try {
+      await settingsAPI.updatePrivacySettings({ isPrivate: !isPrivate });
       setIsPrivate((prev) => !prev);
+    } catch (error) {
+      console.error('Failed to update privacy settings:', error);
+      setError(error.response?.data?.message || 'Failed to update privacy settings');
+    } finally {
       setLoading(false);
-    }, 500);
+    }
   };
+
+  if (initialLoading) {
+    return <div className="text-center py-4">Loading...</div>;
+  }
 
   return (
     <div className="space-y-6">
+      {/* Error Message */}
+      {error && (
+        <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-800 dark:text-red-200">
+          <AlertCircle className="h-5 w-5 flex-shrink-0" />
+          <p className="text-sm">{error}</p>
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-medium text-gray-900 dark:text-white">Profile Privacy</h3>

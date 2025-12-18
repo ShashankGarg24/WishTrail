@@ -15,7 +15,8 @@ import {
   notificationsAPI,
   journalsAPI,
   habitsAPI,
-  featuresAPI
+  featuresAPI,
+  settingsAPI
 } from '../services/api';
 
 const useApiStore = create(
@@ -1319,8 +1320,8 @@ const useApiStore = create(
       // =====================
       loadNotificationSettings: async () => {
         try {
-          const res = await notificationsAPI.getSettings();
-          const settings = res?.data?.data?.settings || null;
+          const res = await settingsAPI.getNotificationSettings();
+          const settings = res?.data?.data || null;
           set({ notificationSettings: settings });
           return settings;
         } catch (error) {
@@ -1330,8 +1331,8 @@ const useApiStore = create(
 
       updateNotificationSettings: async (settings) => {
         try {
-          const res = await notificationsAPI.updateSettings(settings);
-          const updated = res?.data?.data?.settings || settings;
+          const res = await settingsAPI.updateNotificationSettings(settings);
+          const updated = res?.data?.data || settings;
           set({ notificationSettings: updated });
           return { success: true, settings: updated };
         } catch (error) {
