@@ -25,7 +25,6 @@ const DiscoverPage = () => {
     unfollowUser,
     report,
     blockUser,
-    isFeatureEnabled
   } = useApiStore()
 
   const DISCOVER_PAGE_SIZE = 6
@@ -162,7 +161,7 @@ const DiscoverPage = () => {
         } else {
           setUsers([])
         }
-      } else if (activeTab === 'communities' && isFeatureEnabled('community')) {
+      } else if (activeTab === 'communities') {
         try {
           const resp = await communitiesAPI.discover({ interests: selectedInterest ? selectedInterest : '', limit: 30 });
           const data = resp?.data?.data || [];
@@ -414,7 +413,7 @@ const DiscoverPage = () => {
         setGoalResults(goals || []);
         const totalPages = pagination?.pages || 1;
         setGoalSearchHasMore(1 < totalPages);
-      } else if (activeTab === 'communities' && isFeatureEnabled('community')) {
+      } else if (activeTab === 'communities') {
         // Only fetch from API if we don't have data or interest changed
         if (communities.length === 0 || interestValue) {
           const resp = await communitiesAPI.discover({ interests: interestValue || '', limit: 50 });
@@ -467,10 +466,10 @@ const DiscoverPage = () => {
   const handleSwipe = useSwipeable({
     onSwipedLeft: () => {
       if (activeTab === "users") handleTabChange("goals")
-      else if (activeTab === "goals" && isFeatureEnabled("community")) handleTabChange("communities")
+      else if (activeTab === "goals") handleTabChange("communities")
     },
     onSwipedRight: () => {
-      if (activeTab === "communities" && isFeatureEnabled("community")) handleTabChange("goals")
+      if (activeTab === "communities") handleTabChange("goals")
       else if (activeTab === "goals") handleTabChange("users")
     },
     trackMouse: false
@@ -555,7 +554,7 @@ const DiscoverPage = () => {
           {/* Tabs */}
           <div className="flex justify-center mb-6">
             <div className="inline-flex bg-gray-100 dark:bg-gray-800 rounded-xl p-1 gap-1">
-              {["users", "goals", ...(isFeatureEnabled('community') ? ["communities"] : [])].map((tab) => (
+              {["users", "goals", "communities"].map((tab) => (
                 <button
                   key={tab}
                   onClick={() => handleTabChange(tab)}

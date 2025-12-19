@@ -34,7 +34,7 @@ const FeedbackButton = lazy(() => import('./components/FeedbackButton'))
 const SettingsPage = lazy(() => import('./pages/SettingsPage'))
 
 function App() {
-  const { isDarkMode, initializeAuth, isAuthenticated, loadFeatures, isFeatureEnabled, getNotifications } = useApiStore()
+  const { isDarkMode, initializeAuth, isAuthenticated} = useApiStore()
   const location = useLocation()
   const navigate = useNavigate()
   const [inNativeApp, setInNativeApp] = useState(false)
@@ -67,9 +67,6 @@ function App() {
   useEffect(() => {
     // Initialize authentication state
     initializeAuth();
-    // Load feature flags early
-    loadFeatures();
-
     if (isDarkMode) {
       document.documentElement.classList.add('dark')
     } else {
@@ -201,9 +198,9 @@ function App() {
               <Route path="/profile/:username" element={<Suspense fallback={null}><ProfilePage /></Suspense>} />
               <Route path="/inspiration" element={<Suspense fallback={null}><InspirationPage /></Suspense>} />
               <Route path="/settings" element={<Suspense fallback={null}><SettingsPage /></Suspense>} />
-              {isFeatureEnabled('leaderboard') && <Route path="/leaderboard" element={<Suspense fallback={null}><LeaderboardPage /></Suspense>} />}
-              {isFeatureEnabled('community') && <Route path="/communities" element={<Suspense fallback={null}><CommunitiesPage /></Suspense>} />}
-              {isFeatureEnabled('community') && <Route path="/communities/:id" element={<Suspense fallback={null}><CommunityDetailPage /></Suspense>} />}
+              <Route path="/leaderboard" element={<Suspense fallback={null}><LeaderboardPage /></Suspense>} />
+              <Route path="/communities" element={<Suspense fallback={null}><CommunitiesPage /></Suspense>} />
+              <Route path="/communities/:id" element={<Suspense fallback={null}><CommunityDetailPage /></Suspense>} />
               {/* Goal deeplink opens modal within feed/discover */}
               <Route path="/goal/:goalId" element={<Suspense fallback={null}><FeedPage /></Suspense>} />
               {/* Error pages */}

@@ -138,4 +138,11 @@ router.get('/me', protect, authController.getMe);
 router.put('/profile', protect, authController.updateProfile);
 router.put('/password', protect, authController.updatePassword);
 
+// Password setup for Google SSO users
+router.post('/password-setup/request-otp', protect, authController.requestPasswordSetupOTP);
+router.post('/password-setup/verify', protect, [
+  body('otp').isLength({ min: 6, max: 6 }).isNumeric().withMessage('OTP must be a 6-digit number'),
+  body('newPassword').isLength({ min: 6 }).withMessage('Password must be at least 6 characters')
+], authController.setPasswordWithOTP);
+
 module.exports = router;

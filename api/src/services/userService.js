@@ -141,57 +141,16 @@ class UserService {
       throw new Error('User not found');
     }
     
-    // Get goal statistics
-    const stats = {
-      totalGoals: user.totalGoals,
-      completedGoals: user.completedGoals,
-      activeGoals: user.activeGoals,
-      todayCompletions: user.getTodayCompletionCount(),
-      dailyLimit: 3,
-      totalPoints: user.totalPoints
-    };
-    
-    // Get goal completion trend (last 7 days)
-    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    const completionTrend = await Goal.aggregate([
-      {
-        $match: {
-          userId: user._id,
-          completed: true,
-          completedAt: { $gte: sevenDaysAgo }
-        }
-      },
-      {
-        $group: {
-          _id: {
-            $dateToString: { format: '%Y-%m-%d', date: '$completedAt' }
-          },
-          count: { $sum: 1 }
-        }
-      },
-      { $sort: { '_id': 1 } }
-    ]);
-    
-    // Get category breakdown
-    const categoryBreakdown = await Goal.aggregate([
-      { $match: { userId: user._id, completed: true } },
-      {
-        $group: {
-          _id: '$category',
-          count: { $sum: 1 },
-          points: { $sum: '$pointsEarned' }
-        }
-      },
-      { $sort: { count: -1 } }
-    ]);
-    
+    // Return only essential stats
     return {
-      ...stats,
+      totalGoals: user.totalGoals || 0,
+      completedGoals: user.completedGoals || 0,
+      todayCompletions: user.getTodayCompletionCount() || 0,
+      dailyLimit: 3,
+      totalPoints: user.totalPoints || 0,
       currentStreak: user.currentStreak || 0,
       longestStreak: user.longestStreak || 0,
-      level: user.level || 'Beginner',
-      completionTrend,
-      categoryBreakdown
+      level: user.level || 'Beginner'
     };
   }
   

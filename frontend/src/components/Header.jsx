@@ -4,12 +4,10 @@ import { Menu, X, Star, User, BarChart3, LogOut, Settings, Bell, CheckCircle, Se
 import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import useApiStore from '../store/apiStore'
 const SettingsModal = lazy(() => import('./SettingsModal'));
-import { notificationsAPI } from '../services/api'
 const FeedbackButton = lazy(() => import('./FeedbackButton'));
 
 const Header = () => {
-  const { isAuthenticated, logout, unreadNotifications, getNotifications, isFeatureEnabled, features, user: currentUser } = useApiStore()
-  const featuresReady = !!features
+  const { isAuthenticated, logout, unreadNotifications, getNotifications, user: currentUser } = useApiStore()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false)
@@ -25,9 +23,9 @@ const Header = () => {
     ...(isAuthenticated
       ? [
         { name: 'Feed', href: '/feed' },
-        ...(isFeatureEnabled('community') ? [{ name: 'Communities', href: '/communities' }] : []),
+        { name: 'Communities', href: '/communities' },
         { name: 'Dashboard', href: '/dashboard' },
-        ...(isFeatureEnabled('leaderboard') ? [{ name: 'Leaderboard', href: '/leaderboard?tab=global' }] : []),
+        { name: 'Leaderboard', href: '/leaderboard?tab=global' },
       ]
       : []),
   ]
@@ -139,33 +137,26 @@ const Header = () => {
               </motion.div>
             </Link>
             {/* Desktop Navigation */}
-            {featuresReady ? (
-              <nav className="hidden md:flex items-center space-x-8">
-                {mainNavigation.map((item) => (
-                  <Link
-                    key={item.name}
-                    to={item.href}
-                    className={`relative px-3 py-2 text-sm font-medium transition-colors ${isActive(item.href)
-                      ? 'text-primary-600 dark:text-primary-400'
-                      : 'text-gray-700 hover:text-primary-600 dark:text-gray-300 dark:hover:text-primary-400'
-                      }`}
-                  >
-                    {item.name}
-                    {isActive(item.href) && (
-                      <motion.div
-                        layoutId="activeTab"
-                        className="absolute -bottom-1 left-0 right-0 h-0.5 bg-primary-600 dark:bg-primary-400"
-                      />
-                    )}
-                  </Link>
-                ))}
-              </nav>
-            ) : (
-              <nav className="hidden md:flex items-center space-x-8">
-                <div className="h-4 w-16 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
-                <div className="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
-              </nav>
-            )}
+            <nav className="hidden md:flex items-center space-x-8">
+              {mainNavigation.map((item) => (
+                <Link
+                  key={item.name}
+                  to={item.href}
+                  className={`relative px-3 py-2 text-sm font-medium transition-colors ${isActive(item.href)
+                    ? 'text-primary-600 dark:text-primary-400'
+                    : 'text-gray-700 hover:text-primary-600 dark:text-gray-300 dark:hover:text-primary-400'
+                    }`}
+                >
+                  {item.name}
+                  {isActive(item.href) && (
+                    <motion.div
+                      layoutId="activeTab"
+                      className="absolute -bottom-1 left-0 right-0 h-0.5 bg-primary-600 dark:bg-primary-400"
+                    />
+                  )}
+                </Link>
+              ))}
+            </nav>
             {/* Right side */}
             <div className="flex items-center space-x-4">
               {/* Search */}
@@ -242,8 +233,7 @@ const Header = () => {
                     <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
                       Navigation
                     </div>
-                    {featuresReady ? (
-                      mainNavigation.map((item) => (
+                    {mainNavigation.map((item) => (
                         <Link
                           key={item.name}
                           to={item.href}
@@ -255,12 +245,7 @@ const Header = () => {
                         >
                           {item.name}
                         </Link>
-                      ))
-                    ) : (
-                      <>
-                        <div className="h-4 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-2" />
-                        <div className="h-4 w-28 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
-                      </>
+                      )
                     )}
                   </div>
                   {/* User Menu */}

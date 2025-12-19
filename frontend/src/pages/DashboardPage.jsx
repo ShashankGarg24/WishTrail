@@ -11,7 +11,7 @@ const WishCard = lazy(() => import('../components/WishCard'));
 const GoalSuggestionsModal = lazy(() => import('../components/GoalSuggestionsModal'));
 const HabitSuggestionsModal = lazy(() => import('../components/HabitSuggestionsModal'));
 import { API_CONFIG } from '../config/api'
-import { communitiesAPI, habitsAPI } from '../services/api'
+import { habitsAPI } from '../services/api'
 const GoalDetailsModal = lazy(() => import('../components/GoalDetailsModal'));
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
@@ -31,7 +31,6 @@ const DashboardPage = () => {
   const [initialHabitData, setInitialHabitData] = useState(null)
   const [isSuggestionsOpen, setIsSuggestionsOpen] = useState(false)
   const [isHabitIdeasOpen, setIsHabitIdeasOpen] = useState(false)
-  const [communityItems, setCommunityItems] = useState([])
   const [page, setPage] = useState(1)
   const [habitPage, setHabitPage] = useState(1)
   const [extraYears, setExtraYears] = useState([])
@@ -136,26 +135,25 @@ const DashboardPage = () => {
 
   // Load dashboard data on mount
   useEffect(() => {
-    if (isAuthenticated) {
-      // Default to current year if none in data
-      const initialYear = (yearsInData.length === 0) ? currentYear : (yearsInData.includes(selectedYear) ? selectedYear : yearsInData[0])
-      if (initialYear !== selectedYear) setSelectedYear(initialYear)
-      getDashboardStats()
-      getGoals({ year: initialYear })
-      try { communitiesAPI.listMyJoinedItems().then(r => setCommunityItems(r?.data?.data || [])).catch(() => { }) } catch { }
-    }
-  }, [isAuthenticated])
+    if (!isAuthenticated) return;
+    
+    // Default to current year if none in data
+    const initialYear = (yearsInData.length === 0) ? currentYear : (yearsInData.includes(selectedYear) ? selectedYear : yearsInData[0])
+    if (initialYear !== selectedYear) setSelectedYear(initialYear)
+    getDashboardStats()
+    // Goals will be fetched by the useEffect below that watches page/year
+  }, [isAuthenticated]) // Remove this to prevent double calls caused by dependency changes
 
   useEffect(() => {
     if (!isAuthenticated) return
     setPage(1) // Reset to first page when year changes
-  }, [selectedYear])
+  }, [selectedYear, isAuthenticated])
 
   // Fetch goals when page changes or year changes
   useEffect(() => {
     if (!isAuthenticated) return
     getGoals({ year: selectedYear, includeProgress: true, page })
-  }, [page, isAuthenticated, selectedYear])
+  }, [page, selectedYear, isAuthenticated, getGoals])
 
   // Load habits on first visit to Habits tab
   useEffect(() => {
@@ -171,7 +169,7 @@ const DashboardPage = () => {
   useEffect(() => {
     if (!isAuthenticated) return;
     try { loadCommunityGoalsForYear(selectedYear).catch(() => { }) } catch { }
-  }, [isAuthenticated, selectedYear])
+  }, [isAuthenticated, selectedYear, loadCommunityGoalsForYear])
 
   // Deep link open via ?goalId=
   useEffect(() => {
@@ -192,6 +190,81 @@ const DashboardPage = () => {
   }, [openGoalId])
 
   const userInterests = Array.isArray(user?.interests) ? user.interests : []
+
+  // Computed values and memoized data - MUST be before any early returns
+  const goalStats = useMemo(() => {
+    if (!dashboardStats) return [];
+    return [
+      { label: 'Total Goals', value: Number(dashboardStats.totalGoals) || 0, icon: Target, color: 'text-blue-500' },
+      { label: 'Completed', value: Number(dashboardStats.completedGoals) || 0, icon: CheckCircle, color: 'text-green-500' },
+      { label: 'In Progress', value: Math.max(0, (Number(dashboardStats.totalGoals) || 0) - (Number(dashboardStats.completedGoals) || 0)), icon: Circle, color: 'text-yellow-500' },
+      { label: 'Today', value: `${dashboardStats.todayCompletions || 0}/${dashboardStats.dailyLimit || 3}`, icon: Calendar, color: (dashboardStats.todayCompletions || 0) >= (dashboardStats.dailyLimit || 3) ? 'text-orange-500' : 'text-purple-500' },
+      { label: 'Total Points', value: Number(dashboardStats.totalPoints) || 0, icon: Star, color: 'text-yellow-500' },
+      { label: 'Level', value: dashboardStats.level?.level || 'Novice', icon: Award, color: dashboardStats.level?.color || 'text-gray-500', emoji: dashboardStats.level?.icon }
+    ];
+  }, [dashboardStats]);
+
+  const habitsSummary = useMemo(() => {
+    // If we have analytics data, show detailed stats
+    if (habitAnalytics?.analytics?.totals) {
+      return [
+        { label: 'Done', value: Number(habitAnalytics.analytics?.totals?.done) || 0, icon: CheckCircle, color: 'text-green-500' },
+        { label: 'Skipped', value: Number(habitAnalytics.analytics?.totals?.skipped) || 0, icon: SkipForward, color: 'text-yellow-500' },
+        { label: 'Missed', value: Number(habitAnalytics.analytics?.totals?.missed) || 0, icon: XCircle, color: 'text-red-500' },
+        { label: 'Longest Streak', value: Number(habitStats?.bestStreak ?? habitAnalytics.analytics?.totals?.longestStreak) || 0, icon: Activity, color: 'text-orange-500' }
+      ];
+    }
+    
+    // Fallback to habitStats if available
+    if (habitStats) {
+      return [
+        { label: 'Total Habits', value: Number(habitStats.totalHabits) || 0, icon: Target, color: 'text-blue-500' },
+        { label: 'Total Streak', value: Number(habitStats.totalCurrentStreak) || 0, icon: CheckCircle, color: 'text-green-500' },
+        { label: 'Best Streak', value: Number(habitStats.bestStreak) || 0, icon: Activity, color: 'text-orange-500' },
+        { label: 'Consistency', value: `${Number(habitStats.avgConsistency) || 0}%`, icon: Star, color: 'text-yellow-500' }
+      ];
+    }
+    
+    // No stats available
+    return [];
+  }, [habitAnalytics, habitStats]);
+
+  const goalsForYear = useMemo(() => {
+    return (goals || []).filter(g => g.year === selectedYear && !g.communityId && !g.isCommunitySource && !g.communityInfo);
+  }, [goals, selectedYear]);
+
+  const communityGoals = useMemo(() => {
+    return Array.isArray(communityGoalsByYear?.[String(selectedYear)]?.goals)
+      ? communityGoalsByYear[String(selectedYear)].goals
+      : [];
+  }, [communityGoalsByYear, selectedYear]);
+
+  const visibleGoals = goalsForYear;
+  const totalPages = goalsPagination ? goalsPagination.pages : 1;
+
+  const progress = useMemo(() => {
+    return dashboardStats && dashboardStats.totalGoals > 0
+      ? Math.min(
+        Math.round((dashboardStats.completedGoals / dashboardStats.totalGoals) * 100),
+        100
+      )
+      : 0;
+  }, [dashboardStats]);
+
+  const isScheduledToday = (habit) => {
+    if (!habit) return false
+    if (habit.frequency === 'daily') return true
+    const day = new Date().getDay()
+    return Array.isArray(habit.daysOfWeek) && habit.daysOfWeek.includes(day)
+  }
+
+  const frequencyLabel = (h) => {
+    if (!h) return ''
+    if (h.frequency === 'daily') return 'Daily'
+    const names = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+    const days = Array.isArray(h.daysOfWeek) ? h.daysOfWeek.slice().sort() : []
+    return days.length ? days.map(d => names[d]).join(', ') : 'Weekly'
+  }
 
   // Ensure a personal habit exists for a community habit; create if missing
   const ensurePersonalHabit = async (it) => {
@@ -414,57 +487,6 @@ const DashboardPage = () => {
     )
   }
 
-  const goalStats = dashboardStats ? [
-    { label: 'Total Goals', value: dashboardStats.totalGoals, icon: Target, color: 'text-blue-500' },
-    { label: 'Completed', value: dashboardStats.completedGoals, icon: CheckCircle, color: 'text-green-500' },
-    { label: 'In Progress', value: Math.max(0, dashboardStats.totalGoals - dashboardStats.completedGoals), icon: Circle, color: 'text-yellow-500' },
-    { label: 'Today', value: `${dashboardStats.todayCompletions || 0}/${dashboardStats.dailyLimit || 3}`, icon: Calendar, color: (dashboardStats.todayCompletions || 0) >= (dashboardStats.dailyLimit || 3) ? 'text-orange-500' : 'text-purple-500' },
-    { label: 'Total Points', value: dashboardStats.totalPoints, icon: Star, color: 'text-yellow-500' },
-    { label: 'Level', value: dashboardStats.level?.level || 'Novice', icon: Award, color: dashboardStats.level?.color || 'text-gray-500', emoji: dashboardStats.level?.icon }
-  ] : []
-
-  const habitsSummary = habitAnalytics?.analytics?.totals ? [
-    { label: 'Done', value: habitAnalytics.analytics?.totals?.done, icon: CheckCircle, color: 'text-green-500' },
-    { label: 'Skipped', value: habitAnalytics.analytics?.totals?.skipped, icon: SkipForward, color: 'text-yellow-500' },
-    { label: 'Missed', value: habitAnalytics.analytics?.totals?.missed, icon: XCircle, color: 'text-red-500' },
-    { label: 'Longest Streak', value: (habitStats?.bestStreak ?? habitAnalytics.analytics?.totals?.longestStreak ?? 0), icon: Activity, color: 'text-orange-500' }
-  ] : []
-
-
-  // Goals filtering (server handles pagination)
-
-  const goalsForYear = (goals || []).filter(g => g.year === selectedYear && !g.communityId && !g.isCommunitySource && !g.communityInfo)
-  const communityGoals = Array.isArray(communityGoalsByYear?.[String(selectedYear)]?.goals)
-    ? communityGoalsByYear[String(selectedYear)].goals
-    : []
-
-  // Server-side pagination - use the goals as returned from server (already paginated and ordered)
-  const visibleGoals = goalsForYear
-  const totalPages = goalsPagination ? goalsPagination.pages : 1
-
-  // Use dashboard stats for progress calculation (total for the year, not just current page)
-  const progress = dashboardStats && dashboardStats.totalGoals > 0
-    ? Math.min(
-      Math.round((dashboardStats.completedGoals / dashboardStats.totalGoals) * 100),
-      100
-    )
-    : 0
-
-  const isScheduledToday = (habit) => {
-    if (!habit) return false
-    if (habit.frequency === 'daily') return true
-    const day = new Date().getDay()
-    return Array.isArray(habit.daysOfWeek) && habit.daysOfWeek.includes(day)
-  }
-
-  const frequencyLabel = (h) => {
-    if (!h) return ''
-    if (h.frequency === 'daily') return 'Daily'
-    const names = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-    const days = Array.isArray(h.daysOfWeek) ? h.daysOfWeek.slice().sort() : []
-    return days.length ? days.map(d => names[d]).join(', ') : 'Weekly'
-  }
-
   return (
     <div className="min-h-screen py-8">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -653,6 +675,7 @@ const DashboardPage = () => {
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Community goals (legacy)</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {communityItems.filter(i => i.type === 'goal').map((it, index) => {
+                    const uniqueKey = `community-goal-${it.sourceId || it._id}-${it.communityId || index}`;
                     const mapped = {
                       _id: it.sourceId || it._id,
                       title: it.title,
@@ -667,7 +690,7 @@ const DashboardPage = () => {
                     }
                     return (
                       <WishCard
-                        key={`${it._id}-${index}`}
+                        key={uniqueKey}
                         wish={mapped}
                         index={index}
                         isViewingOwnGoals={true}
@@ -699,7 +722,7 @@ const DashboardPage = () => {
         {activeTab === 'habits' && (
           <>
             {/* Analytics (Habits) */}
-            {habitsSummary && (
+            {habitsSummary.length > 0 && (
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.2 }} className="grid grid-cols-2 lg:grid-cols-6 gap-4 mb-8">
                 {habitsSummary.map((stat) => (
                   <div key={stat.label} className="glass-card-hover p-6 rounded-xl text-center">

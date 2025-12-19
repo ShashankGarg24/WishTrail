@@ -21,7 +21,6 @@ const createApp = async () => {
 
   await connectDB();       
   await bloomFilter.init();
-  try { await require('./services/featureFlagService').getAllFlags(); } catch {}
   require('./cron/bloomFilterJob');
   require('./cron/journalJobs');
   require('./cron/habitReminderJobs');
@@ -142,8 +141,6 @@ const createApp = async () => {
   apiRouter.use('/notifications', require('./routes/notificationRoutes'));
   apiRouter.use('/communities', require('./routes/communityRoutes'));
   apiRouter.use('/settings', require('./routes/settingsRoutes'));
-  // Feature flags
-  apiRouter.use('/features', require('./routes/featureFlagRoutes'));
   // Config management
   apiRouter.use('/config', require('./routes/configRoutes'));
   // Cron endpoints for serverless environments; protect with CRON_SECRET

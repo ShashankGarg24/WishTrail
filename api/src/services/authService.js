@@ -87,6 +87,7 @@ class AuthService {
 
     // Remove password from response
     const userResponse = user.toObject();
+    const hasPassword = !!user.password; // Check if password exists
     delete userResponse.password;
     delete userResponse.refreshToken;
     
@@ -96,7 +97,7 @@ class AuthService {
     BloomFilterService.rebuildIdExpectedUsersIncrease(User);
 
     return {
-      user: userResponse,
+      user: { ...userResponse, hasPassword },
       token: accessToken,
       refreshToken
     };
@@ -132,12 +133,13 @@ class AuthService {
     
     // Remove password from response
     const userResponse = user.toObject();
+    const hasPassword = !!user.password; // Check if password exists
     delete userResponse.password;
     delete userResponse.refreshTokens.app;
     delete userResponse.refreshTokens.web;
     
     return {
-      user: userResponse,
+      user: { ...userResponse, hasPassword },
       token: accessToken,
       refreshToken
     };
@@ -167,13 +169,18 @@ class AuthService {
    * Get current user
    */
   async getCurrentUser(userId) {
-    const user = await User.findById(userId).select('-password -refreshToken');
+    const user = await User.findById(userId).select('+password');
     
     if (!user || !user.isActive) {
       throw new Error('User not found');
     }
     
-    return user;
+    const userResponse = user.toObject();
+    const hasPassword = !!user.password; // Check if password exists
+    delete userResponse.password;
+    delete userResponse.refreshTokens;
+    
+    return { ...userResponse, hasPassword };
   }
   
   /**
@@ -267,6 +274,103 @@ class AuthService {
 
     return {
       message: 'Password has been reset successfully. Please log in with your new password.',
+    };
+  }
+
+  /**
+   * Request OTP for setting password (for users without password)
+   */
+  async requestPasswordSetupOTP(userId) {
+    const user = await User.findById(userId).select('+password');
+    
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    // Check if user already has a password
+    if (user.password) {
+      throw new Error('You already have a password. Use the change password option instead.');
+    }
+
+    // Delete any existing OTPs for this email and purpose
+    await OTP.deleteMany({ email: user.email, purpose: 'password_setup' });
+
+    // Generate 6-digit OTP
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    // Create OTP record (expires in 10 minutes)
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+    await OTP.create({
+      email: user.email,
+      code: otpCode,
+      purpose: 'password_setup',
+      expiresAt,
+      isVerified: false
+    });
+
+    // Send OTP email (non-blocking)
+    emailService.sendOTPEmail(user.email, otpCode, 'password_setup')
+      .then(() => console.log('Password setup OTP email sent successfully'))
+      .catch(error => console.error('Failed to send password setup OTP email:', error));
+
+    return {
+      message: 'OTP sent to your email',
+      expiresAt
+    };
+  }
+
+  /**
+   * Verify OTP and set new password (for users without password)
+   */
+  async setPasswordWithOTP(userId, otp, newPassword) {
+    const user = await User.findById(userId).select('+password +refreshTokens.app +refreshTokens.web');
+    
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    // Check if user already has a password
+    if (user.password) {
+      throw new Error('You already have a password. Use the change password option instead.');
+    }
+
+    // Find and verify OTP
+    const otpRecord = await OTP.findOne({
+      email: user.email,
+      code: otp,
+      purpose: 'password_setup',
+      isVerified: false,
+      expiresAt: { $gt: new Date() }
+    });
+
+    if (!otpRecord) {
+      throw new Error('Invalid or expired OTP');
+    }
+
+    // Mark OTP as verified
+    otpRecord.isVerified = true;
+    await otpRecord.save();
+
+    // Update password (will be hashed by pre-save middleware)
+    user.password = newPassword;
+    user.passwordChangedAt = new Date();
+    // Invalidate all existing refresh tokens for security
+    user.refreshTokens.app = null;
+    user.refreshTokens.web = null;
+    await user.save();
+
+    // Delete verified OTP
+    await OTP.deleteMany({ email: user.email, purpose: 'password_setup' });
+
+    // Send confirmation email
+    try {
+      await emailService.sendPasswordChangeConfirmation(user.email, user.name);
+    } catch (error) {
+      console.error('Failed to send password change confirmation:', error);
+    }
+
+    return {
+      message: 'Password has been set successfully',
     };
   }
   
@@ -481,13 +585,11 @@ class AuthService {
     // Generate reset token
     const resetData = await PasswordReset.createResetToken(email, 15); // 15 mins expiry
 
-    // Send reset email
-    try {
-      await emailService.sendPasswordResetEmail(email, resetData.token, user.name);
-    } catch (error) {
-      console.error('Failed to send password reset email:', error);
-      // Don't throw error - we still want to return success even if email fails
-    }
+    // Send reset email (non-blocking)
+    emailService.sendPasswordResetEmail(email, resetData.token, user.name)
+      .catch(error => {
+        console.error('Failed to send password reset email:', error);
+      });
 
     return {
       message: 'If an account with this email exists, you will receive a password reset link.',
@@ -522,13 +624,11 @@ class AuthService {
     // Mark token as used
     await PasswordReset.markTokenAsUsed(token);
 
-    // Send confirmation email
-    try {
-      await emailService.sendPasswordChangeConfirmation(user.email, user.name);
-    } catch (error) {
-      console.error('Failed to send password change confirmation:', error);
-      // Don't throw error - password was successfully changed
-    }
+    // Send confirmation email (non-blocking)
+    emailService.sendPasswordChangeConfirmation(user.email, user.name)
+      .catch(error => {
+        console.error('Failed to send password change confirmation:', error);
+      });
 
     return {
       message: 'Password has been reset successfully. Please log in with your new password.',
@@ -607,14 +707,13 @@ class AuthService {
           }
         }
 
-        // Create new user with Google data
+        // Create new user with Google data (no password for SSO users)
         user = await User.create({
           name,
           email,
           username,
           googleId,
           avatar: picture,
-          password: crypto.randomBytes(32).toString('hex'), // Random password (won't be used)
           isVerified: true,
           isActive: true,
           profileCompleted: false, // User needs to complete profile later
@@ -644,12 +743,13 @@ class AuthService {
 
       // Remove sensitive data from response
       const userResponse = user.toObject();
+      const hasPassword = !!user.password; // Check if password exists
       delete userResponse.password;
       delete userResponse.refreshTokens.app;
       delete userResponse.refreshTokens.web;
 
       return {
-        user: userResponse,
+        user: { ...userResponse, hasPassword },
         token: accessToken,
         refreshToken,
         isNewUser: !user.profileCompleted

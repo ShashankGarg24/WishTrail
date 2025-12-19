@@ -54,6 +54,11 @@ class EmailService {
         html: this.getLoginOTPTemplate(code),
         text: `Your WishTrail login verification code is: ${code}. This code will expire in 10 minutes.`
       },
+      'password_setup': {
+        subject: 'Set Your WishTrail Password',
+        html: this.getPasswordSetupOTPTemplate(code),
+        text: `Your password setup verification code is: ${code}. This code will expire in 10 minutes.`
+      },
     };
 
     const template = templates[purpose] || templates.signup;
@@ -264,6 +269,92 @@ class EmailService {
         <p>This code will expire in <span class="highlight">10 minutes</span>.</p>
         
         <p>If you didn't request this login, please secure your account immediately.</p>
+      </div>
+      
+      <div class="footer">
+        <p>© 2024 WishTrail. All rights reserved.</p>
+        <p>Dreams. Goals. Progress.</p>
+      </div>
+    </body>
+    </html>
+    `;
+  }
+
+  /**
+   * Get HTML template for password setup OTP
+   */
+  getPasswordSetupOTPTemplate(code) {
+    return `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Set Your WishTrail Password</title>
+      <style>
+        body {
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+          line-height: 1.6;
+          color: #333;
+          max-width: 600px;
+          margin: 0 auto;
+          padding: 20px;
+        }
+        .container {
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          padding: 20px;
+          border-radius: 10px;
+          color: white;
+          text-align: center;
+        }
+        .logo {
+          font-size: 28px;
+          font-weight: bold;
+          margin-bottom: 20px;
+        }
+        .content {
+          background: white;
+          padding: 30px;
+          border-radius: 10px;
+          margin: 20px 0;
+          color: #333;
+        }
+        .otp-code {
+          font-size: 32px;
+          font-weight: bold;
+          letter-spacing: 5px;
+          color: #667eea;
+          background: #f8f9fa;
+          padding: 20px;
+          border-radius: 8px;
+          margin: 20px 0;
+        }
+        .footer {
+          font-size: 14px;
+          color: #666;
+          margin-top: 20px;
+        }
+        .highlight {
+          color: #667eea;
+          font-weight: bold;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="logo">🎯 WishTrail</div>
+        <h1>Set Your Password</h1>
+      </div>
+      
+      <div class="content">
+        <h2>Password Setup Verification</h2>
+        <p>You've requested to set a password for your WishTrail account. Please use the verification code below:</p>
+        
+        <div class="otp-code">${code}</div>
+        
+        <p>This code will expire in <span class="highlight">10 minutes</span>.</p>
+        
+        <p style="margin-top: 30px;">If you didn't request this, please ignore this email or contact support if you have concerns.</p>
       </div>
       
       <div class="footer">

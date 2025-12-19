@@ -77,7 +77,7 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
         setLocalHabitLinks([])
       }
     }
-  }, [isOpen, initialData, editMode])
+  }, [isOpen, initialData, editMode, loadHabits]) // Removed 'habits' dependency to prevent infinite loop
 
   useEffect(() => { if (isOpen) { lockBodyScroll(); return () => unlockBodyScroll(); } }, [isOpen])
 

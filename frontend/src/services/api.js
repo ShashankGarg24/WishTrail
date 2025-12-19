@@ -224,6 +224,10 @@ export const authAPI = {
   // Google OAuth
   googleAuth: (tokenData) => api.post('/auth/google', tokenData),
 
+  // Password setup for Google SSO users
+  requestPasswordSetupOTP: () => api.post('/auth/password-setup/request-otp'),
+  setPasswordWithOTP: (data) => api.post('/auth/password-setup/verify', data),
+
   // Password reset API
   forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
   resetPassword: (token, newPassword) => api.post('/auth/reset-password', { token, newPassword }),
@@ -287,7 +291,6 @@ export const socialAPI = {
   followUser: (userId) => api.post(`/social/follow/${userId}`),
   unfollowUser: (userId) => api.delete(`/social/follow/${userId}`),
   getFollowers: (params) => api.get('/social/followers', { params }),
-  getFollowing: (params) => api.get('/social/following', { params }),
   checkFollowingStatus: (userId) => api.get(`/social/following/check/${userId}`),
   getMutualFollowers: (userId) => api.get(`/social/mutual/${userId}`),
   getSuggestedUsers: (params) => api.get('/social/suggestions', { params }),
@@ -418,11 +421,6 @@ export const communityUploadAPI = {
 // Feedback API (helper)
 export const feedbackAPI = {
   submit: (formData) => api.post('/feedback', formData)
-}
-
-// Features API
-export const featuresAPI = {
-  list: () => api.get('/features')
 }
 
 export const settingsAPI = {

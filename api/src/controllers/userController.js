@@ -70,7 +70,7 @@ const getDashboardStats = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      data: { stats }
+      data: stats
     });
   } catch (error) {
     next(error);

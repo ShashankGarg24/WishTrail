@@ -172,6 +172,50 @@ const updateProfile = async (req, res, next) => {
   }
 };
 
+// @desc    Request OTP for password setup (Google SSO users)
+// @route   POST /api/v1/auth/password-setup/request-otp
+// @access  Private
+const requestPasswordSetupOTP = async (req, res, next) => {
+  try {
+    const result = await authService.requestPasswordSetupOTP(req.user.id);
+
+    res.status(200).json({
+      success: true,
+      message: result.message,
+      data: { expiresAt: result.expiresAt }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Set password with OTP (Google SSO users)
+// @route   POST /api/v1/auth/password-setup/verify
+// @access  Private
+const setPasswordWithOTP = async (req, res, next) => {
+  try {
+    // Check for validation errors
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+
+    const { otp, newPassword } = req.body;
+    const result = await authService.setPasswordWithOTP(req.user.id, otp, newPassword);
+
+    res.status(200).json({
+      success: true,
+      message: result.message
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Update password
 // @route   PUT /api/v1/auth/password
 // @access  Private
@@ -489,5 +533,7 @@ module.exports = {
   requestOTP,
   verifyOTP,
   resendOTP,
-  googleAuth
+  googleAuth,
+  requestPasswordSetupOTP,
+  setPasswordWithOTP
 }; 

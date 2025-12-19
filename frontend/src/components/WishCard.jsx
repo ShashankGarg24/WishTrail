@@ -15,9 +15,7 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
     likeGoal,
     user,
     isAuthenticated,
-    loading,
-    loadHabits,
-    isFeatureEnabled
+    loading
   } = useApiStore()
   
   const [isCompletionModalOpen, setIsCompletionModalOpen] = useState(false)
@@ -385,17 +383,17 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
                     }`} 
                   />
                   <span className="text-sm font-medium">
-                    {wish.likeCount || 0}
+                    {Number(wish.likeCount) || 0}
                   </span>
                 </button>
               </div>
             )}
             
             {/* Like count only (for own goals) */}
-            {isViewingOwnGoals && wish.likeCount > 0 && (
+            {isViewingOwnGoals && Number(wish.likeCount) > 0 && (
               <div className="flex items-center space-x-1 text-xs text-gray-500 dark:text-gray-400">
                 <Heart className="h-3 w-3" />
-                <span>{wish.likeCount}</span>
+                <span>{Number(wish.likeCount) || 0}</span>
               </div>
             )}
           </div>

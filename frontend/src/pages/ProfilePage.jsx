@@ -71,8 +71,7 @@ const ProfilePage = () => {
     journalEntries,
     getFollowers,
     getFollowing,
-    getUserAnalytics,
-    isFeatureEnabled
+    getUserAnalytics
   } = useApiStore();
 
   const [analytics, setAnalytics] = useState(null);
@@ -874,7 +873,7 @@ const ProfilePage = () => {
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }} className="relative max-w-3xl mx-auto mb-8">
               <div className="flex justify-center mt-4">
                 <div className="relative flex w-full max-w-sm border-b border-gray-300 dark:border-gray-700">
-                  {["overview", "goals", ...(isFeatureEnabled('habits') && isOwnProfile ? ["habits"] : []), ...(isFeatureEnabled('journal') && isOwnProfile ? ["journal"] : [])].map((tab) => (
+                  {["overview", "goals", ...(isOwnProfile ? ["habits"] : []), ...(isOwnProfile ? ["journal"] : [])].map((tab) => (
                     <button
                       key={tab}
                       onClick={() => handleTabChange(tab)}
@@ -898,13 +897,13 @@ const ProfilePage = () => {
                     initial={false}
                     animate={{
                       left: (() => {
-                        const tabs = ["overview", "goals", ...(isFeatureEnabled('habits') && isOwnProfile ? ["habits"] : []), ...(isFeatureEnabled('journal') && isOwnProfile ? ["journal"] : [])];
+                        const tabs = ["overview", "goals", ...(isOwnProfile ? ["habits"] : []), ...(isOwnProfile ? ["journal"] : [])];
                         const activeIndex = tabs.indexOf(activeTab);
                         const tabCount = tabs.length;
                         return `${(activeIndex / tabCount) * 100}%`;
                       })(),
                       width: (() => {
-                        const tabs = ["overview", "goals", ...(isFeatureEnabled('habits') && isOwnProfile ? ["habits"] : []), ...(isFeatureEnabled('journal') && isOwnProfile ? ["journal"] : [])];
+                        const tabs = ["overview", "goals", ...(isOwnProfile ? ["habits"] : []), ...(isOwnProfile ? ["journal"] : [])];
                         const tabCount = tabs.length;
                         return `${100 / tabCount}%`;
                       })()

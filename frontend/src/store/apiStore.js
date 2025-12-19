@@ -15,7 +15,6 @@ import {
   notificationsAPI,
   journalsAPI,
   habitsAPI,
-  featuresAPI,
   settingsAPI
 } from '../services/api';
 
@@ -84,10 +83,9 @@ const useApiStore = create(
       cacheHabitAnalyticsTs: 0,
       habitStats: null,
       cacheHabitStatsTs: 0,
+      cacheMeTs: 0, // Cache timestamp for auth/me call
       // UI state
       settingsModalOpen: false,
-      // Feature flags (web)
-      features: null,
       // Dashboard years (client cache)
       dashboardYears: [],
       cacheTTLs: {
@@ -371,17 +369,27 @@ const useApiStore = create(
           set({
             user: null,
             token: null,
-            isAuthenticated: false
+            isAuthenticated: false,
+            cacheMeTs: 0
           });
           return { success: true };
         }
       },
 
-      getMe: async () => {
+      getMe: async (options = {}) => {
+        const state = get();
+        const now = Date.now();
+        const TTL = 5 * 60 * 1000; // 5 minutes
+        
+        // Return cached user if fresh and not forcing refresh
+        if (!options.force && state.user && state.cacheMeTs && (now - state.cacheMeTs < TTL)) {
+          return { success: true, user: state.user, cached: true };
+        }
+        
         try {
           const response = await authAPI.getMe();
           const { user } = response.data.data;
-          set({ user, isAuthenticated: true });
+          set({ user, isAuthenticated: true, cacheMeTs: now });
           return { success: true, user };
         } catch (error) {
           // Do not hard-logout on transient 401 from /me; allow refresh flow to handle
@@ -399,7 +407,7 @@ const useApiStore = create(
           set({ loading: true, error: null });
           const response = await authAPI.updateProfile(userData);
           const { user } = response.data.data;
-          set({ user, loading: false });
+          set({ user, loading: false, cacheMeTs: Date.now() });
           return { success: true, user };
         } catch (error) {
           const errorMessage = handleApiError(error);
@@ -425,7 +433,7 @@ const useApiStore = create(
           set({ loading: true, error: null });
           const response = await authAPI.updateProfile(userData);
           const { user } = response.data.data;
-          set({ user, loading: false });
+          set({ user, loading: false, cacheMeTs: Date.now() });
           return { success: true, user };
         } catch (error) {
           const errorMessage = handleApiError(error);
@@ -518,7 +526,7 @@ const useApiStore = create(
           }
           set({ loading: true, error: null });
           const response = await usersAPI.getDashboardStats();
-          const { stats } = response.data.data;
+          const stats = response.data.data; // Stats is now directly in data, not nested
           set({ dashboardStats: stats, loading: false });
           set({ cacheDashboardStats: { data: stats, ts: Date.now() } });
           return { success: true, stats };
@@ -1612,8 +1620,6 @@ const useApiStore = create(
           set({ token, isAuthenticated: true });
           // Optionally fetch user data
           get().getMe();
-          // Load feature flags on startup (non-blocking)
-          try { get().loadFeatures?.(); } catch { }
           // Auto-detect timezone and send to backend (fire-and-forget)
           try {
             const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
@@ -1645,30 +1651,6 @@ const useApiStore = create(
         }
       }
       ,
-      // =====================
-      // FEATURES
-      // =====================
-      loadFeatures: async () => {
-        try {
-          const res = await featuresAPI.list();
-          const flags = res?.data?.data?.flags || null;
-          if (flags) set({ features: flags });
-          return flags;
-        } catch (err) {
-          return null;
-        }
-      },
-
-      isFeatureEnabled: (key) => {
-        try {
-          const k = String(key || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
-          const flags = (get().features) || {};
-          // default to true if not present
-          return !!(flags[k] ? flags[k].web !== false : true);
-        } catch {
-          return true;
-        }
-      }
     }),
     {
       name: 'wishtrail-api-store',

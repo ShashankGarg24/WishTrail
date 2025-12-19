@@ -24,7 +24,7 @@ const TabButton = ({ active, label, Icon, onClick, badge }) => (
 const BottomTabBar = () => {
   const location = useLocation()
   const navigate = useNavigate()
-  const { isAuthenticated, unreadNotifications, isFeatureEnabled } = useApiStore()
+  const { isAuthenticated } = useApiStore()
   const [accountOpen, setAccountOpen] = useState(false)
 
   const path = location.pathname
@@ -42,7 +42,7 @@ const BottomTabBar = () => {
                   Icon={Newspaper}
                   onClick={() => navigate('/feed')}
                 />
-                {isFeatureEnabled('community') && (
+                {(
                   <TabButton
                     active={path.startsWith('/communities')}
                     label="Communities"
@@ -56,7 +56,7 @@ const BottomTabBar = () => {
                   Icon={BarChart3}
                   onClick={() => navigate('/dashboard')}
                 />
-                {isFeatureEnabled('leaderboard') && (
+                {(
                   <TabButton
                     active={path.startsWith('/leaderboard')}
                     label="Leaderboard"
