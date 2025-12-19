@@ -61,7 +61,7 @@ app.use(/^\/api\/v\d+\/users/, createRateLimiter(60 * 1000, 30, 'Too many user r
 
 const USER_PUBLIC_FIELDS = [
   '_id', 'name', 'username', 'avatar', 'bio', 'location', 
-  'gender', 'interests', 'isVerified', 'isPremium', 'createdAt',
+  'interests', 'isVerified', 'isPremium', 'createdAt',
   'followersCount', 'followingCount', 'goalsCount', 'isPrivate'
 ];
 

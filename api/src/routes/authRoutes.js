@@ -17,10 +17,7 @@ const signupValidation = [
     .withMessage('Please provide a valid email'),
   body('password')
     .isLength({ min: 6 })
-    .withMessage('Password must be at least 6 characters long'),
-  body('gender')
-    .isIn(['male','female','other'])
-    .withMessage('Gender is required and must be one of male, female, other')
+    .withMessage('Password must be at least 6 characters long')
 ];
 
 const loginValidation = [
@@ -58,10 +55,7 @@ const requestOTPValidation = [
     .withMessage('Name must be between 2 and 100 characters'),
   body('password')
     .isLength({ min: 6 })
-    .withMessage('Password must be at least 6 characters long'),
-  body('gender')
-    .isIn(['male','female','other'])
-    .withMessage('Gender is required and must be one of male, female, other')
+    .withMessage('Password must be at least 6 characters long')
 ];
 
 const verifyOTPValidation = [
@@ -124,6 +118,9 @@ router.post('/register', signupValidation, authController.register);
 router.post('/login', loginValidation, authController.login);
 // Refresh access token using httpOnly cookie
 router.post('/refresh', authController.refreshToken);
+
+// Google OAuth route
+router.post('/google', [body('token').notEmpty().withMessage('Google token is required')], authController.googleAuth);
 
 // Password reset routes
 router.post('/forgot-password', forgotPasswordValidation, authController.forgotPassword);

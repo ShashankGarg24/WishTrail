@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+const { OAuth2Client } = require('google-auth-library');
 const User = require('../models/User');
 const PasswordReset = require('../models/PasswordReset');
 const OTP = require('../models/Otp');
@@ -8,13 +9,15 @@ const emailService = require('./emailService');
 const BloomFilterService = require('../utility/BloomFilterService');
 const { ALLOWED_MOOD_EMOJIS } = require('../config/constants');
 
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
 class AuthService {
 
   /**
    * Create user
    */
   async register(profileData, deviceType) {
-    const { email, name, password, username, dateOfBirth, interests, location, gender } = profileData || {};
+    const { email, name, password, username, dateOfBirth, interests, location } = profileData || {};
     // Check if OTP was verified (you might want to implement a temporary verification token)
     const recentVerifiedOTP = await OTP.findOne({
       email,
@@ -46,8 +49,7 @@ class AuthService {
       password,
       isActive: true,
       isVerified: true, // Since they verified via OTP
-      profileCompleted: true,
-      gender
+      profileCompleted: true
     };
 
     // Add optional fields
@@ -361,11 +363,13 @@ class AuthService {
   /**
    * Request OTP for signup
    */
-     async requestOTP({ email, name, password, gender }) {
-    // Check if user already exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      throw new Error('User already exists with this email');
+     async requestOTP({ email, name, password }) {
+    // Check if user already exists - use bloom filter for optimization
+    if (BloomFilterService.mightExist(email)) {
+      const existingUser = await User.findOne({ email });
+      if (existingUser) {
+        throw new Error('User already exists with this email');
+      }
     }
 
     // Check if we can send OTP (rate limiting)
@@ -381,16 +385,17 @@ class AuthService {
     // Generate and save OTP
     const otpRecord = await OTP.createOTP(email, 'signup', 10); // 10 minutes expiry
 
-    // Send OTP email
-    try {
-      await emailService.sendOTPEmail(email, otpRecord.code, 'signup');
-    } catch (error) {
-      console.error('Failed to send OTP email:', error);
-      // Don't throw error - we still want to return success even if email fails
-    }
+    // Send OTP email asynchronously (non-blocking) - don't wait for it
+    emailService.sendOTPEmail(email, otpRecord.code, 'signup')
+      .then(() => {
+        console.log('OTP email sent successfully to:', email);
+      })
+      .catch((error) => {
+        console.error('Failed to send OTP email:', error);
+        // Email failure is logged but doesn't block the user
+      });
 
-    // Store user data temporarily (in production, use Redis or session)
-    // For now, we'll just return success without storing temp data
+    // Return immediately without waiting for email to be sent
     return {
       message: 'OTP sent successfully',
       email,
@@ -433,14 +438,17 @@ class AuthService {
     // Generate and save new OTP
     const otpRecord = await OTP.createOTP(email, 'signup', 10); // 10 minutes expiry
 
-    // Send OTP email
-    try {
-      await emailService.sendOTPEmail(email, otpRecord.code, 'signup');
-    } catch (error) {
-      console.error('Failed to send OTP email:', error);
-      throw new Error('Failed to send OTP email. Please try again.');
-    }
+    // Send OTP email asynchronously (non-blocking) - don't wait for it
+    emailService.sendOTPEmail(email, otpRecord.code, 'signup')
+      .then(() => {
+        console.log('Resend OTP email sent successfully to:', email);
+      })
+      .catch((error) => {
+        console.error('Failed to resend OTP email:', error);
+        // Email failure is logged but doesn't block the user
+      });
 
+    // Return immediately without waiting for email to be sent
     return {
       message: 'OTP resent successfully',
       email,
@@ -526,6 +534,133 @@ class AuthService {
       message: 'Password has been reset successfully. Please log in with your new password.',
       email: user.email
     };
+  }
+
+  /**
+   * Google OAuth Login/Register
+   */
+  async googleAuth(googleToken, deviceType) {
+    try {
+      // Verify Google token
+      const ticket = await googleClient.verifyIdToken({
+        idToken: googleToken,
+        audience: process.env.GOOGLE_CLIENT_ID
+      });
+      
+      const payload = ticket.getPayload();
+      const { email, name, picture, sub: googleId, email_verified } = payload;
+
+      if (!email_verified) {
+        throw new Error('Google email not verified');
+      }
+
+      // Check if user exists
+      let user = await User.findOne({ email });
+
+      if (user) {
+        // Existing user - login (DO NOT override name or avatar)
+        user.lastLogin = new Date();
+        user.loginCount = (user.loginCount || 0) + 1;
+        
+        // Update Google ID if not set (link account)
+        if (!user.googleId) {
+          user.googleId = googleId;
+        }
+        
+        // Note: We intentionally do NOT update name or avatar for existing users
+        // Users may have customized these after initial signup
+        
+        await user.save();
+      } else {
+        // New user - register
+        // Generate a unique username from email
+        let baseUsername = email.split('@')[0].toLowerCase().replace(/[^a-z0-9._-]/g, '');
+        
+        // Ensure username meets minimum length requirement (3 characters)
+        if (baseUsername.length < 3) {
+          baseUsername = baseUsername + 'user';
+        }
+        
+        // Ensure it doesn't exceed maximum length (20 characters)
+        if (baseUsername.length > 20) {
+          baseUsername = baseUsername.substring(0, 20);
+        }
+        
+        let username = baseUsername;
+        let counter = 1;
+        
+        // Ensure username is unique - use bloom filter first for optimization
+        // Check bloom filter first (fast), only query DB if bloom filter says it might exist
+        while (BloomFilterService.mightExist(username) && await User.findOne({ username })) {
+          // Append counter, but ensure total length doesn't exceed 20 chars
+          const counterStr = String(counter);
+          const maxBaseLength = 20 - counterStr.length;
+          const truncatedBase = baseUsername.substring(0, maxBaseLength);
+          username = `${truncatedBase}${counter}`;
+          counter++;
+          
+          // Safety check to prevent infinite loop (though unlikely)
+          if (counter > 9999) {
+            // Generate random suffix if too many collisions
+            username = `${baseUsername.substring(0, 14)}${Math.floor(Math.random() * 999999)}`;
+            break;
+          }
+        }
+
+        // Create new user with Google data
+        user = await User.create({
+          name,
+          email,
+          username,
+          googleId,
+          avatar: picture,
+          password: crypto.randomBytes(32).toString('hex'), // Random password (won't be used)
+          isVerified: true,
+          isActive: true,
+          profileCompleted: false, // User needs to complete profile later
+          dashboardYears: [new Date().getFullYear()]
+        });
+
+        // Add to bloom filter
+        await BloomFilterService.add(username);
+        await BloomFilterService.add(email);
+        BloomFilterService.rebuildIdExpectedUsersIncrease(User);
+
+        // Send welcome email
+        try {
+          await emailService.sendWelcomeEmail(email, name);
+        } catch (error) {
+          console.error('Failed to send welcome email:', error);
+        }
+      }
+
+      // Generate tokens
+      const { accessToken, refreshToken } = this.generateTokens(user._id);
+      
+      // Save refresh token
+      const kind = deviceType === 'app' ? 'app' : 'web';
+      user.refreshTokens[kind] = refreshToken;
+      await user.save();
+
+      // Remove sensitive data from response
+      const userResponse = user.toObject();
+      delete userResponse.password;
+      delete userResponse.refreshTokens.app;
+      delete userResponse.refreshTokens.web;
+
+      return {
+        user: userResponse,
+        token: accessToken,
+        refreshToken,
+        isNewUser: !user.profileCompleted
+      };
+    } catch (error) {
+      if (error.message === 'Google email not verified') {
+        throw error;
+      }
+      console.error('Google auth error:', error);
+      throw new Error('Failed to authenticate with Google. Please try again.');
+    }
   }
 }
 

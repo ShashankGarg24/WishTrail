@@ -27,7 +27,6 @@ Complete analysis of all API endpoints used by the Profile Page, their current r
       "email": "john@example.com",  // ❌ SHOULD NOT BE EXPOSED
       "avatar": "url",
       "bio": "User bio",
-      "gender": "male",
       "location": "New York",
       "interests": ["fitness", "travel"],
       "isPrivate": false,

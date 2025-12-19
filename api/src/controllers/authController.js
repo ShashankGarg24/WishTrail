@@ -431,6 +431,50 @@ const getDeviceType = (req) => {
   return req.get("X-Client-Platform") || (req.get("User-Agent")?.includes("WishTrailApp") ? "app" : "web");
 };
 
+// @desc    Google OAuth authentication
+// @route   POST /api/v1/auth/google
+// @access  Public
+const googleAuth = async (req, res, next) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+
+    const { token } = req.body;
+    const deviceType = getDeviceType(req);
+    
+    const result = await authService.googleAuth(token, deviceType);
+
+    // For web: set refresh token cookie
+    if (deviceType === 'web') {
+      const isProd = process.env.NODE_ENV === 'production';
+      res.cookie('refreshToken', result.refreshToken, {
+        httpOnly: true,
+        secure: isProd,
+        sameSite: isProd ? 'none' : 'lax',
+        partitioned: isProd ? true : false,
+        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: result.isNewUser ? 'Registration successful' : 'Login successful',
+      data: Object.assign(
+        { user: result.user, token: result.token, isNewUser: result.isNewUser },
+        deviceType === 'app' ? { refreshToken: result.refreshToken } : {}
+      )
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -444,5 +488,6 @@ module.exports = {
   checkExistingUser,
   requestOTP,
   verifyOTP,
-  resendOTP
+  resendOTP,
+  googleAuth
 }; 

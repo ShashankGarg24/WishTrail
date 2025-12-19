@@ -221,6 +221,9 @@ export const authAPI = {
   updateProfile: (userData) => api.put('/auth/profile', userData),
   updatePassword: (passwordData) => api.put('/auth/password', passwordData),
 
+  // Google OAuth
+  googleAuth: (tokenData) => api.post('/auth/google', tokenData),
+
   // Password reset API
   forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
   resetPassword: (token, newPassword) => api.post('/auth/reset-password', { token, newPassword }),

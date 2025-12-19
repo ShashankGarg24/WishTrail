@@ -3,8 +3,10 @@ import { motion } from "framer-motion";
 import { Mail, Lock, Eye, EyeOff, Star } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import useApiStore from "../store/apiStore";
+import toast from 'react-hot-toast';
 const MultiStepSignup = lazy(() => import("../components/MultiStepSignup"));
 const ForgotPasswordModal = lazy(() => import("../components/ForgotPasswordModal"));
+const GoogleSignInButton = lazy(() => import("../components/GoogleSignInButton"));
 
 const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -17,8 +19,9 @@ const AuthPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
   const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
-  const { login, loading, error } = useApiStore();
+  const { login, googleLogin, loading, error } = useApiStore();
   const navigate = useNavigate();
 
   const handleInputChange = (e) => {
@@ -94,9 +97,30 @@ const AuthPage = () => {
     });
     setErrors({});
   };
-
   const handleMultiStepSignupSuccess = (user, token) => {
     navigate("/dashboard");
+  };
+
+  const handleGoogleSuccess = async (credential) => {
+    setIsGoogleLoading(true);
+    try {
+      const result = await googleLogin(credential);
+      if (result.success) {
+        toast.success(result.isNewUser ? 'Account created successfully!' : 'Welcome back!');
+        navigate("/dashboard");
+      }
+    } catch (error) {
+      console.error('Google auth error:', error);
+      toast.error('Failed to sign in with Google. Please try again.');
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  };
+
+  const handleGoogleError = (error) => {
+    console.error('Google OAuth error:', error);
+    toast.error('Failed to sign in with Google. Please try again.');
+    setIsGoogleLoading(false);
   };
 
   if (!isLogin) {
@@ -119,6 +143,33 @@ const AuthPage = () => {
               </div>
             </div>
 
+            {/* Google Sign-In Button - Above Signup Form */}
+            <div className="mb-6 flex justify-center">
+              <div className="w-full max-w-md">
+                <Suspense fallback={
+                  <div className="w-full h-11 bg-gray-100 dark:bg-gray-700 rounded-lg animate-pulse"></div>
+                }>
+                  <GoogleSignInButton
+                    mode="signup"
+                    onSuccess={handleGoogleSuccess}
+                    onError={handleGoogleError}
+                  />
+                </Suspense>
+              </div>
+            </div>
+
+            {/* Divider */}
+            <div className="relative mb-6">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">
+                  Or sign up with email
+                </span>
+              </div>
+            </div>
+
             <Suspense fallback={null}><MultiStepSignup
               onSuccess={handleMultiStepSignupSuccess}
               onBack={toggleAuthMode}
@@ -127,12 +178,12 @@ const AuthPage = () => {
             {/* Toggle Auth Mode */}
             <div className="text-center mt-6">
               <p className="text-gray-600 dark:text-gray-400">
-                {isLogin ? "Don't have an account?" : "Already have an account?"}
+                Already have an account?
                 <button
                   onClick={toggleAuthMode}
                   className="ml-1 text-primary-500 hover:text-primary-600 font-medium"
                 >
-                  {isLogin ? "Sign Up" : "Sign In"}
+                  Sign In
                 </button>
               </p>
             </div>
@@ -151,6 +202,7 @@ const AuthPage = () => {
       </div>
     );
   }
+  
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
       <motion.div
@@ -252,11 +304,34 @@ const AuthPage = () => {
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || isGoogleLoading}
               className="w-full py-3 px-4 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {loading ? 'Please wait...' : isLogin ? 'Sign In' : 'Sign Up'}
             </button>
+
+            {/* Divider */}
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">
+                  Or continue with
+                </span>
+              </div>
+            </div>
+
+            {/* Google Sign-In Button */}
+            <Suspense fallback={
+              <div className="w-full h-11 bg-gray-100 dark:bg-gray-700 rounded-lg animate-pulse"></div>
+            }>
+              <GoogleSignInButton
+                mode={isLogin ? 'signin' : 'signup'}
+                onSuccess={handleGoogleSuccess}
+                onError={handleGoogleError}
+              />
+            </Suspense>
           </form>
 
           {/* Toggle Auth Mode */}
@@ -292,4 +367,4 @@ const AuthPage = () => {
   );
 };
 
-export default AuthPage; 
+export default AuthPage;

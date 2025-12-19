@@ -15,7 +15,15 @@ class EmailService {
         auth: {
           user: process.env.EMAIL_USER,
           pass: process.env.EMAIL_PASS
-        }
+        },
+        // Connection timeout and pool settings for faster email sending
+        connectionTimeout: 10000, // 10 seconds max to establish connection
+        greetingTimeout: 5000,    // 5 seconds max for greeting
+        socketTimeout: 15000,      // 15 seconds max for socket inactivity
+        pool: true,                // Use connection pooling
+        maxConnections: 5,         // Max 5 concurrent connections
+        maxMessages: 100,          // Max messages per connection
+        rateLimit: 10,             // Max 10 messages per second
     };
 
     this.transporter = nodemailer.createTransport(config);
@@ -63,7 +71,15 @@ class EmailService {
         throw new Error('Email service is not configured');
       }
 
-      const info = await this.transporter.sendMail(mailOptions);
+      // Add timeout wrapper to prevent hanging
+      const sendWithTimeout = Promise.race([
+        this.transporter.sendMail(mailOptions),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Email sending timeout')), 15000) // 15 second timeout
+        )
+      ]);
+
+      const info = await sendWithTimeout;
       
       // Log the result for testing
       if (process.env.NODE_ENV === 'development') {

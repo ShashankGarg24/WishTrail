@@ -234,6 +234,28 @@ const useApiStore = create(
         }
       },
 
+      googleLogin: async (googleToken) => {
+        try {
+          set({ loading: true, error: null });
+          const response = await authAPI.googleAuth({ token: googleToken });
+          const { user, token, isNewUser } = response.data.data;
+
+          setAuthToken(token);
+          set({
+            user,
+            token,
+            isAuthenticated: true,
+            loading: false
+          });
+
+          return { success: true, user, token, isNewUser };
+        } catch (error) {
+          const errorMessage = handleApiError(error);
+          set({ loading: false, error: errorMessage });
+          throw error;
+        }
+      },
+
       // =====================
       // PASSWORD RESET ACTIONS
       // =====================

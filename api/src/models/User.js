@@ -50,22 +50,20 @@ const userSchema = new mongoose.Schema({
     type: Date,
   },
 
-  // Profile Information
-  gender: {
+  // OAuth Integration
+  googleId: {
     type: String,
-    enum: ['male', 'female', 'other'],
-    required: [true, 'Gender is required']
+    unique: true,
+    sparse: true // Allows null values to not be indexed
   },
+
   avatar: {
     type: String,
     default: function() {
-      if (this.gender === 'male' && DEFAULT_AVATAR_MALE) return DEFAULT_AVATAR_MALE;
-      if (this.gender === 'female' && DEFAULT_AVATAR_FEMALE) return DEFAULT_AVATAR_FEMALE;
       if (DEFAULT_AVATAR_OTHER) return DEFAULT_AVATAR_OTHER;
-      // Fallback to dicebear with gender-based style and unique seed
+      // Fallback to dicebear with unique seed
       const seed = encodeURIComponent(this.email || this.username || this.name || String(this._id));
-      const style = this.gender === 'female' ? 'princess' : this.gender === 'male' ? 'adventurer' : 'fun-emoji';
-      return `https://api.dicebear.com/7.x/${style}/svg?seed=${seed}`;
+      return `https://api.dicebear.com/7.x/fun-emoji/svg?seed=${seed}`;
     }
   },
   bio: {
