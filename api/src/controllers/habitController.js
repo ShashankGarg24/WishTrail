@@ -17,7 +17,37 @@ exports.listHabits = async (req, res, next) => {
     const includeArchived = req.query.includeArchived === 'true' || req.query.includeArchived === true;
     const page = parseInt(req.query.page, 10) || 1;
     const limit = parseInt(req.query.limit, 10) || 50;
-    const result = await habitService.listHabits(req.user.id || req.user._id, { includeArchived, page, limit });
+    
+    // Support viewing other users' habits via userId query param
+    const targetUserId = req.query.userId || req.user.id || req.user._id;
+    const requestingUserId = req.user.id || req.user._id;
+    
+    // Check privacy if viewing another user's habits
+    if (targetUserId !== requestingUserId) {
+      const User = require('../models/User');
+      const Follow = require('../models/Follow');
+      
+      const targetUser = await User.findById(targetUserId).select('isPrivate');
+      if (!targetUser || !targetUser.isActive) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found'
+        });
+      }
+      
+      // Check if profile is private and user is not following
+      if (targetUser.isPrivate) {
+        const isFollowing = await Follow.isFollowing(requestingUserId, targetUserId);
+        if (!isFollowing) {
+          return res.status(403).json({
+            success: false,
+            message: 'This profile is private'
+          });
+        }
+      }
+    }
+    
+    const result = await habitService.listHabits(targetUserId, { includeArchived, page, limit });
     
     // ✅ Sanitize habits - use minimal fields for profile view
     if (result.habits && Array.isArray(result.habits)) {

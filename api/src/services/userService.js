@@ -106,12 +106,10 @@ class UserService {
   /**
    * Get user by ID or username
    */
-  async getUserByIdOrUsername(idOrUsername, requestingUserId = null) {
-    const isObjectId = idOrUsername && idOrUsername.match(/^[0-9a-fA-F]{24}$/);
-    const user = await (isObjectId
-      ? User.findById(idOrUsername)
-      : User.findOne({ username: idOrUsername.replace(/^@/, '') }))
-      .select('-password -refreshToken -passwordResetToken -passwordResetExpires');
+  async getUserByUsername(username, requestingUserId = null) {
+    const cleanUsername = username.replace(/^@/, '');    
+    const user = await User.findOne({ username: cleanUsername })
+      .select('_id name username avatar bio isPrivate totalGoals followerCount followingCount isActive');
 
     if (!user || !user.isActive) {
       throw new Error('User not found');
@@ -127,9 +125,24 @@ class UserService {
       }
     }
 
-    const userResponse = user.toObject();
-    const userStats = await this.getUserStats(user);
-    return { user: userResponse, stats: userStats, isFollowing, isRequested };
+    // Return minimal user data
+    const userResponse = {
+      _id: user._id,
+      name: user.name,
+      username: user.username,
+      avatar: user.avatar,
+      bio: user.bio || '',
+      isPrivate: user.isPrivate || false
+    };
+    
+    // Basic stats only
+    const stats = {
+      totalGoals: user.totalGoals || 0,
+      followers: user.followerCount || 0,
+      followings: user.followingCount || 0
+    };
+    
+    return { user: userResponse, stats, isFollowing, isRequested };
   }
   
   /**

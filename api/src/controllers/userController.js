@@ -46,10 +46,10 @@ const getUsers = async (req, res, next) => {
 const getUser = async (req, res, next) => {
   try {
     const { id: idOrUsername } = req.params;
-    const {user, stats, isFollowing, isRequested} = await userService.getUserByIdOrUsername(idOrUsername, req.user.id);
+    const {user, stats, isFollowing, isRequested} = await userService.getUserByUsername(idOrUsername, req.user.id);
     
     // ✅ Sanitize user data - hide sensitive fields for other users
-    const isSelf = user._id.toString() === req.user.id.toString();
+    const isSelf = user.username === req.user.username;
     const sanitizedUser = sanitizeUser(user, isSelf);
     
     res.status(200).json({
@@ -195,25 +195,37 @@ const searchUsers = async (req, res, next) => {
 };
 
 // @desc    Get user's goals
-// @route   GET /api/v1/users/:id/goals
+// @route   GET /api/v1/users/:username/goals
 // @access  Private
 const getUserGoals = async (req, res, next) => {
   try {
     const goalService = require('../services/goalService');
-    const { id } = req.params;
-    
-    // Check if user can view these goals
-    if (id !== req.user.id) {
-      const user = await userService.getUserByIdOrUsername(id, req.user.id);
-      if (!user) {
+    const { username } = req.params;
+    const Follow = require('../models/Follow');
+    const targetUser = await User.findOne({ username: username }).select('isPrivate isActive');
+      console.log('Target user for goals:', targetUser);
+    // Check privacy if viewing another user's goals
+    if (username !== req.user.username) {
+      if (!targetUser || !targetUser.isActive) {
         return res.status(404).json({
           success: false,
           message: 'User not found'
         });
       }
+
+      // Check if profile is private and user is not following
+      if (targetUser.isPrivate) {
+        const isFollowing = await Follow.isFollowing(req.user.id, id);
+        if (!isFollowing) {
+          return res.status(403).json({
+            success: false,
+            message: 'This profile is private'
+          });
+        }
+      }
     }
 
-    const result = await goalService.getGoals(id, req.query);
+    const result = await goalService.getGoals(targetUser._id, req.query);
 
     // ✅ Sanitize goals - Use minimal fields for profile page display
     if (result.goals && Array.isArray(result.goals)) {
@@ -388,26 +400,56 @@ const updateTimezone = async (req, res, next) => {
 };
 
 // @desc    Get user analytics (goals + habits overall stats)
-// @route   GET /api/v1/users/analytics
+// @route   GET /api/v1/users/analytics?username=@username (optional)
 // @access  Private
 const getAnalytics = async (req, res, next) => {
   try {
+    const { username } = req.query;
     const Goal = require('../models/Goal');
     const habitService = require('../services/habitService');
     
-    const userId = req.user.id;
+    let targetUserId = req.user.id;
+    let isSelf = true;
+    
+    // If username provided, look up that user
+    if (username) {
+      const targetUserData = await userService.getUserByUsername(username, req.user.id);
+      if (!targetUserData || !targetUserData.user) {
+        return res.status(404).json({ success: false, message: 'User not found' });
+      }
+      
+      targetUsername = targetUserData.user.username;
+      isSelf = targetUsername === req.user.username;
+      
+      // Check privacy if not viewing own profile
+      if (!isSelf) {
+        const isPublic = !targetUserData.user.isPrivate;
+        const isFollowing = targetUserData.isFollowing;
+        
+        if (!isPublic && !isFollowing) {
+          return res.status(403).json({ 
+            success: false, 
+            message: 'This profile is private' 
+          });
+        }
+      }
+    }
     
     // Get user to extract totalPoints, level, streaks
-    const user = await User.findById(userId).select('totalPoints level currentStreak longestStreak');
+    const user = await User.findOne({ username: targetUsername }).select('totalPoints level currentStreak longestStreak isActive');
+    console.log('Analytics for user:', targetUsername, user);
+    if (!user || !user.isActive) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
     
     // Get goals stats
     const [totalGoals, completedGoals] = await Promise.all([
-      Goal.countDocuments({ userId, deletedAt: null }),
-      Goal.countDocuments({ userId, completed: true, deletedAt: null })
+      Goal.countDocuments({ userId: targetUserId, deletedAt: null }),
+      Goal.countDocuments({ userId: targetUserId, completed: true, deletedAt: null })
     ]);
     
     // Get habits analytics (30 days by default)
-    const habitAnalytics = await habitService.analytics(userId, { days: 30 });
+    const habitAnalytics = await habitService.analytics(targetUserId, { days: 30 });
     
     const analytics = {
       habits: {
@@ -422,6 +464,73 @@ const getAnalytics = async (req, res, next) => {
         completedGoals: completedGoals || 0,
         currentStreak: user?.currentStreak || 0,
         longestStreak: user?.longestStreak || 0
+      },
+      topHabits: habitAnalytics.topHabits || []
+    };
+    
+    res.status(200).json({
+      success: true,
+      data: { analytics }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get user analytics (for profile page)
+// @route   GET /api/v1/users/:id/analytics
+// @access  Private (requires public profile or following relationship)
+const getUserAnalytics = async (req, res, next) => {
+  try {
+    const { id: targetUserId } = req.params;
+    const requestingUserId = req.user.id;
+    const Goal = require('../models/Goal');
+    const habitService = require('../services/habitService');
+    const Follow = require('../models/Follow');
+    
+    // Get target user
+    const targetUser = await User.findById(targetUserId).select('totalPoints level currentStreak longestStreak isPrivate');
+    if (!targetUser || !targetUser.isActive) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    
+    // Check privacy - only show if:
+    // 1. Viewing own profile
+    // 2. Profile is public
+    // 3. Requesting user is following target user
+    const isSelf = targetUserId === requestingUserId;
+    const isPublic = !targetUser.isPrivate;
+    const isFollowing = isSelf ? false : await Follow.isFollowing(requestingUserId, targetUserId);
+    
+    if (!isSelf && !isPublic && !isFollowing) {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'This profile is private' 
+      });
+    }
+    
+    // Get goals stats
+    const [totalGoals, completedGoals] = await Promise.all([
+      Goal.countDocuments({ userId: targetUserId, deletedAt: null }),
+      Goal.countDocuments({ userId: targetUserId, completed: true, deletedAt: null })
+    ]);
+    
+    // Get habits analytics (30 days by default)
+    const habitAnalytics = await habitService.analytics(targetUserId, { days: 30 });
+    
+    const analytics = {
+      habits: {
+        done: habitAnalytics.done || 0,
+        missed: habitAnalytics.missed || 0,
+        skipped: habitAnalytics.skipped || 0
+      },
+      goals: {
+        totalPoints: targetUser?.totalPoints || 0,
+        level: targetUser?.level || 'Beginner',
+        totalGoals: totalGoals || 0,
+        completedGoals: completedGoals || 0,
+        currentStreak: targetUser?.currentStreak || 0,
+        longestStreak: targetUser?.longestStreak || 0
       },
       topHabits: habitAnalytics.topHabits || []
     };
@@ -452,5 +561,6 @@ module.exports = {
   listInterests,
   updateTimezone,
   addDashboardYear,
-  getAnalytics
+  getAnalytics,
+  getUserAnalytics
 }; 

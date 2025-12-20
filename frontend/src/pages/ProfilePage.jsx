@@ -160,6 +160,86 @@ const ProfilePage = () => {
     }
   }, [searchParams]);
 
+  // Lazy load analytics and content based on active tab
+  useEffect(() => {
+    const loadTabContent = async () => {
+      const targetUsername = isOwnProfile ? currentUser?.username : profileUser?.username;
+      
+      console.log('loadTabContent triggered:', {
+        activeTab,
+        targetUsername,
+        isOwnProfile,
+        hasAnalytics: !!analytics,
+        profileUser: profileUser?.username,
+        currentUser: currentUser?.username
+      });
+      
+      if (!targetUsername) {
+        console.log('No targetUsername, skipping');
+        return;
+      }
+
+      // For other users' profiles, check privacy
+      const canViewContent = isOwnProfile || !profileUser?.isPrivate || isFollowing;
+      console.log('canViewContent:', canViewContent, { isPrivate: profileUser?.isPrivate, isFollowing });
+
+      // Load analytics when overview tab is viewed
+      if (activeTab === 'overview' && !analytics) {
+        console.log('Attempting to load analytics...');
+        // Own profile: always load (pass null to get own analytics)
+        // Other profile: only if public or following (pass username)
+        if (isOwnProfile || canViewContent) {
+          try {
+            const usernameParam = isOwnProfile ? null : targetUsername;
+            console.log('Calling getUserAnalytics with username:', usernameParam);
+            const analyticsResult = await getUserAnalytics(usernameParam);
+            console.log('Analytics result:', analyticsResult);
+            if (analyticsResult.success) {
+              setAnalytics(analyticsResult.analytics);
+            }
+          } catch (error) {
+            console.error('Failed to load analytics:', error);
+          }
+        } else {
+          console.log('Cannot view content - profile is private');
+        }
+      }
+
+      // Load goals when goals tab is viewed
+      if (activeTab === 'goals' && userGoals.length === 0) {
+        // Own profile: always load
+        // Other profile: only if public or following
+        if (isOwnProfile || canViewContent) {
+          try {
+            const targetUsername = isOwnProfile ? currentUser?.username : profileUser?.username;
+            const goalsResult = isOwnProfile 
+              ? await getGoals({ page: 1, limit: GOALS_PER_PAGE })
+              : await getUserGoals(targetUsername, { page: 1, limit: GOALS_PER_PAGE });
+            
+            if (goalsResult.success) {
+              setUserGoals(goalsResult.goals || []);
+              const totalPages = goalsResult.pagination?.pages || 1;
+              setHasMoreGoals(1 < totalPages);
+              setGoalsPage(1);
+            }
+          } catch (error) {
+            console.error('Failed to load goals:', error);
+          }
+        }
+      }
+
+      // Load habits when habits tab is viewed (ONLY for own profile or if following/public)
+      if (activeTab === 'habits' && userHabits.length === 0) {
+        if (isOwnProfile || canViewContent) {
+          const targetUserId = isOwnProfile ? currentUser?._id : profileUser?._id;
+          await fetchUserHabits(targetUserId);
+        }
+      }
+    };
+
+    loadTabContent();
+  }, [activeTab, isOwnProfile, profileUser, isFollowing, analytics, userGoals.length, userHabits.length, currentUser?._id]);
+
   useEffect(() => {
     
     // Load Journal when tab opens
@@ -190,23 +270,6 @@ const ProfilePage = () => {
       }
     };
     fetchJournal();
-    
-    // Load habits when habits tab opens
-    if (activeTab === 'habits' && isOwnProfile && userHabits.length === 0) {
-      fetchUserHabits();
-    }
-    
-    // Load habit analytics (no heatmap)
-    const fetchHabits = async () => {
-      try {
-        if (activeTab !== 'overview') return;
-        if (!isOwnProfile) return;
-
-        const habits = listRes?.data?.data?.habits || [];
-        setMyHabits(habits);
-      } catch (_) { }
-    };
-    fetchHabits();
   }, [activeTab, profileUser?.username, currentUser?.username, isOwnProfile]);
 
   const loadMoreJournal = async () => {
@@ -243,10 +306,8 @@ const ProfilePage = () => {
   const fetchOwnProfile = async () => {
     setLoading(true);
     try {
-      const [goalsResult, analyticsResult] = await Promise.all([
-        getGoals({ page: 1, limit: GOALS_PER_PAGE }),
-        getUserAnalytics()
-      ]);
+      // Only load goals initially, analytics will be loaded when tabs are viewed
+      const goalsResult = await getGoals({ page: 1, limit: GOALS_PER_PAGE });
       
       if (goalsResult.success) {
         setUserGoals(goalsResult.goals || []);
@@ -254,20 +315,22 @@ const ProfilePage = () => {
         setHasMoreGoals(1 < totalPages);
         setGoalsPage(1);
       }
-      
-      if (analyticsResult.success) {
-        setAnalytics(analyticsResult.analytics);
-      }
     } catch (error) {
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchUserHabits = async () => {
-    if (!isOwnProfile) return;
+  const fetchUserHabits = async (userId = null) => {
+    const targetUserId = userId || (isOwnProfile ? currentUser?._id : profileUser?._id);
+    if (!targetUserId) return;
+    
     try {
-      const result = await habitsAPI.list({ page: 1, limit: HABITS_PER_PAGE });
+      const params = isOwnProfile 
+        ? { page: 1, limit: HABITS_PER_PAGE }
+        : { userId: targetUserId, page: 1, limit: HABITS_PER_PAGE };
+        
+      const result = await habitsAPI.list(params);
       if (result.data.success) {
         setUserHabits(result.data.data.habits || []);
         const totalPages = result.data.data.pagination?.pages || 1;
@@ -275,6 +338,7 @@ const ProfilePage = () => {
         setHabitsPage(1);
       }
     } catch (error) {
+      console.error('Failed to load habits:', error);
     }
   };
 
@@ -289,8 +353,11 @@ const ProfilePage = () => {
         setUserStats(userResult.stats);
         setIsFollowing(userResult.isFollowing);
         setIsRequested(!!userResult.isRequested);
-        if (userResult.user && (!userResult.user.isPrivate || userResult.isFollowing)) {
-          const goalsResult = await getUserGoals(userResult.user._id, { page: 1, limit: GOALS_PER_PAGE });
+        
+        // Load goals initially if profile is public or following
+        const canViewContent = !userResult.user.isPrivate || userResult.isFollowing;
+        if (canViewContent) {
+          const goalsResult = await getUserGoals(userResult.user.username, { page: 1, limit: GOALS_PER_PAGE });
           if (goalsResult.success) {
             setUserGoals(goalsResult.goals || []);
             const totalPages = goalsResult.pagination?.pages || 1;
@@ -431,7 +498,7 @@ const ProfilePage = () => {
       const nextPage = goalsPage + 1;
       const result = isOwnProfile 
         ? await getGoals({ page: nextPage, limit: GOALS_PER_PAGE })
-        : await getUserGoals(profileUser._id, { page: nextPage, limit: GOALS_PER_PAGE });
+        : await getUserGoals(profileUser.username, { page: nextPage, limit: GOALS_PER_PAGE });
       
       if (result.success) {
         setUserGoals(prev => [...prev, ...(result.goals || [])]);

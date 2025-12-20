@@ -1048,10 +1048,10 @@ const useApiStore = create(
         }
       },
 
-      getUserGoals: async (userId, params = {}) => {
+      getUserGoals: async (username, params = {}) => {
         try {
           set({ loading: true, error: null });
-          const response = await usersAPI.getUserGoals(userId, params);
+          const response = await usersAPI.getUserGoals(username, params);
           const { goals, pagination } = response.data.data;
           set({ loading: false });
           return { success: true, goals, pagination };
@@ -1062,9 +1062,9 @@ const useApiStore = create(
         }
       },
 
-      getUserAnalytics: async () => {
+      getUserAnalytics: async (username = null) => {
         try {
-          const response = await usersAPI.getUserAnalytics();
+          const response = await usersAPI.getUserAnalytics(username);
           const { analytics } = response.data.data;
           return { success: true, analytics };
         } catch (error) {
