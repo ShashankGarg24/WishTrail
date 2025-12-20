@@ -17,17 +17,19 @@ exports.listHabits = async (req, res, next) => {
     const includeArchived = req.query.includeArchived === 'true' || req.query.includeArchived === true;
     const page = parseInt(req.query.page, 10) || 1;
     const limit = parseInt(req.query.limit, 10) || 50;
-    
-    // Support viewing other users' habits via userId query param
-    const targetUserId = req.query.userId || req.user.id || req.user._id;
+
+    // Support viewing other users' habits via username query param
+    const targetUsername = req.query.username;
+    let targetUserId = req.user.id || req.user._id;
+    const requestingUsername = req.user.username;
     const requestingUserId = req.user.id || req.user._id;
     
     // Check privacy if viewing another user's habits
-    if (targetUserId !== requestingUserId) {
+    if (targetUsername && targetUsername !== requestingUsername) {
       const User = require('../models/User');
       const Follow = require('../models/Follow');
-      
-      const targetUser = await User.findById(targetUserId).select('isPrivate');
+
+      const targetUser = await User.findOne({ username: targetUsername }).select('isPrivate areHabitsPrivate isActive _id');
       if (!targetUser || !targetUser.isActive) {
         return res.status(404).json({
           success: false,
@@ -35,9 +37,17 @@ exports.listHabits = async (req, res, next) => {
         });
       }
       
+      // Check if habits are private
+      if (targetUser.areHabitsPrivate) {
+        return res.status(403).json({
+          success: false,
+          message: 'This user\'s habits are private'
+        });
+      }
+      
       // Check if profile is private and user is not following
       if (targetUser.isPrivate) {
-        const isFollowing = await Follow.isFollowing(requestingUserId, targetUserId);
+        const isFollowing = await Follow.isFollowing(requestingUserId, targetUser._id);
         if (!isFollowing) {
           return res.status(403).json({
             success: false,
@@ -45,6 +55,8 @@ exports.listHabits = async (req, res, next) => {
           });
         }
       }
+
+      targetUserId = targetUser._id;
     }
     
     const result = await habitService.listHabits(targetUserId, { includeArchived, page, limit });

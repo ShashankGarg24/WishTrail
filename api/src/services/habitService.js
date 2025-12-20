@@ -56,7 +56,6 @@ async function createHabit(userId, payload) {
 
 async function listHabits(userId, { includeArchived = false, page = 1, limit = 50 } = {}) {
   const q = { userId, isActive: true };
-  if (!includeArchived) q.isArchived = false;
   
   // Pagination
   const pageNum = Math.max(1, parseInt(page, 10));

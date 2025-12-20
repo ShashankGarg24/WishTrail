@@ -13,7 +13,6 @@ const signupValidation = [
     .withMessage('Name must be between 2 and 100 characters'),
   body('email')
     .isEmail()
-    .normalizeEmail()
     .withMessage('Please provide a valid email'),
   body('password')
     .isLength({ min: 6 })
@@ -23,7 +22,6 @@ const signupValidation = [
 const loginValidation = [
   body('email')
     .isEmail()
-    .normalizeEmail()
     .withMessage('Please provide a valid email'),
   body('password')
     .notEmpty()
@@ -33,7 +31,6 @@ const loginValidation = [
 const checkExistingUserValidation = [
   body('email')
     .isEmail()
-    .normalizeEmail()
     .withMessage('Please provide a valid email'),
   body('username')
     .optional()
@@ -47,7 +44,6 @@ const checkExistingUserValidation = [
 const requestOTPValidation = [
   body('email')
     .isEmail()
-    .normalizeEmail()
     .withMessage('Please provide a valid email'),
   body('name')
     .trim()
@@ -61,7 +57,6 @@ const requestOTPValidation = [
 const verifyOTPValidation = [
   body('email')
     .isEmail()
-    .normalizeEmail()
     .withMessage('Please provide a valid email'),
   body('otp')
     .isLength({ min: 6, max: 6 })
@@ -96,7 +91,6 @@ const completeProfileValidation = [
 const forgotPasswordValidation = [
   body('email')
     .isEmail()
-    .normalizeEmail()
     .withMessage('Please provide a valid email')
 ];
 
@@ -130,7 +124,7 @@ router.post('/reset-password', resetPasswordValidation, authController.resetPass
 router.post('/check-existing', checkExistingUserValidation, authController.checkExistingUser);
 router.post('/request-otp', requestOTPValidation, authController.requestOTP);
 router.post('/verify-otp', verifyOTPValidation, authController.verifyOTP);
-router.post('/resend-otp', [body('email').isEmail().normalizeEmail()], authController.resendOTP);
+router.post('/resend-otp', [body('email').isEmail()], authController.resendOTP);
 
 // Protected routes
 router.post('/logout', protect, authController.logout);

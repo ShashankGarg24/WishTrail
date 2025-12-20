@@ -109,7 +109,7 @@ class UserService {
   async getUserByUsername(username, requestingUserId = null) {
     const cleanUsername = username.replace(/^@/, '');    
     const user = await User.findOne({ username: cleanUsername })
-      .select('_id name username avatar bio isPrivate totalGoals followerCount followingCount isActive');
+      .select('_id name username avatar bio isPrivate areHabitsPrivate totalGoals followerCount followingCount isActive');
 
     if (!user || !user.isActive) {
       throw new Error('User not found');
@@ -132,7 +132,8 @@ class UserService {
       username: user.username,
       avatar: user.avatar,
       bio: user.bio || '',
-      isPrivate: user.isPrivate || false
+      isPrivate: user.isPrivate || false,
+      areHabitsPrivate: user.areHabitsPrivate ?? true
     };
     
     // Basic stats only

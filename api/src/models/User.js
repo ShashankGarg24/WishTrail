@@ -178,6 +178,10 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  areHabitsPrivate: {
+    type: Boolean,
+    default: true
+  },
   
   // Social Links
   website: {

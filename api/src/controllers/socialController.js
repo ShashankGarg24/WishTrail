@@ -225,7 +225,7 @@ const getFollowers = async (req, res, next) => {
     let targetUserId = req.user.id;
     if (username) {
       const userService = require('../services/userService');
-      const { user } = await userService.getUserByIdOrUsername(username, req.user.id);
+      const { user } = await userService.getUserByUsername(username, req.user.id);
       if (!user) {
         return res.status(404).json({
           success: false,
@@ -280,7 +280,7 @@ const getFollowing = async (req, res, next) => {
     let targetUserId = req.user.id;
     if (username) {
       const userService = require('../services/userService');
-      const { user } = await userService.getUserByIdOrUsername(username, req.user.id);
+      const { user } = await userService.getUserByUsername(username, req.user.id);
       if (!user) {
         return res.status(404).json({
           success: false,

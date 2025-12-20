@@ -16,7 +16,6 @@ const SENSITIVE_USER_FIELDS = [
 
 // Fields safe for public view (when viewing another user's profile)
 const PUBLIC_USER_FIELDS = [
-  '_id',
   'name',
   'username',
   'avatar',
@@ -26,6 +25,7 @@ const PUBLIC_USER_FIELDS = [
   'isVerified',
   'isPremium',
   'isPrivate',
+  'areHabitsPrivate',
   'socialLinks',
   'createdAt',
   'followersCount',

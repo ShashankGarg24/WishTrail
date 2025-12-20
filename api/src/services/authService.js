@@ -109,7 +109,8 @@ class AuthService {
   async login(email, password, deviceType) {
     // Find user and include password for comparison
     const user = await User.findOne({ email, isActive: true }).select('+password');
-    
+    console.log('Login attempt for email:', email);
+    console.log('User found:', user);
     if (!user) {
       throw new Error('No user is registered with the given email.');
     }

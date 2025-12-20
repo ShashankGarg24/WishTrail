@@ -7,7 +7,7 @@ const authService = require('../services/authService');
 // @access  Private
 const getPrivacySettings = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user.id).select('isPrivate preferences.privacy').lean();
+    const user = await User.findById(req.user.id).select('isPrivate areHabitsPrivate preferences.privacy').lean();
     
     if (!user) {
       return res.status(404).json({
@@ -19,7 +19,8 @@ const getPrivacySettings = async (req, res, next) => {
     res.status(200).json({
       success: true,
       data: {
-        isPrivate: user.isPrivate
+        isPrivate: user.isPrivate,
+        areHabitsPrivate: user.areHabitsPrivate ?? true
       }
     });
   } catch (error) {
@@ -32,11 +33,14 @@ const getPrivacySettings = async (req, res, next) => {
 // @access  Private
 const updatePrivacySettings = async (req, res, next) => {
   try {
-    const { isPrivate, privacy } = req.body;
+    const { isPrivate, areHabitsPrivate, privacy } = req.body;
     
     const updateData = {};
     if (typeof isPrivate !== 'undefined') {
       updateData.isPrivate = isPrivate;
+    }
+    if (typeof areHabitsPrivate !== 'undefined') {
+      updateData.areHabitsPrivate = areHabitsPrivate;
     }
     if (privacy && ['public', 'friends', 'private'].includes(privacy)) {
       updateData['preferences.privacy'] = privacy;
@@ -46,13 +50,14 @@ const updatePrivacySettings = async (req, res, next) => {
       req.user.id,
       { $set: updateData },
       { new: true, runValidators: true }
-    ).select('isPrivate preferences.privacy');
+    ).select('isPrivate areHabitsPrivate preferences.privacy');
 
     res.status(200).json({
       success: true,
       message: 'Privacy settings updated successfully',
       data: {
-        isPrivate: user.isPrivate
+        isPrivate: user.isPrivate,
+        areHabitsPrivate: user.areHabitsPrivate
       }
     });
   } catch (error) {

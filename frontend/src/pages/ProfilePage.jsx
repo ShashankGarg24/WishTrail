@@ -228,10 +228,15 @@ const ProfilePage = () => {
         }
       }
 
-      // Load habits when habits tab is viewed (ONLY for own profile or if following/public)
+      // Load habits when habits tab is viewed (ONLY for own profile or if following/public AND habits not private)
       if (activeTab === 'habits' && userHabits.length === 0) {
-        if (isOwnProfile || canViewContent) {
-          const targetUserId = isOwnProfile ? currentUser?._id : profileUser?._id;
+        if (isOwnProfile) {
+          // Always load for own profile
+          const targetUserId = currentUser?._id;
+          await fetchUserHabits(targetUserId);
+        } else if (canViewContent && !profileUser?.areHabitsPrivate) {
+          // Load for others only if profile accessible AND habits not private
+          const targetUserId = profileUser?._id;
           await fetchUserHabits(targetUserId);
         }
       }
@@ -321,14 +326,14 @@ const ProfilePage = () => {
     }
   };
 
-  const fetchUserHabits = async (userId = null) => {
-    const targetUserId = userId || (isOwnProfile ? currentUser?._id : profileUser?._id);
-    if (!targetUserId) return;
+  const fetchUserHabits = async () => {
+    const targetUserName = isOwnProfile ? currentUser?.username : profileUser?.username;
+    if (!targetUserName) return;
     
     try {
       const params = isOwnProfile 
         ? { page: 1, limit: HABITS_PER_PAGE }
-        : { userId: targetUserId, page: 1, limit: HABITS_PER_PAGE };
+        : { username: targetUserName, page: 1, limit: HABITS_PER_PAGE };
         
       const result = await habitsAPI.list(params);
       if (result.data.success) {
@@ -940,7 +945,8 @@ const ProfilePage = () => {
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }} className="relative max-w-3xl mx-auto mb-8">
               <div className="flex justify-center mt-4">
                 <div className="relative flex w-full max-w-sm border-b border-gray-300 dark:border-gray-700">
-                  {["overview", "goals", ...(isOwnProfile ? ["habits"] : []), ...(isOwnProfile ? ["journal"] : [])].map((tab) => (
+                  {console.log('Rendering tabs with activeTab:', activeTab, 'isOwnProfile:', isOwnProfile, 'profileUser:', profileUser, 'isFollowing:', isFollowing)}
+                  {["overview", "goals", ...(isOwnProfile ? ["habits"] : (!profileUser?.areHabitsPrivate && (isFollowing || !profileUser?.isPrivate) ? ["habits"] : [])), ...(isOwnProfile ? ["journal"] : [])].map((tab) => (
                     <button
                       key={tab}
                       onClick={() => handleTabChange(tab)}
@@ -964,13 +970,13 @@ const ProfilePage = () => {
                     initial={false}
                     animate={{
                       left: (() => {
-                        const tabs = ["overview", "goals", ...(isOwnProfile ? ["habits"] : []), ...(isOwnProfile ? ["journal"] : [])];
+                        const tabs = ["overview", "goals", ...(isOwnProfile ? ["habits"] : (!profileUser?.areHabitsPrivate && (isFollowing || !profileUser?.isPrivate) ? ["habits"] : [])), ...(isOwnProfile ? ["journal"] : [])];
                         const activeIndex = tabs.indexOf(activeTab);
                         const tabCount = tabs.length;
                         return `${(activeIndex / tabCount) * 100}%`;
                       })(),
                       width: (() => {
-                        const tabs = ["overview", "goals", ...(isOwnProfile ? ["habits"] : []), ...(isOwnProfile ? ["journal"] : [])];
+                        const tabs = ["overview", "goals", ...(isOwnProfile ? ["habits"] : (!profileUser?.areHabitsPrivate && (isFollowing || !profileUser?.isPrivate) ? ["habits"] : [])), ...(isOwnProfile ? ["journal"] : [])];
                         const tabCount = tabs.length;
                         return `${100 / tabCount}%`;
                       })()
@@ -1269,10 +1275,12 @@ const ProfilePage = () => {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.3, delay: Math.min(index * 0.03, 0.3) }}
                             onClick={() => {
-                              setOpenHabitId(habit.id || habit._id);
-                              setHabitModalOpen(true);
+                              if (isOwnProfile) {
+                                setOpenHabitId(habit.id || habit._id);
+                                setHabitModalOpen(true);
+                              }
                             }}
-                            className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-700/50 dark:to-gray-800/30 rounded-xl p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md hover:border-orange-300 dark:hover:border-orange-600 transition-all cursor-pointer"
+                            className={`bg-gradient-to-br from-white to-gray-50 dark:from-gray-700/50 dark:to-gray-800/30 rounded-xl p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md hover:border-orange-300 dark:hover:border-orange-600 transition-all ${isOwnProfile ? 'cursor-pointer' : 'cursor-default'}`}
                           >
                             <div className="flex items-start justify-between mb-3">
                               <h4 className="font-semibold text-gray-900 dark:text-white text-base">{habit.name}</h4>

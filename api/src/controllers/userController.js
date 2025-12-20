@@ -410,7 +410,7 @@ const getAnalytics = async (req, res, next) => {
     
     let targetUserId = req.user.id;
     let isSelf = true;
-    
+    let targetUsername = req.user.username;
     // If username provided, look up that user
     if (username) {
       const targetUserData = await userService.getUserByUsername(username, req.user.id);
@@ -434,10 +434,8 @@ const getAnalytics = async (req, res, next) => {
         }
       }
     }
-    
     // Get user to extract totalPoints, level, streaks
     const user = await User.findOne({ username: targetUsername }).select('totalPoints level currentStreak longestStreak isActive');
-    console.log('Analytics for user:', targetUsername, user);
     if (!user || !user.isActive) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
