@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, lazy, Suspense } from 'react'
+import { useState, useEffect, useMemo, lazy, Suspense, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { Plus, Calendar, Target, CheckCircle, Circle, Star, Award, Lightbulb, Clock, XCircle, SkipForward, Activity, Compass, Pencil, Trash2 } from 'lucide-react'
 const HabitDetailModal = lazy(() => import('../components/HabitDetailModal'));
@@ -20,6 +20,9 @@ const DashboardPage = () => {
   const [activeTab, setActiveTab] = useState('goals')
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
+  const [hasLoadedInitialData, setHasLoadedInitialData] = useState(false)
+  const [isLoadingGoals, setIsLoadingGoals] = useState(false)
+  const prevYearRef = useRef(null) // Track previous year to detect actual changes
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isHabitModalOpen, setIsHabitModalOpen] = useState(false)
   const [selectedHabit, setSelectedHabit] = useState(null)
@@ -137,23 +140,42 @@ const DashboardPage = () => {
   useEffect(() => {
     if (!isAuthenticated) return;
     
-    // Default to current year if none in data
-    const initialYear = (yearsInData.length === 0) ? currentYear : (yearsInData.includes(selectedYear) ? selectedYear : yearsInData[0])
-    if (initialYear !== selectedYear) setSelectedYear(initialYear)
-    getDashboardStats()
-    // Goals will be fetched by the useEffect below that watches page/year
-  }, [isAuthenticated]) // Remove this to prevent double calls caused by dependency changes
+    if (!hasLoadedInitialData) {
+      prevYearRef.current = selectedYear;
+      getDashboardStats()
+      setIsLoadingGoals(true)
+      getGoals({ year: selectedYear, includeProgress: true, page }).finally(() => {
+        setIsLoadingGoals(false)
+        setHasLoadedInitialData(true)
+      })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated])
 
   useEffect(() => {
-    if (!isAuthenticated) return
-    setPage(1) // Reset to first page when year changes
-  }, [selectedYear, isAuthenticated])
+    if (!isAuthenticated || !hasLoadedInitialData) return;
+    
+    // Only run if year actually changed from a previous value
+    if (prevYearRef.current !== null && prevYearRef.current !== selectedYear) {
+      prevYearRef.current = selectedYear;
+      setPage(1)
+      setIsLoadingGoals(true)
+      getGoals({ year: selectedYear, includeProgress: true, page: 1 }).finally(() => {
+        setIsLoadingGoals(false)
+      })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedYear])
 
-  // Fetch goals when page changes or year changes
+  // Fetch goals when page changes
   useEffect(() => {
-    if (!isAuthenticated) return
-    getGoals({ year: selectedYear, includeProgress: true, page })
-  }, [page, selectedYear, isAuthenticated, getGoals])
+    if (!isAuthenticated || !hasLoadedInitialData || page <= 1) return;
+    setIsLoadingGoals(true)
+    getGoals({ year: selectedYear, includeProgress: true, page }).finally(() => {
+      setIsLoadingGoals(false)
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page])
 
   // Load habits on first visit to Habits tab
   useEffect(() => {
@@ -163,13 +185,20 @@ const DashboardPage = () => {
       try { loadHabitAnalytics({}).catch(() => { }) } catch { }
       try { loadHabitStats({}).catch(() => { }) } catch { }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, isAuthenticated, habitPage])
+
+  // Debug: Monitor goals changes
+  useEffect(() => {
+    // Goals state tracking removed after fixing
+  }, [goals, hasLoadedInitialData, isLoadingGoals])
 
   // Load community goals (not paginated with personal goals)
   useEffect(() => {
     if (!isAuthenticated) return;
     try { loadCommunityGoalsForYear(selectedYear).catch(() => { }) } catch { }
-  }, [isAuthenticated, selectedYear, loadCommunityGoalsForYear])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, selectedYear])
 
   // Deep link open via ?goalId=
   useEffect(() => {
@@ -228,7 +257,8 @@ const DashboardPage = () => {
   }, [habitAnalytics, habitStats]);
 
   const goalsForYear = useMemo(() => {
-    return (goals || []).filter(g => g.year === selectedYear && !g.communityId && !g.isCommunitySource && !g.communityInfo);
+    const filtered = (goals || []).filter(g => g.year === selectedYear && !g.communityId && !g.isCommunitySource && !g.communityInfo);
+    return filtered;
   }, [goals, selectedYear]);
 
   const communityGoals = useMemo(() => {
@@ -413,8 +443,8 @@ const DashboardPage = () => {
     )
   }
 
-  // Loading state
-  if (loading && !dashboardStats) {
+  // Loading state - only show if we don't have any dashboard stats yet
+  if (!dashboardStats && !hasLoadedInitialData) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -486,17 +516,17 @@ const DashboardPage = () => {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
 
         {/* Tabs */}
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="mb-6">
+        <div className="mb-6">
           <div className="inline-flex rounded-xl overflow-hidden border border-gray-200 dark:border-gray-800">
             <button onClick={() => handleTabChange('goals')} className={`px-4 py-2 text-sm font-medium ${activeTab === 'goals' ? 'bg-primary-500 text-white' : 'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300'}`}>Goals</button>
             <button onClick={() => handleTabChange('habits')} className={`px-4 py-2 text-sm font-medium ${activeTab === 'habits' ? 'bg-primary-500 text-white' : 'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300'}`}>Habits</button>
           </div>
-        </motion.div>
+        </div>
 
         {activeTab === 'goals' && (
           <>
             {/* Year Selection */}
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.1 }} className="mb-8">
+            <div className="mb-8">
               <div className="flex flex-wrap gap-2 items-center">
                 {availableYears.map(year => (
                   <button key={year} onClick={() => handleYearChange(year)} className={`px-4 py-2 rounded-lg font-medium transition-all ${selectedYear === year ? 'bg-primary-500 text-white shadow-lg' : 'glass-card hover:bg-white/20 text-gray-700 dark:text-gray-300'}`}>
@@ -509,7 +539,7 @@ const DashboardPage = () => {
                   </button>
                 )}
               </div>
-            </motion.div>
+            </div>
 
             {/* Daily Limit Notification
             {dashboardStats && (dashboardStats.todayCompletions || 0) >= (dashboardStats.dailyLimit || 3) && (
@@ -526,7 +556,7 @@ const DashboardPage = () => {
 
             {/* Analytics (Stats Grid) */}
             {dashboardStats && (
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.2 }} className="grid grid-cols-2 lg:grid-cols-6 gap-4 mb-8">
+              <div className="grid grid-cols-2 lg:grid-cols-6 gap-4 mb-8">
                 {goalStats.map((stat) => (
                   <div key={stat.label} className="glass-card-hover p-6 rounded-xl text-center">
                     {stat.emoji ? (<div className="text-3xl mb-2">{stat.emoji}</div>) : (<stat.icon className={`h-8 w-8 ${stat.color} mx-auto mb-2`} />)}
@@ -534,17 +564,12 @@ const DashboardPage = () => {
                     <div className="text-sm text-gray-600 dark:text-gray-400">{stat.label}</div>
                   </div>
                 ))}
-              </motion.div>
+              </div>
             )}
 
             {/* Progress Bar */}
             {dashboardStats && dashboardStats.totalGoals > 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: 0.3 }}
-                className="glass-card-hover p-6 rounded-xl mb-8"
-              >
+              <div className="glass-card-hover p-6 rounded-xl mb-8">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                     {selectedYear} Progress
@@ -555,18 +580,16 @@ const DashboardPage = () => {
                 </div>
 
                 <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${progress}%` }}
-                    transition={{ duration: 1, delay: 0.5 }}
-                    className="bg-primary-500 h-3 rounded-full"
+                  <div
+                    className="bg-primary-500 h-3 rounded-full transition-all duration-1000"
+                    style={{ width: `${progress}%` }}
                   />
                 </div>
-              </motion.div>
+              </div>
             )}
 
             {/* Action Buttons (Goals) */}
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.4 }} className="flex flex-wrap gap-4 mb-8">
+            <div className="flex flex-wrap gap-4 mb-8">
               <button onClick={() => setIsCreateModalOpen(true)} className="btn-primary">
                 <Plus className="h-5 w-5 mr-2" />Add New Goal
               </button>
@@ -575,33 +598,47 @@ const DashboardPage = () => {
                   <Lightbulb className="h-5 w-5 mr-2" />Discover Goal Ideas
                 </button>
               )}
-            </motion.div>
+            </div>
 
             {/* Goals List */}
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.5 }}>
-              {visibleGoals.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                  {visibleGoals.map((goal, index) => (
-                    <WishCard key={goal.id} wish={goal} year={selectedYear} index={index} onToggle={() => handleToggleGoal(goal.id)} onDelete={() => handleDeleteGoal(goal.id)} onComplete={handleCompleteGoal} isViewingOwnGoals={true} onOpenGoal={(id) => setOpenGoalId(id)} onOpenAnalytics={(id) => navigate(`/goals/${id}/analytics`)} />
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-12 text-gray-500 dark:text-gray-400">No goals for {selectedYear} yet.</div>
-              )}
+            <div>
+              {(() => {
+                const showLoading = (!hasLoadedInitialData || isLoadingGoals) && visibleGoals.length === 0;
+                const showGoals = visibleGoals.length > 0;
+                
+                if (showLoading) {
+                  return (
+                    <div className="text-center py-12">
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto mb-4"></div>
+                      <p className="text-gray-600 dark:text-gray-400">Loading your goals...</p>
+                    </div>
+                  );
+                } else if (showGoals) {
+                  return (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                      {visibleGoals.map((goal, index) => (
+                        <WishCard key={goal.id} wish={goal} year={selectedYear} index={index} onToggle={() => handleToggleGoal(goal.id)} onDelete={() => handleDeleteGoal(goal.id)} onComplete={handleCompleteGoal} isViewingOwnGoals={true} onOpenGoal={(id) => setOpenGoalId(id)} onOpenAnalytics={(id) => navigate(`/goals/${id}/analytics`)} />
+                      ))}
+                    </div>
+                  );
+                } else {
+                  return <div className="text-center py-12 text-gray-500 dark:text-gray-400">No goals for {selectedYear} yet.</div>;
+                }
+              })()}
               {goalsPagination && goalsPagination.pages > 1 && (
                 <div className="flex items-center justify-center gap-2 mt-6">
                   <button 
-                    disabled={page <= 1 || loading} 
+                    disabled={page <= 1 || isLoadingGoals} 
                     onClick={() => setPage(p => Math.max(1, p - 1))} 
                     className="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
                   >
                     Prev
                   </button>
                   <div className="text-sm text-gray-600 dark:text-gray-400">
-                    {loading ? 'Loading...' : `Page ${goalsPagination.page} of ${goalsPagination.pages}`}
+                    {isLoadingGoals ? 'Loading...' : `Page ${goalsPagination.page} of ${goalsPagination.pages}`}
                   </div>
                   <button 
-                    disabled={page >= goalsPagination.pages || loading} 
+                    disabled={page >= goalsPagination.pages || isLoadingGoals} 
                     onClick={() => setPage(p => Math.min(goalsPagination.pages, p + 1))} 
                     className="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
                   >
@@ -609,7 +646,7 @@ const DashboardPage = () => {
                   </button>
                 </div>
               )}
-            </motion.div>
+            </div>
 
             {/* Community Goals Section (render using WishCard style) */}
             <div className="mt-12">
@@ -716,7 +753,7 @@ const DashboardPage = () => {
           <>
             {/* Analytics (Habits) */}
             {habitsSummary.length > 0 && (
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.2 }} className="grid grid-cols-2 lg:grid-cols-6 gap-4 mb-8">
+              <div className="grid grid-cols-2 lg:grid-cols-6 gap-4 mb-8">
                 {habitsSummary.map((stat) => (
                   <div key={stat.label} className="glass-card-hover p-6 rounded-xl text-center">
                     {stat.emoji ? (<div className="text-3xl mb-2">{stat.emoji}</div>) : (<stat.icon className={`h-8 w-8 ${stat.color} mx-auto mb-2`} />)}
@@ -724,21 +761,21 @@ const DashboardPage = () => {
                     <div className="text-sm text-gray-600 dark:text-gray-400">{stat.label}</div>
                   </div>
                 ))}
-              </motion.div>
+              </div>
             )}
 
             {/* Action Buttons (Habits) */}
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.3 }} className="flex flex-wrap gap-4 mb-8">
+            <div className="flex flex-wrap gap-4 mb-8">
               <button onClick={() => setIsHabitModalOpen(true)} className="btn-primary">
                 <Plus className="h-5 w-5 mr-2" />Add New Habit
               </button>
               <button onClick={() => setIsHabitIdeasOpen(true)} className="btn-primary flex items-center">
                 <Lightbulb className="h-5 w-5 mr-2" />Discover Habit Ideas
               </button>
-            </motion.div>
+            </div>
 
             {/* Habits List (cards like goals) */}
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.4 }}>
+            <div>
               {userHabits.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                   {userHabits.map((h, idx) => (
@@ -815,7 +852,7 @@ const DashboardPage = () => {
                   </button>
                 </div>
               )}
-            </motion.div>
+            </div>
 
             {/* Community Habits Section */}
             <div className="mt-12">

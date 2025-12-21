@@ -263,7 +263,7 @@ export default function GoalDivisionEditor({ goal, habits, onClose, draftMode = 
           <div className="space-y-2 max-h-80 overflow-auto pr-1">
             {localHabitLinks.map((hl, idx) => (
               <div key={idx} className="grid grid-cols-12 gap-3 items-center">
-                <select value={hl.habitId} onChange={(e) => setLocalHabitLinks(prev => prev.map((h,i) => i===idx ? { ...h, habitId: e.target.value } : h))} className="col-span-7 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white">
+                <select value={hl.id} onChange={(e) => setLocalHabitLinks(prev => prev.map((h,i) => i===idx ? { ...h, habitId: e.target.value } : h))} className="col-span-7 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white">
                   <option value="">Select a habit…</option>
                   {(habits || []).map(h => (
                     <option key={h._id} value={h._id}>{h.name}</option>

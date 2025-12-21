@@ -242,17 +242,6 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
         )}
       </div>
 
-      {/* View Post Button */}
-      {!isReadOnly && onOpenGoal && (
-        <button
-          onClick={(e) => { e.stopPropagation(); onOpenGoal?.(wish?._id); }}
-          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all border border-gray-200 dark:border-gray-700"
-        >
-          <FileText className="h-3.5 w-3.5" />
-          View Post
-        </button>
-      )}
-
       {/* Completion state */}
       {wish.completed && (
         <div className="mt-4 p-3 bg-green-100 dark:bg-green-900/20 rounded-lg">
@@ -307,6 +296,17 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
         </div>
       )}
 
+      {/* View Post Button */}
+      {!isReadOnly && onOpenGoal && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onOpenGoal?.(wish?._id); }}
+          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all border border-gray-200 dark:border-gray-700"
+        >
+          <FileText className="h-3.5 w-3.5" />
+          View Post
+        </button>
+      )}
+      
       {/* Optional footer slot for extra actions (e.g., community link) */}
       {footer && (
         <div className="mt-4">
