@@ -59,7 +59,6 @@ class GoalService {
       limit = 10, 
       status, 
       category, 
-      priority,
       sortBy = 'createdAt',
       sortOrder = 'desc'
     } = params;
@@ -76,11 +75,6 @@ class GoalService {
     // Filter by category
     if (category) {
       query.category = category;
-    }
-    
-    // Filter by priority
-    if (priority) {
-      query.priority = priority;
     }
     
     // Sort options
@@ -132,8 +126,6 @@ class GoalService {
       title,
       description,
       category,
-      priority = 'medium',
-      duration,
       targetDate,
       isPublic = true,
       tags = []
@@ -144,20 +136,15 @@ class GoalService {
       throw new Error('Title and category are required');
     }
     
-    // Calculate points based on priority and duration
-    const pointsEarned = this.calculateGoalPoints(priority, duration);
     
     const goal = await Goal.create({
       userId,
       title,
       description,
       category,
-      priority,
-      duration,
       targetDate,
       isPublic,
-      tags,
-      pointsEarned
+      tags
     });
     
     const currentUser = (await User.findById(userId).select('name avatar').lean());
@@ -170,8 +157,7 @@ class GoalService {
       {
         goalId: goal._id,
         goalTitle: title,
-        goalCategory: category,
-        pointsEarned
+        goalCategory: category
       },
       { isPublic: goal.isPublic }
     );
@@ -200,8 +186,7 @@ class GoalService {
     }
     
     const allowedUpdates = [
-      'title', 'description', 'category', 'priority', 
-      'duration', 'targetDate', 'isPublic', 'tags'
+      'title', 'description', 'category', 'targetDate', 'isPublic', 'tags'
     ];
     
     const updates = {};
@@ -213,14 +198,6 @@ class GoalService {
     
     if (Object.keys(updates).length === 0) {
       throw new Error('No valid updates provided');
-    }
-    
-    // Recalculate points if priority or duration changed
-    if (updates.priority || updates.duration) {
-      updates.pointsEarned = this.calculateGoalPoints(
-        updates.priority || goal.priority,
-        updates.duration || goal.duration
-      );
     }
     
     const updatedGoal = await Goal.findByIdAndUpdate(
@@ -298,10 +275,9 @@ class GoalService {
     await goal.save();
     try { await cacheService.invalidateTrendingGoals(); } catch (_) {}
     
-    // Update user points and stats
+    // Update user stats
     const user = await User.findById(userId);
     if (user) {
-      user.totalPoints = (user.totalPoints || 0) + goal.pointsEarned;
       user.completedGoals = (user.completedGoals || 0) + 1;
       
       // Update daily completions for streak calculation
@@ -314,9 +290,6 @@ class GoalService {
       user.dailyCompletions.set(today, todayCount + 1);
       
       await user.save();
-      
-      // Update user level and streak
-      await userService.updateUserLevel(userId);
       await userService.updateUserStreak(userId);
     }
     
@@ -330,7 +303,6 @@ class GoalService {
         goalId: goal._id,
         goalTitle: goal.title,
         goalCategory: goal.category,
-        pointsEarned: goal.pointsEarned,
         completionNote,
         metadata: {
           completionNote: completionNote || '',
@@ -351,7 +323,7 @@ class GoalService {
           name: user?.name,
           avatar: user?.avatar,
           type: 'goal_completed',
-          data: { goalId: goal._id, goalTitle: goal.title, goalCategory: goal.category, pointsEarned: goal.pointsEarned }
+          data: { goalId: goal._id, goalTitle: goal.title, goalCategory: goal.category}
         });
       }
     } catch (_) {}
@@ -423,7 +395,6 @@ class GoalService {
     const stats = {
       totalGoals: goals.length,
       completedGoals: goals.filter(g => g.completed).length,
-      totalPoints: goals.reduce((sum, g) => sum + (g.completed ? g.pointsEarned : 0), 0),
       categoriesUsed: [...new Set(goals.map(g => g.category))].length
     };
     
@@ -441,12 +412,11 @@ class GoalService {
 
     const trendingGoals = await Goal.aggregate([
       { $match: { completed: true, isPublic: true, isActive: true } },
-      { $addFields: { trendingScore: { $add: [ { $multiply: ['$likeCount', 5] }, '$pointsEarned' ] } } },
-      { $sort: { trendingScore: -1, completedAt: -1 } },
+      { $sort: { completedAt: -1 } },
       { $limit: parseInt(limit) },
       { $lookup: { from: 'users', localField: 'userId', foreignField: '_id', as: 'user' } },
       { $unwind: { path: '$user', preserveNullAndEmptyArrays: true } },
-      { $project: { title: 1, description: 1, category: 1, priority: 1, duration: 1, completedAt: 1, pointsEarned: 1, likeCount: 1, user: { _id: '$user._id', name: '$user.name', avatar: '$user.avatar', level: '$user.level' } } }
+      { $project: { title: 1, description: 1, category: 1, completedAt: 1, likeCount: 1, user: { _id: '$user._id', name: '$user.name', avatar: '$user.avatar'} } }
     ]);
 
     return trendingGoals;
@@ -488,11 +458,7 @@ class GoalService {
 
     // Build aggregation pipeline
     const pipeline = [
-      { $match: baseMatch },
-      { $addFields: {
-          _trendBase: { $add: [ { $multiply: ['$likeCount', 5] }, '$pointsEarned' ] }
-        }
-      },
+      { $match: baseMatch }
     ];
 
     if (interestCategories.length > 0) {
@@ -514,7 +480,7 @@ class GoalService {
             { $limit: parsedLimit },
             { $lookup: { from: 'users', localField: 'userId', foreignField: '_id', as: 'user' } },
             { $unwind: { path: '$user', preserveNullAndEmptyArrays: true } },
-            { $project: { _id: 1, title: 1, description: 1, category: 1, priority: 1, duration: 1, completedAt: 1, pointsEarned: 1, likeCount: 1, user: { _id: '$user._id', name: '$user.name', avatar: '$user.avatar', level: '$user.level' } } }
+            { $project: { _id: 1, title: 1, description: 1, category: 1, completedAt: 1, likeCount: 1, user: { _id: '$user._id', name: '$user.name', avatar: '$user.avatar'} } }
           ],
           total: [ { $count: 'count' } ]
         }
@@ -534,34 +500,6 @@ class GoalService {
         pages: Math.ceil(total / parsedLimit)
       }
     };
-  }
-  
-  /**
-   * Calculate points for a goal based on priority and duration
-   */
-  calculateGoalPoints(priority, duration) {
-    let basePoints = 10;
-    
-    // Priority multiplier
-    const priorityMultiplier = {
-      low: 1,
-      medium: 1.5,
-      high: 2,
-      urgent: 2.5
-    };
-    
-    // Duration multiplier
-    const durationMultiplier = {
-      short: 1,      // < 1 week
-      medium: 1.5,   // 1-4 weeks
-      long: 2,       // 1-3 months
-      extended: 2.5  // > 3 months
-    };
-    
-    const priorityBonus = priorityMultiplier[priority] || 1;
-    const durationBonus = durationMultiplier[duration] || 1;
-    
-    return Math.round(basePoints * priorityBonus * durationBonus);
   }
   
   /**
@@ -664,7 +602,7 @@ class GoalService {
         $facet: {
           data: [
             // Sort: completed goals by completion date, active goals by creation date
-            { $sort: { completed: -1, completedAt: -1, createdAt: -1, pointsEarned: -1 } },
+            { $sort: { completed: -1, completedAt: -1, createdAt: -1 } },
             { $skip: (Math.max(1, parseInt(page)) - 1) * parseInt(limit) },
             { $limit: parseInt(limit) },
             { 
@@ -673,13 +611,10 @@ class GoalService {
                 title: 1, 
                 description: 1,
                 category: 1,
-                priority: 1,
-                duration: 1,
                 completed: 1,
                 completedAt: 1, 
                 targetDate: 1,
                 startDate: 1,
-                pointsEarned: 1, 
                 likeCount: 1,
                 completionNote: 1,
                 subGoals: 1,

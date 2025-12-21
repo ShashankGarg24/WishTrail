@@ -26,7 +26,6 @@ const activitySchema = new mongoose.Schema({
       'goal_completed',
       'goal_created',
       'user_followed',
-      'level_up',
       'streak_milestone',
       'achievement_earned',
       'goal_liked'
@@ -43,7 +42,6 @@ const activitySchema = new mongoose.Schema({
     },
     goalTitle: String,
     goalCategory: String,
-    pointsEarned: Number,
     completionNote: String,
     completionAttachmentUrl: String,
     isCompleted: Boolean,
@@ -63,10 +61,6 @@ const activitySchema = new mongoose.Schema({
       ref: 'User'
     },
     targetUserName: String,
-    
-    // For level up activities
-    newLevel: String,
-    oldLevel: String,
     
     // For streak activities
     streakCount: Number,
@@ -150,7 +144,6 @@ activitySchema.virtual('message').get(function() {
     'goal_completed': `completed "${this.data.goalTitle}"`,
     'goal_created': `created a new goal "${this.data.goalTitle}"`,
     'user_followed': `started following ${this.data.targetUserName}`,
-    'level_up': `leveled up to ${this.data.newLevel}`,
     'streak_milestone': (() => {
       const name = this?.data?.metadata?.habitName;
       return name ? `achieved a ${this.data.streakCount}-day streak on "${name}"` : `achieved a ${this.data.streakCount}-day streak`;
@@ -187,7 +180,7 @@ activitySchema.statics.createActivity = async function(userId, name, avatar, typ
 // Static method to create or update goal activity (consolidated)
 activitySchema.statics.createOrUpdateGoalActivity = async function(userId, name, avatar, updateType, goalData, options = {}) {
   try {
-    const { goalId, goalTitle, goalCategory, pointsEarned, completionNote, completionAttachmentUrl, 
+    const { goalId, goalTitle, goalCategory, completionNote, completionAttachmentUrl, 
             subGoalsCount, completedSubGoalsCount, subGoalTitle, subGoalIndex } = goalData;
 
     // Find existing goal activity
@@ -204,7 +197,7 @@ activitySchema.statics.createOrUpdateGoalActivity = async function(userId, name,
     };
 
     if (updateType === 'completed') {
-      updateData.data = { pointsEarned, completionNote, completionAttachmentUrl };
+      updateData.data = { completionNote, completionAttachmentUrl };
     } else if (updateType === 'subgoal_added') {
       updateData.data = { subGoalTitle, index: subGoalIndex };
     } else if (updateType === 'subgoal_completed') {
@@ -225,7 +218,6 @@ activitySchema.statics.createOrUpdateGoalActivity = async function(userId, name,
       if (updateType === 'completed') {
         activity.data.isCompleted = true;
         activity.data.completedAt = new Date();
-        activity.data.pointsEarned = pointsEarned;
         activity.data.completionNote = completionNote || '';
         activity.data.completionAttachmentUrl = completionAttachmentUrl || '';
         activity.isPublic = options.isPublic !== undefined ? options.isPublic : true;
@@ -263,7 +255,6 @@ activitySchema.statics.createOrUpdateGoalActivity = async function(userId, name,
           goalCategory,
           isCompleted: updateType === 'completed',
           completedAt: updateType === 'completed' ? new Date() : null,
-          pointsEarned: updateType === 'completed' ? pointsEarned : 0,
           completionNote: updateType === 'completed' ? (completionNote || '') : '',
           completionAttachmentUrl: updateType === 'completed' ? (completionAttachmentUrl || '') : '',
           subGoalsCount: subGoalsCount || 0,

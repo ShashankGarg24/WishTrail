@@ -36,7 +36,9 @@ async function createHabit(userId, payload) {
     timezone: (payload.timezone || user?.timezone || 'UTC'),
     reminders: Array.isArray(payload.reminders) ? payload.reminders : [],
     goalId: payload.goalId || undefined,
-    isPublic: payload.isPublic !== undefined ? !!payload.isPublic : true
+    isPublic: payload.isPublic !== undefined ? !!payload.isPublic : true,
+    targetCompletions: payload.targetCompletions || null,
+    targetDays: payload.targetDays || null
   });
   await doc.save();
 
@@ -100,6 +102,8 @@ async function updateHabit(userId, habitId, payload) {
   if (Array.isArray(payload.reminders)) set.reminders = payload.reminders;
   if (payload.goalId !== undefined) set.goalId = payload.goalId || undefined;
   if (payload.isPublic !== undefined) set.isPublic = !!payload.isPublic;
+  if (payload.targetCompletions !== undefined) set.targetCompletions = payload.targetCompletions || null;
+  if (payload.targetDays !== undefined) set.targetDays = payload.targetDays || null;
   // Ensure timezone is set when editing reminders if habit has no meaningful timezone
   if (Array.isArray(payload.reminders) && (set.timezone === undefined)) {
     try {
@@ -136,6 +140,10 @@ async function toggleLog(userId, habitId, { status = 'done', note = '', mood = '
   const scheduled = isScheduledForDay(habit, date);
   const isDone = status === 'done';
 
+  // Check if this is a new day being logged
+  const existingLog = await HabitLog.findOne({ userId, habitId, dateKey, status: 'done' });
+  const isNewDay = !existingLog && isDone;
+  
   // Upsert log
   const log = await HabitLog.findOneAndUpdate(
     { userId, habitId, dateKey },
@@ -158,6 +166,12 @@ async function toggleLog(userId, habitId, { status = 'done', note = '', mood = '
       lastLoggedDateKey: dateKey,
       totalCompletions: (habit.totalCompletions || 0) + 1
     };
+    
+    // Increment totalDays only if this is a new day
+    if (isNewDay) {
+      update.totalDays = (habit.totalDays || 0) + 1;
+    }
+    
     await Habit.updateOne({ _id: habit._id }, { $set: update });
 
     // Milestones: 1, 7, 30, 100 (social sharing optional via flag)
@@ -426,6 +440,106 @@ async function analytics(userId, { days = 30 } = {}) {
   return { totals, byHabit, topHabits: top };
 }
 
+// Individual habit detailed analytics
+async function getHabitAnalytics(userId, habitId, { days = 90 } = {}) {
+  const habit = await Habit.findOne({ _id: habitId, userId });
+  if (!habit) throw Object.assign(new Error('Habit not found'), { statusCode: 404 });
+  
+  const from = new Date();
+  from.setUTCDate(from.getUTCDate() - Math.max(1, days));
+  const fromKey = toDateKeyUTC(from);
+  
+  // Get all logs for this habit in the timeframe
+  const logs = await HabitLog.find({ userId, habitId, dateKey: { $gte: fromKey } })
+    .sort({ dateKey: 1 })
+    .lean();
+  
+  // Calculate stats
+  const stats = {
+    totalCompletions: habit.totalCompletions || 0,
+    totalDays: habit.totalDays || 0,
+    currentStreak: habit.currentStreak || 0,
+    longestStreak: habit.longestStreak || 0,
+    targetCompletions: habit.targetCompletions || null,
+    targetDays: habit.targetDays || null
+  };
+  
+  // Calculate completion percentage
+  if (stats.targetCompletions) {
+    stats.completionPercentage = Math.min(100, Math.round((stats.totalCompletions / stats.targetCompletions) * 100));
+  }
+  if (stats.targetDays) {
+    stats.daysPercentage = Math.min(100, Math.round((stats.totalDays / stats.targetDays) * 100));
+  }
+  
+  // Timeline data for charts (grouped by date)
+  const timeline = {};
+  const statusCounts = { done: 0, missed: 0, skipped: 0 };
+  
+  logs.forEach(log => {
+    timeline[log.dateKey] = {
+      date: log.dateKey,
+      status: log.status,
+      mood: log.mood,
+      note: log.note
+    };
+    if (statusCounts[log.status] !== undefined) {
+      statusCounts[log.status]++;
+    }
+  });
+  
+  // Calculate consistency for the period
+  const daysSinceStart = Math.ceil((Date.now() - new Date(habit.createdAt).getTime()) / (24*60*60*1000));
+  const consistency = Math.min(100, Math.round((stats.totalDays / Math.max(1, daysSinceStart)) * 100));
+  
+  // Weekly breakdown (last 12 weeks)
+  const weeklyData = [];
+  const weeksToShow = Math.min(12, Math.ceil(days / 7));
+  for (let i = weeksToShow - 1; i >= 0; i--) {
+    const weekStart = new Date();
+    weekStart.setUTCDate(weekStart.getUTCDate() - (i * 7) - 6);
+    const weekEnd = new Date();
+    weekEnd.setUTCDate(weekEnd.getUTCDate() - (i * 7));
+    
+    const weekStartKey = toDateKeyUTC(weekStart);
+    const weekEndKey = toDateKeyUTC(weekEnd);
+    
+    const weekLogs = logs.filter(l => l.dateKey >= weekStartKey && l.dateKey <= weekEndKey && l.status === 'done');
+    const uniqueDays = new Set(weekLogs.map(l => l.dateKey)).size;
+    
+    weeklyData.push({
+      weekStart: weekStartKey,
+      weekEnd: weekEndKey,
+      completions: weekLogs.length,
+      days: uniqueDays
+    });
+  }
+  
+  // Mood distribution
+  const moodCounts = { very_positive: 0, positive: 0, neutral: 0, negative: 0, very_negative: 0 };
+  logs.forEach(log => {
+    if (log.mood && moodCounts[log.mood] !== undefined) {
+      moodCounts[log.mood]++;
+    }
+  });
+  
+  return {
+    habit: {
+      _id: habit._id,
+      name: habit.name,
+      description: habit.description,
+      frequency: habit.frequency,
+      createdAt: habit.createdAt
+    },
+    stats,
+    consistency,
+    statusCounts,
+    timeline: Object.values(timeline),
+    weeklyData,
+    moodCounts
+  };
+}
+
 module.exports = {
   createHabit,
   listHabits,
@@ -438,6 +552,7 @@ module.exports = {
   getStats,
   sendReminderNotifications,
   analytics,
+  getHabitAnalytics,
 };
 
 

@@ -31,7 +31,7 @@ const InspirationPage = () => {
     // Fetch recent activities for inspiration from ALL users
     getRecentActivities({ type: 'global', limit: 20 });
     // Fetch top achievers for leaderboard
-    getGlobalLeaderboard({ type: 'points', limit: 50 });
+    getGlobalLeaderboard({ type: 'goals', limit: 50 });
   }, [getRecentActivities, getGlobalLeaderboard]);
 
   const formatTimeAgo = (dateString) => {
@@ -73,8 +73,6 @@ const InspirationPage = () => {
         return '✨';
       case 'user_followed':
         return '🤝';
-      case 'level_up':
-        return '⚡️';
       case 'streak_milestone':
         return '🔥';
       case 'achievement_earned':
@@ -82,13 +80,6 @@ const InspirationPage = () => {
       default:
         return '📝';
     }
-  };
-
-  const getAchievementBadge = (user) => {
-    if (user.totalPoints > 1000) return { label: 'Goal Master', color: 'bg-yellow-500' };
-    if (user.totalPoints > 500) return { label: 'Consistency Champion', color: 'bg-purple-500' };
-    if (user.totalPoints > 200) return { label: 'Progress Pioneer', color: 'bg-blue-500' };
-    return { label: 'Achievement Ace', color: 'bg-green-500' };
   };
 
   const getRankIcon = (rank) => {
@@ -105,8 +96,6 @@ const InspirationPage = () => {
         return 'created a new goal - ';
       case 'user_followed':
         return `started following ${activity.data?.targetUserName || 'someone'}`;
-      case 'level_up':
-        return `leveled up to ${activity.data?.newLevel || 'next level'}`;
       case 'streak_milestone':
         return `reached a ${activity.data?.streakCount || 0} day streak!`;
       case 'achievement_earned':
@@ -339,13 +328,12 @@ const InspirationPage = () => {
                 </h2>
                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 text-xs font-medium">
                   <Trophy className="h-3.5 w-3.5" />
-                  <span>Ranked by Points</span>
+                  <span>Ranked by Goals Completed</span>
                 </div>
               </div>
               <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent">
                 {displayLeaderboard && displayLeaderboard.length > 0 ? (
                   displayLeaderboard.map((user, index) => {
-                    const badge = getAchievementBadge(user);
                     const rank = index + 1;
                     const isPodium = rank <= 3;
 
@@ -388,11 +376,6 @@ const InspirationPage = () => {
                             <span className="font-semibold text-gray-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors truncate">
                               {user.name}
                             </span>
-                            {isPodium && (
-                              <span className={`px-2 py-0.5 rounded-full text-xs font-medium text-white ${badge.color} flex-shrink-0`}>
-                                {badge.label}
-                              </span>
-                            )}
                           </div>
 
                           <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
@@ -402,7 +385,7 @@ const InspirationPage = () => {
                             </div>
                             <div className="flex items-center gap-1">
                               <Star className="h-3.5 w-3.5 text-yellow-500" />
-                              <span className="font-medium">{user.totalPoints || 0}</span>
+                              <span className="font-medium">{user.completedGoals || 0}</span>
                             </div>
                           </div>
                         </div>

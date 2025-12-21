@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom'
 const ShareModal = lazy(() => import('./ShareModal'));
 import useApiStore from '../store/apiStore'
 
-const CelebrationModal = ({ wish, isOpen, onClose, goalTitle, pointsEarned }) => {
+const CelebrationModal = ({ wish, isOpen, onClose, goalTitle }) => {
   const {user} = useApiStore()
   const [showQuote, setShowQuote] = useState(false)
   const [currentQuote, setCurrentQuote] = useState('')
@@ -165,21 +165,6 @@ const CelebrationModal = ({ wish, isOpen, onClose, goalTitle, pointsEarned }) =>
             </motion.p>
           </div>
 
-          {/* Points Display */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.4, type: "spring" }}
-            className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg border border-yellow-200 dark:border-yellow-700 mb-6"
-          >
-            <div className="flex items-center justify-center space-x-2">
-              <Star className="h-5 w-5 text-yellow-500" />
-              <span className="text-lg font-bold text-gray-900 dark:text-white">
-                +{pointsEarned} Points Earned!
-              </span>
-              <Star className="h-5 w-5 text-yellow-500" />
-            </div>
-          </motion.div>
 
           {/* Quote */}
           <AnimatePresence>

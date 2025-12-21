@@ -212,17 +212,6 @@ const userSchema = new mongoose.Schema({
     }
   },
   
-  // Gamification & Statistics
-  totalPoints: {
-    type: Number,
-    default: 0,
-    min: 0
-  },
-  level: {
-    type: String,
-    enum: ['Novice', 'Beginner', 'Intermediate', 'Advanced', 'Expert', 'Master'],
-    default: 'Novice'
-  },
   totalGoals: {
     type: Number,
     default: 0,
@@ -308,33 +297,17 @@ const userSchema = new mongoose.Schema({
 // Indexes for performance
 userSchema.index({ email: 1 });
 userSchema.index({ username: 1 });
-userSchema.index({ totalPoints: -1 });
 userSchema.index({ completedGoals: -1 });
 userSchema.index({ createdAt: -1 });
 
 // Compound indexes for search optimization
-userSchema.index({ isActive: 1, totalPoints: -1 }); // For discover/leaderboard
-userSchema.index({ isActive: 1, interests: 1, totalPoints: -1 }); // For interest-based search
+userSchema.index({ isActive: 1, interests: 1}); // For interest-based search
 userSchema.index({ isActive: 1, username: 1, name: 1 }); // For name/username search
 
 // Virtual for completion rate
 userSchema.virtual('completionRate').get(function() {
   if (this.totalGoals === 0) return 0;
   return Math.round((this.completedGoals / this.totalGoals) * 100);
-});
-
-// Virtual for level info with icon and color
-userSchema.virtual('levelInfo').get(function() {
-  const levels = {
-    'Novice': { icon: '🎯', color: 'text-gray-500', minPoints: 0 },
-    'Beginner': { icon: '🌱', color: 'text-orange-500', minPoints: 50 },
-    'Intermediate': { icon: '🚀', color: 'text-green-500', minPoints: 100 },
-    'Advanced': { icon: '💎', color: 'text-blue-500', minPoints: 200 },
-    'Expert': { icon: '⭐', color: 'text-purple-500', minPoints: 500 },
-    'Master': { icon: '🏆', color: 'text-yellow-500', minPoints: 1000 }
-  };
-  
-  return levels[this.level] || levels['Novice'];
 });
 
 // Pre-save middleware to hash password
@@ -345,22 +318,6 @@ userSchema.pre('save', async function(next) {
   // Hash password with salt of 12
   const saltRounds = parseInt(process.env.BCRYPT_SALT_ROUNDS) || 12;
   this.password = await bcrypt.hash(this.password, saltRounds);
-  
-  next();
-});
-
-// Pre-save middleware to update level based on points
-userSchema.pre('save', function(next) {
-  if (this.isModified('totalPoints')) {
-    const points = this.totalPoints;
-    
-    if (points >= 1000) this.level = 'Master';
-    else if (points >= 500) this.level = 'Expert';
-    else if (points >= 200) this.level = 'Advanced';
-    else if (points >= 100) this.level = 'Intermediate';
-    else if (points >= 50) this.level = 'Beginner';
-    else this.level = 'Novice';
-  }
   
   next();
 });
@@ -454,21 +411,12 @@ userSchema.methods.addDailyCompletion = function(goalId) {
   } catch (_) {}
 };
 
-//Add to total Points
-userSchema.methods.addToTotalPoints = async function(points) {
-  // Ensure points is a number
-  const validPoints = typeof points === 'number' && !isNaN(points) ? points : 0;
-  const existingPoints = typeof this.totalPoints === 'number' && !isNaN(this.totalPoints) ? this.totalPoints : 0;
-
-  this.totalPoints = existingPoints + validPoints;
-};
-
 // Static method to get leaderboard
 userSchema.statics.getLeaderboard = function(limit = 10) {
   return this.find({ isActive: true })
-    .sort({ completedGoals: -1, totalPoints: -1, createdAt: 1 })
+    .sort({ completedGoals: -1, createdAt: 1 })
     .limit(limit)
-    .select('name avatar bio location completedGoals totalPoints currentStreak level createdAt');
+    .select('name avatar bio location completedGoals currentStreak createdAt');
 };
 
 // Static method to search users
@@ -483,7 +431,7 @@ userSchema.statics.searchUsers = function(query, limit = 20) {
     ]
   })
   .limit(limit)
-  .select('name avatar bio location completedGoals totalPoints level createdAt');
+  .select('name avatar bio location completedGoals createdAt');
 };
 
 module.exports = mongoose.model('User', userSchema); 

@@ -37,11 +37,6 @@ export default function CommunityDashboard({ dashboard, members, analytics, item
           gradient="from-blue-50 to-blue-100/50 dark:from-blue-900/20 dark:to-blue-900/10"
         />
         <StatCard 
-          label="Community Points" 
-          value={dashboard?.stats?.totalPoints ?? '—'} 
-          gradient="from-purple-50 to-purple-100/50 dark:from-purple-900/20 dark:to-purple-900/10"
-        />
-        <StatCard 
           label="Weekly Activity" 
           value={dashboard?.stats?.weeklyActivityCount ?? '—'} 
           gradient="from-pink-50 to-pink-100/50 dark:from-pink-900/20 dark:to-pink-900/10"
@@ -115,7 +110,7 @@ export default function CommunityDashboard({ dashboard, members, analytics, item
               <div className={`text-xs w-7 h-7 rounded-full flex items-center justify-center font-bold ${idx === 0 ? 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-white' : idx === 1 ? 'bg-gradient-to-br from-gray-300 to-gray-400 text-gray-700' : idx === 2 ? 'bg-gradient-to-br from-orange-400 to-orange-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}`}>{idx+1}</div>
               <img src={m.user?.avatar} alt="User" className="h-10 w-10 rounded-full ring-2 ring-white dark:ring-gray-900 shadow-sm group-hover:scale-110 transition-transform" />
               <div className="text-sm font-semibold truncate flex-1 text-gray-900 dark:text-white">{m.user?.name || 'User'}</div>
-              <div className="text-xs font-bold text-blue-600 dark:text-blue-400">{m.points || 0} pts</div>
+              <div className="text-xs font-bold text-blue-600 dark:text-blue-400">{m.completedGoals || 0} goals</div>
             </div>
           ))}
           {(!analytics?.leaderboard?.topContributors || analytics.leaderboard.topContributors.length === 0) && members.slice(0,6).map((m, idx) => (
@@ -123,7 +118,7 @@ export default function CommunityDashboard({ dashboard, members, analytics, item
               <div className={`text-xs w-7 h-7 rounded-full flex items-center justify-center font-bold ${idx === 0 ? 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-white' : idx === 1 ? 'bg-gradient-to-br from-gray-300 to-gray-400 text-gray-700' : idx === 2 ? 'bg-gradient-to-br from-orange-400 to-orange-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}`}>{idx+1}</div>
               <img src={m.user?.avatar} alt="User" className="h-10 w-10 rounded-full ring-2 ring-white dark:ring-gray-900 shadow-sm group-hover:scale-110 transition-transform" />
               <div className="text-sm font-semibold truncate flex-1 text-gray-900 dark:text-white">{m.user?.name}</div>
-              <div className="text-xs font-bold text-blue-600 dark:text-blue-400">{m.user?.totalPoints || 0} pts</div>
+              <div className="text-xs font-bold text-blue-600 dark:text-blue-400">{m.user?.completedGoals || 0} goals</div>
             </div>
           ))}
         </div>

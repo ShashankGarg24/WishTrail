@@ -21,12 +21,6 @@ const goalValidation = [
   body('category')
     .isIn(['Health & Fitness', 'Education & Learning', 'Career & Business', 'Personal Development', 'Financial Goals', 'Creative Projects', 'Travel & Adventure', 'Relationships', 'Family & Friends', 'Other'])
     .withMessage('Invalid category'),
-  body('priority')
-    .isIn(['low', 'medium', 'high'])
-    .withMessage('Priority must be low, medium, or high'),
-  body('duration')
-    .isIn(['short-term', 'medium-term', 'long-term'])
-    .withMessage('Duration must be short-term, medium-term, or long-term'),
   body('targetDate')
     .optional({ checkFalsy: true , nullable: true})
     .isISO8601()
@@ -64,6 +58,7 @@ router.use(protect);
 router.get('/', goalController.getGoals);
 router.get('/trending', goalController.getTrendingGoals);
 router.get('/search', goalController.searchGoals);
+router.get('/:id/analytics', goalController.getGoalAnalytics);
 router.get('/:id/post', goalController.getGoalPost);
 router.post('/', goalValidation, goalController.createGoal);
 router.get('/yearly/:year', goalController.getYearlyGoalsSummary);

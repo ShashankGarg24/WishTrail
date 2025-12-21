@@ -57,7 +57,7 @@ const getGoalPost = async (req, res, next) => {
   try {
     const goal = await Goal.findById(req.params.id)
       .populate('userId', 'name avatar username isPrivate isActive')
-      .select('title description category completed completedAt shareCompletionNote completionNote completionAttachmentUrl likeCount pointsEarned userId subGoals');
+      .select('title description category completed completedAt shareCompletionNote completionNote completionAttachmentUrl likeCount userId subGoals');
 
     if (!goal) return res.status(404).json({ success: false, message: 'Goal not found' });
 
@@ -123,7 +123,6 @@ const getGoalPost = async (req, res, next) => {
           description: goal.description,
           category: goal.category,
           completedAt: goal.completedAt,
-          pointsEarned: goal.pointsEarned,
           subGoals: enrichedSubGoals,
         },
         user: {
@@ -262,7 +261,7 @@ const createGoal = async (req, res, next) => {
       });
     }
 
-    const { title, description, category, priority, duration, targetDate, year, subGoals, habitLinks } = req.body;
+    const { title, description, category, targetDate, year, subGoals, habitLinks } = req.body;
     const isPublicFlag = (req.body.isPublic === true || req.body.isPublic === 'true') ? true : false;
     const isDiscoverableFlag = (req.body.isDiscoverable === true || req.body.isDiscoverable === 'true') ? true : false;
 
@@ -307,8 +306,6 @@ const createGoal = async (req, res, next) => {
         title,
         description,
         category,
-        priority,
-        duration,
         targetDate,
         year: currentYear,
         isPublic: isPublicFlag,
@@ -411,7 +408,7 @@ const updateGoal = async (req, res, next) => {
       });
     }
 
-    const { title, description, category, priority, duration, targetDate, subGoals, habitLinks } = req.body;
+    const { title, description, category, targetDate, subGoals, habitLinks } = req.body;
     const isPublicFlag = (req.body.isPublic === true || req.body.isPublic === 'true') ? true : goal.isPublic;
     const isDiscoverableFlag = (req.body.isDiscoverable === true || req.body.isDiscoverable === 'true') ? true : goal.isDiscoverable;
 
@@ -420,8 +417,6 @@ const updateGoal = async (req, res, next) => {
       title,
       description,
       category,
-      priority,
-      duration,
       targetDate,
       isPublic: isPublicFlag,
       isDiscoverable: isDiscoverableFlag
@@ -494,7 +489,6 @@ const deleteGoal = async (req, res, next) => {
     const goalId = goal._id;
     const userId = goal.userId;
     const wasCompleted = goal.completed;
-    const pointsEarned = goal.pointsEarned || 0;
 
     // 2. Delete all activities related to this goal
     const deletedActivities = await Activity.find({ 'data.goalId': goalId })
@@ -563,8 +557,7 @@ const deleteGoal = async (req, res, next) => {
     const userUpdate = {
       $inc: { 
         totalGoals: -1,
-        ...(wasCompleted && { completedGoals: -1 }),
-        ...(wasCompleted && pointsEarned > 0 && { totalPoints: -pointsEarned })
+        ...(wasCompleted && { completedGoals: -1 })
       }
     };
 
@@ -631,41 +624,11 @@ const toggleGoalCompletion = async (req, res, next) => {
         throw Object.assign(new Error('Access denied'), { statusCode: 403 });
       }
 
-      const user = await User.findById(req.user.id).session(session).select('name avatar dailyCompletions totalPoints completedGoals');
+      const user = await User.findById(req.user.id).session(session).select('name avatar dailyCompletions completedGoals');
 
       const shareCompletionNote = String(shareCompletionNoteRaw) === 'true' || shareCompletionNoteRaw === true
       const now = new Date();
       const todayKey = now.toISOString().split('T')[0];
-
-      // Helper to compute points mirroring Goal.calculatePoints
-      const computePoints = (g, note) => {
-        let points = 0;
-        const durationPoints = { 'short-term': 10, 'medium-term': 25, 'long-term': 50 };
-        points += durationPoints[g.duration] || 10;
-        const priorityMultiplier = { 'high': 1.5, 'medium': 1.0, 'low': 0.7 };
-        points *= (priorityMultiplier[g.priority] || 1.0);
-        const categoryBonus = {
-          'Education & Learning': 8,
-          'Career & Business': 7,
-          'Financial Goals': 7,
-          'Personal Development': 6,
-          'Health & Fitness': 5,
-          'Creative Projects': 5,
-          'Relationships': 5,
-          'Family & Friends': 4,
-          'Travel & Adventure': 4,
-          'Other': 3
-        };
-        points += (categoryBonus[g.category] || 3);
-        if (g.targetDate && now < new Date(g.targetDate)) {
-          points += Math.floor(points * 0.2);
-        }
-        if (note) {
-          const wc = String(note).trim().split(/\s+/).filter(Boolean).length;
-          if (wc >= 50) points += 10; else if (wc >= 25) points += 5;
-        }
-        return Math.floor(points);
-      };
 
       // prune dailyCompletions to last 7 days
       try {
@@ -706,17 +669,12 @@ const toggleGoalCompletion = async (req, res, next) => {
         if ((todayArr?.length || 0) >= 3) {
           throw Object.assign(new Error('Daily completion limit reached (3 goals per day)'), { statusCode: 400 });
         }
-        if (goal.isLocked) {
-          throw Object.assign(new Error('Goal is currently locked and cannot be completed yet. Please wait for the minimum duration period.'), { statusCode: 400 });
-        }
 
-        const points = computePoints(goal, completionNote);
         const setUpdate = {
           completed: true,
           completedAt: now,
           completionNote: completionNote || '',
-          shareCompletionNote: !!shareCompletionNote,
-          pointsEarned: points
+          shareCompletionNote: !!shareCompletionNote
         };
         if (attachmentUrl) setUpdate.completionAttachmentUrl = attachmentUrl;
 
@@ -729,7 +687,7 @@ const toggleGoalCompletion = async (req, res, next) => {
           throw Object.assign(new Error('Goal state changed, please retry'), { statusCode: 409 });
         }
 
-        await User.updateOne({ _id: user._id }, { $inc: { completedGoals: 1, totalPoints: points } }, { session });
+        await User.updateOne({ _id: user._id }, { $inc: { completedGoals: 1 } }, { session });
         const key = `dailyCompletions.${todayKey}`;
         // Ensure single entry per goal per day: pull then push
         await User.updateOne({ _id: user._id }, { $pull: { [key]: { goalId: goal._id } } }, { session, strict: false });
@@ -748,7 +706,6 @@ const toggleGoalCompletion = async (req, res, next) => {
             goalId: goal._id,
             goalTitle: goal.title,
             goalCategory: goal.category,
-            pointsEarned: points,
             completionNote: shareCompletionNote ? (completionNote || '') : '',
             completionAttachmentUrl: attachmentUrl || '',
             subGoalsCount: goal.subGoals?.length || 0,
@@ -864,7 +821,6 @@ const getYearlyGoalsSummary = async (req, res, next) => {
       completed: completed.length,
       pending: pending.length,
       completionRate: goals.length > 0 ? Math.round((completed.length / goals.length) * 100) : 0,
-      totalPoints: completed.reduce((sum, goal) => sum + goal.pointsEarned, 0),
       categorySummary: {}
     };
 
@@ -873,14 +829,12 @@ const getYearlyGoalsSummary = async (req, res, next) => {
       if (!summary.categorySummary[goal.category]) {
         summary.categorySummary[goal.category] = {
           total: 0,
-          completed: 0,
-          points: 0
+          completed: 0
         };
       }
       summary.categorySummary[goal.category].total++;
       if (goal.completed) {
         summary.categorySummary[goal.category].completed++;
-        summary.categorySummary[goal.category].points += goal.pointsEarned;
       }
     });
 
@@ -901,7 +855,7 @@ const getShareableGoal = async (req, res, next) => {
   try {
     const goal = await Goal.findById(req.params.id)
       .populate('userId', 'name avatar')
-      .select('title description category priority duration completed completedAt completionNote shareCompletionNote isShareable pointsEarned userId')
+      .select('title description category completed completedAt completionNote shareCompletionNote isShareable userId')
 
     if (!goal) {
       return res.status(404).json({
@@ -933,12 +887,9 @@ const getShareableGoal = async (req, res, next) => {
         title: goal.title,
         description: goal.description,
         category: goal.category,
-        priority: goal.priority,
-        duration: goal.duration,
         completed: goal.completed,
         completedAt: goal.completedAt,
-        completionNote: goal.shareCompletionNote ? goal.completionNote : null,
-        pointsEarned: goal.pointsEarned
+        completionNote: goal.shareCompletionNote ? goal.completionNote : null
       },
       user: {
         _id: goal.userId._id,
@@ -1197,6 +1148,129 @@ module.exports = {
       return res.status(200).json({ success: true, data: result });
     } catch (err) {
       next(err);
+    }
+  },
+  // @desc    Get goal analytics data (optimized for analytics page)
+  // @route   GET /api/v1/goals/:id/analytics
+  // @access  Private
+  async getGoalAnalytics(req, res, next) {
+    try {
+      const goal = await Goal.findById(req.params.id)
+        .populate('userId', 'name username')
+        .select('title description category completed completedAt completionNote createdAt targetDate year likeCount userId subGoals habitLinks progress isPublic');
+
+      if (!goal) return res.status(404).json({ success: false, message: 'Goal not found' });
+
+      // Check ownership
+      const isOwner = String(goal.userId._id) === String(req.user.id);
+      if (!isOwner) {
+        // If not owner, check if goal is public
+        if (!goal.isPublic) {
+          return res.status(403).json({ success: false, message: 'Access denied' });
+        }
+      }
+
+      // Get engagement metrics
+      const Activity = require('../models/Activity');
+      const ActivityComment = require('../models/ActivityComment');
+      
+      const activity = await Activity.findOne({
+        'data.goalId': goal._id,
+        userId: goal.userId._id,
+        type: { $in: ['goal_activity', 'goal_completed', 'goal_created'] }
+      }).sort({ createdAt: -1 }).lean();
+
+      let commentCount = 0;
+      if (activity) {
+        commentCount = await ActivityComment.countDocuments({ activityId: activity._id, isActive: true });
+      }
+
+      // Enrich sub-goals with completion dates
+      let enrichedSubGoals = [];
+      if (goal.subGoals && goal.subGoals.length > 0) {
+        const linkedIds = goal.subGoals.map(sg => sg.linkedGoalId).filter(Boolean);
+        const linkedGoals = await Goal.find({ _id: { $in: linkedIds } })
+          .select('_id completedAt completed title description');
+
+        const linkedMap = {};
+        for (const lg of linkedGoals) {
+          linkedMap[String(lg._id)] = lg;
+        }
+
+        enrichedSubGoals = goal.subGoals.map(sg => {
+          const linked = sg.linkedGoalId ? linkedMap[String(sg.linkedGoalId)] : null;
+          return {
+            id: sg.linkedGoalId || sg._id,
+            title: linked.title,
+            description: sg.description,
+            completed: sg.completed,
+            completedAt: linked?.completedAt ? linked.completedAt : sg.completedAt || null,
+            weight: sg.weight || 0
+          };
+        });
+      }
+
+      // Enrich habit links with habit data
+      let enrichedHabits = [];
+      if (goal.habitLinks && goal.habitLinks.length > 0) {
+        const habitIds = goal.habitLinks.map(hl => hl.habitId).filter(Boolean);
+        const habits = await Habit.find({ _id: { $in: habitIds } })
+          .select('_id name description');
+
+        const habitMap = {};
+        for (const h of habits) {
+          habitMap[String(h._id)] = h;
+        }
+
+        enrichedHabits = goal.habitLinks.map(hl => {
+          const habit = hl.habitId ? habitMap[String(hl.habitId)] : null;
+          return {
+            id: hl.habitId,
+            habitName: habit?.name || hl.habitName || 'Habit',
+            name: habit?.name || hl.habitName || 'Habit',
+            description: habit?.description || '',
+            weight: hl.weight || 0
+          };
+        });
+      }
+
+      // Compute progress if not already present
+      let progressData = goal.progress || { percent: 0 };
+      if (!goal.progress || !goal.progress.percent) {
+        try {
+          progressData = await goalDivisionService.computeGoalProgress(goal._id, req.user.id);
+        } catch (err) {
+          console.error('Error computing progress:', err);
+          progressData = { percent: 0 };
+        }
+      }
+
+      return res.status(200).json({
+        success: true,
+        data: {
+          goal: {
+            _id: goal._id,
+            title: goal.title,
+            description: goal.description,
+            category: goal.category,
+            completed: goal.completed,
+            completedAt: goal.completedAt,
+            completionNote: goal.completionNote,
+            createdAt: goal.createdAt,
+            targetDate: goal.targetDate,
+            year: goal.year,
+            likeCount: goal.likeCount || 0,
+            subGoals: enrichedSubGoals,
+            habitLinks: enrichedHabits,
+            progress: progressData
+          },
+          comments: {
+            count: commentCount
+          }
+        }
+      });
+    } catch (error) {
+      next(error);
     }
   }
 }; 

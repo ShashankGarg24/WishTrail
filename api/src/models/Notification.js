@@ -18,7 +18,6 @@ const notificationSchema = new mongoose.Schema({
       'goal_liked',
       'goal_reminder',
       'achievement_earned',
-      'level_up',
       'streak_milestone',
       'friend_completed_goal',
       'friend_created_goal',
@@ -86,12 +85,7 @@ const notificationSchema = new mongoose.Schema({
     },
     achievementName: String,
     achievementIcon: String,
-    
-    // For level up notifications
-    newLevel: String,
-    oldLevel: String,
-    pointsEarned: Number,
-    
+
     // For streak notifications
     streakCount: Number,
     streakType: String,
@@ -179,13 +173,6 @@ const notificationSchema = new mongoose.Schema({
     default: null  // Will be set in createNotification based on type
   },
   
-  // Priority level
-  priority: {
-    type: String,
-    enum: ['low', 'medium', 'high', 'urgent'],
-    default: 'medium'
-  }
-  
 }, {
   timestamps: true,
   toJSON: { virtuals: true },
@@ -241,7 +228,7 @@ notificationSchema.statics.createNotification = async function(notificationData)
       'friend_created_goal','friend_completed_goal',
       'activity_comment','comment_reply','mention',
       'goal_liked','activity_liked','comment_liked',
-      'achievement_earned','level_up','streak_milestone'
+      'achievement_earned','streak_milestone'
     ]);
     const channels = notificationData.channels || {};
     if (typeof channels.push === 'undefined') {
@@ -703,21 +690,6 @@ notificationSchema.statics.createAchievementNotification = async function(userId
       achievementId: achievementData._id,
       achievementName: achievementData.name,
       achievementIcon: achievementData.icon
-    },
-    priority: 'high'
-  });
-};
-
-// Static method to create level up notification
-notificationSchema.statics.createLevelUpNotification = async function(userId, oldLevel, newLevel) {
-  return this.createNotification({
-    userId,
-    type: 'level_up',
-    title: 'Level Up!',
-    message: `Congratulations! You've leveled up from ${oldLevel} to ${newLevel}!`,
-    data: {
-      oldLevel,
-      newLevel
     },
     priority: 'high'
   });

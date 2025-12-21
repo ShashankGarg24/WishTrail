@@ -38,19 +38,6 @@ const ShareableGoalCard = forwardRef(({ goal, user, onClose }, ref) => {
     }
   }
 
-  const getDurationLabel = (duration) => {
-    switch (duration) {
-      case 'short-term':
-        return 'Short-term'
-      case 'medium-term':
-        return 'Medium-term'
-      case 'long-term':
-        return 'Long-term'
-      default:
-        return 'Unknown'
-    }
-  }
-
   return (
     <motion.div
       ref={ref}
@@ -90,7 +77,7 @@ const ShareableGoalCard = forwardRef(({ goal, user, onClose }, ref) => {
 
       {/* Goal Details */}
       <div className="relative z-10 space-y-4 mb-6">
-        {/* Category & Priority */}
+        {/* Category */}
         <div className="flex items-center justify-center space-x-4">
           <div className="flex items-center space-x-2">
             <div className={`w-3 h-3 rounded-full ${getCategoryColor(goal.category)}`}></div>
@@ -98,19 +85,7 @@ const ShareableGoalCard = forwardRef(({ goal, user, onClose }, ref) => {
               {goal.category}
             </span>
           </div>
-          {/* <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
-          <span className="text-sm text-gray-600 dark:text-gray-400 capitalize">
-            {goal.priority} priority
-          </span> */}
         </div>
-
-        {/* Duration */}
-        {/* <div className="flex items-center justify-center space-x-2">
-          <Target className="h-4 w-4 text-gray-500" />
-          <span className="text-sm text-gray-600 dark:text-gray-400">
-            {getDurationLabel(goal.duration)} goal
-          </span>
-        </div> */}
 
         {/* Completion Date */}
         <div className="flex items-center justify-center space-x-2">
@@ -119,16 +94,6 @@ const ShareableGoalCard = forwardRef(({ goal, user, onClose }, ref) => {
             Completed on {formatDate(goal.completedAt)}
           </span>
         </div>
-
-        {/* Points Earned */}
-        {goal.pointsEarned && (
-          <div className="flex items-center justify-center space-x-2">
-            <Star className="h-4 w-4 text-yellow-500" />
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              {goal.pointsEarned} points earned
-            </span>
-          </div>
-        )}
       </div>
 
       {/* Completion Note */}

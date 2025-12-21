@@ -57,13 +57,7 @@ const getExploreFeed = async (req, res, next) => {
       },
       {
         $addFields: {
-          likeCount: { $size: '$likes' },
-          trendingScore: {
-            $add: [
-              '$pointsEarned',
-              { $multiply: [{ $size: '$likes' }, 5] }
-            ]
-          }
+          likeCount: { $size: '$likes' }
         }
       },
       {
@@ -78,28 +72,23 @@ const getExploreFeed = async (req, res, next) => {
           title: 1,
           description: 1,
           category: 1,
-          priority: 1,
-          duration: 1,
           completedAt: 1,
-          pointsEarned: 1,
           likeCount: 1,
           completionNote: 1,
           user: {
             _id: '$user._id',
             name: '$user.name',
-            avatar: '$user.avatar',
-            level: '$user.level'
+            avatar: '$user.avatar'
           }
         }
       }
     ]);
     
-    // Get popular users (high points and followers)
+    // Get popular users (high followers)
     const popularUsers = await User.aggregate([
       {
         $match: {
-          isActive: true,
-          totalPoints: { $gt: 0 }
+          isActive: true
         }
       },
       {
@@ -115,7 +104,6 @@ const getExploreFeed = async (req, res, next) => {
           followerCount: { $size: '$followers' },
           popularityScore: {
             $add: [
-              { $multiply: ['$totalPoints', 0.1] },
               { $multiply: [{ $size: '$followers' }, 10] }
             ]
           }
@@ -133,8 +121,6 @@ const getExploreFeed = async (req, res, next) => {
           name: 1,
           avatar: 1,
           bio: 1,
-          level: 1,
-          totalPoints: 1,
           completedGoals: 1,
           followerCount: 1
         }
@@ -206,8 +192,7 @@ const getExploreFeed = async (req, res, next) => {
       {
         $group: {
           _id: '$category',
-          count: { $sum: 1 },
-          totalPoints: { $sum: '$pointsEarned' }
+          count: { $sum: 1 }
         }
       },
       {
@@ -219,8 +204,7 @@ const getExploreFeed = async (req, res, next) => {
       {
         $project: {
           category: '$_id',
-          goalCount: '$count',
-          totalPoints: 1
+          goalCount: '$count'
         }
       }
     ]);
@@ -255,8 +239,7 @@ const getSuggestedUsers = async (req, res, next) => {
       {
         $match: {
           _id: { $nin: followingIds },
-          isActive: true,
-          totalPoints: { $gt: 0 }
+          isActive: true
         }
       }
     ];
@@ -319,7 +302,6 @@ const getSuggestedUsers = async (req, res, next) => {
           recentGoalsCount: { $size: '$recentGoals' },
           suggestionScore: {
             $add: [
-              { $multiply: ['$totalPoints', 0.1] },
               { $multiply: [{ $size: '$followers' }, 5] },
               { $multiply: [{ $size: '$recentGoals' }, 10] }
             ]
@@ -341,8 +323,6 @@ const getSuggestedUsers = async (req, res, next) => {
           name: 1,
           avatar: 1,
           bio: 1,
-          level: 1,
-          totalPoints: 1,
           completedGoals: 1,
           followerCount: 1,
           recentGoalsCount: 1
@@ -410,9 +390,7 @@ const getTrendingCategories = async (req, res, next) => {
         $group: {
           _id: '$category',
           completedGoals: { $sum: 1 },
-          totalPoints: { $sum: '$pointsEarned' },
           uniqueUsers: { $addToSet: '$userId' },
-          avgPoints: { $avg: '$pointsEarned' }
         }
       },
       {
@@ -433,9 +411,7 @@ const getTrendingCategories = async (req, res, next) => {
         $project: {
           category: '$_id',
           completedGoals: 1,
-          totalPoints: 1,
           uniqueUserCount: 1,
-          avgPoints: { $round: ['$avgPoints', 1] },
           trendingScore: 1
         }
       }
@@ -479,9 +455,8 @@ const searchExplore = async (req, res, next) => {
           { bio: searchRegex }
         ]
       })
-      .select('name avatar bio level totalPoints completedGoals')
-      .limit(type === 'users' ? limit : 10)
-      .sort({ totalPoints: -1 });
+      .select('name avatar bio completedGoals')
+      .limit(type === 'users' ? limit : 10);
       
       results.users = users;
     }
@@ -516,7 +491,7 @@ const searchExplore = async (req, res, next) => {
           }
         },
         {
-          $sort: { pointsEarned: -1, completedAt: -1 }
+          $sort: {completedAt: -1 }
         },
         {
           $limit: type === 'goals' ? limit : 10
@@ -528,7 +503,6 @@ const searchExplore = async (req, res, next) => {
             description: 1,
             category: 1,
             completedAt: 1,
-            pointsEarned: 1,
             user: {
               _id: '$user._id',
               name: '$user.name',

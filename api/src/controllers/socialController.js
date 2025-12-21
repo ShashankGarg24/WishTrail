@@ -472,7 +472,7 @@ const getPopularUsers = async (req, res, next) => {
         }
       },
       {
-        $sort: { followerCount: -1, totalPoints: -1 }
+        $sort: { followerCount: -1, completedGoals: -1 }
       },
       {
         $limit: parseInt(limit)
@@ -483,8 +483,7 @@ const getPopularUsers = async (req, res, next) => {
           avatar: 1,
           bio: 1,
           location: 1,
-          totalPoints: 1,
-          level: 1,
+          completedGoals: 1,
           currentStreak: 1,
           followerCount: 1
         }

@@ -26,7 +26,7 @@ const LeaderboardPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialTab = searchParams.get('tab') || 'global';
   const [activeTab, setActiveTab] = useState(initialTab);
-  const [leaderboardType, setLeaderboardType] = useState('points');
+  const [leaderboardType, setLeaderboardType] = useState('goals');
   const [timeframe, setTimeframe] = useState('all');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [openDropdown, setOpenDropdown] = useState(null);
@@ -39,7 +39,6 @@ const LeaderboardPage = () => {
     leaderboard,
     getGlobalLeaderboard,
     getFriendsLeaderboard,
-    initializeFollowingStatus,
     user: currentUser
   } = useApiStore();
 
@@ -62,7 +61,6 @@ const LeaderboardPage = () => {
   useEffect(() => {
     if (isAuthenticated) {
       loadLeaderboard();
-      initializeFollowingStatus();
     }
   }, [isAuthenticated, activeTab, leaderboardType, timeframe, selectedCategory]);
 
@@ -89,27 +87,23 @@ const LeaderboardPage = () => {
 
   const getTypeLabel = (type) => {
     switch (type) {
-      case 'points':
-        return 'Points';
       case 'goals':
         return 'Goals Completed';
+      case 'streak':
+        return 'Current Streak';
       default:
-        return 'Points';
+        return 'Goals Completed';
     }
   };
 
   const getTypeValue = (user, type) => {
     switch (type) {
-      case 'points':
-        return user.totalPoints || user.recentPoints || 0;
       case 'goals':
         return user.completedGoals || user.recentGoalsCount || 0;
       case 'streak':
         return user.currentStreak || 0;
-      case 'level':
-        return user.level || 'Novice';
       default:
-        return user.totalPoints || 0;
+        return user.completedGoals || user.recentGoalsCount || 0;
     }
   };
 
@@ -235,14 +229,11 @@ const LeaderboardPage = () => {
                     className="flex items-center gap-2 px-3 py-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-sm font-semibold hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-all"
                   >
                     <TrendingUp className="h-3.5 w-3.5" />
-                    <span>{leaderboardType === 'points' ? 'Points' : leaderboardType === 'goals' ? 'Goals' : 'Streak'}</span>
+                    <span>{leaderboardType === 'goals' ? 'Goals' : 'Streak'}</span>
                     <ChevronDown className="h-3.5 w-3.5" />
                   </button>
                   {openDropdown === 'metric' && (
                     <div className="absolute top-full mt-1 left-0 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 py-1 z-50 min-w-[140px]">
-                      <button onClick={() => { setLeaderboardType('points'); setOpenDropdown(null); }} className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 text-gray-700 dark:text-gray-300">
-                        🌟 Points
-                      </button>
                       <button onClick={() => { setLeaderboardType('goals'); setOpenDropdown(null); }} className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 text-gray-700 dark:text-gray-300">
                         🎯 Goals
                       </button>
@@ -746,7 +737,7 @@ const LeaderboardPage = () => {
                   Ready to Climb Higher? 🚀
                 </h3>
                 <p className="text-white/90 mb-6 text-sm max-w-2xl mx-auto">
-                  Complete more goals, earn points, and compete with achievers worldwide to reach the top!
+                  Complete more goals and compete with achievers worldwide to reach the top!
                 </p>
                 
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-3">

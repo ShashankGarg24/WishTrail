@@ -191,15 +191,9 @@ export default function GoalPostModal({ isOpen, goalId, onClose, autoOpenComment
                       <button className="mt-1 text-xs text-blue-600" onClick={() => setDetailsExpanded((v) => !v)}>{detailsExpanded ? 'Show less' : 'More'}</button>
                     )}
                   </div>
-                  {data?.goal?.completedAt && data?.goal?.points && (<div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <div className="text-xs text-gray-500">Completed</div>
-                      <div className="text-gray-800 dark:text-gray-200">{data?.goal?.completedAt ? new Date(data.goal.completedAt).toLocaleString(undefined, { year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—'}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text_gray-500">Points</div>
-                      <div className="text_gray-800 dark:text-gray-200">{data?.goal?.pointsEarned ?? 0}</div>
-                    </div>
+                  {data?.goal?.completedAt && (<div>
+                    <div className="text-xs text-gray-500">Completed</div>
+                    <div className="text-gray-800 dark:text-gray-200">{data?.goal?.completedAt ? new Date(data.goal.completedAt).toLocaleString(undefined, { year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—'}</div>
                   </div>)}
                 </div>
                 {!isMobile && (

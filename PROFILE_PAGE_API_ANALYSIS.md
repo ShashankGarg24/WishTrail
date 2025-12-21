@@ -49,8 +49,7 @@ Complete analysis of all API endpoints used by the Profile Page, their current r
     },
     "stats": {
       "goalsCompleted": 10,
-      "currentStreak": 5,
-      "totalPoints": 1500
+      "currentStreak": 5
     },
     "isFollowing": false,
     "isRequested": false

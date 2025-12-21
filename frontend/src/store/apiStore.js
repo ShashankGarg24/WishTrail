@@ -74,6 +74,7 @@ const useApiStore = create(
       cacheNotifications: {},// key -> { data, ts }
       cacheGoals: {},        // key -> { data, ts }
       cacheGoalPosts: {},    // key -> { data, ts } (goal:<id> or activity:<id>)
+      cacheGoalAnalytics: {},// key -> { data, ts }
       cacheDashboardStats: null, // { data, ts }
       // Habits cache
       habits: [],
@@ -963,6 +964,38 @@ const useApiStore = create(
         }
       },
 
+      getGoalAnalytics: async (id, opts = {}) => {
+        try {
+          const force = !!opts.force;
+          const ttlMs = get().cacheTTLs?.goalAnalytics || 5 * 60 * 1000; // 5 minutes
+          const bucket = get().cacheGoalAnalytics || {};
+          const key = `analytics:${String(id)}`;
+          
+          if (!force) {
+            const entry = bucket[key];
+            if (entry && typeof entry.ts === 'number' && Date.now() - entry.ts < ttlMs) {
+              return { success: true, ...entry.data };
+            }
+          }
+          
+          const response = await goalsAPI.getGoalAnalytics(id);
+          const resp = response?.data || {};
+          
+          // Cache the response
+          try {
+            const now = Date.now();
+            const current = get().cacheGoalAnalytics || {};
+            const next = { ...current, [key]: { data: resp, ts: now } };
+            set({ cacheGoalAnalytics: next });
+          } catch { }
+          
+          return { success: true, ...resp };
+        } catch (error) {
+          const errorMessage = handleApiError(error);
+          return { success: false, error: errorMessage };
+        }
+      },
+
       // Search completed, discoverable goals (public users)
       searchGoals: async (params = {}) => {
         try {
@@ -1272,23 +1305,6 @@ const useApiStore = create(
         } catch (error) {
           const errorMessage = handleApiError(error);
           return { success: false, error: errorMessage };
-        }
-      },
-
-      // Initialize following status for current user
-      initializeFollowingStatus: async () => {
-        try {
-          const { user } = get();
-          if (user) {
-            const response = await socialAPI.getFollowing();
-            const { following } = response.data.data;
-            const followedUserIds = following.map(f => f._id);
-            set({ followedUsers: followedUserIds, following });
-            return followedUserIds;
-          }
-        } catch (error) {
-          console.error('Error initializing following status:', error);
-          return [];
         }
       },
 

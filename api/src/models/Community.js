@@ -63,7 +63,6 @@ const communitySchema = new mongoose.Schema({
   },
   stats: {
     memberCount: { type: Number, default: 1, min: 0, index: true },
-    totalPoints: { type: Number, default: 0, min: 0, index: true },
     weeklyActivityCount: { type: Number, default: 0, min: 0, index: true },
     completionRate: { type: Number, default: 0, min: 0, max: 100 }
   },

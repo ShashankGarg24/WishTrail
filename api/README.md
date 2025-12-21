@@ -247,8 +247,6 @@ api/
     instagram: String
   },
   gamification: {
-    totalPoints: Number,
-    level: String,
     totalGoals: Number,
     completedGoals: Number,
     currentStreak: Number
@@ -277,7 +275,6 @@ api/
   canCompleteAfter: Date,
   userId: ObjectId (ref: User),
   likes: [{ userId: ObjectId, likedAt: Date }],
-  pointsEarned: Number,
   timestamps: true
 }
 ```

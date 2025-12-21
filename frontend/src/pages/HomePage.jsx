@@ -29,7 +29,7 @@ const HomePage = () => {
     {
       icon: BarChart3,
       title: 'Personal Dashboard',
-      description: 'Track points, streaks, and progress at a glance.',
+      description: 'Track streaks, goals, and progress at a glance.',
       to: isAuthenticated ? '/dashboard' : '/auth'
     },
     {

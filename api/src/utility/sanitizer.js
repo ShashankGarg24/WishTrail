@@ -371,14 +371,7 @@ const sanitizeNotification = (notification) => {
         icon: obj.data.achievementIcon
       };
     }
-    
-    // Level data
-    if (obj.data.newLevel) {
-      sanitized.data.level = {
-        old: obj.data.oldLevel,
-        new: obj.data.newLevel
-      };
-    }
+  
     
     // Streak data
     if (obj.data.streakCount) {

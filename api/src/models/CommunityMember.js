@@ -26,7 +26,6 @@ const communityMemberSchema = new mongoose.Schema({
     index: true
   },
   joinedAt: { type: Date, default: Date.now },
-  contributionPoints: { type: Number, default: 0, min: 0 },
   currentStreak: { type: Number, default: 0, min: 0 },
   longestStreak: { type: Number, default: 0, min: 0 }
 }, {

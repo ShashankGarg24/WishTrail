@@ -133,6 +133,14 @@ exports.getAnalytics = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
+exports.getHabitAnalytics = async (req, res, next) => {
+  try {
+    const days = Math.min(parseInt(req.query.days) || 90, 365);
+    const analytics = await habitService.getHabitAnalytics(req.user.id || req.user._id, req.params.id, { days });
+    res.status(200).json({ success: true, data: { analytics } });
+  } catch (error) { next(error); }
+};
+
 // Simple OG image for 30-day streak share
 exports.generateStreakOGImage = async (req, res, next) => {
   try {

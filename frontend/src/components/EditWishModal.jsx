@@ -11,8 +11,6 @@ const EditWishModal = ({ isOpen, onClose, goal }) => {
     title: '',
     description: '',
     category: '',
-    priority: 'medium',
-    duration: 'medium-term',
     targetDate: '',
     isPublic: true
   })
@@ -38,8 +36,6 @@ const EditWishModal = ({ isOpen, onClose, goal }) => {
         title: goal.title || '',
         description: goal.description || '',
         category: validCategory,
-        priority: goal.priority || 'medium',
-        duration: goal.duration || 'medium-term',
         targetDate: formattedTargetDate,
         isPublic: goal.isPublic ?? true
       }
@@ -69,18 +65,6 @@ const EditWishModal = ({ isOpen, onClose, goal }) => {
     'Creative Projects',
     'Family & Friends',
     'Other'
-  ]
-
-  const priorities = [
-    { value: 'high', label: 'High Priority', color: 'text-red-500' },
-    { value: 'medium', label: 'Medium Priority', color: 'text-yellow-500' },
-    { value: 'low', label: 'Low Priority', color: 'text-green-500' }
-  ]
-
-  const durations = [
-    { value: 'short-term', label: 'Short-term', color: 'text-blue-500' },
-    { value: 'medium-term', label: 'Medium-term', color: 'text-purple-500' },
-    { value: 'long-term', label: 'Long-term', color: 'text-orange-500' }
   ]
 
   const handleInputChange = (e) => {
@@ -152,8 +136,6 @@ const EditWishModal = ({ isOpen, onClose, goal }) => {
       title: formData.title.trim(),
       description: formData.description.trim(),
       category: formData.category,
-      priority: formData.priority,
-      duration: formData.duration,
       targetDate: formData.targetDate,
       isPublic: !!formData.isPublic
     }
@@ -171,8 +153,6 @@ const EditWishModal = ({ isOpen, onClose, goal }) => {
       title: '',
       description: '',
       category: '',
-      priority: 'medium',
-      duration: 'medium-term',
       targetDate: '',
       isPublic: true
     })
@@ -299,46 +279,6 @@ const EditWishModal = ({ isOpen, onClose, goal }) => {
                 {errors.category}
               </div>
             )}
-          </div>
-
-          {/* Priority */}
-          <div>
-            <label htmlFor="priority" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Priority
-            </label>
-            <select
-              id="priority"
-              name="priority"
-              value={formData.priority}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-            >
-              {priorities.map(priority => (
-                <option key={priority.value} value={priority.value}>
-                  {priority.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Duration */}
-          <div>
-            <label htmlFor="duration" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Duration
-            </label>
-            <select
-              id="duration"
-              name="duration"
-              value={formData.duration}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-            >
-              {durations.map(duration => (
-                <option key={duration.value} value={duration.value}>
-                  {duration.label}
-                </option>
-              ))}
-            </select>
           </div>
 
           {/* Target Date */}

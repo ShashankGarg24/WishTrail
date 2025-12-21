@@ -32,6 +32,8 @@ const AuthExpiredPage = lazy(() => import('./pages/AuthExpiredPage'))
 import { SpeedInsights } from '@vercel/speed-insights/react';
 const FeedbackButton = lazy(() => import('./components/FeedbackButton'))
 const SettingsPage = lazy(() => import('./pages/SettingsPage'))
+const HabitAnalyticsPage = lazy(() => import('./pages/HabitAnalyticsPage'))
+const GoalAnalyticsPage = lazy(() => import('./pages/GoalAnalyticsPage'))
 
 function App() {
   const { isDarkMode, initializeAuth, isAuthenticated} = useApiStore()
@@ -201,6 +203,8 @@ function App() {
               <Route path="/leaderboard" element={<Suspense fallback={null}><LeaderboardPage /></Suspense>} />
               <Route path="/communities" element={<Suspense fallback={null}><CommunitiesPage /></Suspense>} />
               <Route path="/communities/:id" element={<Suspense fallback={null}><CommunityDetailPage /></Suspense>} />
+              <Route path="/habits/:id/analytics" element={<Suspense fallback={null}><HabitAnalyticsPage /></Suspense>} />
+              <Route path="/goals/:goalId/analytics" element={<Suspense fallback={null}><GoalAnalyticsPage /></Suspense>} />
               {/* Goal deeplink opens modal within feed/discover */}
               <Route path="/goal/:goalId" element={<Suspense fallback={null}><FeedPage /></Suspense>} />
               {/* Error pages */}

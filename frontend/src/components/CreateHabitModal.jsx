@@ -19,6 +19,8 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
   const [frequency, setFrequency] = useState('daily');
   const [daysOfWeek, setDaysOfWeek] = useState([]);
   const [reminders, setReminders] = useState(['']);
+  const [targetCompletions, setTargetCompletions] = useState('');
+  const [targetDays, setTargetDays] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
@@ -54,6 +56,15 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
         daysOfWeek: frequency === 'daily' ? [] : daysOfWeek.sort(),
         reminders: reminders.filter(Boolean).map(t => ({ time: t })),
       };
+      
+      // Add targets if provided
+      if (targetCompletions && parseInt(targetCompletions) > 0) {
+        payload.targetCompletions = parseInt(targetCompletions);
+      }
+      if (targetDays && parseInt(targetDays) > 0) {
+        payload.targetDays = parseInt(targetDays);
+      }
+      
       const res = await habitsAPI.create(payload);
       if (res?.data?.success) {
         onCreated?.(res.data.data.habit);
@@ -202,6 +213,47 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
                 >
                   <Plus className="h-4 w-4" /> Add Reminder
                 </button>
+              </div>
+            </div>
+
+            {/* Goals Section */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Info className="h-4 w-4 text-primary-600 dark:text-primary-400" />
+                <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Goals (optional)</h4>
+              </div>
+              <p className="text-xs text-gray-600 dark:text-gray-400">Set targets to track your progress</p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Target Total Count
+                  </label>
+                  <input 
+                    type="number" 
+                    min="0"
+                    value={targetCompletions} 
+                    onChange={(e) => setTargetCompletions(e.target.value)} 
+                    placeholder="e.g., 100"
+                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-primary-500 dark:focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-colors" 
+                  />
+                  <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">Total times to complete this habit</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Target Days
+                  </label>
+                  <input 
+                    type="number" 
+                    min="0"
+                    value={targetDays} 
+                    onChange={(e) => setTargetDays(e.target.value)} 
+                    placeholder="e.g., 30"
+                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-primary-500 dark:focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-colors" 
+                  />
+                  <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">Number of unique days to do this habit</p>
+                </div>
               </div>
             </div>
           </div>

@@ -40,18 +40,6 @@ const goalSchema = new mongoose.Schema({
             'Other'
         ]
     },
-    priority: {
-        type: String,
-        required: [true, 'Goal priority is required'],
-        enum: ['low', 'medium', 'high'],
-        default: 'medium'
-    },
-    duration: {
-        type: String,
-        required: [true, 'Goal duration is required'],
-        enum: ['short-term', 'medium-term', 'long-term'],
-        default: 'medium-term'
-    },
 
     // Time Management
     startDate: {
@@ -167,11 +155,6 @@ const goalSchema = new mongoose.Schema({
         default: ''
     },
 
-    // Duration Enforcement
-    canCompleteAfter: {
-        type: Date
-    },
-
     // Owner Information
     userId: {
         type: mongoose.Schema.Types.ObjectId,
@@ -182,13 +165,6 @@ const goalSchema = new mongoose.Schema({
     likeCount: {
         type: Number,
         default: 0
-    },
-
-    // Points & Gamification
-    pointsEarned: {
-        type: Number,
-        default: 0,
-        min: 0
     },
 
     // Status
@@ -294,17 +270,9 @@ goalSchema.virtual('daysUntilTarget').get(function () {
 
 // Virtual for completion status
 goalSchema.virtual('canComplete').get(function () {
-    if (this.completed) return false;
-    if (!this.canCompleteAfter) return true;
-    return new Date() >= this.canCompleteAfter;
+    return !this.completed;
 });
 
-// Virtual for time remaining until can complete
-goalSchema.virtual('timeUntilCanComplete').get(function () {
-    if (this.canComplete) return 0;
-    if (!this.canCompleteAfter) return 0;
-    return Math.max(0, this.canCompleteAfter - new Date());
-});
 
 // Virtual for early completion status
 goalSchema.virtual('isEarlyCompletion').get(function () {
@@ -312,26 +280,9 @@ goalSchema.virtual('isEarlyCompletion').get(function () {
     return new Date(this.completedAt) < new Date(this.targetDate);
 });
 
-// Virtual for isLocked status
-goalSchema.virtual('isLocked').get(function () {
-    return !this.completed && this.canCompleteAfter && new Date() < this.canCompleteAfter;
-});
+// REMOVED: isLocked virtual - lock-in period removed
 
-// Pre-save middleware to set canCompleteAfter based on duration
-goalSchema.pre('save', function (next) {
-    if (this.isNew && !this.canCompleteAfter) {
-        const durationDays = {
-            'short-term': 1,
-            'medium-term': 3,
-            'long-term': 7
-        };
-
-        const days = durationDays[this.duration] || 1;
-        this.canCompleteAfter = new Date(Date.now() + (days * 24 * 60 * 60 * 1000));
-    }
-
-    next();
-});
+// REMOVED: Lock-in period calculation - simplified for better UX
 
 // Normalize titleLower
 goalSchema.pre('save', function (next) {
@@ -349,147 +300,11 @@ goalSchema.pre('save', function (next) {
 
     if (this.isModified('completed') && !this.completed) {
         this.completedAt = undefined;
-        this.completionNote = '';
-        this.pointsEarned = 0;
+        this.completionNote = ''
     }
 
     next();
 });
-
-// Pre-save middleware to calculate points
-goalSchema.pre('save', function (next) {
-    if (this.isModified('completed') && this.completed && this.pointsEarned === 0) {
-        this.pointsEarned = this.calculatePoints();
-    }
-
-    next();
-});
-
-// Method to calculate points earned for this goal
-goalSchema.methods.calculatePoints = function () {
-    if (!this.completed) return 0;
-
-    let points = 0;
-
-    // Base points by duration
-    const durationPoints = {
-        'short-term': 10,
-        'medium-term': 25,
-        'long-term': 50
-    };
-    points += durationPoints[this.duration] || 10;
-
-    // Priority multiplier
-    const priorityMultiplier = {
-        'high': 1.5,
-        'medium': 1.0,
-        'low': 0.7
-    };
-    points *= (priorityMultiplier[this.priority] || 1.0);
-
-    // Category bonus
-    const categoryBonus = {
-        'Education & Learning': 8,
-        'Career & Business': 7,
-        'Financial Goals': 7,
-        'Personal Development': 6,
-        'Health & Fitness': 5,
-        'Creative Projects': 5,
-        'Relationships': 5,
-        'Family & Friends': 4,
-        'Travel & Adventure': 4,
-        'Other': 3
-    };
-    points += (categoryBonus[this.category] || 3);
-
-    // Early completion bonus (20%)
-    if (this.isEarlyCompletion) {
-        points += Math.floor(points * 0.2);
-    }
-
-    // Completion note quality bonus
-    if (this.completionNote) {
-        const wordCount = this.completionNote.trim().split(/\s+/).length;
-        if (wordCount >= 50) {
-            points += 10; // Detailed note bonus
-        } else if (wordCount >= 25) {
-            points += 5; // Good note bonus
-        }
-    }
-
-    return Math.floor(points);
-};
-
-// Method to get points breakdown
-goalSchema.methods.getPointsBreakdown = function () {
-    if (!this.completed) return { total: 0, breakdown: [] };
-
-    const breakdown = [];
-    let total = 0;
-
-    // Base points
-    const durationPoints = {
-        'short-term': 10,
-        'medium-term': 25,
-        'long-term': 50
-    };
-    const basePoints = durationPoints[this.duration] || 10;
-    breakdown.push({ label: `${this.duration} goal`, points: basePoints });
-    total += basePoints;
-
-    // Priority multiplier
-    const priorityMultiplier = {
-        'high': 1.5,
-        'medium': 1.0,
-        'low': 0.7
-    };
-    const multiplier = priorityMultiplier[this.priority] || 1.0;
-    if (multiplier !== 1.0) {
-        const bonusPoints = Math.floor(basePoints * (multiplier - 1));
-        breakdown.push({ label: `${this.priority} priority`, points: bonusPoints });
-        total += bonusPoints;
-    }
-
-    // Category bonus
-    const categoryBonus = {
-        'Education & Learning': 8,
-        'Career & Business': 7,
-        'Financial Goals': 7,
-        'Personal Development': 6,
-        'Health & Fitness': 5,
-        'Creative Projects': 5,
-        'Relationships': 5,
-        'Family & Friends': 4,
-        'Travel & Adventure': 4,
-        'Other': 3
-    };
-    const catBonus = categoryBonus[this.category] || 3;
-    breakdown.push({ label: this.category, points: catBonus });
-    total += catBonus;
-
-    // Early completion bonus
-    if (this.isEarlyCompletion) {
-        const earlyBonus = Math.floor(total * 0.2);
-        breakdown.push({ label: 'Early completion bonus', points: earlyBonus });
-        total += earlyBonus;
-    }
-
-    // Note quality bonus
-    if (this.completionNote) {
-        const wordCount = this.completionNote.trim().split(/\s+/).length;
-        let noteBonus = 0;
-        if (wordCount >= 50) {
-            noteBonus = 10;
-            breakdown.push({ label: 'Detailed note bonus', points: noteBonus });
-        } else if (wordCount >= 25) {
-            noteBonus = 5;
-            breakdown.push({ label: 'Good note bonus', points: noteBonus });
-        }
-        total += noteBonus;
-    }
-
-    return { total: Math.floor(total), breakdown };
-};
 
 // Method to complete a goal
 goalSchema.methods.completeGoal = function (completionNote = '', shareCompletionNote = true) {
@@ -497,15 +312,11 @@ goalSchema.methods.completeGoal = function (completionNote = '', shareCompletion
         throw new Error('Goal is already completed');
     }
 
-    if (this.isLocked) {
-        throw new Error('Goal is currently locked and cannot be completed yet');
-    }
 
     this.completed = true;
     this.completedAt = new Date();
     this.completionNote = completionNote;
     this.shareCompletionNote = shareCompletionNote;
-    this.pointsEarned = this.calculatePoints();
 
     return this.save();
 };
@@ -516,7 +327,7 @@ goalSchema.statics.getRecentActivities = function (limit = 15) {
         .sort({ completedAt: -1 })
         .limit(limit)
         .populate('userId', 'name avatar')
-        .select('title category completedAt pointsEarned userId');
+        .select('title category completedAt userId');
 };
 
 // Static method to get goals by user and year
@@ -534,13 +345,10 @@ goalSchema.statics.getUserStats = function (userId) {
                 _id: null,
                 totalGoals: { $sum: 1 },
                 completedGoals: { $sum: { $cond: ['$completed', 1, 0] } },
-                totalPoints: { $sum: '$pointsEarned' },
-                avgPointsPerGoal: { $avg: '$pointsEarned' },
                 goalsByCategory: {
                     $push: {
                         category: '$category',
-                        completed: '$completed',
-                        points: '$pointsEarned'
+                        completed: '$completed'
                     }
                 }
             }

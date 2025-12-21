@@ -75,6 +75,23 @@ const habitSchema = new mongoose.Schema({
     default: 0,
     min: 0
   },
+  totalDays: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  
+  // Targets
+  targetCompletions: {
+    type: Number,
+    default: null,
+    min: 0
+  },
+  targetDays: {
+    type: Number,
+    default: null,
+    min: 0
+  },
 
   // Visibility & status
   isPublic: {

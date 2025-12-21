@@ -136,7 +136,6 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal }) => {
         isOpen={showCelebration}
         onClose={handleCelebrationClose}
         goalTitle={goalTitle}
-        pointsEarned={goal?.pointsEarned || 0}
       />
       </Suspense>
     )

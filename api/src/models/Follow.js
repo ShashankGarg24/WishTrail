@@ -212,7 +212,7 @@ followSchema.statics.getFollowing = function(userId, options = {}) {
   .sort({ createdAt: -1 })
   .skip(skip)
   .limit(limit)
-  .populate('followingId', 'name username avatar bio location level totalPoints completedGoals');
+  .populate('followingId', 'name username avatar bio location completedGoals');
 };
 
 // Static method to get follower count
@@ -275,15 +275,15 @@ followSchema.statics.getSuggestedUsers = async function(userId, limit = 10) {
   const followingIds = await this.getFollowingIds(userId);
   const alreadyFollowingIds = [...followingIds, userId]; // Include self
   
-  // Get users with high activity/points who aren't already followed
+  // Get users with high activity who aren't already followed
   const suggestions = await User.find({
     _id: { $nin: alreadyFollowingIds },
     isActive: true,
     completedGoals: { $gte: 1 } // Users with at least 1 completed goal
   })
-  .sort({ totalPoints: -1, completedGoals: -1 })
+  .sort({completedGoals: -1 })
   .limit(limit)
-  .select('name avatar bio location level totalPoints completedGoals');
+  .select('name avatar bio location completedGoals');
   
   return suggestions;
 };

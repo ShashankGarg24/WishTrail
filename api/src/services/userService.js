@@ -161,10 +161,8 @@ class UserService {
       completedGoals: user.completedGoals || 0,
       todayCompletions: user.getTodayCompletionCount() || 0,
       dailyLimit: 3,
-      totalPoints: user.totalPoints || 0,
       currentStreak: user.currentStreak || 0,
       longestStreak: user.longestStreak || 0,
-      level: user.level || 'Beginner'
     };
   }
   
@@ -173,7 +171,6 @@ class UserService {
       totalGoals: user.totalGoals,
       completedGoals: user.completedGoals,
       activeGoals: user.activeGoals,
-      totalPoints: user.totalPoints,
       followers: user.followerCount,
       followings: user.followingCount
     };
@@ -244,8 +241,7 @@ class UserService {
       {
         $match: {
           _id: { $nin: followingIds },
-          isActive: true,
-          totalPoints: { $gt: 0 }
+          isActive: true
         }
       }
     ];
@@ -291,7 +287,6 @@ class UserService {
         followerCount: { $size: '$followers' },
         suggestionScore: {
           $add: [
-            { $multiply: ['$totalPoints', 0.1] },
             { $multiply: [{ $size: '$followers' }, 5] },
             { $multiply: ['$completedGoals', 2] }
           ]
@@ -307,8 +302,6 @@ class UserService {
           name: 1,
           avatar: 1,
           bio: 1,
-          level: 1,
-          totalPoints: 1,
           completedGoals: 1,
           followerCount: 1
         }
@@ -398,8 +391,8 @@ class UserService {
       $facet: {
         data: [
           { $sort: hasQ 
-            ? { rank: -1, totalPoints: -1, completedGoals: -1 }
-            : { totalPoints: -1, completedGoals: -1, createdAt: -1 }
+            ? { rank: -1, completedGoals: -1 }
+            : { completedGoals: -1, createdAt: -1 }
           },
           { $skip: (Math.max(1, parseInt(page)) - 1) * parseInt(limit) },
           { $limit: parseInt(limit) },
@@ -410,8 +403,6 @@ class UserService {
             username: 1,
             avatar: 1,
             bio: 1,
-            level: 1,
-            totalPoints: 1,
             completedGoals: 1,
             currentStreak: 1,
             totalGoals: 1,
@@ -510,43 +501,7 @@ class UserService {
     };
   }
   
-  /**
-   * Update user level based on points
-   */
-  async updateUserLevel(userId) {
-    const user = await User.findById(userId);
-    if (!user) return;
-    
-    const points = user.totalPoints || 0;
-    let newLevel = 'Beginner';
-    
-    if (points >= 10000) newLevel = 'Legend';
-    else if (points >= 5000) newLevel = 'Master';
-    else if (points >= 2000) newLevel = 'Expert';
-    else if (points >= 1000) newLevel = 'Advanced';
-    else if (points >= 500) newLevel = 'Intermediate';
-    else if (points >= 100) newLevel = 'Novice';
-    
-    if (user.level !== newLevel) {
-      const oldLevel = user.level;
-      user.level = newLevel;
-      await user.save();
-      
-      // Create level up activity
-      await Activity.createActivity(
-        userId,
-        user.name,
-        user.avatar,
-        'level_up',
-        {
-          newLevel,
-          oldLevel,
-          pointsRequired: points
-        }
-      );
-    }
-  }
-  
+
   /**
    * Update user streak
    */

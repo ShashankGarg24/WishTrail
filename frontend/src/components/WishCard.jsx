@@ -1,7 +1,7 @@
 import { lazy, Suspense, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { motion } from 'framer-motion'
-import { CheckCircle, Circle, Edit2, Trash2, Calendar, Tag, Clock, Star, Heart, Lock, Share2 } from 'lucide-react'
+import { CheckCircle, Circle, Edit2, Trash2, Calendar, Tag, Clock, Star, Heart, Share2, FileText } from 'lucide-react'
 import useApiStore from '../store/apiStore'
 const CompletionModal = lazy(() => import('./CompletionModal'));
 const ShareModal = lazy(() => import('./ShareModal'));
@@ -9,7 +9,7 @@ const GoalDivisionEditor = lazy(() => import('./GoalDivisionEditor'));
 const CreateGoalWizard = lazy(() => import('./CreateGoalWizard'));
 const DeleteConfirmModal = lazy(() => import('./DeleteConfirmModal'));
 
-const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewingOwnGoals = true, onOpenGoal, footer, isReadOnly = false }) => {
+const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewingOwnGoals = true, onOpenGoal, onOpenAnalytics, footer, isReadOnly = false }) => {
   const { 
     deleteGoal, 
     likeGoal,
@@ -28,8 +28,6 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
   const handleToggle = () => {
     if (wish.completed) {
       // Completed goals cannot be uncompleted
-      return;
-    } else if (wish.isLocked) {
       return;
     } else {
       setIsCompletionModalOpen(true);
@@ -92,44 +90,7 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
     })
   }
 
-  const getPriorityColor = (priority) => {
-    switch (priority) {
-      case 'high':
-        return 'text-red-500 bg-red-50 dark:bg-red-900/20'
-      case 'medium':
-        return 'text-yellow-500 bg-yellow-50 dark:bg-yellow-900/20'
-      case 'low':
-        return 'text-green-500 bg-green-50 dark:bg-green-900/20'
-      default:
-        return 'text-gray-500 bg-gray-50 dark:bg-gray-800'
-    }
-  }
 
-  const getDurationColor = (duration) => {
-    switch (duration) {
-      case 'short-term':
-        return 'text-blue-500 bg-blue-50 dark:bg-blue-900/20'
-      case 'medium-term':
-        return 'text-purple-500 bg-purple-50 dark:bg-purple-900/20'
-      case 'long-term':
-        return 'text-orange-500 bg-orange-50 dark:bg-orange-900/20'
-      default:
-        return 'text-gray-500 bg-gray-50 dark:bg-gray-800'
-    }
-  }
-
-  const getDurationLabel = (duration) => {
-    switch (duration) {
-      case 'short-term':
-        return 'Short-term'
-      case 'medium-term':
-        return 'Medium-term'
-      case 'long-term':
-        return 'Long-term'
-      default:
-        return 'Unknown'
-    }
-  }
 
   const isOverdue = () => {
     if (!wish.targetDate) return false
@@ -139,21 +100,21 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
   }
 
   const canComplete = () => {
-    // Check if goal is locked or completed
-    return !wish.completed && !wish.isLocked
+    // Check if goal is completed
+    return !wish.completed
   }
 
   const progressPercent = typeof wish?.progress?.percent === 'number' ? Math.max(0, Math.min(100, wish.progress.percent)) : null
   const hasDivision = ((wish?.subGoals?.length || 0) + (wish?.habitLinks?.length || 0)) > 0
-  const isCommunityMirror = !!(wish?.communityInfo || (wish?.isLocked === true && wish?.category === 'Community'))
+  const isCommunityMirror = !!(wish?.communityInfo || (wish?.category === 'Community'))
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: index * 0.1 }}
-      onClick={() => { if (!isDivisionOpen && !isReadOnly) onOpenGoal?.(wish?._id) }}
-      className={`glass-card-hover p-6 rounded-xl theme-transition ${onOpenGoal ? 'cursor-pointer' : ''} ${
+      onClick={() => { if (!isDivisionOpen && !isReadOnly) onOpenAnalytics?.(wish?._id) }}
+      className={`glass-card-hover p-6 rounded-xl theme-transition ${onOpenAnalytics ? 'cursor-pointer' : ''} ${
         wish.completed ? 'bg-green-50/50 dark:bg-green-900/10' : ''
       } ${isOverdue() ? 'ring-2 ring-red-200 dark:ring-red-800' : ''}`}
     >
@@ -163,41 +124,27 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
           <button
             onClick={(e) => { e.stopPropagation(); if (isReadOnly || wish.completed) return; handleToggle(); }}
             className={`flex-shrink-0 transition-colors ${
-              (wish.isLocked && !wish.completed) || isReadOnly ? 'cursor-not-allowed' : ''
+              isReadOnly ? 'cursor-not-allowed' : ''
             }`}
-            disabled={loading || (wish.isLocked && !wish.completed) || isReadOnly || wish.completed}
+            disabled={loading || isReadOnly || wish.completed}
             title={
               wish.completed 
                   ? 'Goal completed permanently' 
-                : wish.isLocked 
-                  ? (() => {
-                      const ms = typeof wish.timeUntilCanComplete === 'number' ? wish.timeUntilCanComplete : (wish.canCompleteAfter ? (new Date(wish.canCompleteAfter) - new Date()) : 0)
-                      const s = Math.max(0, Math.floor(ms / 1000))
-                      const days = Math.floor(s / 86400)
-                      const hours = Math.floor((s % 86400) / 3600)
-                      const mins = Math.floor((s % 3600) / 60)
-                      if (days > 0) return `Locked • unlocks in ${days}d ${hours}h`
-                      if (hours > 0) return `Locked • unlocks in ${hours}h ${mins}m`
-                      if (mins > 0) return `Locked • unlocks in ${mins}m`
-                      return 'Locked • unlocks soon'
-                    })()
                   : 'Mark as complete'
             }
           >
             {wish.completed ? (
               <CheckCircle className="h-6 w-6 text-green-500" />
-            ) : wish.isLocked ? (
-              <Lock className="h-6 w-6 text-gray-400" />
             ) : (
               <Circle className="h-6 w-6 text-gray-400 hover:text-primary-500" />
             )}
           </button>
           <div className="flex-1 min-w-0">
-            <h3 onClick={() => onOpenGoal?.(wish?._id)} className={`font-semibold text-lg line-clamp-2 break-anywhere ${
+            <h3 className={`font-semibold text-lg line-clamp-2 break-anywhere ${
               wish.completed 
                 ? 'text-gray-500 dark:text-gray-400 line-through' 
                 : 'text-gray-900 dark:text-white'
-            } ${onOpenGoal ? 'cursor-pointer hover:underline' : ''}`}>
+            }`}>
               {wish.title}
             </h3>
           </div>
@@ -267,62 +214,6 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
           {wish.category}
         </span>
 
-        {/* Priority */}
-        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(wish.priority)}`}>
-          {wish?.priority?.charAt(0).toUpperCase() + wish?.priority?.slice(1)}
-        </span>
-
-        {/* Duration */}
-        {wish.duration && (
-          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getDurationColor(wish.duration)}`}>
-            <Clock className="h-3 w-3 mr-1" />
-            {getDurationLabel(wish.duration)}
-          </span>
-        )}
-
-        {/* Points */}
-        {(() => { const pts = (typeof wish.pointsEarned === 'number' ? wish.pointsEarned : wish.points) || 0; return pts > 0; })() && (
-        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-          wish.completed 
-            ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
-            : 'bg-gray-100 text-gray-600 dark:bg-gray-800/50 dark:text-gray-400'
-        }`}>
-          <Star className="h-3 w-3 mr-1" />
-            {((typeof wish.pointsEarned === 'number' ? wish.pointsEarned : wish.points) || 0)} pts
-        </span>
-        )}
-
-        {/* Locked indicator */}
-        {wish.isLocked && !wish.completed && (
-          <span
-            className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300"
-            title={(function() {
-              const ms = typeof wish.timeUntilCanComplete === 'number' ? wish.timeUntilCanComplete : (wish.canCompleteAfter ? (new Date(wish.canCompleteAfter) - new Date()) : 0);
-              const s = Math.max(0, Math.floor(ms / 1000));
-              const days = Math.floor(s / 86400);
-              const hours = Math.floor((s % 86400) / 3600);
-              const mins = Math.floor((s % 3600) / 60);
-              if (days > 0) return `Unlocks in ${days}d ${hours}h`;
-              if (hours > 0) return `Unlocks in ${hours}h ${mins}m`;
-              if (mins > 0) return `Unlocks in ${mins}m`;
-              return 'Unlocks soon';
-            })()}
-          >
-            <Lock className="h-3 w-3 mr-1" />
-            {(function() {
-              const ms = typeof wish.timeUntilCanComplete === 'number' ? wish.timeUntilCanComplete : (wish.canCompleteAfter ? (new Date(wish.canCompleteAfter) - new Date()) : 0);
-              const s = Math.max(0, Math.floor(ms / 1000));
-              const days = Math.floor(s / 86400);
-              const hours = Math.floor((s % 86400) / 3600);
-              const mins = Math.floor((s % 3600) / 60);
-              if (days > 0) return `Locked • ${days}d ${hours}h`;
-              if (hours > 0) return `Locked • ${hours}h ${mins}m`;
-              if (mins > 0) return `Locked • ${mins}m`;
-              return 'Locked • soon';
-            })()}
-          </span>
-        )}
-
         {/* Overdue indicator */}
         {isOverdue() && (
           <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
@@ -333,7 +224,7 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
       </div>
 
       {/* Footer */}
-      <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+      <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-3">
         <div className="flex items-center space-x-1">
           <Calendar className="h-3 w-3" />
           <span>
@@ -350,6 +241,17 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
           </div>
         )}
       </div>
+
+      {/* View Post Button */}
+      {!isReadOnly && onOpenGoal && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onOpenGoal?.(wish?._id); }}
+          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all border border-gray-200 dark:border-gray-700"
+        >
+          <FileText className="h-3.5 w-3.5" />
+          View Post
+        </button>
+      )}
 
       {/* Completion state */}
       {wish.completed && (
@@ -435,8 +337,6 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
             title: wish.title,
             description: wish.description,
             category: wish.category,
-            priority: wish.priority,
-            duration: wish.duration,
             targetDate: wish.targetDate || '',
             isPublic: wish.isPublic,
             createdAt: wish.createdAt,

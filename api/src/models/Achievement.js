@@ -28,7 +28,6 @@ const achievementSchema = new mongoose.Schema({
     enum: [
       'streak',        // Consecutive days achievements
       'category',      // Category-specific achievements
-      'points',        // Points-based achievements
       'social',        // Social interaction achievements
       'special',       // Special event achievements
       'completion',    // Goal completion achievements
@@ -475,11 +474,6 @@ achievementSchema.statics.checkUserAchievements = async function(userId) {
       // Check completion criteria
       if (achievement.criteria.completedGoalsRequired) {
         earned = user.completedGoals >= achievement.criteria.completedGoalsRequired;
-      }
-      
-      // Check points criteria
-      if (achievement.criteria.pointsRequired) {
-        earned = user.totalPoints >= achievement.criteria.pointsRequired;
       }
       
       // Check total goals criteria

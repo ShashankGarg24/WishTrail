@@ -79,7 +79,6 @@ const AuthPage = () => {
     
     try {
       if (isLogin) {
-        console.log('Submitting login for:', formData.email);
         await login(formData.email, formData.password);
       }
       navigate("/dashboard");

@@ -59,13 +59,12 @@ When a goal is deleted, the following entities and relationships need to be clea
 - **Query**: `Goal.updateMany({ 'communityInfo.sourceId': goalId }, { $set: { isActive: false } })`
 
 ### 9. **User Model - Stats** (`User.js`)
-- **Field**: `totalGoals`, `completedGoals`, `totalPoints`
+- **Field**: `totalGoals`, `completedGoals`
 - **Impact**: User's statistics need adjustment
 - **Action Required**: 
   - Decrement `totalGoals` by 1
   - If goal was completed, decrement `completedGoals` by 1
-  - If goal was completed, subtract `goal.pointsEarned` from `totalPoints`
-- **Query**: `User.updateOne({ _id: userId }, { $inc: { totalGoals: -1, completedGoals: goal.completed ? -1 : 0, totalPoints: -goal.pointsEarned } })`
+- **Query**: `User.updateOne({ _id: userId }, { $inc: { totalGoals: -1, completedGoals: goal.completed ? -1 : 0 } })`
 
 ### 10. **User Model - Daily Completions** (`User.js`)
 - **Field**: `dailyCompletions[date][].goalId`
@@ -160,7 +159,6 @@ When a goal is deleted, the following entities and relationships need to be clea
 10. ✅ **Update User Stats**:
     - Decrement `totalGoals`
     - If completed: decrement `completedGoals`
-    - If completed: subtract `pointsEarned` from `totalPoints`
 11. ✅ **Clean Daily Completions** - Remove from tracking map
 12. ✅ **Hard Delete Goal** - Permanent removal from database
 13. ✅ **Invalidate Caches** - Clear all related caches
@@ -193,7 +191,6 @@ When a goal is deleted, the following entities and relationships need to be clea
 | Goal (community mirrors) | communityInfo.sourceId | Direct | ✅ DEACTIVATED |
 | User.totalGoals | - | Direct | ✅ DECREMENTED |
 | User.completedGoals | - | Direct | ✅ DECREMENTED (if completed) |
-| User.totalPoints | - | Direct | ✅ ADJUSTED (if completed) |
 | User.dailyCompletions | Map | Direct | ✅ CLEANED UP |
 | CommunityActivity | data.goalId | Indirect | ✅ DELETED |
 | CommunityItem | sourceId | Indirect | ✅ DEACTIVATED |

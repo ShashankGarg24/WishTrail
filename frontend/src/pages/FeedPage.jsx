@@ -24,7 +24,6 @@ const FeedPage = () => {
     unfollowUser,
     report,
     blockUser,
-    initializeFollowingStatus
   } = useApiStore()
 
   const [loading, setLoading] = useState(false)
@@ -73,7 +72,6 @@ const FeedPage = () => {
   useEffect(() => {
     if (!isAuthenticated) return
     fetchInitial()
-    initializeFollowingStatus()
   }, [isAuthenticated])
 
   useEffect(() => {
@@ -610,17 +608,6 @@ const FeedPage = () => {
                               </div>
                               <span className="text-gray-900 dark:text-white font-semibold">
                                 Achieved a {activity.data?.streakCount || 0} day streak!
-                              </span>
-                            </div>
-                          </div>
-                        ) : activity.type === 'level_up' ? (
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-indigo-500 flex items-center justify-center shadow-sm">
-                                <span className="text-xl">⬆️</span>
-                              </div>
-                              <span className="text-gray-900 dark:text-white font-semibold">
-                                Leveled up to {activity.data?.newLevel || 'next level'}
                               </span>
                             </div>
                           </div>

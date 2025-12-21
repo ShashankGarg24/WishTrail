@@ -12,11 +12,8 @@ const communityActivitySchema = new mongoose.Schema({
     goalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Goal' },
     goalTitle: String,
     goalCategory: String,
-    pointsEarned: Number,
     targetUserId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     targetUserName: String,
-    newLevel: String,
-    oldLevel: String,
     streakCount: Number,
     achievementId: { type: mongoose.Schema.Types.ObjectId, ref: 'Achievement' },
     achievementName: String,
@@ -53,7 +50,6 @@ communityActivitySchema.virtual('message').get(function() {
       return t ? `joined "${t}"` : 'joined a goal';
     })(),
     'user_followed': `started following ${this.data.targetUserName}`,
-    'level_up': `leveled up to ${this.data.newLevel}`,
     'streak_milestone': (() => {
       const name = this?.data?.metadata?.habitName;
       return name ? `achieved a ${this.data.streakCount}-day streak on "${name}"` : `achieved a ${this.data.streakCount}-day streak`;

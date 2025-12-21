@@ -255,6 +255,7 @@ export const goalsAPI = {
   getOGImageUrl: (id) => `${api.defaults.baseURL}/goals/${id}/og-image`,
   searchGoals: (params) => api.get('/goals/search', { params }),
   getGoalPost: (id) => api.get(`/goals/${id}/post`),
+  getGoalAnalytics: (id) => api.get(`/goals/${id}/analytics`),
   // Goal Division
   getProgress: (id) => api.get(`/goals/${id}/progress`),
   setSubGoals: (id, subGoals) => api.put(`/goals/${id}/subgoals`, { subGoals }),
@@ -401,6 +402,7 @@ export const habitsAPI = {
   stats: () => api.get('/habits/stats'),
   log: (id, payload) => api.post(`/habits/${id}/log`, payload),
   heatmap: (id, params) => api.get(`/habits/${id}/heatmap`, { params }),
+  analytics: (id, params) => api.get(`/habits/${id}/analytics`, { params }),
 };
 
 // Location API

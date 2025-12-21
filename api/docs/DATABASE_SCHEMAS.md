@@ -45,8 +45,6 @@ Complete documentation of all database schemas for the WishTrail application.
   }
   
   // === GAMIFICATION ===
-  totalPoints: Number (default: 0, indexed desc)
-  level: String (enum: Novice→Master, indexed)
   totalGoals: Number (default: 0)
   completedGoals: Number (default: 0, indexed desc)
   currentStreak: Number (default: 0)
@@ -76,7 +74,6 @@ Complete documentation of all database schemas for the WishTrail application.
 
 **Key Indexes**:
 - `{ email: 1 }` (unique)
-- `{ totalPoints: -1 }`
 - `{ completedGoals: -1 }`
 - `{ name: "text", bio: "text", location: "text" }`
 
@@ -122,9 +119,6 @@ Complete documentation of all database schemas for the WishTrail application.
   // === SOCIAL ===
   likes: [{ userId: ObjectId, likedAt: Date }]
   likeCount: Number (default: 0, indexed desc)
-  
-  // === GAMIFICATION ===
-  pointsEarned: Number (default: 0)
   
   // === STATUS ===
   isActive: Boolean (default: true, indexed)
@@ -208,7 +202,6 @@ Complete documentation of all database schemas for the WishTrail application.
     goalId: ObjectId ref Goal
     goalTitle: String
     goalCategory: String
-    pointsEarned: Number
     targetUserId: ObjectId ref User
     targetUserName: String
     newLevel: String
@@ -509,7 +502,7 @@ graph TD
 
 1. **Single Field Indexes**
    - Primary lookups: `email`, `userId`, `targetId`
-   - Sorting: `createdAt`, `totalPoints`, `completedGoals`
+   - Sorting: `createdAt`, `completedGoals`
    - Filtering: `isActive`, `completed`, `type`
 
 2. **Compound Indexes**
@@ -538,7 +531,7 @@ graph TD
 ### **Horizontal Scaling**
 - **Sharding Keys**: `userId` for user-centric collections
 - **No Cross-Document Transactions**: Each schema is self-contained
-- **Denormalized Counters**: `likeCount`, `totalPoints`, `completedGoals`
+- **Denormalized Counters**: `likeCount`, `completedGoals`
 
 ### **Performance Monitoring**
 - **Query Hints**: Strategic index usage

@@ -106,7 +106,7 @@ const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, goalTitle, isDeleting 
                   {!isHabit && (
                     <li className="flex items-start">
                       <span className="mr-2">•</span>
-                      <span>Your earned points (if completed)</span>
+                      <span>Your completion record</span>
                     </li>
                   )}
                   {isHabit && (

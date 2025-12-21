@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, lazy, Suspense } from "react";
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { Target, TrendingUp, Star, Edit2, ExternalLink, Youtube, Instagram, MapPin, Globe, Trophy, BookOpen, Clock, CheckCircle, Circle, User, UserPlus, UserCheck, ArrowLeft, Lock, Sparkles, Download, Flame } from "lucide-react";
+import { Target, TrendingUp, Star, Edit2, ExternalLink, Youtube, Instagram, MapPin, Globe, Trophy, BookOpen, Clock, CheckCircle, Circle, User, UserPlus, UserCheck, ArrowLeft, Lock, Sparkles, Download, Flame, Award } from "lucide-react";
 const FollowListModal = lazy(() => import("../components/FollowListModal"));
 import { motion } from "framer-motion";
 import useApiStore from "../store/apiStore";
@@ -1030,40 +1030,8 @@ const ProfilePage = () => {
                             </div>
                             <div className="text-orange-700 dark:text-orange-300 text-xs font-medium">Day Streak</div>
                           </div>
-                          <div className="p-4 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-xl border border-purple-200 dark:border-purple-800/30">
-                            <Star className="h-5 w-5 text-purple-600 dark:text-purple-400 mb-2" />
-                            <div className="text-2xl font-bold text-purple-900 dark:text-purple-100">
-                              {isOwnProfile ? (analytics?.goals?.totalPoints || 0) : (userStats?.totalPoints || 0)}
-                            </div>
-                            <div className="text-purple-700 dark:text-purple-300 text-xs font-medium">Points</div>
-                          </div>
                         </div>
 
-                        {/* Achievement Level for own profile */}
-                        {isOwnProfile && (
-                          <div className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/10 dark:to-purple-900/10 rounded-xl border border-blue-200 dark:border-blue-800/30">
-                            <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                              <TrendingUp className="h-4 w-4 text-blue-500" />
-                              Achievement Progress
-                            </h4>
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                {analytics?.goals?.level || 'Novice'}
-                              </span>
-                              <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-                                {analytics?.goals?.totalPoints || 0} pts
-                              </span>
-                            </div>
-                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
-                              <div
-                                className="bg-gradient-to-r from-blue-500 to-purple-500 h-2.5 rounded-full transition-all duration-300"
-                                style={{
-                                  width: `${Math.min(((analytics?.goals?.totalPoints || 0) % 100), 100)}%`
-                                }}
-                              ></div>
-                            </div>
-                          </div>
-                        )}
                       </>
                     ) : (
                       <div className="text-center py-12">
@@ -1275,12 +1243,10 @@ const ProfilePage = () => {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.3, delay: Math.min(index * 0.03, 0.3) }}
                             onClick={() => {
-                              if (isOwnProfile) {
-                                setOpenHabitId(habit.id || habit._id);
-                                setHabitModalOpen(true);
-                              }
+                              setOpenHabitId(habit.id || habit._id);
+                              setHabitModalOpen(true);
                             }}
-                            className={`bg-gradient-to-br from-white to-gray-50 dark:from-gray-700/50 dark:to-gray-800/30 rounded-xl p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md hover:border-orange-300 dark:hover:border-orange-600 transition-all ${isOwnProfile ? 'cursor-pointer' : 'cursor-default'}`}
+                            className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-700/50 dark:to-gray-800/30 rounded-xl p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md hover:border-orange-300 dark:hover:border-orange-600 transition-all cursor-pointer"
                           >
                             <div className="flex items-start justify-between mb-3">
                               <h4 className="font-semibold text-gray-900 dark:text-white text-base">{habit.name}</h4>

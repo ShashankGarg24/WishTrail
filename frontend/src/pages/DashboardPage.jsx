@@ -198,9 +198,7 @@ const DashboardPage = () => {
       { label: 'Total Goals', value: Number(dashboardStats.totalGoals) || 0, icon: Target, color: 'text-blue-500' },
       { label: 'Completed', value: Number(dashboardStats.completedGoals) || 0, icon: CheckCircle, color: 'text-green-500' },
       { label: 'In Progress', value: Math.max(0, (Number(dashboardStats.totalGoals) || 0) - (Number(dashboardStats.completedGoals) || 0)), icon: Circle, color: 'text-yellow-500' },
-      { label: 'Today', value: `${dashboardStats.todayCompletions || 0}/${dashboardStats.dailyLimit || 3}`, icon: Calendar, color: (dashboardStats.todayCompletions || 0) >= (dashboardStats.dailyLimit || 3) ? 'text-orange-500' : 'text-purple-500' },
-      { label: 'Total Points', value: Number(dashboardStats.totalPoints) || 0, icon: Star, color: 'text-yellow-500' },
-      { label: 'Level', value: dashboardStats.level?.level || 'Novice', icon: Award, color: dashboardStats.level?.color || 'text-gray-500', emoji: dashboardStats.level?.icon }
+      { label: 'Today', value: `${dashboardStats.todayCompletions || 0}/${dashboardStats.dailyLimit || 3}`, icon: Calendar, color: (dashboardStats.todayCompletions || 0) >= (dashboardStats.dailyLimit || 3) ? 'text-orange-500' : 'text-purple-500' }
     ];
   }, [dashboardStats]);
 
@@ -269,7 +267,7 @@ const DashboardPage = () => {
   // Ensure a personal habit exists for a community habit; create if missing
   const ensurePersonalHabit = async (it) => {
     try {
-      const existing = (useApiStore.getState().habits || []).find(h => String(h._id) === String(it.sourceId))
+      const existing = (useApiStore.getState().habits || []).find(h => String(h.id) === String(it.sourceId))
         || (useApiStore.getState().habits || []).find(h => String(h.name).trim().toLowerCase() === String(it.title || '').trim().toLowerCase())
       if (existing) return existing
       const payload = {
@@ -280,7 +278,7 @@ const DashboardPage = () => {
       }
       const res = await habitsAPI.create(payload)
       const created = res?.data?.data || res?.data
-      if (created?._id) {
+      if (created?.id) {
         try { useApiStore.getState().appendHabit(created) } catch { }
         return created
       }
@@ -291,7 +289,7 @@ const DashboardPage = () => {
   // Ensure a personal goal exists for a community goal; create if missing
   const ensurePersonalGoal = async (it) => {
     try {
-      const existingById = (useApiStore.getState().goals || []).find(g => String(g._id) === String(it.sourceId))
+      const existingById = (useApiStore.getState().goals || []).find(g => String(g.id) === String(it.sourceId))
       if (existingById) return existingById
       const existingByTitle = (useApiStore.getState().goals || []).find(g => String(g.title).trim().toLowerCase() === String(it.title || '').trim().toLowerCase())
       if (existingByTitle) return existingByTitle
@@ -299,8 +297,6 @@ const DashboardPage = () => {
         title: it.title,
         description: it.description || '',
         category: 'Other',
-        priority: 'medium',
-        duration: 'medium-term',
         year: selectedYear
       }
       const result = await createGoal(goalData)
@@ -316,8 +312,6 @@ const DashboardPage = () => {
       title: goalTemplate.title,
       description: goalTemplate.description,
       category: goalTemplate.category,
-      priority: goalTemplate.priority || 'medium',
-      duration: goalTemplate.duration || 'medium-term',
       targetDate: ''
     })
     setIsCreateModalOpen(true)
@@ -341,7 +335,7 @@ const DashboardPage = () => {
 
   const handleHabitCreated = async (habit) => {
     try {
-      if (habit && habit._id) {
+      if (habit && habit.id) {
         useApiStore.getState().appendHabit(habit)
       }
     } finally {
@@ -435,7 +429,7 @@ const DashboardPage = () => {
     if (!selectedHabit) return;
 
     try {
-      const res = await useApiStore.getState().logHabit(selectedHabit._id, status);
+      const res = await useApiStore.getState().logHabit(selectedHabit.id, status);
       if (res.success) {
         setSelectedHabit((prev) =>
           prev
@@ -588,7 +582,7 @@ const DashboardPage = () => {
               {visibleGoals.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                   {visibleGoals.map((goal, index) => (
-                    <WishCard key={goal._id} wish={goal} year={selectedYear} index={index} onToggle={() => handleToggleGoal(goal._id)} onDelete={() => handleDeleteGoal(goal._id)} onComplete={handleCompleteGoal} isViewingOwnGoals={true} onOpenGoal={(id) => setOpenGoalId(id)} />
+                    <WishCard key={goal.id} wish={goal} year={selectedYear} index={index} onToggle={() => handleToggleGoal(goal.id)} onDelete={() => handleDeleteGoal(goal.id)} onComplete={handleCompleteGoal} isViewingOwnGoals={true} onOpenGoal={(id) => setOpenGoalId(id)} onOpenAnalytics={(id) => navigate(`/goals/${id}/analytics`)} />
                   ))}
                 </div>
               ) : (
@@ -631,15 +625,16 @@ const DashboardPage = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                   {communityGoals.map((goal, index) => (
                     <WishCard
-                      key={goal._id}
+                      key={goal.id}
                       wish={goal}
                       year={selectedYear}
                       index={index}
-                      onToggle={() => handleToggleGoal(goal._id)}
-                      onDelete={() => handleDeleteGoal(goal._id)}
+                      onToggle={() => handleToggleGoal(goal.id)}
+                      onDelete={() => handleDeleteGoal(goal.id)}
                       onComplete={handleCompleteGoal}
                       isViewingOwnGoals={true}
                       onOpenGoal={(id) => setOpenGoalId(id)}
+                      onOpenAnalytics={(id) => navigate(`/goals/${id}/analytics`)}
                       footer={(
                         <div className="flex items-center justify-end">
                           <a
@@ -675,14 +670,12 @@ const DashboardPage = () => {
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Community goals (legacy)</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {communityItems.filter(i => i.type === 'goal').map((it, index) => {
-                    const uniqueKey = `community-goal-${it.sourceId || it._id}-${it.communityId || index}`;
+                    const uniqueKey = `community-goal-${it.sourceId || it.id}-${it.communityId || index}`;
                     const mapped = {
-                      _id: it.sourceId || it._id,
+                      id: it.sourceId || it.id,
                       title: it.title,
                       description: it.description || '',
                       category: 'Community',
-                      priority: 'medium',
-                      duration: 'medium-term',
                       createdAt: new Date().toISOString(),
                       progress: { percent: it.personalPercent || 0 },
                       completed: false,
@@ -701,7 +694,7 @@ const DashboardPage = () => {
                             <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-200 border border-purple-200 dark:border-purple-800">{it.communityName}</span>
                             <div className="flex items-center gap-2">
                               <button
-                                onClick={async () => { const g = await ensurePersonalGoal(it); if (g?._id) { try { setOpenGoalId(g._id) } catch { } } }}
+                                onClick={async () => { const g = await ensurePersonalGoal(it); if (g?.id) { try { setOpenGoalId(g.id) } catch { } } }}
                                 className="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 text-sm"
                               >
                                 Open in my goals
@@ -750,7 +743,7 @@ const DashboardPage = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                   {userHabits.map((h, idx) => (
                     <div
-                      key={h._id || idx}
+                      key={h.id || idx}
                       onClick={() => setSelectedHabit(h)}
                       className="glass-card-hover p-6 rounded-2xl border border-gray-200 dark:border-gray-800 cursor-pointer hover:border-primary-300 dark:hover:border-primary-700 transition-all duration-200"
                     >
@@ -838,7 +831,7 @@ const DashboardPage = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                   {communityHabits.map((h, idx) => {
                     return (
-                      <div key={h._id} onClick={() => setSelectedHabit(h)} className="group glass-card-hover p-6 rounded-2xl border border-gray-200 dark:border-gray-800 cursor-pointer hover:border-primary-300 dark:hover:border-primary-700 transition-all duration-200">
+                      <div key={h.id} onClick={() => setSelectedHabit(h)} className="group glass-card-hover p-6 rounded-2xl border border-gray-200 dark:border-gray-800 cursor-pointer hover:border-primary-300 dark:hover:border-primary-700 transition-all duration-200">
                         {/* Header with community badge */}
                         <div className="flex items-start justify-between gap-3 mb-4">
                           <div className="min-w-0 flex-1">
@@ -887,9 +880,9 @@ const DashboardPage = () => {
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Community habits (legacy)</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {communityItems.filter(i => i.type === 'habit').map((it, idx) => {
-                    const base = (habits || []).find(h => String(h._id) === String(it.sourceId));
+                    const base = (habits || []).find(h => String(h.id) === String(it.sourceId));
                     const h = base || {
-                      _id: it.sourceId,
+                      id: it.sourceId,
                       name: it.title,
                       description: it.description || '',
                       frequency: 'daily',
@@ -900,7 +893,7 @@ const DashboardPage = () => {
                     };
                     return (
                       <div
-                        key={it._id || idx}
+                        key={it.id || idx}
                         onClick={() => { if (base) setSelectedHabit(base) }}
                         className="glass-card-hover p-5 rounded-2xl border border-gray-200 dark:border-gray-800 flex flex-col gap-2 cursor-pointer"
                       >
@@ -930,14 +923,14 @@ const DashboardPage = () => {
                         </div>
                         <div className="flex items-center justify-end gap-2 pt-2">
                           <button
-                            onClick={async (e) => { e.stopPropagation(); handleStatusToast('skipped'); try { const target = base || await ensurePersonalHabit(it); if (target?._id) await logHabit(target._id, 'skipped'); } catch { } }}
+                            onClick={async (e) => { e.stopPropagation(); handleStatusToast('skipped'); try { const target = base || await ensurePersonalHabit(it); if (target?.id) await logHabit(target.id, 'skipped'); } catch { } }}
                             className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-white text-sm ${isScheduledToday(h) ? 'bg-yellow-600/90 hover:bg-yellow-600' : 'bg-gray-300 dark:bg-gray-700 cursor-not-allowed'}`}
                             disabled={false}
                           >
                             <SkipForward className="h-4 w-4" /> Skip
                           </button>
                           <button
-                            onClick={async (e) => { e.stopPropagation(); handleStatusToast('done'); try { const target = base || await ensurePersonalHabit(it); if (target?._id) await logHabit(target._id, 'done'); } catch { } }}
+                            onClick={async (e) => { e.stopPropagation(); handleStatusToast('done'); try { const target = base || await ensurePersonalHabit(it); if (target?.id) await logHabit(target.id, 'done'); } catch { } }}
                             className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-white text-sm ${isScheduledToday(h) ? 'bg-green-600/90 hover:bg-green-600' : 'bg-gray-300 dark:bg-gray-700 cursor-not-allowed'}`}
                             disabled={false}
                           >
@@ -1013,7 +1006,7 @@ const DashboardPage = () => {
           habit={selectedHabit}
           onClose={() => setIsEditHabitOpen(false)}
           onSave={async (payload) => {
-            const res = await useApiStore.getState().updateHabit(selectedHabit._id, payload)
+            const res = await useApiStore.getState().updateHabit(selectedHabit.id, payload)
             if (res?.success) {
               try { setSelectedHabit(prev => (prev ? { ...prev, ...res.habit } : prev)) } catch { }
               return res
@@ -1044,11 +1037,11 @@ const DashboardPage = () => {
           onConfirm={async () => {
             setIsDeletingHabit(true);
             try {
-              const res = await useApiStore.getState().deleteHabit(habitToDelete._id);
+              const res = await useApiStore.getState().deleteHabit(habitToDelete.id);
               if (res.success) {
                 setIsHabitDeleteModalOpen(false);
                 setHabitToDelete(null);
-                if (selectedHabit?._id === habitToDelete._id) {
+                if (selectedHabit?.id === habitToDelete.id) {
                   setSelectedHabit(null);
                 }
               }

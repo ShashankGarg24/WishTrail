@@ -26,8 +26,6 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
     title: '',
     description: '',
     category: '',
-    priority: 'medium',
-    duration: 'medium-term',
     targetDate: '',
     isPublic: true
   })
@@ -59,8 +57,6 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
         title: initialData?.title || '',
         description: initialData?.description || '',
         category: initialData?.category || '',
-        priority: initialData?.priority || 'medium',
-        duration: initialData?.duration || 'medium-term',
         targetDate: formattedTargetDate,
         isPublic: initialData?.isPublic ?? true
       }))
@@ -92,18 +88,6 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
     'Creative Projects',
     'Family & Friends',
     'Other'
-  ]
-
-  const priorities = [
-    { value: 'high', label: 'High Priority' },
-    { value: 'medium', label: 'Medium Priority' },
-    { value: 'low', label: 'Low Priority' }
-  ]
-
-  const durations = [
-    { value: 'short-term', label: 'Short-term (1-30 days)' },
-    { value: 'medium-term', label: 'Medium-term (1-6 months)' },
-    { value: 'long-term', label: 'Long-term (6+ months)' }
   ]
 
   // Memoize the value prop to prevent infinite loops
@@ -221,8 +205,6 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
         title: formData.title.trim(),
         description: formData.description.trim(),
         category: formData.category,
-        priority: formData.priority,
-        duration: formData.duration,
         targetDate: formData.targetDate || null,
         year: year,
         isPublic: !!formData.isPublic
@@ -404,88 +386,55 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
                 )}
               </div>
 
-              {/* Category & Priority Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label htmlFor="category" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    <Tag className="h-3.5 w-3.5 inline mr-1" />
-                    Category <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    id="category"
-                    name="category"
-                    value={formData.category}
-                    onChange={handleInputChange}
-                    className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-colors ${errors.category ? 'border-red-500' : 'border-gray-300 dark:border-gray-700'}`}
-                    required
-                  >
-                    <option value="">Select a category</option>
-                    {categories.map(category => (
-                      <option key={category} value={category}>{category}</option>
-                    ))}
-                  </select>
-                  {errors.category && (
-                    <div className="flex items-center gap-2 mt-2 text-red-600 dark:text-red-400 text-xs">
-                      <AlertCircle className="h-3 w-3 flex-shrink-0" />
-                      {errors.category}
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <label htmlFor="priority" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Priority</label>
-                  <select 
-                    id="priority" 
-                    name="priority" 
-                    value={formData.priority} 
-                    onChange={handleInputChange} 
-                    className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-colors"
-                  >
-                    {priorities.map(p => (
-                      <option key={p.value} value={p.value}>{p.label}</option>
-                    ))}
-                  </select>
-                </div>
+              {/* Category */}
+              <div>
+                <label htmlFor="category" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <Tag className="h-3.5 w-3.5 inline mr-1" />
+                  Category <span className="text-red-500">*</span>
+                </label>
+                <select
+                  id="category"
+                  name="category"
+                  value={formData.category}
+                  onChange={handleInputChange}
+                  className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-colors ${errors.category ? 'border-red-500' : 'border-gray-300 dark:border-gray-700'}`}
+                  required
+                >
+                  <option value="">Select a category</option>
+                  {categories.map(category => (
+                    <option key={category} value={category}>{category}</option>
+                  ))}
+                </select>
+                {errors.category && (
+                  <div className="flex items-center gap-2 mt-2 text-red-600 dark:text-red-400 text-xs">
+                    <AlertCircle className="h-3 w-3 flex-shrink-0" />
+                    {errors.category}
+                  </div>
+                )}
               </div>
 
-              {/* Duration & Target Date Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label htmlFor="duration" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    <Calendar className="h-3.5 w-3.5 inline mr-1" />
-                    Duration
-                  </label>
-                  <select 
-                    id="duration" 
-                    name="duration" 
-                    value={formData.duration} 
-                    onChange={handleInputChange} 
-                    className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-colors"
-                  >
-                    {durations.map(d => (
-                      <option key={d.value} value={d.value}>{d.label}</option>
-                    ))}
-                  </select>
-                </div>
+              {/* Target Date */}
+              <div>
 
-                <div>
-                  <label htmlFor="targetDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Target Date (Optional)</label>
-                  <input 
-                    type="date" 
-                    id="targetDate" 
-                    name="targetDate" 
-                    value={formData.targetDate} 
-                    onChange={handleInputChange} 
-                    min={getMinDate()} 
-                    className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-colors ${errors.targetDate ? 'border-red-500' : 'border-gray-300 dark:border-gray-700'}`} 
-                  />
-                  {errors.targetDate && (
-                    <div className="flex items-center gap-2 mt-2 text-red-600 dark:text-red-400 text-xs">
-                      <AlertCircle className="h-3 w-3 flex-shrink-0" />
-                      {errors.targetDate}
-                    </div>
-                  )}
-                </div>
+                <label htmlFor="targetDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <Calendar className="h-3.5 w-3.5 inline mr-1" />
+                  Target Date (Optional)
+                </label>
+                <input 
+                  type="date" 
+                  id="targetDate" 
+                  name="targetDate" 
+                  value={formData.targetDate} 
+                  onChange={handleInputChange} 
+                  min={getMinDate()} 
+                  className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-colors ${errors.targetDate ? 'border-red-500' : 'border-gray-300 dark:border-gray-700'}`} 
+                />
+                {errors.targetDate && (
+                  <div className="flex items-center gap-2 mt-2 text-red-600 dark:text-red-400 text-xs">
+                    <AlertCircle className="h-3 w-3 flex-shrink-0" />
+                    {errors.targetDate}
+                  </div>
+                )}
               </div>
 
               {/* Visibility settings */}

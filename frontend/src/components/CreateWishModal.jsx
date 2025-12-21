@@ -12,8 +12,6 @@ const CreateWishModal = ({ isOpen, onClose, onSave, year, initialData }) => {
     title: '',
     description: '',
     category: '',
-    priority: 'medium',
-    duration: 'medium-term',
     targetDate: '',
     isPublic: true,
     
@@ -28,8 +26,6 @@ const CreateWishModal = ({ isOpen, onClose, onSave, year, initialData }) => {
         title: initialData?.title || '',
         description: initialData?.description || '',
         category: initialData?.category || '',
-        priority: initialData?.priority || 'medium',
-        duration: initialData?.duration || 'medium-term',
         targetDate: initialData?.targetDate || '',
         isPublic: initialData?.isPublic ?? true,
         
@@ -49,18 +45,6 @@ const CreateWishModal = ({ isOpen, onClose, onSave, year, initialData }) => {
     'Creative Projects',
     'Family & Friends',
     'Other'
-  ]
-
-  const priorities = [
-    { value: 'high', label: 'High Priority', color: 'text-red-500' },
-    { value: 'medium', label: 'Medium Priority', color: 'text-yellow-500' },
-    { value: 'low', label: 'Low Priority', color: 'text-green-500' }
-  ]
-
-  const durations = [
-    { value: 'short-term', label: 'Short-term (1-30 days)', color: 'text-blue-500' },
-    { value: 'medium-term', label: 'Medium-term (1-6 months)', color: 'text-purple-500' },
-    { value: 'long-term', label: 'Long-term (6+ months)', color: 'text-orange-500' }
   ]
 
   // Calculate minimum allowed date (current date + 1 day)
@@ -140,8 +124,6 @@ const CreateWishModal = ({ isOpen, onClose, onSave, year, initialData }) => {
       title: formData.title.trim(),
       description: formData.description.trim(),
       category: formData.category,
-      priority: formData.priority,
-      duration: formData.duration,
       targetDate: formData.targetDate || null,
       year: year,
       isPublic: !!formData.isPublic,
@@ -171,8 +153,6 @@ const CreateWishModal = ({ isOpen, onClose, onSave, year, initialData }) => {
       title: '',
       description: '',
       category: '',
-      priority: 'medium',
-      duration: 'medium-term',
       targetDate: '',
       isPublic: true,
       
@@ -300,46 +280,6 @@ const CreateWishModal = ({ isOpen, onClose, onSave, year, initialData }) => {
                 {errors.category}
               </div>
             )}
-          </div>
-
-          {/* Priority */}
-          <div>
-            <label htmlFor="priority" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Priority
-            </label>
-            <select
-              id="priority"
-              name="priority"
-              value={formData.priority}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-            >
-              {priorities.map(priority => (
-                <option key={priority.value} value={priority.value}>
-                  {priority.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Duration */}
-          <div>
-            <label htmlFor="duration" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Duration
-            </label>
-            <select
-              id="duration"
-              name="duration"
-              value={formData.duration}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-            >
-              {durations.map(duration => (
-                <option key={duration.value} value={duration.value}>
-                  {duration.label}
-                </option>
-              ))}
-            </select>
           </div>
 
           {/* Target Date */}

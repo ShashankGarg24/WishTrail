@@ -40,15 +40,14 @@ All three search functionalities (Users, Goals, Communities) have been optimized
 
 - **Optimized Projections:** Only returns essential fields:
   - `_id`, `name`, `username`, `avatar`, `bio`
-  - `level`, `totalPoints`, `completedGoals`, `currentStreak`
+  - `level`, `completedGoals`, `currentStreak`
   - `totalGoals`, `interests`, `isPrivate`
 
 - **Batch Follow Status:** Fetches all following relationships in a single query instead of N queries
 
 ### Database Indexes:
 ```javascript
-{ isActive: 1, totalPoints: -1 }
-{ isActive: 1, interests: 1, totalPoints: -1 }
+{ isActive: 1, interests: 1}
 { isActive: 1, username: 1, name: 1 }
 ```
 
@@ -177,7 +176,7 @@ GET /api/v1/communities/discover?search=running&interests=fitness&limit=20
 All queries use compound indexes that match the exact filter + sort order:
 - Filters like `isActive`, `isPublic`, `completed` come first
 - Search fields like `titleLower`, `category`, `interests` next
-- Sort fields like `totalPoints`, `completedAt`, `memberCount` last
+- Sort fields like  `completedAt`, `memberCount` last
 
 ### 2. Index-Only Queries
 Where possible, queries use "covered queries" that can be satisfied entirely from index data without touching documents.
@@ -302,7 +301,7 @@ Run this in MongoDB shell to see if queries use indexes:
 db.users.explain("executionStats").find({
   isActive: true,
   interests: "fitness"
-}).sort({ totalPoints: -1 })
+})
 
 // Goal search
 db.goals.explain("executionStats").find({

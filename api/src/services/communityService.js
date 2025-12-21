@@ -146,14 +146,6 @@ async function getCommunityDashboard(communityId) {
   sevenDaysAgo.setUTCDate(sevenDaysAgo.getUTCDate() - 7);
   const sevenDaysKey = toDateKeyUTC(sevenDaysAgo);
 
-  // Community points: sum of points from completed personal goals linked to this community
-  const pointsAgg = await Goal.aggregate([
-    { $match: { 'communityInfo.communityId': community._id, isActive: true, completed: true } },
-    { $group: { _id: null, total: { $sum: { $ifNull: ['$pointsEarned', 0] } } } },
-    { $project: { _id: 0, total: 1 } }
-  ]);
-  const totalPoints = (pointsAgg[0]?.total) || 0;
-
   // Weekly activity: goal completions last 7 days + habit 'done' logs for habits linked to this community last 7 days
   const weeklyGoalCount = await Goal.countDocuments({ 'communityInfo.communityId': community._id, completed: true, completedAt: { $gte: sevenDaysAgo } });
   const personalHabits = await Habit.find({ 'communityInfo.communityId': community._id, isActive: true }).select('_id').lean();
@@ -172,7 +164,7 @@ async function getCommunityDashboard(communityId) {
 
   const memberCount = community?.stats?.memberCount || 0;
 
-  const stats = { memberCount, totalPoints, weeklyActivityCount, completionRate };
+  const stats = { memberCount, weeklyActivityCount, completionRate };
   const highlights = [];
   if ((stats.completionRate || 0) >= 75) highlights.push('Community hit 75% of shared goals 🎉');
   if (weeklyActivityCount >= 50) highlights.push('High activity this week!');
@@ -223,7 +215,7 @@ async function getCommunityAnalytics(communityId, { weeks = 12 } = {}) {
 
   // Goals: completions linked to this community
   const goalMatch = { 'communityInfo.communityId': community._id, completed: true, completedAt: { $gte: oldest }, isActive: true };
-  const completedGoals = await Goal.find(goalMatch).select('completedAt userId pointsEarned').lean();
+  const completedGoals = await Goal.find(goalMatch).select('completedAt userId').lean();
 
   // Habits: personal copies linked to this community, then logs in range
   const personalHabits = await Habit.find({ 'communityInfo.communityId': community._id, isActive: true })
@@ -268,20 +260,11 @@ async function getCommunityAnalytics(communityId, { weeks = 12 } = {}) {
   const todaysHabitUserSet = new Set(habitLogs.filter(l => l.dateKey === todayKey).map(l => String(l.userId)));
   const completedGoalsTotal = completedGoals.length;
 
-  // Leaderboard (last N weeks): points = goal points + habit done count
-  const userPoints = new Map();
-  for (const g of completedGoals) {
-    const k = String(g.userId);
-    const curr = userPoints.get(k) || { points: 0, goalCompletions: 0, habitDones: 0 };
-    // Points are from community-linked goal completions only
-    curr.points += Math.max(0, g.pointsEarned || 0);
-    curr.goalCompletions += 1;
-    userPoints.set(k, curr);
-  }
+  let userPoints = new Map();
   for (const l of habitLogs) {
     const k = String(l.userId);
-    const curr = userPoints.get(k) || { points: 0, goalCompletions: 0, habitDones: 0 };
-    // Track habit activity separately, but do not add to points
+    const curr = userPoints.get(k) || { goalCompletions: 0, habitDones: 0 };
+    // Track habit activity separately
     curr.habitDones += 1;
     userPoints.set(k, curr);
   }
@@ -294,11 +277,9 @@ async function getCommunityAnalytics(communityId, { weeks = 12 } = {}) {
     .map(([userId, v]) => ({
       userId,
       user: userById.get(userId) || null,
-      points: v.points,
       goalCompletions: v.goalCompletions,
       habitDones: v.habitDones
     }))
-    .sort((a,b) => b.points - a.points)
     .slice(0, 10);
 
   return {
@@ -404,8 +385,6 @@ async function createCommunityOwnedItem(communityId, creatorId, payload) {
       title: payload.title,
       description: payload.description || '',
       category: 'Other', // Use valid enum value for source goals
-      priority: payload.priority || 'medium',
-      duration: payload.duration || 'medium-term',
       targetDate: payload.targetDate || null,
       year: new Date().getFullYear(),
       isPublic: true,
@@ -439,8 +418,6 @@ async function createCommunityOwnedItem(communityId, creatorId, payload) {
         title: g.title,
         description: g.description || '',
         category: payload.category || 'Other', // Use the original category they selected
-        priority: g.priority || 'medium',
-        duration: g.duration || 'medium-term',
         targetDate: g.targetDate || null,
         year: new Date().getFullYear(),
         isPublic: false, // Personal copy should be private by default
@@ -565,8 +542,6 @@ async function copyFromPersonalToCommunity(communityId, creatorId, { type, sourc
       title: src.title,
       description: src.description || '',
       category: 'Other', // Use valid enum value for source goals
-      priority: src.priority || 'medium',
-      duration: src.duration || 'medium-term',
       targetDate: null,
       year: new Date().getFullYear(),
       isPublic: true,
@@ -600,8 +575,6 @@ async function copyFromPersonalToCommunity(communityId, creatorId, { type, sourc
         title: g.title,
         description: g.description || '',
         category: src.category || 'Other', // Use the original category from source goal
-        priority: g.priority || 'medium',
-        duration: g.duration || 'medium-term',
         targetDate: null,
         year: new Date().getFullYear(),
         isPublic: false, // Personal copy should be private by default
@@ -776,8 +749,6 @@ async function joinItem(userId, communityId, itemId) {
             title: sourceGoal.title,
             description: sourceGoal.description || '',
             category: sourceGoal.originalCategory || sourceGoal.category || 'Other', // Use original category if available
-            priority: sourceGoal.priority || 'medium',
-            duration: sourceGoal.duration || 'medium-term',
             targetDate: sourceGoal.targetDate || null,
             year: new Date().getFullYear(),
             isPublic: false, // Personal copy should be private by default
@@ -1242,13 +1213,12 @@ async function leaveCommunity(userId, communityId) {
 
 async function listMembers(communityId) {
   const members = await CommunityMember.find({ communityId, status: 'active' })
-    .populate('userId', 'name username avatar currentStreak longestStreak totalPoints')
-    .sort({ role: 1, 'userId.totalPoints': -1 })
+    .populate('userId', 'name username avatar currentStreak longestStreak')
+    .sort({ role: 1 })
     .lean();
   return members.map(m => ({
     _id: m._id,
     role: m.role,
-    contributionPoints: m.contributionPoints,
     currentStreak: m.currentStreak,
     longestStreak: m.longestStreak,
     user: m.userId

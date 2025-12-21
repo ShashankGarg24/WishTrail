@@ -47,7 +47,7 @@ const getRecentActivities = async (req, res, next) => {
         .sort({ createdAt: -1 })
         .limit(parsedLimit)
         .skip((parsedPage - 1) * parsedLimit)
-        .populate('userId', 'name avatar level')
+        .populate('userId', 'name avatar')
         .populate('data.goalId', 'title category')
         .populate('data.targetUserId', 'name avatar')
         .lean();
@@ -69,7 +69,7 @@ const getRecentActivities = async (req, res, next) => {
         const filter = {
         isActive: true,
         isPublic: true,
-        type: { $in: ['goal_activity', 'goal_completed', 'goal_created', 'level_up', 'streak_milestone', 'achievement_earned'] }
+        type: { $in: ['goal_activity', 'goal_completed', 'goal_created', 'streak_milestone', 'achievement_earned'] }
       };
 
       const [totalActivities, activityList] = await Promise.all([
@@ -78,7 +78,7 @@ const getRecentActivities = async (req, res, next) => {
           .sort({ createdAt: -1 })
           .limit(parsedLimit)
           .skip((parsedPage - 1) * parsedLimit)
-          .populate('userId', 'name avatar level username')
+          .populate('userId', 'name avatar username')
           .populate('data.goalId', 'title category')
           .populate('data.targetUserId', 'name avatar')
           .lean()
@@ -195,7 +195,7 @@ const getActivity = async (req, res, next) => {
     const { id } = req.params;
     
     const activity = await Activity.findById(id)
-      .populate('userId', 'name avatar level');
+      .populate('userId', 'name avatar');
     
     if (!activity) {
       return res.status(404).json({
@@ -304,8 +304,7 @@ const getTrendingActivities = async (req, res, next) => {
           createdAt: 1,
           likeCount: 1,
           'user.name': 1,
-          'user.avatar': 1,
-          'user.level': 1
+          'user.avatar': 1
         }
       }
     ]);

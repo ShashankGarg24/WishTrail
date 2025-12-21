@@ -46,9 +46,9 @@ const ShareModal = ({ isOpen, onClose, goal, user }) => {
 
   const shareText = shareableData ? `🎉 Just achieved my goal: "${shareableData.goal.title}"! 
 
-  ✨ ${shareableData.goal.category} • ${shareableData.goal.priority} priority
+  ✨ ${shareableData.goal.category}
   📅 Completed: ${new Date(shareableData.goal.completedAt).toLocaleDateString()}
-  ${shareableData.goal.pointsEarned ? `⭐ ${shareableData.goal.pointsEarned} points earned` : ''}
+  ${shareableData.goal.completedAt ? `✅ Completed ${new Date(shareableData.goal.completedAt).toLocaleDateString()}` : ''}
 
   Track your goals with WishTrail! 🚀` : `🎉 Just achieved my goal: "${goal.title}"!`
 

@@ -8,7 +8,7 @@ const Follow = require('../models/Follow');
 // @access  Public
 const getGlobalLeaderboard = async (req, res, next) => {
   try {
-    const { type = 'points', page = 1, limit = 50, timeframe = 'all', category } = req.query;
+    const { type = 'goals', page = 1, limit = 50, timeframe = 'all', category } = req.query;
     const parsedPage = parseInt(page);
     const parsedLimit = parseInt(limit);
 
@@ -61,7 +61,6 @@ const getGlobalLeaderboard = async (req, res, next) => {
         isFollowing: u.isFollowing,
         name: u.name,
         rank: u.rank,
-        totalPoints: u.totalPoints,
         username: u.username
       }));
       return res.status(200).json({
@@ -73,18 +72,16 @@ const getGlobalLeaderboard = async (req, res, next) => {
 
     // Cache miss - fetch from database
     const sortFields = {
-      points: 'totalPoints',
       goals: 'completedGoals',
-      streak: 'currentStreak',
-      level: 'level'
+      streak: 'currentStreak'
     };
 
-    let sortField = sortFields[type] || 'totalPoints';
+    let sortField = sortFields[type] || 'completedGoals';
     let sortOrder = -1;
 
     const matchStage = {
       isActive: true,
-      totalPoints: { $gt: 0 }
+      completedGoals: { $gt: 0 }
     };
 
     const pipeline = [{ $match: matchStage }];
@@ -93,7 +90,7 @@ const getGlobalLeaderboard = async (req, res, next) => {
     let startDate = null;
 
     // Handle category and/or timeframe filters
-    if (category || (timeframe !== 'all' && ['points', 'goals'].includes(type))) {
+    if (category || (timeframe !== 'all' && type === 'goals')) {
       // Determine timeframe filter
       if (timeframe !== 'all') {
         switch (timeframe) {
@@ -136,7 +133,7 @@ const getGlobalLeaderboard = async (req, res, next) => {
         },
         {
           $addFields: {
-            recentPoints: { $sum: '$filteredGoals.pointsEarned' },
+
             recentGoalsCount: { $size: '$filteredGoals' }
           }
         }
@@ -151,7 +148,7 @@ const getGlobalLeaderboard = async (req, res, next) => {
         });
       }
 
-      sortField = type === 'points' ? 'recentPoints' : 'recentGoalsCount';
+      sortField = 'recentGoalsCount';
     }
 
     pipeline.push(
@@ -171,7 +168,6 @@ const getGlobalLeaderboard = async (req, res, next) => {
           name: 1,
           username: 1,
           avatar: 1,
-          totalPoints: 1,
           completedGoals: 1,
           totalGoals: 1,
           currentStreak: 1,
@@ -229,7 +225,6 @@ const getGlobalLeaderboard = async (req, res, next) => {
       isFollowing: u.isFollowing,
       name: u.name,
       rank: u.rank,
-      totalPoints: u.totalPoints,
       username: u.username
     }));
     res.status(200).json({
@@ -244,22 +239,16 @@ const getGlobalLeaderboard = async (req, res, next) => {
 
 
 // Helper function to get user's rank
-const getUserRank = async (userId, type = 'points', timeframe = 'all') => {
+const getUserRank = async (userId, type = 'goals', timeframe = 'all') => {
   try {
-    let sortField = 'totalPoints';
+    let sortField = 'completedGoals';
     
     switch (type) {
-      case 'points':
-        sortField = 'totalPoints';
-        break;
       case 'goals':
         sortField = 'completedGoals';
         break;
       case 'streak':
         sortField = 'currentStreak';
-        break;
-      case 'level':
-        sortField = 'level';
         break;
     }
     
@@ -278,8 +267,7 @@ const getUserRank = async (userId, type = 'points', timeframe = 'all') => {
       user: {
         _id: user._id,
         name: user.name,
-        avatar: user.avatar,
-        level: user.level
+        avatar: user.avatar
       }
     };
   } catch (error) {
@@ -370,7 +358,6 @@ const getCategoryLeaderboard = async (req, res, next) => {
       {
         $group: {
           _id: '$userId',
-          totalPoints: { $sum: '$pointsEarned' },
           goalCount: { $sum: 1 }
         }
       },
@@ -391,7 +378,7 @@ const getCategoryLeaderboard = async (req, res, next) => {
         }
       },
       {
-        $sort: { totalPoints: -1, goalCount: -1 }
+        $sort: { goalCount: -1 }
       },
       {
         $skip: (parsedPage - 1) * parsedLimit
@@ -404,8 +391,6 @@ const getCategoryLeaderboard = async (req, res, next) => {
           _id: '$user._id',
           name: '$user.name',
           avatar: '$user.avatar',
-          level: '$user.level',
-          totalPoints: 1,
           goalCount: 1
         }
       }
@@ -478,7 +463,7 @@ const getCategoryLeaderboard = async (req, res, next) => {
 // @access  Private
 const getFriendsLeaderboard = async (req, res, next) => {
   try {
-    const { type = 'points', page = 1, limit = 50, category, timeframe = 'all' } = req.query;
+    const { type = 'goals', page = 1, limit = 50, category, timeframe = 'all' } = req.query;
     const parsedPage = parseInt(page);
     const parsedLimit = parseInt(limit);
 
@@ -520,7 +505,6 @@ const getFriendsLeaderboard = async (req, res, next) => {
         isFollowing: u._id?.toString && u._id.toString() !== req.user.id.toString() ? true : null,
         name: u.name,
         rank: u.rank,
-        totalPoints: u.totalPoints,
         username: u.username
       }));
       return res.status(200).json({ success: true, data: { leaderboard: minimal }, fromCache });
@@ -534,20 +518,14 @@ const getFriendsLeaderboard = async (req, res, next) => {
     // Include current user in the leaderboard
     followingIds.push(req.user.id);
     
-    let sortField = 'totalPoints';
+    let sortField = 'completedGoals';
     
     switch (type) {
-      case 'points':
-        sortField = 'totalPoints';
-        break;
       case 'goals':
         sortField = 'completedGoals';
         break;
       case 'streak':
         sortField = 'currentStreak';
-        break;
-      case 'level':
-        sortField = 'level';
         break;
     }
     
@@ -555,7 +533,7 @@ const getFriendsLeaderboard = async (req, res, next) => {
     const match = { _id: { $in: followingIds }, isActive: true };
     // Optional category/timeframe filters via goals lookup
     if (category || (timeframe && timeframe !== 'all')) {
-      // aggregate to compute timeframe-bound points/goals if provided
+      // aggregate to compute timeframe-bound goals if provided
       const pipeline = [
         { $match: match },
         { $lookup: {
@@ -579,21 +557,18 @@ const getFriendsLeaderboard = async (req, res, next) => {
             as: 'fltGoals'
         }},
         { $addFields: {
-            recentPoints: { $sum: '$fltGoals.pointsEarned' },
             recentGoalsCount: { $size: '$fltGoals' }
         }},
         { $project: {
             name: 1,
             username: 1,
             avatar: 1,
-            totalPoints: 1,
             completedGoals: 1,
             totalGoals: 1,
             currentStreak: 1,
-            recentPoints: 1,
             recentGoalsCount: 1
         }},
-        { $sort: { [type === 'points' ? (timeframe !== 'all' ? 'recentPoints' : 'totalPoints') : (timeframe !== 'all' ? 'recentGoalsCount' : 'completedGoals')]: -1 }},
+        { $sort: { [(timeframe !== 'all' ? 'recentGoalsCount' : 'completedGoals')]: -1 }},
         { $skip: (parsedPage - 1) * parsedLimit },
         { $limit: parsedLimit }
       ];
@@ -604,14 +579,13 @@ const getFriendsLeaderboard = async (req, res, next) => {
         name: u.name,
         username: u.username,
         avatar: u.avatar,
-        totalPoints: u.totalPoints,
         completedGoals: u.completedGoals,
         totalGoals: u.totalGoals,
         currentStreak: u.currentStreak
       }));
     } else {
       const docs = await User.find(match)
-        .select('name username avatar totalPoints completedGoals totalGoals currentStreak')
+        .select('name username avatar completedGoals totalGoals currentStreak')
         .sort({ [sortField]: -1 })
         .skip((parsedPage - 1) * parsedLimit)
         .limit(parsedLimit);
@@ -644,7 +618,6 @@ const getFriendsLeaderboard = async (req, res, next) => {
           isFollowing: u.isFollowing,
           name: u.name,
           rank: u.rank,
-          totalPoints: u.totalPoints,
           username: u.username
         })),
         type
@@ -664,30 +637,22 @@ const getLeaderboardStats = async (req, res, next) => {
     const totalUsers = await User.countDocuments({ isActive: true });
     const activeUsers = await User.countDocuments({ 
       isActive: true, 
-      totalPoints: { $gt: 0 } 
+      completedGoals: { $gt: 0 } 
     });
     
     const topUser = await User.findOne({ isActive: true })
-      .sort({ totalPoints: -1 })
-      .select('name avatar totalPoints level');
+      .sort({ completedGoals: -1 })
+      .select('name avatar completedGoals');
     
-    const avgPoints = await User.aggregate([
-      { $match: { isActive: true, totalPoints: { $gt: 0 } } },
-      { $group: { _id: null, avgPoints: { $avg: '$totalPoints' } } }
-    ]);
-    
-    const levelDistribution = await User.aggregate([
-      { $match: { isActive: true } },
-      { $group: { _id: '$level', count: { $sum: 1 } } },
-      { $sort: { count: -1 } }
+    const avgGoals = await User.aggregate([
+      { $match: { isActive: true, completedGoals: { $gt: 0 } } },
+      { $group: { _id: null, avgGoals: { $avg: '$completedGoals' } } }
     ]);
     
     const stats = {
       totalUsers,
       activeUsers,
-      topUser,
-      averagePoints: avgPoints[0]?.avgPoints || 0,
-      levelDistribution
+      topUser
     };
     
     res.status(200).json({

@@ -173,7 +173,7 @@ likeSchema.statics.getLikes = function(targetType, targetId, limit = 20) {
   })
   .sort({ createdAt: -1 })
   .limit(limit)
-  .populate('userId', 'name avatar level');
+  .populate('userId', 'name avatar');
 };
 
 // Static method to get user's liked items

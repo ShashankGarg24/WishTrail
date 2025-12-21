@@ -34,7 +34,6 @@ const userAchievementSchema = new mongoose.Schema({
   
   // Current values when achievement was earned (for historical tracking)
   progressData: {
-    pointsWhenEarned: Number,
     goalsCompletedWhenEarned: Number,
     streakWhenEarned: Number,
     followersWhenEarned: Number,
@@ -95,7 +94,7 @@ userAchievementSchema.virtual('timeSinceEarned').get(function() {
 
 // Pre-save middleware to capture progress data
 userAchievementSchema.pre('save', async function(next) {
-  if (this.isNew && !this.progressData.pointsWhenEarned) {
+  if (this.isNew) {
     try {
       const User = mongoose.model('User');
       const Goal = mongoose.model('Goal');
@@ -105,7 +104,6 @@ userAchievementSchema.pre('save', async function(next) {
       
       if (user) {
         // Capture user stats when achievement was earned
-        this.progressData.pointsWhenEarned = user.totalPoints;
         this.progressData.goalsCompletedWhenEarned = user.completedGoals;
         this.progressData.streakWhenEarned = user.currentStreak;
         this.progressData.accountAgeWhenEarned = Math.floor(
@@ -171,14 +169,7 @@ userAchievementSchema.statics.awardAchievement = async function(userId, achievem
     });
     
     const savedAchievement = await userAchievement.save();
-    
-    // Update user's total points if achievement has point rewards
-    if (achievement.rewards && achievement.rewards.points > 0) {
-      const User = mongoose.model('User');
-      await User.findByIdAndUpdate(userId, {
-        $inc: { totalPoints: achievement.rewards.points }
-      });
-    }
+
     
     const currentUser = (await User.findById(userId).select('name avatar').lean());
 
@@ -190,8 +181,7 @@ userAchievementSchema.statics.awardAchievement = async function(userId, achievem
       'achievement_earned',
       {
         achievementId,
-        achievementName: achievement.name,
-        pointsEarned: achievement.rewards?.points || 0
+        achievementName: achievement.name
       }
     );
     
@@ -223,7 +213,7 @@ userAchievementSchema.statics.getRecentAchievements = function(limit = 10) {
     .limit(limit)
     .populate({
       path: 'userId',
-      select: 'name avatar level'
+      select: 'name avatar'
     })
     .populate({
       path: 'achievementId',

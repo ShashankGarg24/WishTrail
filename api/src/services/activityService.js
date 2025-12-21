@@ -17,7 +17,7 @@ class ActivityService {
   
     const followingIds = await Follow.getFollowingIds(userId);
   
-    const baseProjectUser = 'name username avatar level';
+    const baseProjectUser = 'name username avatar';
 
     const shape = (act) => {
       // Normalize to { user: {...}, ... }
@@ -28,7 +28,6 @@ class ActivityService {
         name: author.name,
         username: author.username,
         avatar: author.avatar,
-        level: author.level,
       } : undefined;
       return { ...rest, user };
     };
@@ -133,7 +132,7 @@ class ActivityService {
       }
     }
     
-    const baseProjectUser = 'name username avatar level';
+    const baseProjectUser = 'name username avatar';
 
     const [list, total] = await Promise.all([
       Activity.find(query)
@@ -163,7 +162,6 @@ class ActivityService {
         name: author.name,
         username: author.username,
         avatar: author.avatar,
-        level: author.level,
       } : undefined;
       return { ...rest, user };
     });
@@ -283,8 +281,7 @@ class ActivityService {
           createdAt: 1,
           likeCount: 1,
           'user.name': 1,
-          'user.avatar': 1,
-          'user.level': 1
+          'user.avatar': 1
         }
       }
     ]);
@@ -323,7 +320,7 @@ class ActivityService {
    */
   async getActivityById(activityId, requestingUserId) {
     const activity = await Activity.findById(activityId)
-      .populate('userId', 'name avatar level')
+      .populate('userId', 'name avatar')
       // likes is not a reference path; compute counts separately
       ;
     
@@ -505,7 +502,6 @@ class ActivityService {
           likeCount: { $size: '$likes' },
           popularityScore: {
             $add: [
-              { $multiply: ['$data.pointsEarned', 0.1] },
               { $multiply: [{ $size: '$likes' }, 5] }
             ]
           }

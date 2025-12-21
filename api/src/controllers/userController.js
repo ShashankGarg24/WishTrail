@@ -434,8 +434,8 @@ const getAnalytics = async (req, res, next) => {
         }
       }
     }
-    // Get user to extract totalPoints, level, streaks
-    const user = await User.findOne({ username: targetUsername }).select('totalPoints level currentStreak longestStreak isActive');
+    // Get user to extract streaks
+    const user = await User.findOne({ username: targetUsername }).select('currentStreak longestStreak isActive');
     if (!user || !user.isActive) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
@@ -456,8 +456,6 @@ const getAnalytics = async (req, res, next) => {
         skipped: habitAnalytics.skipped || 0
       },
       goals: {
-        totalPoints: user?.totalPoints || 0,
-        level: user?.level || 'Beginner',
         totalGoals: totalGoals || 0,
         completedGoals: completedGoals || 0,
         currentStreak: user?.currentStreak || 0,
@@ -487,7 +485,7 @@ const getUserAnalytics = async (req, res, next) => {
     const Follow = require('../models/Follow');
     
     // Get target user
-    const targetUser = await User.findById(targetUserId).select('totalPoints level currentStreak longestStreak isPrivate');
+    const targetUser = await User.findById(targetUserId).select('currentStreak longestStreak isPrivate');
     if (!targetUser || !targetUser.isActive) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
@@ -523,8 +521,6 @@ const getUserAnalytics = async (req, res, next) => {
         skipped: habitAnalytics.skipped || 0
       },
       goals: {
-        totalPoints: targetUser?.totalPoints || 0,
-        level: targetUser?.level || 'Beginner',
         totalGoals: totalGoals || 0,
         completedGoals: completedGoals || 0,
         currentStreak: targetUser?.currentStreak || 0,

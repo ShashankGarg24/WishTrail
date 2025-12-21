@@ -49,8 +49,7 @@
 
 ### User Model
 ```javascript
-{ isActive: 1, totalPoints: -1 }
-{ isActive: 1, interests: 1, totalPoints: -1 }
+{ isActive: 1, interests: 1 }
 { isActive: 1, username: 1, name: 1 }
 ```
 
@@ -190,7 +189,7 @@ GET /api/v1/communities/discover?search=fitness&interests=fitness,health&limit=2
 db.users.explain("executionStats").find({ 
   isActive: true, 
   interests: "fitness" 
-}).sort({ totalPoints: -1 })
+})
 
 // Look for "stage": "IXSCAN" (good)
 // Avoid "stage": "COLLSCAN" (bad)
