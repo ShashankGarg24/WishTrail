@@ -605,6 +605,16 @@ const useApiStore = create(
         }
       },
 
+      checkHabitDependencies: async (id) => {
+        try {
+          const response = await habitsAPI.checkDependencies(id);
+          return { success: true, data: response.data };
+        } catch (error) {
+          const errorMessage = handleApiError(error);
+          return { success: false, error: errorMessage };
+        }
+      },
+
       deleteHabit: async (id) => {
         try {
           await habitsAPI.remove(id);
@@ -790,6 +800,16 @@ const useApiStore = create(
         } catch (error) {
           const errorMessage = handleApiError(error);
           set({ loading: false, error: errorMessage });
+          return { success: false, error: errorMessage };
+        }
+      },
+
+      checkGoalDependencies: async (id) => {
+        try {
+          const response = await goalsAPI.checkDependencies(id);
+          return { success: true, data: response.data };
+        } catch (error) {
+          const errorMessage = handleApiError(error);
           return { success: false, error: errorMessage };
         }
       },

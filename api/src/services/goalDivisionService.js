@@ -47,15 +47,42 @@ function computeTargetCount(habitDoc, startDate, endDate) {
 
 /**
  * Compute habit progress ratio for a given linked habit and goal window.
+ * Uses habit's own targets (targetCompletions or targetDays) if available,
+ * otherwise falls back to scheduled days calculation.
  */
 async function computeHabitLinkProgress(userId, link, goal) {
   const habit = await Habit.findById(link.habitId).lean();
   if (!habit) return { ratio: 0, targetCount: 0, doneCount: 0 };
 
+  // Priority 1: Use habit's targetCompletions if available
+  if (habit.targetCompletions && habit.targetCompletions > 0) {
+    const currentCompletions = habit.totalCompletions || 0;
+    const ratio = clamp01(currentCompletions / habit.targetCompletions);
+    return { 
+      ratio, 
+      targetCount: habit.targetCompletions, 
+      doneCount: currentCompletions,
+      targetType: 'completions'
+    };
+  }
+
+  // Priority 2: Use habit's targetDays if available
+  if (habit.targetDays && habit.targetDays > 0) {
+    const currentDays = habit.totalDays || 0;
+    const ratio = clamp01(currentDays / habit.targetDays);
+    return { 
+      ratio, 
+      targetCount: habit.targetDays, 
+      doneCount: currentDays,
+      targetType: 'days'
+    };
+  }
+
+  // Priority 3: Fallback to scheduled days calculation within goal timeframe
   const startDate = goal.startDate || goal.createdAt;
   const endDate = link.endDate || goal.targetDate || new Date();
   const targetCount = computeTargetCount(habit, startDate, endDate);
-  if (targetCount === 0) return { ratio: 0, targetCount: 0, doneCount: 0 };
+  if (targetCount === 0) return { ratio: 0, targetCount: 0, doneCount: 0, targetType: 'scheduled' };
 
   const fromKey = toDateKeyUTC(startDate);
   const toKey = toDateKeyUTC(endDate);
@@ -66,7 +93,7 @@ async function computeHabitLinkProgress(userId, link, goal) {
     dateKey: { $gte: fromKey, $lte: toKey }
   });
   const ratio = clamp01(doneCount / targetCount);
-  return { ratio, targetCount, doneCount };
+  return { ratio, targetCount, doneCount, targetType: 'scheduled' };
 }
 
 /**
@@ -278,8 +305,17 @@ async function setHabitLinks(goalId, userId, links) {
   for (const l of (Array.isArray(links) ? links : [])) {
     const id = l.habitId ? new mongoose.Types.ObjectId(l.habitId) : null;
     if (!id) continue;
-    const exists = await Habit.findOne({ _id: id, userId: goal.userId }).select('_id').lean();
+    const exists = await Habit.findOne({ _id: id, userId: goal.userId }).select('_id targetDays targetCompletions name').lean();
     if (!exists) continue;
+    
+    // Validate that habit has at least one target set
+    if (!exists.targetDays && !exists.targetCompletions) {
+      throw Object.assign(
+        new Error(`Habit "${exists.name || 'Unknown'}" must have either target days or target completions set before being linked to a goal.`), 
+        { statusCode: 400 }
+      );
+    }
+    
     const entry = {
       habitId: id,
       weight: Number(l.weight || 0),

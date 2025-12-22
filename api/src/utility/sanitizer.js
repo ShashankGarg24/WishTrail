@@ -251,7 +251,10 @@ const sanitizeHabitForProfile = (habit) => {
     })),
     currentStreak: obj.currentStreak || 0,
     longestStreak: obj.longestStreak || 0,
-    totalCompletions: obj.totalCompletions || 0
+    totalCompletions: obj.totalCompletions || 0,
+    totalDays: obj.totalDays || 0,
+    targetCompletions: obj.targetCompletions || null,
+    targetDays: obj.targetDays || null
   };
 };
 

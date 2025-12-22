@@ -422,6 +422,50 @@ export default function HabitAnalyticsPage() {
 
         {/* Key Stats Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          {/* Target Progress - Count Based */}
+          {habit.targetCompletions && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-gradient-to-br from-indigo-50 to-indigo-100 dark:from-indigo-900/20 dark:to-indigo-800/20 rounded-xl p-4 shadow-sm border border-indigo-200 dark:border-indigo-800"
+            >
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-indigo-500 rounded-lg">
+                  <Target className="w-5 h-5 text-white" />
+                </div>
+                <span className="text-sm font-medium text-indigo-900 dark:text-indigo-300">Target Progress</span>
+              </div>
+              <p className="text-2xl font-bold text-indigo-900 dark:text-white">
+                {stats?.totalCompletions || 0}/{habit.targetCompletions}
+              </p>
+              <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-1">
+                {Math.round(((stats?.totalCompletions || 0) / habit.targetCompletions) * 100)}% to goal
+              </p>
+            </motion.div>
+          )}
+
+          {/* Target Progress - Days Based */}
+          {habit.targetDays && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-gradient-to-br from-indigo-50 to-indigo-100 dark:from-indigo-900/20 dark:to-indigo-800/20 rounded-xl p-4 shadow-sm border border-indigo-200 dark:border-indigo-800"
+            >
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-indigo-500 rounded-lg">
+                  <Target className="w-5 h-5 text-white" />
+                </div>
+                <span className="text-sm font-medium text-indigo-900 dark:text-indigo-300">Target Progress</span>
+              </div>
+              <p className="text-2xl font-bold text-indigo-900 dark:text-white">
+                {stats?.totalDays || 0}/{habit.targetDays}
+              </p>
+              <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-1">
+                {Math.round(((stats?.totalDays || 0) / habit.targetDays) * 100)}% to goal
+              </p>
+            </motion.div>
+          )}
+
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}

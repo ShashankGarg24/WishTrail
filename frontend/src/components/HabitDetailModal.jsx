@@ -82,7 +82,7 @@ export default function HabitDetailModal({ habit, isOpen, onClose, onLog, onEdit
               </div>
               <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/10 border border-green-200 dark:border-green-800 rounded-xl p-4 text-center">
                 <div className="text-2xl sm:text-3xl font-bold text-green-600 dark:text-green-400 mb-1">{habit.totalDays || 0}</div>
-                <div className="text-xs font-medium text-green-700 dark:text-green-300">Total Days</div>
+                <div className="text-xs font-medium text-green-700 dark:text-green-300">Active Days</div>
                 {habit.targetDays && (
                   <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
                     Goal: {habit.targetDays}

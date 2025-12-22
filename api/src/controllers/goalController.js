@@ -464,6 +464,40 @@ const updateGoal = async (req, res, next) => {
   }
 };
 
+// @desc    Check if goal is linked to other goals
+// @route   GET /api/v1/goals/:id/dependencies
+// @access  Private
+const checkGoalDependencies = async (req, res, next) => {
+  try {
+    const goalId = req.params.id;
+    const goal = await Goal.findById(goalId);
+    if (!goal) {
+      return res.status(404).json({ success: false, message: 'Goal not found' });
+    }
+    
+    // Check ownership
+    if (goal.userId.toString() !== req.user.id.toString()) {
+      return res.status(403).json({ success: false, message: 'Access denied' });
+    }
+
+    // Find parent goals that have this goal as a subgoal
+    const parentGoals = await Goal.find(
+      { 'subGoals.linkedGoalId': goalId },
+      { title: 1, _id: 1 }
+    ).lean();
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        hasParents: parentGoals.length > 0,
+        parentGoals: parentGoals.map(g => ({ id: g._id, title: g.title }))
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Delete goal
 // @route   DELETE /api/v1/goals/:id
 // @access  Private
@@ -527,11 +561,37 @@ const deleteGoal = async (req, res, next) => {
       { $unset: { goalId: 1 } }
     );
 
-    // 6. Remove this goal from other goals' subGoals (unlink, don't delete parent goals)
-    await Goal.updateMany(
-      { 'subGoals.linkedGoalId': goalId },
-      { $pull: { subGoals: { linkedGoalId: goalId } } }
-    );
+    // 6. Remove this goal from other goals' subGoals and normalize weights
+    const parentGoals = await Goal.find({ 'subGoals.linkedGoalId': goalId });
+    for (const parentGoal of parentGoals) {
+      // Remove the subgoal
+      parentGoal.subGoals = parentGoal.subGoals.filter(
+        sg => sg.linkedGoalId?.toString() !== goalId.toString()
+      );
+      
+      // Normalize weights if there are remaining subgoals or habitLinks
+      const totalItems = parentGoal.subGoals.length + (parentGoal.habitLinks?.length || 0);
+      if (totalItems > 0) {
+        const currentSubGoalWeight = parentGoal.subGoals.reduce((sum, sg) => sum + (sg.weight || 0), 0);
+        const currentHabitWeight = (parentGoal.habitLinks || []).reduce((sum, hl) => sum + (hl.weight || 0), 0);
+        const currentTotal = currentSubGoalWeight + currentHabitWeight;
+        
+        if (currentTotal > 0) {
+          // Normalize all weights proportionally to sum to 100
+          const scale = 100 / currentTotal;
+          parentGoal.subGoals.forEach(sg => {
+            sg.weight = Math.round((sg.weight || 0) * scale);
+          });
+          if (parentGoal.habitLinks) {
+            parentGoal.habitLinks.forEach(hl => {
+              hl.weight = Math.round((hl.weight || 0) * scale);
+            });
+          }
+        }
+      }
+      
+      await parentGoal.save();
+    }
 
     // 7. Handle community-related cleanup
     if (goal.isCommunitySource) {
@@ -582,9 +642,9 @@ const deleteGoal = async (req, res, next) => {
     // 11. Invalidate caches
     try {
       const cacheService = require('../services/cacheService');
-      await cacheService.invalidateTrendingGoals();
-      await cacheService.invalidatePattern('goals:*');
-      await cacheService.invalidatePattern('user:*');
+      // await cacheService.invalidateTrendingGoals();
+      // await cacheService.invalidatePattern('goals:*');
+      // await cacheService.invalidatePattern('user:*');
     } catch (cacheError) {
       console.error('Cache invalidation error:', cacheError);
     }
@@ -1075,6 +1135,7 @@ module.exports = {
   createGoal,
   updateGoal,
   deleteGoal,
+  checkGoalDependencies,
   toggleGoalCompletion,
   toggleGoalLike,
   getYearlyGoalsSummary,

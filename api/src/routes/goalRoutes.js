@@ -60,6 +60,7 @@ router.get('/trending', goalController.getTrendingGoals);
 router.get('/search', goalController.searchGoals);
 router.get('/:id/analytics', goalController.getGoalAnalytics);
 router.get('/:id/post', goalController.getGoalPost);
+router.get('/:id/dependencies', goalController.checkGoalDependencies);
 router.post('/', goalValidation, goalController.createGoal);
 router.get('/yearly/:year', goalController.getYearlyGoalsSummary);
 router.get('/:id', goalController.getGoal);

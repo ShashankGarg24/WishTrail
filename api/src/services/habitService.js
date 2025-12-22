@@ -25,6 +25,14 @@ function computeConsistency(totalCompletions, createdAt) {
 }
 
 async function createHabit(userId, payload) {
+  // Validate that only one type of target is set
+  if (payload.targetCompletions && payload.targetDays) {
+    throw Object.assign(
+      new Error('Only one target type is allowed: either targetCompletions or targetDays, not both'), 
+      { statusCode: 400 }
+    );
+  }
+  
   // Default timezone to user's stored timezone if available, else UTC
   const user = await User.findById(userId).select('timezone').lean();
   const doc = new Habit({
@@ -96,6 +104,7 @@ async function updateHabit(userId, habitId, payload) {
   const h = await Habit.findOne({ _id: habitId, userId, isActive: true });
   if (!h) throw Object.assign(new Error('Habit not found'), { statusCode: 404 });
   if (h.isArchived) throw Object.assign(new Error('Habit is archived'), { statusCode: 400 });
+  
   const set = {};
   ['name','description','frequency','timezone'].forEach(k => { if (payload[k] !== undefined) set[k] = payload[k]; });
   if (Array.isArray(payload.daysOfWeek)) set.daysOfWeek = payload.daysOfWeek;
@@ -104,6 +113,16 @@ async function updateHabit(userId, habitId, payload) {
   if (payload.isPublic !== undefined) set.isPublic = !!payload.isPublic;
   if (payload.targetCompletions !== undefined) set.targetCompletions = payload.targetCompletions || null;
   if (payload.targetDays !== undefined) set.targetDays = payload.targetDays || null;
+  
+  // Validate that only one type of target is set (check both new values and existing)
+  const finalTargetCompletions = set.targetCompletions !== undefined ? set.targetCompletions : h.targetCompletions;
+  const finalTargetDays = set.targetDays !== undefined ? set.targetDays : h.targetDays;
+  if (finalTargetCompletions && finalTargetDays) {
+    throw Object.assign(
+      new Error('Only one target type is allowed: either targetCompletions or targetDays, not both'), 
+      { statusCode: 400 }
+    );
+  }
   // Ensure timezone is set when editing reminders if habit has no meaningful timezone
   if (Array.isArray(payload.reminders) && (set.timezone === undefined)) {
     try {
@@ -123,9 +142,62 @@ async function archiveHabit(userId, habitId) {
   return h;
 }
 
+async function checkHabitDependencies(userId, habitId) {
+  const h = await Habit.findOne({ _id: habitId, userId });
+  if (!h) throw Object.assign(new Error('Habit not found'), { statusCode: 404 });
+  
+  const Goal = require('../models/Goal');
+  
+  // Find goals that have this habit linked
+  const linkedGoals = await Goal.find(
+    { 'habitLinks.habitId': habitId },
+    { title: 1, _id: 1 }
+  ).lean();
+  
+  return {
+    hasParents: linkedGoals.length > 0,
+    linkedGoals: linkedGoals.map(g => ({ id: g._id, title: g.title }))
+  };
+}
+
 async function deleteHabit(userId, habitId) {
   const h = await Habit.findOne({ _id: habitId, userId });
   if (!h) throw Object.assign(new Error('Habit not found'), { statusCode: 404 });
+  
+  const Goal = require('../models/Goal');
+  
+  // Remove from linked goals and normalize weights
+  const linkedGoals = await Goal.find({ 'habitLinks.habitId': habitId });
+  for (const goal of linkedGoals) {
+    // Remove the habit link
+    goal.habitLinks = goal.habitLinks.filter(
+      hl => hl.habitId?.toString() !== habitId.toString()
+    );
+    
+    // Normalize weights if there are remaining subgoals or habitLinks
+    const totalItems = (goal.subGoals?.length || 0) + goal.habitLinks.length;
+    if (totalItems > 0) {
+      const currentSubGoalWeight = (goal.subGoals || []).reduce((sum, sg) => sum + (sg.weight || 0), 0);
+      const currentHabitWeight = goal.habitLinks.reduce((sum, hl) => sum + (hl.weight || 0), 0);
+      const currentTotal = currentSubGoalWeight + currentHabitWeight;
+      
+      if (currentTotal > 0) {
+        // Normalize all weights proportionally to sum to 100
+        const scale = 100 / currentTotal;
+        if (goal.subGoals) {
+          goal.subGoals.forEach(sg => {
+            sg.weight = Math.round((sg.weight || 0) * scale);
+          });
+        }
+        goal.habitLinks.forEach(hl => {
+          hl.weight = Math.round((hl.weight || 0) * scale);
+        });
+      }
+    }
+    
+    await goal.save();
+  }
+  
   await Habit.deleteOne({ _id: habitId, userId });
   await HabitLog.deleteMany({ habitId, userId });
   return { ok: true };
@@ -529,7 +601,10 @@ async function getHabitAnalytics(userId, habitId, { days = 90 } = {}) {
       name: habit.name,
       description: habit.description,
       frequency: habit.frequency,
-      createdAt: habit.createdAt
+      daysOfWeek: habit.daysOfWeek,
+      createdAt: habit.createdAt,
+      targetCompletions: habit.targetCompletions || null,
+      targetDays: habit.targetDays || null
     },
     stats,
     consistency,
@@ -546,6 +621,7 @@ module.exports = {
   getHabit,
   updateHabit,
   archiveHabit,
+  checkHabitDependencies,
   deleteHabit,
   toggleLog,
   getHeatmap,

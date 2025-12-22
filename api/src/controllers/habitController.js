@@ -95,6 +95,13 @@ exports.archiveHabit = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
+exports.checkHabitDependencies = async (req, res, next) => {
+  try {
+    const dependencies = await habitService.checkHabitDependencies(req.user.id || req.user._id, req.params.id);
+    res.status(200).json({ success: true, data: dependencies });
+  } catch (error) { next(error); }
+};
+
 exports.deleteHabit = async (req, res, next) => {
   try {
     await habitService.deleteHabit(req.user.id || req.user._id, req.params.id);

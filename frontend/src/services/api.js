@@ -246,6 +246,7 @@ export const goalsAPI = {
   getTrendingGoals: (params) => api.get('/goals/trending', { params }),
   createGoal: (goalData) => api.post('/goals', goalData),
   updateGoal: (id, goalData) => api.put(`/goals/${id}`, goalData),
+  checkDependencies: (id) => api.get(`/goals/${id}/dependencies`),
   deleteGoal: (id) => api.delete(`/goals/${id}`),
   toggleGoalCompletion: (id, completionNote, shareCompletionNote = true) =>
     api.patch(`/goals/${id}/toggle`, { completionNote, shareCompletionNote }),
@@ -398,6 +399,7 @@ export const habitsAPI = {
   get: (id) => api.get(`/habits/${id}`),
   update: (id, payload) => api.put(`/habits/${id}`, payload),
   archive: (id) => api.patch(`/habits/${id}/archive`),
+  checkDependencies: (id) => api.get(`/habits/${id}/dependencies`),
   remove: (id) => api.delete(`/habits/${id}`),
   stats: () => api.get('/habits/stats'),
   log: (id, payload) => api.post(`/habits/${id}/log`, payload),

@@ -16,6 +16,7 @@ router.get('/stats', habitController.getStats);
 router.get('/analytics', habitController.getAnalytics);
 router.get('/:id', habitController.getHabit);
 router.get('/:id/analytics', habitController.getHabitAnalytics);
+router.get('/:id/dependencies', habitController.checkHabitDependencies);
 router.put('/:id', habitController.updateHabit);
 router.patch('/:id/archive', habitController.archiveHabit);
 router.delete('/:id', habitController.deleteHabit);

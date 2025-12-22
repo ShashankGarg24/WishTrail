@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useState, useRef } from 'react'
 import useApiStore from '../store/apiStore'
 import { goalsAPI } from '../services/api'
 import { motion } from 'framer-motion'
@@ -21,20 +21,27 @@ export default function GoalDivisionEditor({ goal, habits, onClose, draftMode = 
   const [autoAdjusted, setAutoAdjusted] = useState(false)
   const [didInitNormalize, setDidInitNormalize] = useState(false)
   const [additionalGoals, setAdditionalGoals] = useState([])
+  const debounceTimerRef = useRef(null)
+  const isInitializingRef = useRef(false)
+  const [subGoalToRemove, setSubGoalToRemove] = useState(null)
+  const [habitToRemove, setHabitToRemove] = useState(null)
 
   // Initialize only once when component mounts or when switching between draft/non-draft mode
   useEffect(() => {
+    isInitializingRef.current = true
     if (draftMode) {
       const subGoals = Array.isArray(value?.subGoals) ? value.subGoals.map(s => ({ ...s })) : []
       const habitLinks = Array.isArray(value?.habitLinks) ? value.habitLinks.map(h => ({ ...h })) : []
       setLocalSubGoals(subGoals)
       setLocalHabitLinks(habitLinks)
       setDidInitNormalize(false)
+      setTimeout(() => { isInitializingRef.current = false }, 100)
       return
     }
     setLocalSubGoals(Array.isArray(goal?.subGoals) ? goal.subGoals.map(s => ({ ...s })) : [])
     setLocalHabitLinks(Array.isArray(goal?.habitLinks) ? goal.habitLinks.map(h => ({ ...h })) : [])
     setDidInitNormalize(false)
+    setTimeout(() => { isInitializingRef.current = false }, 100)
   }, [draftMode, goal?._id])
   
   // Fetch all user goals (without year filter) to ensure linked goals from other years are available
@@ -57,13 +64,34 @@ export default function GoalDivisionEditor({ goal, habits, onClose, draftMode = 
     }
     
     fetchAllGoals()
-  }, [draftMode, goal?._id, value])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draftMode, goal?._id])
   
-  // Sync local changes back to parent in draft mode
+  // Sync local changes back to parent in draft mode (debounced to avoid API calls during sliding)
   useEffect(() => {
+    // Don't sync during initialization
+    if (isInitializingRef.current) return
+    
     if (draftMode && onChange) {
-      onChange({ subGoals: localSubGoals, habitLinks: localHabitLinks })
+      // Clear existing timer
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current)
+      }
+      
+      // Set new timer to call onChange after 500ms of no changes
+      debounceTimerRef.current = setTimeout(() => {
+        onChange({ subGoals: localSubGoals, habitLinks: localHabitLinks })
+      }, 500)
     }
+    
+    // Cleanup timer on unmount
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current)
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    console.log('Effect triggered')
   }, [localSubGoals, localHabitLinks, draftMode])
 
   const totalWeight = useMemo(() => {
@@ -95,8 +123,21 @@ export default function GoalDivisionEditor({ goal, habits, onClose, draftMode = 
     setIsCreateGoalOpen(true)
   }
 
-  const removeSubGoal = (i) => setLocalSubGoals(prev => prev.filter((_, idx) => idx !== i))
-  const removeHabitLink = (i) => setLocalHabitLinks(prev => prev.filter((_, idx) => idx !== i))
+  const removeSubGoal = (i) => setSubGoalToRemove(i)
+  const confirmRemoveSubGoal = () => {
+    if (subGoalToRemove !== null) {
+      setLocalSubGoals(prev => prev.filter((_, idx) => idx !== subGoalToRemove))
+      setSubGoalToRemove(null)
+    }
+  }
+  
+  const removeHabitLink = (i) => setHabitToRemove(i)
+  const confirmRemoveHabitLink = () => {
+    if (habitToRemove !== null) {
+      setLocalHabitLinks(prev => prev.filter((_, idx) => idx !== habitToRemove))
+      setHabitToRemove(null)
+    }
+  }
 
   const round5 = (n) => {
     const x = Math.max(0, Math.min(100, Number(n) || 0))
@@ -114,6 +155,7 @@ export default function GoalDivisionEditor({ goal, habits, onClose, draftMode = 
       setAutoAdjusted(true)
     }
     setDidInitNormalize(true)
+    console.log('Auto-normalized weights on init')
   }, [localSubGoals, localHabitLinks, didInitNormalize])
 
   const normalizeToHundred = (arr) => {
@@ -175,7 +217,13 @@ export default function GoalDivisionEditor({ goal, habits, onClose, draftMode = 
           <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Goal Breakdown</h3>
           {!renderInline && (<button onClick={onClose} className="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200">Close</button>)}
         </div>
-        {error && <div className="text-sm text-red-600 dark:text-red-400 mb-3">{error}</div>}
+        {error && (
+          <div className="mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+            <p className="text-sm text-red-800 dark:text-red-300">
+              <strong>Error:</strong> {error}
+            </p>
+          </div>
+        )}
         <div className="mb-4">
           <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400 mb-1">
             <span>Total Weight</span>
@@ -194,6 +242,11 @@ export default function GoalDivisionEditor({ goal, habits, onClose, draftMode = 
           </button>
           {showSubs && (
           <div className="space-y-2 max-h-80 overflow-auto pr-1">
+            <div className="mb-3 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+              <p className="text-xs text-blue-800 dark:text-blue-300">
+                <strong>Note:</strong> Only goals without existing sub-goals or habit links can be selected as sub-goals to prevent nested hierarchies.
+              </p>
+            </div>
             {localSubGoals.map((sg, idx) => {
               const allGoals = useApiStore.getState().goals || [];
               
@@ -209,8 +262,9 @@ export default function GoalDivisionEditor({ goal, habits, onClose, draftMode = 
                   // Exclude current goal to prevent self-linking (in non-draft mode)
                   if (!draftMode && goal && String(g._id) === String(goal._id)) return false;
                   
-                  // Exclude goals that already have sub-goals
+                  // Exclude goals that already have sub-goals or habit links
                   if (Array.isArray(g.subGoals) && g.subGoals.length > 0) return false;
+                  if (Array.isArray(g.habitLinks) && g.habitLinks.length > 0) return false;
                   
                   return true;
                 } catch { return true }
@@ -261,12 +315,28 @@ export default function GoalDivisionEditor({ goal, habits, onClose, draftMode = 
           </button>
           {showHabits && (
           <div className="space-y-2 max-h-80 overflow-auto pr-1">
-            {localHabitLinks.map((hl, idx) => (
+            <div className="mb-3 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+              <p className="text-xs text-amber-800 dark:text-amber-300">
+                <strong>Note:</strong> Only habits with target days or target completions can be linked to goals for progress tracking.
+              </p>
+            </div>
+            {localHabitLinks.map((hl, idx) => {
+              // Filter habits to only show those with targets
+              const availableHabits = (habits || []).filter(h => {
+                // Always include the currently selected habit
+                const habitId = h.id || h._id;
+                if (hl.habitId && String(habitId) === String(hl.habitId)) return true;
+                
+                // Only show habits with targetDays or targetCompletions
+                return h.targetDays || h.targetCompletions;
+              });
+              
+              return (
               <div key={idx} className="grid grid-cols-12 gap-3 items-center">
-                <select value={hl.id} onChange={(e) => setLocalHabitLinks(prev => prev.map((h,i) => i===idx ? { ...h, habitId: e.target.value } : h))} className="col-span-7 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white">
+                <select value={hl.habitId} onChange={(e) => setLocalHabitLinks(prev => prev.map((h,i) => i===idx ? { ...h, habitId: e.target.value } : h))} className="col-span-7 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white">
                   <option value="">Select a habit…</option>
-                  {(habits || []).map(h => (
-                    <option key={h._id} value={h._id}>{h.name}</option>
+                  {availableHabits.map(h => (
+                    <option key={h.id || h._id} value={h.id || h._id}>{h.name}</option>
                   ))}
                 </select>
                 <div className="col-span-5 flex items-center gap-3">
@@ -275,7 +345,7 @@ export default function GoalDivisionEditor({ goal, habits, onClose, draftMode = 
                   <button title="Remove" onClick={() => removeHabitLink(idx)} className="p-2 rounded-md bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400"><Trash2 className="h-4 w-4" /></button>
                 </div>
               </div>
-            ))}
+            )})}
             {localHabitLinks.length === 0 && <div className="text-sm text-gray-500 dark:text-gray-400">No habits linked yet.</div>}
             <div className="pt-2 flex items-center justify-end gap-2">
               <button onClick={addHabitLink} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200"><Link className="h-4 w-4" />Link</button>
@@ -341,6 +411,36 @@ export default function GoalDivisionEditor({ goal, habits, onClose, draftMode = 
           initialData={{}}
         />
         </Suspense>
+      )}
+      
+      {/* Confirmation modal for removing subgoal */}
+      {subGoalToRemove !== null && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setSubGoalToRemove(null)} />
+          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 max-w-md w-full">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Remove Sub-Goal?</h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-4">Are you sure you want to unlink this sub-goal? This will only remove it from this goal's breakdown - the goal itself will not be deleted.</p>
+            <div className="flex gap-3 justify-end">
+              <button onClick={() => setSubGoalToRemove(null)} className="px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">Cancel</button>
+              <button onClick={confirmRemoveSubGoal} className="px-4 py-2 rounded-lg bg-red-600 text-white">Remove</button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+      
+      {/* Confirmation modal for removing habit */}
+      {habitToRemove !== null && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setHabitToRemove(null)} />
+          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 max-w-md w-full">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Remove Habit Link?</h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-4">Are you sure you want to unlink this habit? This will only remove it from this goal's breakdown - the habit itself will not be deleted.</p>
+            <div className="flex gap-3 justify-end">
+              <button onClick={() => setHabitToRemove(null)} className="px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">Cancel</button>
+              <button onClick={confirmRemoveHabitLink} className="px-4 py-2 rounded-lg bg-red-600 text-white">Remove</button>
+            </div>
+          </motion.div>
+        </div>
       )}
       </>
   )

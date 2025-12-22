@@ -222,7 +222,10 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
                 <Info className="h-4 w-4 text-primary-600 dark:text-primary-400" />
                 <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Goals (optional)</h4>
               </div>
-              <p className="text-xs text-gray-600 dark:text-gray-400">Set targets to track your progress</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">Set one target type to track your progress</p>
+              <p className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-3 py-2 rounded-lg">
+                ⚠️ Choose either count-based OR days-based target (not both)
+              </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
@@ -233,9 +236,13 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
                     type="number" 
                     min="0"
                     value={targetCompletions} 
-                    onChange={(e) => setTargetCompletions(e.target.value)} 
+                    onChange={(e) => {
+                      setTargetCompletions(e.target.value);
+                      if (e.target.value) setTargetDays('');
+                    }} 
                     placeholder="e.g., 100"
-                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-primary-500 dark:focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-colors" 
+                    disabled={targetDays && parseInt(targetDays) > 0}
+                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-primary-500 dark:focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
                   />
                   <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">Total times to complete this habit</p>
                 </div>
@@ -248,9 +255,13 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
                     type="number" 
                     min="0"
                     value={targetDays} 
-                    onChange={(e) => setTargetDays(e.target.value)} 
+                    onChange={(e) => {
+                      setTargetDays(e.target.value);
+                      if (e.target.value) setTargetCompletions('');
+                    }} 
                     placeholder="e.g., 30"
-                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-primary-500 dark:focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-colors" 
+                    disabled={targetCompletions && parseInt(targetCompletions) > 0}
+                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-primary-500 dark:focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
                   />
                   <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">Number of unique days to do this habit</p>
                 </div>

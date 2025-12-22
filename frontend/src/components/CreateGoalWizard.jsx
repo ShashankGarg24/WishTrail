@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, lazy, Suspense } from 'react'
+import { useEffect, useMemo, useState, useCallback, useRef, lazy, Suspense } from 'react'
 import { motion } from 'framer-motion'
 import { X, Plus, Target, Calendar, Tag, AlertCircle, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react'
 import useApiStore from '../store/apiStore'
@@ -33,9 +33,12 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
   // Step 2 state: sub-goals and habit links (local; applied after goal creation)
   const [localSubGoals, setLocalSubGoals] = useState([])
   const [localHabitLinks, setLocalHabitLinks] = useState([])
+  const prevIsOpenRef = useRef(false)
 
   useEffect(() => {
-    if (isOpen) {
+    // Only initialize when modal transitions from closed to open
+    if (isOpen && !prevIsOpenRef.current) {
+      prevIsOpenRef.current = true
       setStep(1)
       setSaving(false)
 
@@ -53,13 +56,13 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
         }
       }
 
-      setFormData(prev => ({
+      setFormData({
         title: initialData?.title || '',
         description: initialData?.description || '',
         category: initialData?.category || '',
         targetDate: formattedTargetDate,
         isPublic: initialData?.isPublic ?? true
-      }))
+      })
       setErrors({})
 
       // Load existing sub-goals and habit links if in edit mode
@@ -73,7 +76,13 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
         setLocalHabitLinks([])
       }
     }
-  }, [isOpen, initialData, editMode, habits]) // eslint-disable-line react-hooks/exhaustive-deps
+    
+    // Track modal closed state
+    if (!isOpen) {
+      prevIsOpenRef.current = false
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen])
 
   useEffect(() => { if (isOpen) { lockBodyScroll(); return () => unlockBodyScroll(); } }, [isOpen])
 
@@ -95,6 +104,13 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
     subGoals: localSubGoals,
     habitLinks: localHabitLinks
   }), [localSubGoals, localHabitLinks])
+
+  // Memoize onChange handler to prevent infinite loops
+  const handleDivisionChange = useCallback((v) => {
+    if (!v) return
+    if (Array.isArray(v.subGoals)) setLocalSubGoals(v.subGoals.map(s => ({ ...s })))
+    if (Array.isArray(v.habitLinks)) setLocalHabitLinks(v.habitLinks.map(h => ({ ...h })))
+  }, [])
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target
@@ -483,11 +499,7 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
                   draftMode
                   renderInline
                   value={divisionEditorValue}
-                  onChange={(v) => {
-                    if (!v) return
-                    if (Array.isArray(v.subGoals)) setLocalSubGoals(v.subGoals.map(s => ({ ...s })))
-                    if (Array.isArray(v.habitLinks)) setLocalHabitLinks(v.habitLinks.map(h => ({ ...h })))
-                  }}
+                  onChange={handleDivisionChange}
                   habits={habits}
                   onClose={() => setStep(1)}
                 />

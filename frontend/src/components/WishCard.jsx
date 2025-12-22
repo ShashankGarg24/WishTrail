@@ -46,19 +46,20 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
   }
 
   const handleDelete = () => {
-    setIsDeleteModalOpen(true)
+    // If parent provides onDelete handler, use it directly (parent will show its own modal with dependencies)
+    if (onDelete) {
+      onDelete(wish._id)
+    } else {
+      // Otherwise, show our own delete modal
+      setIsDeleteModalOpen(true)
+    }
   }
 
   const confirmDelete = async () => {
     setIsDeleting(true)
     try {
-      // Use the onDelete prop which properly handles dashboard stats refresh
-      if (onDelete) {
-        await onDelete(wish._id)
-      } else {
-        // Fallback to direct call if no onDelete prop provided
-        await deleteGoal(wish._id)
-      }
+      // Direct API call (only used when no onDelete prop provided)
+      await deleteGoal(wish._id)
       setIsDeleteModalOpen(false)
     } catch (error) {
       console.error('Error deleting goal:', error)
