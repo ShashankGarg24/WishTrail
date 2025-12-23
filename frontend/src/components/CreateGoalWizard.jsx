@@ -284,65 +284,63 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[9999]"
       onClick={onClose}
-      style={{ zIndex: 9999 }}
     >
       <motion.div
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
-        className="bg-white dark:bg-gray-900 rounded-3xl w-full max-w-3xl max-h-[90vh] relative shadow-2xl border border-gray-200 dark:border-gray-800 overflow-hidden flex flex-col"
+        className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-3xl max-h-[90vh] relative shadow-2xl border border-gray-200 dark:border-gray-800 overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
-        style={{ zIndex: 10000 }}
       >
         {/* Header */}
-        <div className="bg-gradient-to-br from-primary-500 to-primary-600 dark:from-primary-600 dark:to-primary-700 px-8 py-6 text-white">
-          <button onClick={onClose} className="absolute top-4 right-4 p-2 rounded-full hover:bg-white/20 transition-colors">
-            <X className="h-5 w-5" />
+        <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 px-8 py-6 border-b border-gray-200 dark:border-gray-700">
+          <button onClick={onClose} className="absolute top-4 right-4 p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+            <X className="h-5 w-5 text-gray-600 dark:text-gray-400" />
           </button>
-          <div className="flex items-center gap-3 mb-3">
-            <div className="p-2.5 bg-white/20 rounded-xl">
-              <Target className="h-6 w-6" />
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2.5 bg-primary-100 dark:bg-primary-900/30 rounded-xl">
+              <Target className="h-6 w-6 text-primary-600 dark:text-primary-400" />
             </div>
             <div>
-              <h2 className="text-2xl font-bold">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
                 {editMode ? 'Edit Goal' : 'Create New Goal'}
               </h2>
-              <p className="text-sm text-white/80 mt-0.5">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
                 {editMode ? 'Update your goal details' : 'Define what you want to achieve'}
               </p>
             </div>
           </div>
 
           {/* Stepper */}
-          <div className="flex items-center justify-center gap-3 mt-6">
+          <div className="flex items-center justify-center gap-3">
             <button
               type="button"
               onClick={() => setStep(1)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
                 step === 1 
-                  ? 'bg-white text-primary-600 shadow-lg' 
-                  : 'bg-white/20 text-white hover:bg-white/30'
+                  ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 border-2 border-primary-300 dark:border-primary-700' 
+                  : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-2 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
               }`}
             >
               <span className={`flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold ${
-                step === 1 ? 'bg-primary-600 text-white' : 'bg-white/30'
+                step === 1 ? 'bg-primary-500 text-white' : 'bg-gray-300 dark:bg-gray-600 text-gray-600 dark:text-gray-300'
               }`}>1</span>
               Details
             </button>
-            <ChevronRight className="h-4 w-4 text-white/60" />
+            <ChevronRight className="h-4 w-4 text-gray-400 dark:text-gray-600" />
             <button
               type="button"
               onClick={() => { if (validateStep1()) setStep(2) }}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
                 step === 2 
-                  ? 'bg-white text-primary-600 shadow-lg' 
-                  : 'bg-white/20 text-white hover:bg-white/30'
+                  ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 border-2 border-primary-300 dark:border-primary-700' 
+                  : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-2 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
               }`}
             >
               <span className={`flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold ${
-                step === 2 ? 'bg-primary-600 text-white' : 'bg-white/30'
+                step === 2 ? 'bg-primary-500 text-white' : 'bg-gray-300 dark:bg-gray-600 text-gray-600 dark:text-gray-300'
               }`}>2</span>
               Division
             </button>
@@ -476,14 +474,14 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
               <button 
                 type="button" 
                 onClick={onClose} 
-                className="flex-1 py-2.5 px-4 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 font-medium transition-colors"
+                className="flex-1 py-3 px-5 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 font-medium transition-all"
               >
                 Cancel
               </button>
               <button 
                 type="submit" 
                 disabled={saving} 
-                className="flex-1 py-2.5 px-4 bg-primary-500 text-white rounded-xl hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-lg shadow-primary-500/30 transition-all"
+                className="flex-1 py-3 px-5 bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-lg shadow-primary-500/20 transition-all"
               >
                 {saving ? (editMode ? 'Updating…' : 'Creating…') : 'Next →'}
               </button>
@@ -511,7 +509,7 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
               <button 
                 type="button" 
                 onClick={() => setStep(1)} 
-                className="flex-1 py-2.5 px-4 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 font-medium transition-colors inline-flex items-center justify-center gap-2"
+                className="flex-1 py-3 px-5 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 font-medium transition-all inline-flex items-center justify-center gap-2"
               >
                 <ChevronLeft className="h-4 w-4" /> Back
               </button>
@@ -519,7 +517,7 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
                 type="button" 
                 onClick={handleSave} 
                 disabled={saving} 
-                className="flex-1 py-2.5 px-4 bg-primary-500 text-white rounded-xl hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-lg shadow-primary-500/30 transition-all"
+                className="flex-1 py-3 px-5 bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-lg shadow-primary-500/20 transition-all"
               >
                 {saving ? (editMode ? 'Updating…' : 'Saving…') : (editMode ? 'Update Goal' : 'Create Goal')}
               </button>
