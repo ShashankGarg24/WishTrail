@@ -55,14 +55,22 @@ const goalSchema = new mongoose.Schema({
                 // 3. Existing goal and targetDate is not being modified
                 if (!v) return true;
 
-                // Skip validation when completing a goal
-                if (this.completed || this.isModified('completed')) {
-                    return true;
-                }
+                // Check if this is a query context (update operation) vs document context (save operation)
+                const isQuery = this.constructor.name === 'Query';
+                
+                // For update queries, we can't reliably check isModified, so we validate the date
+                // For document saves, check if it's being modified
+                if (!isQuery) {
+                    // Document context (save operation)
+                    // Skip validation when completing a goal
+                    if (this.completed || (typeof this.isModified === 'function' && this.isModified('completed'))) {
+                        return true;
+                    }
 
-                // Skip validation for existing goals when targetDate is not being modified
-                if (!this.isNew && !this.isModified('targetDate')) {
-                    return true;
+                    // Skip validation for existing goals when targetDate is not being modified
+                    if (!this.isNew && typeof this.isModified === 'function' && !this.isModified('targetDate')) {
+                        return true;
+                    }
                 }
 
                 // Validate targetDate for new goals or when targetDate is being updated

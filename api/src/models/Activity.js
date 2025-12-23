@@ -28,7 +28,14 @@ const activitySchema = new mongoose.Schema({
       'user_followed',
       'streak_milestone',
       'achievement_earned',
-      'goal_liked'
+      'goal_liked',
+      'subgoal_added',
+      'subgoal_removed',
+      'subgoal_completed',
+      'subgoal_uncompleted',
+      'habit_added',
+      'habit_removed',
+      'habit_target_achieved'
     ],
     index: true
   },
@@ -143,6 +150,35 @@ activitySchema.virtual('message').get(function() {
     })(),
     'goal_completed': `completed "${this.data.goalTitle}"`,
     'goal_created': `created a new goal "${this.data.goalTitle}"`,
+    'subgoal_added': (() => {
+      const title = this.data?.subGoalTitle || 'a sub-goal';
+      return `added sub-goal "${title}" to "${this.data.goalTitle}"`;
+    })(),
+    'subgoal_removed': (() => {
+      const title = this.data?.subGoalTitle || 'a sub-goal';
+      return `removed sub-goal "${title}" from "${this.data.goalTitle}"`;
+    })(),
+    'subgoal_completed': (() => {
+      const title = this.data?.subGoalTitle || 'a sub-goal';
+      return `completed sub-goal "${title}" for "${this.data.goalTitle}"`;
+    })(),
+    'subgoal_uncompleted': (() => {
+      const title = this.data?.subGoalTitle || 'a sub-goal';
+      return `uncompleted sub-goal "${title}" for "${this.data.goalTitle}"`;
+    })(),
+    'habit_added': (() => {
+      const habitName = this.data?.habitName || 'a habit';
+      return `linked habit "${habitName}" to "${this.data.goalTitle}"`;
+    })(),
+    'habit_removed': (() => {
+      const habitName = this.data?.habitName || 'a habit';
+      return `unlinked habit "${habitName}" from "${this.data.goalTitle}"`;
+    })(),
+    'habit_target_achieved': (() => {
+      const habitName = this.data?.habitName || 'a habit';
+      const targetType = this.data?.targetType === 'completions' ? 'completion target' : 'day target';
+      return `achieved ${targetType} for habit "${habitName}" (linked to "${this.data.goalTitle}")`;
+    })(),
     'user_followed': `started following ${this.data.targetUserName}`,
     'streak_milestone': (() => {
       const name = this?.data?.metadata?.habitName;
@@ -181,7 +217,43 @@ activitySchema.statics.createActivity = async function(userId, name, avatar, typ
 activitySchema.statics.createOrUpdateGoalActivity = async function(userId, name, avatar, updateType, goalData, options = {}) {
   try {
     const { goalId, goalTitle, goalCategory, completionNote, completionAttachmentUrl, 
-            subGoalsCount, completedSubGoalsCount, subGoalTitle, subGoalIndex } = goalData;
+            subGoalsCount, completedSubGoalsCount, subGoalTitle, subGoalIndex, 
+            linkedGoalId, habitId, habitName, targetType, targetValue, currentValue } = goalData;
+
+    // If createNew option is set, always create a new standalone activity
+    if (options.createNew) {
+      const newActivity = new this({
+        userId,
+        name,
+        avatar,
+        type: updateType,
+        data: {
+          goalId,
+          goalTitle,
+          goalCategory,
+          subGoalTitle,
+          linkedGoalId,
+          habitId,
+          habitName,
+          targetType,
+          targetValue,
+          currentValue
+        },
+        isPublic: options.isPublic !== undefined ? options.isPublic : true,
+        ...(options.communityId ? { communityId: options.communityId } : {})
+      });
+
+      await newActivity.save();
+
+      // Invalidate caches
+      try {
+        const cacheService = require('../services/cacheService');
+        await cacheService.invalidateAllActivities();
+        await cacheService.invalidateUserActivities(userId);
+      } catch (_) {}
+
+      return newActivity;
+    }
 
     // Find existing goal activity
     let activity = await this.findOne({

@@ -9,7 +9,6 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal }) => {
   const MAX_NOTE_CHARS = 1000
   const [completionNote, setCompletionNote] = useState('')
   const [shareCompletionNote, setShareCompletionNote] = useState(true)
-  const [error, setError] = useState('')
   const [showCelebration, setShowCelebration] = useState(false)
   const [attachmentFile, setAttachmentFile] = useState(null)
   const [attachmentError, setAttachmentError] = useState('')
@@ -59,20 +58,25 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    setError('')
 
     if (!validateNote(completionNote)) {
-      setError('Please add at least 10 words describing what you actually did')
+      window.dispatchEvent(new CustomEvent('wt_toast', {
+        detail: { message: 'Please add at least 10 words describing what you actually did', type: 'error' }
+      }));
       return
     }
 
     if (completionNote.trim().length > MAX_NOTE_CHARS) {
-      setError('Completion note must be 1000 characters or less')
+      window.dispatchEvent(new CustomEvent('wt_toast', {
+        detail: { message: 'Completion note must be 1000 characters or less', type: 'error' }
+      }));
       return
     }
 
     if (attachmentError) {
-      setError('Please resolve the attachment issue before completing the goal')
+      window.dispatchEvent(new CustomEvent('wt_toast', {
+        detail: { message: 'Please resolve the attachment issue before completing the goal', type: 'error' }
+      }));
       return
     }
 
@@ -92,14 +96,17 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal }) => {
         setAttachmentError('')
         if (attachmentPreview) URL.revokeObjectURL(attachmentPreview)
         setAttachmentPreview('')
-        setError('')
         setTimeout(() => {
           setShowCelebration(true)}, 500)
       } else {
-        setError(result?.data?.message || 'Failed to complete goal. Please try again.')
+        window.dispatchEvent(new CustomEvent('wt_toast', {
+          detail: { message: result?.data?.message || 'Failed to complete goal. Please try again.', type: 'error' }
+        }));
       }
     } catch (err) {
-      setError(err?.response?.data?.message || 'Failed to complete goal. Please try again.')
+      window.dispatchEvent(new CustomEvent('wt_toast', {
+        detail: { message: err?.response?.data?.message || 'Failed to complete goal. Please try again.', type: 'error' }
+      }));
     }
   }
 
@@ -110,7 +117,6 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal }) => {
     setAttachmentError('')
     if (attachmentPreview) URL.revokeObjectURL(attachmentPreview)
     setAttachmentPreview('')
-    setError('')
     setShowCelebration(false)
     onClose()
   }
@@ -292,14 +298,6 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal }) => {
               </button>
             </div>
           </div>
-
-          {/* Error Message */}
-          {error && (
-            <div className="flex items-center space-x-2 text-red-600 dark:text-red-400 text-sm">
-              <AlertCircle className="h-4 w-4" />
-              <span>{error}</span>
-            </div>
-          )}
 
           {/* Action Buttons */}
           <div className="flex space-x-3 pt-4">

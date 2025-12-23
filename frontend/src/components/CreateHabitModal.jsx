@@ -22,7 +22,6 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
   const [targetCompletions, setTargetCompletions] = useState('');
   const [targetDays, setTargetDays] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState(null);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -47,7 +46,6 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
-    setError(null);
     try {
       const payload = {
         name,
@@ -70,10 +68,14 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
         onCreated?.(res.data.data.habit);
         onClose?.();
       } else {
-        setError(res?.data?.message || 'Failed to create habit');
+        window.dispatchEvent(new CustomEvent('wt_toast', {
+          detail: { message: res?.data?.message || 'Failed to create habit', type: 'error' }
+        }));
       }
     } catch (e) {
-      setError(e?.response?.data?.message || e.message || 'Failed to create habit');
+      window.dispatchEvent(new CustomEvent('wt_toast', {
+        detail: { message: e?.response?.data?.message || e.message || 'Failed to create habit', type: 'error' }
+      }));
     } finally {
       setSubmitting(false);
     }

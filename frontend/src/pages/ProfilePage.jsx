@@ -38,7 +38,6 @@ const ProfilePage = () => {
   const [userStats, setUserStats] = useState(null);
   const [isFollowing, setIsFollowing] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [reportOpen, setReportOpen] = useState(false);
   const [blockOpen, setBlockOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
@@ -349,7 +348,6 @@ const ProfilePage = () => {
 
   const fetchUserProfile = async () => {
     setLoading(true);
-    setError(null);
     try {
       const idOrUsername = usernameParam;
       const userResult = await getUser(idOrUsername);
@@ -370,9 +368,15 @@ const ProfilePage = () => {
             setGoalsPage(1);
           }
         }
+      } else {
+        window.dispatchEvent(new CustomEvent('wt_toast', {
+          detail: { message: 'Failed to load user profile', type: 'error' }
+        }));
       }
     } catch (error) {
-      setError('Failed to load user profile');
+      window.dispatchEvent(new CustomEvent('wt_toast', {
+        detail: { message: 'Failed to load user profile', type: 'error' }
+      }));
     } finally {
       setLoading(false);
     }
@@ -581,12 +585,12 @@ const ProfilePage = () => {
     );
   }
 
-  if (!isOwnProfile && (error || !profileUser)) {
+  if (!isOwnProfile && !profileUser) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-slate-900 dark:via-gray-900 dark:to-zinc-900 flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">User Not Found</h1>
-          <p className="text-gray-600 dark:text-gray-400 mb-8">{error || 'The user you are looking for does not exist.'}</p>
+          <p className="text-gray-600 dark:text-gray-400 mb-8">The user you are looking for does not exist.</p>
           <button
             onClick={() => navigate('/discover')}
             className="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl transition-colors duration-200 font-medium"

@@ -242,19 +242,80 @@ async function toggleLog(userId, habitId, { status = 'done', note = '', mood = '
       nextStreak = (habit.currentStreak || 0) + 1;
     }
     const longest = Math.max(habit.longestStreak || 0, nextStreak);
+    const previousTotalCompletions = habit.totalCompletions || 0;
+    const previousTotalDays = habit.totalDays || 0;
     const update = {
       currentStreak: nextStreak,
       longestStreak: longest,
       lastLoggedDateKey: dateKey,
-      totalCompletions: (habit.totalCompletions || 0) + 1
+      totalCompletions: previousTotalCompletions + 1
     };
     
     // Increment totalDays only if this is a new day
     if (isNewDay) {
-      update.totalDays = (habit.totalDays || 0) + 1;
+      update.totalDays = previousTotalDays + 1;
     }
     
     await Habit.updateOne({ _id: habit._id }, { $set: update });
+
+    // Check if target has been achieved (for linked goals)
+    const Goal = require('../models/Goal');
+    const linkedGoals = await Goal.find({ 
+      'habitLinks.habitId': habit._id,
+      userId: userId
+    }).select('_id title category habitLinks').lean();
+
+    for (const goal of linkedGoals) {
+      let targetAchieved = false;
+      let targetType = '';
+      
+      // Check if targetCompletions achieved
+      if (habit.targetCompletions && habit.targetCompletions > 0) {
+        const wasNotAchieved = previousTotalCompletions < habit.targetCompletions;
+        const nowAchieved = (previousTotalCompletions + 1) >= habit.targetCompletions;
+        if (wasNotAchieved && nowAchieved) {
+          targetAchieved = true;
+          targetType = 'completions';
+        }
+      }
+      
+      // Check if targetDays achieved
+      if (!targetAchieved && habit.targetDays && habit.targetDays > 0) {
+        const newTotalDays = isNewDay ? previousTotalDays + 1 : previousTotalDays;
+        const wasNotAchieved = previousTotalDays < habit.targetDays;
+        const nowAchieved = newTotalDays >= habit.targetDays;
+        if (wasNotAchieved && nowAchieved) {
+          targetAchieved = true;
+          targetType = 'days';
+        }
+      }
+
+      // Log activity if target was just achieved
+      if (targetAchieved) {
+        try {
+          const u = await User.findById(userId).select('name avatar').lean();
+          await Activity.createOrUpdateGoalActivity(
+            userId,
+            u?.name,
+            u?.avatar,
+            'habit_target_achieved',
+            {
+              goalId: goal._id,
+              goalTitle: goal.title,
+              goalCategory: goal.category,
+              habitId: habit._id,
+              habitName: habit.name,
+              targetType: targetType,
+              targetValue: targetType === 'completions' ? habit.targetCompletions : habit.targetDays,
+              currentValue: targetType === 'completions' ? (previousTotalCompletions + 1) : (isNewDay ? previousTotalDays + 1 : previousTotalDays)
+            },
+            { createNew: true } // Always create new activity
+          );
+        } catch (err) {
+          console.error('Failed to log habit target achievement:', err);
+        }
+      }
+    }
 
     // Milestones: 1, 7, 30, 100 (social sharing optional via flag)
     const shareEnabled = String(process.env.HABIT_SHARE_ENABLED || '').toLowerCase() === 'true';

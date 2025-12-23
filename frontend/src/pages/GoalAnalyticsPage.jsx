@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, lazy, Suspense } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { 
@@ -16,14 +16,19 @@ import {
   Zap
 } from 'lucide-react'
 import useApiStore from '../store/apiStore'
+import { createPortal } from 'react-dom'
+import { API_CONFIG } from '../config/api'
+
+const CompletionModal = lazy(() => import('../components/CompletionModal'));
 
 const GoalAnalyticsPage = () => {
   const { goalId } = useParams()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
   const [goalData, setGoalData] = useState(null)
-  const [error, setError] = useState(null)
-  const { getGoalAnalytics, isAuthenticated } = useApiStore()
+  const [completing, setCompleting] = useState(false)
+  const [isCompletionModalOpen, setIsCompletionModalOpen] = useState(false)
+  const { getGoalAnalytics, isAuthenticated, toggleGoalCompletion } = useApiStore()
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -34,7 +39,6 @@ const GoalAnalyticsPage = () => {
     const loadGoalData = async () => {
       try {
         setLoading(true)
-        setError(null)
         console.log('[GoalAnalytics] Loading goal analytics for ID:', goalId)
         const response = await getGoalAnalytics(goalId)
         console.log('[GoalAnalytics] API Response:', response)
@@ -42,12 +46,16 @@ const GoalAnalyticsPage = () => {
         if (response?.success && response?.data) {
           setGoalData(response.data)
         } else {
-          setError('Failed to load goal analytics')
+          window.dispatchEvent(new CustomEvent('wt_toast', {
+            detail: { message: 'Failed to load goal analytics', type: 'error' }
+          }));
           console.error('[GoalAnalytics] Invalid response structure:', response)
         }
       } catch (error) {
         console.error('[GoalAnalytics] Error loading goal analytics:', error)
-        setError(error.message || 'An error occurred')
+        window.dispatchEvent(new CustomEvent('wt_toast', {
+          detail: { message: error.message || 'An error occurred', type: 'error' }
+        }));
       } finally {
         setLoading(false)
       }
@@ -55,6 +63,53 @@ const GoalAnalyticsPage = () => {
     
     loadGoalData()
   }, [goalId, isAuthenticated, getGoalAnalytics, navigate])
+
+  const handleCompleteGoal = async (completionPayload /* FormData */) => {
+    if (!goalData?.goal || goalData.goal.completed) return
+    
+    // Instantly update the UI to show completed state
+    setGoalData(prev => ({
+      ...prev,
+      goal: {
+        ...prev.goal,
+        completed: true,
+        completedAt: new Date().toISOString()
+      }
+    }))
+    
+    let result
+    if (completionPayload instanceof FormData) {
+      try {
+        const res = await fetch(`${API_CONFIG.BASE_URL}/goals/${goalId}/toggle`, {
+          method: 'PATCH',
+          credentials: 'include',
+          headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
+          body: completionPayload
+        })
+        const data = await res.json()
+        result = { success: res.ok && data.success, data }
+      } catch (e) {
+        result = { success: false, error: e.message }
+      }
+    } else {
+      result = await toggleGoalCompletion(goalId, completionPayload)
+    }
+    
+    if (result?.success) {
+      // Reload goal data to reflect completion with full data
+      const response = await getGoalAnalytics(goalId)
+      if (response?.success && response?.data) {
+        setGoalData(response.data)
+      }
+    } else {
+      // Revert the optimistic update if it failed
+      const response = await getGoalAnalytics(goalId)
+      if (response?.success && response?.data) {
+        setGoalData(response.data)
+      }
+    }
+    return result
+  }
 
   // Calculate analytics
   const analytics = useMemo(() => {
@@ -154,13 +209,13 @@ const GoalAnalyticsPage = () => {
     )
   }
 
-  if (error || !goalData || !goalData.goal) {
+  if (!goalData || !goalData.goal) {
     return (
       <div className="min-h-screen pt-20 pb-24 px-4 bg-gray-50 dark:bg-gray-900">
         <div className="max-w-7xl mx-auto">
           <div className="text-center py-20">
-            <p className="text-red-600 dark:text-red-400 mb-4">
-              {error || 'Goal not found or failed to load'}
+            <p className="text-gray-600 dark:text-gray-400 mb-4">
+              Goal not found or failed to load
             </p>
             <button
               onClick={() => navigate('/dashboard')}
@@ -204,12 +259,6 @@ const GoalAnalyticsPage = () => {
                   <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-primary-100 text-primary-800 dark:bg-primary-900/30 dark:text-primary-300">
                     {goal.category}
                   </span>
-                  {analytics?.isCompleted && (
-                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
-                      <CheckCircle className="h-4 w-4 mr-1" />
-                      Completed
-                    </span>
-                  )}
                   {analytics?.isOverdue && (
                     <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
                       <Clock className="h-4 w-4 mr-1" />
@@ -218,12 +267,21 @@ const GoalAnalyticsPage = () => {
                   )}
                 </div>
               </div>
-              <button
-                onClick={() => window.history.back()}
-                className="btn-secondary"
-              >
-                Back
-              </button>
+              {analytics?.isCompleted ? (
+                <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 font-medium">
+                  <CheckCircle className="h-5 w-5" />
+                  Completed
+                </div>
+              ) : (
+                <button
+                  onClick={() => setIsCompletionModalOpen(true)}
+                  disabled={completing}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-medium shadow-lg shadow-green-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <CheckCircle className="h-5 w-5" />
+                  {completing ? 'Completing...' : 'Mark Complete'}
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -562,6 +620,20 @@ const GoalAnalyticsPage = () => {
           </motion.div>
         )}
       </div>
+
+      {/* Completion Modal - Rendered at document body level */}
+      {isCompletionModalOpen && createPortal(
+        <Suspense fallback={null}>
+          <CompletionModal
+            isOpen={isCompletionModalOpen}
+            onClose={() => setIsCompletionModalOpen(false)}
+            onComplete={handleCompleteGoal}
+            goalTitle={goal?.title}
+            goal={goal}
+          />
+        </Suspense>,
+        document.body
+      )}
     </div>
   )
 }

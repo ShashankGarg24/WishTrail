@@ -35,7 +35,6 @@ const LeaderboardPage = () => {
   const {
     isAuthenticated,
     loading,
-    error,
     leaderboard,
     getGlobalLeaderboard,
     getFriendsLeaderboard,
@@ -320,14 +319,6 @@ const LeaderboardPage = () => {
         {loading && (
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div>
-          </div>
-        )}
-
-        {/* Error State */}
-        {error && (
-          <div className="text-center py-12">
-            <div className="text-red-500 mb-4 text-4xl">⚠️</div>
-            <p className="text-gray-600 dark:text-gray-400">{error}</p>
           </div>
         )}
 
@@ -715,7 +706,7 @@ const LeaderboardPage = () => {
         )}
 
         {/* Call to Action */}
-        {!loading && !error && leaderboard && leaderboard.length > 0 && (
+        {!loading && leaderboard && leaderboard.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}

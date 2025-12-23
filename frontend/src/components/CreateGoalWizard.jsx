@@ -494,6 +494,7 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
               <Suspense fallback={null}>
                 <GoalDivisionEditor
                   key={`draft-${editMode ? goalId : 'new'}`}
+                  goalId={goalId}
                   draftMode
                   renderInline
                   value={divisionEditorValue}

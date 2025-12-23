@@ -110,6 +110,16 @@ async function computeGoalProgress(goalId, requestingUserId) {
   const subGoals = Array.isArray(goal.subGoals) ? goal.subGoals : [];
   const habitLinks = Array.isArray(goal.habitLinks) ? goal.habitLinks : [];
 
+  // If goal is completed and has no sub-goals or habit links, return 100%
+  if (goal.completed && subGoals.length === 0 && habitLinks.length === 0) {
+    return { 
+      percent: 100, 
+      breakdown: { subGoals: [], habits: [] }, 
+      normalized: false, 
+      totalWeightBeforeNormalize: 0 
+    };
+  }
+
   const totalWeight = subGoals.reduce((s,g) => s + (g.weight || 0), 0) + habitLinks.reduce((s,h) => s + (h.weight || 0), 0);
 
   // Auto-normalize if weights do not sum to 100 (soft normalization for computation only)
@@ -170,6 +180,13 @@ async function setSubGoals(goalId, userId, subGoals) {
   if (!goal) throw Object.assign(new Error('Goal not found'), { statusCode: 404 });
   if (String(goal.userId) !== String(userId)) throw Object.assign(new Error('Access denied'), { statusCode: 403 });
 
+  // Track previous subgoals for comparison
+  const previousSubGoals = (goal.subGoals || []).map(sg => ({
+    title: sg.title,
+    linkedGoalId: sg.linkedGoalId ? String(sg.linkedGoalId) : null,
+    completed: sg.completed
+  }));
+
   const clean = [];
   const arr = Array.isArray(subGoals) ? subGoals : [];
   for (const sg of arr) {
@@ -213,30 +230,75 @@ async function setSubGoals(goalId, userId, subGoals) {
   await Goal.updateOne({ _id: goal._id }, { $set: { subGoals: clean } });
   const updatedGoal = await Goal.findById(goal._id).lean();
 
-  // Update activity feed if subgoals were added
+  // Track subgoal changes (additions and removals)
   try {
     const Activity = require('../models/Activity');
     const User = require('../models/User');
     const user = await User.findById(userId).select('name avatar').lean();
     
-    if (user && clean.length > 0) {
-      const completedCount = clean.filter(sg => sg.completed).length;
-      await Activity.createOrUpdateGoalActivity(
-        userId,
-        user.name,
-        user.avatar,
-        'subgoal_added',
-        {
-          goalId: goal._id,
-          goalTitle: goal.title,
-          goalCategory: goal.category,
-          subGoalsCount: clean.length,
-          completedSubGoalsCount: completedCount
-        }
+    if (user) {
+      const currentSubGoals = clean.map(sg => ({
+        title: sg.title,
+        linkedGoalId: sg.linkedGoalId ? String(sg.linkedGoalId) : null,
+        completed: sg.completed
+      }));
+
+      // Detect additions (new subgoals not in previous list)
+      const additions = currentSubGoals.filter(curr => 
+        !previousSubGoals.some(prev => 
+          prev.title === curr.title && prev.linkedGoalId === curr.linkedGoalId
+        )
       );
+
+      // Detect removals (previous subgoals not in current list)
+      const removals = previousSubGoals.filter(prev => 
+        !currentSubGoals.some(curr => 
+          curr.title === prev.title && curr.linkedGoalId === prev.linkedGoalId
+        )
+      );
+
+      // Log additions
+      for (const added of additions) {
+        await Activity.createOrUpdateGoalActivity(
+          userId,
+          user.name,
+          user.avatar,
+          'subgoal_added',
+          {
+            goalId: goal._id,
+            goalTitle: goal.title,
+            goalCategory: goal.category,
+            subGoalsCount: clean.length,
+            completedSubGoalsCount: clean.filter(sg => sg.completed).length,
+            subGoalTitle: added.title,
+            linkedGoalId: added.linkedGoalId
+          },
+          { createNew: true } // Always create new activity for each addition
+        );
+      }
+
+      // Log removals
+      for (const removed of removals) {
+        await Activity.createOrUpdateGoalActivity(
+          userId,
+          user.name,
+          user.avatar,
+          'subgoal_removed',
+          {
+            goalId: goal._id,
+            goalTitle: goal.title,
+            goalCategory: goal.category,
+            subGoalsCount: clean.length,
+            completedSubGoalsCount: clean.filter(sg => sg.completed).length,
+            subGoalTitle: removed.title,
+            linkedGoalId: removed.linkedGoalId
+          },
+          { createNew: true } // Always create new activity for each removal
+        );
+      }
     }
   } catch (err) {
-    console.error('Failed to update activity for subgoal addition:', err);
+    console.error('Failed to update activity for subgoal changes:', err);
   }
 
   return updatedGoal;
@@ -282,7 +344,8 @@ async function toggleSubGoal(goalId, userId, index, completed, note) {
             completedSubGoalsCount: completedCount,
             subGoalTitle: goal.subGoals[i].title,
             subGoalIndex: i
-          }
+          },
+          { createNew: true } // Always create new activity for each toggle
         );
       }
     } catch (err) {
@@ -300,6 +363,9 @@ async function setHabitLinks(goalId, userId, links) {
   const goal = await Goal.findById(goalId);
   if (!goal) throw Object.assign(new Error('Goal not found'), { statusCode: 404 });
   if (String(goal.userId) !== String(userId)) throw Object.assign(new Error('Access denied'), { statusCode: 403 });
+
+  // Track previous habit links for comparison
+  const previousHabitLinks = (goal.habitLinks || []).map(hl => String(hl.habitId));
 
   const clean = [];
   for (const l of (Array.isArray(links) ? links : [])) {
@@ -326,7 +392,70 @@ async function setHabitLinks(goalId, userId, links) {
   }
 
   await Goal.updateOne({ _id: goal._id }, { $set: { habitLinks: clean } });
-  return await Goal.findById(goal._id).lean();
+  const updatedGoal = await Goal.findById(goal._id).lean();
+
+  // Track habit link changes (additions and removals)
+  try {
+    const Activity = require('../models/Activity');
+    const User = require('../models/User');
+    const user = await User.findById(userId).select('name avatar').lean();
+    
+    if (user) {
+      const currentHabitLinks = clean.map(hl => String(hl.habitId));
+
+      // Detect additions
+      const additions = currentHabitLinks.filter(curr => !previousHabitLinks.includes(curr));
+      
+      // Detect removals
+      const removals = previousHabitLinks.filter(prev => !currentHabitLinks.includes(prev));
+
+      // Log additions
+      for (const habitId of additions) {
+        const habit = await Habit.findById(habitId).select('name').lean();
+        if (habit) {
+          await Activity.createOrUpdateGoalActivity(
+            userId,
+            user.name,
+            user.avatar,
+            'habit_added',
+            {
+              goalId: goal._id,
+              goalTitle: goal.title,
+              goalCategory: goal.category,
+              habitId: habitId,
+              habitName: habit.name
+            },
+            { createNew: true } // Always create new activity for each addition
+          );
+        }
+      }
+
+      // Log removals
+      for (const habitId of removals) {
+        const habit = await Habit.findById(habitId).select('name').lean();
+        if (habit) {
+          await Activity.createOrUpdateGoalActivity(
+            userId,
+            user.name,
+            user.avatar,
+            'habit_removed',
+            {
+              goalId: goal._id,
+              goalTitle: goal.title,
+              goalCategory: goal.category,
+              habitId: habitId,
+              habitName: habit.name
+            },
+            { createNew: true } // Always create new activity for each removal
+          );
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Failed to update activity for habit link changes:', err);
+  }
+
+  return updatedGoal;
 }
 
 module.exports = {

@@ -21,7 +21,7 @@ export default function EditHabitModal({ isOpen, onClose, habit, onSave }) {
   const [targetCompletions, setTargetCompletions] = useState('');
   const [targetDays, setTargetDays] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     if (!isOpen || !habit) return;
@@ -33,7 +33,7 @@ export default function EditHabitModal({ isOpen, onClose, habit, onSave }) {
     setTargetCompletions(habit.targetCompletions || '');
     setTargetDays(habit.targetDays || '');
     setSubmitting(false);
-    setError(null);
+    setError('');
   }, [isOpen, habit]);
 
   if (!isOpen || !habit) return null;
@@ -50,7 +50,7 @@ export default function EditHabitModal({ isOpen, onClose, habit, onSave }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
-    setError(null);
+    setError('');
     try {
       const payload = {
         name,
@@ -75,7 +75,11 @@ export default function EditHabitModal({ isOpen, onClose, habit, onSave }) {
       await onSave?.(payload);
       onClose?.();
     } catch (e) {
-      setError(e?.message || 'Failed to update habit');
+      const errorMessage = e?.message || 'Failed to update habit';
+      setError(errorMessage);
+      window.dispatchEvent(new CustomEvent('wt_toast', {
+        detail: { message: errorMessage, type: 'error' }
+      }));
     } finally {
       setSubmitting(false);
     }

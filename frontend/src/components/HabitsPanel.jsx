@@ -9,7 +9,6 @@ export default function HabitsPanel({ onCreate, onOpenHabit, scrollable = false,
   const { habits: storeHabits, loadHabits, logHabit } = useApiStore();
   const [habits, setHabits] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [marking, setMarking] = useState({});
   const [funBurst, setFunBurst] = useState(null);
 
@@ -21,7 +20,11 @@ export default function HabitsPanel({ onCreate, onOpenHabit, scrollable = false,
         const res = await loadHabits();
         if (!active) return;
         if (res.success) setHabits(res.habits || []);
-        else setError(res.error || 'Failed to load habits');
+        else {
+          window.dispatchEvent(new CustomEvent('wt_toast', {
+            detail: { message: res.error || 'Failed to load habits', type: 'error' }
+          }));
+        }
       } finally { if (active) setLoading(false); }
     };
     load();

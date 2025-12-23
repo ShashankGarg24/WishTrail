@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Heart, MessageCircle, Send, CheckCircle, Target, Calendar, TrendingUp, Plus, ListChecks } from 'lucide-react'
+import { Heart, MessageCircle, Send, CheckCircle, Target, Calendar, TrendingUp, Plus, ListChecks, X, AlertCircle, Zap, Award } from 'lucide-react'
 const ActivityCommentsModal = lazy(() => import('./ActivityCommentsModal'));
 import useApiStore from '../store/apiStore'
 
@@ -37,78 +37,112 @@ export default function GoalDetailsModal({ isOpen, goalId, onClose, autoOpenComm
                     if (!active) return
                     if (resp?.success) {
                         setData(resp.data)
-                        // Create timeline events from goal data
+                        // Create timeline events from goal.timeline array
                         const events = []
 
-                        // Goal created event
-                        events.push({
-                            id: 'created',
-                            type: 'goal_created',
-                            title: 'Goal Created',
-                            description: resp.data?.goal?.title,
-                            timestamp: new Date(resp.data?.goal?.createdAt),
-                            icon: Target,
-                            color: 'text-blue-500',
-                            bgColor: 'bg-blue-50 dark:bg-blue-900/20',
-                            borderColor: 'border-blue-200 dark:border-blue-800'
-                        })
+                        if (resp.data?.goal?.timeline && Array.isArray(resp.data.goal.timeline)) {
+                            resp.data.goal.timeline.forEach((timelineEvent, index) => {
+                                let icon = Target
+                                let color = 'text-blue-500'
+                                let bgColor = 'bg-blue-50 dark:bg-blue-900/20'
+                                let borderColor = 'border-blue-200 dark:border-blue-800'
+                                let title = ''
+                                let description = ''
 
-                        // Subgoal events
-                        const subGoals = resp.data?.goal?.subGoals || []
-                        subGoals.forEach((subGoal, index) => {
-                            // Subgoal created event
-                            events.push({
-                                id: `subgoal-created-${index}`,
-                                type: 'subgoal_created',
-                                title: 'Subgoal Created',
-                                description: subGoal.title || 'Linked Goal',
-                                timestamp: new Date(resp.data?.goal?.createdAt), // Use goal creation as proxy
-                                icon: Plus,
-                                color: 'text-purple-500',
-                                bgColor: 'bg-purple-50 dark:bg-purple-900/20',
-                                borderColor: 'border-purple-200 dark:border-purple-800',
-                                linkedGoalId: subGoal.linkedGoalId,
-                                subGoalData: subGoal
-                            })
+                                switch (timelineEvent.type) {
+                                    case 'goal_created':
+                                        title = 'Goal Created'
+                                        description = resp.data?.goal?.title
+                                        icon = Target
+                                        color = 'text-blue-500'
+                                        bgColor = 'bg-blue-50 dark:bg-blue-900/20'
+                                        borderColor = 'border-blue-200 dark:border-blue-800'
+                                        break
+                                    case 'goal_completed':
+                                        title = 'Goal Completed'
+                                        description = timelineEvent.data?.note || resp.data?.goal?.completionNote || 'Successfully achieved this goal'
+                                        icon = CheckCircle
+                                        color = 'text-green-500'
+                                        bgColor = 'bg-green-50 dark:bg-green-900/20'
+                                        borderColor = 'border-green-200 dark:border-green-800'
+                                        break
+                                    case 'subgoal_added':
+                                        title = 'Sub-goal Added'
+                                        description = timelineEvent.data?.name || 'Added a new sub-goal'
+                                        icon = Plus
+                                        color = 'text-purple-500'
+                                        bgColor = 'bg-purple-50 dark:bg-purple-900/20'
+                                        borderColor = 'border-purple-200 dark:border-purple-800'
+                                        break
+                                    case 'subgoal_removed':
+                                        title = 'Sub-goal Removed'
+                                        description = timelineEvent.data?.name || 'Removed a sub-goal'
+                                        icon = X
+                                        color = 'text-red-500'
+                                        bgColor = 'bg-red-50 dark:bg-red-900/20'
+                                        borderColor = 'border-red-200 dark:border-red-800'
+                                        break
+                                    case 'subgoal_completed':
+                                        title = 'Sub-goal Completed'
+                                        description = timelineEvent.data?.name || 'Completed a sub-goal'
+                                        icon = CheckCircle
+                                        color = 'text-emerald-500'
+                                        bgColor = 'bg-emerald-50 dark:bg-emerald-900/20'
+                                        borderColor = 'border-emerald-200 dark:border-emerald-800'
+                                        break
+                                    case 'subgoal_uncompleted':
+                                        title = 'Sub-goal Uncompleted'
+                                        description = timelineEvent.data?.name || 'Uncompleted a sub-goal'
+                                        icon = AlertCircle
+                                        color = 'text-yellow-500'
+                                        bgColor = 'bg-yellow-50 dark:bg-yellow-900/20'
+                                        borderColor = 'border-yellow-200 dark:border-yellow-800'
+                                        break
+                                    case 'habit_added':
+                                        title = 'Habit Linked'
+                                        description = timelineEvent.data?.name || 'Linked a habit'
+                                        icon = Zap
+                                        color = 'text-indigo-500'
+                                        bgColor = 'bg-indigo-50 dark:bg-indigo-900/20'
+                                        borderColor = 'border-indigo-200 dark:border-indigo-800'
+                                        break
+                                    case 'habit_removed':
+                                        title = 'Habit Unlinked'
+                                        description = timelineEvent.data?.name || 'Unlinked a habit'
+                                        icon = X
+                                        color = 'text-orange-500'
+                                        bgColor = 'bg-orange-50 dark:bg-orange-900/20'
+                                        borderColor = 'border-orange-200 dark:border-orange-800'
+                                        break
+                                    case 'habit_target_achieved':
+                                        title = 'Habit Target Achieved'
+                                        description = `${timelineEvent.data?.name || 'A habit'} reached its target`
+                                        icon = Award
+                                        color = 'text-fuchsia-500'
+                                        bgColor = 'bg-fuchsia-50 dark:bg-fuchsia-900/20'
+                                        borderColor = 'border-fuchsia-200 dark:border-fuchsia-800'
+                                        break
+                                    default:
+                                        title = 'Event'
+                                        description = 'An event occurred'
+                                }
 
-                            // Subgoal completed event
-                            if (subGoal.completedAt) {
                                 events.push({
-                                    id: `subgoal-completed-${index}`,
-                                    type: 'subgoal_completed',
-                                    title: 'Subgoal Completed',
-                                    description: subGoal.title || 'Linked Goal',
-                                    timestamp: new Date(subGoal.completedAt),
-                                    icon: CheckCircle,
-                                    color: 'text-emerald-500',
-                                    bgColor: 'bg-emerald-50 dark:bg-emerald-900/20',
-                                    borderColor: 'border-emerald-200 dark:border-emerald-800',
-                                    linkedGoalId: subGoal.linkedGoalId,
-                                    subGoalData: subGoal
+                                    id: `timeline-${index}`,
+                                    type: timelineEvent.type,
+                                    title,
+                                    description,
+                                    timestamp: new Date(timelineEvent.timestamp),
+                                    icon,
+                                    color,
+                                    bgColor,
+                                    borderColor,
+                                    data: timelineEvent.data
                                 })
-                            }
-                        })
-
-                        // Goal completed event (if completed)
-                        if (resp.data?.goal?.completedAt) {
-                            events.push({
-                                id: 'completed',
-                                type: 'goal_completed',
-                                title: 'Goal Completed',
-                                description: new Date(resp.data.goal.completedAt).toLocaleDateString(undefined, {
-                                    year: 'numeric',
-                                    month: 'short',
-                                    day: 'numeric'
-                                }),
-                                timestamp: new Date(resp.data.goal.completedAt),
-                                icon: CheckCircle,
-                                color: 'text-green-500',
-                                bgColor: 'bg-green-50 dark:bg-green-900/20',
-                                borderColor: 'border-green-200 dark:border-green-800'
                             })
                         }
 
-                        // Sort events by timestamp
+                        // Sort events by timestamp (chronological order)
                         events.sort((a, b) => a.timestamp - b.timestamp)
 
                         setTimelineEvents(events)

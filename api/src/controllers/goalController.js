@@ -757,6 +757,18 @@ const toggleGoalCompletion = async (req, res, next) => {
       })
     }
     const { completionNote, shareCompletionNote: shareCompletionNoteRaw, attachmentUrl } = req.body
+    
+    // Validate completion note: must have at least 10 words
+    if (completionNote) {
+      const wordCount = completionNote.trim().split(/\s+/).filter(word => word.length > 0).length
+      if (wordCount < 10) {
+        return res.status(400).json({
+          success: false,
+          message: 'Completion note must contain at least 10 words'
+        })
+      }
+    }
+    
     const session = await mongoose.startSession();
     let resultGoal = null;
     await session.withTransaction(async () => {

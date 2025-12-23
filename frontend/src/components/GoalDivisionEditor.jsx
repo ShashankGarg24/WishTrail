@@ -6,12 +6,11 @@ const CreateHabitModal = lazy(() => import('./CreateHabitModal'));
 const CreateWishModal = lazy(() => import('./CreateWishModal'));
 import { ChevronDown, ChevronRight, Trash2, Plus, Link} from 'lucide-react'
 
-export default function GoalDivisionEditor({ goal, habits, onClose, draftMode = false, renderInline = false, value, onChange }) {
+export default function GoalDivisionEditor({ goal, goalId, habits, onClose, draftMode = false, renderInline = false, value, onChange }) {
   const { setSubGoals, setHabitLinks, getGoalProgress } = useApiStore()
   const [localSubGoals, setLocalSubGoals] = useState([])
   const [localHabitLinks, setLocalHabitLinks] = useState([])
   const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
   const [progress, setProgress] = useState(null)
   const [isCreateHabitOpen, setIsCreateHabitOpen] = useState(false)
   const [isCreateGoalOpen, setIsCreateGoalOpen] = useState(false)
@@ -176,7 +175,6 @@ export default function GoalDivisionEditor({ goal, habits, onClose, draftMode = 
 
   const saveAll = async () => {
     setSaving(true)
-    setError('')
     try {
       if (draftMode) {
         // In draft mode, bubble current values to parent and exit; do not persist
@@ -202,7 +200,9 @@ export default function GoalDivisionEditor({ goal, habits, onClose, draftMode = 
       setProgress(res?.progress || null)
       onClose?.()
     } catch (e) {
-      setError(e?.message || 'Failed to save')
+      window.dispatchEvent(new CustomEvent('wt_toast', {
+        detail: { message: e?.message || 'Failed to save', type: 'error' }
+      }));
     } finally {
       setSaving(false)
     }
@@ -217,13 +217,6 @@ export default function GoalDivisionEditor({ goal, habits, onClose, draftMode = 
           <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Goal Breakdown</h3>
           {!renderInline && (<button onClick={onClose} className="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200">Close</button>)}
         </div>
-        {error && (
-          <div className="mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
-            <p className="text-sm text-red-800 dark:text-red-300">
-              <strong>Error:</strong> {error}
-            </p>
-          </div>
-        )}
         <div className="mb-4">
           <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400 mb-1">
             <span>Total Weight</span>
@@ -259,8 +252,9 @@ export default function GoalDivisionEditor({ goal, habits, onClose, draftMode = 
                   // Always include the currently linked goal
                   if (sg.linkedGoalId && String(g._id) === String(sg.linkedGoalId)) return true;
                   
-                  // Exclude current goal to prevent self-linking (in non-draft mode)
-                  if (!draftMode && goal && String(g._id) === String(goal._id)) return false;
+                  // Exclude current goal to prevent self-linking
+                  const currentGoalId = draftMode ? goalId : goal?._id;
+                  if (currentGoalId && String(g.id) === String(currentGoalId)) return false;
                   
                   // Exclude goals that already have sub-goals or habit links
                   if (Array.isArray(g.subGoals) && g.subGoals.length > 0) return false;
@@ -284,7 +278,22 @@ export default function GoalDivisionEditor({ goal, habits, onClose, draftMode = 
               return (
               <div key={idx} className="grid grid-cols-12 gap-3 items-center">
                 <div className="col-span-7">
-                  <select value={sg.linkedGoalId || ''} onChange={(e) => setLocalSubGoals(prev => prev.map((s,i) => i===idx ? { ...s, linkedGoalId: e.target.value || undefined } : s))} className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white">
+                  <select 
+                    value={sg.linkedGoalId || ''} 
+                    onChange={(e) => {
+                      const selectedGoalId = e.target.value;
+                      // Prevent selecting the current goal as its own sub-goal
+                      const currentGoalId = draftMode ? goalId : goal?._id;
+                      if (currentGoalId && selectedGoalId && String(selectedGoalId) === String(currentGoalId)) {
+                        window.dispatchEvent(new CustomEvent('wt_toast', {
+                          detail: { message: 'Cannot link a goal to itself', type: 'error' }
+                        }));
+                        return;
+                      }
+                      setLocalSubGoals(prev => prev.map((s,i) => i===idx ? { ...s, linkedGoalId: selectedGoalId || undefined } : s));
+                    }} 
+                    className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                  >
                     <option value="">Link goal…</option>
                     {availableGoals.map(g => (
                       <option key={g._id} value={g._id}>{g.title}</option>
