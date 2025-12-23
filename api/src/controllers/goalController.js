@@ -153,7 +153,7 @@ const getGoalPost = async (req, res, next) => {
 // @access  Private
 const getGoals = async (req, res, next) => {
   try {
-    const { year, category, status, page = 1, limit = 10, includeProgress, communityOnly, q, search } = req.query;
+    const { year, category, status, page = 1, limit = 10, includeProgress, communityOnly, q, search, filter = 'all', sort = 'newest' } = req.query;
     
     // If there's a search query, do simple user-specific search
     const searchQuery = q || search;
@@ -172,8 +172,23 @@ const getGoals = async (req, res, next) => {
         query['communityInfo'] = { $exists: true };
       }
       
+      // Apply filter parameter
+      if (filter === 'completed') {
+        query.completed = true;
+      } else if (filter === 'in-progress') {
+        query.completed = false;
+      }
+      
+      // Determine sort order
+      let sortOrder = { completed: 1, updatedAt: -1 };
+      if (sort === 'oldest') {
+        sortOrder = { completed: 1, updatedAt: 1 };
+      } else if (sort === 'newest') {
+        sortOrder = { completed: 1, updatedAt: -1 };
+      }
+      
       const rawGoals = await Goal.find(query)
-        .sort({ completed: 1, createdAt: -1 })
+        .sort(sortOrder)
         .limit(limit * 1)
         .skip((page - 1) * limit);
 
@@ -220,9 +235,24 @@ const getGoals = async (req, res, next) => {
     if (communityOnly === 'true' || communityOnly === true) {
       query['communityInfo'] = { $exists: true };
     }
+    
+    // Apply filter parameter
+    if (filter === 'completed') {
+      query.completed = true;
+    } else if (filter === 'in-progress') {
+      query.completed = false;
+    }
+    
+    // Determine sort order
+    let sortOrder = { completed: 1, updatedAt: -1 };
+    if (sort === 'oldest') {
+      sortOrder = { completed: 1, updatedAt: 1 };
+    } else if (sort === 'newest') {
+      sortOrder = { completed: 1, updatedAt: -1 };
+    }
 
     const rawGoals = await Goal.find(query)
-      .sort({ completed: 1, createdAt: -1 }) // Sort by completion status first (false=0, true=1), then by creation date
+      .sort(sortOrder)
       .limit(limit * 1)
       .skip((page - 1) * limit);
 

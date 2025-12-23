@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, lazy, Suspense, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { Plus, Calendar, Target, CheckCircle, Circle, Star, Award, Lightbulb, Clock, XCircle, SkipForward, Activity, Compass, Pencil, Trash2, Search, X } from 'lucide-react'
+import { Plus, Calendar, Target, CheckCircle, Circle, Star, Award, Lightbulb, Clock, XCircle, SkipForward, Activity, Compass, Pencil, Trash2, Search, X, Filter, SlidersHorizontal } from 'lucide-react'
 const HabitDetailModal = lazy(() => import('../components/HabitDetailModal'));
 const CreateHabitModal = lazy(() => import('../components/CreateHabitModal'));
 const EditHabitModal = lazy(() => import('../components/EditHabitModal'));
@@ -47,6 +47,9 @@ const DashboardPage = () => {
   const [isSearchingHabits, setIsSearchingHabits] = useState(false)
   const goalSearchDebounceRef = useRef(null)
   const habitSearchDebounceRef = useRef(null)
+  const [goalFilter, setGoalFilter] = useState('all') // all, completed, in-progress
+  const [goalSort, setGoalSort] = useState('newest') // newest, oldest
+  const [habitSort, setHabitSort] = useState('newest') // newest, completion
 
   const {
     isAuthenticated,
@@ -123,10 +126,9 @@ const DashboardPage = () => {
   const canAddYear = candidateYears.length > 0
 
   // Separate user habits from community habits (so pagination only affects user habits)
+  // Backend now handles sorting, so just filter community vs user habits
   const userHabits = useMemo(() => {
-    const filtered = (habits || []).filter(h => !h.isCommunitySource && !h.communityInfo);
-    // When searching, habits are already filtered by backend
-    return filtered;
+    return (habits || []).filter(h => !h.isCommunitySource && !h.communityInfo);
   }, [habits]);
 
   const communityHabits = useMemo(() => {
@@ -161,7 +163,13 @@ const DashboardPage = () => {
       prevYearRef.current = selectedYear;
       getDashboardStats()
       setIsLoadingGoals(true)
-      getGoals({ year: selectedYear, includeProgress: true, page }).finally(() => {
+      getGoals({ 
+        year: selectedYear, 
+        includeProgress: true, 
+        page,
+        filter: goalFilter,
+        sort: goalSort
+      }).finally(() => {
         setIsLoadingGoals(false)
         setHasLoadedInitialData(true)
       })
@@ -177,54 +185,57 @@ const DashboardPage = () => {
       prevYearRef.current = selectedYear;
       setPage(1)
       setIsLoadingGoals(true)
-      getGoals({ year: selectedYear, includeProgress: true, page: 1 }).finally(() => {
+      getGoals({ 
+        year: selectedYear, 
+        includeProgress: true, 
+        page: 1,
+        filter: goalFilter,
+        sort: goalSort
+      }).finally(() => {
         setIsLoadingGoals(false)
       })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedYear])
+  }, [selectedYear, goalFilter, goalSort])
 
   // Fetch goals when page changes
   useEffect(() => {
-    if (!isAuthenticated || !hasLoadedInitialData || page <= 1) return;
+    if (!isAuthenticated || !hasLoadedInitialData) return;
+    // Skip if this is the initial page 1 load (already handled by mount effect)
+    if (page === 1 && !hasLoadedInitialData) return;
+    
     setIsLoadingGoals(true)
-    getGoals({ year: selectedYear, includeProgress: true, page }).finally(() => {
+    getGoals({ 
+      year: selectedYear, 
+      includeProgress: true, 
+      page,
+      filter: goalFilter,
+      sort: goalSort
+    }).finally(() => {
       setIsLoadingGoals(false)
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page])
+  }, [page, goalFilter, goalSort])
 
   // Load habits on first visit to Habits tab
   useEffect(() => {
     if (!isAuthenticated) return
     if (activeTab === 'habits') {
-      try { loadHabits({ page: habitPage, limit: 9, force: true }).catch(() => { }) } catch { }
+      try { loadHabits({ page: habitPage, limit: 9, force: true, sort: habitSort }).catch(() => { }) } catch { }
       try { loadHabitAnalytics({}).catch(() => { }) } catch { }
       try { loadHabitStats({}).catch(() => { }) } catch { }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, isAuthenticated, habitPage])
+  }, [activeTab, isAuthenticated, habitPage, habitSort])
 
   // Handle goal search with debouncing
   useEffect(() => {
-    console.log('[Goal Search] Effect triggered', { 
-      isAuthenticated, 
-      hasLoadedInitialData, 
-      goalSearchQuery,
-      searchGoalsExists: !!searchGoals 
-    });
-    
-    if (!isAuthenticated || !hasLoadedInitialData) {
-      console.log('[Goal Search] Skipping - not ready');
-      return;
-    }
+    if (!isAuthenticated || !hasLoadedInitialData) return;
     
     const query = goalSearchQuery.trim();
-    console.log('[Goal Search] Query:', query);
     
     // Clear existing timeout
     if (goalSearchDebounceRef.current) {
-      console.log('[Goal Search] Clearing previous timeout');
       clearTimeout(goalSearchDebounceRef.current);
       goalSearchDebounceRef.current = null;
     }
@@ -232,24 +243,35 @@ const DashboardPage = () => {
     if (query) {
       // Show loading immediately
       setIsSearchingGoals(true);
-      console.log('[Goal Search] Setting timeout for:', query);
       
       // Debounce the API call (600ms for better optimization)
       goalSearchDebounceRef.current = setTimeout(() => {
-        console.log('[Goal Search] Calling API for:', query);
-        // Use getGoals with q parameter (just like habits)
-        getGoals({ q: query, year: selectedYear, page: 1, limit: 50, includeProgress: true }).finally(() => {
+        // Use getGoals with q parameter (just like habits) and pass filter/sort
+        getGoals({ 
+          q: query, 
+          year: selectedYear, 
+          page: 1, 
+          limit: 50, 
+          includeProgress: true,
+          filter: goalFilter,
+          sort: goalSort
+        }).finally(() => {
           setIsSearchingGoals(false);
         });
       }, 600);
     } else {
-      // When search is cleared, reload normal paginated view
-      console.log('[Goal Search] Query empty, reloading normal view');
+      // When search is cleared, reload normal paginated view with filter/sort
       setIsSearchingGoals(false);
       if (page > 1) {
         setPage(1);
       } else {
-        getGoals({ year: selectedYear, includeProgress: true, page: 1 });
+        getGoals({ 
+          year: selectedYear, 
+          includeProgress: true, 
+          page: 1,
+          filter: goalFilter,
+          sort: goalSort
+        });
       }
     }
     
@@ -260,7 +282,7 @@ const DashboardPage = () => {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [goalSearchQuery, isAuthenticated, hasLoadedInitialData])
+  }, [goalSearchQuery, isAuthenticated, hasLoadedInitialData, goalFilter, goalSort])
 
   // Handle habit search with debouncing
   useEffect(() => {
@@ -280,18 +302,18 @@ const DashboardPage = () => {
       
       // Debounce the API call (600ms for better optimization)
       habitSearchDebounceRef.current = setTimeout(() => {
-        // Use search API
-        searchHabits(query, { page: 1, limit: 50 }).finally(() => {
+        // Use search API with sort parameter
+        searchHabits(query, { page: 1, limit: 50, sort: habitSort }).finally(() => {
           setIsSearchingHabits(false);
         });
       }, 600);
     } else {
-      // When search is cleared, reload normal paginated view
+      // When search is cleared, reload normal paginated view with sort
       setIsSearchingHabits(false);
       if (habitPage > 1) {
         setHabitPage(1);
       } else {
-        loadHabits({ page: 1, limit: 9, force: true });
+        loadHabits({ page: 1, limit: 9, force: true, sort: habitSort });
       }
     }
     
@@ -302,7 +324,7 @@ const DashboardPage = () => {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [habitSearchQuery, isAuthenticated, activeTab])
+  }, [habitSearchQuery, isAuthenticated, activeTab, habitSort])
 
   // Debug: Monitor goals changes
   useEffect(() => {
@@ -384,14 +406,9 @@ const DashboardPage = () => {
   }, [communityGoalsByYear, selectedYear]);
 
   // When searching, visibleGoals comes directly from search results
-  // When not searching, filter by year from all goals
+  // Backend now handles filter and sort, so just use the data directly
   const visibleGoals = useMemo(() => {
-    if (goalSearchQuery.trim()) {
-      // Search results are already filtered, just use them
-      return goals || [];
-    }
-    // Normal mode: filter by year
-    return goalsForYear;
+    return goalSearchQuery.trim() ? (goals || []) : goalsForYear;
   }, [goals, goalsForYear, goalSearchQuery]);
   
   const totalPages = goalsPagination ? goalsPagination.pages : 1;
@@ -750,6 +767,37 @@ const DashboardPage = () => {
               </div>
             )}
 
+            {/* Filter and Sort Bar (Goals) */}
+            {goalsForYear.length > 0 && (
+              <div className="mb-4 flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <Filter className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Filter:</span>
+                  <select
+                    value={goalFilter}
+                    onChange={(e) => setGoalFilter(e.target.value)}
+                    className="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                  >
+                    <option value="all">All Goals</option>
+                    <option value="in-progress">In Progress</option>
+                    <option value="completed">Completed</option>
+                  </select>
+                </div>
+                <div className="flex items-center gap-2">
+                  <SlidersHorizontal className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Sort:</span>
+                  <select
+                    value={goalSort}
+                    onChange={(e) => setGoalSort(e.target.value)}
+                    className="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                  >
+                    <option value="newest">Newest First</option>
+                    <option value="oldest">Oldest First</option>
+                  </select>
+                </div>
+              </div>
+            )}
+
             {/* Search Bar (Goals) */}
             {goalsForYear.length > 0 && (
               <div className="mb-6">
@@ -960,6 +1008,22 @@ const DashboardPage = () => {
                     <div className="text-sm text-gray-600 dark:text-gray-400">{stat.label}</div>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {/* Sort Bar (Habits) */}
+            {(habits || []).filter(h => !h.isCommunitySource && !h.communityInfo).length > 0 && (
+              <div className="mb-4 flex items-center gap-2">
+                <SlidersHorizontal className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Sort:</span>
+                <select
+                  value={habitSort}
+                  onChange={(e) => setHabitSort(e.target.value)}
+                  className="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                >
+                  <option value="newest">Newest First</option>
+                  <option value="completion">By Completion</option>
+                </select>
               </div>
             )}
 

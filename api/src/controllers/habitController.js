@@ -23,6 +23,7 @@ exports.listHabits = async (req, res, next) => {
     const includeArchived = req.query.includeArchived === 'true' || req.query.includeArchived === true;
     const page = parseInt(req.query.page, 10) || 1;
     const limit = parseInt(req.query.limit, 10) || 50;
+    const sort = req.query.sort || 'newest';
 
     // Support viewing other users' habits via username query param
     const targetUsername = req.query.username;
@@ -65,7 +66,7 @@ exports.listHabits = async (req, res, next) => {
       targetUserId = targetUser._id;
     }
     
-    const result = await habitService.listHabits(targetUserId, { includeArchived, page, limit });
+    const result = await habitService.listHabits(targetUserId, { includeArchived, page, limit, sort });
     
     // ✅ Sanitize habits - use minimal fields for profile view
     if (result.habits && Array.isArray(result.habits)) {
@@ -78,7 +79,7 @@ exports.listHabits = async (req, res, next) => {
 
 exports.searchHabits = async (req, res, next) => {
   try {
-    const { q = '', page = 1, limit = 50 } = req.query;
+    const { q = '', page = 1, limit = 50, sort = 'newest' } = req.query;
     const userId = req.user.id || req.user._id;
     
     const pageNum = parseInt(page, 10);
@@ -94,9 +95,19 @@ exports.searchHabits = async (req, res, next) => {
       name: { $regex: q.trim(), $options: 'i' } // Case-insensitive search by name
     };
     
+    // Determine sort order
+    let sortOrder = { updatedAt: -1 };
+    if (sort === 'oldest') {
+      sortOrder = { updatedAt: 1 };
+    } else if (sort === 'completion') {
+      sortOrder = { totalCompletions: -1, updatedAt: -1 };
+    } else { // 'newest' or default
+      sortOrder = { updatedAt: -1 };
+    }
+    
     const [habits, total] = await Promise.all([
       Habit.find(searchQuery)
-        .sort({ createdAt: -1 })
+        .sort(sortOrder)
         .skip(skip)
         .limit(limitNum)
         .lean(),

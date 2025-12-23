@@ -64,7 +64,7 @@ async function createHabit(userId, payload) {
   return doc;
 }
 
-async function listHabits(userId, { includeArchived = false, page = 1, limit = 50 } = {}) {
+async function listHabits(userId, { includeArchived = false, page = 1, limit = 50, sort = 'newest' } = {}) {
   const q = { userId, isActive: true };
   
   // Pagination
@@ -72,10 +72,20 @@ async function listHabits(userId, { includeArchived = false, page = 1, limit = 5
   const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10)));
   const skip = (pageNum - 1) * limitNum;
   
+  // Determine sort order
+  let sortOrder = { updatedAt: -1 };
+  if (sort === 'oldest') {
+    sortOrder = { updatedAt: 1 };
+  } else if (sort === 'completion') {
+    sortOrder = { totalCompletions: -1, updatedAt: -1 };
+  } else { // 'newest' or default
+    sortOrder = { updatedAt: -1 };
+  }
+  
   // Get total count and paginated habits
   const [total, habits] = await Promise.all([
     Habit.countDocuments(q),
-    Habit.find(q).sort({ createdAt: -1 }).skip(skip).limit(limitNum).lean()
+    Habit.find(q).sort(sortOrder).skip(skip).limit(limitNum).lean()
   ]);
   
   const enriched = habits.map(h => ({

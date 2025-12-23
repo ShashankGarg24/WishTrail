@@ -548,6 +548,7 @@ const useApiStore = create(
           const page = opts.page || 1;
           const limit = opts.limit || 50;
           const includeArchived = opts.includeArchived || false;
+          const sort = opts.sort; // Pass sort parameter
           
           const ts = get().cacheHabitsTs || 0;
           const ttl = get().cacheTTLs.habits;
@@ -556,7 +557,9 @@ const useApiStore = create(
             return { success: true, habits: get().habits, pagination: get().habitsPagination };
           }
           
-          const res = await habitsAPI.list({ page, limit, includeArchived });
+          const params = { page, limit, includeArchived };
+          if (sort) params.sort = sort;
+          const res = await habitsAPI.list(params);
           const habits = res?.data?.data?.habits || [];
           const pagination = res?.data?.data?.pagination || null;
           set({ habits, habitsPagination: pagination, cacheHabitsTs: Date.now(), loading: false });
@@ -572,8 +575,11 @@ const useApiStore = create(
           set({ loading: true, error: null });
           const page = opts.page || 1;
           const limit = opts.limit || 50;
+          const sort = opts.sort; // Pass sort parameter
           
-          const res = await habitsAPI.search({ q: query, page, limit });
+          const params = { q: query, page, limit };
+          if (sort) params.sort = sort;
+          const res = await habitsAPI.search(params);
           const habits = res?.data?.data?.habits || [];
           const pagination = res?.data?.data?.pagination || null;
           set({ habits, habitsPagination: pagination, loading: false });
