@@ -153,33 +153,33 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
         
         {/* Only show edit/delete for own goals */}
         {isViewingOwnGoals && (
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center gap-1 ml-2">
           {/* Only show edit button for uncompleted goals (not for community goals) */}
           {!wish.completed && !isCommunityMirror && (
             <button
               onClick={(e) => { e.stopPropagation(); handleEdit(); }}
-              className="p-1 rounded-full hover:bg-white/10 transition-colors"
+              className="p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                 disabled={loading}
             >
-              <Edit2 className="h-4 w-4 text-gray-400 hover:text-primary-500" />
+              <Edit2 className="h-4 w-4 text-gray-500 dark:text-gray-400 hover:text-primary-500" />
             </button>
           )}
           {/* Removed wrench button; flow uses edit wizard */}
           {isViewingOwnGoals && wish.completed && (
             <button
               onClick={(e) => { e.stopPropagation(); handleShare(); }}
-              className="p-1 rounded-full hover:bg-white/10 transition-colors"
+              className="p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                 disabled={loading}
             >
-              <Share2 className="h-4 w-4 text-gray-400 hover:text-primary-500" />
+              <Share2 className="h-4 w-4 text-gray-500 dark:text-gray-400 hover:text-primary-500" />
             </button>
           )}
           <button
             onClick={(e) => { e.stopPropagation(); handleDelete(); }}
-            className="p-1 rounded-full hover:bg-white/10 transition-colors"
+            className="p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
               disabled={loading}
           >
-            <Trash2 className="h-4 w-4 text-gray-400 hover:text-red-500" />
+            <Trash2 className="h-4 w-4 text-gray-500 dark:text-gray-400 hover:text-red-500" />
           </button>
         </div>
         )}

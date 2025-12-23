@@ -1092,10 +1092,10 @@ const DashboardPage = () => {
                             <div className="flex items-center gap-1 flex-shrink-0">
                               <button
                                 onClick={(e) => { e.stopPropagation(); setSelectedHabit(h); setIsEditHabitOpen(true); }}
-                                className="p-1 rounded-full hover:bg-white/10 transition-colors"
+                                className="p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                                 title="Edit habit"
                               >
-                                <Pencil className="h-4 w-4 text-gray-400 hover:text-primary-500" />
+                                <Pencil className="h-4 w-4 text-gray-500 dark:text-gray-400 hover:text-primary-500" />
                               </button>
                               <button
                                 onClick={async (e) => { 
@@ -1124,10 +1124,10 @@ const DashboardPage = () => {
                                     setIsHabitDeleteModalOpen(true);
                                   }
                                 }}
-                                className="p-1 rounded-full hover:bg-white/10 transition-colors"
+                                className="p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                                 title="Delete habit"
                               >
-                                <Trash2 className="h-4 w-4 text-gray-400 hover:text-red-500" />
+                                <Trash2 className="h-4 w-4 text-gray-500 dark:text-gray-400 hover:text-red-500" />
                               </button>
                             </div>
                           </div>
