@@ -395,6 +395,7 @@ export const journalsAPI = {
 // Habits API
 export const habitsAPI = {
   list: (params) => api.get('/habits', { params }),
+  search: (params) => api.get('/habits', { params }), // Uses same endpoint with 'q' param
   create: (payload) => api.post('/habits', payload),
   get: (id) => api.get(`/habits/${id}`),
   update: (id, payload) => api.put(`/habits/${id}`, payload),

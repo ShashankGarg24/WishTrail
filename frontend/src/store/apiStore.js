@@ -567,6 +567,23 @@ const useApiStore = create(
         }
       },
 
+      searchHabits: async (query, opts = {}) => {
+        try {
+          set({ loading: true, error: null });
+          const page = opts.page || 1;
+          const limit = opts.limit || 50;
+          
+          const res = await habitsAPI.search({ q: query, page, limit });
+          const habits = res?.data?.data?.habits || [];
+          const pagination = res?.data?.data?.pagination || null;
+          set({ habits, habitsPagination: pagination, loading: false });
+          return { success: true, habits, pagination };
+        } catch (error) {
+          set({ loading: false, error: handleApiError(error) });
+          return { success: false, error: handleApiError(error) };
+        }
+      },
+
       appendHabit: (habit) => {
         if (!habit) return;
         set(state => ({ habits: [habit, ...(state.habits || [])], cacheHabitsTs: Date.now() }));
@@ -662,6 +679,20 @@ const useApiStore = create(
           const { goals, pagination } = response.data.data;
           set({ goals, goalsPagination: pagination, loading: false });
           get()._setCacheWithLimit('cacheGoals', key, { goals, pagination });
+          return { success: true, goals, pagination };
+        } catch (error) {
+          const errorMessage = handleApiError(error);
+          set({ loading: false, error: errorMessage });
+          return { success: false, error: errorMessage };
+        }
+      },
+
+      searchGoals: async (query, params = {}) => {
+        try {
+          set({ loading: true, error: null });
+          const response = await goalsAPI.searchGoals({ q: query, ...params });
+          const { goals, pagination } = response.data.data;
+          set({ goals, goalsPagination: pagination, loading: false });
           return { success: true, goals, pagination };
         } catch (error) {
           const errorMessage = handleApiError(error);
@@ -1016,8 +1047,8 @@ const useApiStore = create(
         }
       },
 
-      // Search completed, discoverable goals (public users)
-      searchGoals: async (params = {}) => {
+      // Search completed, discoverable goals (public users) - for discovery/explore pages
+      searchPublicGoals: async (params = {}) => {
         try {
           const response = await goalsAPI.searchGoals(params);
           const { goals, pagination } = response.data.data;

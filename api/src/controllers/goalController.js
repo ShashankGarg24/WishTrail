@@ -153,7 +153,61 @@ const getGoalPost = async (req, res, next) => {
 // @access  Private
 const getGoals = async (req, res, next) => {
   try {
-    const { year, category, status, page = 1, limit = 10, includeProgress, communityOnly } = req.query;
+    const { year, category, status, page = 1, limit = 10, includeProgress, communityOnly, q, search } = req.query;
+    
+    // If there's a search query, do simple user-specific search
+    const searchQuery = q || search;
+    if (searchQuery) {
+      const query = { 
+        userId: req.user.id,
+        title: { $regex: searchQuery.trim(), $options: 'i' }
+      };
+      
+      // Apply same filters as regular getGoals
+      if (year) query.year = parseInt(year);
+      if (category) query.category = category;
+      if (status === 'completed') query.completed = true;
+      if (status === 'pending') query.completed = false;
+      if (communityOnly === 'true' || communityOnly === true) {
+        query['communityInfo'] = { $exists: true };
+      }
+      
+      const rawGoals = await Goal.find(query)
+        .sort({ completed: 1, createdAt: -1 })
+        .limit(limit * 1)
+        .skip((page - 1) * limit);
+
+      const goals = [];
+      const wantProgress = String(includeProgress) === 'true';
+      if (wantProgress) {
+        for (const g of rawGoals) {
+          const obj = g.toJSON();
+          try {
+            const progress = await goalDivisionService.computeGoalProgress(g._id, req.user.id);
+            obj.progress = progress;
+          } catch (_) { obj.progress = { percent: 0, breakdown: { subGoals: [], habits: [] } }; }
+          goals.push(obj);
+        }
+      } else {
+        for (const g of rawGoals) goals.push(g.toJSON());
+      }
+      
+      const total = await Goal.countDocuments(query);
+      const sanitizedGoals = wantProgress ? goals : sanitizeGoalsForProfile(goals);
+      
+      return res.status(200).json({
+        success: true,
+        data: {
+          goals: sanitizedGoals,
+          pagination: {
+            page: parseInt(page),
+            limit: parseInt(limit),
+            total,
+            pages: Math.ceil(total / limit)
+          }
+        }
+      });
+    }
 
     const query = { userId: req.user.id };
 

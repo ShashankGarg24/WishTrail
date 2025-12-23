@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, lazy, Suspense, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { Plus, Calendar, Target, CheckCircle, Circle, Star, Award, Lightbulb, Clock, XCircle, SkipForward, Activity, Compass, Pencil, Trash2 } from 'lucide-react'
+import { Plus, Calendar, Target, CheckCircle, Circle, Star, Award, Lightbulb, Clock, XCircle, SkipForward, Activity, Compass, Pencil, Trash2, Search, X } from 'lucide-react'
 const HabitDetailModal = lazy(() => import('../components/HabitDetailModal'));
 const CreateHabitModal = lazy(() => import('../components/CreateHabitModal'));
 const EditHabitModal = lazy(() => import('../components/EditHabitModal'));
@@ -41,6 +41,12 @@ const DashboardPage = () => {
   const [habitPage, setHabitPage] = useState(1)
   const [extraYears, setExtraYears] = useState([])
   const [isAddYearOpen, setIsAddYearOpen] = useState(false)
+  const [goalSearchQuery, setGoalSearchQuery] = useState('')
+  const [habitSearchQuery, setHabitSearchQuery] = useState('')
+  const [isSearchingGoals, setIsSearchingGoals] = useState(false)
+  const [isSearchingHabits, setIsSearchingHabits] = useState(false)
+  const goalSearchDebounceRef = useRef(null)
+  const habitSearchDebounceRef = useRef(null)
 
   const {
     isAuthenticated,
@@ -52,6 +58,7 @@ const DashboardPage = () => {
     dashboardStats,
     getDashboardStats,
     getGoals,
+    searchGoals,
     createGoal,
     toggleGoalCompletion,
     deleteGoal,
@@ -59,6 +66,7 @@ const DashboardPage = () => {
     habits,
     habitsPagination,
     loadHabits,
+    searchHabits,
     logHabit,
     habitAnalytics,
     loadHabitAnalytics,
@@ -116,7 +124,9 @@ const DashboardPage = () => {
 
   // Separate user habits from community habits (so pagination only affects user habits)
   const userHabits = useMemo(() => {
-    return (habits || []).filter(h => !h.isCommunitySource && !h.communityInfo);
+    const filtered = (habits || []).filter(h => !h.isCommunitySource && !h.communityInfo);
+    // When searching, habits are already filtered by backend
+    return filtered;
   }, [habits]);
 
   const communityHabits = useMemo(() => {
@@ -194,6 +204,105 @@ const DashboardPage = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, isAuthenticated, habitPage])
+
+  // Handle goal search with debouncing
+  useEffect(() => {
+    console.log('[Goal Search] Effect triggered', { 
+      isAuthenticated, 
+      hasLoadedInitialData, 
+      goalSearchQuery,
+      searchGoalsExists: !!searchGoals 
+    });
+    
+    if (!isAuthenticated || !hasLoadedInitialData) {
+      console.log('[Goal Search] Skipping - not ready');
+      return;
+    }
+    
+    const query = goalSearchQuery.trim();
+    console.log('[Goal Search] Query:', query);
+    
+    // Clear existing timeout
+    if (goalSearchDebounceRef.current) {
+      console.log('[Goal Search] Clearing previous timeout');
+      clearTimeout(goalSearchDebounceRef.current);
+      goalSearchDebounceRef.current = null;
+    }
+    
+    if (query) {
+      // Show loading immediately
+      setIsSearchingGoals(true);
+      console.log('[Goal Search] Setting timeout for:', query);
+      
+      // Debounce the API call (600ms for better optimization)
+      goalSearchDebounceRef.current = setTimeout(() => {
+        console.log('[Goal Search] Calling API for:', query);
+        // Use getGoals with q parameter (just like habits)
+        getGoals({ q: query, year: selectedYear, page: 1, limit: 50, includeProgress: true }).finally(() => {
+          setIsSearchingGoals(false);
+        });
+      }, 600);
+    } else {
+      // When search is cleared, reload normal paginated view
+      console.log('[Goal Search] Query empty, reloading normal view');
+      setIsSearchingGoals(false);
+      if (page > 1) {
+        setPage(1);
+      } else {
+        getGoals({ year: selectedYear, includeProgress: true, page: 1 });
+      }
+    }
+    
+    return () => {
+      if (goalSearchDebounceRef.current) {
+        clearTimeout(goalSearchDebounceRef.current);
+        goalSearchDebounceRef.current = null;
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [goalSearchQuery, isAuthenticated, hasLoadedInitialData])
+
+  // Handle habit search with debouncing
+  useEffect(() => {
+    if (!isAuthenticated || activeTab !== 'habits') return;
+    
+    const query = habitSearchQuery.trim();
+    
+    // Clear existing timeout
+    if (habitSearchDebounceRef.current) {
+      clearTimeout(habitSearchDebounceRef.current);
+      habitSearchDebounceRef.current = null;
+    }
+    
+    if (query) {
+      // Show loading immediately
+      setIsSearchingHabits(true);
+      
+      // Debounce the API call (600ms for better optimization)
+      habitSearchDebounceRef.current = setTimeout(() => {
+        // Use search API
+        searchHabits(query, { page: 1, limit: 50 }).finally(() => {
+          setIsSearchingHabits(false);
+        });
+      }, 600);
+    } else {
+      // When search is cleared, reload normal paginated view
+      setIsSearchingHabits(false);
+      if (habitPage > 1) {
+        setHabitPage(1);
+      } else {
+        loadHabits({ page: 1, limit: 9, force: true });
+      }
+    }
+    
+    return () => {
+      if (habitSearchDebounceRef.current) {
+        clearTimeout(habitSearchDebounceRef.current);
+        habitSearchDebounceRef.current = null;
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [habitSearchQuery, isAuthenticated, activeTab])
 
   // Debug: Monitor goals changes
   useEffect(() => {
@@ -274,7 +383,17 @@ const DashboardPage = () => {
       : [];
   }, [communityGoalsByYear, selectedYear]);
 
-  const visibleGoals = goalsForYear;
+  // When searching, visibleGoals comes directly from search results
+  // When not searching, filter by year from all goals
+  const visibleGoals = useMemo(() => {
+    if (goalSearchQuery.trim()) {
+      // Search results are already filtered, just use them
+      return goals || [];
+    }
+    // Normal mode: filter by year
+    return goalsForYear;
+  }, [goals, goalsForYear, goalSearchQuery]);
+  
   const totalPages = goalsPagination ? goalsPagination.pages : 1;
 
   const progress = useMemo(() => {
@@ -631,6 +750,43 @@ const DashboardPage = () => {
               </div>
             )}
 
+            {/* Search Bar (Goals) */}
+            {goalsForYear.length > 0 && (
+              <div className="mb-6">
+                <div className="relative max-w-md">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search goals by title..."
+                    value={goalSearchQuery}
+                    onChange={(e) => setGoalSearchQuery(e.target.value)}
+                    className="w-full pl-10 pr-10 py-2.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                  />
+                  {goalSearchQuery && (
+                    <button
+                      onClick={() => setGoalSearchQuery('')}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+                      title="Clear search"
+                    >
+                      <X className="h-4 w-4 text-gray-400" />
+                    </button>
+                  )}
+                </div>
+                {goalSearchQuery && (
+                  <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                    {isSearchingGoals ? (
+                      <span className="inline-flex items-center gap-2">
+                        <span className="animate-spin rounded-full h-3 w-3 border-2 border-primary-500 border-t-transparent"></span>
+                        Searching...
+                      </span>
+                    ) : (
+                      <span>Found {visibleGoals.length} {visibleGoals.length === 1 ? 'goal' : 'goals'}</span>
+                    )}
+                  </p>
+                )}
+              </div>
+            )}
+
             {/* Action Buttons (Goals) */}
             <div className="flex flex-wrap gap-4 mb-8">
               <button onClick={() => setIsCreateModalOpen(true)} className="btn-primary">
@@ -668,7 +824,7 @@ const DashboardPage = () => {
                   return <div className="text-center py-12 text-gray-500 dark:text-gray-400">No goals for {selectedYear} yet.</div>;
                 }
               })()}
-              {goalsPagination && goalsPagination.pages > 1 && (
+              {!goalSearchQuery && goalsPagination && goalsPagination.pages > 1 && (
                 <div className="flex items-center justify-center gap-2 mt-6">
                   <button 
                     disabled={page <= 1 || isLoadingGoals} 
@@ -807,6 +963,43 @@ const DashboardPage = () => {
               </div>
             )}
 
+            {/* Search Bar (Habits) */}
+            {(habits || []).filter(h => !h.isCommunitySource && !h.communityInfo).length > 0 && (
+              <div className="mb-6">
+                <div className="relative max-w-md">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search habits by title..."
+                    value={habitSearchQuery}
+                    onChange={(e) => setHabitSearchQuery(e.target.value)}
+                    className="w-full pl-10 pr-10 py-2.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                  />
+                  {habitSearchQuery && (
+                    <button
+                      onClick={() => setHabitSearchQuery('')}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+                      title="Clear search"
+                    >
+                      <X className="h-4 w-4 text-gray-400" />
+                    </button>
+                  )}
+                </div>
+                {habitSearchQuery && (
+                  <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                    {isSearchingHabits ? (
+                      <span className="inline-flex items-center gap-2">
+                        <span className="animate-spin rounded-full h-3 w-3 border-2 border-primary-500 border-t-transparent"></span>
+                        Searching...
+                      </span>
+                    ) : (
+                      <span>Found {userHabits.length} {userHabits.length === 1 ? 'habit' : 'habits'}</span>
+                    )}
+                  </p>
+                )}
+              </div>
+            )}
+
             {/* Action Buttons (Habits) */}
             <div className="flex flex-wrap gap-4 mb-8">
               <button onClick={() => setIsHabitModalOpen(true)} className="btn-primary">
@@ -927,7 +1120,7 @@ const DashboardPage = () => {
               ) : (
                 <div className="text-center py-12 text-gray-500 dark:text-gray-400">No habits yet. Create your first habit!</div>
               )}
-              {habitsPagination && habitsPagination.pages > 1 && (
+              {!habitSearchQuery && habitsPagination && habitsPagination.pages > 1 && (
                 <div className="flex items-center justify-center gap-2 mt-6">
                   <button 
                     disabled={habitPage <= 1 || loading} 

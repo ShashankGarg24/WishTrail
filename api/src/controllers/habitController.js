@@ -14,6 +14,12 @@ exports.createHabit = async (req, res, next) => {
 
 exports.listHabits = async (req, res, next) => {
   try {
+    // If there's a search query, use search instead
+    const searchQuery = req.query.q || req.query.search;
+    if (searchQuery) {
+      return exports.searchHabits(req, res, next);
+    }
+
     const includeArchived = req.query.includeArchived === 'true' || req.query.includeArchived === true;
     const page = parseInt(req.query.page, 10) || 1;
     const limit = parseInt(req.query.limit, 10) || 50;
@@ -67,6 +73,51 @@ exports.listHabits = async (req, res, next) => {
     }
     
     res.status(200).json({ success: true, data: result });
+  } catch (error) { next(error); }
+};
+
+exports.searchHabits = async (req, res, next) => {
+  try {
+    const { q = '', page = 1, limit = 50 } = req.query;
+    const userId = req.user.id || req.user._id;
+    
+    const pageNum = parseInt(page, 10);
+    const limitNum = parseInt(limit, 10);
+    const skip = (pageNum - 1) * limitNum;
+    
+    const Habit = require('../models/Habit');
+    
+    // Build search query
+    const searchQuery = {
+      userId,
+      isArchived: false,
+      name: { $regex: q.trim(), $options: 'i' } // Case-insensitive search by name
+    };
+    
+    const [habits, total] = await Promise.all([
+      Habit.find(searchQuery)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limitNum)
+        .lean(),
+      Habit.countDocuments(searchQuery)
+    ]);
+    
+    // Sanitize habits
+    const sanitizedHabits = habits.map(h => sanitizeHabitForProfile(h));
+    
+    res.status(200).json({
+      success: true,
+      data: {
+        habits: sanitizedHabits,
+        pagination: {
+          page: pageNum,
+          limit: limitNum,
+          total,
+          pages: Math.ceil(total / limitNum)
+        }
+      }
+    });
   } catch (error) { next(error); }
 };
 
