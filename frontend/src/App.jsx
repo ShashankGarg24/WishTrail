@@ -36,6 +36,8 @@ const HabitAnalyticsPage = lazy(() => import('./pages/HabitAnalyticsPage'))
 const GoalAnalyticsPage = lazy(() => import('./pages/GoalAnalyticsPage'))
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'))
 const TermsOfService = lazy(() => import('./pages/TermsOfService'))
+const CommunityGuidelines = lazy(() => import('./pages/CommunityGuidelines'))
+const CopyrightPolicy = lazy(() => import('./pages/CopyrightPolicy'))
 
 function App() {
   const { isDarkMode, initializeAuth, isAuthenticated} = useApiStore()
@@ -210,6 +212,8 @@ function App() {
               {/* Legal pages */}
               <Route path="/privacy-policy" element={<Suspense fallback={null}><PrivacyPolicy /></Suspense>} />
               <Route path="/terms-of-service" element={<Suspense fallback={null}><TermsOfService /></Suspense>} />
+              <Route path="/community-guidelines" element={<Suspense fallback={null}><CommunityGuidelines /></Suspense>} />
+              <Route path="/copyright-policy" element={<Suspense fallback={null}><CopyrightPolicy /></Suspense>} />
               {/* Goal deeplink opens modal within feed/discover */}
               <Route path="/goal/:goalId" element={<Suspense fallback={null}><FeedPage /></Suspense>} />
               {/* Error pages */}

@@ -131,12 +131,18 @@ const Footer = () => {
             <p className="text-sm text-gray-600 dark:text-gray-400">
               © {currentYear} WishTrail. All rights reserved.
             </p>
-            <div className="flex items-center space-x-6">
+            <div className="flex flex-wrap items-center justify-center gap-4 md:gap-6">
               <Link to="/privacy-policy" className="text-sm text-gray-600 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors">
-                Privacy Policy
+                Privacy
               </Link>
               <Link to="/terms-of-service" className="text-sm text-gray-600 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors">
-                Terms of Service
+                Terms
+              </Link>
+              <Link to="/community-guidelines" className="text-sm text-gray-600 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors">
+                Guidelines
+              </Link>
+              <Link to="/copyright-policy" className="text-sm text-gray-600 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors">
+                Copyright
               </Link>
             </div>
           </div>
