@@ -740,11 +740,11 @@ const LeaderboardPage = () => {
                     Go to Dashboard
                   </a>
                   <a
-                    href="/discover?tab=community"
+                    href="/discover?tab=goals"
                     className="inline-flex items-center gap-2 px-6 py-2.5 bg-white/10 backdrop-blur-sm border-2 border-white/30 text-white rounded-lg hover:bg-white/20 transition-all font-bold text-sm hover:scale-105 transform"
                   >
                     <Users className="h-4 w-4" />
-                    Discover Community
+                    Discover Goals
                   </a>
                 </div>
               </div>

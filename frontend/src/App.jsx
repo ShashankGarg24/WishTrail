@@ -34,6 +34,8 @@ const FeedbackButton = lazy(() => import('./components/FeedbackButton'))
 const SettingsPage = lazy(() => import('./pages/SettingsPage'))
 const HabitAnalyticsPage = lazy(() => import('./pages/HabitAnalyticsPage'))
 const GoalAnalyticsPage = lazy(() => import('./pages/GoalAnalyticsPage'))
+const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'))
+const TermsOfService = lazy(() => import('./pages/TermsOfService'))
 
 function App() {
   const { isDarkMode, initializeAuth, isAuthenticated} = useApiStore()
@@ -201,10 +203,13 @@ function App() {
               <Route path="/inspiration" element={<Suspense fallback={null}><InspirationPage /></Suspense>} />
               <Route path="/settings" element={<Suspense fallback={null}><SettingsPage /></Suspense>} />
               <Route path="/leaderboard" element={<Suspense fallback={null}><LeaderboardPage /></Suspense>} />
-              <Route path="/communities" element={<Suspense fallback={null}><CommunitiesPage /></Suspense>} />
-              <Route path="/communities/:id" element={<Suspense fallback={null}><CommunityDetailPage /></Suspense>} />
+              {/* <Route path="/communities" element={<Suspense fallback={null}><CommunitiesPage /></Suspense>} />
+              <Route path="/communities/:id" element={<Suspense fallback={null}><CommunityDetailPage /></Suspense>} /> */}
               <Route path="/habits/:id/analytics" element={<Suspense fallback={null}><HabitAnalyticsPage /></Suspense>} />
               <Route path="/goals/:goalId/analytics" element={<Suspense fallback={null}><GoalAnalyticsPage /></Suspense>} />
+              {/* Legal pages */}
+              <Route path="/privacy-policy" element={<Suspense fallback={null}><PrivacyPolicy /></Suspense>} />
+              <Route path="/terms-of-service" element={<Suspense fallback={null}><TermsOfService /></Suspense>} />
               {/* Goal deeplink opens modal within feed/discover */}
               <Route path="/goal/:goalId" element={<Suspense fallback={null}><FeedPage /></Suspense>} />
               {/* Error pages */}

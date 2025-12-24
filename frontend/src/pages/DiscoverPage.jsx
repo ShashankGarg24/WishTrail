@@ -161,7 +161,8 @@ const DiscoverPage = () => {
         } else {
           setUsers([])
         }
-      } else if (activeTab === 'communities') {
+      } 
+      else if (activeTab === 'communities') {
         try {
           const resp = await communitiesAPI.discover({ interests: selectedInterest ? selectedInterest : '', limit: 30 });
           const data = resp?.data?.data || [];
@@ -466,11 +467,11 @@ const DiscoverPage = () => {
   const handleSwipe = useSwipeable({
     onSwipedLeft: () => {
       if (activeTab === "users") handleTabChange("goals")
-      else if (activeTab === "goals") handleTabChange("communities")
+      // else if (activeTab === "goals") handleTabChange("communities")
     },
     onSwipedRight: () => {
-      if (activeTab === "communities") handleTabChange("goals")
-      else if (activeTab === "goals") handleTabChange("users")
+      // if (activeTab === "communities") handleTabChange("goals")
+      if (activeTab === "goals") handleTabChange("users")
     },
     trackMouse: false
   })
@@ -554,7 +555,8 @@ const DiscoverPage = () => {
           {/* Tabs */}
           <div className="flex justify-center mb-6">
             <div className="inline-flex bg-gray-100 dark:bg-gray-800 rounded-xl p-1 gap-1">
-              {["users", "goals", "communities"].map((tab) => (
+              {/* {["users", "goals", "communities"].map((tab) => ( */}
+              {["users", "goals"].map((tab) => (
                 <button
                   key={tab}
                   onClick={() => handleTabChange(tab)}

@@ -42,14 +42,14 @@ const BottomTabBar = () => {
                   Icon={Newspaper}
                   onClick={() => navigate('/feed')}
                 />
-                {(
+                {/* {(
                   <TabButton
                     active={path.startsWith('/communities')}
                     label="Communities"
                     Icon={Users}
                     onClick={() => navigate('/communities')}
                   />
-                )}
+                )} */}
                 <TabButton
                   active={path.startsWith('/dashboard')}
                   label="Dashboard"

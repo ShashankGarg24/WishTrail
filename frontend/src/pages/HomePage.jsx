@@ -38,12 +38,12 @@ const HomePage = () => {
       description: 'See goal updates from people you follow. Like and comment instantly.',
       to: isAuthenticated ? '/feed' : '/auth'
     },
-    {
-      icon: Users,
-      title: 'Communities',
-      description: 'Form groups and compete for goals with your friends.',
-      to: isAuthenticated ? '/communities' : '/auth'
-    },
+    // {
+    //   icon: Users,
+    //   title: 'Communities',
+    //   description: 'Form groups and compete for goals with your friends.',
+    //   to: isAuthenticated ? '/communities' : '/auth'
+    // },
     {
       icon: Search,
       title: 'Discover People & Goals',

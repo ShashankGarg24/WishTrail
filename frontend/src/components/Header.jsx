@@ -23,7 +23,7 @@ const Header = () => {
     ...(isAuthenticated
       ? [
         { name: 'Feed', href: '/feed' },
-        { name: 'Communities', href: '/communities' },
+        // { name: 'Communities', href: '/communities' },
         { name: 'Dashboard', href: '/dashboard' },
         { name: 'Leaderboard', href: '/leaderboard?tab=global' },
       ]

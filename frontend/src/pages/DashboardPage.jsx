@@ -716,12 +716,12 @@ const DashboardPage = () => {
 
             {/* Analytics (Stats Grid) */}
             {dashboardStats && (
-              <div className="grid grid-cols-2 lg:grid-cols-6 gap-4 mb-8">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
                 {goalStats.map((stat) => (
-                  <div key={stat.label} className="glass-card-hover p-6 rounded-xl text-center">
-                    {stat.emoji ? (<div className="text-3xl mb-2">{stat.emoji}</div>) : (<stat.icon className={`h-8 w-8 ${stat.color} mx-auto mb-2`} />)}
-                    <div className="text-2xl font-bold text-gray-900 dark:text-white mb-1">{stat.value}</div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">{stat.label}</div>
+                  <div key={stat.label} className="glass-card-hover p-4 rounded-xl text-center">
+                    {stat.emoji ? (<div className="text-2xl mb-1">{stat.emoji}</div>) : (<stat.icon className={`h-6 w-6 ${stat.color} mx-auto mb-1`} />)}
+                    <div className="text-xl font-bold text-gray-900 dark:text-white mb-0.5">{stat.value}</div>
+                    <div className="text-xs text-gray-600 dark:text-gray-400">{stat.label}</div>
                   </div>
                 ))}
               </div>
@@ -748,59 +748,61 @@ const DashboardPage = () => {
               </div>
             )}
 
-            {/* Filter and Sort Bar (Goals) */}
-            {goalsForYear.length > 0 && (
-              <div className="mb-4 flex flex-wrap items-center gap-3">
-                <div className="flex items-center gap-2">
-                  <Filter className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Filter:</span>
-                  <select
-                    value={goalFilter}
-                    onChange={(e) => setGoalFilter(e.target.value)}
-                    className="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
-                  >
-                    <option value="all">All Goals</option>
-                    <option value="in-progress">In Progress</option>
-                    <option value="completed">Completed</option>
-                  </select>
-                </div>
-                <div className="flex items-center gap-2">
-                  <SlidersHorizontal className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Sort:</span>
-                  <select
-                    value={goalSort}
-                    onChange={(e) => setGoalSort(e.target.value)}
-                    className="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
-                  >
-                    <option value="newest">Newest First</option>
-                    <option value="oldest">Oldest First</option>
-                  </select>
-                </div>
-              </div>
-            )}
-
-            {/* Search Bar (Goals) */}
+            {/* Search, Filter and Sort Bar (Goals) */}
             {goalsForYear.length > 0 && (
               <div className="mb-6">
-                <div className="relative max-w-md">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="Search goals by title..."
-                    value={goalSearchQuery}
-                    onChange={(e) => setGoalSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-10 py-2.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
-                  />
-                  {goalSearchQuery && (
-                    <button
-                      onClick={() => setGoalSearchQuery('')}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
-                      title="Clear search"
-                    >
-                      <X className="h-4 w-4 text-gray-400" />
-                    </button>
-                  )}
+                <div className="flex flex-col lg:flex-row gap-3 lg:items-center">
+                  {/* Search Bar */}
+                  <div className="flex-1">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                      <input
+                        type="text"
+                        placeholder="Search goals by title..."
+                        value={goalSearchQuery}
+                        onChange={(e) => setGoalSearchQuery(e.target.value)}
+                        className="w-full pl-10 pr-10 py-2.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                      />
+                      {goalSearchQuery && (
+                        <button
+                          onClick={() => setGoalSearchQuery('')}
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+                          title="Clear search"
+                        >
+                          <X className="h-4 w-4 text-gray-400" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Filter and Sort */}
+                  <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex items-center gap-2">
+                      <Filter className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                      <select
+                        value={goalFilter}
+                        onChange={(e) => setGoalFilter(e.target.value)}
+                        className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                      >
+                        <option value="all">All Goals</option>
+                        <option value="in-progress">In Progress</option>
+                        <option value="completed">Completed</option>
+                      </select>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <SlidersHorizontal className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                      <select
+                        value={goalSort}
+                        onChange={(e) => setGoalSort(e.target.value)}
+                        className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                      >
+                        <option value="newest">Newest First</option>
+                        <option value="oldest">Oldest First</option>
+                      </select>
+                    </div>
+                  </div>
                 </div>
+                
                 {goalSearchQuery && (
                   <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
                     {isSearchingGoals ? (
@@ -817,13 +819,13 @@ const DashboardPage = () => {
             )}
 
             {/* Action Buttons (Goals) */}
-            <div className="flex flex-wrap gap-4 mb-8">
-              <button onClick={() => setIsCreateModalOpen(true)} className="btn-primary">
-                <Plus className="h-5 w-5 mr-2" />Add New Goal
+            <div className="grid grid-cols-2 gap-3 md:flex md:flex-wrap md:gap-4 mb-8">
+              <button onClick={() => setIsCreateModalOpen(true)} className="btn-primary justify-center md:justify-start !px-3 !py-1 md:!px-6 md:!py-3 !text-sm md:!text-base">
+                <Plus className="h-9 w-4 md:h-5 md:w-5 mr-1 md:mr-2" />Add Goal
               </button>
               {dashboardStats && dashboardStats.totalGoals > 0 && (
-                <button onClick={() => setIsSuggestionsOpen(true)} className="btn-primary flex items-center">
-                  <Lightbulb className="h-5 w-5 mr-2" />Discover Goal Ideas
+                <button onClick={() => setIsSuggestionsOpen(true)} className="btn-primary justify-center md:justify-start !px-3 !py-1 md:!px-6 md:!py-3 !text-sm md:!text-base">
+                  <Lightbulb className="h-9 w-4 md:h-5 md:w-5 mr-1 md:mr-2" />Discover Goals
                 </button>
               )}
             </div>
@@ -877,7 +879,7 @@ const DashboardPage = () => {
             </div>
 
             {/* Community Goals Section (render using WishCard style) */}
-            <div className="mt-12">
+            {/* <div className="mt-12">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Community Goals</h3>
                 {communityGoals.length > 0 && (
@@ -927,10 +929,10 @@ const DashboardPage = () => {
                   </a>
                 </div>
               )}
-            </div>
+            </div> */}
 
             {/* Legacy Community Items Section - only show if no new-style community goals exist */}
-            {false && communityItems && communityItems.filter(i => i.type === 'goal').length > 0 && communityGoals.length === 0 && (
+            {/* {false && communityItems && communityItems.filter(i => i.type === 'goal').length > 0 && communityGoals.length === 0 && (
               <div className="mt-10">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Community goals (legacy)</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -973,7 +975,7 @@ const DashboardPage = () => {
                   })}
                 </div>
               </div>
-            )}
+            )} */}
           </>
         )}
 
@@ -981,55 +983,58 @@ const DashboardPage = () => {
           <>
             {/* Analytics (Habits) */}
             {habitsSummary.length > 0 && (
-              <div className="grid grid-cols-2 lg:grid-cols-6 gap-4 mb-8">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
                 {habitsSummary.map((stat) => (
-                  <div key={stat.label} className="glass-card-hover p-6 rounded-xl text-center">
-                    {stat.emoji ? (<div className="text-3xl mb-2">{stat.emoji}</div>) : (<stat.icon className={`h-8 w-8 ${stat.color} mx-auto mb-2`} />)}
-                    <div className="text-2xl font-bold text-gray-900 dark:text-white mb-1">{stat.value}</div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">{stat.label}</div>
+                  <div key={stat.label} className="glass-card-hover p-4 rounded-xl text-center">
+                    {stat.emoji ? (<div className="text-2xl mb-1">{stat.emoji}</div>) : (<stat.icon className={`h-6 w-6 ${stat.color} mx-auto mb-1`} />)}
+                    <div className="text-xl font-bold text-gray-900 dark:text-white mb-0.5">{stat.value}</div>
+                    <div className="text-xs text-gray-600 dark:text-gray-400">{stat.label}</div>
                   </div>
                 ))}
               </div>
             )}
 
-            {/* Sort Bar (Habits) */}
-            {(habits || []).filter(h => !h.isCommunitySource && !h.communityInfo).length > 0 && (
-              <div className="mb-4 flex items-center gap-2">
-                <SlidersHorizontal className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Sort:</span>
-                <select
-                  value={habitSort}
-                  onChange={(e) => setHabitSort(e.target.value)}
-                  className="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
-                >
-                  <option value="newest">Newest First</option>
-                  <option value="completion">By Completion</option>
-                </select>
-              </div>
-            )}
-
-            {/* Search Bar (Habits) */}
+            {/* Search and Sort Bar (Habits) */}
             {(habits || []).filter(h => !h.isCommunitySource && !h.communityInfo).length > 0 && (
               <div className="mb-6">
-                <div className="relative max-w-md">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="Search habits by title..."
-                    value={habitSearchQuery}
-                    onChange={(e) => setHabitSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-10 py-2.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
-                  />
-                  {habitSearchQuery && (
-                    <button
-                      onClick={() => setHabitSearchQuery('')}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
-                      title="Clear search"
+                <div className="flex flex-col lg:flex-row gap-3 lg:items-center">
+                  {/* Search Bar */}
+                  <div className="flex-1">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                      <input
+                        type="text"
+                        placeholder="Search habits by title..."
+                        value={habitSearchQuery}
+                        onChange={(e) => setHabitSearchQuery(e.target.value)}
+                        className="w-full pl-10 pr-10 py-2.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                      />
+                      {habitSearchQuery && (
+                        <button
+                          onClick={() => setHabitSearchQuery('')}
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+                          title="Clear search"
+                        >
+                          <X className="h-4 w-4 text-gray-400" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Sort */}
+                  <div className="flex items-center gap-2">
+                    <SlidersHorizontal className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                    <select
+                      value={habitSort}
+                      onChange={(e) => setHabitSort(e.target.value)}
+                      className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
                     >
-                      <X className="h-4 w-4 text-gray-400" />
-                    </button>
-                  )}
+                      <option value="newest">Newest First</option>
+                      <option value="completion">By Completion</option>
+                    </select>
+                  </div>
                 </div>
+                
                 {habitSearchQuery && (
                   <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
                     {isSearchingHabits ? (
@@ -1046,12 +1051,12 @@ const DashboardPage = () => {
             )}
 
             {/* Action Buttons (Habits) */}
-            <div className="flex flex-wrap gap-4 mb-8">
-              <button onClick={() => setIsHabitModalOpen(true)} className="btn-primary">
-                <Plus className="h-5 w-5 mr-2" />Add New Habit
+            <div className="grid grid-cols-2 gap-3 md:flex md:flex-wrap md:gap-4 mb-8">
+              <button onClick={() => setIsHabitModalOpen(true)} className="btn-primary justify-center md:justify-start !px-3 !py-1 md:!px-6 md:!py-3 !text-sm md:!text-base">
+                <Plus className="h-9 w-4 md:h-5 md:w-5 mr-1 md:mr-2" />Add Habit
               </button>
-              <button onClick={() => setIsHabitIdeasOpen(true)} className="btn-primary flex items-center">
-                <Lightbulb className="h-5 w-5 mr-2" />Discover Habit Ideas
+              <button onClick={() => setIsHabitIdeasOpen(true)} className="btn-primary justify-center md:justify-start !px-3 !py-1 md:!px-6 md:!py-3 !text-sm md:!text-base">
+                <Lightbulb className="h-9 w-4 md:h-5 md:w-5 mr-1 md:mr-2" />Discover Habits
               </button>
             </div>
 
@@ -1189,7 +1194,7 @@ const DashboardPage = () => {
             </div>
 
             {/* Community Habits Section */}
-            <div className="mt-12">
+            {/* <div className="mt-12">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Community Habits</h3>
                 {communityHabits.length > 0 && (
@@ -1203,7 +1208,6 @@ const DashboardPage = () => {
                   {communityHabits.map((h, idx) => {
                     return (
                       <div key={h.id} onClick={() => setSelectedHabit(h)} className="group glass-card-hover p-6 rounded-2xl border border-gray-200 dark:border-gray-800 cursor-pointer hover:border-primary-300 dark:hover:border-primary-700 transition-all duration-200">
-                        {/* Header with community badge */}
                         <div className="flex items-start justify-between gap-3 mb-4">
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2 mb-1">
@@ -1216,7 +1220,6 @@ const DashboardPage = () => {
                           </div>
                         </div>
 
-                        {/* Frequency and action */}
                         <div className="flex items-center justify-between">
                           <div className="text-xs px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium">
                             {frequencyLabel(h)}
@@ -1243,10 +1246,10 @@ const DashboardPage = () => {
                   </a>
                 </div>
               )}
-            </div>
+            </div> */}
 
             {/* Legacy Community Habits Section - disabled for cleaner dashboard */}
-            {false && communityItems && communityItems.filter(i => i.type === 'habit').length > 0 && communityHabits.length === 0 && (
+            {/* {false && communityItems && communityItems.filter(i => i.type === 'habit').length > 0 && communityHabits.length === 0 && (
               <div className="mt-10">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Community habits (legacy)</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1319,7 +1322,7 @@ const DashboardPage = () => {
                   })}
                 </div>
               </div>
-            )}
+            )} */}
           </>
         )}
       </div>

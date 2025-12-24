@@ -19,13 +19,14 @@ const Footer = () => {
       href: 'https://instagram.com/thewishtrail',
       icon: Instagram,
       color: 'hover:text-pink-500'
-    },
-    {
-      name: 'Playstore',
-      href: 'https://play.google.com/store/apps',
-      icon: Play,
-      color: 'hover:text-black-500'
     }
+    // ,
+    // {
+    //   name: 'Playstore',
+    //   href: 'https://play.google.com/store/apps',
+    //   icon: Play,
+    //   color: 'hover:text-black-500'
+    // }
   ]
 
   return (
@@ -56,9 +57,11 @@ const Footer = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div>
                 <ul className="space-y-2">
-                  {['Home', 'Inspiration', 'Feed', 'Discover', 'Communities', 'Leaderboard'].map((link) => {
+                  {/* {['Home', 'Inspiration', 'Feed', 'Discover', 'Communities', 'Leaderboard'].map((link) => { */}
+                  {['Home', 'Inspiration', 'Feed', 'Discover', 'Leaderboard'].map((link) => {
                     const lowerLink = link.toLowerCase();
-                    const isHiddenForAuth = !isAuthenticated && ['Feed', 'Discover', 'Communities', 'Leaderboard'].includes(link);
+                    // const isHiddenForAuth = !isAuthenticated && ['Feed', 'Discover', 'Communities', 'Leaderboard'].includes(link);
+                    const isHiddenForAuth = !isAuthenticated && ['Feed', 'Discover', 'Leaderboard'].includes(link);
                     if (isHiddenForAuth) return null;
 
                     return (
@@ -129,12 +132,12 @@ const Footer = () => {
               © {currentYear} WishTrail. All rights reserved.
             </p>
             <div className="flex items-center space-x-6">
-              <a href="#" className="text-sm text-gray-600 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors">
+              <Link to="/privacy-policy" className="text-sm text-gray-600 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors">
                 Privacy Policy
-              </a>
-              <a href="#" className="text-sm text-gray-600 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors">
+              </Link>
+              <Link to="/terms-of-service" className="text-sm text-gray-600 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors">
                 Terms of Service
-              </a>
+              </Link>
             </div>
           </div>
         </div>
