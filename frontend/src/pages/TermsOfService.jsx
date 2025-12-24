@@ -35,7 +35,7 @@ const TermsOfService = () => {
       subsections: [
         {
           subtitle: "Permitted Use",
-          text: "WishTrail is designed to help you track goals, build habits, connect with like-minded individuals, and achieve personal growth. You may use the Service for lawful purposes in accordance with these Terms."
+          text: "WishTrail is designed to help you track goals, build habits, connect with like-minded individuals, and achieve personal growth. You may use the Service (via web browser or mobile app) for lawful purposes in accordance with these Terms."
         },
         {
           subtitle: "Prohibited Activities",
@@ -49,7 +49,7 @@ const TermsOfService = () => {
       subsections: [
         {
           subtitle: "Your Content",
-          text: "You retain ownership of all content you create, post, or upload to WishTrail, including goals, journal entries, posts, comments, images, and videos ('User Content'). You are responsible for ensuring you have the right to share any content you post."
+          text: "You retain ownership of all content you create, post, or upload to WishTrail, including goals, journal entries, posts, comments, images, and videos ('User Content'). You are responsible for ensuring you have the right to share any content you post. Media uploads are subject to file size limits (typically 500KB-1MB for images) and must be in accepted formats (JPEG, PNG, WebP, MP4)."
         },
         {
           subtitle: "License to WishTrail",
@@ -113,6 +113,10 @@ const TermsOfService = () => {
   ]
 
   const additionalSections = [
+    {
+      title: "Platform Availability",
+      content: "WishTrail is available as a web application and mobile app (iOS/Android). Features may vary slightly between platforms. We use Firebase Cloud Messaging for push notifications on both web and mobile. By enabling notifications, you consent to receive alerts about your goals, community activity, and other relevant updates. You can manage notification preferences in your settings at any time."
+    },
     {
       title: "Privacy",
       content: "Your privacy is important to us. Please review our Privacy Policy to understand how we collect, use, and protect your personal information. By using the Service, you consent to our privacy practices as described in the Privacy Policy."

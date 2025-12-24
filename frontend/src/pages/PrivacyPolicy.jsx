@@ -32,7 +32,7 @@ const PrivacyPolicy = () => {
         },
         {
           subtitle: "Device and Technical Data",
-          text: "We collect device information such as IP address, browser type, operating system, device identifiers, and cookie data to ensure security and optimize your experience."
+          text: "We collect device information such as IP address, browser type, operating system, device identifiers, cookie data, and push notification tokens (via Firebase Cloud Messaging) to ensure security, deliver notifications, and optimize your experience across web and mobile platforms."
         }
       ]
     },
@@ -98,7 +98,7 @@ const PrivacyPolicy = () => {
         },
         {
           subtitle: "Third-Party Services",
-          text: "We use trusted third-party service providers for hosting (Vercel), authentication (Google OAuth), analytics, and other services. These providers are contractually obligated to protect your data."
+          text: "We use trusted third-party service providers including Vercel (hosting), Google OAuth (authentication), Firebase Cloud Messaging (push notifications), and Cloudinary (media storage for images and videos). These providers are contractually obligated to protect your data and only process it as instructed."
         },
         {
           subtitle: "Legal Requirements",
@@ -149,7 +149,11 @@ const PrivacyPolicy = () => {
   const additionalSections = [
     {
       title: "Cookies and Tracking Technologies",
-      content: "WishTrail uses cookies and similar technologies to provide functionality, improve performance, and analyze usage. Essential cookies are required for authentication and security. Analytics cookies help us understand how users interact with our platform. You can manage cookie preferences through your browser settings."
+      content: "WishTrail uses cookies and similar technologies to provide functionality, improve performance, and analyze usage. Essential cookies are required for authentication and security. Analytics cookies help us understand how users interact with our platform. You can manage cookie preferences through your browser settings. Note that cookies apply to the web version; the mobile app uses similar technologies for session management."
+    },
+    {
+      title: "Media Uploads and Storage",
+      content: "When you upload images or videos (such as profile pictures, goal completion photos, or community content), these files are stored securely on Cloudinary's servers. We limit file sizes (typically 500KB-1MB for images, larger for videos) and accept only common image formats (JPEG, PNG, WebP). Media you mark as public will be accessible to other users as part of your shared content."
     },
     {
       title: "Data Retention",
