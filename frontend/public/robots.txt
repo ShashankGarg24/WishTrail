@@ -1,20 +1,41 @@
 # robots.txt for WishTrail
+# https://wishtrail.in
 
 User-agent: *
-# Block crawlers from sensitive or non-user facing routes
-Disallow: /api/
-Disallow: /auth/
-Disallow: /reset-password
+
+# Allow important public pages
+Allow: /
+Allow: /inspiration
+Allow: /auth
+
+# Block user-specific and authenticated pages
 Disallow: /dashboard
 Disallow: /notifications
 Disallow: /feed
-Disallow: /communities
-Disallow: /discover
 Disallow: /profile
+Disallow: /settings
+Disallow: /reset-password
 
+# Block API endpoints
+Disallow: /api/
 
-# Allow everything else
-Allow: /
+# Allow search engines to discover users and content
+Allow: /discover
+Allow: /leaderboard
+Allow: /communities
+
+# Crawl-delay (optional, to be nice to our servers)
+Crawl-delay: 1
 
 # Point crawlers to sitemap
-Sitemap: https://wishtrail.vercel.app/sitemap.xml
+Sitemap: https://wishtrail.in/sitemap.xml
+
+# Specific bot configurations
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: Slurp
+Allow: /

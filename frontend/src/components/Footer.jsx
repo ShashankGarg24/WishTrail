@@ -1,147 +1,144 @@
 import { motion } from 'framer-motion'
-import { Star, Youtube, Instagram, ExternalLink, Play } from 'lucide-react'
+import { Star, Youtube, Instagram } from 'lucide-react'
 import useApiStore from '../store/apiStore'
 import { Link } from 'react-router-dom'
 
 const Footer = () => {
-  const { isAuthenticated, user: currentUser } = useApiStore()
-  const currentYear = new Date().getFullYear()
+  const { isAuthenticated } = useApiStore()
 
   const socialLinks = [
     {
       name: 'YouTube',
-      href: 'https://youtube.com/@thewishtrail',
       icon: Youtube,
-      color: 'hover:text-red-500'
+      href: 'https://www.youtube.com/@wishtrail2025',
     },
     {
       name: 'Instagram',
-      href: 'https://instagram.com/thewishtrail',
       icon: Instagram,
-      color: 'hover:text-pink-500'
-    }
-    // ,
-    // {
-    //   name: 'Playstore',
-    //   href: 'https://play.google.com/store/apps',
-    //   icon: Play,
-    //   color: 'hover:text-black-500'
-    // }
+      href: 'https://www.instagram.com/wishtrail2025/',
+    },
+  ]
+
+  const quickLinks = [
+    { name: 'Home', href: '/#', auth: false },
+    { name: 'Discover', href: '/discover', auth: true },
+    { name: 'Community', href: '/community', auth: true },
+    { name: 'Dashboard', href: '/dashboard', auth: true },
   ]
 
   return (
-    <footer className="relative mt-10 pb-10 glass-card border-t border-white/10">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Brand */}
-          <div className="space-y-4">
-            <Link to="/#" className="flex items-center space-x-2">
-              <div className="flex items-center space-x-2">
-                <Star className="h-8 w-8 text-primary-500" />
-                <span className="text-xl font-bold text-gradient">
+    <footer className="bg-gradient-to-b from-white via-gray-50 to-white dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 border-t border-gray-200/50 dark:border-gray-800/50 theme-transition mt-auto">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Main Footer Content */}
+        <div className="py-16">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12 lg:gap-16 items-start">
+            {/* Brand Section */}
+            <div className="space-y-6">
+              <Link to="/#" className="inline-flex items-center space-x-2 group">
+                <motion.div
+                  whileHover={{ rotate: 360, scale: 1.1 }}
+                  transition={{ duration: 0.6, ease: "easeInOut" }}
+                >
+                  <Star className="h-9 w-9 text-purple-600 dark:text-purple-400 fill-purple-600 dark:fill-purple-400" />
+                </motion.div>
+                <span className="text-2xl font-bold bg-gradient-to-r from-purple-600 via-purple-500 to-blue-600 dark:from-purple-400 dark:via-purple-300 dark:to-blue-400 bg-clip-text text-transparent">
                   WishTrail
                 </span>
-              </div>
-            </Link>
-            <p className="text-gray-600 dark:text-gray-400 max-w-md">
-              Transform your dreams into achievable goals. Track your progress,
-              get inspired, and make every year count.
-            </p>
-          </div>
-
-          {/* Quick Links */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Quick Links
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div>
-                <ul className="space-y-2">
-                  {/* {['Home', 'Inspiration', 'Feed', 'Discover', 'Communities', 'Leaderboard'].map((link) => { */}
-                  {['Home', 'Inspiration', 'Feed', 'Discover', 'Leaderboard'].map((link) => {
-                    const lowerLink = link.toLowerCase();
-                    // const isHiddenForAuth = !isAuthenticated && ['Feed', 'Discover', 'Communities', 'Leaderboard'].includes(link);
-                    const isHiddenForAuth = !isAuthenticated && ['Feed', 'Discover', 'Leaderboard'].includes(link);
-                    if (isHiddenForAuth) return null;
-
-                    return (
-                      <li key={link}>
-                        <a
-                          href={`/${lowerLink === 'home' ? '' : lowerLink}`}
-                          className="text-gray-600 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors"
+              </Link>
+              <p className="text-gray-600 dark:text-gray-400 leading-relaxed max-w-sm text-base">
+                Transform your aspirations into reality. Track progress, build habits, and achieve your dreams with a supportive community.
+              </p>
+            </div>
+            
+            {/* Quick Links */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider">
+                Quick Links
+              </h3>
+              <ul className="space-y-3">
+                {quickLinks.map((link) => (
+                  (!link.auth || isAuthenticated) && (
+                    <li key={link.name}>
+                      <Link
+                        to={link.href}
+                        className="text-gray-600 hover:text-purple-600 dark:text-gray-400 dark:hover:text-purple-400 transition-colors duration-200 inline-flex items-center group text-[15px]"
+                      >
+                        <span>{link.name}</span>
+                        <motion.span
+                          initial={{ x: 0, opacity: 0 }}
+                          whileHover={{ x: 4, opacity: 1 }}
+                          transition={{ duration: 0.2 }}
+                          className="ml-1"
                         >
-                          {link}
-                        </a>
-                      </li>
-                    );
-                  })}
-                </ul>
+                          →
+                        </motion.span>
+                      </Link>
+                    </li>
+                  )
+                ))}
+              </ul>
+            </div>
+            
+            {/* Social & Connect */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider">
+                Connect With Us
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
+                Join our community for daily inspiration and updates
+              </p>
+              <div className="flex space-x-3">
+                {socialLinks.map((link) => (
+                  <motion.a
+                    key={link.name}
+                    href={link.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    whileHover={{ scale: 1.1, y: -3 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="p-3 rounded-xl bg-gradient-to-br from-gray-100 to-gray-50 hover:from-purple-50 hover:to-blue-50 dark:from-gray-800 dark:to-gray-800/50 dark:hover:from-purple-900/30 dark:hover:to-blue-900/30 text-gray-700 hover:text-purple-600 dark:text-gray-300 dark:hover:text-purple-400 transition-all duration-300 shadow-sm hover:shadow-md"
+                    aria-label={link.name}
+                  >
+                    <link.icon className="h-5 w-5" />
+                  </motion.a>
+                ))}
               </div>
-              {isAuthenticated && <div>
-                <ul className="space-y-2">
-                  <li key={'Profile'}>
-                    <a
-                      href={`/profile/@${currentUser.username}?tab=overview`}
-                      className="text-gray-600 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors"
-                    >
-                      {'Profile'}
-                    </a>
-                  </li>
-                  <li key={'Dashboard'}>
-                    <a
-                      href={`/dashboard`}
-                      className="text-gray-600 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors"
-                    >
-                      {'Dashboard'}
-                    </a>
-                  </li>
-                </ul>
-              </div>}
             </div>
-          </div>
-
-          {/* Social Links */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Follow Us
-            </h3>
-            <div className="flex space-x-4">
-              {socialLinks.map((social) => (
-                <motion.a
-                  key={social.name}
-                  href={social.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                  className={`p-3 rounded-full bg-white/10 hover:bg-white/20 transition-all ${social.color}`}
-                >
-                  <social.icon className="h-5 w-5" />
-                </motion.a>
-              ))}
-            </div>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Get daily inspiration and tips for achieving your goals
-            </p>
           </div>
         </div>
-
-        <div className="mt-12 pt-8 border-t border-white/10">
-          <div className="flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0">
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              © {currentYear} WishTrail. All rights reserved.
+        
+        {/* Bottom Bar */}
+        <div className="py-16 border-t border-gray-200/50 dark:border-gray-800/50">
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
+            <p className="text-xs text-gray-500 dark:text-gray-500 text-center sm:text-left">
+              © {new Date().getFullYear()} WishTrail. Crafted with passion for dreamers and achievers.
             </p>
-            <div className="flex flex-wrap items-center justify-center gap-4 md:gap-6">
-              <Link to="/privacy-policy" className="text-sm text-gray-600 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors">
-                Privacy
+            <div className="flex flex-wrap items-center justify-center gap-2 text-center">
+              <Link
+                to="/privacy-policy"
+                className="text-xs text-gray-500 hover:text-purple-600 dark:text-gray-500 dark:hover:text-purple-400 transition-colors duration-200"
+              >
+                Privacy Policy
               </Link>
-              <Link to="/terms-of-service" className="text-sm text-gray-600 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors">
-                Terms
+              <span className="text-gray-300 dark:text-gray-700">•</span>
+              <Link
+                to="/terms-of-service"
+                className="text-xs text-gray-500 hover:text-purple-600 dark:text-gray-500 dark:hover:text-purple-400 transition-colors duration-200"
+              >
+                Terms of Service
               </Link>
-              <Link to="/community-guidelines" className="text-sm text-gray-600 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors">
+              <span className="text-gray-300 dark:text-gray-700">•</span>
+              <Link
+                to="/community-guidelines"
+                className="text-xs text-gray-500 hover:text-purple-600 dark:text-gray-500 dark:hover:text-purple-400 transition-colors duration-200"
+              >
                 Guidelines
               </Link>
-              <Link to="/copyright-policy" className="text-sm text-gray-600 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors">
+              <span className="text-gray-300 dark:text-gray-700">•</span>
+              <Link
+                to="/copyright-policy"
+                className="text-xs text-gray-500 hover:text-purple-600 dark:text-gray-500 dark:hover:text-purple-400 transition-colors duration-200"
+              >
                 Copyright
               </Link>
             </div>
