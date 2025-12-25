@@ -10,12 +10,12 @@ const Footer = () => {
     {
       name: 'YouTube',
       icon: Youtube,
-      href: 'https://www.youtube.com/@wishtrail2025',
+      href: 'https://www.youtube.com/@thewishtrail',
     },
     {
       name: 'Instagram',
       icon: Instagram,
-      href: 'https://www.instagram.com/wishtrail2025/',
+      href: 'https://www.instagram.com/thewishtrail/',
     },
   ]
 

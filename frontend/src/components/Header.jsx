@@ -63,7 +63,10 @@ const Header = () => {
 
   const handleLogout = () => {
     setIsMenuOpen(false)
-    setIsLogoutModalOpen(true)
+    // Small delay to ensure menu closes before modal opens
+    setTimeout(() => {
+      setIsLogoutModalOpen(true)
+    }, 100)
   }
 
   const confirmLogout = async () => {
@@ -220,13 +223,25 @@ const Header = () => {
                 </Link>
               )}
               
-              {/* User Menu */}
+              {/* User Menu - Desktop and Mobile */}
               {isAuthenticated && (
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setIsMenuOpen(!isMenuOpen)}
-                  className="hidden md:flex p-2.5 rounded-lg text-gray-700 hover:text-purple-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:text-purple-400 dark:hover:bg-gray-800 transition-all duration-200"
+                  className="flex p-2.5 rounded-lg text-gray-700 hover:text-purple-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:text-purple-400 dark:hover:bg-gray-800 transition-all duration-200"
+                >
+                  <Menu className="h-5 w-5" />
+                </motion.button>
+              )}
+              
+              {/* Mobile Get Started Button */}
+              {!isAuthenticated && (
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setIsMenuOpen(!isMenuOpen)}
+                  className="md:hidden flex p-2.5 rounded-lg text-gray-700 hover:text-purple-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:text-purple-400 dark:hover:bg-gray-800 transition-all duration-200"
                 >
                   <Menu className="h-5 w-5" />
                 </motion.button>
