@@ -51,7 +51,7 @@ const CommunityCard = ({ community, onClick }) => (
             <span className="font-semibold">{community.stats?.memberCount || 0}/{community.settings?.memberLimit || 100}</span>
           </span>
           {community.visibility && (
-            <span className="px-2.5 py-1 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium border border-blue-200 dark:border-blue-800 capitalize">
+            <span className="px-2.5 py-1 rounded-full bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 font-medium border border-purple-200 dark:border-purple-800 capitalize">
               {community.visibility.replace('-', ' ')}
             </span>
           )}

@@ -20,7 +20,7 @@ export default function SettingsLayout({ sections, initial = null }) {
               className={cn(
                 "flex items-center w-full px-3 py-2 rounded-md text-sm font-medium transition-colors",
                 active === id
-                  ? "bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300"
+                  ? "bg-gradient-to-r from-blue-100 via-indigo-100 to-purple-100 dark:from-blue-900/30 dark:via-indigo-900/30 dark:to-purple-900/30 text-indigo-700 dark:text-indigo-300"
                   : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
               )}
             >
@@ -63,7 +63,7 @@ export default function SettingsLayout({ sections, initial = null }) {
                   <span className={cn(
                     "font-medium",
                     active === id
-                      ? "text-primary-600 dark:text-primary-400"
+                      ? "text-indigo-600 dark:text-indigo-400"
                       : "text-gray-900 dark:text-gray-100"
                   )}>
                     {label}

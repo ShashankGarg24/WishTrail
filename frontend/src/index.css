@@ -68,7 +68,7 @@
 
   /* Additional button styles */
   .btn-outline {
-    @apply border-2 border-blue-500 text-blue-500 dark:border-blue-400 dark:text-blue-400 font-semibold px-6 py-3 rounded-lg hover:bg-blue-500 hover:text-white dark:hover:bg-blue-400 dark:hover:text-gray-900 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl;
+    @apply border-2 border-purple-500 text-purple-600 dark:border-purple-400 dark:text-purple-400 font-semibold px-6 py-3 rounded-lg hover:bg-gradient-to-r hover:from-purple-500 hover:to-blue-600 hover:text-white hover:border-transparent transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl;
     background: transparent;
     display: inline-flex;
     align-items: center;

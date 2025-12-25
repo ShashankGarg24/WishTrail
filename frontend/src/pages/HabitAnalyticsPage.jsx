@@ -479,16 +479,16 @@ export default function HabitAnalyticsPage() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-lg p-3 shadow-sm border border-blue-200 dark:border-blue-800"
+            className="bg-gradient-to-br from-purple-50 to-blue-100 dark:from-purple-900/20 dark:to-blue-800/20 rounded-lg p-3 shadow-sm border border-purple-200 dark:border-purple-800"
           >
             <div className="flex items-center gap-2 mb-1.5">
-              <div className="p-1.5 bg-blue-500 rounded-lg">
+              <div className="p-1.5 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
                 <Calendar className="w-4 h-4 text-white" />
               </div>
-              <span className="text-xs font-medium text-blue-900 dark:text-blue-300">Active Days</span>
+              <span className="text-xs font-medium text-purple-900 dark:text-purple-300">Active Days</span>
             </div>
-            <p className="text-xl font-bold text-blue-900 dark:text-white">{activeDays}</p>
-            <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">Days with activity</p>
+            <p className="text-xl font-bold text-purple-900 dark:text-white">{activeDays}</p>
+            <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">Days with activity</p>
           </motion.div>
 
           <motion.div

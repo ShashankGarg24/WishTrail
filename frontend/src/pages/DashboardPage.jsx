@@ -361,7 +361,7 @@ const DashboardPage = () => {
   const goalStats = useMemo(() => {
     if (!dashboardStats) return [];
     return [
-      { label: 'Total Goals', value: Number(dashboardStats.totalGoals) || 0, icon: Target, color: 'text-blue-500' },
+      { label: 'Total Goals', value: Number(dashboardStats.totalGoals) || 0, icon: Target, color: 'text-purple-600 dark:text-purple-400' },
       { label: 'Completed', value: Number(dashboardStats.completedGoals) || 0, icon: CheckCircle, color: 'text-green-500' },
       { label: 'In Progress', value: Math.max(0, (Number(dashboardStats.totalGoals) || 0) - (Number(dashboardStats.completedGoals) || 0)), icon: Circle, color: 'text-yellow-500' },
       { label: 'Today', value: `${dashboardStats.todayCompletions || 0}/${dashboardStats.dailyLimit || 3}`, icon: Calendar, color: (dashboardStats.todayCompletions || 0) >= (dashboardStats.dailyLimit || 3) ? 'text-orange-500' : 'text-purple-500' }
@@ -382,7 +382,7 @@ const DashboardPage = () => {
     // Fallback to habitStats if available
     if (habitStats) {
       return [
-        { label: 'Total Habits', value: Number(habitStats.totalHabits) || 0, icon: Target, color: 'text-blue-500' },
+        { label: 'Total Habits', value: Number(habitStats.totalHabits) || 0, icon: Target, color: 'text-purple-600 dark:text-purple-400' },
         { label: 'Total Streak', value: Number(habitStats.totalCurrentStreak) || 0, icon: CheckCircle, color: 'text-green-500' },
         { label: 'Best Streak', value: Number(habitStats.bestStreak) || 0, icon: Activity, color: 'text-orange-500' },
         { label: 'Consistency', value: `${Number(habitStats.avgConsistency) || 0}%`, icon: Star, color: 'text-yellow-500' }
@@ -678,8 +678,8 @@ const DashboardPage = () => {
         {/* Tabs */}
         <div className="mb-6">
           <div className="inline-flex rounded-xl overflow-hidden border border-gray-200 dark:border-gray-800">
-            <button onClick={() => handleTabChange('goals')} className={`px-4 py-2 text-sm font-medium ${activeTab === 'goals' ? 'bg-primary-500 text-white' : 'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300'}`}>Goals</button>
-            <button onClick={() => handleTabChange('habits')} className={`px-4 py-2 text-sm font-medium ${activeTab === 'habits' ? 'bg-primary-500 text-white' : 'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300'}`}>Habits</button>
+            <button onClick={() => handleTabChange('goals')} className={`px-4 py-2 text-sm font-medium transition-all ${ activeTab === 'goals' ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg' : 'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'}`}>Goals</button>
+            <button onClick={() => handleTabChange('habits')} className={`px-4 py-2 text-sm font-medium transition-all ${activeTab === 'habits' ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg' : 'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'}`}>Habits</button>
           </div>
         </div>
 
@@ -689,7 +689,7 @@ const DashboardPage = () => {
             <div className="mb-8">
               <div className="flex flex-wrap gap-2 items-center">
                 {availableYears.map(year => (
-                  <button key={year} onClick={() => handleYearChange(year)} className={`px-4 py-2 rounded-lg font-medium transition-all ${selectedYear === year ? 'bg-primary-500 text-white shadow-lg' : 'glass-card hover:bg-white/20 text-gray-700 dark:text-gray-300'}`}>
+                  <button key={year} onClick={() => handleYearChange(year)} className={`px-4 py-2 rounded-lg font-medium transition-all ${selectedYear === year ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg hover:shadow-xl' : 'glass-card hover:bg-white/20 text-gray-700 dark:text-gray-300'}`}>
                     <Calendar className="h-4 w-4 inline mr-2" />{year}
                   </button>
                 ))}
@@ -741,7 +741,7 @@ const DashboardPage = () => {
 
                 <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
                   <div
-                    className="bg-primary-500 h-3 rounded-full transition-all duration-1000"
+                    className="bg-gradient-to-r from-blue-500 via-purple-600 to-pink-500 h-3 rounded-full transition-all duration-1000 shadow-lg"
                     style={{ width: `${progress}%` }}
                   />
                 </div>
@@ -807,7 +807,7 @@ const DashboardPage = () => {
                   <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
                     {isSearchingGoals ? (
                       <span className="inline-flex items-center gap-2">
-                        <span className="animate-spin rounded-full h-3 w-3 border-2 border-primary-500 border-t-transparent"></span>
+                        <span className="animate-spin rounded-full h-3 w-3 border-2 border-purple-600 border-t-transparent"></span>
                         Searching...
                       </span>
                     ) : (
@@ -839,7 +839,7 @@ const DashboardPage = () => {
                 if (showLoading) {
                   return (
                     <div className="text-center py-12">
-                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto mb-4"></div>
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
                       <p className="text-gray-600 dark:text-gray-400">Loading your goals...</p>
                     </div>
                   );
@@ -1140,7 +1140,7 @@ const DashboardPage = () => {
                       {/* Stats Section */}
                       <div className="grid grid-cols-2 gap-3 pt-3 border-t border-gray-200 dark:border-gray-700">
                         <div className="flex items-center gap-2">
-                          <Activity className="h-4 w-4 text-blue-500 dark:text-blue-400 flex-shrink-0" />
+                          <Activity className="h-4 w-4 text-purple-600 dark:text-purple-400 flex-shrink-0" />
                           <div className="min-w-0">
                             <div className="text-sm font-semibold text-gray-900 dark:text-white">
                               {h.totalCompletions || 0}

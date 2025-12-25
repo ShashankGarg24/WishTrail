@@ -44,9 +44,9 @@ export default function GoalDetailsModal({ isOpen, goalId, onClose, autoOpenComm
                         if (resp.data?.goal?.timeline && Array.isArray(resp.data.goal.timeline)) {
                             resp.data.goal.timeline.forEach((timelineEvent, index) => {
                                 let icon = Target
-                                let color = 'text-blue-500'
-                                let bgColor = 'bg-blue-50 dark:bg-blue-900/20'
-                                let borderColor = 'border-blue-200 dark:border-blue-800'
+                                let color = 'text-purple-600 dark:text-purple-400'
+                                let bgColor = 'bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20'
+                                let borderColor = 'border-purple-200 dark:border-purple-800'
                                 let title = ''
                                 let description = ''
 
@@ -55,9 +55,9 @@ export default function GoalDetailsModal({ isOpen, goalId, onClose, autoOpenComm
                                         title = 'Goal Created'
                                         description = resp.data?.goal?.title
                                         icon = Target
-                                        color = 'text-blue-500'
-                                        bgColor = 'bg-blue-50 dark:bg-blue-900/20'
-                                        borderColor = 'border-blue-200 dark:border-blue-800'
+                                        color = 'text-purple-600 dark:text-purple-400'
+                                        bgColor = 'bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20'
+                                        borderColor = 'border-purple-200 dark:border-purple-800'
                                         break
                                     case 'goal_completed':
                                         title = 'Goal Completed'
@@ -343,7 +343,7 @@ export default function GoalDetailsModal({ isOpen, goalId, onClose, autoOpenComm
                                                     return (
                                                         <div key={event.id} className={`relative pl-6 transition-all duration-300 ${isSelected ? 'opacity-100 scale-100' : 'opacity-70 hover:opacity-100'}`}>
                                                             {/* Dot on line */}
-                                                            <div className={`absolute -left-[21px] top-1 w-3 h-3 rounded-full border-2 bg-white dark:bg-gray-900 ${isSelected ? 'border-blue-500 scale-125' : 'border-gray-300 dark:border-gray-600'}`} />
+                                                            <div className={`absolute -left-[21px] top-1 w-3 h-3 rounded-full border-2 bg-white dark:bg-gray-900 ${isSelected ? 'border-purple-500 scale-125' : 'border-gray-300 dark:border-gray-600'}`} />
 
                                                             {/* Content Card */}
                                                             <div
@@ -430,7 +430,7 @@ export default function GoalDetailsModal({ isOpen, goalId, onClose, autoOpenComm
                                         <Heart className={`h-5 w-5 transition-all duration-200 ${data?.social?.isLiked ? 'fill-current' : ''}`} />
                                         <span className="font-semibold">{data?.social?.likeCount || 0}</span>
                                     </button>
-                                    <button onClick={openComments} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/30 dark:hover:text-blue-400 transition-all duration-200 hover:scale-105 active:scale-95 hover:shadow-md">
+                                    <button onClick={openComments} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 hover:text-purple-600 dark:hover:from-purple-900/30 dark:hover:to-blue-900/30 dark:hover:text-purple-400 transition-all duration-200 hover:scale-105 active:scale-95 hover:shadow-md">
                                         <MessageCircle className="h-5 w-5" />
                                         <span className="font-semibold">{data?.social?.commentCount || 0}</span>
                                     </button>
@@ -472,7 +472,7 @@ export default function GoalDetailsModal({ isOpen, goalId, onClose, autoOpenComm
                                         </div>
                                         <button
                                             onClick={() => setShowTimeline(!showTimeline)}
-                                            className={`flex-shrink-0 p-2 rounded-lg border transition-colors ${showTimeline ? 'bg-blue-50 border-blue-200 text-blue-600 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-400' : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400'}`}
+                                            className={`flex-shrink-0 p-2 rounded-lg border transition-colors ${showTimeline ? 'bg-gradient-to-br from-purple-50 to-blue-50 border-purple-200 text-purple-600 dark:from-purple-900/20 dark:to-blue-900/20 dark:border-purple-800 dark:text-purple-400' : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400'}`}
                                             title={showTimeline ? "View Details" : "View Timeline"}
                                         >
                                             {showTimeline ? <Target className="h-4 w-4" /> : <Calendar className="h-4 w-4" />}
@@ -488,16 +488,16 @@ export default function GoalDetailsModal({ isOpen, goalId, onClose, autoOpenComm
                                                 return (
                                                     <div key={event.id} className={`relative pl-6 transition-all duration-300 ${isSelected ? 'opacity-100 scale-100' : 'opacity-70 hover:opacity-100'}`}>
                                                         {/* Dot on line */}
-                                                        <div className={`absolute -left-[21px] top-1 w-3 h-3 rounded-full border-2 bg-white dark:bg-gray-900 ${isSelected ? 'border-blue-500 scale-125' : 'border-gray-300 dark:border-gray-600'}`} />
+                                                        <div className={`absolute -left-[21px] top-1 w-3 h-3 rounded-full border-2 bg-white dark:bg-gray-900 ${isSelected ? 'border-purple-500 scale-125' : 'border-gray-300 dark:border-gray-600'}`} />
 
                                                         {/* Content Card */}
                                                         <div
-                                                            className={`p-3 rounded-xl border cursor-pointer transition-all ${isSelected ? 'bg-blue-50/50 border-blue-200 dark:bg-blue-900/10 dark:border-blue-800 shadow-sm' : 'bg-white border-gray-100 dark:bg-gray-800/50 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'}`}
+                                                            className={`p-3 rounded-xl border cursor-pointer transition-all ${isSelected ? 'bg-gradient-to-br from-purple-50 to-blue-50 border-purple-200 dark:from-purple-900/10 dark:to-blue-900/10 dark:border-purple-800 shadow-sm' : 'bg-white border-gray-100 dark:bg-gray-800/50 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'}`}
                                                             onClick={() => handleEventClick(event)}
                                                         >
                                                             <div className="flex items-center gap-2 mb-1">
                                                                 <Icon className={`h-4 w-4 ${event.color}`} />
-                                                                <span className={`text-sm font-semibold ${isSelected ? 'text-blue-700 dark:text-blue-300' : 'text-gray-900 dark:text-gray-100'}`}>{event.title}</span>
+                                                                <span className={`text-sm font-semibold ${isSelected ? 'text-purple-700 dark:text-purple-300' : 'text-gray-900 dark:text-gray-100'}`}>{event.title}</span>
                                                             </div>
                                                             <div className="text-xs text-gray-600 dark:text-gray-400">{event.description}</div>
                                                         </div>
@@ -511,13 +511,13 @@ export default function GoalDetailsModal({ isOpen, goalId, onClose, autoOpenComm
                                             {selectedEvent === 'created' && (
                                                 <>
                                                     <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-                                                        <div className="inline-block px-2 py-1 rounded-full text-xs font-medium text-white bg-blue-500">{data?.goal?.category}</div>
+                                                        <div className="inline-block px-2 py-1 rounded-full text-xs font-medium text-white bg-gradient-to-r from-purple-500 to-blue-600 shadow-md">{data?.goal?.category}</div>
                                                     </div>
                                                     <div className="animate-in fade-in slide-in-from-bottom-3 duration-300">
                                                         <div className="text-xs text-gray-500">Description</div>
                                                         <div className={`text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed ${detailsExpanded ? '' : 'line-clamp-6'}`}>{data?.goal?.description || '—'}</div>
                                                         {String(data?.goal?.description || '').length > 200 && (
-                                                            <button className="mt-1 text-xs text-blue-600" onClick={() => setDetailsExpanded((v) => !v)}>{detailsExpanded ? 'Show less' : 'More'}</button>
+                                                            <button className="mt-1 text-xs text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300" onClick={() => setDetailsExpanded((v) => !v)}>{detailsExpanded ? 'Show less' : 'More'}</button>
                                                         )}
                                                     </div>
                                                 </>
@@ -564,7 +564,7 @@ export default function GoalDetailsModal({ isOpen, goalId, onClose, autoOpenComm
                                     <Heart className={`h-5 w-5 transition-all duration-200 ${data?.social?.isLiked ? 'fill-current' : ''}`} />
                                     <span>{data?.social?.likeCount || 0}</span>
                                 </button>
-                                <button onClick={openComments} className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-blue-500 transition-all duration-200 hover:scale-110 active:scale-95">
+                                <button onClick={openComments} className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-all duration-200 hover:scale-110 active:scale-95">
                                     <MessageCircle className="h-5 w-5" />
                                     <span>{data?.social?.commentCount || 0}</span>
                                 </button>

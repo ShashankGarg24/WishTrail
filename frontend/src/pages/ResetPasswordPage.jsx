@@ -157,8 +157,8 @@ const ResetPasswordPage = () => {
               Your password has been successfully updated. You will be redirected to the login page shortly.
             </p>
             
-            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 mb-6">
-              <p className="text-blue-700 dark:text-blue-400 text-sm">
+            <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 mb-6">
+              <p className="text-purple-700 dark:text-purple-400 text-sm">
                 For security, all existing sessions have been logged out. You'll need to log in again with your new password.
               </p>
             </div>

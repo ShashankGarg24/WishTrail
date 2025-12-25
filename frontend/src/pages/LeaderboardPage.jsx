@@ -110,7 +110,7 @@ const LeaderboardPage = () => {
     if (rank === 1) return 'from-yellow-400 to-yellow-600';
     if (rank === 2) return 'from-gray-300 to-gray-500';
     if (rank === 3) return 'from-orange-400 to-orange-600';
-    return 'from-blue-400 to-blue-600';
+    return 'from-blue-500 to-purple-600';
   };
 
   const topThree = leaderboard ? leaderboard.slice(0, 3) : [];
@@ -143,7 +143,7 @@ const LeaderboardPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-purple-50 to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
         {/* Hero Header */}
@@ -225,7 +225,7 @@ const LeaderboardPage = () => {
                 <div className="relative filter-dropdown">
                   <button
                     onClick={() => setOpenDropdown(openDropdown === 'metric' ? null : 'metric')}
-                    className="flex items-center gap-2 px-3 py-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-sm font-semibold hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-all"
+                    className="flex items-center gap-2 px-3 py-1.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-full text-sm font-semibold hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-all"
                   >
                     <TrendingUp className="h-3.5 w-3.5" />
                     <span>{leaderboardType === 'goals' ? 'Goals' : 'Streak'}</span>
@@ -481,7 +481,7 @@ const LeaderboardPage = () => {
             transition={{ duration: 0.6, delay: 0.4 }}
             className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700 md:hidden"
           >
-            <div className="bg-gradient-to-r from-primary-500 to-primary-600 p-4">
+            <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-4">
               <h2 className="text-lg font-bold text-white flex items-center gap-2">
                 <Medal className="h-5 w-5" />
                 Rankings
@@ -506,7 +506,7 @@ const LeaderboardPage = () => {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.3, delay: 0.02 * index }}
                     className={`p-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all cursor-pointer ${
-                      isCurrentUser ? 'bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-l-4 border-blue-500' : ''
+                      isCurrentUser ? 'bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 border-l-4 border-purple-500' : ''
                     } ${isTop3 ? 'bg-gradient-to-r from-yellow-50/30 to-orange-50/30 dark:from-yellow-900/10 dark:to-orange-900/10' : ''}`}
                     onClick={() => !isCurrentUser && handleUserClick(user.username)}
                   >
@@ -517,7 +517,7 @@ const LeaderboardPage = () => {
                           rank === 1 ? 'bg-gradient-to-br from-yellow-400 to-orange-500 text-white' :
                           rank === 2 ? 'bg-gradient-to-br from-gray-300 to-gray-500 text-white' :
                           rank === 3 ? 'bg-gradient-to-br from-orange-400 to-amber-500 text-white' :
-                          'bg-gradient-to-br from-blue-400 to-blue-600 text-white'
+                          'bg-gradient-to-br from-blue-500 to-purple-600 text-white'
                         }`}>
                           {getMedalEmoji(rank)}
                         </div>
@@ -536,7 +536,7 @@ const LeaderboardPage = () => {
                               {user.name}
                             </h3>
                             {isCurrentUser && (
-                              <span className="flex-shrink-0 text-xs bg-blue-500 text-white px-1.5 py-0.5 rounded-full font-semibold">
+                              <span className="flex-shrink-0 text-xs bg-gradient-to-r from-purple-500 to-blue-500 text-white px-1.5 py-0.5 rounded-full font-semibold">
                                 You
                               </span>
                             )}
@@ -585,7 +585,7 @@ const LeaderboardPage = () => {
             transition={{ duration: 0.6, delay: 0.5 }}
             className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700 hidden md:block"
           >
-            <div className="bg-gradient-to-r from-primary-500 to-primary-600 p-4">
+            <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-4">
               <h2 className="text-lg font-bold text-white flex items-center gap-2">
                 <Award className="h-5 w-5" />
                 All Rankings
@@ -603,14 +603,14 @@ const LeaderboardPage = () => {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.3, delay: 0.02 * index }}
                     className={`p-3.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all cursor-pointer group ${
-                      isCurrentUser ? 'bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-l-4 border-blue-500' : ''
+                      isCurrentUser ? 'bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 border-l-4 border-purple-500' : ''
                     }`}
                     onClick={() => !isCurrentUser && handleUserClick(user.username)}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3 flex-1">
                         {/* Rank Badge */}
-                        <div className="w-11 h-11 rounded-lg bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-black text-base shadow-md group-hover:scale-110 transition-transform">
+                        <div className="w-11 h-11 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-black text-base shadow-md group-hover:scale-110 transition-transform">
                           {rank}
                         </div>
                         
@@ -628,7 +628,7 @@ const LeaderboardPage = () => {
                               {user.name}
                             </h3>
                             {isCurrentUser && (
-                              <span className="flex-shrink-0 text-xs bg-blue-500 text-white px-2 py-0.5 rounded-full font-semibold">
+                              <span className="flex-shrink-0 text-xs bg-gradient-to-r from-purple-500 to-blue-500 text-white px-2 py-0.5 rounded-full font-semibold">
                                 You
                               </span>
                             )}

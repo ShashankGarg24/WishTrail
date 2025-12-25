@@ -55,7 +55,7 @@ const CommunityGuidelines = () => {
     {
       icon: MessageCircle,
       title: "Interaction Guidelines",
-      color: "text-blue-600 dark:text-blue-400",
+      color: "text-purple-600 dark:text-purple-400",
       rules: [
         {
           subtitle: "Constructive Comments",

@@ -254,14 +254,14 @@ const FeedPage = () => {
 
   const getCategoryColor = (category) => {
     const colors = {
-      'Career': 'bg-blue-500',
+      'Career': 'bg-gradient-to-r from-blue-500 to-purple-600',
       'Health': 'bg-green-500',
       'Personal Development': 'bg-purple-500',
       'Education': 'bg-yellow-500',
       'Finance': 'bg-red-500',
       'Health & Fitness': 'bg-green-500',
       'Education & Learning': 'bg-yellow-500',
-      'Career & Business': 'bg-blue-500',
+      'Career & Business': 'bg-gradient-to-r from-blue-500 to-purple-600',
       'Financial Goals': 'bg-red-500',
       'Creative Projects': 'bg-purple-500',
       'Travel & Adventure': 'bg-orange-500',
@@ -279,7 +279,7 @@ const FeedPage = () => {
       case 'Education & Learning':
         return 'from-amber-400 via-yellow-400 to-orange-400';
       case 'Career & Business':
-        return 'from-blue-400 via-indigo-400 to-sky-400';
+        return 'from-blue-400 via-purple-500 to-pink-400';
       case 'Financial Goals':
         return 'from-rose-400 via-pink-400 to-fuchsia-400';
       case 'Creative Projects':
@@ -329,7 +329,7 @@ const FeedPage = () => {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify_center bg-gradient-to-br from-blue-50 to-purple-50 dark:from-slate-900 dark:via-gray-900 dark:to-zinc-900">
+      <div className="min-h-screen flex items-center justify_center bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-slate-900 dark:via-gray-900 dark:to-zinc-900">
         <div className="text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -354,7 +354,7 @@ const FeedPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-900">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-900">
       <div className="max-w-4xl mx-auto px-4 py-6">
         {!inNativeApp && (
           <div className="flex items-center justify-between mb-6">
@@ -390,10 +390,10 @@ const FeedPage = () => {
             {!storiesLoading && stories.length > 0 && (
               <button
                 onClick={() => navigate('/discover?tab=goals')}
-                className="text-sm font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors flex items-center gap-1.5"
+                className="text-sm font-medium bg-gradient-to-r from-purple-600 to-blue-600 dark:from-purple-400 dark:to-blue-400 bg-clip-text text-transparent hover:from-purple-700 hover:to-blue-700 dark:hover:from-purple-300 dark:hover:to-blue-300 transition-all flex items-center gap-1.5 font-semibold"
               >
                 Explore All
-                <ArrowRightCircle className="h-4 w-4" />
+                <ArrowRightCircle className="h-4 w-4 text-purple-600 dark:text-purple-400" />
               </button>
             )}
           </div>
@@ -584,7 +584,7 @@ const FeedPage = () => {
                               </div>
                             )}
                             {activity.type === 'subgoal_completed' && (
-                              <div className="shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center shadow-sm">
+                              <div className="shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-sm">
                                 <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                                 </svg>

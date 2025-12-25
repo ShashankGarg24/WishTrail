@@ -484,7 +484,7 @@ const DiscoverPage = () => {
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ duration: 0.5 }}
-            className="bg-gradient-to-r from-blue-500 to-indigo-600 p-6 rounded-full mb-6 mx-auto w-24 h-24 flex items-center justify-center"
+            className="bg-gradient-to-r from-blue-500 to-purple-600 p-6 rounded-full mb-6 mx-auto w-24 h-24 flex items-center justify-center"
           >
             <Compass className="h-12 w-12 text-white" />
           </motion.div>
@@ -505,7 +505,7 @@ const DiscoverPage = () => {
   return (
     <div
       {...handleSwipe}
-      className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-slate-900 dark:via-gray-900 dark:to-zinc-900">
+      className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-slate-900 dark:via-gray-900 dark:to-zinc-900">
       <div className="max-w-7xl mx-auto px-4 py-8">
         {!inNativeApp && (
           <motion.div 
@@ -515,7 +515,7 @@ const DiscoverPage = () => {
           >
             <div>
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                <Compass className="h-8 w-8 text-blue-500" />
+                <Compass className="h-8 w-8 text-purple-600 dark:text-purple-400" />
                 Discover
               </h1>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
@@ -590,8 +590,8 @@ const DiscoverPage = () => {
                       className={`
                         px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all
                         ${active 
-                          ? 'bg-blue-500 text-white shadow-md' 
-                          : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600'
+                          ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-md' 
+                          : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600'
                         }
                       `}
                       aria-pressed={active}
@@ -615,7 +615,7 @@ const DiscoverPage = () => {
               {!(searchTerm.trim() || selectedInterest) && (
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-2">
-                    <Sparkles className="h-5 w-5 text-blue-500" />
+                    <Sparkles className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                     <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Suggested Users</h2>
                   </div>
                   <p className="text-sm text-gray-500 dark:text-gray-400">Search to discover more</p>
@@ -635,7 +635,7 @@ const DiscoverPage = () => {
                         <img
                           src={userItem.avatar || '/api/placeholder/64/64'}
                           alt={userItem.name}
-                          className="w-16 h-16 rounded-full border-2 border-gray-200 dark:border-gray-600 cursor-pointer hover:border-blue-500 transition-all hover:scale-105"
+                          className="w-16 h-16 rounded-full border-2 border-gray-200 dark:border-gray-600 cursor-pointer hover:border-purple-500 dark:hover:border-purple-400 transition-all hover:scale-105"
                           onClick={() => userItem.username && navigate(`/profile/@${userItem.username}?tab=overview`)}
                         />
                         {userItem.currentStreak > 0 && (
@@ -646,7 +646,7 @@ const DiscoverPage = () => {
                       </div>
                       <div className="flex-1 min-w-0">
                         <h3
-                          className="font-semibold text-gray-900 dark:text-white text-lg cursor-pointer hover:text-blue-500 transition-colors truncate"
+                          className="font-semibold text-gray-900 dark:text-white text-lg cursor-pointer hover:text-purple-600 dark:hover:text-purple-400 transition-colors truncate"
                           onClick={() => userItem.username && navigate(`/profile/@${userItem.username}?tab=overview`)}
                         >
                           {userItem.name}
@@ -658,8 +658,8 @@ const DiscoverPage = () => {
                     </div>
 
                     <div className="grid grid-cols-3 gap-3 mb-5">
-                      <div className="text-center p-2 bg-blue-50 dark:bg-blue-900/10 rounded-lg">
-                        <div className="text-blue-600 dark:text-blue-400 font-semibold text-lg">{userItem.totalGoals || 0}</div>
+                      <div className="text-center p-2 bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/10 dark:to-blue-900/10 rounded-lg">
+                        <div className="text-purple-600 dark:text-purple-400 font-semibold text-lg">{userItem.totalGoals || 0}</div>
                         <div className="text-xs text-gray-600 dark:text-gray-400">Goals</div>
                       </div>
                       <div className="text-center p-2 bg-green-50 dark:bg-green-900/10 rounded-lg">
@@ -708,7 +708,7 @@ const DiscoverPage = () => {
                           ) : (
                             <button
                               onClick={() => handleFollow(userItem._id)}
-                              className="flex-1 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-xl transition-colors duration-200 text-sm font-medium flex items-center justify-center space-x-1"
+                              className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-xl transition-all duration-200 text-sm font-medium flex items-center justify-center space-x-1 shadow-lg hover:shadow-xl"
                             >
                               <UserPlus className="h-4 w-4" />
                               <span>Follow</span>
@@ -749,7 +749,7 @@ const DiscoverPage = () => {
               <div ref={discoverSentinelRef} className="h-10"></div>
               {loadingMoreDiscover && (
                 <div className="flex items-center justify-center py-4">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600 dark:border-purple-400"></div>
                 </div>
               )}
               {!discoverHasMore && users.length > 0 && (
@@ -763,8 +763,8 @@ const DiscoverPage = () => {
               className="text-center py-16 px-4"
             >
               <div className="max-w-md mx-auto">
-                <div className="w-20 h-20 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center mx-auto mb-4">
-                  <Users className="h-10 w-10 text-blue-500" />
+                <div className="w-20 h-20 rounded-full bg-purple-100 dark:bg-purple-900/20 flex items-center justify-center mx-auto mb-4">
+                  <Users className="h-10 w-10 text-purple-600 dark:text-purple-400" />
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
                   {searchTerm.trim() || selectedInterest ? 'No users found' : 'Discover People'}
@@ -777,7 +777,7 @@ const DiscoverPage = () => {
                 {(searchTerm.trim() || selectedInterest) && (
                   <button
                     onClick={() => { setSearchTerm(''); setSelectedInterest(''); }}
-                    className="px-6 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-xl transition-colors"
+                    className="px-6 py-2.5 bg-gradient-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 text-white rounded-xl transition-all shadow-lg hover:shadow-xl"
                   >
                     Clear Filters
                   </button>
@@ -791,7 +791,7 @@ const DiscoverPage = () => {
               <>
                 {/* Search Results Header */}
                 <div className="flex items-center gap-2 mb-6">
-                  <Search className="h-5 w-5 text-blue-500" />
+                  <Search className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                   <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Search Results</h2>
                   <span className="text-sm text-gray-500 dark:text-gray-400">({goalResults.length})</span>
                 </div>
@@ -803,13 +803,13 @@ const DiscoverPage = () => {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.4, delay: Math.min(0.05 * idx, 0.3) }}
                     onClick={() => g._id && openGoalModal(g._id)}
-                    className="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-200 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-lg cursor-pointer group"
+                    className="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-200 dark:border-gray-700 hover:border-purple-400 dark:hover:border-purple-500 transition-all duration-200 shadow-sm hover:shadow-lg cursor-pointer group"
                   >
                     <div className="flex items-center gap-3 mb-4">
                       <img
                         src={g.user?.avatar || '/api/placeholder/48/48'}
                         alt={g.user?.name || 'User'}
-                        className="w-10 h-10 rounded-full border border-gray-200 dark:border-gray-700 group-hover:border-blue-400 dark:group-hover:border-blue-500 transition-all" 
+                        className="w-10 h-10 rounded-full border border-gray-200 dark:border-gray-700 group-hover:border-purple-400 dark:group-hover:border-purple-500 transition-all" 
                       />
                       <div className="min-w-0 flex-1">
                         <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{g.user?.name || 'User'}</div>
@@ -819,10 +819,10 @@ const DiscoverPage = () => {
                         </div>
                       </div>
                     </div>
-                    <h3 className="font-semibold text-gray-900 dark:text-white line-clamp-2 mb-3 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{g.title}</h3>
+                    <h3 className="font-semibold text-gray-900 dark:text-white line-clamp-2 mb-3 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">{g.title}</h3>
                     <div className="flex items-center justify-between">
-                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/20">{g.category}</span>
-                      <span className="text-sm text-blue-600 dark:text-blue-400 font-medium group-hover:underline">View →</span>
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-white bg-gradient-to-r from-purple-500 to-blue-600 shadow-md">{g.category}</span>
+                      <span className="text-sm text-purple-600 dark:text-purple-400 font-medium group-hover:underline">View →</span>
                     </div>
                   </motion.div>
                 ))}
@@ -835,8 +835,8 @@ const DiscoverPage = () => {
                 className="text-center py-16 px-4"
               >
                 <div className="max-w-md mx-auto">
-                  <div className="w-20 h-20 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center mx-auto mb-4">
-                    <Target className="h-10 w-10 text-blue-500" />
+                  <div className="w-20 h-20 rounded-full bg-purple-100 dark:bg-purple-900/20 flex items-center justify-center mx-auto mb-4">
+                    <Target className="h-10 w-10 text-purple-600 dark:text-purple-400" />
                   </div>
                   <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No goals found</h3>
                   <p className="text-gray-600 dark:text-gray-400 mb-6">
@@ -844,7 +844,7 @@ const DiscoverPage = () => {
                   </p>
                   <button
                     onClick={() => { setSearchTerm(''); setSelectedInterest(''); }}
-                    className="px-6 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-xl transition-colors"
+                    className="px-6 py-2.5 bg-gradient-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 text-white rounded-xl transition-all shadow-lg hover:shadow-xl"
                   >
                     Clear Filters
                   </button>
@@ -857,7 +857,7 @@ const DiscoverPage = () => {
                   {/* Trending Section Header */}
                   <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-2">
-                      <TrendingUp className="h-5 w-5 text-blue-500" />
+                      <TrendingUp className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                       <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Trending Goals</h2>
                     </div>
                     <p className="text-sm text-gray-500 dark:text-gray-400">Search to discover more</p>
@@ -870,13 +870,13 @@ const DiscoverPage = () => {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.4, delay: Math.min(0.05 * idx, 0.3) }}
                       onClick={() => g._id && openGoalModal(g._id)}
-                      className="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-200 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-lg cursor-pointer group"
+                      className="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-200 dark:border-gray-700 hover:border-purple-400 dark:hover:border-purple-500 transition-all duration-200 shadow-sm hover:shadow-lg cursor-pointer group"
                     >
                       <div className="flex items-center gap-3 mb-4">
                         <img
                           src={g.user?.avatar || '/api/placeholder/48/48'}
                           alt={g.user?.name || 'User'}
-                          className="w-10 h-10 rounded-full border border-gray-200 dark:border-gray-700 group-hover:border-blue-400 dark:group-hover:border-blue-500 transition-all" 
+                          className="w-10 h-10 rounded-full border border-gray-200 dark:border-gray-700 group-hover:border-purple-400 dark:group-hover:border-purple-500 transition-all" 
                         />
                         <div className="min-w-0 flex-1">
                           <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{g.user?.name || 'User'}</div>
@@ -885,19 +885,19 @@ const DiscoverPage = () => {
                             {g.completedAt ? new Date(g.completedAt).toLocaleDateString() : (g.createdAt ? new Date(g.createdAt).toLocaleDateString() : '')}
                           </div>
                         </div>
-                        <TrendingUp className="h-4 w-4 text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <TrendingUp className="h-4 w-4 text-purple-600 dark:text-purple-400 opacity-0 group-hover:opacity-100 transition-opacity" />
                       </div>
-                      <h3 className="font-semibold text-gray-900 dark:text-white line-clamp-2 mb-3 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{g.title}</h3>
+                      <h3 className="font-semibold text-gray-900 dark:text-white line-clamp-2 mb-3 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">{g.title}</h3>
                       <div className="flex items-center justify-between">
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/20">{g.category}</span>
-                        <span className="text-sm text-blue-600 dark:text-blue-400 font-medium group-hover:underline">View →</span>
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-white bg-gradient-to-r from-purple-500 to-blue-600 shadow-md">{g.category}</span>
+                        <span className="text-sm text-purple-600 dark:text-purple-400 font-medium group-hover:underline">View →</span>
                       </div>
                     </motion.div>
                   ))}
                   <div ref={discoverSentinelRef} className="col-span-full h-10"></div>
                   {loadingMoreDiscover && (
                     <div className="col-span-full flex items-center justify-center py-4">
-                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600 dark:border-purple-400"></div>
                     </div>
                   )}
                 </div>
@@ -909,8 +909,8 @@ const DiscoverPage = () => {
                   className="text-center py-16 px-4"
                 >
                   <div className="max-w-md mx-auto">
-                    <div className="w-20 h-20 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center mx-auto mb-4">
-                      <TrendingUp className="h-10 w-10 text-blue-500" />
+                    <div className="w-20 h-20 rounded-full bg-purple-100 dark:bg-purple-900/20 flex items-center justify-center mx-auto mb-4">
+                      <TrendingUp className="h-10 w-10 text-purple-600 dark:text-purple-400" />
                     </div>
                     <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Discover Goals</h3>
                     <p className="text-gray-600 dark:text-gray-400">

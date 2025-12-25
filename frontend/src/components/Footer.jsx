@@ -21,9 +21,10 @@ const Footer = () => {
 
   const quickLinks = [
     { name: 'Home', href: '/#', auth: false },
+    { name: 'Inspiration', href: '/inspiration', auth: true },
     { name: 'Discover', href: '/discover', auth: true },
-    { name: 'Community', href: '/community', auth: true },
     { name: 'Dashboard', href: '/dashboard', auth: true },
+    { name: 'Leaderboard', href: '/leaderboard', auth: true },
   ]
 
   return (

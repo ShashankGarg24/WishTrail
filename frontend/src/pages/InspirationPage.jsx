@@ -158,7 +158,7 @@ const InspirationPage = () => {
           </div>
           
           <div className="glass-card-hover p-5 rounded-2xl text-center">
-            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 mb-3">
+            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 mb-3">
               <Users className="h-6 w-6" />
             </div>
             <div className="text-2xl font-bold text-gray-900 dark:text-white mb-1">

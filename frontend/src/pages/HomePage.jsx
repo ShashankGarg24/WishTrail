@@ -217,7 +217,7 @@ const HomePage = () => {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.1 }}
-              className="text-5xl sm:text-6xl lg:text-8xl font-bold text-gray-900 dark:text-white mb-6 leading-tight"
+              className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white mb-6 leading-tight"
             >
               Turn Your Dreams Into
               <br />
@@ -249,7 +249,7 @@ const HomePage = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.3 }}
-              className="text-xl sm:text-2xl lg:text-3xl text-gray-600 dark:text-gray-300 mb-10 max-w-4xl mx-auto leading-relaxed"
+              className="text-lg sm:text-xl lg:text-2xl text-gray-600 dark:text-gray-300 mb-10 max-w-4xl mx-auto leading-relaxed"
             >
               The ultimate platform to set, track, and achieve your goals. 
               Join thousands who are already making progress every day.
@@ -261,11 +261,11 @@ const HomePage = () => {
               transition={{ duration: 0.8, delay: 0.5 }}
               className="flex flex-col sm:flex-row gap-4 justify-center items-center"
             >
-              <Link to={getRedirectUrl()} className="group btn-primary text-lg px-8 py-4">
+              <Link to={getRedirectUrl()} className="group btn-primary text-base px-6 py-3">
                 {!isAuthenticated ? "Start Free Today" : "Go to Dashboard"}
                 <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
               </Link>
-              <Link to="/inspiration" className="btn-secondary text-lg px-8 py-4">
+              <Link to="/inspiration" className="btn-secondary text-base px-6 py-3">
                 <Play className="mr-2 h-5 w-5" />
                 See How It Works
               </Link>
@@ -294,10 +294,10 @@ const HomePage = () => {
       <section className="py-20 relative">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <AnimatedSection className="text-center mb-16">
-            <h2 className="text-4xl sm:text-5xl font-bold text-gray-900 dark:text-white mb-4">
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-4">
               Simple. <span className="text-gradient bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent">Powerful.</span> Effective.
             </h2>
-            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
+            <p className="text-lg text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
               Start achieving your goals in three easy steps
             </p>
           </AnimatedSection>
@@ -336,11 +336,11 @@ const HomePage = () => {
               >
                 <div className="text-center">
                   <div className="relative inline-block mb-6">
-                    <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center mx-auto shadow-xl">
-                      <item.icon className="h-10 w-10 text-white" />
+                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center mx-auto shadow-xl">
+                      <item.icon className="h-8 w-8 text-white" />
                     </div>
                   </div>
-                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">
                     {item.title}
                   </h3>
                   <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
@@ -357,10 +357,10 @@ const HomePage = () => {
       <section className="py-20 bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-800 dark:to-gray-900">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <AnimatedSection className="text-center mb-16">
-            <h2 className="text-4xl sm:text-5xl font-bold text-gray-900 dark:text-white mb-4">
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-4">
               Everything You Need to <span className="text-gradient bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent">Succeed</span>
             </h2>
-            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
+            <p className="text-lg text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
               Powerful features designed to help you achieve your goals faster
             </p>
           </AnimatedSection>
@@ -380,10 +380,10 @@ const HomePage = () => {
                 className="group"
               >
                 <div className="glass-card-hover p-8 rounded-2xl h-full">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                    <benefit.icon className="h-8 w-8 text-white" />
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                    <benefit.icon className="h-6 w-6 text-white" />
                   </div>
-                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">
                     {benefit.title}
                   </h3>
                   <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
@@ -400,10 +400,10 @@ const HomePage = () => {
       <section className="py-20">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <AnimatedSection className="text-center mb-16">
-            <h2 className="text-4xl sm:text-5xl font-bold text-gray-900 dark:text-white mb-4">
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-4">
               Explore Our <span className="text-gradient bg-gradient-to-r from-purple-600 to-pink-600 dark:from-purple-400 dark:to-pink-400 bg-clip-text text-transparent">Features</span>
             </h2>
-            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
+            <p className="text-lg text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
               Discover all the tools you need to stay motivated and achieve your dreams
             </p>
           </AnimatedSection>
@@ -425,10 +425,10 @@ const HomePage = () => {
                     {/* Gradient Background */}
                     <div className={`absolute inset-0 bg-gradient-to-br ${feature.color} opacity-0 group-hover:opacity-10 transition-opacity duration-300`} />
                     
-                    <div className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${feature.color} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300`}>
-                      <feature.icon className="h-10 w-10 text-white" />
+                    <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${feature.color} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300`}>
+                      <feature.icon className="h-8 w-8 text-white" />
                     </div>
-                    <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">
                       {feature.title}
                     </h3>
                     <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
@@ -468,10 +468,10 @@ const HomePage = () => {
       <section className="py-20 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <AnimatedSection className="text-center mb-16">
-            <h2 className="text-4xl sm:text-5xl font-bold text-gray-900 dark:text-white mb-4">
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-4">
               Daily <span className="text-gradient bg-gradient-to-r from-orange-600 to-red-600 dark:from-orange-400 dark:to-red-400 bg-clip-text text-transparent">Inspiration</span>
             </h2>
-            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
+            <p className="text-lg text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
               Watch motivational content to fuel your journey and stay inspired
             </p>
           </AnimatedSection>
@@ -509,27 +509,27 @@ const HomePage = () => {
                 transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
                 className="inline-block mb-6"
               >
-                <Rocket className="h-20 w-20 text-white" />
+                <Rocket className="h-16 w-16 text-white" />
               </motion.div>
               
-              <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6">
+              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-6">
                 Ready to Achieve Your Goals?
               </h2>
-              <p className="text-xl sm:text-2xl text-white/90 mb-10 max-w-2xl mx-auto">
+              <p className="text-lg sm:text-xl text-white/90 mb-10 max-w-2xl mx-auto">
                 Start turning your dreams into reality. Create your first goal in less than 60 seconds!
               </p>
               
               <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
                 <Link 
                   to={getRedirectUrl()} 
-                  className="group bg-white text-purple-600 font-bold text-lg px-10 py-5 rounded-xl hover:bg-gray-100 transition-all duration-300 transform hover:scale-105 shadow-2xl flex items-center"
+                  className="group bg-white text-purple-600 font-bold text-base px-8 py-4 rounded-xl hover:bg-gray-100 transition-all duration-300 transform hover:scale-105 shadow-2xl flex items-center"
                 >
                   Get Started Free
                   <ArrowRight className="ml-2 h-6 w-6 group-hover:translate-x-1 transition-transform" />
                 </Link>
                 <Link 
                   to="/inspiration" 
-                  className="group bg-white/20 backdrop-blur-md border-2 border-white/50 text-white font-bold text-lg px-10 py-5 rounded-xl hover:bg-white/30 transition-all duration-300 shadow-2xl flex items-center"
+                  className="group bg-white/20 backdrop-blur-md border-2 border-white/50 text-white font-bold text-base px-8 py-4 rounded-xl hover:bg-white/30 transition-all duration-300 shadow-2xl flex items-center"
                 >
                   <Play className="mr-2 h-6 w-6" />
                   Watch Demo

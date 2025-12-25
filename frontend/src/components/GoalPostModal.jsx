@@ -127,7 +127,7 @@ export default function GoalPostModal({ isOpen, goalId, onClose, autoOpenComment
       <div className="absolute inset-0 bg-black/50" onClick={close} />
       {loading || !data ? (
         <div className="relative z-10 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-10 w-10 border-4 border-gray-300 dark:border-gray-700 border-t-blue-600" />
+          <div className="animate-spin rounded-full h-10 w-10 border-4 border-gray-300 dark:border-gray-700 border-t-purple-600 dark:border-t-purple-400" />
         </div>
       ) : null}
       <div className={`relative w-full ${(!data?.share?.image) ? 'max-w-3xl' : 'max-w-6xl'} 
@@ -162,7 +162,7 @@ export default function GoalPostModal({ isOpen, goalId, onClose, autoOpenComment
                 <div ref={rightPanelScrollRef} className={`flex-1 min-h-0 overflow-auto scrollbar-hide px-6 pb-0`}>
                   <div className="py-6 space-y-4">
                     <div>
-                      <div className="inline-block px-2 py-1 rounded-full text-xs font-medium text-white bg-blue-500">{data?.goal?.category}</div>
+                      <div className="inline-block px-2 py-1 rounded-full text-xs font-medium text-white bg-gradient-to-r from-purple-500 to-blue-600 shadow-md">{data?.goal?.category}</div>
                     </div>
                     <div>
                       <div className="text-xs text-gray-500">Title</div>
@@ -230,7 +230,7 @@ export default function GoalPostModal({ isOpen, goalId, onClose, autoOpenComment
               <div ref={rightPanelScrollRef} className={`flex-1 min-h-0 overflow-auto`}>
                 <div className="p-6 space-y-4">
                   <div>
-                    <div className="inline-block px-2 py-1 rounded-full text-xs font-medium text-white bg-blue-500">{data?.goal?.category}</div>
+                    <div className="inline-block px-2 py-1 rounded-full text-xs font-medium text-white bg-gradient-to-r from-purple-500 to-blue-600 shadow-md">{data?.goal?.category}</div>
                     {data?.share?.note && (
                       <div className="mt-3 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap line-clamp-3">
                         {data.share.note}

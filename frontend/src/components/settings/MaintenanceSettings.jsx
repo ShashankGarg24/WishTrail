@@ -49,8 +49,8 @@ const MaintenanceSettings = () => {
   return (
     <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
       <div className="flex items-center gap-3 mb-6">
-        <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-          <Settings className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+        <div className="p-2 bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg">
+          <Settings className="w-6 h-6 text-purple-600 dark:text-purple-400" />
         </div>
         <div>
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">
@@ -107,7 +107,7 @@ const MaintenanceSettings = () => {
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           placeholder="e.g., We're performing scheduled maintenance. We'll be back online at 3:00 PM EST."
-          className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900/50 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-white resize-none"
+          className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900/50 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:focus:ring-purple-400 focus:border-transparent text-gray-900 dark:text-white resize-none"
           rows={4}
           disabled={loading}
         />

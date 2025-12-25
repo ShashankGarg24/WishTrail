@@ -579,8 +579,8 @@ const ProfilePage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-slate-900 dark:via-gray-900 dark:to-zinc-900 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-slate-900 dark:via-gray-900 dark:to-zinc-900 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
       </div>
     );
   }
@@ -593,7 +593,7 @@ const ProfilePage = () => {
           <p className="text-gray-600 dark:text-gray-400 mb-8">The user you are looking for does not exist.</p>
           <button
             onClick={() => navigate('/discover')}
-            className="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl transition-colors duration-200 font-medium"
+            className="px-6 py-3 bg-gradient-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 text-white rounded-xl transition-all duration-200 font-medium shadow-lg hover:shadow-xl hover:scale-105"
           >
             Back to Discover
           </button>
@@ -826,7 +826,7 @@ const ProfilePage = () => {
                     ) : (
                       <button
                         onClick={handleFollow}
-                        className="flex-1 md:flex-none flex items-center justify-center space-x-2 px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors font-medium"
+                        className="flex-1 md:flex-none flex items-center justify-center space-x-2 px-4 py-3 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-lg transition-all font-medium shadow-lg hover:shadow-xl"
                       >
                         <UserPlus className="h-4 w-4" />
                         <span>Follow</span>
@@ -935,7 +935,7 @@ const ProfilePage = () => {
               {!isAuthenticated && (
                 <button
                   onClick={() => navigate('/auth')}
-                  className="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl transition-colors duration-200 font-medium"
+                  className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-xl transition-all duration-200 font-medium shadow-lg hover:shadow-xl"
                 >
                   Sign In to Follow
                 </button>
@@ -958,7 +958,7 @@ const ProfilePage = () => {
                                   flex-1 py-2 text-center text-sm font-medium capitalize
                                   transition-colors duration-200
                                   ${activeTab === tab
-                          ? "text-blue-600 dark:text-blue-400"
+                          ? "text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400"
                           : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
                         }
                                 `}
@@ -969,7 +969,7 @@ const ProfilePage = () => {
 
                   {/* Sliding Underline */}
                   <motion.div
-                    className="absolute bottom-0 h-0.5 bg-blue-600 dark:bg-blue-400"
+                    className="absolute bottom-0 h-0.5 bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400"
                     layoutId="discoverTabUnderline"
                     initial={false}
                     animate={{
@@ -1070,13 +1070,13 @@ const ProfilePage = () => {
                     <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
                       <div className="flex items-center justify-between mb-5">
                         <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                          <Clock className="h-5 w-5 text-blue-500" />
+                          <Clock className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                           Goals in Progress
                         </h3>
                         {userGoals.filter(goal => !goal.completed).length > 0 && (
                           <button 
                             onClick={() => handleTabChange('goals')}
-                            className="text-sm text-blue-600 dark:text-blue-400 hover:underline font-medium"
+                            className="text-sm text-purple-600 dark:text-purple-400 hover:underline font-medium"
                           >
                             View All
                           </button>
@@ -1095,7 +1095,7 @@ const ProfilePage = () => {
                             >
                               <div className="flex items-start justify-between mb-3">
                                 <h4 className="font-semibold text-gray-900 dark:text-white text-sm line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors flex-1">{goal.title}</h4>
-                                <Circle className="h-4 w-4 text-blue-500 flex-shrink-0 ml-2" />
+                                <Circle className="h-4 w-4 text-purple-600 dark:text-purple-400 flex-shrink-0 ml-2" />
                               </div>
                               <div className="flex items-center justify-between text-xs">
                                 <span className={`px-2 py-1 rounded-md font-medium text-white ${getCategoryColor(goal.category)}`}>
@@ -1114,7 +1114,7 @@ const ProfilePage = () => {
                               {isOwnProfile && (
                                 <button 
                                   onClick={() => navigate('/dashboard')}
-                                  className="mt-4 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-xl text-sm font-medium transition-colors"
+                                  className="mt-4 px-4 py-2 bg-gradient-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 text-white rounded-xl text-sm font-medium transition-all shadow-md hover:shadow-lg hover:scale-105"
                                 >
                                   Create Your First Goal
                                 </button>
@@ -1138,7 +1138,7 @@ const ProfilePage = () => {
               {activeTab === 'goals' && (
                 <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
                   <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
-                    <Target className="h-6 w-6 text-blue-500" />
+                    <Target className="h-6 w-6 text-purple-600 dark:text-purple-400" />
                     {isOwnProfile ? 'All Goals' : 'Goals'}
                   </h3>
                   {isProfileAccessible() ? (
@@ -1160,7 +1160,7 @@ const ProfilePage = () => {
                               {goal.completedAt ? (
                                 <CheckCircle className="h-5 w-5 text-green-500" />
                               ) : (
-                                <Circle className="h-5 w-5 text-blue-500" />
+                                <Circle className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                               )}
                             </div>
 
@@ -1171,7 +1171,7 @@ const ProfilePage = () => {
 
                             <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 pt-3 border-t border-gray-200 dark:border-gray-700">
                               <span>{goal.completedAt ? 'Completed' : 'Created'} {formatTimeAgo(goal.completedAt ? goal.completedAt : goal.createdAt)}</span>
-                              <span className="text-blue-600 dark:text-blue-400 font-medium group-hover:underline">View →</span>
+                              <span className="text-purple-600 dark:text-purple-400 font-medium group-hover:underline">View →</span>
                             </div>
                           </motion.div>
                         ))}
@@ -1186,7 +1186,7 @@ const ProfilePage = () => {
                                 <p className="text-gray-400 text-sm mb-4">Start your journey by creating your first goal</p>
                                 <button 
                                   onClick={() => navigate('/dashboard')}
-                                  className="px-6 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-medium transition-colors shadow-sm"
+                                  className="px-6 py-2.5 bg-gradient-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 text-white rounded-xl font-medium transition-all shadow-lg hover:shadow-xl hover:scale-105"
                                 >
                                   Create Goal
                                 </button>

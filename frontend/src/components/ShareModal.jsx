@@ -186,7 +186,7 @@ const ShareModal = ({ isOpen, onClose, goal, user }) => {
     {
       name: 'Twitter',
       icon: Twitter,
-      color: 'bg-blue-500 hover:bg-blue-600',
+      color: 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700',
       action: shareToTwitter
     },
     {
@@ -254,7 +254,7 @@ const ShareModal = ({ isOpen, onClose, goal, user }) => {
               <button
                 onClick={handleNativeShare}
                 disabled={isGenerating}
-                className="flex items-center justify-center space-x-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center justify-center space-x-2 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-4 py-3 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
               >
                 <Share2 className="h-5 w-5" />
                 <span>{isGenerating ? 'Generating...' : 'Share'}</span>

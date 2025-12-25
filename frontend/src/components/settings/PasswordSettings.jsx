@@ -59,7 +59,7 @@ export default function PasswordSettings() {
     const strength = [hasLength, hasLetter, hasNumber].filter(Boolean).length;
     
     if (strength === 3 && hasSpecial) return { text: 'Strong', color: 'text-green-600 dark:text-green-400' };
-    if (strength === 3) return { text: 'Good', color: 'text-blue-600 dark:text-blue-400' };
+    if (strength === 3) return { text: 'Good', color: 'text-purple-600 dark:text-purple-400' };
     if (strength === 2) return { text: 'Fair', color: 'text-yellow-600 dark:text-yellow-400' };
     return { text: 'Weak', color: 'text-red-600 dark:text-red-400' };
   };
@@ -266,12 +266,12 @@ export default function PasswordSettings() {
       return (
         <div className="space-y-4">
           {showWarning && <WarningDialog />}
-          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+          <div className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
             <div className="flex items-start gap-3">
-              <Shield className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+              <Shield className="h-5 w-5 text-purple-600 dark:text-purple-400 mt-0.5 flex-shrink-0" />
               <div>
-                <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-1">Set a Password</h4>
-                <p className="text-sm text-blue-700 dark:text-blue-200">
+                <h4 className="font-medium text-purple-900 dark:text-purple-100 mb-1">Set a Password</h4>
+                <p className="text-sm text-purple-700 dark:text-purple-200">
                   You signed up using social login. Set a password to enable traditional login as an alternative.
                 </p>
               </div>
@@ -314,8 +314,8 @@ export default function PasswordSettings() {
       <div className="space-y-4">
         {showWarning && <WarningDialog />}
         <div className="text-center">
-          <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Shield className="w-8 h-8 text-blue-500" />
+          <div className="w-16 h-16 bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900 dark:to-blue-900 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Shield className="w-8 h-8 text-purple-600 dark:text-purple-400" />
           </div>
           <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-2">
             Verify Your Email
@@ -373,7 +373,7 @@ export default function PasswordSettings() {
               onClick={handleResendOTP}
               disabled={!canResendOTP || loading}
               className={`text-sm font-medium ${
-                canResendOTP ? 'text-blue-500 hover:text-blue-600' : 'text-gray-400 cursor-not-allowed'
+                canResendOTP ? 'text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300' : 'text-gray-400 cursor-not-allowed'
               } transition-colors`}
             >
               {!canResendOTP && otpTimer > 0 
@@ -437,9 +437,9 @@ export default function PasswordSettings() {
             </div>
           </div>
 
-          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
-            <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">Password Requirements</h4>
-            <ul className="text-sm text-blue-700 dark:text-blue-200 space-y-1">
+          <div className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 rounded-lg p-4">
+            <h4 className="font-medium text-purple-900 dark:text-purple-100 mb-2">Password Requirements</h4>
+            <ul className="text-sm text-purple-700 dark:text-purple-200 space-y-1">
               <li className={newPassword.length >= 8 ? 'text-green-600 dark:text-green-400' : ''}>
                 {newPassword.length >= 8 ? '✓' : '•'} At least 8 characters long
               </li>
@@ -577,9 +577,9 @@ export default function PasswordSettings() {
         </div>
       </div>
 
-      <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
-        <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">Password Requirements</h4>
-        <ul className="text-sm text-blue-700 dark:text-blue-200 space-y-1">
+      <div className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 rounded-lg p-4">
+        <h4 className="font-medium text-purple-900 dark:text-purple-100 mb-2">Password Requirements</h4>
+        <ul className="text-sm text-purple-700 dark:text-purple-200 space-y-1">
           <li className={newPassword.length >= 8 ? 'text-green-600 dark:text-green-400' : ''}>
             {newPassword.length >= 8 ? '✓' : '•'} At least 8 characters long
           </li>
