@@ -1,41 +1,91 @@
 # robots.txt for WishTrail
-# https://wishtrail.in
+# Goal tracking platform - https://wishtrail.in
+# Last updated: 2025-12-25
 
+# Default rules for all crawlers
 User-agent: *
 
-# Allow important public pages
+# Public pages - Allow indexing
 Allow: /
-Allow: /inspiration
 Allow: /auth
+Allow: /inspiration
 
-# Block user-specific and authenticated pages
+# Legal pages - Allow for transparency
+Allow: /privacy-policy
+Allow: /terms-of-service
+Allow: /community-guidelines
+Allow: /copyright-policy
+
+# User-specific pages - Block from indexing
 Disallow: /dashboard
+Disallow: /profile/*/settings
 Disallow: /notifications
-Disallow: /feed
-Disallow: /profile
 Disallow: /settings
 Disallow: /reset-password
 
-# Block API endpoints
+# API endpoints - Block all bots
 Disallow: /api/
 
-# Allow search engines to discover users and content
-Allow: /discover
-Allow: /leaderboard
-Allow: /communities
+# Static assets - Allow but with low priority
+Allow: /assets/
+Allow: /*.css$
+Allow: /*.js$
+Allow: /*.png$
+Allow: /*.jpg$
+Allow: /*.svg$
+Allow: /*.webp$
 
-# Crawl-delay (optional, to be nice to our servers)
-Crawl-delay: 1
+# Social feed - Allow but deprioritize (dynamic content)
+Allow: /feed
 
-# Point crawlers to sitemap
+# Sitemap location
 Sitemap: https://wishtrail.in/sitemap.xml
 
-# Specific bot configurations
+# Google-specific optimizations
 User-agent: Googlebot
 Allow: /
+Crawl-delay: 0.5
 
+User-agent: Googlebot-Image
+Allow: /
+
+# Bing optimizations
 User-agent: Bingbot
 Allow: /
+Crawl-delay: 0.5
 
+# Yahoo/Verizon Media
 User-agent: Slurp
 Allow: /
+Crawl-delay: 1
+
+# DuckDuckGo
+User-agent: DuckDuckBot
+Allow: /
+Crawl-delay: 1
+
+# Block bad bots
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: SemrushBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /
+
+User-agent: DotBot
+Disallow: /
+
+# Block AI scrapers (optional - uncomment if needed)
+# User-agent: GPTBot
+# Disallow: /
+#
+# User-agent: CCBot
+# Disallow: /
+#
+# User-agent: anthropic-ai
+# Disallow: /
+
+# General crawl rate
+Crawl-delay: 1
