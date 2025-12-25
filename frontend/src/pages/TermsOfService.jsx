@@ -79,7 +79,7 @@ const TermsOfService = () => {
         },
         {
           subtitle: "Copyright Infringement",
-          text: "We respect intellectual property rights. If you believe your copyrighted work has been infringed, contact us at copyright@wishtrail.com with: (1) Description of the copyrighted work; (2) Location of the infringing material; (3) Your contact information; (4) A statement of good faith belief; (5) A statement under penalty of perjury that the information is accurate."
+          text: "We respect intellectual property rights. If you believe your copyrighted work has been infringed, contact us at support@wishtrail.in with: (1) Description of the copyrighted work; (2) Location of the infringing material; (3) Your contact information; (4) A statement of good faith belief; (5) A statement under penalty of perjury that the information is accurate."
         }
       ]
     },
@@ -167,13 +167,13 @@ const TermsOfService = () => {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary-100 dark:bg-primary-900/30 mb-4">
             <Scale className="w-8 h-8 text-primary-600 dark:text-primary-400" />
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-3">
             Terms of Service
           </h1>
-          <p className="text-lg text-gray-600 dark:text-gray-400">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
             Last Updated: {lastUpdated}
           </p>
-          <p className="mt-4 text-gray-700 dark:text-gray-300 max-w-2xl mx-auto">
+          <p className="mt-3 text-sm text-gray-700 dark:text-gray-300 max-w-2xl mx-auto">
             Please read these Terms of Service carefully before using WishTrail. 
             By using our service, you agree to these terms.
           </p>
@@ -187,29 +187,29 @@ const TermsOfService = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
-              className="glass-card p-8 rounded-xl"
+              className="glass-card p-6 rounded-xl"
             >
-              <div className="flex items-start space-x-4 mb-6">
-                <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
-                  <section.icon className="w-6 h-6 text-primary-600 dark:text-primary-400" />
+              <div className="flex items-start space-x-3 mb-4">
+                <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
+                  <section.icon className="w-5 h-5 text-primary-600 dark:text-primary-400" />
                 </div>
                 <div className="flex-1">
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+                  <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-3">
                     {section.title}
                   </h2>
                   {section.content && (
-                    <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
+                    <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
                       {section.content}
                     </p>
                   )}
                   {section.subsections && (
-                    <div className="space-y-6">
+                    <div className="space-y-4">
                       {section.subsections.map((item, idx) => (
                         <div key={idx}>
-                          <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2">
+                          <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1.5">
                             {item.subtitle}
                           </h3>
-                          <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
+                          <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
                             {item.text}
                           </p>
                         </div>
@@ -228,12 +228,12 @@ const TermsOfService = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: (sections.length + index) * 0.1 }}
-              className="glass-card p-8 rounded-xl"
+              className="glass-card p-6 rounded-xl"
             >
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-3">
                 {section.title}
               </h2>
-              <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
+              <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
                 {section.content}
               </p>
             </motion.div>
@@ -253,9 +253,8 @@ const TermsOfService = () => {
               If you have questions about these Terms of Service, please contact us:
             </p>
             <div className="space-y-2 text-gray-700 dark:text-gray-300">
-              <p><strong>Email:</strong> legal@wishtrail.com</p>
-              <p><strong>Support:</strong> support@wishtrail.com</p>
-              <p><strong>Website:</strong> <a href="https://wishtrail.com" className="text-primary-600 dark:text-primary-400 hover:underline">wishtrail.com</a></p>
+              <p><strong>Support:</strong> support@wishtrail.in</p>
+              <p><strong>Website:</strong> <a href="https://wishtrail.in" className="text-primary-600 dark:text-primary-400 hover:underline">wishtrail.in</a></p>
             </div>
           </motion.div>
         </div>

@@ -5,6 +5,7 @@ import {
   ArrowLeft, TrendingUp, Target, Calendar, BarChart3, Activity
 } from 'lucide-react';
 import { habitsAPI } from '../services/api';
+import ExpandableText from '../components/ExpandableText';
 import { Line, Bar, Doughnut } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -382,28 +383,34 @@ export default function HabitAnalyticsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4 pb-20">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4 pb-16">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-6">
+        <div className="mb-5">
           <button
             onClick={() => navigate(-1)}
-            className="inline-flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors mb-4"
+            className="inline-flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors mb-3"
           >
-            <ArrowLeft className="h-5 w-5" />
+            <ArrowLeft className="h-4 w-4" />
             Back
           </button>
           
-          <div className="glass-card-hover p-6 rounded-xl">
+          <div className="glass-card-hover p-4 rounded-xl">
             <div className="flex items-start justify-between">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                <h1 className="text-xl font-bold text-gray-900 dark:text-white mb-1.5">
                   {habit.name}
                 </h1>
                 {habit.description && (
-                  <p className="text-gray-600 dark:text-gray-400">{habit.description}</p>
+                  <div className="mb-2">
+                    <ExpandableText
+                      text={habit.description}
+                      maxLength={200}
+                      className="text-sm text-gray-600 dark:text-gray-400"
+                    />
+                  </div>
                 )}
-                <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">
+                <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
                   Created {new Date(habit.createdAt).toLocaleDateString()}
                 </p>
               </div>
@@ -411,7 +418,7 @@ export default function HabitAnalyticsPage() {
               <select
                 value={days}
                 onChange={(e) => setDays(Number(e.target.value))}
-                className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="px-3 py-1.5 text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
               >
                 <option value={30}>Last 30 days</option>
                 <option value={60}>Last 60 days</option>
@@ -424,21 +431,21 @@ export default function HabitAnalyticsPage() {
         </div>
 
         {/* Key Stats Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
           {/* Target Progress - Count Based */}
           {habit.targetCompletions && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-gradient-to-br from-indigo-50 to-indigo-100 dark:from-indigo-900/20 dark:to-indigo-800/20 rounded-xl p-4 shadow-sm border border-indigo-200 dark:border-indigo-800"
+              className="bg-gradient-to-br from-indigo-50 to-indigo-100 dark:from-indigo-900/20 dark:to-indigo-800/20 rounded-lg p-3 shadow-sm border border-indigo-200 dark:border-indigo-800"
             >
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-indigo-500 rounded-lg">
-                  <Target className="w-5 h-5 text-white" />
+              <div className="flex items-center gap-2 mb-1.5">
+                <div className="p-1.5 bg-indigo-500 rounded-lg">
+                  <Target className="w-4 h-4 text-white" />
                 </div>
-                <span className="text-sm font-medium text-indigo-900 dark:text-indigo-300">Target Progress</span>
+                <span className="text-xs font-medium text-indigo-900 dark:text-indigo-300">Target Progress</span>
               </div>
-              <p className="text-2xl font-bold text-indigo-900 dark:text-white">
+              <p className="text-xl font-bold text-indigo-900 dark:text-white">
                 {stats?.totalCompletions || 0}/{habit.targetCompletions}
               </p>
               <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-1">
@@ -452,15 +459,15 @@ export default function HabitAnalyticsPage() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-gradient-to-br from-indigo-50 to-indigo-100 dark:from-indigo-900/20 dark:to-indigo-800/20 rounded-xl p-4 shadow-sm border border-indigo-200 dark:border-indigo-800"
+              className="bg-gradient-to-br from-indigo-50 to-indigo-100 dark:from-indigo-900/20 dark:to-indigo-800/20 rounded-lg p-3 shadow-sm border border-indigo-200 dark:border-indigo-800"
             >
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-indigo-500 rounded-lg">
-                  <Target className="w-5 h-5 text-white" />
+              <div className="flex items-center gap-2 mb-1.5">
+                <div className="p-1.5 bg-indigo-500 rounded-lg">
+                  <Target className="w-4 h-4 text-white" />
                 </div>
-                <span className="text-sm font-medium text-indigo-900 dark:text-indigo-300">Target Progress</span>
+                <span className="text-xs font-medium text-indigo-900 dark:text-indigo-300">Target Progress</span>
               </div>
-              <p className="text-2xl font-bold text-indigo-900 dark:text-white">
+              <p className="text-xl font-bold text-indigo-900 dark:text-white">
                 {stats?.totalDays || 0}/{habit.targetDays}
               </p>
               <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-1">
@@ -472,15 +479,15 @@ export default function HabitAnalyticsPage() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-xl p-4 shadow-sm border border-blue-200 dark:border-blue-800"
+            className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-lg p-3 shadow-sm border border-blue-200 dark:border-blue-800"
           >
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-blue-500 rounded-lg">
-                <Calendar className="w-5 h-5 text-white" />
+            <div className="flex items-center gap-2 mb-1.5">
+              <div className="p-1.5 bg-blue-500 rounded-lg">
+                <Calendar className="w-4 h-4 text-white" />
               </div>
-              <span className="text-sm font-medium text-blue-900 dark:text-blue-300">Active Days</span>
+              <span className="text-xs font-medium text-blue-900 dark:text-blue-300">Active Days</span>
             </div>
-            <p className="text-2xl font-bold text-blue-900 dark:text-white">{activeDays}</p>
+            <p className="text-xl font-bold text-blue-900 dark:text-white">{activeDays}</p>
             <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">Days with activity</p>
           </motion.div>
 
@@ -488,15 +495,15 @@ export default function HabitAnalyticsPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-xl p-4 shadow-sm border border-green-200 dark:border-green-800"
+            className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-lg p-3 shadow-sm border border-green-200 dark:border-green-800"
           >
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-green-500 rounded-lg">
-                <Activity className="w-5 h-5 text-white" />
+            <div className="flex items-center gap-2 mb-1.5">
+              <div className="p-1.5 bg-green-500 rounded-lg">
+                <Activity className="w-4 h-4 text-white" />
               </div>
-              <span className="text-sm font-medium text-green-900 dark:text-green-300">Completion Rate</span>
+              <span className="text-xs font-medium text-green-900 dark:text-green-300">Completion Rate</span>
             </div>
-            <p className="text-2xl font-bold text-green-900 dark:text-white">{completionRate}%</p>
+            <p className="text-xl font-bold text-green-900 dark:text-white">{completionRate}%</p>
             <p className="text-xs text-green-600 dark:text-green-400 mt-1">
               {activeDays} of {expectedDaysAdjusted} expected
             </p>
@@ -506,15 +513,15 @@ export default function HabitAnalyticsPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-xl p-4 shadow-sm border border-purple-200 dark:border-purple-800"
+            className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-lg p-3 shadow-sm border border-purple-200 dark:border-purple-800"
           >
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-purple-500 rounded-lg">
-                <TrendingUp className="w-5 h-5 text-white" />
+            <div className="flex items-center gap-2 mb-1.5">
+              <div className="p-1.5 bg-purple-500 rounded-lg">
+                <TrendingUp className="w-4 h-4 text-white" />
               </div>
-              <span className="text-sm font-medium text-purple-900 dark:text-purple-300">Current Streak</span>
+              <span className="text-xs font-medium text-purple-900 dark:text-purple-300">Current Streak</span>
             </div>
-            <p className="text-2xl font-bold text-purple-900 dark:text-white">{currentStreak}</p>
+            <p className="text-xl font-bold text-purple-900 dark:text-white">{currentStreak}</p>
             <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">days in a row</p>
           </motion.div>
 
@@ -522,33 +529,33 @@ export default function HabitAnalyticsPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/20 rounded-xl p-4 shadow-sm border border-amber-200 dark:border-amber-800"
+            className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/20 rounded-lg p-3 shadow-sm border border-amber-200 dark:border-amber-800"
           >
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-amber-500 rounded-lg">
-                <Target className="w-5 h-5 text-white" />
+            <div className="flex items-center gap-2 mb-1.5">
+              <div className="p-1.5 bg-amber-500 rounded-lg">
+                <Target className="w-4 h-4 text-white" />
               </div>
-              <span className="text-sm font-medium text-amber-900 dark:text-amber-300">Longest Streak</span>
+              <span className="text-xs font-medium text-amber-900 dark:text-amber-300">Longest Streak</span>
             </div>
-            <p className="text-2xl font-bold text-amber-900 dark:text-white">{longestStreak}</p>
+            <p className="text-xl font-bold text-amber-900 dark:text-white">{longestStreak}</p>
             <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">best performance</p>
           </motion.div>
         </div>
 
         {/* Charts Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-5">
           {/* Weekly Trend */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
-            className="glass-card-hover p-6 rounded-xl"
+            className="glass-card-hover p-4 rounded-xl"
           >
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-indigo-500" />
+            <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-indigo-500" />
               Weekly Trend
             </h3>
-            <div className="h-64">
+            <div className="h-56">
               <Line data={weeklyTrendData} options={weeklyTrendOptions} />
             </div>
           </motion.div>
@@ -558,13 +565,13 @@ export default function HabitAnalyticsPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
-            className="glass-card-hover p-6 rounded-xl"
+            className="glass-card-hover p-4 rounded-xl"
           >
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-              <Target className="w-5 h-5 text-green-500" />
+            <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+              <Target className="w-4 h-4 text-green-500" />
               Status Distribution
             </h3>
-            <div className="h-64">
+            <div className="h-56">
               <Doughnut data={statusChartData} options={statusChartOptions} />
             </div>
           </motion.div>
@@ -574,13 +581,13 @@ export default function HabitAnalyticsPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6 }}
-            className="glass-card-hover p-6 rounded-xl lg:col-span-2"
+            className="glass-card-hover p-4 rounded-xl lg:col-span-2"
           >
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-              <BarChart3 className="w-5 h-5 text-purple-500" />
+            <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+              <BarChart3 className="w-4 h-4 text-purple-500" />
               Weekly Breakdown
             </h3>
-            <div className="h-64">
+            <div className="h-56">
               <Bar data={weeklyChartData} options={weeklyChartOptions} />
             </div>
           </motion.div>
@@ -591,10 +598,10 @@ export default function HabitAnalyticsPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.7 }}
-          className="glass-card-hover p-6 rounded-xl mb-6"
+          className="glass-card-hover p-4 rounded-xl mb-5"
         >
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-blue-500" />
+          <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-blue-500" />
             Activity Heatmap
           </h3>
           <div className="overflow-x-auto">

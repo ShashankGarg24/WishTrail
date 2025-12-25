@@ -17,13 +17,13 @@ const CopyrightPolicy = () => {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary-100 dark:bg-primary-900/30 mb-4">
             <Copyright className="w-8 h-8 text-primary-600 dark:text-primary-400" />
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-3">
             Copyright & DMCA Policy
           </h1>
-          <p className="text-lg text-gray-600 dark:text-gray-400">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
             Last Updated: {lastUpdated}
           </p>
-          <p className="mt-4 text-gray-700 dark:text-gray-300 max-w-2xl mx-auto">
+          <p className="mt-3 text-sm text-gray-700 dark:text-gray-300 max-w-2xl mx-auto">
             WishTrail respects the intellectual property rights of others and expects our users to do the same. 
             This policy outlines how we handle copyright infringement claims.
           </p>
@@ -34,12 +34,12 @@ const CopyrightPolicy = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="glass-card p-8 rounded-xl mb-8"
+          className="glass-card p-6 rounded-xl mb-6"
         >
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-3">
             Overview
           </h2>
-          <p className="text-gray-600 dark:text-gray-400 leading-relaxed mb-4">
+          <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed mb-3">
             WishTrail complies with the Digital Millennium Copyright Act (DMCA) and other applicable copyright laws. 
             We respond promptly to valid copyright infringement notices and will remove or disable access to 
             infringing material when properly notified.
@@ -54,17 +54,17 @@ const CopyrightPolicy = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="glass-card p-8 rounded-xl mb-8"
+          className="glass-card p-6 rounded-xl mb-6"
         >
-          <div className="flex items-start space-x-4 mb-6">
-            <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
-              <CheckCircle className="w-6 h-6 text-primary-600 dark:text-primary-400" />
+          <div className="flex items-start space-x-3 mb-4">
+            <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
+              <CheckCircle className="w-5 h-5 text-primary-600 dark:text-primary-400" />
             </div>
             <div className="flex-1">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-3">
                 User Responsibilities
               </h2>
-              <div className="space-y-4 text-gray-600 dark:text-gray-400">
+              <div className="space-y-3 text-sm text-gray-600 dark:text-gray-400">
                 <p>
                   <strong className="text-gray-800 dark:text-gray-200">Own Your Content:</strong> Only upload content that you own or have permission to use. This includes images, videos, text, music, and other creative works.
                 </p>
@@ -87,17 +87,17 @@ const CopyrightPolicy = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="glass-card p-8 rounded-xl mb-8"
+          className="glass-card p-6 rounded-xl mb-6"
         >
-          <div className="flex items-start space-x-4 mb-6">
-            <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
-              <AlertCircle className="w-6 h-6 text-primary-600 dark:text-primary-400" />
+          <div className="flex items-start space-x-3 mb-4">
+            <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
+              <AlertCircle className="w-5 h-5 text-primary-600 dark:text-primary-400" />
             </div>
             <div className="flex-1">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-3">
                 Filing a DMCA Takedown Notice
               </h2>
-              <p className="text-gray-600 dark:text-gray-400 leading-relaxed mb-6">
+              <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed mb-4">
                 If you believe your copyrighted work has been infringed on WishTrail, you may submit a DMCA takedown notice. 
                 To be valid, your notice must include all of the following:
               </p>
@@ -195,7 +195,7 @@ const CopyrightPolicy = () => {
               </p>
               <div className="bg-white dark:bg-gray-800 p-6 rounded-lg space-y-2">
                 <p className="text-gray-900 dark:text-white font-semibold">WishTrail Copyright Agent</p>
-                <p className="text-gray-700 dark:text-gray-300"><strong>Email:</strong> copyright@wishtrail.com</p>
+                <p className="text-gray-700 dark:text-gray-300"><strong>Email:</strong> support@wishtrail.in</p>
                 <p className="text-gray-700 dark:text-gray-300"><strong>Subject Line:</strong> "DMCA Takedown Notice"</p>
               </div>
               <p className="mt-4 text-sm text-gray-500 dark:text-gray-500">
@@ -265,7 +265,7 @@ const CopyrightPolicy = () => {
               </div>
 
               <p className="mt-6 text-gray-600 dark:text-gray-400">
-                Send counter-notifications to: <strong className="text-primary-600 dark:text-primary-400">copyright@wishtrail.com</strong>
+                Send counter-notifications to: <strong className="text-primary-600 dark:text-primary-400">support@wishtrail.in</strong>
               </p>
 
               <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-400 rounded">
@@ -332,7 +332,7 @@ const CopyrightPolicy = () => {
             <div>
               <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-2">Trademark Complaints</h3>
               <p>
-                For trademark infringement complaints, please contact us at <strong>legal@wishtrail.com</strong> with 
+                For trademark infringement complaints, please contact us at <strong>support@wishtrail.in</strong> with 
                 details of your trademark registration and the allegedly infringing content.
               </p>
             </div>
@@ -340,14 +340,14 @@ const CopyrightPolicy = () => {
               <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-2">Other Intellectual Property Issues</h3>
               <p>
                 For patent, trade secret, or other intellectual property concerns not covered by DMCA, 
-                contact <strong>legal@wishtrail.com</strong> with relevant details.
+                contact <strong>support@wishtrail.in</strong> with relevant details.
               </p>
             </div>
             <div>
               <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-2">Questions</h3>
               <p>
                 If you have questions about this policy or copyright issues in general, 
-                contact <strong>support@wishtrail.com</strong>.
+                contact <strong>support@wishtrail.in</strong>.
               </p>
             </div>
           </div>

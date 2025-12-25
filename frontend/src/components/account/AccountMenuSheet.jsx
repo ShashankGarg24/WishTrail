@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import useApiStore from '../../store/apiStore'
-import { X, User, BarChart3, Settings, LogOut, MessageSquarePlus } from 'lucide-react'
+import { X, User, BarChart3, Settings, LogOut, MessageSquarePlus, Star } from 'lucide-react'
 
 const AccountMenuSheet = ({ open, onClose }) => {
   const navigate = useNavigate()
@@ -42,6 +42,9 @@ const AccountMenuSheet = ({ open, onClose }) => {
             </button>
             <button onClick={() => { window.dispatchEvent(new CustomEvent('wt_open_feedback')); onClose(); }} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">
               <MessageSquarePlus className="h-5 w-5" /> Feedback
+            </button>
+            <button onClick={() => { window.dispatchEvent(new CustomEvent('wt_open_rating')); onClose(); }} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">
+              <Star className="h-5 w-5" /> Rate Us
             </button>
             {isAuthenticated && (
               <button onClick={async () => { await logout(); onClose(); navigate('/auth'); }} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-red-600">

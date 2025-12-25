@@ -133,7 +133,7 @@ const CommunityGuidelines = () => {
         },
         {
           subtitle: "Appeals",
-          text: "If you believe your content was removed in error, you can appeal by contacting support@wishtrail.com with your username and details."
+          text: "If you believe your content was removed in error, you can appeal by contacting support@wishtrail.in with your username and details."
         }
       ]
     }
@@ -197,13 +197,13 @@ const CommunityGuidelines = () => {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary-100 dark:bg-primary-900/30 mb-4">
             <Users className="w-8 h-8 text-primary-600 dark:text-primary-400" />
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-3">
             Community Guidelines
           </h1>
-          <p className="text-lg text-gray-600 dark:text-gray-400">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
             Last Updated: {lastUpdated}
           </p>
-          <p className="mt-4 text-gray-700 dark:text-gray-300 max-w-2xl mx-auto">
+          <p className="mt-3 text-sm text-gray-700 dark:text-gray-300 max-w-2xl mx-auto">
             WishTrail is a supportive community dedicated to helping you achieve your goals. 
             These guidelines ensure a positive, safe, and inspiring environment for everyone.
           </p>
@@ -216,27 +216,27 @@ const CommunityGuidelines = () => {
           transition={{ delay: 0.1 }}
           className="mb-12"
         >
-          <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-6 text-center">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 text-center">
             Our Core Values
           </h2>
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid md:grid-cols-2 gap-4">
             {coreValues.map((value, index) => (
               <motion.div
                 key={value.title}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 + index * 0.05 }}
-                className="glass-card p-6 rounded-xl"
+                className="glass-card p-4 rounded-xl"
               >
-                <div className="flex items-start space-x-4">
-                  <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
-                    <value.icon className="w-6 h-6 text-primary-600 dark:text-primary-400" />
+                <div className="flex items-start space-x-3">
+                  <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
+                    <value.icon className="w-5 h-5 text-primary-600 dark:text-primary-400" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                    <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1.5">
                       {value.title}
                     </h3>
-                    <p className="text-gray-600 dark:text-gray-400">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
                       {value.description}
                     </p>
                   </div>
@@ -360,9 +360,7 @@ const CommunityGuidelines = () => {
             please contact us:
           </p>
           <div className="space-y-2 text-gray-700 dark:text-gray-300">
-            <p><strong>Support:</strong> support@wishtrail.com</p>
-            <p><strong>Report Abuse:</strong> abuse@wishtrail.com</p>
-            <p><strong>General Inquiries:</strong> hello@wishtrail.com</p>
+            <p><strong>Support:</strong> support@wishtrail.in</p>
           </div>
           <p className="mt-4 text-sm text-gray-600 dark:text-gray-400">
             Thank you for helping us maintain a positive, supportive community where everyone can thrive!

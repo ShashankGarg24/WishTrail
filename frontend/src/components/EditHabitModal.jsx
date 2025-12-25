@@ -160,9 +160,8 @@ export default function EditHabitModal({ isOpen, onClose, habit, onSave }) {
                   onChange={(e) => setFrequency(e.target.value)} 
                   className="w-full px-4 py-3 rounded-xl border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-primary-500 dark:focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-colors"
                 >
-                  <option value="daily">Every day</option>
-                  <option value="weekly">Specific days of the week</option>
-                  <option value="custom">Custom schedule</option>
+                  <option value="daily">Daily</option>
+                  <option value="custom">Custom</option>
                 </select>
               </div>
 

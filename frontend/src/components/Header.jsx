@@ -5,12 +5,14 @@ import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import useApiStore from '../store/apiStore'
 const SettingsModal = lazy(() => import('./SettingsModal'));
 const FeedbackButton = lazy(() => import('./FeedbackButton'));
+const RatingModal = lazy(() => import('./RatingModal'));
 
 const Header = () => {
   const { isAuthenticated, logout, unreadNotifications, getNotifications, user: currentUser } = useApiStore()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false)
+  const [isRatingOpen, setIsRatingOpen] = useState(false)
   const location = useLocation()
   const menuRef = useRef(null)
   const navigate = useNavigate();
@@ -116,6 +118,13 @@ const Header = () => {
     const handler = () => setIsFeedbackOpen(true)
     window.addEventListener('wt_open_feedback', handler)
     return () => window.removeEventListener('wt_open_feedback', handler)
+  }, [])
+
+  // Global event to open rating modal from anywhere
+  useEffect(() => {
+    const handler = () => setIsRatingOpen(true)
+    window.addEventListener('wt_open_rating', handler)
+    return () => window.removeEventListener('wt_open_rating', handler)
   }, [])
 
   return (
@@ -291,6 +300,16 @@ const Header = () => {
                         <span>Feedback</span>
                       </button>
                       <button
+                        onClick={() => {
+                          setIsMenuOpen(false);
+                          setIsRatingOpen(true);
+                        }}
+                        className="flex items-center space-x-3 px-3 py-2 text-base font-medium text-gray-700 hover:text-primary-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:text-primary-400 dark:hover:bg-gray-800 rounded-lg transition-colors w-full text-left"
+                      >
+                        <Star className="h-5 w-5" />
+                        <span>Rate Us</span>
+                      </button>
+                      <button
                         onClick={handleLogout}
                         className="flex items-center space-x-3 px-3 py-2 text-base font-medium text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20 rounded-lg transition-colors w-full text-left"
                       >
@@ -322,6 +341,10 @@ const Header = () => {
       <Suspense fallback={null}><FeedbackButton
         isOpen={isFeedbackOpen}
         onClose={() => setIsFeedbackOpen(false)}
+      /></Suspense>
+      <Suspense fallback={null}><RatingModal
+        isOpen={isRatingOpen}
+        onClose={() => setIsRatingOpen(false)}
       /></Suspense>
       <AnimatePresence>
         {toast && (

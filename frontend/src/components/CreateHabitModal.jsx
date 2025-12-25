@@ -22,10 +22,12 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
   const [targetCompletions, setTargetCompletions] = useState('');
   const [targetDays, setTargetDays] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     if (!isOpen) return;
     lockBodyScroll();
+    setError(''); // Clear error when modal opens
     return () => unlockBodyScroll();
   }, [isOpen]);
 
@@ -46,6 +48,7 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
+    setError(''); // Clear previous errors
     try {
       const payload = {
         name,
@@ -68,13 +71,17 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
         onCreated?.(res.data.data.habit);
         onClose?.();
       } else {
+        const errorMsg = res?.data?.message || 'Failed to create habit';
+        setError(errorMsg);
         window.dispatchEvent(new CustomEvent('wt_toast', {
-          detail: { message: res?.data?.message || 'Failed to create habit', type: 'error' }
+          detail: { message: errorMsg, type: 'error' }
         }));
       }
     } catch (e) {
+      const errorMsg = e?.response?.data?.message || e.message || 'Failed to create habit';
+      setError(errorMsg);
       window.dispatchEvent(new CustomEvent('wt_toast', {
-        detail: { message: e?.response?.data?.message || e.message || 'Failed to create habit', type: 'error' }
+        detail: { message: errorMsg, type: 'error' }
       }));
     } finally {
       setSubmitting(false);
@@ -156,13 +163,12 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
                   onChange={(e) => setFrequency(e.target.value)} 
                   className="w-full px-4 py-3 rounded-xl border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-primary-500 dark:focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-colors"
                 >
-                  <option value="daily">Every day</option>
-                  <option value="weekly">Specific days of the week</option>
-                  <option value="custom">Custom schedule</option>
+                  <option value="daily">Daily</option>
+                  <option value="custom">Custom</option>
                 </select>
               </div>
 
-              {(frequency === 'weekly' || frequency === 'custom') && (
+              {(frequency === 'custom') && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Select Days</label>
                   <div className="flex flex-wrap gap-2">

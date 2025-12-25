@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Heart, MessageCircle, Send, CheckCircle, Target, Calendar, TrendingUp, Plus, ListChecks, X, AlertCircle, Zap, Award } from 'lucide-react'
+import { Heart, MessageCircle, Send, CheckCircle, Target, Calendar, TrendingUp, Plus, ListChecks } from 'lucide-react'
 const ActivityCommentsModal = lazy(() => import('./ActivityCommentsModal'));
 import useApiStore from '../store/apiStore'
 
@@ -10,6 +10,7 @@ export default function GoalDetailsModal({ isOpen, goalId, onClose, autoOpenComm
     const [detailsExpanded, setDetailsExpanded] = useState(false)
     const [isMobile, setIsMobile] = useState(false)
     const [commentsOpenActivityId, setCommentsOpenActivityId] = useState(null)
+    const [liking, setLiking] = useState(false)
     const [timelineEvents, setTimelineEvents] = useState([])
     const [selectedEvent, setSelectedEvent] = useState('created') // Track which event is selected
     const [showTimeline, setShowTimeline] = useState(false) // Toggle for vertical timeline view
@@ -186,6 +187,82 @@ export default function GoalDetailsModal({ isOpen, goalId, onClose, autoOpenComm
         navigate(`/profile/@${userId}?tab=overview`);
     };
 
+    const handleLike = async () => {
+        const activityId = data?.social?.activityId;
+        if (!activityId || liking) return;
+
+        const currentIsLiked = data?.social?.isLiked;
+        const currentLikeCount = data?.social?.likeCount || 0;
+        const newIsLiked = !currentIsLiked;
+        const newLikeCount = currentIsLiked ? currentLikeCount - 1 : currentLikeCount + 1;
+
+        console.log('[GoalDetailsModal] Like clicked:', { currentIsLiked, newIsLiked, currentLikeCount, newLikeCount });
+
+        // Optimistic update - create entirely new object
+        setData(prev => {
+            if (!prev) return prev;
+            return {
+                ...prev,
+                social: {
+                    ...prev.social,
+                    isLiked: newIsLiked,
+                    likeCount: newLikeCount
+                }
+            };
+        });
+
+        setLiking(true);
+        try {
+            const result = await useApiStore.getState().likeActivity(activityId, newIsLiked);
+            console.log('[GoalDetailsModal] Like API result:', result);
+            
+            if (result?.success) {
+                // Update with actual values from API
+                setData(prev => {
+                    if (!prev) return prev;
+                    return {
+                        ...prev,
+                        social: {
+                            ...prev.social,
+                            isLiked: result.isLiked,
+                            likeCount: result.likeCount
+                        }
+                    };
+                });
+            } else {
+                // Revert on failure
+                console.log('[GoalDetailsModal] Like failed, reverting');
+                setData(prev => {
+                    if (!prev) return prev;
+                    return {
+                        ...prev,
+                        social: {
+                            ...prev.social,
+                            isLiked: currentIsLiked,
+                            likeCount: currentLikeCount
+                        }
+                    };
+                });
+            }
+        } catch (error) {
+            // Revert on error
+            console.error('[GoalDetailsModal] Like error:', error);
+            setData(prev => {
+                if (!prev) return prev;
+                return {
+                    ...prev,
+                    social: {
+                        ...prev.social,
+                        isLiked: currentIsLiked,
+                        likeCount: currentLikeCount
+                    }
+                };
+            });
+        } finally {
+            setLiking(false);
+        }
+    };
+
     const handleEventClick = (event) => {
         setSelectedEvent(event.id)
 
@@ -348,14 +425,14 @@ export default function GoalDetailsModal({ isOpen, goalId, onClose, autoOpenComm
                                         </div>
                                     )}
                                 </div>
-                                <div className="mt-auto border-t border-gray-200 dark:border-gray-700 p-4 flex items-center gap-2 sticky bottom-0 bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl shadow-lg">
-                                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
-                                        <Heart className="h-4 w-4 text-red-500" />
-                                        <span>{data?.social?.likeCount || 0}</span>
-                                    </div>
-                                    <button onClick={openComments} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-primary-100 hover:text-primary-600 dark:hover:bg-primary-900/30 dark:hover:text-primary-400 transition-all">
-                                        <MessageCircle className="h-4 w-4" />
-                                        <span>{data?.social?.commentCount || 0}</span>
+                                <div className="mt-auto border-t border-gray-200 dark:border-gray-700 p-4 flex items-center gap-2 sticky bottom-0 bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl shadow-lg z-10">
+                                    <button onClick={handleLike} disabled={liking} className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:scale-105 active:scale-95 ${data?.social?.isLiked ? 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 shadow-sm' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/30 dark:hover:text-red-400 hover:shadow-md'}`}>
+                                        <Heart className={`h-5 w-5 transition-all duration-200 ${data?.social?.isLiked ? 'fill-current' : ''}`} />
+                                        <span className="font-semibold">{data?.social?.likeCount || 0}</span>
+                                    </button>
+                                    <button onClick={openComments} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/30 dark:hover:text-blue-400 transition-all duration-200 hover:scale-105 active:scale-95 hover:shadow-md">
+                                        <MessageCircle className="h-5 w-5" />
+                                        <span className="font-semibold">{data?.social?.commentCount || 0}</span>
                                     </button>
                                     <button onClick={() => {
                                         try {
@@ -364,8 +441,8 @@ export default function GoalDetailsModal({ isOpen, goalId, onClose, autoOpenComm
                                             navigator.clipboard.writeText(url);
                                             window.dispatchEvent(new CustomEvent('wt_toast', { detail: { message: 'Link copied to clipboard', type: 'success', duration: 2000 } }));
                                         } catch { }
-                                    }} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-primary-100 hover:text-primary-600 dark:hover:bg-primary-900/30 dark:hover:text-primary-400 transition-all" title="Share">
-                                        <Send className="h-4 w-4" />
+                                    }} className="inline-flex items-center justify-center px-3.5 py-2.5 rounded-xl text-sm font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-green-50 hover:text-green-600 dark:hover:bg-green-900/30 dark:hover:text-green-400 transition-all duration-200 hover:scale-105 active:scale-95 hover:shadow-md" title="Share">
+                                        <Send className="h-5 w-5" />
                                     </button>
                                 </div>
                             </div>
@@ -482,9 +559,15 @@ export default function GoalDetailsModal({ isOpen, goalId, onClose, autoOpenComm
                                     </div>
                                 )}
                             </div>
-                            <div className="mt-auto border-t border-gray-200 dark:border-gray-800 p-4 flex items-center gap-3 sticky bottom-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur">
-                                <div className="inline-flex items-center gap-1.5 text-sm text_gray-700 dark:text-gray-300"><Heart className="h-4 w-4" />{data?.social?.likeCount || 0}</div>
-                                <button onClick={openComments} className="inline-flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-300 hover:text-blue-600"><MessageCircle className="h-4 w-4" />{data?.social?.commentCount || 0}</button>
+                            <div className="mt-auto border-t border-gray-200 dark:border-gray-800 p-4 flex items-center gap-4 sticky bottom-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur z-10">
+                                <button onClick={handleLike} disabled={liking} className={`inline-flex items-center gap-2 text-sm font-medium transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:scale-110 active:scale-95 ${data?.social?.isLiked ? 'text-red-500' : 'text-gray-600 dark:text-gray-400 hover:text-red-500'}`}>
+                                    <Heart className={`h-5 w-5 transition-all duration-200 ${data?.social?.isLiked ? 'fill-current' : ''}`} />
+                                    <span>{data?.social?.likeCount || 0}</span>
+                                </button>
+                                <button onClick={openComments} className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-blue-500 transition-all duration-200 hover:scale-110 active:scale-95">
+                                    <MessageCircle className="h-5 w-5" />
+                                    <span>{data?.social?.commentCount || 0}</span>
+                                </button>
                                 <button onClick={() => {
                                     try {
                                         const id = data?.social?.activityId || data?.goal?._id;
@@ -492,8 +575,8 @@ export default function GoalDetailsModal({ isOpen, goalId, onClose, autoOpenComm
                                         navigator.clipboard.writeText(url);
                                         window.dispatchEvent(new CustomEvent('wt_toast', { detail: { message: 'Link copied to clipboard', type: 'success', duration: 2000 } }));
                                     } catch { }
-                                }} className="inline-flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-300 hover:text-blue-600">
-                                    <Send className="h-4 w-4 -rotate-80" />
+                                }} className="inline-flex items-center justify-center text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-green-500 transition-all duration-200 hover:scale-110 active:scale-95" title="Share">
+                                    <Send className="h-5 w-5" />
                                 </button>
                             </div>
                         </div>

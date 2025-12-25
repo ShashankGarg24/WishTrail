@@ -1558,16 +1558,20 @@ const useApiStore = create(
 
           // Update in activity feed
           set(state => ({
-            activityFeed: state.activityFeed.map(activity =>
-              activity._id === activityId
-                ? { ...activity, likeCount, isLiked }
-                : activity
-            ),
-            recentActivities: state.recentActivities.map(activity =>
-              activity._id === activityId
-                ? { ...activity, likeCount, isLiked }
-                : activity
-            )
+            activityFeed: Array.isArray(state.activityFeed) 
+              ? state.activityFeed.map(activity =>
+                  activity._id === activityId
+                    ? { ...activity, likeCount, isLiked }
+                    : activity
+                )
+              : state.activityFeed,
+            recentActivities: Array.isArray(state.recentActivities)
+              ? state.recentActivities.map(activity =>
+                  activity._id === activityId
+                    ? { ...activity, likeCount, isLiked }
+                    : activity
+                )
+              : state.recentActivities
           }));
 
           // Invalidate cached goal post for this activity
@@ -1586,16 +1590,20 @@ const useApiStore = create(
 
           // Update in activity feed
           set(state => ({
-            activityFeed: state.activityFeed.map(activity =>
-              activity._id === activityId
-                ? { ...activity, likeCount, isLiked }
-                : activity
-            ),
-            recentActivities: state.recentActivities.map(activity =>
-              activity._id === activityId
-                ? { ...activity, likeCount, isLiked }
-                : activity
-            )
+            activityFeed: Array.isArray(state.activityFeed)
+              ? state.activityFeed.map(activity =>
+                  activity._id === activityId
+                    ? { ...activity, likeCount, isLiked }
+                    : activity
+                )
+              : state.activityFeed,
+            recentActivities: Array.isArray(state.recentActivities)
+              ? state.recentActivities.map(activity =>
+                  activity._id === activityId
+                    ? { ...activity, likeCount, isLiked }
+                    : activity
+                )
+              : state.recentActivities
           }));
 
           // Invalidate cached goal post for this activity

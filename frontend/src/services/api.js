@@ -428,6 +428,13 @@ export const feedbackAPI = {
   submit: (formData) => api.post('/feedback', formData)
 }
 
+// Rating API
+export const ratingAPI = {
+  submit: (data) => api.post('/ratings', data),
+  getMyRating: () => api.get('/ratings/me'),
+  getStats: () => api.get('/ratings/stats')
+}
+
 export const settingsAPI = {
   // Privacy settings
   getPrivacySettings: () => api.get('/settings/privacy'),

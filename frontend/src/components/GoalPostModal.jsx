@@ -10,6 +10,7 @@ export default function GoalPostModal({ isOpen, goalId, onClose, autoOpenComment
   const [detailsExpanded, setDetailsExpanded] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const [commentsOpenActivityId, setCommentsOpenActivityId] = useState(null)
+  const [liking, setLiking] = useState(false)
   const rightPanelScrollRef = useRef(null)
   const commentsAnchorRef = useRef(null)
   const navigate = useNavigate()
@@ -63,6 +64,62 @@ export default function GoalPostModal({ isOpen, goalId, onClose, autoOpenComment
 
   const handleUserClick = (userId) => {
     navigate(`/profile/@${userId}?tab=overview`);
+  };
+
+  const handleLike = async () => {
+    const activityId = data?.social?.activityId;
+    if (!activityId || liking) return;
+
+    const currentIsLiked = data?.social?.isLiked;
+    const currentLikeCount = data?.social?.likeCount || 0;
+
+    // Optimistic update
+    setData(prev => ({
+      ...prev,
+      social: {
+        ...prev.social,
+        isLiked: !currentIsLiked,
+        likeCount: currentIsLiked ? currentLikeCount - 1 : currentLikeCount + 1
+      }
+    }));
+
+    setLiking(true);
+    try {
+      const result = await useApiStore.getState().likeActivity(activityId, !currentIsLiked);
+      if (result?.success) {
+        // Update with actual values from API
+        setData(prev => ({
+          ...prev,
+          social: {
+            ...prev.social,
+            isLiked: result.isLiked,
+            likeCount: result.likeCount
+          }
+        }));
+      } else {
+        // Revert on failure
+        setData(prev => ({
+          ...prev,
+          social: {
+            ...prev.social,
+            isLiked: currentIsLiked,
+            likeCount: currentLikeCount
+          }
+        }));
+      }
+    } catch (error) {
+      // Revert on error
+      setData(prev => ({
+        ...prev,
+        social: {
+          ...prev.social,
+          isLiked: currentIsLiked,
+          likeCount: currentLikeCount
+        }
+      }));
+    } finally {
+      setLiking(false);
+    }
   };
 
   return (
@@ -139,8 +196,8 @@ export default function GoalPostModal({ isOpen, goalId, onClose, autoOpenComment
                     </div>
                   )}
                 </div>
-                <div className="mt-auto border-t border-gray-200 dark:border-gray-800 p-4 flex items-center gap-3 sticky bottom-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur">
-                  <div className="inline-flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-300"><Heart className="h-4 w-4" />{data?.social?.likeCount || 0}</div>
+                <div className="mt-auto border-t border-gray-200 dark:border-gray-800 p-4 flex items-center gap-3 sticky bottom-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur z-10">
+                  <button onClick={handleLike} disabled={liking} className={`inline-flex items-center gap-1.5 text-sm transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${data?.social?.isLiked ? 'text-red-500' : 'text-gray-700 dark:text-gray-300 hover:text-red-500'}`}><Heart className={`h-4 w-4 ${data?.social?.isLiked ? 'fill-current' : ''}`} />{data?.social?.likeCount || 0}</button>
                   <button onClick={openComments} className="inline-flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-300 hover:text-blue-600"><MessageCircle className="h-4 w-4" />{data?.social?.commentCount || 0}</button>
                   <button onClick={() => {
                     try {
@@ -206,8 +263,8 @@ export default function GoalPostModal({ isOpen, goalId, onClose, autoOpenComment
                   </div>
                 )}
               </div>
-              <div className="mt-auto border-t border-gray-200 dark:border-gray-800 p-4 flex items-center gap-3 sticky bottom-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur">
-                <div className="inline-flex items-center gap-1.5 text-sm text_gray-700 dark:text-gray-300"><Heart className="h-4 w-4" />{data?.social?.likeCount || 0}</div>
+              <div className="mt-auto border-t border-gray-200 dark:border-gray-800 p-4 flex items-center gap-3 sticky bottom-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur z-10">
+                <button onClick={handleLike} disabled={liking} className={`inline-flex items-center gap-1.5 text-sm transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${data?.social?.isLiked ? 'text-red-500' : 'text-gray-700 dark:text-gray-300 hover:text-red-500'}`}><Heart className={`h-4 w-4 ${data?.social?.isLiked ? 'fill-current' : ''}`} />{data?.social?.likeCount || 0}</button>
                 <button onClick={openComments} className="inline-flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-300 hover:text-blue-600"><MessageCircle className="h-4 w-4" />{data?.social?.commentCount || 0}</button>
                 <button onClick={() => {
                   try {

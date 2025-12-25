@@ -73,9 +73,7 @@ const getGoalPost = async (req, res, next) => {
     const shareImage = goal.shareCompletionNote ? (goal.completionAttachmentUrl || '') : '';
 
     // Latest comments count
-    const Activity = require('../models/Activity');
-    const Like = require('../models/Like');
-    const ActivityComment = require('../models/ActivityComment');
+
 
     // Try to find corresponding activity for this goal
     // Prefer a completion activity; if not present yet, fall back to creation activity
@@ -1338,7 +1336,9 @@ module.exports = {
       }).sort({ createdAt: -1 }).lean();
 
       let commentCount = 0;
+      let likeCount = goal.likeCount || 0;
       if (activity) {
+        likeCount = await Like.getLikeCount('activity', activity._id);
         commentCount = await ActivityComment.countDocuments({ activityId: activity._id, isActive: true });
       }
 
@@ -1416,13 +1416,11 @@ module.exports = {
             createdAt: goal.createdAt,
             targetDate: goal.targetDate,
             year: goal.year,
-            likeCount: goal.likeCount || 0,
+            likeCount: likeCount,
+            commentCount: commentCount,
             subGoals: enrichedSubGoals,
             habitLinks: enrichedHabits,
             progress: progressData
-          },
-          comments: {
-            count: commentCount
           }
         }
       });

@@ -104,8 +104,6 @@ const FeedPage = () => {
     return undefined
   }, [goalModalOpen])
 
-  // No-op: comments are handled inside GoalPostModal now
-
   const fetchInitial = async (forceRefresh = false) => {
     setLoading(true)
     try {

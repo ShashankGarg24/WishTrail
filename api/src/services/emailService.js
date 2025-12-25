@@ -64,7 +64,7 @@ class EmailService {
     const template = templates[purpose] || templates.signup;
 
     const mailOptions = {
-      from: process.env.EMAIL_FROM || 'WishTrail <noreply@wishtrail.com>',
+      from: process.env.EMAIL_FROM || 'WishTrail <support@wishtrail.in>',
       to: email,
       subject: template.subject,
       text: template.text,
@@ -371,7 +371,7 @@ class EmailService {
    */
   async sendWelcomeEmail(email, name) {
     const mailOptions = {
-      from: process.env.EMAIL_FROM || 'WishTrail <noreply@wishtrail.com>',
+      from: process.env.EMAIL_FROM || 'WishTrail <support@wishtrail.in>',
       to: email,
       subject: 'Welcome to WishTrail! 🎉',
       html: this.getWelcomeTemplate(name),
@@ -501,7 +501,7 @@ class EmailService {
     const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${token}`;
     
     const mailOptions = {
-      from: process.env.EMAIL_FROM || 'WishTrail <noreply@wishtrail.com>',
+      from: process.env.EMAIL_FROM || 'WishTrail <support@wishtrail.in>',
       to: email,
       subject: 'Reset Your WishTrail Password',
       html: this.getPasswordResetTemplate(resetUrl, name),
@@ -538,7 +538,7 @@ class EmailService {
    */
   async sendPasswordChangeConfirmation(email, name) {
     const mailOptions = {
-      from: process.env.EMAIL_FROM || 'WishTrail <noreply@wishtrail.com>',
+      from: process.env.EMAIL_FROM || 'WishTrail <support@wishtrail.in>',
       to: email,
       subject: 'Password Changed Successfully - WishTrail',
       html: this.getPasswordChangeConfirmationTemplate(name),

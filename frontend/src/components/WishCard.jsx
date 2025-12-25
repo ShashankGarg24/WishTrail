@@ -115,13 +115,13 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: index * 0.1 }}
       onClick={() => { if (!isDivisionOpen && !isReadOnly) onOpenAnalytics?.(wish?._id) }}
-      className={`glass-card-hover p-6 rounded-xl theme-transition ${onOpenAnalytics ? 'cursor-pointer' : ''} ${
+      className={`glass-card-hover p-4 rounded-lg theme-transition ${onOpenAnalytics ? 'cursor-pointer' : ''} ${
         wish.completed ? 'bg-green-50/50 dark:bg-green-900/10' : ''
       } ${isOverdue() ? 'ring-2 ring-red-200 dark:ring-red-800' : ''}`}
     >
       {/* Header */}
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center space-x-3">
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex items-center space-x-2">
           <button
             onClick={(e) => { e.stopPropagation(); if (isReadOnly || wish.completed) return; handleToggle(); }}
             className={`flex-shrink-0 transition-colors ${
@@ -135,13 +135,13 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
             }
           >
             {wish.completed ? (
-              <CheckCircle className="h-6 w-6 text-green-500" />
+              <CheckCircle className="h-5 w-5 text-green-500" />
             ) : (
-              <Circle className="h-6 w-6 text-gray-400 hover:text-primary-500" />
+              <Circle className="h-5 w-5 text-gray-400 hover:text-primary-500" />
             )}
           </button>
           <div className="flex-1 min-w-0">
-            <h3 className={`font-semibold text-lg line-clamp-2 break-anywhere ${
+            <h3 className={`font-semibold text-base line-clamp-2 break-anywhere ${
               wish.completed 
                 ? 'text-gray-500 dark:text-gray-400 line-through' 
                 : 'text-gray-900 dark:text-white'
@@ -158,35 +158,35 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
           {!wish.completed && !isCommunityMirror && (
             <button
               onClick={(e) => { e.stopPropagation(); handleEdit(); }}
-              className="p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                 disabled={loading}
             >
-              <Edit2 className="h-4 w-4 text-gray-500 dark:text-gray-400 hover:text-primary-500" />
+              <Edit2 className="h-3.5 w-3.5 text-gray-500 dark:text-gray-400 hover:text-primary-500" />
             </button>
           )}
           {/* Removed wrench button; flow uses edit wizard */}
           {isViewingOwnGoals && wish.completed && (
             <button
               onClick={(e) => { e.stopPropagation(); handleShare(); }}
-              className="p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                 disabled={loading}
             >
-              <Share2 className="h-4 w-4 text-gray-500 dark:text-gray-400 hover:text-primary-500" />
+              <Share2 className="h-3.5 w-3.5 text-gray-500 dark:text-gray-400 hover:text-primary-500" />
             </button>
           )}
           <button
             onClick={(e) => { e.stopPropagation(); handleDelete(); }}
-            className="p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
               disabled={loading}
           >
-            <Trash2 className="h-4 w-4 text-gray-500 dark:text-gray-400 hover:text-red-500" />
+            <Trash2 className="h-3.5 w-3.5 text-gray-500 dark:text-gray-400 hover:text-red-500" />
           </button>
         </div>
         )}
       </div>
 
       {/* Description */}
-      <p className={`text-sm mb-4 line-clamp-4 break-anywhere ${
+      <p className={`text-xs mb-3 line-clamp-4 break-anywhere ${
         wish.completed 
           ? 'text-gray-400 dark:text-gray-500' 
           : 'text-gray-600 dark:text-gray-300'
@@ -196,38 +196,38 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
 
       {/* Inline compact progress bar (incomplete goals) */}
       {!wish.completed && hasDivision && progressPercent !== null && (
-        <div className="mb-4">
-          <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400 mb-1">
+        <div className="mb-3">
+          <div className="flex items-center justify-between text-[10px] text-gray-600 dark:text-gray-400 mb-1">
             <span>Progress</span>
             <span>{Math.round(progressPercent * 100) / 100}%</span>
           </div>
-          <div className="w-full h-2 rounded-full bg-gray-200 dark:bg-gray-700">
-            <div className="h-2 rounded-full bg-primary-500" style={{ width: `${progressPercent}%` }} />
+          <div className="w-full h-1.5 rounded-full bg-gray-200 dark:bg-gray-700">
+            <div className="h-1.5 rounded-full bg-primary-500" style={{ width: `${progressPercent}%` }} />
           </div>
         </div>
       )}
 
       {/* Tags */}
-      <div className="flex flex-wrap gap-2 mb-4">
+      <div className="flex flex-wrap gap-2 mb-3">
         {/* Category */}
-        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary-100 text-primary-800 dark:bg-primary-900/30 dark:text-primary-300">
-          <Tag className="h-3 w-3 mr-1" />
+        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-primary-100 text-primary-800 dark:bg-primary-900/30 dark:text-primary-300">
+          <Tag className="h-2.5 w-2.5 mr-1" />
           {wish.category}
         </span>
 
         {/* Overdue indicator */}
         {isOverdue() && (
-          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
-            <Clock className="h-3 w-3 mr-1" />
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
+            <Clock className="h-2.5 w-2.5 mr-1" />
             Overdue
           </span>
         )}
       </div>
 
       {/* Footer */}
-      <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-3">
+      <div className="flex items-center justify-between text-[10px] text-gray-500 dark:text-gray-400 mb-2">
         <div className="flex items-center space-x-1">
-          <Calendar className="h-3 w-3" />
+          <Calendar className="h-2.5 w-2.5" />
           <span>
             Created {formatDate(wish.createdAt)}
           </span>
@@ -235,7 +235,7 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
         
         {wish.targetDate && (
           <div className="flex items-center space-x-1">
-            <Calendar className="h-3 w-3" />
+            <Calendar className="h-2.5 w-2.5" />
             <span className={isOverdue() ? 'text-red-500' : ''}>
               Due {formatDate(wish.targetDate)}
             </span>
@@ -245,13 +245,13 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
 
       {/* Completion state */}
       {wish.completed && (
-        <div className="mt-4 p-3 bg-green-100 dark:bg-green-900/20 rounded-lg">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center space-x-2">
-              <CheckCircle className="h-4 w-4 text-green-500" />
-              <span className="text-sm font-medium text-green-700 dark:text-green-300">Completed!</span>
+        <div className="mt-3 p-2.5 bg-green-100 dark:bg-green-900/20 rounded-lg">
+          <div className="flex items-center justify-between mb-1.5">
+            <div className="flex items-center space-x-1.5">
+              <CheckCircle className="h-3.5 w-3.5 text-green-500" />
+              <span className="text-xs font-medium text-green-700 dark:text-green-300">Completed!</span>
               {wish.completedAt && (
-                <span className="text-xs text-green-600 dark:text-green-400">
+                <span className="text-[10px] text-green-600 dark:text-green-400">
                   {new Date(wish.completedAt).toLocaleDateString()}
                 </span>
               )}
@@ -262,7 +262,7 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
               <div className="flex items-center space-x-2">
                 <button
                   onClick={handleLike}
-                  className={`flex items-center space-x-1 px-3 py-2 rounded-full transition-all duration-200 transform hover:scale-110 ${
+                  className={`flex items-center space-x-1 px-2 py-1 rounded-full transition-all duration-200 transform hover:scale-110 ${
                     wish.userHasLiked
                       ? 'bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30'
                       : 'bg-gray-100 text-gray-600 hover:bg-red-50 hover:text-red-500 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-red-900/20 dark:hover:text-red-400'
@@ -270,11 +270,11 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
                   disabled={!isAuthenticated || loading}
                 >
                   <Heart 
-                    className={`h-4 w-4 transition-colors ${
+                    className={`h-3.5 w-3.5 transition-colors ${
                       wish.userHasLiked ? 'fill-current' : ''
                     }`} 
                   />
-                  <span className="text-sm font-medium">
+                  <span className="text-xs font-medium">
                     {Number(wish.likeCount) || 0}
                   </span>
                 </button>
@@ -283,14 +283,14 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
             
             {/* Like count only (for own goals) */}
             {isViewingOwnGoals && Number(wish.likeCount) > 0 && (
-              <div className="flex items-center space-x-1 text-xs text-gray-500 dark:text-gray-400">
-                <Heart className="h-3 w-3" />
+              <div className="flex items-center space-x-1 text-[10px] text-gray-500 dark:text-gray-400">
+                <Heart className="h-2.5 w-2.5" />
                 <span>{Number(wish.likeCount) || 0}</span>
               </div>
             )}
           </div>
           {wish.completionNote && (
-            <div className="mt-2 p-2 bg-white/50 dark:bg-gray-800/50 rounded text-xs text-gray-700 dark:text-gray-300">
+            <div className="mt-1.5 p-2 bg-white/50 dark:bg-gray-800/50 rounded text-[10px] text-gray-700 dark:text-gray-300">
               <strong>What I did:</strong> <span className="line-clamp-3 break-anywhere inline-block align-top">{wish.completionNote}</span>
             </div>
           )}

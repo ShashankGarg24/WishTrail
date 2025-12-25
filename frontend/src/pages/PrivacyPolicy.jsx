@@ -177,11 +177,11 @@ const PrivacyPolicy = () => {
     },
     {
       title: "California Privacy Rights (CCPA)",
-      content: "California residents have additional rights under the California Consumer Privacy Act, including the right to know what personal information is collected, the right to delete personal information, and the right to opt-out of the sale of personal information. WishTrail does not sell personal information. To exercise your CCPA rights, contact us at privacy@wishtrail.com."
+      content: "California residents have additional rights under the California Consumer Privacy Act, including the right to know what personal information is collected, the right to delete personal information, and the right to opt-out of the sale of personal information. WishTrail does not sell personal information. To exercise your CCPA rights, contact us at support@wishtrail.in."
     },
     {
       title: "European Privacy Rights (GDPR)",
-      content: "If you are located in the European Economic Area (EEA), you have rights under the General Data Protection Regulation (GDPR), including rights to access, rectification, erasure, data portability, and objection to processing. You also have the right to lodge a complaint with a supervisory authority. To exercise your GDPR rights, contact us at privacy@wishtrail.com."
+      content: "If you are located in the European Economic Area (EEA), you have rights under the General Data Protection Regulation (GDPR), including rights to access, rectification, erasure, data portability, and objection to processing. You also have the right to lodge a complaint with a supervisory authority. To exercise your GDPR rights, contact us at support@wishtrail.in."
     }
   ]
 
@@ -197,13 +197,13 @@ const PrivacyPolicy = () => {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary-100 dark:bg-primary-900/30 mb-4">
             <Shield className="w-8 h-8 text-primary-600 dark:text-primary-400" />
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-3">
             Privacy Policy
           </h1>
-          <p className="text-lg text-gray-600 dark:text-gray-400">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
             Last Updated: {lastUpdated}
           </p>
-          <p className="mt-4 text-gray-700 dark:text-gray-300 max-w-2xl mx-auto">
+          <p className="mt-3 text-sm text-gray-700 dark:text-gray-300 max-w-2xl mx-auto">
             At WishTrail, we take your privacy seriously. This policy describes how we collect, 
             use, and protect your personal information when you use our service.
           </p>
@@ -224,16 +224,16 @@ const PrivacyPolicy = () => {
                   <section.icon className="w-6 h-6 text-primary-600 dark:text-primary-400" />
                 </div>
                 <div className="flex-1">
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+                  <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-3">
                     {section.title}
                   </h2>
-                  <div className="space-y-6">
+                  <div className="space-y-4">
                     {section.content.map((item, idx) => (
                       <div key={idx}>
-                        <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2">
+                        <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1.5">
                           {item.subtitle}
                         </h3>
-                        <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
+                        <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
                           {item.text}
                         </p>
                       </div>
@@ -251,12 +251,12 @@ const PrivacyPolicy = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: (sections.length + index) * 0.1 }}
-              className="glass-card p-8 rounded-xl"
+              className="glass-card p-6 rounded-xl"
             >
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-3">
                 {section.title}
               </h2>
-              <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
+              <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
                 {section.content}
               </p>
             </motion.div>
@@ -282,9 +282,8 @@ const PrivacyPolicy = () => {
                   or our data practices, please contact us:
                 </p>
                 <div className="space-y-2 text-gray-700 dark:text-gray-300">
-                  <p><strong>Email:</strong> privacy@wishtrail.com</p>
-                  <p><strong>Support:</strong> support@wishtrail.com</p>
-                  <p><strong>Website:</strong> <a href="https://wishtrail.com" className="text-primary-600 dark:text-primary-400 hover:underline">wishtrail.com</a></p>
+                  <p><strong>Support:</strong> support@wishtrail.in</p>
+                  <p><strong>Website:</strong> <a href="https://wishtrail.in" className="text-primary-600 dark:text-primary-400 hover:underline">wishtrail.in</a></p>
                 </div>
                 <p className="mt-4 text-gray-600 dark:text-gray-400">
                   We are committed to protecting your privacy and will respond to your inquiry within 30 days.
