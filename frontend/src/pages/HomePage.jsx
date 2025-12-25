@@ -262,7 +262,7 @@ const HomePage = () => {
               className="flex flex-col sm:flex-row gap-4 justify-center items-center"
             >
               <Link to={getRedirectUrl()} className="group btn-primary text-base px-6 py-3">
-                {!isAuthenticated ? "Start Free Today" : "Go to Dashboard"}
+                {!isAuthenticated ? "Start Today" : "Go to Dashboard"}
                 <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
               </Link>
               <Link to="/inspiration" className="btn-secondary text-base px-6 py-3">
@@ -524,7 +524,7 @@ const HomePage = () => {
                   to={getRedirectUrl()} 
                   className="group bg-white text-purple-600 font-bold text-base px-8 py-4 rounded-xl hover:bg-gray-100 transition-all duration-300 transform hover:scale-105 shadow-2xl flex items-center"
                 >
-                  Get Started Free
+                  Get Started
                   <ArrowRight className="ml-2 h-6 w-6 group-hover:translate-x-1 transition-transform" />
                 </Link>
                 <Link 
@@ -535,16 +535,6 @@ const HomePage = () => {
                   Watch Demo
                 </Link>
               </div>
-
-              <motion.p
-                initial={{ opacity: 0 }}
-                whileInView={{ opacity: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.5 }}
-                className="mt-8 text-white/80 text-sm"
-              >
-                ✨ No credit card required • Free forever • Join in 30 seconds
-              </motion.p>
             </motion.div>
           </div>
         </section>

@@ -450,7 +450,7 @@ const InspirationPage = () => {
                   className="inline-flex items-center gap-3 px-8 py-4 bg-white text-primary-600 rounded-xl hover:bg-gray-100 transition-all duration-200 font-bold text-lg shadow-xl hover:shadow-2xl hover:scale-105"
                 >
                   <Star className="h-6 w-6" />
-                  <span>Get Started Free</span>
+                  <span>Get Started</span>
                   <ArrowRight className="h-5 w-5" />
                 </a>
               </div>
