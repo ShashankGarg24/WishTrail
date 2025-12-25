@@ -69,7 +69,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-[150]"
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-[200]"
       onClick={onClose}
     >
       <motion.div
@@ -77,7 +77,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
         animate={{ scale: 1, opacity: 1, y: 0 }}
         exit={{ scale: 0.95, opacity: 0, y: 20 }}
         onClick={(e) => e.stopPropagation()}
-        className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-5xl h-[700px] overflow-hidden shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col"
+        className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-5xl h-[85vh] overflow-hidden shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col"
       >
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">

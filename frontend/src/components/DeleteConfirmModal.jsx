@@ -35,7 +35,7 @@ const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, goalTitle, isDeleting 
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -50,11 +50,11 @@ const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, goalTitle, isDeleting 
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden"
+            className="relative w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden max-h-[85vh] flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
               <div className="flex items-center space-x-3">
                 <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-full">
                   <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400" />
@@ -72,13 +72,13 @@ const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, goalTitle, isDeleting 
             </div>
 
             {/* Content */}
-            <div className="p-6">
+            <div className="p-6 overflow-y-auto flex-1 min-h-0">
               <p className="text-gray-700 dark:text-gray-300 mb-4">
                 Are you sure you want to permanently delete this {itemLabelLower}?
               </p>
               {goalTitle && (
                 <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg mb-4">
-                  <p className="text-sm font-medium text-gray-900 dark:text-white line-clamp-2">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white line-clamp-1" title={goalTitle}>
                     "{goalTitle}"
                   </p>
                 </div>
@@ -150,7 +150,7 @@ const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, goalTitle, isDeleting 
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-end space-x-3 p-6 bg-gray-50 dark:bg-gray-900/50">
+            <div className="flex items-center justify-end space-x-3 p-6 bg-gray-50 dark:bg-gray-900/50 flex-shrink-0">
               <button
                 onClick={onClose}
                 disabled={isDeleting}

@@ -223,7 +223,7 @@ const GoalAnalyticsPage = () => {
               onClick={() => navigate('/dashboard')}
               className="btn-primary"
             >
-              Back to Dashboard
+              Back
             </button>
           </div>
         </div>
@@ -243,7 +243,7 @@ const GoalAnalyticsPage = () => {
             className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white mb-3 transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to Dashboard
+            Back
           </button>
 
           <div className="glass-card-hover p-4 rounded-xl">

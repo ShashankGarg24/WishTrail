@@ -24,7 +24,7 @@ const DependencyWarningModal = ({ isOpen, onClose, onContinue, itemTitle, itemTy
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -39,11 +39,11 @@ const DependencyWarningModal = ({ isOpen, onClose, onContinue, itemTitle, itemTy
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden"
+            className="relative w-full max-w-md max-h-[85vh] bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
               <div className="flex items-center space-x-3">
                 <div className="p-2 bg-yellow-100 dark:bg-yellow-900/30 rounded-full">
                   <AlertTriangle className="h-6 w-6 text-yellow-600 dark:text-yellow-400" />
@@ -61,10 +61,10 @@ const DependencyWarningModal = ({ isOpen, onClose, onContinue, itemTitle, itemTy
             </div>
 
             {/* Content */}
-            <div className="p-6">
+            <div className="p-6 overflow-y-auto flex-1 min-h-0">
               {itemTitle && (
                 <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg mb-4">
-                  <p className="text-sm font-medium text-gray-900 dark:text-white line-clamp-2">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white line-clamp-1" title={itemTitle}>
                     "{itemTitle}"
                   </p>
                 </div>
@@ -82,8 +82,8 @@ const DependencyWarningModal = ({ isOpen, onClose, onContinue, itemTitle, itemTy
                 <ul className="text-sm text-yellow-700 dark:text-yellow-400 space-y-1 ml-4 mb-3">
                   {parentGoals.map(parent => (
                     <li key={parent.id} className="flex items-start">
-                      <span className="mr-2">→</span>
-                      <span className="font-medium">{parent.title}</span>
+                      <span className="mr-2 flex-shrink-0">→</span>
+                      <span className="font-medium line-clamp-1" title={parent.title}>{parent.title}</span>
                     </li>
                   ))}
                 </ul>
@@ -98,7 +98,7 @@ const DependencyWarningModal = ({ isOpen, onClose, onContinue, itemTitle, itemTy
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-end space-x-3 p-6 bg-gray-50 dark:bg-gray-700/50 border-t border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-end space-x-3 p-6 bg-gray-50 dark:bg-gray-700/50 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
               <button
                 onClick={onClose}
                 className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"

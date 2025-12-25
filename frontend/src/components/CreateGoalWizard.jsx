@@ -520,7 +520,7 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
                 disabled={saving} 
                 className="flex-1 py-3 px-5 bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-lg shadow-primary-500/20 transition-all"
               >
-                {saving ? (editMode ? 'Updating…' : 'Saving…') : (editMode ? 'Update Goal' : 'Create Goal')}
+                {saving ? (editMode ? 'Updating…' : 'Saving…') : (editMode ? 'Update' : 'Create')}
               </button>
             </div>
           </div>

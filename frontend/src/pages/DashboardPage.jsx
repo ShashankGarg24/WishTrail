@@ -1378,7 +1378,10 @@ const DashboardPage = () => {
         <Suspense fallback={null}><EditHabitModal
           isOpen={isEditHabitOpen}
           habit={selectedHabit}
-          onClose={() => setIsEditHabitOpen(false)}
+          onClose={() => {
+            setIsEditHabitOpen(false);
+            setSelectedHabit(null);
+          }}
           onSave={async (payload) => {
             const res = await useApiStore.getState().updateHabit(selectedHabit.id, payload)
             if (res?.success) {
@@ -1392,13 +1395,15 @@ const DashboardPage = () => {
 
 
       {/* Habit Detail Modal */}
-      {selectedHabit && (
+      {selectedHabit && !isEditHabitOpen && (
         <Suspense fallback={null}><HabitDetailModal
-          isOpen={!!selectedHabit}
+          isOpen={!!selectedHabit && !isEditHabitOpen}
           habit={selectedHabit}
           onClose={() => setSelectedHabit(null)}
           onLog={handleHabitLog}
-          onEdit={() => setIsEditHabitOpen(true)}
+          onEdit={() => {
+            setIsEditHabitOpen(true);
+          }}
           onDelete={async () => { 
             // Check dependencies first
             const checkHabitDependencies = useApiStore.getState().checkHabitDependencies

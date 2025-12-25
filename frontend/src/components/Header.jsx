@@ -223,13 +223,13 @@ const Header = () => {
                 </Link>
               )}
               
-              {/* User Menu - Desktop and Mobile */}
+              {/* User Menu - Desktop Only */}
               {isAuthenticated && (
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setIsMenuOpen(!isMenuOpen)}
-                  className="flex p-2.5 rounded-lg text-gray-700 hover:text-purple-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:text-purple-400 dark:hover:bg-gray-800 transition-all duration-200"
+                  className="hidden md:flex p-2.5 rounded-lg text-gray-700 hover:text-purple-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:text-purple-400 dark:hover:bg-gray-800 transition-all duration-200"
                 >
                   <Menu className="h-5 w-5" />
                 </motion.button>

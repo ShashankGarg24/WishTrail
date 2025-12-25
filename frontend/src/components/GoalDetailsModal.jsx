@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Heart, MessageCircle, Send, CheckCircle, Target, Calendar, TrendingUp, Plus, ListChecks } from 'lucide-react'
+import { Heart, MessageCircle, Send, CheckCircle, Target, Calendar, TrendingUp, Plus, ListChecks, X, AlertCircle, Zap, Award } from 'lucide-react'
 const ActivityCommentsModal = lazy(() => import('./ActivityCommentsModal'));
 import useApiStore from '../store/apiStore'
 

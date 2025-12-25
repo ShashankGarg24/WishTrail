@@ -1171,7 +1171,6 @@ const ProfilePage = () => {
 
                             <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 pt-3 border-t border-gray-200 dark:border-gray-700">
                               <span>{goal.completedAt ? 'Completed' : 'Created'} {formatTimeAgo(goal.completedAt ? goal.completedAt : goal.createdAt)}</span>
-                              <span className="text-purple-600 dark:text-purple-400 font-medium group-hover:underline">View →</span>
                             </div>
                           </motion.div>
                         ))}

@@ -91,6 +91,21 @@ const getGoalPost = async (req, res, next) => {
       commentCount = await ActivityComment.countDocuments({ activityId: activity._id, isActive: true });
     }
 
+    // Build timeline from activities related to this goal
+    const timelineActivities = await Activity.find({
+      'data.goalId': goal._id,
+      type: { $in: ['goal_created', 'goal_completed', 'subgoal_added', 'subgoal_removed', 'subgoal_completed', 'subgoal_uncompleted', 'habit_added', 'habit_removed', 'habit_target_achieved'] }
+    }).sort({ createdAt: 1 }).lean();
+
+    const timeline = timelineActivities.map(act => ({
+      type: act.type,
+      timestamp: act.createdAt,
+      data: {
+        name: act.data?.subGoalTitle || act.data?.habitName || null,
+        linkedGoalId: act.data?.linkedGoalId || null
+      }
+    }));
+
     // ✅ Enrich sub-goals with real completion date
     let enrichedSubGoals = [];
     if (goal.subGoals && goal.subGoals.length > 0) {
@@ -122,6 +137,7 @@ const getGoalPost = async (req, res, next) => {
           category: goal.category,
           completedAt: goal.completedAt,
           subGoals: enrichedSubGoals,
+          timeline: timeline
         },
         user: {
           _id: goal.userId._id,

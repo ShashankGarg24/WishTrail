@@ -53,20 +53,20 @@ const ReportModal = ({ isOpen, onClose, onSubmit, targetLabel = 'content', onRep
           initial={{ scale: 0.98, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.98, opacity: 0 }}
-          className="w-full max-w-md bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-800 overflow-hidden"
+          className="w-full max-w-md bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-800 overflow-hidden max-h-[85vh] md:max-h-none flex flex-col"
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-800">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Report {targetLabel}</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Tell us what’s wrong. We’ll review your report.</p>
+          <div className="px-5 py-3 md:py-4 border-b border-gray-200 dark:border-gray-800">
+            <h3 className="text-base md:text-lg font-semibold text-gray-900 dark:text-white">Report {targetLabel}</h3>
+            <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400 mt-1">Tell us what's wrong. We'll review your report.</p>
           </div>
 
-          <div className="px-5 py-4 space-y-4">
+          <div className="px-5 py-3 md:py-4 space-y-3 md:space-y-4 overflow-y-auto flex-1">
             <div className="space-y-2">
               <div className="text-sm font-medium text-gray-900 dark:text-gray-100">Reason</div>
-              <div className="grid grid-cols-1 gap-2">
+              <div className="grid grid-cols-1 gap-1.5 md:gap-2">
                 {REASONS.map((r) => (
-                  <label key={r.value} className="flex items-center gap-2 text-sm text-gray-800 dark:text-gray-200">
+                  <label key={r.value} className="flex items-center gap-2 text-xs md:text-sm text-gray-800 dark:text-gray-200">
                     <input
                       type="radio"
                       name="report-reason"
@@ -86,16 +86,16 @@ const ReportModal = ({ isOpen, onClose, onSubmit, targetLabel = 'content', onRep
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                rows={4}
-                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                rows={3}
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                 placeholder={`Add any details to help us review this ${targetLabel}.`}
               />
             </div>
           </div>
 
-          <div className="px-5 py-4 border-t border-gray-200 dark:border-gray-800 flex items-center justify-end gap-2">
-            <button onClick={onClose} className="px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 text-sm">Cancel</button>
-            <button onClick={handleSubmit} disabled={submitting} className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm disabled:opacity-60">
+          <div className="px-5 py-3 md:py-4 border-t border-gray-200 dark:border-gray-800 flex items-center justify-end gap-2">
+            <button onClick={onClose} className="px-3 md:px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 text-xs md:text-sm">Cancel</button>
+            <button onClick={handleSubmit} disabled={submitting} className="px-3 md:px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs md:text-sm disabled:opacity-60">
               {submitting ? 'Submitting...' : 'Submit report'}
             </button>
           </div>

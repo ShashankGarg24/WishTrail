@@ -396,36 +396,36 @@ export default function HabitAnalyticsPage() {
           </button>
           
           <div className="glass-card-hover p-4 rounded-xl">
-            <div className="flex items-start justify-between">
-              <div>
-                <h1 className="text-xl font-bold text-gray-900 dark:text-white mb-1.5">
-                  {habit.name}
-                </h1>
-                {habit.description && (
-                  <div className="mb-2">
-                    <ExpandableText
-                      text={habit.description}
-                      maxLength={200}
-                      className="text-sm text-gray-600 dark:text-gray-400"
-                    />
-                  </div>
-                )}
-                <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
+            <div>
+              <h1 className="text-xl font-bold text-gray-900 dark:text-white mb-1.5">
+                {habit.name}
+              </h1>
+              {habit.description && (
+                <div className="mb-2">
+                  <ExpandableText
+                    text={habit.description}
+                    maxLength={200}
+                    className="text-sm text-gray-600 dark:text-gray-400"
+                  />
+                </div>
+              )}
+              <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                <p className="text-xs text-gray-500 dark:text-gray-500">
                   Created {new Date(habit.createdAt).toLocaleDateString()}
                 </p>
+                
+                <select
+                  value={days}
+                  onChange={(e) => setDays(Number(e.target.value))}
+                  className="px-3 py-1.5 text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value={30}>Last 30 days</option>
+                  <option value={60}>Last 60 days</option>
+                  <option value={90}>Last 90 days</option>
+                  <option value={180}>Last 6 months</option>
+                  <option value={365}>Last year</option>
+                </select>
               </div>
-              
-              <select
-                value={days}
-                onChange={(e) => setDays(Number(e.target.value))}
-                className="px-3 py-1.5 text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
-              >
-                <option value={30}>Last 30 days</option>
-                <option value={60}>Last 60 days</option>
-                <option value={90}>Last 90 days</option>
-                <option value={180}>Last 6 months</option>
-                <option value={365}>Last year</option>
-              </select>
             </div>
           </div>
         </div>
