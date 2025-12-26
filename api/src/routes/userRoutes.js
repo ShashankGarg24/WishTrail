@@ -14,6 +14,7 @@ router.get('/profile', userController.getProfileSummary);
 router.get('/analytics', userController.getAnalytics);
 router.post('/timezone', userController.updateTimezone);
 router.post('/dashboard/years', userController.addDashboardYear);
+router.delete('/dashboard/years/:year', userController.deleteDashboardYear);
 router.get('/suggestions', userController.getSuggestedUsers);
 router.get('/interests', userController.listInterests);
 router.get('/search', userController.searchUsers);

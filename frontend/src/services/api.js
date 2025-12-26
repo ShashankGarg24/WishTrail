@@ -279,6 +279,7 @@ export const usersAPI = {
   getUserActivities: (id, params) => api.get(`/users/${id}/activities`, { params }),
   updatePrivacy: (data) => api.put('/users/privacy', data),
   addDashboardYear: (year) => api.post('/users/dashboard/years', { year }),
+  deleteDashboardYear: (year) => api.delete(`/users/dashboard/years/${year}`),
 };
 // Moderation API
 export const moderationAPI = {

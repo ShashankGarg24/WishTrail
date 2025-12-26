@@ -302,7 +302,6 @@ const ShareModal = ({ isOpen, onClose, goal, user }) => {
                     className={`flex flex-col items-center justify-center space-y-2 p-3 rounded-lg text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${option.color}`}
                   >
                     <option.icon className="h-6 w-6" />
-                    <span className="text-xs font-medium">{option.name}</span>
                   </button>
                 ))}
               </div>

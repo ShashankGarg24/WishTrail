@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, lazy, Suspense } from 'react'
 import { Bell, RefreshCw, Check, X, CheckCheck } from 'lucide-react'
 import useApiStore from '../store/apiStore'
 import SkeletonNotifications from '../components/loader/SkeletonNotifications'
 import { useNavigate } from 'react-router-dom'
+
+const GoalDetailsModal = lazy(() => import('../components/GoalDetailsModal'));
 
 const NotificationsPage = () => {
   const {
@@ -24,6 +26,7 @@ const NotificationsPage = () => {
   const [loadingMore, setLoadingMore] = useState(false);
   const [markingAllRead, setMarkingAllRead] = useState(false);
   const [inNativeApp, setInNativeApp] = useState(false)
+  const [openGoalId, setOpenGoalId] = useState(null)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -266,7 +269,7 @@ const NotificationsPage = () => {
                           }`}
                           onClick={() => {
                             if (n.type === 'new_follower') navigate(`/profile/@${n.data.actor.username}?tab=overview`)
-                            else if (n.data?.goalId) navigate(`/feed?goalId=${n.data.goalId}`)
+                            else if (n.data?.goalId) setOpenGoalId(n.data.goalId)
                             markNotificationRead(n.id)
                           }}
                         >
@@ -356,6 +359,17 @@ const NotificationsPage = () => {
           </div>
         )}
       </div>
+
+      {/* Goal Details Modal */}
+      {openGoalId && (
+        <Suspense fallback={null}>
+          <GoalDetailsModal
+            isOpen={!!openGoalId}
+            goalId={openGoalId}
+            onClose={() => setOpenGoalId(null)}
+          />
+        </Suspense>
+      )}
     </div>
   )
 }

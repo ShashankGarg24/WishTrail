@@ -41,6 +41,9 @@ const DashboardPage = () => {
   const [habitPage, setHabitPage] = useState(1)
   const [extraYears, setExtraYears] = useState([])
   const [isAddYearOpen, setIsAddYearOpen] = useState(false)
+  const [isDeleteYearOpen, setIsDeleteYearOpen] = useState(false)
+  const [yearToDelete, setYearToDelete] = useState(null)
+  const [isDeletingYear, setIsDeletingYear] = useState(false)
   const [goalSearchQuery, setGoalSearchQuery] = useState('')
   const [habitSearchQuery, setHabitSearchQuery] = useState('')
   const [isSearchingGoals, setIsSearchingGoals] = useState(false)
@@ -65,6 +68,8 @@ const DashboardPage = () => {
     toggleGoalCompletion,
     deleteGoal,
     addDashboardYear,
+    deleteDashboardYear,
+    dashboardYears,
     habits,
     habitsPagination,
     loadHabits,
@@ -108,10 +113,10 @@ const DashboardPage = () => {
   const currentYear = new Date().getFullYear()
 
   const availableYears = useMemo(() => {
-    const combined = Array.from(new Set([...(yearsInData || []), ...(extraYears || [])]))
+    const combined = Array.from(new Set([...(yearsInData || []), ...(extraYears || []), ...(dashboardYears || [])]))
     if (combined.length === 0) return [currentYear]
     return combined.sort((a, b) => a - b)
-  }, [yearsInData, extraYears, currentYear])
+  }, [yearsInData, extraYears, dashboardYears, currentYear])
 
   const candidateYears = useMemo(() => {
     const present = new Set(availableYears)
@@ -154,12 +159,64 @@ const DashboardPage = () => {
     setPendingAddYear(null)
   }
 
+  const openDeleteYear = (year) => {
+    setYearToDelete(year)
+    setIsDeleteYearOpen(true)
+  }
+
+  const handleConfirmDeleteYear = async () => {
+    if (typeof yearToDelete !== 'number') { setIsDeleteYearOpen(false); return }
+    setIsDeletingYear(true)
+    try {
+      const res = await deleteDashboardYear(yearToDelete)
+      
+      // Remove from extraYears if it's there
+      setExtraYears((prev) => (prev || []).filter(y => y !== yearToDelete))
+      
+      // If we just deleted the currently selected year, switch to current year or first available
+      if (selectedYear === yearToDelete) {
+        const remaining = availableYears.filter(y => y !== yearToDelete)
+        const newYear = remaining.includes(currentYear) ? currentYear : (remaining[0] || currentYear)
+        setSelectedYear(newYear)
+      }
+      
+      // Refresh goals for the current year
+      setPage(1)
+      setIsLoadingGoals(true)
+      await getGoals({ 
+        year: selectedYear === yearToDelete ? currentYear : selectedYear, 
+        includeProgress: true, 
+        page: 1,
+        filter: goalFilter,
+        sort: goalSort
+      })
+      await getDashboardStats()
+      setIsLoadingGoals(false)
+      
+      setIsDeleteYearOpen(false)
+      setYearToDelete(null)
+    } catch (error) {
+      console.error('Error deleting year:', error)
+    } finally {
+      setIsDeletingYear(false)
+    }
+  }
+
   // Load dashboard data on mount
   useEffect(() => {
     if (!isAuthenticated) return;
     
     if (!hasLoadedInitialData) {
       prevYearRef.current = selectedYear;
+      
+      // Ensure current year is added to dashboardYears if not present
+      const ensureCurrentYear = async () => {
+        if (dashboardYears && !dashboardYears.includes(currentYear)) {
+          await addDashboardYear(currentYear);
+        }
+      };
+      ensureCurrentYear();
+      
       getDashboardStats()
       setIsLoadingGoals(true)
       getGoals({ 
@@ -686,15 +743,27 @@ const DashboardPage = () => {
         {activeTab === 'goals' && (
           <>
             {/* Year Selection */}
-            <div className="mb-8">
-              <div className="flex flex-wrap gap-2 items-center">
+            <div className="mb-8 -mx-4 px-4 md:mx-0 md:px-0">
+              <div className="flex md:flex-wrap gap-2 items-center overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
                 {availableYears.map(year => (
-                  <button key={year} onClick={() => handleYearChange(year)} className={`px-4 py-2 rounded-lg font-medium transition-all ${selectedYear === year ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg hover:shadow-xl' : 'glass-card hover:bg-white/20 text-gray-700 dark:text-gray-300'}`}>
-                    <Calendar className="h-4 w-4 inline mr-2" />{year}
-                  </button>
+                  <div key={year} className="relative group flex-shrink-0">
+                    <button onClick={() => handleYearChange(year)} className={`px-4 py-2 rounded-lg font-medium transition-all whitespace-nowrap ${selectedYear === year ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg hover:shadow-xl' : 'glass-card hover:bg-white/20 text-gray-700 dark:text-gray-300'}`}>
+                      <Calendar className="h-4 w-4 inline mr-2" />{year}
+                    </button>
+                    {availableYears.length > 1 && (
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); openDeleteYear(year); }}
+                        className="absolute -top-1 -right-1 md:-top-2 md:-right-2 p-1 md:p-1.5 rounded-full bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 md:opacity-0 md:group-hover:opacity-100 shadow-md hover:shadow-lg transition-all hover:scale-110"
+                        title={`Delete ${year}`}
+                        aria-label={`Delete ${year}`}
+                      >
+                        <Trash2 className="h-2.5 w-2.5 md:h-3 md:w-3" />
+                      </button>
+                    )}
+                  </div>
                 ))}
                 {canAddYear && (
-                  <button onClick={openAddYear} className="px-4 py-2 rounded-lg font-medium transition-all glass-card hover:bg-white/20 text-gray-700 dark:text-gray-300">
+                  <button onClick={openAddYear} className="px-4 py-2 rounded-lg font-medium transition-all glass-card hover:bg-white/20 text-gray-700 dark:text-gray-300 whitespace-nowrap flex-shrink-0">
                     <Calendar className="h-4 w-4 inline mr-2" />Add year
                   </button>
                 )}
@@ -1348,6 +1417,89 @@ const DashboardPage = () => {
             <div className="flex items-center justify-end mt-4 gap-2">
               <button onClick={() => { setPendingAddYear(null); setIsAddYearOpen(false) }} className="px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200">Close</button>
               <button disabled={typeof pendingAddYear !== 'number'} onClick={handleConfirmAddYear} className="px-4 py-2 rounded-lg bg-primary-500 text-white disabled:opacity-60">Add</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Year Confirmation Modal */}
+      {isDeleteYearOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50" onClick={() => { if (!isDeletingYear) { setYearToDelete(null); setIsDeleteYearOpen(false); } }} />
+          <div className="relative bg-white dark:bg-gray-900 rounded-xl shadow-xl w-full max-w-sm p-5 border border-gray-200 dark:border-gray-800">
+            <div className="flex items-start gap-3 mb-3">
+              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                <Trash2 className="h-5 w-5 text-red-600 dark:text-red-400" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">Delete Year {yearToDelete}?</h3>
+                <p className="text-xs text-gray-600 dark:text-gray-400">
+                  This action cannot be undone. Deleting this year will permanently remove:
+                </p>
+              </div>
+            </div>
+            
+            <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 mb-4 border border-red-200 dark:border-red-800">
+              <ul className="space-y-1.5 text-xs text-red-900 dark:text-red-200">
+                <li className="flex items-start gap-2">
+                  <span className="text-red-500 mt-0.5">•</span>
+                  <span><strong>All goals</strong> created in {yearToDelete}</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-red-500 mt-0.5">•</span>
+                  <span><strong>All activities</strong> related to those goals</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-red-500 mt-0.5">•</span>
+                  <span><strong>All comments</strong> on goal activities</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-red-500 mt-0.5">•</span>
+                  <span><strong>All likes</strong> on goals and their activities</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-red-500 mt-0.5">•</span>
+                  <span><strong>All notifications</strong> related to those goals</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-red-500 mt-0.5">•</span>
+                  <span><strong>Progress tracking</strong> and completion data for {yearToDelete}</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-red-500 mt-0.5">•</span>
+                  <span>Year {yearToDelete} from your dashboard</span>
+                </li>
+              </ul>
+              <p className="text-[10px] text-red-800 dark:text-red-300 mt-2 pt-2 border-t border-red-200 dark:border-red-800">
+                Note: Habits will be preserved but unlinked from deleted goals.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-2">
+              <button 
+                onClick={() => { setYearToDelete(null); setIsDeleteYearOpen(false); }} 
+                disabled={isDeletingYear}
+                className="px-3 py-1.5 text-sm rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleConfirmDeleteYear} 
+                disabled={isDeletingYear}
+                className="px-3 py-1.5 text-sm rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+              >
+                {isDeletingYear ? (
+                  <>
+                    <span className="inline-block w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Delete Year
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>

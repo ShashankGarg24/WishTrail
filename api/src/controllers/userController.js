@@ -116,6 +116,149 @@ const addDashboardYear = async (req, res, next) => {
   } catch (error) { next(error) }
 }
 
+// @desc    Delete a dashboard year and all related data
+// @route   DELETE /api/v1/users/dashboard/years/:year
+// @access  Private
+const deleteDashboardYear = async (req, res, next) => {
+  try {
+    const Goal = require('../models/Goal');
+    const Activity = require('../models/Activity');
+    const ActivityComment = require('../models/ActivityComment');
+    const Like = require('../models/Like');
+    const Notification = require('../models/Notification');
+    const Habit = require('../models/Habit');
+    const CommunityActivity = require('../models/CommunityActivity');
+    const CommunityItem = require('../models/CommunityItem');
+    
+    const { year } = req.params;
+    const y = parseInt(year);
+    if (!y || Number.isNaN(y)) {
+      return res.status(400).json({ success: false, message: 'Provide valid year' });
+    }
+    
+    // Get all goals for this year first
+    const goalsToDelete = await Goal.find({ 
+      userId: req.user.id, 
+      year: y 
+    }).select('_id completed completedAt').lean();
+    
+    const goalIds = goalsToDelete.map(g => g._id);
+    const completedCount = goalsToDelete.filter(g => g.completed).length;
+    
+    if (goalIds.length > 0) {
+      // 1. Delete all activities related to these goals
+      const deletedActivities = await Activity.find({ 
+        'data.goalId': { $in: goalIds } 
+      }).select('_id').lean();
+      const activityIds = deletedActivities.map(a => a._id);
+      
+      if (activityIds.length > 0) {
+        // Delete activities
+        await Activity.deleteMany({ _id: { $in: activityIds } });
+        
+        // Delete comments on these activities
+        await ActivityComment.deleteMany({ activityId: { $in: activityIds } });
+        
+        // Delete likes on these activities
+        await Like.deleteMany({ 
+          targetType: 'activity', 
+          targetId: { $in: activityIds } 
+        });
+      }
+      
+      // 2. Delete likes on the goals themselves
+      await Like.deleteMany({ 
+        targetType: 'goal', 
+        targetId: { $in: goalIds } 
+      });
+      
+      // 3. Delete notifications related to these goals
+      await Notification.deleteMany({ 
+        'data.goalId': { $in: goalIds } 
+      });
+      
+      // 4. Unlink habits from these goals (preserve habits)
+      await Habit.updateMany(
+        { goalId: { $in: goalIds } },
+        { $unset: { goalId: 1 } }
+      );
+      
+      // 5. Remove these goals from other goals' subGoals arrays
+      await Goal.updateMany(
+        { 'subGoals.linkedGoalId': { $in: goalIds } },
+        { $pull: { subGoals: { linkedGoalId: { $in: goalIds } } } }
+      );
+      
+      // 6. Handle community-related cleanup
+      // Deactivate community mirror goals (goals that are mirrors of these goals)
+      await Goal.updateMany(
+        { 'communityInfo.sourceId': { $in: goalIds } },
+        { $set: { isActive: false } }
+      );
+      
+      // Deactivate community items that reference these goals
+      await CommunityItem.updateMany(
+        { type: 'goal', sourceId: { $in: goalIds } },
+        { $set: { isActive: false } }
+      );
+      
+      // Delete community activities related to these goals
+      await CommunityActivity.deleteMany({ 
+        'data.goalId': { $in: goalIds } 
+      });
+      
+      // 7. Clean up daily completions for completed goals
+      if (completedCount > 0) {
+        const completedGoals = goalsToDelete.filter(g => g.completed && g.completedAt);
+        for (const goal of completedGoals) {
+          const dateKey = new Date(goal.completedAt).toISOString().split('T')[0];
+          const pullKey = `dailyCompletions.${dateKey}`;
+          await User.updateOne(
+            { _id: req.user.id },
+            { $pull: { [pullKey]: { goalId: goal._id } } }
+          );
+        }
+      }
+      
+      // 8. Delete all goals for this year
+      await Goal.deleteMany({ 
+        userId: req.user.id, 
+        year: y 
+      });
+    }
+    
+    // 9. Update user statistics
+    await User.updateOne(
+      { _id: req.user.id },
+      { 
+        $inc: { 
+          totalGoals: -goalIds.length,
+          completedGoals: -completedCount
+        }
+      }
+    );
+    
+    // 10. Remove year from user's dashboardYears
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { $pull: { dashboardYears: y } },
+      { new: true }
+    ).select('_id dashboardYears');
+    
+    return res.status(200).json({ 
+      success: true, 
+      data: { 
+        years: user.dashboardYears || [],
+        deletedGoals: goalIds.length,
+        deletedCompletedGoals: completedCount
+      },
+      message: `Year ${y} and ${goalIds.length} related goal(s) deleted successfully`
+    });
+  } catch (error) { 
+    next(error);
+  }
+}
+
 // @desc    Get suggested users
 // @route   GET /api/v1/users/suggestions
 // @access  Private
@@ -555,6 +698,7 @@ module.exports = {
   listInterests,
   updateTimezone,
   addDashboardYear,
+  deleteDashboardYear,
   getAnalytics,
   getUserAnalytics
 }; 

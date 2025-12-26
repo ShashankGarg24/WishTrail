@@ -70,7 +70,8 @@ const sanitizeAuthMe = (user) => {
     currentMood: obj.currentMood,
     instagram: obj.instagram || '',
     website: obj.website || '',
-    youtube: obj.youtube || ''
+    youtube: obj.youtube || '',
+    dashboardYears: obj.dashboardYears || []
   };
 };
 

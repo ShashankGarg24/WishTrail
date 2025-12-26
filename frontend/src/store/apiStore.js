@@ -390,7 +390,9 @@ const useApiStore = create(
         try {
           const response = await authAPI.getMe();
           const { user } = response.data.data;
-          set({ user, isAuthenticated: true, cacheMeTs: now });
+          // Extract dashboardYears from user data
+          const dashboardYears = user.dashboardYears || [];
+          set({ user, isAuthenticated: true, cacheMeTs: now, dashboardYears });
           return { success: true, user };
         } catch (error) {
           // Do not hard-logout on transient 401 from /me; allow refresh flow to handle
@@ -423,6 +425,21 @@ const useApiStore = create(
           const years = res?.data?.data?.years || [];
           set({ dashboardYears: years });
           return { success: true, years };
+        } catch (error) {
+          const errorMessage = handleApiError(error);
+          return { success: false, error: errorMessage };
+        }
+      },
+
+      deleteDashboardYear: async (year) => {
+        try {
+          const res = await usersAPI.deleteDashboardYear(year);
+          const years = res?.data?.data?.years || [];
+          const deletedGoals = res?.data?.data?.deletedGoals || 0;
+          set({ dashboardYears: years });
+          // Invalidate goals cache since we deleted goals
+          set({ cacheGoals: {}, cacheDashboardStats: null });
+          return { success: true, years, deletedGoals, message: res?.data?.message };
         } catch (error) {
           const errorMessage = handleApiError(error);
           return { success: false, error: errorMessage };
