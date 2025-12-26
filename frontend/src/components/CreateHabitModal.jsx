@@ -91,7 +91,7 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-2xl border border-gray-200 dark:border-gray-800 max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="relative bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-2xl border border-gray-200 dark:border-gray-800 h-[85vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 px-8 py-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -99,8 +99,8 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
               <Calendar className="h-6 w-6 text-primary-600 dark:text-primary-400" />
             </div>
             <div>
-              <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Create New Habit</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">Build a positive routine</p>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white">Create New Habit</h3>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">Build a positive routine</p>
             </div>
           </div>
           <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors" aria-label="Close">

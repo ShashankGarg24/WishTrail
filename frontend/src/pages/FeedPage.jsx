@@ -230,22 +230,12 @@ const FeedPage = () => {
         return 'created a goal'
       case 'subgoal_added':
         return 'added a sub-goal'
-      case 'subgoal_removed':
-        return 'removed a sub-goal'
       case 'subgoal_completed':
         return 'completed a sub-goal'
-      case 'subgoal_uncompleted':
-        return 'uncompleted a sub-goal'
       case 'habit_added':
         return 'linked a habit'
-      case 'habit_removed':
-        return 'unlinked a habit'
       case 'habit_target_achieved':
         return 'achieved a habit target'
-      case 'streak_milestone':
-        return 'achieved a streak milestone'
-      case 'achievement_earned':
-        return 'earned an achievement'
       default:
         return 'had some activity'
     }
@@ -550,26 +540,23 @@ const FeedPage = () => {
                       onClick={() => openGoalModal(activity?.data?.goalId?._id)}
                     >
                       {(activity.type === 'goal_completed' || activity.type === 'goal_created' || activity.type === 'goal_activity' || 
-                        activity.type === 'subgoal_added' || activity.type === 'subgoal_removed' || 
-                        activity.type === 'subgoal_completed' || activity.type === 'subgoal_uncompleted' ||
-                        activity.type === 'habit_added' || activity.type === 'habit_removed' || 
-                        activity.type === 'habit_target_achieved') ? (
+                        activity.type === 'subgoal_added' || activity.type === 'subgoal_completed' ||
+                        activity.type === 'habit_added' || activity.type === 'habit_target_achieved') ? (
                         <>
                           <div className="flex items-start justify-between gap-3 mb-3">
                             <div className="flex-1">
                               <h4 className="font-semibold text-gray-900 dark:text-white text-base group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
                                 {activity.data?.goalTitle || 'Goal Achievement'}
                               </h4>
-                              {/* Show sub-goal/habit name for specific events */}
-                              {(activity.type === 'subgoal_added' || activity.type === 'subgoal_removed' || 
-                                activity.type === 'subgoal_completed' || activity.type === 'subgoal_uncompleted') && 
+                              {/* Show sub-goal name for specific events */}
+                              {(activity.type === 'subgoal_added' || activity.type === 'subgoal_completed') && 
                                 activity.data?.subGoalTitle && (
                                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                                   <span className="font-medium">Sub-goal:</span> {activity.data.subGoalTitle}
                                 </p>
                               )}
-                              {(activity.type === 'habit_added' || activity.type === 'habit_removed' || 
-                                activity.type === 'habit_target_achieved') && 
+                              {/* Show habit name for specific events */}
+                              {(activity.type === 'habit_added' || activity.type === 'habit_target_achieved') && 
                                 activity.data?.habitName && (
                                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                                   <span className="font-medium">Habit:</span> {activity.data.habitName}
@@ -587,13 +574,6 @@ const FeedPage = () => {
                               <div className="shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-sm">
                                 <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                                </svg>
-                              </div>
-                            )}
-                            {(activity.type === 'subgoal_removed' || activity.type === 'habit_removed') && (
-                              <div className="shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-red-400 to-rose-500 flex items-center justify-center shadow-sm">
-                                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
                                 </svg>
                               </div>
                             )}

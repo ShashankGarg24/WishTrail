@@ -291,7 +291,7 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
-        className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-3xl max-h-[90vh] relative shadow-2xl border border-gray-200 dark:border-gray-800 overflow-hidden flex flex-col"
+        className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-3xl h-[85vh] relative shadow-2xl border border-gray-200 dark:border-gray-800 overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -304,10 +304,10 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
               <Target className="h-6 w-6 text-primary-600 dark:text-primary-400" />
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">
                 {editMode ? 'Edit Goal' : 'Create New Goal'}
               </h2>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
+              <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
                 {editMode ? 'Update your goal details' : 'Define what you want to achieve'}
               </p>
             </div>

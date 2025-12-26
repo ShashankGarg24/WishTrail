@@ -262,7 +262,7 @@ const ProfileEditModal = ({ isOpen, onClose }) => {
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="relative w-full max-w-4xl max-h-[90vh] bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden"
+          className="relative w-full max-w-4xl h-[85vh] bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden"
         >
           {/* Header */}
           <div className="px-6 py-4 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
@@ -283,7 +283,7 @@ const ProfileEditModal = ({ isOpen, onClose }) => {
           </div>
 
           {/* Content */}
-          <div className="overflow-y-auto scrollbar-hide max-h-[calc(90vh-80px)] px-6 py-6">
+          <div className="overflow-y-auto scrollbar-hide max-h-[calc(85vh-80px)] px-6 py-6">
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Profile Picture */}

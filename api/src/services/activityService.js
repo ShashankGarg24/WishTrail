@@ -33,31 +33,10 @@ class ActivityService {
     };
 
     if (followingIds.length === 0) {
-      const filter = {
-        isActive: true,
-        isPublic: true,
-        'data.targetUserId': userId,
-        type: { $in: ['user_followed', 'goal_liked'] }
-      };
-
-      const [total, list] = await Promise.all([
-        Activity.countDocuments(filter),
-        Activity.find(filter)
-          .sort({ createdAt: -1 })
-          .limit(limit)
-          .skip((page - 1) * limit)
-          .populate('userId', baseProjectUser)
-          .populate('data.goalId', 'title category')
-          .populate('data.targetUserId', 'name username avatar')
-          .lean()
-      ]);
-
-      const enriched = await this.enrichWithLikes(list, userId);
-      const normalized = enriched.map(shape);
-
+      // Return empty feed when user isn't following anyone
       return {
-        activities: normalized,
-        pagination: { page: parseInt(page), limit: parseInt(limit), total, pages: Math.ceil(total / limit) }
+        activities: [],
+        pagination: { page: parseInt(page), limit: parseInt(limit), total: 0, pages: 0 }
       };
     }
   
@@ -67,7 +46,15 @@ class ActivityService {
       $or: [
         { 
           userId: { $in: followingIds }, 
-          type: { $in: ['goal_activity', 'goal_completed', 'goal_created'] } 
+          type: { $in: [
+            'goal_activity',
+            'goal_completed',
+            'goal_created',
+            'subgoal_added',
+            'habit_added',
+            'subgoal_completed',
+            'habit_target_achieved'
+          ] } 
         }
       ]
     };
