@@ -217,7 +217,7 @@ const Header = () => {
               {!isAuthenticated && (
                 <Link
                   to="/auth"
-                  className="hidden sm:inline-flex items-center px-5 py-2.5 rounded-lg text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 transition-all duration-200 shadow-sm hover:shadow-md"
+                  className="inline-flex items-center px-5 py-2.5 rounded-lg text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 transition-all duration-200 shadow-sm hover:shadow-md"
                 >
                   Get Started
                 </Link>
@@ -230,18 +230,6 @@ const Header = () => {
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setIsMenuOpen(!isMenuOpen)}
                   className="hidden md:flex p-2.5 rounded-lg text-gray-700 hover:text-purple-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:text-purple-400 dark:hover:bg-gray-800 transition-all duration-200"
-                >
-                  <Menu className="h-5 w-5" />
-                </motion.button>
-              )}
-              
-              {/* Mobile Get Started Button */}
-              {!isAuthenticated && (
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setIsMenuOpen(!isMenuOpen)}
-                  className="md:hidden flex p-2.5 rounded-lg text-gray-700 hover:text-purple-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:text-purple-400 dark:hover:bg-gray-800 transition-all duration-200"
                 >
                   <Menu className="h-5 w-5" />
                 </motion.button>
