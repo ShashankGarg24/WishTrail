@@ -39,7 +39,16 @@ const habitLogSchema = new mongoose.Schema({
   journalEntryId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'JournalEntry'
-  }
+  },
+  // Track multiple completions per day
+  completionCount: {
+    type: Number,
+    default: 0
+  },
+  // Timestamps for each completion done on this day
+  completionTimes: [{
+    type: Date
+  }]
 }, {
   timestamps: true,
   toJSON: { virtuals: true },

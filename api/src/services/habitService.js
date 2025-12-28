@@ -221,15 +221,39 @@ async function toggleLog(userId, habitId, { status = 'done', note = '', mood = '
   const dateKey = toDateKeyUTC(date);
   const scheduled = isScheduledForDay(habit, date);
   const isDone = status === 'done';
+  const isSkipped = status === 'skipped';
 
-  // Check if this is a new day being logged
-  const existingLog = await HabitLog.findOne({ userId, habitId, dateKey, status: 'done' });
-  const isNewDay = !existingLog && isDone;
+  // Check if log already exists for this day
+  const existingLog = await HabitLog.findOne({ userId, habitId, dateKey });
+  const wasAlreadyDone = existingLog && existingLog.status === 'done';
+  const isNewDay = !wasAlreadyDone && isDone;
+  
+  // Build update operation based on status
+  let updateOp;
+  if (isDone) {
+    // Marking done: increment completionCount, push current time to completionTimes
+    // If previously skipped, unmark skip and start fresh count
+    const prevCount = (existingLog && existingLog.status === 'done') ? (existingLog.completionCount || 0) : 0;
+    updateOp = {
+      $set: { status, note, mood, journalEntryId: journalEntryId || undefined, completionCount: prevCount + 1 },
+      $push: { completionTimes: new Date() }
+    };
+  } else if (isSkipped) {
+    // Marking skipped: reset completionCount to 0, clear completionTimes
+    updateOp = {
+      $set: { status, note, mood, journalEntryId: journalEntryId || undefined, completionCount: 0, completionTimes: [] }
+    };
+  } else {
+    // Other status (missed): just update status
+    updateOp = {
+      $set: { status, note, mood, journalEntryId: journalEntryId || undefined }
+    };
+  }
   
   // Upsert log
   const log = await HabitLog.findOneAndUpdate(
     { userId, habitId, dateKey },
-    { $set: { status, note, mood, journalEntryId: journalEntryId || undefined } },
+    updateOp,
     { new: true, upsert: true, setDefaultsOnInsert: true }
   );
 
@@ -351,10 +375,27 @@ async function toggleLog(userId, habitId, { status = 'done', note = '', mood = '
       }
     } catch (_) {}
   } else if (!isDone) {
-    // If missed or skipped, reset current streak only if dateKey is today
+    // If missed or skipped, we need to adjust counts
     const todayKey = toDateKeyUTC(new Date());
+    const updates = {};
+    
+    // Reset current streak if it's today
     if (dateKey === todayKey && (habit.currentStreak || 0) > 0) {
-      await Habit.updateOne({ _id: habit._id }, { $set: { currentStreak: 0 } });
+      updates.currentStreak = 0;
+    }
+    
+    // If skipping and there were previous completions today, decrement totalCompletions
+    if (isSkipped && existingLog && existingLog.status === 'done') {
+      const prevCompletionCount = existingLog.completionCount || 0;
+      if (prevCompletionCount > 0) {
+        updates.totalCompletions = Math.max(0, (habit.totalCompletions || 0) - prevCompletionCount);
+      }
+      // Also decrement totalDays since this day is no longer "done"
+      updates.totalDays = Math.max(0, (habit.totalDays || 0) - 1);
+    }
+    
+    if (Object.keys(updates).length > 0) {
+      await Habit.updateOne({ _id: habit._id }, { $set: updates });
     }
   }
 
@@ -624,7 +665,9 @@ async function getHabitAnalytics(userId, habitId, { days = 90 } = {}) {
       date: log.dateKey,
       status: log.status,
       mood: log.mood,
-      note: log.note
+      note: log.note,
+      completionCount: log.completionCount || 0,
+      completionTimes: log.completionTimes || []
     };
     if (statusCounts[log.status] !== undefined) {
       statusCounts[log.status]++;
@@ -647,14 +690,51 @@ async function getHabitAnalytics(userId, habitId, { days = 90 } = {}) {
     const weekStartKey = toDateKeyUTC(weekStart);
     const weekEndKey = toDateKeyUTC(weekEnd);
     
-    const weekLogs = logs.filter(l => l.dateKey >= weekStartKey && l.dateKey <= weekEndKey && l.status === 'done');
-    const uniqueDays = new Set(weekLogs.map(l => l.dateKey)).size;
+    // Get all logs for this week
+    const weekLogs = logs.filter(l => l.dateKey >= weekStartKey && l.dateKey <= weekEndKey);
+    
+    // Done logs for this week
+    const doneLogs = weekLogs.filter(l => l.status === 'done');
+    
+    // Completions: sum of completionCount across all done logs (multiple completions per day)
+    const completions = doneLogs.reduce((sum, l) => sum + (l.completionCount || 1), 0);
+    
+    // Active days: unique days with at least 1 done
+    const activeDays = new Set(doneLogs.map(l => l.dateKey)).size;
+    
+    // Skipped days: unique days marked as skipped
+    const skippedLogs = weekLogs.filter(l => l.status === 'skipped');
+    const skippedDays = new Set(skippedLogs.map(l => l.dateKey)).size;
+    
+    // Calculate expected days for this week based on habit frequency
+    let expectedDays = 0;
+    if (habit.frequency === 'daily') {
+      expectedDays = 7;
+    } else if (habit.frequency === 'weekly' && Array.isArray(habit.daysOfWeek) && habit.daysOfWeek.length > 0) {
+      // Count how many scheduled days fall within this week
+      for (let d = 0; d < 7; d++) {
+        const dayDate = new Date(weekStart);
+        dayDate.setUTCDate(dayDate.getUTCDate() + d);
+        const dayOfWeek = dayDate.getUTCDay(); // 0 = Sunday, 6 = Saturday
+        if (habit.daysOfWeek.includes(dayOfWeek)) {
+          expectedDays++;
+        }
+      }
+    } else {
+      expectedDays = 1; // Default weekly once
+    }
+    
+    // Missed days: expected - active - skipped (but not negative)
+    const missedDays = Math.max(0, expectedDays - activeDays - skippedDays);
     
     weeklyData.push({
       weekStart: weekStartKey,
       weekEnd: weekEndKey,
-      completions: weekLogs.length,
-      days: uniqueDays
+      completions,
+      activeDays,
+      skippedDays,
+      missedDays,
+      expectedDays
     });
   }
   

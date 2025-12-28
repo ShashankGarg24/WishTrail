@@ -175,7 +175,12 @@ exports.toggleLog = async (req, res, next) => {
   try {
     const { status, note, mood, journalEntryId, date } = req.body || {};
     const log = await habitService.toggleLog(req.user.id || req.user._id, req.params.id, { status, note, mood, journalEntryId, date });
-    res.status(200).json({ success: true, data: { log } });
+    
+    // Fetch updated habit to return current counts
+    const Habit = require('../models/Habit');
+    const habit = await Habit.findById(req.params.id).select('totalCompletions totalDays currentStreak longestStreak').lean();
+    
+    res.status(200).json({ success: true, data: { log, habit } });
   } catch (error) { next(error); }
 };
 

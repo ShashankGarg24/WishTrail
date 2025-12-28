@@ -1366,11 +1366,16 @@ const DashboardPage = () => {
                         </div>
                         <div className="flex items-center justify-end gap-2 pt-2">
                           <button
-                            onClick={async (e) => { e.stopPropagation(); handleStatusToast('skipped'); try { const target = base || await ensurePersonalHabit(it); if (target?.id) await logHabit(target.id, 'skipped'); } catch { } }}
+                            onClick={async (e) => { 
+                              e.stopPropagation(); 
+                              if (!window.confirm('Skip day? All progress will be lost for today.')) return;
+                              handleStatusToast('skipped'); 
+                              try { const target = base || await ensurePersonalHabit(it); if (target?.id) await logHabit(target.id, 'skipped'); } catch { } 
+                            }}
                             className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-white text-sm ${isScheduledToday(h) ? 'bg-yellow-600/90 hover:bg-yellow-600' : 'bg-gray-300 dark:bg-gray-700 cursor-not-allowed'}`}
                             disabled={false}
                           >
-                            <SkipForward className="h-4 w-4" /> Skip
+                            <SkipForward className="h-4 w-4" /> Skip Day
                           </button>
                           <button
                             onClick={async (e) => { e.stopPropagation(); handleStatusToast('done'); try { const target = base || await ensurePersonalHabit(it); if (target?.id) await logHabit(target.id, 'done'); } catch { } }}

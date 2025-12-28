@@ -117,7 +117,7 @@ export default function HabitAnalyticsModal({ habit, isOpen, onClose }) {
 
   if (!analytics) return null;
 
-  const { stats, consistency, statusCounts, timeline } = analytics;
+  const { stats, consistency, statusCounts, timeline, weeklyData } = analytics;
 
   // Calculate expected occurrences based on habit frequency and date range
   const calculateExpectedOccurrences = () => {
@@ -245,81 +245,132 @@ export default function HabitAnalyticsModal({ habit, isOpen, onClose }) {
     heatmapWeeks.push(heatmapDays.slice(i, i + 7));
   }
 
-  // Weekly completions bar chart: completed vs expected per week
-  const createWeeklyData = () => {
-    const weeksToShow = Math.min(12, Math.ceil((days || 90) / 7));
+  // Create weekly data for charts from backend weeklyData
+  const createWeeklyDataForCharts = () => {
     const weeklyCompletions = [];
+    const weeklyActiveDays = [];
     const weeklyExpected = [];
     const weeklySkipped = [];
+    const weeklyMissed = [];
     const weekLabels = [];
+    const weekRanges = [];
     
-    for (let weekIdx = weeksToShow - 1; weekIdx >= 0; weekIdx--) {
-      const weekEnd = new Date();
-      weekEnd.setDate(weekEnd.getDate() - (weekIdx * 7));
-      const weekStart = new Date(weekEnd);
-      weekStart.setDate(weekStart.getDate() - 6);
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    
+    // Use backend weeklyData if available, otherwise fallback to local calculation
+    if (weeklyData && weeklyData.length > 0) {
+      weeklyData.forEach(week => {
+        weeklyCompletions.push(week.completions || 0);
+        weeklyActiveDays.push(week.activeDays || 0);
+        weeklyExpected.push(week.expectedDays || 7);
+        weeklySkipped.push(week.skippedDays || 0);
+        weeklyMissed.push(week.missedDays || 0);
+        
+        // Parse dates for labels
+        const startDate = new Date(week.weekStart);
+        const endDate = new Date(week.weekEnd);
+        const startLabel = `${monthNames[startDate.getMonth()]} ${startDate.getDate()}`;
+        const endLabel = `${monthNames[endDate.getMonth()]} ${endDate.getDate()}`;
+        weekLabels.push(startLabel);
+        weekRanges.push({
+          start: startLabel,
+          end: endLabel,
+          fullRange: `${startLabel} - ${endLabel}`
+        });
+      });
+    } else {
+      // Fallback: calculate locally from timeline
+      const weeksToShow = Math.min(12, Math.ceil((days || 90) / 7));
       
-      const weekStartKey = weekStart.toISOString().split('T')[0];
-      const weekEndKey = weekEnd.toISOString().split('T')[0];
-      
-      // Count completions in this week
-      const weekCompletions = timeline.filter(entry => 
-        entry.status === 'done' && entry.date >= weekStartKey && entry.date <= weekEndKey
-      ).length;
-      
-      // Count skipped days in this week
-      const weekSkip = timeline.filter(entry => 
-        entry.status === 'skipped' && entry.date >= weekStartKey && entry.date <= weekEndKey
-      ).length;
-      
-      // Calculate expected for this week based on frequency
-      let expectedThisWeek = 0;
-      if (habit.frequency === 'daily') {
-        expectedThisWeek = 7;
-      } else if (habit.frequency === 'weekly' && Array.isArray(habit.daysOfWeek)) {
-        expectedThisWeek = habit.daysOfWeek.length;
-      } else {
-        expectedThisWeek = 1;
+      for (let weekIdx = weeksToShow - 1; weekIdx >= 0; weekIdx--) {
+        const weekEnd = new Date();
+        weekEnd.setDate(weekEnd.getDate() - (weekIdx * 7));
+        const weekStart = new Date(weekEnd);
+        weekStart.setDate(weekStart.getDate() - 6);
+        
+        const weekStartKey = weekStart.toISOString().split('T')[0];
+        const weekEndKey = weekEnd.toISOString().split('T')[0];
+        
+        const doneLogs = timeline.filter(entry => 
+          entry.status === 'done' && entry.date >= weekStartKey && entry.date <= weekEndKey
+        );
+        const weekCompletions = doneLogs.length;
+        const activeDays = new Set(doneLogs.map(e => e.date)).size;
+        
+        const skippedLogs = timeline.filter(entry => 
+          entry.status === 'skipped' && entry.date >= weekStartKey && entry.date <= weekEndKey
+        );
+        const skippedDays = new Set(skippedLogs.map(e => e.date)).size;
+        
+        let expectedThisWeek = 0;
+        if (habit.frequency === 'daily') {
+          expectedThisWeek = 7;
+        } else if (habit.frequency === 'weekly' && Array.isArray(habit.daysOfWeek)) {
+          expectedThisWeek = habit.daysOfWeek.length;
+        } else {
+          expectedThisWeek = 1;
+        }
+        
+        const missedDays = Math.max(0, expectedThisWeek - activeDays - skippedDays);
+        
+        weeklyCompletions.push(weekCompletions);
+        weeklyActiveDays.push(activeDays);
+        weeklyExpected.push(expectedThisWeek);
+        weeklySkipped.push(skippedDays);
+        weeklyMissed.push(missedDays);
+        
+        const startLabel = `${monthNames[weekStart.getMonth()]} ${weekStart.getDate()}`;
+        const endLabel = `${monthNames[weekEnd.getMonth()]} ${weekEnd.getDate()}`;
+        weekLabels.push(startLabel);
+        weekRanges.push({
+          start: startLabel,
+          end: endLabel,
+          fullRange: `${startLabel} - ${endLabel}`
+        });
       }
-      
-      // Don't subtract skipped from expected - show it separately
-      weeklyCompletions.push(weekCompletions);
-      weeklyExpected.push(expectedThisWeek);
-      weeklySkipped.push(weekSkip);
-      weekLabels.push(`${weekStart.getMonth() + 1}/${weekStart.getDate()}`);
     }
     
-    return { weeklyCompletions, weeklyExpected, weeklySkipped, weekLabels };
+    return { weeklyCompletions, weeklyActiveDays, weeklyExpected, weeklySkipped, weeklyMissed, weekLabels, weekRanges };
   };
 
-  const { weeklyCompletions, weeklyExpected, weeklySkipped, weekLabels } = createWeeklyData();
+  const { weeklyCompletions, weeklyActiveDays, weeklyExpected, weeklySkipped, weeklyMissed, weekLabels, weekRanges } = createWeeklyDataForCharts();
 
+  // Calculate remaining (expected - active - skipped) for each week
+  const weeklyRemaining = weeklyExpected.map((expected, idx) => {
+    const remaining = expected - weeklyActiveDays[idx] - weeklySkipped[idx];
+    return Math.max(0, remaining); // Ensure non-negative
+  });
+
+  // Weekly breakdown bar chart - stacked bars showing days (Active + Skipped + Remaining = Expected)
   const weeklyChartData = {
     labels: weekLabels,
     datasets: [
       {
-        label: 'Completed',
-        data: weeklyCompletions,
-        backgroundColor: 'rgba(34, 197, 94, 0.7)',
+        label: 'Active Days',
+        data: weeklyActiveDays,
+        backgroundColor: 'rgba(34, 197, 94, 0.8)',
         borderColor: 'rgb(34, 197, 94)',
-        borderWidth: 2,
-        borderRadius: 6
+        borderWidth: 0,
+        borderRadius: 0,
+        stack: 'stack1'
       },
       {
         label: 'Skipped',
         data: weeklySkipped,
-        backgroundColor: 'rgba(251, 191, 36, 0.6)',
+        backgroundColor: 'rgba(251, 191, 36, 0.8)',
         borderColor: 'rgb(251, 191, 36)',
-        borderWidth: 2,
-        borderRadius: 6
+        borderWidth: 0,
+        borderRadius: 0,
+        stack: 'stack1'
       },
       {
-        label: 'Expected',
-        data: weeklyExpected,
-        backgroundColor: 'rgba(156, 163, 175, 0.4)',
+        label: 'Remaining',
+        data: weeklyRemaining,
+        backgroundColor: 'rgba(156, 163, 175, 0.5)',
         borderColor: 'rgb(156, 163, 175)',
-        borderWidth: 2,
-        borderRadius: 6
+        borderWidth: 0,
+        borderRadius: 4,
+        stack: 'stack1'
       }
     ]
   };
@@ -328,20 +379,27 @@ export default function HabitAnalyticsModal({ habit, isOpen, onClose }) {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: {
-        display: true,
-        position: 'top',
-        labels: {
-          font: { size: 12 },
-          color: document.documentElement.classList.contains('dark') ? '#e5e7eb' : '#374151'
-        }
-      },
+      legend: { display: false },
       tooltip: {
+        mode: 'index',
         callbacks: {
+          title: (context) => {
+            const idx = context[0].dataIndex;
+            return weekRanges[idx]?.fullRange || '';
+          },
           label: (context) => {
+            const idx = context.dataIndex;
             const label = context.dataset.label || '';
             const value = context.parsed.y || 0;
+            // Show "Expected" instead of "Remaining" in tooltip
+            if (label === 'Remaining') {
+              return `Expected Days: ${weeklyExpected[idx]}`;
+            }
             return `${label}: ${value}`;
+          },
+          footer: (context) => {
+            const idx = context[0].dataIndex;
+            return `Total Completions: ${weeklyCompletions[idx]}`;
           }
         }
       }
@@ -349,6 +407,7 @@ export default function HabitAnalyticsModal({ habit, isOpen, onClose }) {
     scales: {
       y: {
         beginAtZero: true,
+        stacked: true,
         ticks: {
           stepSize: 1,
           color: document.documentElement.classList.contains('dark') ? '#9ca3af' : '#6b7280'
@@ -358,6 +417,7 @@ export default function HabitAnalyticsModal({ habit, isOpen, onClose }) {
         }
       },
       x: {
+        stacked: true,
         ticks: {
           color: document.documentElement.classList.contains('dark') ? '#9ca3af' : '#6b7280'
         },
@@ -366,11 +426,11 @@ export default function HabitAnalyticsModal({ habit, isOpen, onClose }) {
     }
   };
 
-  // Weekly trend line chart - total completions per week
+  // Weekly trend line chart - total completed per week (Activity Trends)
   const weeklyTrendData = {
     labels: weekLabels,
     datasets: [{
-      label: 'Weekly Completions',
+      label: 'Completed',
       data: weeklyCompletions,
       borderColor: 'rgb(99, 102, 241)',
       backgroundColor: 'rgba(99, 102, 241, 0.1)',
@@ -392,7 +452,11 @@ export default function HabitAnalyticsModal({ habit, isOpen, onClose }) {
       legend: { display: false },
       tooltip: {
         callbacks: {
-          label: (context) => `Total: ${context.parsed.y} completions`
+          title: (context) => {
+            const idx = context[0].dataIndex;
+            return weekRanges[idx]?.fullRange || '';
+          },
+          label: (context) => `Completed: ${context.parsed.y}`
         }
       }
     },
@@ -410,31 +474,13 @@ export default function HabitAnalyticsModal({ habit, isOpen, onClose }) {
         },
         grid: {
           color: document.documentElement.classList.contains('dark') ? 'rgba(75, 85, 99, 0.3)' : 'rgba(229, 231, 235, 0.8)'
-        },
-        title: {
-          display: true,
-          text: 'Total Completions',
-          color: document.documentElement.classList.contains('dark') ? '#9ca3af' : '#6b7280',
-          font: {
-            size: 12,
-            weight: 'bold'
-          }
         }
       },
       x: {
         ticks: {
           color: document.documentElement.classList.contains('dark') ? '#9ca3af' : '#6b7280'
         },
-        grid: { display: false },
-        title: {
-          display: true,
-          text: 'Week Starting',
-          color: document.documentElement.classList.contains('dark') ? '#9ca3af' : '#6b7280',
-          font: {
-            size: 12,
-            weight: 'bold'
-          }
-        }
+        grid: { display: false }
       }
     }
   };
@@ -611,19 +657,40 @@ export default function HabitAnalyticsModal({ habit, isOpen, onClose }) {
               </div>
             </div>
 
-            {/* Weekly Breakdown Bar Chart */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200/50 dark:border-gray-700/50 shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between mb-6">
+            {/* Activity Breakdown Bar Chart */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 border border-gray-200/50 dark:border-gray-700/50 shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <div className="w-1 h-8 bg-gradient-to-b from-indigo-500 to-purple-500 rounded-full"></div>
                   <div>
-                    <h4 className="text-lg font-bold text-gray-900 dark:text-white">Weekly Breakdown</h4>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Completed vs Expected vs Skipped</p>
+                    <h4 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">Activity Breakdown</h4>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Active Days vs Skipped vs Remaining</p>
                   </div>
                 </div>
               </div>
-              <div className="h-80">
-                <Bar data={weeklyChartData} options={weeklyChartOptions} />
+              {/* Fixed Legend */}
+              <div className="flex flex-wrap items-center gap-3 sm:gap-4 mb-3 text-xs sm:text-sm">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded-sm bg-green-500"></div>
+                  <span className="text-gray-600 dark:text-gray-400">Active Days</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded-sm bg-yellow-400"></div>
+                  <span className="text-gray-600 dark:text-gray-400">Skipped</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded-sm bg-gray-400"></div>
+                  <span className="text-gray-600 dark:text-gray-400">Remaining</span>
+                </div>
+              </div>
+              <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
+                <div className="h-64 sm:h-80" style={{ minWidth: weekLabels.length > 6 ? `${Math.max(weekLabels.length * 60, 300)}px` : '100%' }}>
+                  <Bar data={weeklyChartData} options={weeklyChartOptions} />
+                </div>
+              </div>
+              {/* Fixed X-axis range label */}
+              <div className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
+                {weekLabels[0]} to {weekLabels[weekLabels.length - 1]}
               </div>
             </div>
 

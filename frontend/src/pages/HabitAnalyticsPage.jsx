@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  ArrowLeft, TrendingUp, Target, Calendar, BarChart3, Activity
+  ArrowLeft, TrendingUp, Target, Calendar, BarChart3, Activity, X
 } from 'lucide-react';
 import { habitsAPI } from '../services/api';
 import ExpandableText from '../components/ExpandableText';
@@ -40,10 +40,27 @@ export default function HabitAnalyticsPage() {
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [days, setDays] = useState(90);
+  const [selectedDay, setSelectedDay] = useState(null);
+  const heatmapRef = useRef(null);
 
   useEffect(() => {
     loadAnalytics();
   }, [id, days]);
+
+  // Close popup when clicking outside - must be before early returns
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (heatmapRef.current && !heatmapRef.current.contains(event.target)) {
+        setSelectedDay(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, []);
 
   const loadAnalytics = async () => {
     try {
@@ -93,7 +110,7 @@ export default function HabitAnalyticsPage() {
     );
   }
 
-  const { habit, stats, consistency, statusCounts, timeline } = analytics;
+  const { habit, stats, consistency, statusCounts, timeline, weeklyData } = analytics;
 
   // Calculate expected occurrences based on habit frequency and date range
   const calculateExpectedOccurrences = () => {
@@ -183,78 +200,132 @@ export default function HabitAnalyticsPage() {
     }
   };
 
-  // Create weekly data for charts
-  const createWeeklyData = () => {
-    const weeksToShow = Math.min(12, Math.ceil((days || 90) / 7));
+  // Create weekly data for charts from backend weeklyData
+  const createWeeklyDataForCharts = () => {
     const weeklyCompletions = [];
+    const weeklyActiveDays = [];
     const weeklyExpected = [];
     const weeklySkipped = [];
+    const weeklyMissed = [];
     const weekLabels = [];
+    const weekRanges = [];
     
-    for (let weekIdx = weeksToShow - 1; weekIdx >= 0; weekIdx--) {
-      const weekEnd = new Date();
-      weekEnd.setDate(weekEnd.getDate() - (weekIdx * 7));
-      const weekStart = new Date(weekEnd);
-      weekStart.setDate(weekStart.getDate() - 6);
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    
+    // Use backend weeklyData if available, otherwise fallback to local calculation
+    if (weeklyData && weeklyData.length > 0) {
+      weeklyData.forEach(week => {
+        weeklyCompletions.push(week.completions || 0);
+        weeklyActiveDays.push(week.activeDays || 0);
+        weeklyExpected.push(week.expectedDays || 7);
+        weeklySkipped.push(week.skippedDays || 0);
+        weeklyMissed.push(week.missedDays || 0);
+        
+        // Parse dates for labels
+        const startDate = new Date(week.weekStart);
+        const endDate = new Date(week.weekEnd);
+        const startLabel = `${monthNames[startDate.getMonth()]} ${startDate.getDate()}`;
+        const endLabel = `${monthNames[endDate.getMonth()]} ${endDate.getDate()}`;
+        weekLabels.push(startLabel);
+        weekRanges.push({
+          start: startLabel,
+          end: endLabel,
+          fullRange: `${startLabel} - ${endLabel}`
+        });
+      });
+    } else {
+      // Fallback: calculate locally from timeline
+      const weeksToShow = Math.min(12, Math.ceil((days || 90) / 7));
       
-      const weekStartKey = weekStart.toISOString().split('T')[0];
-      const weekEndKey = weekEnd.toISOString().split('T')[0];
-      
-      const weekCompletions = timeline.filter(entry => 
-        entry.status === 'done' && entry.date >= weekStartKey && entry.date <= weekEndKey
-      ).length;
-      
-      const weekSkip = timeline.filter(entry => 
-        entry.status === 'skipped' && entry.date >= weekStartKey && entry.date <= weekEndKey
-      ).length;
-      
-      let expectedThisWeek = 0;
-      if (habit.frequency === 'daily') {
-        expectedThisWeek = 7;
-      } else if (habit.frequency === 'weekly' && Array.isArray(habit.daysOfWeek)) {
-        expectedThisWeek = habit.daysOfWeek.length;
-      } else {
-        expectedThisWeek = 1;
+      for (let weekIdx = weeksToShow - 1; weekIdx >= 0; weekIdx--) {
+        const weekEnd = new Date();
+        weekEnd.setDate(weekEnd.getDate() - (weekIdx * 7));
+        const weekStart = new Date(weekEnd);
+        weekStart.setDate(weekStart.getDate() - 6);
+        
+        const weekStartKey = weekStart.toISOString().split('T')[0];
+        const weekEndKey = weekEnd.toISOString().split('T')[0];
+        
+        const doneLogs = timeline.filter(entry => 
+          entry.status === 'done' && entry.date >= weekStartKey && entry.date <= weekEndKey
+        );
+        const weekCompletions = doneLogs.length;
+        const activeDays = new Set(doneLogs.map(e => e.date)).size;
+        
+        const skippedLogs = timeline.filter(entry => 
+          entry.status === 'skipped' && entry.date >= weekStartKey && entry.date <= weekEndKey
+        );
+        const skippedDays = new Set(skippedLogs.map(e => e.date)).size;
+        
+        let expectedThisWeek = 0;
+        if (habit.frequency === 'daily') {
+          expectedThisWeek = 7;
+        } else if (habit.frequency === 'weekly' && Array.isArray(habit.daysOfWeek)) {
+          expectedThisWeek = habit.daysOfWeek.length;
+        } else {
+          expectedThisWeek = 1;
+        }
+        
+        const missedDays = Math.max(0, expectedThisWeek - activeDays - skippedDays);
+        
+        weeklyCompletions.push(weekCompletions);
+        weeklyActiveDays.push(activeDays);
+        weeklyExpected.push(expectedThisWeek);
+        weeklySkipped.push(skippedDays);
+        weeklyMissed.push(missedDays);
+        
+        const startLabel = `${monthNames[weekStart.getMonth()]} ${weekStart.getDate()}`;
+        const endLabel = `${monthNames[weekEnd.getMonth()]} ${weekEnd.getDate()}`;
+        weekLabels.push(startLabel);
+        weekRanges.push({
+          start: startLabel,
+          end: endLabel,
+          fullRange: `${startLabel} - ${endLabel}`
+        });
       }
-      
-      weeklyCompletions.push(weekCompletions);
-      weeklyExpected.push(expectedThisWeek);
-      weeklySkipped.push(weekSkip);
-      weekLabels.push(`${weekStart.getMonth() + 1}/${weekStart.getDate()}`);
     }
     
-    return { weeklyCompletions, weeklyExpected, weeklySkipped, weekLabels };
+    return { weeklyCompletions, weeklyActiveDays, weeklyExpected, weeklySkipped, weeklyMissed, weekLabels, weekRanges };
   };
 
-  const { weeklyCompletions, weeklyExpected, weeklySkipped, weekLabels } = createWeeklyData();
+  const { weeklyCompletions, weeklyActiveDays, weeklyExpected, weeklySkipped, weeklyMissed, weekLabels, weekRanges } = createWeeklyDataForCharts();
 
-  // Weekly breakdown bar chart
+  // Calculate remaining (expected - active - skipped) for each week
+  const weeklyRemaining = weeklyExpected.map((expected, idx) => {
+    const remaining = expected - weeklyActiveDays[idx] - weeklySkipped[idx];
+    return Math.max(0, remaining); // Ensure non-negative
+  });
+
+  // Weekly breakdown bar chart - stacked bars showing days (Active + Skipped + Remaining = Expected)
   const weeklyChartData = {
     labels: weekLabels,
     datasets: [
       {
-        label: 'Completed',
-        data: weeklyCompletions,
-        backgroundColor: 'rgba(34, 197, 94, 0.7)',
+        label: 'Active Days',
+        data: weeklyActiveDays,
+        backgroundColor: 'rgba(34, 197, 94, 0.8)',
         borderColor: 'rgb(34, 197, 94)',
-        borderWidth: 2,
-        borderRadius: 6
+        borderWidth: 0,
+        borderRadius: 0,
+        stack: 'stack1'
       },
       {
         label: 'Skipped',
         data: weeklySkipped,
-        backgroundColor: 'rgba(251, 191, 36, 0.6)',
+        backgroundColor: 'rgba(251, 191, 36, 0.8)',
         borderColor: 'rgb(251, 191, 36)',
-        borderWidth: 2,
-        borderRadius: 6
+        borderWidth: 0,
+        borderRadius: 0,
+        stack: 'stack1'
       },
       {
-        label: 'Expected',
-        data: weeklyExpected,
-        backgroundColor: 'rgba(156, 163, 175, 0.4)',
+        label: 'Remaining',
+        data: weeklyRemaining,
+        backgroundColor: 'rgba(156, 163, 175, 0.5)',
         borderColor: 'rgb(156, 163, 175)',
-        borderWidth: 2,
-        borderRadius: 6
+        borderWidth: 0,
+        borderRadius: 4,
+        stack: 'stack1'
       }
     ]
   };
@@ -263,18 +334,35 @@ export default function HabitAnalyticsPage() {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: {
-        display: true,
-        position: 'top',
-        labels: {
-          font: { size: 12 },
-          color: document.documentElement.classList.contains('dark') ? '#e5e7eb' : '#374151'
+      legend: { display: false },
+      tooltip: {
+        mode: 'index',
+        callbacks: {
+          title: (context) => {
+            const idx = context[0].dataIndex;
+            return weekRanges[idx]?.fullRange || '';
+          },
+          label: (context) => {
+            const idx = context.dataIndex;
+            const label = context.dataset.label || '';
+            const value = context.parsed.y || 0;
+            // Show "Expected" instead of "Remaining" in tooltip
+            if (label === 'Remaining') {
+              return `Expected Days: ${weeklyExpected[idx]}`;
+            }
+            return `${label}: ${value}`;
+          },
+          footer: (context) => {
+            const idx = context[0].dataIndex;
+            return `Total Completions: ${weeklyCompletions[idx]}`;
+          }
         }
       }
     },
     scales: {
       y: {
         beginAtZero: true,
+        stacked: true,
         ticks: {
           stepSize: 1,
           color: document.documentElement.classList.contains('dark') ? '#9ca3af' : '#6b7280'
@@ -284,6 +372,7 @@ export default function HabitAnalyticsPage() {
         }
       },
       x: {
+        stacked: true,
         ticks: {
           color: document.documentElement.classList.contains('dark') ? '#9ca3af' : '#6b7280'
         },
@@ -292,11 +381,11 @@ export default function HabitAnalyticsPage() {
     }
   };
 
-  // Weekly trend line chart
+  // Weekly trend line chart (Activity Trends - shows total completed per week)
   const weeklyTrendData = {
     labels: weekLabels,
     datasets: [{
-      label: 'Weekly Completions',
+      label: 'Completed',
       data: weeklyCompletions,
       borderColor: 'rgb(99, 102, 241)',
       backgroundColor: 'rgba(99, 102, 241, 0.1)',
@@ -315,7 +404,19 @@ export default function HabitAnalyticsPage() {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { display: false }
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          title: (context) => {
+            const idx = context[0].dataIndex;
+            return weekRanges[idx]?.fullRange || '';
+          },
+          label: (context) => {
+            const value = context.parsed.y || 0;
+            return `Completed: ${value}`;
+          }
+        }
+      }
     },
     scales: {
       y: {
@@ -342,16 +443,22 @@ export default function HabitAnalyticsPage() {
     }
   };
 
-  // Create heatmap data
+  // Create heatmap data with completion counts
   const createHeatmapData = () => {
     const today = new Date();
     const daysArray = [];
     const map = {};
     
-    timeline.forEach(entry => {
-      if (entry.status === 'done') {
-        map[entry.date] = 'done';
-      }
+    // Build map from timeline (timeline is an array from backend)
+    const timelineArr = Array.isArray(timeline) ? timeline : Object.values(timeline || {});
+    timelineArr.forEach(entry => {
+      map[entry.date] = {
+        status: entry.status,
+        completionCount: entry.completionCount || 0,
+        completionTimes: entry.completionTimes || [],
+        mood: entry.mood,
+        note: entry.note
+      };
     });
 
     const totalDaysToShow = days || 90;
@@ -359,27 +466,109 @@ export default function HabitAnalyticsPage() {
       const date = new Date(today);
       date.setDate(date.getDate() - i);
       const dateKey = date.toISOString().split('T')[0];
+      const dayData = map[dateKey] || { status: 'none', completionCount: 0 };
       daysArray.push({
         date: dateKey,
-        status: map[dateKey] || 'none',
+        status: dayData.status,
+        completionCount: dayData.completionCount,
+        completionTimes: dayData.completionTimes || [],
+        mood: dayData.mood,
+        note: dayData.note,
         day: date.getDate(),
-        month: date.getMonth()
+        month: date.getMonth(),
+        year: date.getFullYear(),
+        dayOfWeek: date.getDay()
       });
     }
     return daysArray;
   };
 
   const heatmapDays = createHeatmapData();
-  const heatmapWeeks = [];
-  for (let i = 0; i < heatmapDays.length; i += 7) {
-    heatmapWeeks.push(heatmapDays.slice(i, i + 7));
-  }
-
-  const getStatusColor = (status) => {
-    switch(status) {
-      case 'done': return 'bg-green-500';
-      default: return 'bg-gray-200 dark:bg-gray-700';
+  
+  // Group by months for display
+  const groupByMonth = () => {
+    const months = [];
+    let currentMonth = null;
+    let currentMonthData = { weeks: [], label: '', year: 0 };
+    let currentWeek = [];
+    
+    heatmapDays.forEach((day, idx) => {
+      const monthKey = `${day.year}-${day.month}`;
+      
+      if (currentMonth !== monthKey) {
+        // Save previous month if exists
+        if (currentMonth !== null) {
+          if (currentWeek.length > 0) {
+            currentMonthData.weeks.push(currentWeek);
+          }
+          months.push(currentMonthData);
+        }
+        // Start new month
+        currentMonth = monthKey;
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        currentMonthData = {
+          weeks: [],
+          label: monthNames[day.month],
+          year: day.year,
+          month: day.month
+        };
+        currentWeek = [];
+      }
+      
+      currentWeek.push(day);
+      
+      // Start new week on Sunday (dayOfWeek === 0) or after 7 days
+      if (day.dayOfWeek === 6 || idx === heatmapDays.length - 1) {
+        if (currentWeek.length > 0) {
+          currentMonthData.weeks.push(currentWeek);
+          currentWeek = [];
+        }
+      }
+    });
+    
+    // Don't forget the last month
+    if (currentWeek.length > 0) {
+      currentMonthData.weeks.push(currentWeek);
     }
+    if (currentMonthData.weeks.length > 0) {
+      months.push(currentMonthData);
+    }
+    
+    return months;
+  };
+  
+  const heatmapMonths = groupByMonth();
+
+  // Get color intensity based on completion count
+  const getHeatmapColor = (day) => {
+    if (day.status === 'skipped') return 'bg-amber-400 dark:bg-amber-500';
+    if (day.status !== 'done' || day.completionCount === 0) return 'bg-gray-200 dark:bg-gray-700';
+    
+    // Different shades based on completions
+    const count = day.completionCount;
+    if (count >= 5) return 'bg-green-700 dark:bg-green-500';
+    if (count >= 4) return 'bg-green-600 dark:bg-green-400';
+    if (count >= 3) return 'bg-green-500 dark:bg-green-400';
+    if (count >= 2) return 'bg-green-400 dark:bg-green-500/80';
+    return 'bg-green-300 dark:bg-green-600/70';
+  };
+
+  // Format time for display
+  const formatTime = (dateStr) => {
+    const date = new Date(dateStr);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  // Format date for display
+  const formatDate = (dateStr) => {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
+  // Handle day click/tap
+  const handleDayClick = (day, event) => {
+    event.stopPropagation();
+    setSelectedDay(selectedDay?.date === day.date ? null : day);
   };
 
   return (
@@ -544,7 +733,7 @@ export default function HabitAnalyticsPage() {
 
         {/* Charts Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-5">
-          {/* Weekly Trend */}
+          {/* Activity Trends */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -553,10 +742,18 @@ export default function HabitAnalyticsPage() {
           >
             <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-indigo-500" />
-              Weekly Trend
+              Activity Trends
             </h3>
-            <div className="h-56">
-              <Line data={weeklyTrendData} options={weeklyTrendOptions} />
+            {/* Fixed Y-axis label */}
+            <div className="text-xs text-gray-500 dark:text-gray-400 mb-1 text-center sm:text-left">Times Completed</div>
+            <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
+              <div className="h-48 sm:h-56" style={{ minWidth: weekLabels.length > 6 ? `${Math.max(weekLabels.length * 50, 300)}px` : '100%' }}>
+                <Line data={weeklyTrendData} options={weeklyTrendOptions} />
+              </div>
+            </div>
+            {/* Fixed X-axis range label */}
+            <div className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
+              {weekLabels[0]} to {weekLabels[weekLabels.length - 1]}
             </div>
           </motion.div>
 
@@ -576,7 +773,7 @@ export default function HabitAnalyticsPage() {
             </div>
           </motion.div>
 
-          {/* Weekly Breakdown */}
+          {/* Activity Breakdown */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -585,10 +782,31 @@ export default function HabitAnalyticsPage() {
           >
             <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
               <BarChart3 className="w-4 h-4 text-purple-500" />
-              Weekly Breakdown
+              Activity Breakdown
             </h3>
-            <div className="h-56">
-              <Bar data={weeklyChartData} options={weeklyChartOptions} />
+            {/* Fixed Legend */}
+            <div className="flex flex-wrap items-center gap-3 sm:gap-4 mb-3 text-xs sm:text-sm">
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-3 rounded-sm bg-green-500"></div>
+                <span className="text-gray-600 dark:text-gray-400">Active Days</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-3 rounded-sm bg-yellow-400"></div>
+                <span className="text-gray-600 dark:text-gray-400">Skipped</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-3 rounded-sm bg-gray-400"></div>
+                <span className="text-gray-600 dark:text-gray-400">Remaining</span>
+              </div>
+            </div>
+            <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
+              <div className="h-48 sm:h-56" style={{ minWidth: weekLabels.length > 6 ? `${Math.max(weekLabels.length * 60, 300)}px` : '100%' }}>
+                <Bar data={weeklyChartData} options={weeklyChartOptions} />
+              </div>
+            </div>
+            {/* Fixed X-axis range label */}
+            <div className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
+              {weekLabels[0]} to {weekLabels[weekLabels.length - 1]}
             </div>
           </motion.div>
         </div>
@@ -598,35 +816,110 @@ export default function HabitAnalyticsPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.7 }}
-          className="glass-card-hover p-4 rounded-xl mb-5"
+          className="glass-card-hover p-4 rounded-xl mb-5 relative"
+          ref={heatmapRef}
         >
           <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
             <Calendar className="w-4 h-4 text-blue-500" />
             Activity Heatmap
           </h3>
-          <div className="overflow-x-auto">
-            <div className="inline-flex gap-1">
-              {heatmapWeeks.map((week, weekIdx) => (
-                <div key={weekIdx} className="flex flex-col gap-1">
-                  {week.map((day, dayIdx) => (
-                    <div
-                      key={dayIdx}
-                      className={`w-3 h-3 rounded-sm ${getStatusColor(day.status)} transition-colors`}
-                      title={`${day.date} - ${day.status === 'done' ? 'Completed' : 'No activity'}`}
-                    />
-                  ))}
+          
+          {/* Heatmap grid grouped by month */}
+          <div className="overflow-x-auto relative">
+            <div className="inline-flex gap-3">
+              {heatmapMonths.map((month, monthIdx) => (
+                <div key={monthIdx} className="flex flex-col">
+                  {/* Month label */}
+                  <div className="text-[10px] font-medium text-gray-600 dark:text-gray-400 mb-1 text-center">
+                    {month.label} {month.year !== new Date().getFullYear() ? `'${String(month.year).slice(-2)}` : ''}
+                  </div>
+                  {/* Weeks in this month */}
+                  <div className="flex gap-0.5">
+                    {month.weeks.map((week, weekIdx) => (
+                      <div key={weekIdx} className="flex flex-col gap-0.5">
+                        {/* Pad the first week with empty cells if needed */}
+                        {weekIdx === 0 && week[0]?.dayOfWeek > 0 && 
+                          Array.from({ length: week[0].dayOfWeek }).map((_, i) => (
+                            <div key={`empty-${i}`} className="w-3 h-3" />
+                          ))
+                        }
+                        {week.map((day, dayIdx) => (
+                          <div
+                            key={dayIdx}
+                            onClick={(e) => handleDayClick(day, e)}
+                            className={`w-3 h-3 rounded-sm ${getHeatmapColor(day)} cursor-pointer hover:ring-2 hover:ring-primary-400 hover:ring-offset-1 transition-all`}
+                            title={`${day.date} - ${day.completionCount} completion${day.completionCount !== 1 ? 's' : ''}`}
+                          />
+                        ))}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               ))}
             </div>
           </div>
-          <div className="flex items-center gap-4 mt-4 text-xs text-gray-600 dark:text-gray-400">
-            <div className="flex items-center gap-2">
+          
+          {/* Selected Day Popup Card - positioned over heatmap */}
+          <AnimatePresence>
+            {selectedDay && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="absolute inset-0 flex items-center justify-center z-10"
+                onClick={() => setSelectedDay(null)}
+              >
+                <div 
+                  className="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 p-3"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <button
+                    onClick={() => setSelectedDay(null)}
+                    className="absolute -top-2 -right-2 p-1 bg-gray-100 dark:bg-gray-700 rounded-full text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 shadow-sm"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                  
+                  <div className="text-sm font-semibold text-gray-900 dark:text-white mb-2 pr-4">
+                    {formatDate(selectedDay.date)}
+                  </div>
+                  
+                  {/* Status */}
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className={`w-3 h-3 rounded-sm ${getHeatmapColor(selectedDay)}`} />
+                    <span className="text-sm text-gray-600 dark:text-gray-400 capitalize">
+                      {selectedDay.status === 'none' ? 'No Activity' : selectedDay.status}
+                    </span>
+                  </div>
+                  
+                  {/* Completion count - only show if done */}
+                  {selectedDay.status === 'done' && selectedDay.completionCount > 0 && (
+                    <div className="text-sm text-gray-700 dark:text-gray-300">
+                      Completions: <span className="font-medium text-green-600 dark:text-green-400">{selectedDay.completionCount}</span>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+          
+          {/* Legend */}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-4 text-xs text-gray-600 dark:text-gray-400">
+            <div className="flex items-center gap-1.5">
               <div className="w-3 h-3 rounded-sm bg-gray-200 dark:bg-gray-700" />
               <span>No Activity</span>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-sm bg-green-500" />
-              <span>Completed</span>
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded-sm bg-amber-400 dark:bg-amber-500" />
+              <span>Skipped</span>
+            </div>
+            <div className="flex items-center gap-0.5">
+              <span className="mr-1">Completions:</span>
+              <div className="w-3 h-3 rounded-sm bg-green-300 dark:bg-green-600/70" title="1" />
+              <div className="w-3 h-3 rounded-sm bg-green-400 dark:bg-green-500/80" title="2" />
+              <div className="w-3 h-3 rounded-sm bg-green-500 dark:bg-green-400" title="3" />
+              <div className="w-3 h-3 rounded-sm bg-green-600 dark:bg-green-400" title="4" />
+              <div className="w-3 h-3 rounded-sm bg-green-700 dark:bg-green-500" title="5+" />
             </div>
           </div>
         </motion.div>

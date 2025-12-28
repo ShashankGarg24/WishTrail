@@ -614,19 +614,28 @@ const useApiStore = create(
 
       logHabit: async (id, status) => {
         try {
-          await habitsAPI.log(id, { status });
+          const response = await habitsAPI.log(id, { status });
+          const data = response?.data?.data || response?.data;
+          const updatedHabit = data?.habit;
+          
           set(state => ({
             habits: (state.habits || []).map(h => {
               if (h._id !== id) return h;
-              if (status === 'done') {
-                const nextStreak = (h.currentStreak || 0) + 1;
-                const longest = Math.max(h.longestStreak || 0, nextStreak);
-                return { ...h, currentStreak: nextStreak, longestStreak: longest, totalCompletions: (h.totalCompletions || 0) + 1 };
+              // Use the updated habit data from the server if available
+              if (updatedHabit) {
+                return { 
+                  ...h, 
+                  totalCompletions: updatedHabit.totalCompletions ?? h.totalCompletions,
+                  totalDays: updatedHabit.totalDays ?? h.totalDays,
+                  currentStreak: updatedHabit.currentStreak ?? h.currentStreak,
+                  longestStreak: updatedHabit.longestStreak ?? h.longestStreak
+                };
               }
-              return { ...h, currentStreak: 0 };
+              // No optimistic updates - wait for server response on refresh
+              return h;
             })
           }));
-          return { success: true };
+          return { success: true, log: data?.log };
         } catch (error) {
           return { success: false, error: handleApiError(error) };
         }

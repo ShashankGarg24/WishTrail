@@ -1,16 +1,23 @@
-﻿import { useEffect } from 'react';
-import { CheckCircle, SkipForward, Clock, Pencil, X, Trash2, Calendar, Bell, BarChart3 } from 'lucide-react';
+﻿import { useEffect, useState } from 'react';
+import { CheckCircle, SkipForward, Clock, Pencil, X, Trash2, Calendar, Bell, BarChart3, AlertTriangle } from 'lucide-react';
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock';
 import { useNavigate } from 'react-router-dom';
 
 export default function HabitDetailModal({ habit, isOpen, onClose, onLog, onEdit, onDelete }) {
   const navigate = useNavigate();
+  const [showSkipConfirm, setShowSkipConfirm] = useState(false);
+  
   useEffect(() => {
     if (isOpen) {
       lockBodyScroll();
       return () => unlockBodyScroll();
     }
     return undefined;
+  }, [isOpen]);
+  
+  // Reset skip confirm when modal closes
+  useEffect(() => {
+    if (!isOpen) setShowSkipConfirm(false);
   }, [isOpen]);
   if (!isOpen || !habit) return null;
   const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -62,18 +69,10 @@ export default function HabitDetailModal({ habit, isOpen, onClose, onLog, onEdit
           {/* Stats Grid */}
           <div>
             <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Progress</h4>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-              <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl p-3 sm:p-4 text-center">
-                <div className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-1">{habit.currentStreak || 0}</div>
-                <div className="text-xs font-medium text-gray-600 dark:text-gray-400">Current Streak</div>
-              </div>
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
               <div className="bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-900/20 dark:to-primary-900/10 border border-primary-200 dark:border-primary-800 rounded-xl p-3 sm:p-4 text-center">
-                <div className="text-xl sm:text-2xl md:text-3xl font-bold text-primary-600 dark:text-primary-400 mb-1">{habit.longestStreak || 0}</div>
-                <div className="text-xs font-medium text-primary-700 dark:text-primary-300">Best Streak</div>
-              </div>
-              <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl p-3 sm:p-4 text-center">
-                <div className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-1">{habit.totalCompletions || 0}</div>
-                <div className="text-xs font-medium text-gray-600 dark:text-gray-400">Total Count</div>
+                <div className="text-xl sm:text-2xl md:text-3xl font-bold text-primary-600 dark:text-primary-400 mb-1">{habit.totalCompletions || 0}</div>
+                <div className="text-xs font-medium text-primary-700 dark:text-primary-300">Total Count</div>
                 {habit.targetCompletions && (
                   <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
                     Goal: {habit.targetCompletions}
@@ -125,22 +124,43 @@ export default function HabitDetailModal({ habit, isOpen, onClose, onLog, onEdit
             
             {/* Log Actions */}
             <div className="flex items-center gap-2 w-full sm:w-auto">
-              <button
-                onClick={() => onLog?.('skipped')}
-                disabled={!isScheduledToday}
-                className={`flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all ${isScheduledToday ? 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-lg shadow-amber-500/20' : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed opacity-60'}`}
-                title={isScheduledToday ? 'Skip today' : 'Not scheduled today'}
-              >
-                <SkipForward className="h-4 w-4" /> Skip
-              </button>
-              <button
-                onClick={() => onLog?.('done')}
-                disabled={!isScheduledToday}
-                className={`flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all ${isScheduledToday ? 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-lg shadow-green-500/20' : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed opacity-60'}`}
-                title={isScheduledToday ? 'Mark done today' : 'Not scheduled today'}
-              >
-                <CheckCircle className="h-4 w-4" /> Mark Done
-              </button>
+              {showSkipConfirm ? (
+                <div className="flex items-center gap-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl px-3 py-2">
+                  <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+                  <span className="text-xs text-amber-800 dark:text-amber-200">Skip day? All progress will be lost for today.</span>
+                  <button
+                    onClick={() => { onLog?.('skipped'); setShowSkipConfirm(false); }}
+                    className="px-2 py-1 bg-amber-600 hover:bg-amber-700 text-white text-xs rounded-lg font-medium"
+                  >
+                    Yes, Skip
+                  </button>
+                  <button
+                    onClick={() => setShowSkipConfirm(false)}
+                    className="px-2 py-1 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 text-xs rounded-lg font-medium"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <button
+                    onClick={() => setShowSkipConfirm(true)}
+                    disabled={!isScheduledToday}
+                    className={`flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all ${isScheduledToday ? 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-lg shadow-amber-500/20' : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed opacity-60'}`}
+                    title={isScheduledToday ? 'Skip today' : 'Not scheduled today'}
+                  >
+                    <SkipForward className="h-4 w-4" /> Skip Day
+                  </button>
+                  <button
+                    onClick={() => onLog?.('done')}
+                    disabled={!isScheduledToday}
+                    className={`flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all ${isScheduledToday ? 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-lg shadow-green-500/20' : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed opacity-60'}`}
+                    title={isScheduledToday ? 'Mark done today' : 'Not scheduled today'}
+                  >
+                    <CheckCircle className="h-4 w-4" /> Mark Done
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
