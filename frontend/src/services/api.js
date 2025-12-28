@@ -294,6 +294,7 @@ export const socialAPI = {
   followUser: (userId) => api.post(`/social/follow/${userId}`),
   unfollowUser: (userId) => api.delete(`/social/follow/${userId}`),
   getFollowers: (params) => api.get('/social/followers', { params }),
+  getFollowing: (params) => api.get('/social/following', { params }),
   checkFollowingStatus: (userId) => api.get(`/social/following/check/${userId}`),
   getMutualFollowers: (userId) => api.get(`/social/mutual/${userId}`),
   getSuggestedUsers: (params) => api.get('/social/suggestions', { params }),
