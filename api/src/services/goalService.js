@@ -576,10 +576,6 @@ class GoalService {
     // Debug log baseMatch after category/interest
     console.log('[GoalService.searchGoals] baseMatch (after category/interest):', baseMatch);
 
-    // Add text filter to base match if provided (index optimization)
-    if (hasText) {
-      baseMatch.titleLower = { $regex: new RegExp(safe) };
-    }
     // Debug log baseMatch after text
     console.log('[GoalService.searchGoals] baseMatch (after text):', baseMatch);
 
@@ -588,8 +584,18 @@ class GoalService {
       // Debug log pipeline before execution
       // (for brevity, only log baseMatch and $match stages)
       // console.log('[GoalService.searchGoals] pipeline:', JSON.stringify(pipeline, null, 2));
-      // First match uses compound index: isPublic, isActive, completed, category, titleLower
+      // First match uses compound index: isPublic, isActive, completed, category
       { $match: baseMatch },
+
+      // Text filter: match normalized or raw title, case-insensitive
+      ...(hasText ? [{
+        $match: {
+          $or: [
+            { titleLower: { $regex: new RegExp(safe, 'i') } },
+            { title: { $regex: new RegExp(safe, 'i') } }
+          ]
+        }
+      }] : []),
       
       // Lookup users (only necessary fields)
       { 

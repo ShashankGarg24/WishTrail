@@ -354,9 +354,6 @@ const FeedPage = () => {
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Social Feed</h1>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  {activities.length > 0 ? `${activities.length} activities` : 'Stay connected'}
-                </p>
               </div>
             </div>
 
@@ -374,7 +371,6 @@ const FeedPage = () => {
         <div className="mb-6">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-yellow-500" />
               Trending Goals
             </h2>
             {!storiesLoading && stories.length > 0 && (
