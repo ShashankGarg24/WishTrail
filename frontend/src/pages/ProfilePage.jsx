@@ -685,41 +685,56 @@ const ProfilePage = () => {
 
                 {/* Stats Row */}
                 <div className="flex gap-4 md:gap-6">
-                  <button className="text-center flex-1 md:flex-none" onClick={() => { handleTabChange('goals') }}>
+                  <button
+                    className="text-center flex-1 md:flex-none"
+                    onClick={isProfileAccessible() ? () => { handleTabChange('goals') } : undefined}
+                    disabled={!isProfileAccessible()}
+                    style={!isProfileAccessible() ? { pointerEvents: 'none', cursor: 'default' } : {}}
+                  >
                     <div className="text-xl md:text-lg font-bold text-gray-900 dark:text-white">
                       {isOwnProfile ? (displayUser.totalGoals || 0) : (userStats?.totalGoals || 0)}
                     </div>
                     <div className="text-gray-600 dark:text-gray-400 text-xs md:text-xs">Goals</div>
                   </button>
-                  <button className="text-center flex-1 md:flex-none" onClick={async () => {
-                    setFollowModalTab('followers'); setFollowModalOpen(true); setLoadingFollows(true);
-                    setFollowersPage(1); setFollowers([]);
-                    try {
-                      const username = isOwnProfile ? currentUser?.username : profileUser?.username;
-                      const res = await getFollowers(username, { page: 1, limit: FOLLOW_LIMIT });
-                      if (res?.success) {
-                        setFollowers(res.followers || []);
-                        setHasMoreFollowers((res.followers?.length || 0) >= FOLLOW_LIMIT);
-                      }
-                    } finally { setLoadingFollows(false); }
-                  }}>
+                  <button
+                    className="text-center flex-1 md:flex-none"
+                    onClick={isProfileAccessible() ? async () => {
+                      setFollowModalTab('followers'); setFollowModalOpen(true); setLoadingFollows(true);
+                      setFollowersPage(1); setFollowers([]);
+                      try {
+                        const username = isOwnProfile ? currentUser?.username : profileUser?.username;
+                        const res = await getFollowers(username, { page: 1, limit: FOLLOW_LIMIT });
+                        if (res?.success) {
+                          setFollowers(res.followers || []);
+                          setHasMoreFollowers((res.followers?.length || 0) >= FOLLOW_LIMIT);
+                        }
+                      } finally { setLoadingFollows(false); }
+                    } : undefined}
+                    disabled={!isProfileAccessible()}
+                    style={!isProfileAccessible() ? { pointerEvents: 'none', cursor: 'default' } : {}}
+                  >
                     <div className="text-xl md:text-lg font-bold text-gray-900 dark:text-white">
                       {isOwnProfile ? (displayUser.followerCount || 0) : (userStats?.followers || 0)}
                     </div>
                     <div className="text-gray-600 dark:text-gray-400 text-xs md:text-xs">Followers</div>
                   </button>
-                  <button className="text-center flex-1 md:flex-none" onClick={async () => {
-                    setFollowModalTab('following'); setFollowModalOpen(true); setLoadingFollows(true);
-                    setFollowingPage(1); setFollowing([]);
-                    try {
-                      const username = isOwnProfile ? currentUser?.username : profileUser?.username;
-                      const res = await getFollowing(username, { page: 1, limit: FOLLOW_LIMIT });
-                      if (res?.success) {
-                        setFollowing(res.following || []);
-                        setHasMoreFollowing((res.following?.length || 0) >= FOLLOW_LIMIT);
-                      }
-                    } finally { setLoadingFollows(false); }
-                  }}>
+                  <button
+                    className="text-center flex-1 md:flex-none"
+                    onClick={isProfileAccessible() ? async () => {
+                      setFollowModalTab('following'); setFollowModalOpen(true); setLoadingFollows(true);
+                      setFollowingPage(1); setFollowing([]);
+                      try {
+                        const username = isOwnProfile ? currentUser?.username : profileUser?.username;
+                        const res = await getFollowing(username, { page: 1, limit: FOLLOW_LIMIT });
+                        if (res?.success) {
+                          setFollowing(res.following || []);
+                          setHasMoreFollowing((res.following?.length || 0) >= FOLLOW_LIMIT);
+                        }
+                      } finally { setLoadingFollows(false); }
+                    } : undefined}
+                    disabled={!isProfileAccessible()}
+                    style={!isProfileAccessible() ? { pointerEvents: 'none', cursor: 'default' } : {}}
+                  >
                     <div className="text-xl md:text-lg font-bold text-gray-900 dark:text-white">
                       {isOwnProfile ? (displayUser.followingCount || 0) : (userStats?.followings || 0)}
                     </div>
@@ -1335,13 +1350,13 @@ const ProfilePage = () => {
                   <div className="flex items-center justify-between mb-5">
                     {isOwnProfile && (
                       <div className="flex items-center gap-2">
-                        <button
+                        {/* <button
                           onClick={() => setExportOpen(true)}
                           className="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 inline-flex items-center gap-1.5 text-sm transition-colors"
                           title="Export your journal"
                         >
                           <Download className="h-3.5 w-3.5" /> Export
-                        </button>
+                        </button> */}
                         <button
                           onClick={() => setIsJournalOpen(true)}
                           disabled={hasTodayJournal}

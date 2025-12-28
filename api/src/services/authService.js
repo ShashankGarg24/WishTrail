@@ -188,7 +188,7 @@ class AuthService {
    * Update user profile
    */
   async updateProfile(userId, updateData) {
-    const allowedUpdates = ['name', 'bio', 'location', 'dateOfBirth', 'avatar', 'interests', 'currentMood', 'website', 'youtube', 'instagram'];
+    const allowedUpdates = ['name', 'bio', 'location', 'dateOfBirth', 'avatar', 'interests', 'currentMood', 'website', 'youtube', 'instagram', 'username'];
     const updates = {};
     
     // Validate mood emoji if provided
@@ -214,23 +214,36 @@ class AuthService {
       }
     }
     
+    // Prevent email update
+    if (updateData.email !== undefined) {
+      throw new Error('Email cannot be updated');
+    }
+
+    // Username uniqueness check
+    if (updateData.username) {
+      const existing = await User.findOne({ username: updateData.username, _id: { $ne: userId } });
+      if (existing) {
+        throw new Error('Username already exists');
+      }
+    }
+
     // Filter allowed updates
     Object.keys(updateData).forEach(key => {
       if (allowedUpdates.includes(key) && updateData[key] !== undefined) {
         updates[key] = updateData[key];
       }
     });
-    
+
     if (Object.keys(updates).length === 0) {
       throw new Error('No valid updates provided');
     }
-    
+
     const user = await User.findByIdAndUpdate(
       userId,
       updates,
       { new: true, runValidators: true }
     ).select('-password -refreshToken');
-    
+
     if (!user) {
       throw new Error('User not found');
     }
@@ -708,13 +721,49 @@ class AuthService {
           }
         }
 
-        // Create new user with Google data (no password for SSO users)
+
+        // Download Google avatar and upload to Cloudinary
+        let avatarUrl = picture;
+        try {
+          const cloudinary = require('../utility/cloudinary');
+          const axios = require('axios');
+          const response = await axios.get(picture, { responseType: 'arraybuffer' });
+          const uploadRes = await cloudinary.uploader.upload_stream({
+            folder: 'avatars',
+            resource_type: 'image',
+            overwrite: true,
+            public_id: `google_${username}_${Date.now()}`
+          }, (error, result) => {
+            if (error) throw error;
+            avatarUrl = result.secure_url;
+          });
+          // Use a Promise to wrap the stream
+          await new Promise((resolve, reject) => {
+            const stream = cloudinary.uploader.upload_stream({
+              folder: 'avatars',
+              resource_type: 'image',
+              overwrite: true,
+              public_id: `google_${username}_${Date.now()}`
+            }, (error, result) => {
+              if (error) reject(error);
+              else {
+                avatarUrl = result.secure_url;
+                resolve(result);
+              }
+            });
+            stream.end(Buffer.from(response.data, 'binary'));
+          });
+        } catch (err) {
+          // fallback to Google picture if Cloudinary fails
+          avatarUrl = picture;
+        }
+
         user = await User.create({
           name,
           email,
           username,
           googleId,
-          avatar: picture,
+          avatar: avatarUrl,
           isVerified: true,
           isActive: true,
           profileCompleted: false, // User needs to complete profile later

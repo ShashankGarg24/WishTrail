@@ -508,10 +508,22 @@ class GoalService {
   async searchGoals(searchTerm, params = {}) {
     const { limit = 20, page = 1, category, interest, requestingUserId } = params;
 
-    const t = (searchTerm || '').trim().toLowerCase();
+    // Ensure searchTerm is a string before using trim()
+    let t = '';
+    if (typeof searchTerm === 'string') {
+      t = searchTerm.trim().toLowerCase();
+    } else if (searchTerm && typeof searchTerm === 'object' && searchTerm.q) {
+      t = String(searchTerm.q).trim().toLowerCase();
+    } else {
+      t = String(searchTerm || '').trim().toLowerCase();
+    }
     const hasText = t.length >= 2;
     const escapeRegex = (s) => String(s || '').replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
     const safe = hasText ? escapeRegex(t) : '';
+
+    // Debug logging
+    console.log('[GoalService.searchGoals] Params:', { t, hasText, category, interest, requestingUserId });
+    // Will log baseMatch and pipeline below
 
     // Get blocked user IDs and following IDs
     let blockedUserIds = [];
@@ -552,6 +564,8 @@ class GoalService {
       isActive: true
       // No completed filter - show both completed and active goals
     };
+    // Debug log baseMatch before filters
+    console.log('[GoalService.searchGoals] baseMatch (before filters):', baseMatch);
 
     // Add category filter to base match (index optimization)
     if (category) {
@@ -559,14 +573,21 @@ class GoalService {
     } else if (interest) {
       baseMatch.category = mapInterestToCategory(interest);
     }
+    // Debug log baseMatch after category/interest
+    console.log('[GoalService.searchGoals] baseMatch (after category/interest):', baseMatch);
 
     // Add text filter to base match if provided (index optimization)
     if (hasText) {
       baseMatch.titleLower = { $regex: new RegExp(safe) };
     }
+    // Debug log baseMatch after text
+    console.log('[GoalService.searchGoals] baseMatch (after text):', baseMatch);
 
     // Optimized pipeline with fewer stages
     const pipeline = [
+      // Debug log pipeline before execution
+      // (for brevity, only log baseMatch and $match stages)
+      // console.log('[GoalService.searchGoals] pipeline:', JSON.stringify(pipeline, null, 2));
       // First match uses compound index: isPublic, isActive, completed, category, titleLower
       { $match: baseMatch },
       
@@ -632,6 +653,8 @@ class GoalService {
     const arr = res && res[0] ? res[0] : { data: [], total: [] };
     const goals = arr.data || [];
     const total = (arr.total && arr.total[0] && arr.total[0].count) ? arr.total[0].count : 0;
+    // Debug log result count
+    console.log('[GoalService.searchGoals] result count:', { goals: goals.length, total });
     
     return {
       goals,

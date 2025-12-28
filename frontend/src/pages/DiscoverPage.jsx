@@ -410,7 +410,8 @@ const DiscoverPage = () => {
         setUserSearchHasMore(1 < totalPages);
       } else if (activeTab === 'goals') {
         setLoadingGoals(true);
-        const { goals, pagination } = await useApiStore.getState().searchGoals({ q: t, interest: interestValue, page: 1, limit: 18 });
+        // Use searchPublicGoals to ensure only public/discoverable goals are shown
+        const { goals, pagination } = await useApiStore.getState().searchPublicGoals({ q: t, interest: interestValue, page: 1, limit: 18 });
         setGoalResults(goals || []);
         const totalPages = pagination?.pages || 1;
         setGoalSearchHasMore(1 < totalPages);

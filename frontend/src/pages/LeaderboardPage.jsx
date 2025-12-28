@@ -541,17 +541,6 @@ const LeaderboardPage = () => {
                               </span>
                             )}
                           </div>
-                          <div className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400 mt-0.5">
-                            <span className="flex items-center gap-0.5">
-                              <Target className="h-3 w-3" />
-                              {user.completedGoals || 0} done
-                            </span>
-                            <span>•</span>
-                            <span className="flex items-center gap-0.5">
-                              <Trophy className="h-3 w-3" />
-                              {user.totalGoals ?? 0} total
-                            </span>
-                          </div>
                         </div>
                       </div>
                       
@@ -632,17 +621,6 @@ const LeaderboardPage = () => {
                                 You
                               </span>
                             )}
-                          </div>
-                          <div className="flex items-center gap-2.5 text-xs text-gray-600 dark:text-gray-400">
-                            <span className="flex items-center gap-1">
-                              <Target className="h-3 w-3" />
-                              <span className="font-medium">{user.completedGoals || 0}</span> done
-                            </span>
-                            <span className="text-gray-300 dark:text-gray-600">•</span>
-                            <span className="flex items-center gap-1">
-                              <Trophy className="h-3 w-3" />
-                              <span className="font-medium">{user.totalGoals ?? 0}</span> total
-                            </span>
                           </div>
                         </div>
                       </div>
