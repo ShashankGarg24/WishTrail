@@ -33,16 +33,14 @@ const achievementSchema = new mongoose.Schema({
       'completion',    // Goal completion achievements
       'milestone',     // General milestone achievements
       'time'          // Time-based achievements
-    ],
-    index: true
+    ]
   },
   
   // Achievement Rarity
   rarity: {
     type: String,
     enum: ['common', 'uncommon', 'rare', 'epic', 'legendary'],
-    default: 'common',
-    index: true
+    default: 'common'
   },
   
   // Achievement Criteria
@@ -148,8 +146,7 @@ const achievementSchema = new mongoose.Schema({
   // Achievement Properties
   isActive: {
     type: Boolean,
-    default: true,
-    index: true
+    default: true
   },
   isSecret: {
     type: Boolean,
@@ -163,8 +160,7 @@ const achievementSchema = new mongoose.Schema({
   // Order and display
   displayOrder: {
     type: Number,
-    default: 0,
-    index: true
+    default: 0
   },
   
   // Statistics
@@ -186,12 +182,6 @@ const achievementSchema = new mongoose.Schema({
   toJSON: { virtuals: true },
   toObject: { virtuals: true }
 });
-
-// Indexes for performance
-achievementSchema.index({ name: 1 });
-achievementSchema.index({ type: 1, isActive: 1 });
-achievementSchema.index({ rarity: 1, isActive: 1 });
-achievementSchema.index({ isActive: 1, displayOrder: 1 });
 
 // Virtual for achievement difficulty
 achievementSchema.virtual('difficulty').get(function() {

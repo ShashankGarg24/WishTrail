@@ -53,18 +53,18 @@ const sanitizeAuthMe = (user) => {
   if (!user) return null;
   
   const obj = user.toObject ? user.toObject() : { ...user };
-  
+  console.log('Sanitizing auth/me user:', obj);
   return {
     name: obj.name,
     email: obj.email,
     bio: obj.bio,
     location: obj.location,
-    avatar: obj.avatar,
-    followingCount: obj.followingCount,
-    followerCount: obj.followerCount,
-    totalGoals: obj.totalGoals,
+    avatar: obj.avatar_url,
+    followingCount: obj.following_count,
+    followerCount: obj.followers_count,
+    totalGoals: obj.total_goals,
     interests: obj.interests,
-    isPrivate: obj.isPrivate,
+    isPrivate: obj.is_private,
     username: obj.username,
     timezone: obj.timezone,
     currentMood: obj.currentMood,
@@ -227,7 +227,31 @@ const sanitizeHabit = (habit) => {
   // Remove internal fields
   delete obj.__v;
   
-  return obj;
+  // Ensure id field exists (handle both MongoDB _id and PostgreSQL id)
+  const habitId = obj.id || (obj._id ? obj._id.toString() : undefined);
+  
+  // Map PostgreSQL snake_case to camelCase for frontend
+  return {
+    id: habitId,
+    name: obj.name,
+    description: obj.description || '',
+    frequency: obj.frequency,
+    daysOfWeek: obj.daysOfWeek || obj.days_of_week || [],
+    timezone: obj.timezone,
+    reminders: obj.reminders || [],
+    currentStreak: obj.currentStreak || obj.current_streak || 0,
+    longestStreak: obj.longestStreak || obj.longest_streak || 0,
+    totalCompletions: obj.totalCompletions || obj.total_completions || 0,
+    totalDays: obj.totalDays || obj.total_days || 0,
+    targetCompletions: obj.targetCompletions || obj.target_completions || null,
+    targetDays: obj.targetDays || obj.target_days || null,
+    goalId: obj.goalId || obj.goal_id || null,
+    isPublic: obj.isPublic !== undefined ? obj.isPublic : (obj.is_public !== undefined ? obj.is_public : false),
+    isArchived: obj.isArchived !== undefined ? obj.isArchived : (obj.is_archived !== undefined ? obj.is_archived : false),
+    isCommunitySource: obj.isCommunitySource !== undefined ? obj.isCommunitySource : (obj.is_community_source !== undefined ? obj.is_community_source : false),
+    createdAt: obj.createdAt || obj.created_at,
+    updatedAt: obj.updatedAt || obj.updated_at
+  };
 };
 
 /**
@@ -240,22 +264,25 @@ const sanitizeHabitForProfile = (habit) => {
   
   const obj = habit.toObject ? habit.toObject() : { ...habit };
   
+  // Handle both MongoDB (_id) and PostgreSQL (id) formats
+  const habitId = obj.id || (obj._id ? obj._id.toString() : undefined);
+  
   return {
-    id: obj._id ? obj._id.toString() : undefined,
+    id: habitId,
     name: obj.name,
     description: obj.description || '',
     frequency: obj.frequency,
-    daysOfWeek: obj.daysOfWeek || [],
+    daysOfWeek: obj.daysOfWeek || obj.days_of_week || [],
     timezone: obj.timezone,
     reminders: (obj.reminders || []).map(r => ({
       time: r.time
     })),
-    currentStreak: obj.currentStreak || 0,
-    longestStreak: obj.longestStreak || 0,
-    totalCompletions: obj.totalCompletions || 0,
-    totalDays: obj.totalDays || 0,
-    targetCompletions: obj.targetCompletions || null,
-    targetDays: obj.targetDays || null
+    currentStreak: obj.currentStreak || obj.current_streak || 0,
+    longestStreak: obj.longestStreak || obj.longest_streak || 0,
+    totalCompletions: obj.totalCompletions || obj.total_completions || 0,
+    totalDays: obj.totalDays || obj.total_days || 0,
+    targetCompletions: obj.targetCompletions || obj.target_completions || null,
+    targetDays: obj.targetDays || obj.target_days || null
   };
 };
 
@@ -456,14 +483,6 @@ const sanitizeError = (error, isDevelopment = false) => {
     success: false,
     message: error.message || 'An error occurred'
   };
-  
-  // Only include detailed error info in development
-  if (isDevelopment) {
-    safeError.stack = error.stack;
-    if (error.errors) {
-      safeError.errors = error.errors;
-    }
-  }
   
   return safeError;
 };

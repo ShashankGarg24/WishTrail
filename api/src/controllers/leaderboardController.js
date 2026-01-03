@@ -1,7 +1,9 @@
-const User = require('../models/User');
-const Goal = require('../models/Goal');
 const cacheService = require('../services/cacheService');
-const Follow = require('../models/Follow');
+
+// PostgreSQL Services
+const pgUserService = require('../services/pgUserService');
+const pgGoalService = require('../services/pgGoalService');
+const pgFollowService = require('../services/pgFollowService');
 
 // @desc    Get global leaderboard
 // @route   GET /api/v1/leaderboard
@@ -31,23 +33,23 @@ const getGlobalLeaderboard = async (req, res, next) => {
       if (req.user) {
         leaderboard = await Promise.all(
           leaderboard.map(async (user) => {
-            const isFollowing = await Follow.isFollowing(req.user.id, user._id);
+            const isFollowing = await pgFollowService.isFollowing(req.user.id, user._id || user.id);
             return {
               ...user,
-              isFollowing: user._id.toString() !== req.user.id ? isFollowing : null
+              isFollowing: (user._id?.toString() || user.id?.toString()) !== req.user.id ? isFollowing : null
             };
           })
         );
       }
       // Ensure username exists even for legacy cached entries
       try {
-        const missing = (leaderboard || []).filter(u => !u.username && u?._id).map(u => u._id);
+        const missing = (leaderboard || []).filter(u => !u.username && (u?._id || u?.id)).map(u => u._id || u.id);
         if (missing.length > 0) {
-          const users = await User.find({ _id: { $in: missing } }).select('username');
-          const idToUsername = new Map(users.map(u => [u._id.toString(), u.username]));
+          const users = await pgUserService.getUsersByIds(missing);
+          const idToUsername = new Map(users.map(u => [u.id.toString(), u.username]));
           leaderboard = leaderboard.map(u => ({
             ...u,
-            username: u.username || idToUsername.get(u?._id?.toString()) || null
+            username: u.username || idToUsername.get((u?._id || u?.id)?.toString()) || null
           }));
         }
       } catch {}
@@ -176,7 +178,25 @@ const getGlobalLeaderboard = async (req, res, next) => {
       }
     );
 
-    let leaderboard = await User.aggregate(pipeline);
+    // Fetch leaderboard data from PostgreSQL based on type
+    let leaderboard;
+    if (type === 'goals' && (category || timeframe !== 'all')) {
+      // Category or timeframe filtered goals leaderboard
+      leaderboard = await pgGoalService.getLeaderboard({
+        type,
+        category,
+        timeframe,
+        limit: parsedLimit,
+        offset: (parsedPage - 1) * parsedLimit
+      });
+    } else {
+      // Standard user leaderboard (goals, streak, etc.)
+      leaderboard = await pgUserService.getLeaderboard({
+        type,
+        limit: parsedLimit,
+        offset: (parsedPage - 1) * parsedLimit
+      });
+    }
 
         // Add rank to leaderboard (without user-specific data for caching)
         const leaderboardWithRank = leaderboard.map((user, index) => ({
@@ -184,7 +204,10 @@ const getGlobalLeaderboard = async (req, res, next) => {
           rank: (parsedPage - 1) * parsedLimit + index + 1
         }));
     
-        const total = await User.countDocuments(matchStage);
+        // Get total count
+        const total = type === 'goals' && (category || timeframe !== 'all')
+          ? await pgGoalService.getLeaderboardCount({ type, category, timeframe })
+          : await pgUserService.getLeaderboardCount({ type });
     
         const pagination = {
           page: parsedPage,
@@ -205,10 +228,10 @@ const getGlobalLeaderboard = async (req, res, next) => {
     if (req.user) {
       leaderboard = await Promise.all(
         leaderboardWithRank.map(async (user, index) => {
-          const isFollowing = await Follow.isFollowing(req.user.id, user._id);
+          const isFollowing = await pgFollowService.isFollowing(req.user.id, user._id || user.id);
           return {
             ...user,
-            isFollowing: user._id.toString() !== req.user.id ? isFollowing : null
+            isFollowing: (user._id?.toString() || user.id?.toString()) !== req.user.id ? isFollowing : null
           };
         })
       );
@@ -245,29 +268,26 @@ const getUserRank = async (userId, type = 'goals', timeframe = 'all') => {
     
     switch (type) {
       case 'goals':
-        sortField = 'completedGoals';
+        sortField = 'completed_goals';
         break;
       case 'streak':
-        sortField = 'currentStreak';
+        sortField = 'current_streak';
         break;
     }
     
-    const user = await User.findById(userId);
+    const user = await pgUserService.findById(parseInt(userId));
     if (!user) return null;
     
     const userValue = user[sortField];
-    const rank = await User.countDocuments({
-      isActive: true,
-      [sortField]: { $gt: userValue }
-    });
+    const rank = await pgUserService.getUserRank(parseInt(userId), type);
     
     return {
-      rank: rank + 1,
+      rank,
       value: userValue,
       user: {
-        _id: user._id,
+        id: user.id,
         name: user.name,
-        avatar: user.avatar
+        avatar: user.avatar_url
       }
     };
   } catch (error) {
@@ -301,10 +321,10 @@ const getCategoryLeaderboard = async (req, res, next) => {
       // We have cached data, but we need to add user-specific data
       let leaderboard = await Promise.all(
         cachedData.leaderboard.map(async (user, index) => {
-          const isFollowing = await Follow.isFollowing(req.user.id, user._id);
+          const isFollowing = await pgFollowService.isFollowing(req.user.id, user._id || user.id);
           return {
             ...user,
-            isFollowing: user._id.toString() !== req.user.id ? isFollowing : null
+            isFollowing: (user._id?.toString() || user.id?.toString()) !== req.user.id ? isFollowing : null
           };
         })
       );
@@ -342,74 +362,19 @@ const getCategoryLeaderboard = async (req, res, next) => {
         startDate = null;
     }
     
-    const matchQuery = {
+    // Get category leaderboard from PostgreSQL
+    const leaderboard = await pgGoalService.getCategoryLeaderboard({
       category,
-      completed: true
-    };
-    
-    if (startDate) {
-      matchQuery.completedAt = { $gte: startDate };
-    }
-    
-    const leaderboard = await Goal.aggregate([
-      {
-        $match: matchQuery
-      },
-      {
-        $group: {
-          _id: '$userId',
-          goalCount: { $sum: 1 }
-        }
-      },
-      {
-        $lookup: {
-          from: 'users',
-          localField: '_id',
-          foreignField: '_id',
-          as: 'user'
-        }
-      },
-      {
-        $unwind: '$user'
-      },
-      {
-        $match: {
-          'user.isActive': true
-        }
-      },
-      {
-        $sort: { goalCount: -1 }
-      },
-      {
-        $skip: (parsedPage - 1) * parsedLimit
-      },
-      {
-        $limit: parsedLimit
-      },
-      {
-        $project: {
-          _id: '$user._id',
-          name: '$user.name',
-          avatar: '$user.avatar',
-          goalCount: 1
-        }
-      }
-    ]);
+      startDate,
+      limit: parsedLimit,
+      offset: (parsedPage - 1) * parsedLimit
+    });
     
     // Get total count for pagination
-    const totalQuery = {
+    const total = await pgGoalService.getCategoryLeaderboardCount({
       category,
-      completed: true,
-      ...(startDate && { completedAt: { $gte: startDate } })
-    };
-    
-    const totalResults = await Goal.aggregate([
-      { $match: totalQuery },
-      { $group: { _id: '$userId' } },
-      { $count: 'total' }
-    ]);
-    
-    const total = totalResults.length > 0 ? totalResults[0].total : 0;
+      startDate
+    });
 
     // Add rank to leaderboard (without following status for caching)
     const leaderboardWithRank = leaderboard.map((user, index) => ({

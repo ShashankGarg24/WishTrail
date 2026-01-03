@@ -17,6 +17,7 @@ import {
   habitsAPI,
   settingsAPI
 } from '../services/api';
+import { getCurrentDateKey } from '../utils/timezoneUtils';
 
 const useApiStore = create(
   persist(
@@ -390,9 +391,9 @@ const useApiStore = create(
         try {
           const response = await authAPI.getMe();
           const { user } = response.data.data;
-          // Extract dashboardYears from user data
-          const dashboardYears = user.dashboardYears || [];
-          set({ user, isAuthenticated: true, cacheMeTs: now, dashboardYears });
+          set({ user, isAuthenticated: true, cacheMeTs: now });
+          // Fetch dashboard years separately from the new endpoint
+          get().getDashboardYears();
           return { success: true, user };
         } catch (error) {
           // Do not hard-logout on transient 401 from /me; allow refresh flow to handle
@@ -415,6 +416,18 @@ const useApiStore = create(
         } catch (error) {
           const errorMessage = handleApiError(error);
           set({ loading: false, error: errorMessage });
+          return { success: false, error: errorMessage };
+        }
+      },
+
+      getDashboardYears: async () => {
+        try {
+          const res = await usersAPI.getDashboardYears();
+          const years = res?.data?.data?.years || [];
+          set({ dashboardYears: years });
+          return { success: true, years };
+        } catch (error) {
+          const errorMessage = handleApiError(error);
           return { success: false, error: errorMessage };
         }
       },
@@ -614,7 +627,13 @@ const useApiStore = create(
 
       logHabit: async (id, status) => {
         try {
-          const response = await habitsAPI.log(id, { status });
+          // Get current date key in user's timezone
+          const dateKey = getCurrentDateKey();
+          
+          const response = await habitsAPI.log(id, { 
+            status, 
+            date: dateKey  // Send date_key calculated in user's timezone
+          });
           const data = response?.data?.data || response?.data;
           const updatedHabit = data?.habit;
           
@@ -1021,11 +1040,14 @@ const useApiStore = create(
             for (const key of keysToCheck) {
               const entry = bucket[key];
               if (entry && typeof entry.ts === 'number' && Date.now() - entry.ts < ttlMs) {
+                console.log('[apiStore.getGoalPost] Returning cached data for', key);
                 return { success: true, ...entry.data };
               }
             }
           }
+          console.log('[apiStore.getGoalPost] Making API call for goal:', id);
           const response = await goalsAPI.getGoalPost(id);
+          console.log('[apiStore.getGoalPost] Got response:', response);
           const resp = response?.data || {};
           // Cache by both goal and activity identifiers if present
           try {
@@ -1099,19 +1121,10 @@ const useApiStore = create(
 
       getUsers: async (params = {}, opts = {}) => {
         try {
-          const force = !!opts.force;
-          const key = get()._cacheKeyFromParams(params);
-          const ttl = get().cacheTTLs.users;
-          const cached = get().cacheUsers[key];
-          if (!force && cached && get()._isFresh(cached.ts, ttl)) {
-            const { users, pagination } = cached.data;
-            return { success: true, users, pagination };
-          }
           set({ loading: true, error: null });
           const response = await usersAPI.getUsers(params);
           const { users, pagination } = response.data.data;
           set({ users, usersPagination: pagination, loading: false });
-          get()._setCacheWithLimit('cacheUsers', key, { users, pagination });
           return { success: true, users, pagination };
         } catch (error) {
           const errorMessage = handleApiError(error);

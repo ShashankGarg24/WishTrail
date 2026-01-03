@@ -1,15 +1,17 @@
 const mongoose = require('mongoose');
 
 const activitySchema = new mongoose.Schema({
-  // User who performed the activity
+  // User who performed the activity (PostgreSQL user ID)
   userId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: [true, 'User ID is required'],
-    index: true
+    type: Number,
+    required: [true, 'User ID is required']
   },
 
   name: {
+    type: String,
+  },
+
+  username: {
     type: String,
   },
 
@@ -36,16 +38,14 @@ const activitySchema = new mongoose.Schema({
       'habit_added',
       'habit_removed',
       'habit_target_achieved'
-    ],
-    index: true
+    ]
   },
   
   // Flexible data storage for different activity types
   data: {
-    // For goal-related activities
+    // For goal-related activities (PostgreSQL goal ID)
     goalId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Goal'
+      type: Number
     },
     goalTitle: String,
     goalCategory: String,
@@ -62,10 +62,9 @@ const activitySchema = new mongoose.Schema({
       data: { type: mongoose.Schema.Types.Mixed }
     }],
     
-    // For user-related activities
+    // For user-related activities (PostgreSQL user ID)
     targetUserId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User'
+      type: Number
     },
     targetUserName: String,
     
@@ -89,50 +88,36 @@ const activitySchema = new mongoose.Schema({
   // Activity visibility
   isPublic: {
     type: Boolean,
-    default: true,
-    index: true
+    default: true
   },
   
   // For potential future features
   isActive: {
     type: Boolean,
-    default: true,
-    index: true
+    default: true
   },
 
   // Community scope (optional)
   communityId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Community',
-    index: true
+    ref: 'Community'
   },
 
   // Reactions: emoji -> { count, userIds }
   reactions: {
     type: Map,
-    of: new mongoose.Schema({ count: { type: Number, default: 0 }, userIds: [{ type: mongoose.Schema.Types.ObjectId }] }, { _id: false }),
+    of: new mongoose.Schema({ count: { type: Number, default: 0 }, userIds: [{ type: Number }] }, { _id: false }), // PostgreSQL user IDs
     default: {}
   },
 
   // Optional expiration support (set on write if you want TTL for updates)
-  expiresAt: { type: Date, index: true }
+  expiresAt: { type: Date }
   
 }, {
   timestamps: true,
   toJSON: { virtuals: true },
   toObject: { virtuals: true }
 });
-
-// Indexes for performance
-activitySchema.index({ createdAt: -1 });
-activitySchema.index({ userId: 1, createdAt: -1 });
-activitySchema.index({ type: 1, createdAt: -1 });
-activitySchema.index({ isPublic: 1, createdAt: -1 });
-activitySchema.index({ isActive: 1, isPublic: 1, createdAt: -1 });
-activitySchema.index({ communityId: 1, createdAt: -1 });
-activitySchema.index({ expiresAt: 1 });
-activitySchema.index({ 'data.goalId': 1, createdAt: -1 });
-activitySchema.index({ 'data.metadata.habitId': 1, createdAt: -1 });
 
 // Virtual for activity message
 activitySchema.virtual('message').get(function() {
@@ -194,11 +179,12 @@ activitySchema.virtual('message').get(function() {
 
 
 // Static method to create activity
-activitySchema.statics.createActivity = async function(userId, name, avatar, type, data, options = {}) {
+activitySchema.statics.createActivity = async function(userId, name, username, avatar, type, data, options = {}) {
   try {
     const activity = new this({
       userId,
       name,
+      username,
       avatar,
       type,
       data,
@@ -214,7 +200,7 @@ activitySchema.statics.createActivity = async function(userId, name, avatar, typ
 };
 
 // Static method to create or update goal activity (consolidated)
-activitySchema.statics.createOrUpdateGoalActivity = async function(userId, name, avatar, updateType, goalData, options = {}) {
+activitySchema.statics.createOrUpdateGoalActivity = async function(userId, name, username, avatar, updateType, goalData, options = {}) {
   try {
     const { goalId, goalTitle, goalCategory, completionNote, completionAttachmentUrl, 
             subGoalsCount, completedSubGoalsCount, subGoalTitle, subGoalIndex, 
@@ -225,6 +211,7 @@ activitySchema.statics.createOrUpdateGoalActivity = async function(userId, name,
       const newActivity = new this({
         userId,
         name,
+        username,
         avatar,
         type: updateType,
         data: {
@@ -280,6 +267,7 @@ activitySchema.statics.createOrUpdateGoalActivity = async function(userId, name,
       // Update existing activity
       activity.type = 'goal_activity';
       activity.name = name; // Update in case name changed
+      activity.username = username; // Update in case username changed
       activity.avatar = avatar; // Update in case avatar changed
       activity.data.goalTitle = goalTitle;
       activity.data.goalCategory = goalCategory;
@@ -319,6 +307,7 @@ activitySchema.statics.createOrUpdateGoalActivity = async function(userId, name,
       const newActivity = new this({
         userId,
         name,
+        username,
         avatar,
         type: 'goal_activity',
         data: {

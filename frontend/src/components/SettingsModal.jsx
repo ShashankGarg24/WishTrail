@@ -36,12 +36,12 @@ const SettingsModal = ({ isOpen, onClose }) => {
       icon: UserX,
       component: <BlockedUsersSettings />
     },
-    {
-      id: 'notifications',
-      label: 'Notifications',
-      icon: Bell,
-      component: <NotificationsSettings />
-    },
+    // {
+    //   id: 'notifications',
+    //   label: 'Notifications',
+    //   icon: Bell,
+    //   component: <NotificationsSettings />
+    // },
     {
       id: 'password',
       label: 'Password',

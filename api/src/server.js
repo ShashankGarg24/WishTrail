@@ -64,7 +64,7 @@ const createApp = async () => {
     allowedHeaders: [
       'Content-Type', 'Authorization', 'X-Requested-With', 'Accept',
       'Origin', 'Access-Control-Request-Method', 'Access-Control-Request-Headers',
-      'X-Client-Platform', 'X-Platform'
+      'X-Client-Platform', 'X-Platform', 'Cache-Control', 'Pragma', 'Expires'
     ],
     exposedHeaders: ['X-Total-Count', 'X-Page-Count']
   };

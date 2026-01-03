@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { API_CONFIG } from '../config/api';
+import { addTimezoneAndLocale } from '../utils/timezoneUtils';
 
 const API_BASE_URL = API_CONFIG.BASE_URL;
 
@@ -214,15 +215,15 @@ api.interceptors.response.use(
 
 // Auth API
 export const authAPI = {
-  register: (userData) => api.post('/auth/register', userData),
-  login: (credentials) => api.post('/auth/login', credentials),
+  register: (userData) => api.post('/auth/register', addTimezoneAndLocale(userData)),
+  login: (credentials) => api.post('/auth/login', addTimezoneAndLocale(credentials)),
   logout: () => api.post('/auth/logout'),
   getMe: () => api.get('/auth/me'),
   updateProfile: (userData) => api.put('/auth/profile', userData),
   updatePassword: (passwordData) => api.put('/auth/password', passwordData),
 
   // Google OAuth
-  googleAuth: (tokenData) => api.post('/auth/google', tokenData),
+  googleAuth: (tokenData) => api.post('/auth/google', addTimezoneAndLocale(tokenData)),
 
   // Password setup for Google SSO users
   requestPasswordSetupOTP: () => api.post('/auth/password-setup/request-otp'),
@@ -255,7 +256,10 @@ export const goalsAPI = {
   getShareableGoal: (id) => api.get(`/goals/${id}/share`),
   getOGImageUrl: (id) => `${api.defaults.baseURL}/goals/${id}/og-image`,
   searchGoals: (params) => api.get('/goals/search', { params }),
-  getGoalPost: (id) => api.get(`/goals/${id}/post`),
+  getGoalPost: (id) => {
+    console.log('[goalsAPI.getGoalPost] Calling endpoint:', `/goals/${id}/post`);
+    return api.get(`/goals/${id}/post`);
+  },
   getGoalAnalytics: (id) => api.get(`/goals/${id}/analytics`),
   // Goal Division
   getProgress: (id) => api.get(`/goals/${id}/progress`),
@@ -278,6 +282,7 @@ export const usersAPI = {
   getUserYearlyGoals: (id, year, params) => api.get(`/users/${id}/goals/yearly/${year}`, { params }),
   getUserActivities: (id, params) => api.get(`/users/${id}/activities`, { params }),
   updatePrivacy: (data) => api.put('/users/privacy', data),
+  getDashboardYears: () => api.get('/users/dashboard/years'),
   addDashboardYear: (year) => api.post('/users/dashboard/years', { year }),
   deleteDashboardYear: (year) => api.delete(`/users/dashboard/years/${year}`),
 };

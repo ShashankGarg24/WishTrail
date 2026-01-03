@@ -1,10 +1,11 @@
-const User = require('../models/User');
-const Follow = require('../models/Follow');
 const Activity = require('../models/Activity');
 const Notification = require('../models/Notification');
-const Block = require('../models/Block');
 const activityService = require('../services/activityService');
-const { sanitizeFollow } = require('../utility/sanitizer');
+
+// PostgreSQL Services
+const pgFollowService = require('../services/pgFollowService');
+const pgBlockService = require('../services/pgBlockService');
+const pgUserService = require('../services/pgUserService');
 
 // @desc    Follow a user
 // @route   POST /api/v1/social/follow/:userId
@@ -15,8 +16,8 @@ const followUser = async (req, res, next) => {
     const followerId = req.user.id;
     
     // Check if user exists
-    const userToFollow = await User.findById(userId);
-    if (!userToFollow || !userToFollow.isActive) {
+    const userToFollow = await pgUserService.findById(parseInt(userId));
+    if (!userToFollow || !userToFollow.is_active) {
       return res.status(404).json({
         success: false,
         message: 'User not found'
@@ -24,7 +25,7 @@ const followUser = async (req, res, next) => {
     }
     
     // Can't follow yourself
-    if (userId === followerId) {
+    if (parseInt(userId) === followerId) {
       return res.status(400).json({
         success: false,
         message: 'Cannot follow yourself'
@@ -32,7 +33,7 @@ const followUser = async (req, res, next) => {
     }
     
     // Check if already following
-    const existingFollow = await Follow.isFollowing(followerId, userId);
+    const existingFollow = await pgFollowService.isFollowing(followerId, parseInt(userId));
     if (existingFollow) {
       return res.status(400).json({
         success: false,
@@ -41,41 +42,41 @@ const followUser = async (req, res, next) => {
     }
     
     // Prevent follow if blocked either way
-    if (await Block.isBlockedBetween(followerId, userId)) {
+    if (await pgBlockService.isBlockedBetween(followerId, parseInt(userId))) {
       return res.status(403).json({ success: false, message: 'Cannot follow due to block' });
     }
 
     // If target user is private, create follow request and notification
-    if (userToFollow.isPrivate) {
-      await Follow.requestFollow(followerId, userId);
-      await Notification.createFollowRequestNotification(followerId, userId);
+    if (userToFollow.is_private) {
+      await pgFollowService.requestFollow(followerId, parseInt(userId));
+      await Notification.createFollowRequestNotification(followerId, parseInt(userId));
       return res.status(200).json({ success: true, message: 'Follow request sent', data: { requested: true } });
     }
 
     // Follow the user directly for public profile
-    await Follow.followUser(followerId, userId);
-    const notif = await Notification.createFollowNotification(followerId, userId);
+    await pgFollowService.followUser(followerId, parseInt(userId));
+    const notif = await Notification.createFollowNotification(followerId, parseInt(userId));
     console.log('[Follow] Notification created:', notif ? 'Yes' : 'No', 'for follower:', followerId, 'following:', userId);
     
     // Check if activity already exists
     const existingActivity = await Activity.findOne({
       userId: followerId,
       type: 'user_followed',
-      'data.targetUserId': userId
+      'data.targetUserId': parseInt(userId)
     });
 
-    const currentUser = (await User.findById(followerId).select('name avatar'));
-    userToFollow.increaseFollowerCount();
-    currentUser.increaseFollowingCount();
+    const currentUser = await pgUserService.findById(followerId);
+    // Follower counts are updated automatically by database triggers
 
     if (!existingActivity) {
       await Activity.createActivity(
         followerId,
         currentUser.name,
-        currentUser.avatar,
+        currentUser.username,
+        currentUser.avatar_url,
         'user_followed',
         {
-          targetUserId: userId,
+          targetUserId: parseInt(userId),
           targetUserName: userToFollow.name
         }
       );
@@ -93,15 +94,11 @@ const cancelFollowRequest = async (req, res, next) => {
   try {
     const { userId } = req.params;
     const followerId = req.user.id;
-    // Set any pending request to rejected/inactive
-    const FollowModel = require('../models/Follow');
-    const pending = await FollowModel.findOne({ followerId, followingId: userId, status: 'pending', isActive: false });
-    if (!pending) {
+    // Reject the pending request
+    const success = await pgFollowService.rejectFollowRequest(followerId, userId);
+    if (!success) {
       return res.status(404).json({ success: false, message: 'No pending request' });
     }
-    pending.status = 'rejected';
-    pending.isActive = false;
-    await pending.save();
     await Notification.deleteFollowRequestNotification(followerId, userId);
     return res.status(200).json({ success: true, message: 'Follow request canceled' });
   } catch (err) {
@@ -118,13 +115,9 @@ const getFollowRequests = async (req, res, next) => {
     const parsedPage = parseInt(page);
     const parsedLimit = parseInt(limit);
 
-    const Follow = require('../models/Follow');
-    const requests = await Follow.find({ followingId: req.user.id, status: 'pending', isActive: false })
-      .sort({ createdAt: -1 })
-      .skip((parsedPage - 1) * parsedLimit)
-      .limit(parsedLimit)
-      .populate('followerId', 'name avatar username');
-    const total = await Follow.countDocuments({ followingId: req.user.id, status: 'pending', isActive: false });
+    const offset = (parsedPage - 1) * parsedLimit;
+    const requests = await pgFollowService.getPendingRequests(req.user.id, { limit: parsedLimit, offset });
+    const total = await pgFollowService.countPendingRequests(req.user.id);
     res.status(200).json({ success: true, data: { requests, pagination: { page: parsedPage, limit: parsedLimit, total, pages: Math.ceil(total / parsedLimit) } } });
   } catch (err) {
     next(err);
@@ -138,16 +131,9 @@ const acceptFollowRequest = async (req, res, next) => {
   try {
     const { followerId } = req.params;
     const followingId = req.user.id;
-    const updated = await Follow.acceptFollowRequest(followerId, followingId);
-    const User = require('../models/User');
-    const Notification = require('../models/Notification');
-    const [currentUser, follower] = await Promise.all([
-      User.findById(followingId),
-      User.findById(followerId)
-    ]);
+    const updated = await pgFollowService.acceptFollowRequest(followerId, followingId);
+    // Follower counts are updated automatically by database triggers
     await Promise.all([
-      currentUser.increaseFollowerCount(),
-      follower.increaseFollowingCount(),
       Notification.createFollowAcceptedNotification(followingId, followerId),
       Notification.convertFollowRequestToNewFollower(followerId, followingId)
     ]);
@@ -164,7 +150,7 @@ const rejectFollowRequest = async (req, res, next) => {
   try {
     const { followerId } = req.params;
     const followingId = req.user.id;
-    await Follow.rejectFollowRequest(followerId, followingId);
+    await pgFollowService.rejectFollowRequest(followerId, followingId);
     await Notification.deleteFollowRequestNotification(followerId, followingId);
     return res.status(200).json({ success: true, message: 'Follow request rejected' });
   } catch (err) {
@@ -181,8 +167,8 @@ const unfollowUser = async (req, res, next) => {
     const followerId = req.user.id;
     
     // Check if user exists
-    const userToUnfollow = await User.findById(userId);
-    if (!userToUnfollow || !userToUnfollow.isActive) {
+    const userToUnfollow = await pgUserService.findById(parseInt(userId));
+    if (!userToUnfollow || !userToUnfollow.is_active) {
       return res.status(404).json({
         success: false,
         message: 'User not found'
@@ -190,7 +176,7 @@ const unfollowUser = async (req, res, next) => {
     }
     
     // Check if following
-    const existingFollow = await Follow.isFollowing(followerId, userId);
+    const existingFollow = await pgFollowService.isFollowing(followerId, parseInt(userId));
     if (!existingFollow) {
       return res.status(400).json({
         success: false,
@@ -199,11 +185,9 @@ const unfollowUser = async (req, res, next) => {
     }
     
     // Unfollow the user
-    await Follow.unfollowUser(followerId, userId);
+    await pgFollowService.unfollowUser(followerId, parseInt(userId));
     
-    const currentUser = await User.findById(followerId);
-    userToUnfollow.decreaseFollowerCount();
-    currentUser.decreaseFollowingCount();
+    // Follower counts are updated automatically by database triggers
 
     res.status(200).json({
       success: true,
@@ -232,12 +216,12 @@ const getFollowers = async (req, res, next) => {
           message: 'User not found'
         });
       }
-      targetUserId = user._id.toString();
+      targetUserId = user.id.toString();
     }
     
     // If checking another user's followers, ensure they can view
     if (targetUserId !== req.user.id) {
-      const canView = await Follow.isFollowing(req.user.id, targetUserId);
+      const canView = await pgFollowService.isFollowing(req.user.id, targetUserId);
       if (!canView) {
         return res.status(403).json({
           success: false,
@@ -246,17 +230,16 @@ const getFollowers = async (req, res, next) => {
       }
     }
     
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-    const followers = await Follow.getFollowers(targetUserId, { limit: parseInt(limit), skip });
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+    const followers = await pgFollowService.getFollowers({ userId: targetUserId, limit: parseInt(limit), offset });
     
     // ✅ Extract minimal user info - only name, username, avatar
     const sanitizedFollowers = followers.map(f => {
-      if (!f.followerId) return null;
-      const user = f.followerId.toObject ? f.followerId.toObject() : f.followerId;
+      if (!f.user) return null;
       return {
-        name: user.name,
-        username: user.username,
-        avatar: user.avatar
+        name: f.user.name,
+        username: f.user.username,
+        avatar: f.user.avatarUrl
       };
     }).filter(Boolean);
     
@@ -287,12 +270,12 @@ const getFollowing = async (req, res, next) => {
           message: 'User not found'
         });
       }
-      targetUserId = user._id.toString();
+      targetUserId = user.id.toString();
     }
     
     // If checking another user's following, ensure they can view
     if (targetUserId !== req.user.id) {
-      const canView = await Follow.isFollowing(req.user.id, targetUserId);
+      const canView = await pgFollowService.isFollowing(req.user.id, targetUserId);
       if (!canView) {
         return res.status(403).json({
           success: false,
@@ -301,17 +284,16 @@ const getFollowing = async (req, res, next) => {
       }
     }
     
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-    const following = await Follow.getFollowing(targetUserId, { limit: parseInt(limit), skip });
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+    const following = await pgFollowService.getFollowing({ userId: targetUserId, limit: parseInt(limit), offset });
     
     // ✅ Extract minimal user info - only name, username, avatar
     const sanitizedFollowing = following.map(f => {
-      if (!f.followingId) return null;
-      const user = f.followingId.toObject ? f.followingId.toObject() : f.followingId;
+      if (!f.user) return null;
       return {
-        name: user.name,
-        username: user.username,
-        avatar: user.avatar
+        name: f.user.name,
+        username: f.user.username,
+        avatar: f.user.avatarUrl
       };
     }).filter(Boolean);
     
@@ -332,15 +314,15 @@ const getMutualFollowers = async (req, res, next) => {
     const { userId } = req.params;
     
     // Check if user exists
-    const user = await User.findById(userId);
-    if (!user || !user.isActive) {
+    const user = await pgUserService.findById(parseInt(userId));
+    if (!user || !user.is_active) {
       return res.status(404).json({
         success: false,
         message: 'User not found'
       });
     }
     
-    const mutualFollowers = await Follow.getMutualFollowers(req.user.id, userId);
+    const mutualFollowers = await pgFollowService.getMutualFollowers(req.user.id, userId);
     
     res.status(200).json({
       success: true,
@@ -358,7 +340,7 @@ const getSuggestedUsers = async (req, res, next) => {
   try {
     const { limit = 5 } = req.query;
     
-    const suggestions = await Follow.getSuggestedUsers(req.user.id, parseInt(limit));
+    const suggestions = await pgFollowService.getFollowSuggestions(req.user.id, { limit: parseInt(limit) });
     
     res.status(200).json({
       success: true,
@@ -378,18 +360,20 @@ const getFollowStats = async (req, res, next) => {
     const targetUserId = userId || req.user.id;
     
     // Get follower and following counts
-    const followers = await Follow.getFollowers(targetUserId);
-    const following = await Follow.getFollowing(targetUserId);
+    const [followerCount, followingCount] = await Promise.all([
+      pgFollowService.getFollowersCount(targetUserId),
+      pgFollowService.getFollowingCount(targetUserId)
+    ]);
     
     // If viewing another user's stats, check if following them
     let isFollowing = false;
     if (targetUserId !== req.user.id) {
-      isFollowing = await Follow.isFollowing(req.user.id, targetUserId);
+      isFollowing = await pgFollowService.isFollowing(req.user.id, targetUserId);
     }
     
     const stats = {
-      followerCount: followers.length,
-      followingCount: following.length,
+      followerCount,
+      followingCount,
       isFollowing: targetUserId !== req.user.id ? isFollowing : null
     };
     
@@ -429,15 +413,15 @@ const checkFollowingStatus = async (req, res, next) => {
     const { userId } = req.params;
     
     // Check if user exists
-    const user = await User.findById(userId);
-    if (!user || !user.isActive) {
+    const user = await pgUserService.findById(parseInt(userId));
+    if (!user || !user.is_active) {
       return res.status(404).json({
         success: false,
         message: 'User not found'
       });
     }
     
-    const isFollowing = await Follow.isFollowing(req.user.id, userId);
+    const isFollowing = await pgFollowService.isFollowing(req.user.id, userId);
     
     res.status(200).json({
       success: true,
@@ -455,51 +439,24 @@ const getPopularUsers = async (req, res, next) => {
   try {
     const { limit = 10 } = req.query;
     
-    // Get users with most followers
-    const popularUsers = await User.aggregate([
-      { $match: { isActive: true } },
-      {
-        $lookup: {
-          from: 'follows',
-          localField: '_id',
-          foreignField: 'followingId',
-          as: 'followers'
-        }
-      },
-      {
-        $addFields: {
-          followerCount: { $size: '$followers' }
-        }
-      },
-      {
-        $sort: { followerCount: -1, completedGoals: -1 }
-      },
-      {
-        $limit: parseInt(limit)
-      },
-      {
-        $project: {
-          name: 1,
-          avatar: 1,
-          bio: 1,
-          location: 1,
-          completedGoals: 1,
-          currentStreak: 1,
-          followerCount: 1
-        }
-      }
-    ]);
+    // Get users with most followers from PostgreSQL
+    const popularUsers = await pgUserService.getPopularUsers({ limit: parseInt(limit) });
     
     // Add following status for each user
-    const usersWithFollowStatus = await Promise.all(
-      popularUsers.map(async (user) => {
-        const isFollowing = await Follow.isFollowing(req.user.id, user._id);
-        return {
-          ...user,
-          isFollowing
-        };
-      })
-    );
+    const userIds = popularUsers.map(u => u.id.toString());
+    const followStatus = await pgFollowService.bulkCheckFollowStatus(req.user.id, userIds);
+    const usersWithFollowStatus = popularUsers.map((user) => ({
+      id: user.id,
+      name: user.name,
+      username: user.username,
+      avatar: user.avatar_url,
+      bio: user.bio,
+      location: user.location,
+      completedGoals: user.completed_goals,
+      currentStreak: user.current_streak,
+      followerCount: user.follower_count,
+      isFollowing: followStatus[user.id.toString()] || false
+    }));
     
     res.status(200).json({
       success: true,

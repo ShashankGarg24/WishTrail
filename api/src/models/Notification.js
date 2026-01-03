@@ -1,12 +1,10 @@
 const mongoose = require('mongoose');
 
 const notificationSchema = new mongoose.Schema({
-  // User who will receive the notification
+  // User who will receive the notification (Number for PostgreSQL user IDs)
   userId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: [true, 'User ID is required'],
-    index: true
+    type: Number,
+    required: [true, 'User ID is required']
   },
   
   // Type of notification
@@ -43,8 +41,7 @@ const notificationSchema = new mongoose.Schema({
       'community_role_update',
       'community_join_request',
       'community_join_approved'
-    ],
-    index: true
+    ]
   },
   
   // Notification content
@@ -61,18 +58,16 @@ const notificationSchema = new mongoose.Schema({
   
   // Flexible data for different notification types
   data: {
-    // For follow notifications
+    // For follow notifications (Number for PostgreSQL user IDs)
     followerId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User'
+      type: Number
     },
     followerName: String,
     followerAvatar: String,
     
-    // For goal-related notifications
+    // For goal-related notifications (Number to support PostgreSQL goal IDs)
     goalId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Goal'
+      type: Number
     },
     goalTitle: String,
     goalCategory: String,
@@ -90,18 +85,16 @@ const notificationSchema = new mongoose.Schema({
     streakCount: Number,
     streakType: String,
     
-    // For like notifications
+    // For like notifications (Number for PostgreSQL user IDs)
     likerId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User'
+      type: Number
     },
     likerName: String,
     likerAvatar: String,
     
-    // Generic actor
+    // Generic actor (Number for PostgreSQL user IDs)
     actorId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User'
+      type: Number
     },
     actorName: String,
     actorAvatar: String,
@@ -111,11 +104,11 @@ const notificationSchema = new mongoose.Schema({
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Activity'
     },
-    // For habit notifications
+    // For habit notifications (Number for PostgreSQL habit IDs)
     habitId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Habit'
+      type: Number
     },
+    habitName: String,
     // For comment notifications
     commentId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -137,8 +130,7 @@ const notificationSchema = new mongoose.Schema({
   // Notification status
   isRead: {
     type: Boolean,
-    default: false,
-    index: true
+    default: false
   },
   
   // Notification delivery
@@ -178,13 +170,6 @@ const notificationSchema = new mongoose.Schema({
   toJSON: { virtuals: true },
   toObject: { virtuals: true }
 });
-
-// Indexes for performance
-notificationSchema.index({ userId: 1, isRead: 1, createdAt: -1 });
-notificationSchema.index({ userId: 1, type: 1, createdAt: -1 });
-notificationSchema.index({ userId: 1, communityId: 1, createdAt: -1 });
-notificationSchema.index({ userId: 1, priority: 1, createdAt: -1 });
-notificationSchema.index({ createdAt: -1 });
 
 // Virtual for notification age
 notificationSchema.virtual('age').get(function() {
@@ -241,13 +226,13 @@ notificationSchema.statics.createNotification = async function(notificationData)
     // Push delivery (best-effort)
     if (saved?.channels?.push) {
       try {
-        const User = require('../models/User');
-        const user = await User.findById(saved.userId).select('notificationSettings timezone');
+        const pgUserService = require('../services/pgUserService');
+        const user = await pgUserService.findById(saved.userId);
         let allowPush = true;
 
         // Respect per-category user settings
         const t = saved.type;
-        const ns = user?.notificationSettings || {};
+        const ns = user?.notification_settings || {};
         if (ns?.inAppEnabled === false) allowPush = false;
 
         const socialTypes = new Set(['new_follower','follow_request','follow_request_accepted','activity_comment','comment_reply','mention','activity_liked','comment_liked','goal_liked']);
@@ -365,8 +350,8 @@ notificationSchema.statics.deleteNotification = async function(notificationId, u
 // Static method to create follow notification
 notificationSchema.statics.createFollowNotification = async function(followerId, followingId) {
   console.log('[createFollowNotification] Called with followerId:', followerId, 'followingId:', followingId);
-  const User = mongoose.model('User');
-  const follower = await User.findById(followerId).select('name avatar username');
+  const pgUserService = require('../services/pgUserService');
+  const follower = await pgUserService.findById(followerId);
   
   if (!follower) {
     console.log('[createFollowNotification] Follower not found');
@@ -393,24 +378,24 @@ notificationSchema.statics.createFollowNotification = async function(followerId,
     data: {
       followerId: followerId,
       followerName: follower.name,
-      followerAvatar: follower.avatar,
+      followerAvatar: follower.avatar_url,
       actorId: followerId,
       actorName: follower.name,
-      actorAvatar: follower.avatar
+      actorAvatar: follower.avatar_url
     }
   });
 };
 
 // Static method to create follow request notification
 notificationSchema.statics.createFollowRequestNotification = async function(followerId, followingId) {
-  const User = mongoose.model('User');
-  const follower = await User.findById(followerId).select('name avatar');
+  const pgUserService = require('../services/pgUserService');
+  const follower = await pgUserService.findById(followerId);
   if (!follower) return;
   // Upsert one pending request notification per follower/following
   const existing = await this.findOne({ userId: followingId, type: 'follow_request', 'data.followerId': followerId });
   if (existing) {
     // Refresh timestamp and mark unread
-    await this.updateOne({ _id: existing._id }, { $set: { isRead: false, readAt: null, title: 'Follow Request', message: `${follower.name} requested to follow you`, 'data.followerName': follower.name, 'data.followerAvatar': follower.avatar, 'data.actorName': follower.name, 'data.actorAvatar': follower.avatar, updatedAt: new Date(), createdAt: new Date() } });
+    await this.updateOne({ _id: existing._id }, { $set: { isRead: false, readAt: null, title: 'Follow Request', message: `${follower.name} requested to follow you`, 'data.followerName': follower.name, 'data.followerAvatar': follower.avatar_url, 'data.actorName': follower.name, 'data.actorAvatar': follower.avatar_url, updatedAt: new Date(), createdAt: new Date() } });
     return existing;
   }
   return this.createNotification({
@@ -421,10 +406,10 @@ notificationSchema.statics.createFollowRequestNotification = async function(foll
     data: {
       followerId,
       followerName: follower.name,
-      followerAvatar: follower.avatar,
+      followerAvatar: follower.avatar_url,
       actorId: followerId,
       actorName: follower.name,
-      actorAvatar: follower.avatar
+      actorAvatar: follower.avatar_url
     },
     priority: 'high'
     // expiresAt will be set to null automatically in createNotification
@@ -440,8 +425,8 @@ notificationSchema.statics.deleteFollowRequestNotification = async function(foll
 
 // Convert an existing follow_request notification into new_follower after acceptance
 notificationSchema.statics.convertFollowRequestToNewFollower = async function(followerId, followingId) {
-  const User = mongoose.model('User');
-  const follower = await User.findById(followerId).select('name avatar');
+  const pgUserService = require('../services/pgUserService');
+  const follower = await pgUserService.findById(followerId);
   if (!follower) return null;
   const updated = await this.findOneAndUpdate(
     { userId: followingId, type: 'follow_request', 'data.followerId': followerId },
@@ -451,7 +436,7 @@ notificationSchema.statics.convertFollowRequestToNewFollower = async function(fo
         title: 'New Follower',
         message: `${follower.name} started following you`,
         'data.followerName': follower.name,
-        'data.followerAvatar': follower.avatar,
+        'data.followerAvatar': follower.avatar_url,
         isRead: false,
         readAt: null,
         expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) // 1 year after acceptance
@@ -466,8 +451,8 @@ notificationSchema.statics.convertFollowRequestToNewFollower = async function(fo
 
 // Static method to notify follower that request accepted
 notificationSchema.statics.createFollowAcceptedNotification = async function(followingId, followerId) {
-  const User = mongoose.model('User');
-  const following = await User.findById(followingId).select('name avatar');
+  const pgUserService = require('../services/pgUserService');
+  const following = await pgUserService.findById(followingId);
   if (!following) return;
   return this.createNotification({
     userId: followerId,
@@ -477,7 +462,7 @@ notificationSchema.statics.createFollowAcceptedNotification = async function(fol
     data: {
       actorId: followingId,
       actorName: following.name,
-      actorAvatar: following.avatar
+      actorAvatar: following.avatar_url
     }
   });
 };
@@ -486,8 +471,8 @@ notificationSchema.statics.createFollowAcceptedNotification = async function(fol
 notificationSchema.statics.createActivityCommentNotification = async function(commenterId, activity) {
   try {
     if (!activity) return;
-    const User = mongoose.model('User');
-    const commenter = await User.findById(commenterId).select('name avatar username');
+    const pgUserService = require('../services/pgUserService');
+    const commenter = await pgUserService.findById(commenterId);
     if (!commenter) return;
     if (String(activity.userId) === String(commenterId)) return; // no self notif
     return this.createNotification({
@@ -498,7 +483,7 @@ notificationSchema.statics.createActivityCommentNotification = async function(co
       data: {
         actorId: commenterId,
         actorName: commenter.name,
-        actorAvatar: commenter.avatar,
+        actorAvatar: commenter.avatar_url,
         activityId: activity._id,
         goalId: activity?.data?.goalId || undefined
       }
@@ -512,8 +497,8 @@ notificationSchema.statics.createActivityCommentNotification = async function(co
 notificationSchema.statics.createCommentReplyNotification = async function(replierId, parentComment, activity) {
   try {
     if (!parentComment) return;
-    const User = mongoose.model('User');
-    const replier = await User.findById(replierId).select('name avatar username');
+    const pgUserService = require('../services/pgUserService');
+    const replier = await pgUserService.findById(replierId);
     if (!replier) return;
     if (String(parentComment.userId) === String(replierId)) return;
     return this.createNotification({
@@ -524,7 +509,7 @@ notificationSchema.statics.createCommentReplyNotification = async function(repli
       data: {
         actorId: replierId,
         actorName: replier.name,
-        actorAvatar: replier.avatar,
+        actorAvatar: replier.avatar_url,
         activityId: activity?._id,
         commentId: parentComment._id,
         goalId: activity?.data?.goalId || undefined
@@ -539,8 +524,8 @@ notificationSchema.statics.createCommentReplyNotification = async function(repli
 notificationSchema.statics.createMentionNotification = async function(mentionerId, mentionedUserId, context = {}) {
   try {
     if (!mentionedUserId || String(mentionerId) === String(mentionedUserId)) return;
-    const User = mongoose.model('User');
-    const mentioner = await User.findById(mentionerId).select('name avatar username');
+    const pgUserService = require('../services/pgUserService');
+    const mentioner = await pgUserService.findById(mentionerId);
     if (!mentioner) return;
     return this.createNotification({
       userId: mentionedUserId,
@@ -550,7 +535,7 @@ notificationSchema.statics.createMentionNotification = async function(mentionerI
       data: {
         actorId: mentionerId,
         actorName: mentioner.name,
-        actorAvatar: mentioner.avatar,
+        actorAvatar: mentioner.avatar_url,
         activityId: context.activityId,
         commentId: context.commentId,
         goalId: context.goalId
@@ -566,8 +551,8 @@ notificationSchema.statics.createActivityLikeNotification = async function(liker
   try {
     if (!activity) return;
     if (String(activity.userId) === String(likerId)) return;
-    const User = mongoose.model('User');
-    const liker = await User.findById(likerId).select('name avatar username');
+    const pgUserService = require('../services/pgUserService');
+    const liker = await pgUserService.findById(likerId);
     if (!liker) return;
     // Dedup: one per actor per activity; cooldown 60s
     const filter = { userId: activity.userId, type: 'activity_liked', 'data.activityId': activity._id, 'data.actorId': likerId };
@@ -575,7 +560,7 @@ notificationSchema.statics.createActivityLikeNotification = async function(liker
     if (existing) {
       const ageMs = Date.now() - new Date(existing.createdAt).getTime();
       if (ageMs < 60000) return existing; // suppress within 60s
-      await this.updateOne({ _id: existing._id }, { $set: { isRead: false, readAt: null, title: 'Activity liked', message: `${liker.name} liked your activity`, 'data.actorName': liker.name, 'data.actorAvatar': liker.avatar, updatedAt: new Date(), createdAt: new Date() } });
+      await this.updateOne({ _id: existing._id }, { $set: { isRead: false, readAt: null, title: 'Activity liked', message: `${liker.name} liked your activity`, 'data.actorName': liker.name, 'data.actorAvatar': liker.avatar_url, updatedAt: new Date(), createdAt: new Date() } });
       return existing;
     }
     return this.createNotification({
@@ -586,7 +571,7 @@ notificationSchema.statics.createActivityLikeNotification = async function(liker
       data: {
         actorId: likerId,
         actorName: liker.name,
-        actorAvatar: liker.avatar,
+        actorAvatar: liker.avatar_url,
         activityId: activity._id,
         goalId: activity?.data?.goalId || undefined
       }
@@ -601,10 +586,10 @@ notificationSchema.statics.createCommentLikeNotification = async function(likerI
   try {
     if (!comment) return;
     if (String(comment.userId) === String(likerId)) return;
-    const User = mongoose.model('User');
+    const pgUserService = require('../services/pgUserService');
     const Activity = mongoose.model('Activity');
     const ActivityComment = mongoose.model('ActivityComment');
-    const liker = await User.findById(likerId).select('name avatar');
+    const liker = await pgUserService.findById(likerId);
     if (!liker) return;
     // Try to enrich with activityId and goalId for deep linking
     let activityId = comment.activityId;
@@ -620,7 +605,7 @@ notificationSchema.statics.createCommentLikeNotification = async function(likerI
     if (existing) {
       const ageMs = Date.now() - new Date(existing.createdAt).getTime();
       if (ageMs < 60000) return existing;
-      await this.updateOne({ _id: existing._id }, { $set: { isRead: false, readAt: null, title: 'Comment liked', message: `${liker.name} liked your comment`, 'data.actorName': liker.name, 'data.actorAvatar': liker.avatar, 'data.activityId': activityId || existing?.data?.activityId, 'data.goalId': goalId || existing?.data?.goalId, updatedAt: new Date(), createdAt: new Date() } });
+      await this.updateOne({ _id: existing._id }, { $set: { isRead: false, readAt: null, title: 'Comment liked', message: `${liker.name} liked your comment`, 'data.actorName': liker.name, 'data.actorAvatar': liker.avatar_url, 'data.activityId': activityId || existing?.data?.activityId, 'data.goalId': goalId || existing?.data?.goalId, updatedAt: new Date(), createdAt: new Date() } });
       return existing;
     }
     return this.createNotification({
@@ -631,7 +616,7 @@ notificationSchema.statics.createCommentLikeNotification = async function(likerI
       data: {
         actorId: likerId,
         actorName: liker.name,
-        actorAvatar: liker.avatar,
+        actorAvatar: liker.avatar_url,
         commentId: comment._id,
         activityId: activityId || undefined,
         goalId: goalId || undefined
@@ -644,12 +629,12 @@ notificationSchema.statics.createCommentLikeNotification = async function(likerI
 
 // Static method to create goal like notification
 notificationSchema.statics.createGoalLikeNotification = async function(likerId, goalId, goalUserId) {
-  const User = mongoose.model('User');
-  const Goal = mongoose.model('Goal');
+  const pgUserService = require('../services/pgUserService');
+  const pgGoalService = require('../services/pgGoalService');
   
   const [liker, goal] = await Promise.all([
-    User.findById(likerId).select('name avatar username'),
-    Goal.findById(goalId).select('title category')
+    pgUserService.findById(likerId),
+    pgGoalService.findById(goalId)
   ]);
   
   if (!liker || !goal) return;
@@ -660,7 +645,7 @@ notificationSchema.statics.createGoalLikeNotification = async function(likerId, 
   if (existing) {
     const ageMs = Date.now() - new Date(existing.createdAt).getTime();
     if (ageMs < 60000) return existing;
-    await this.updateOne({ _id: existing._id }, { $set: { isRead: false, readAt: null, title: 'Goal Liked', message: `${liker.name} liked your goal "${goal.title}"`, 'data.likerName': liker.name, 'data.likerAvatar': liker.avatar, updatedAt: new Date(), createdAt: new Date() } });
+    await this.updateOne({ _id: existing._id }, { $set: { isRead: false, readAt: null, title: 'Goal Liked', message: `${liker.name} liked your goal "${goal.title}"`, 'data.likerName': liker.name, 'data.likerAvatar': liker.avatar_url, updatedAt: new Date(), createdAt: new Date() } });
     return existing;
   }
   return this.createNotification({
@@ -671,7 +656,7 @@ notificationSchema.statics.createGoalLikeNotification = async function(likerId, 
     data: {
       likerId: likerId,
       likerName: liker.name,
-      likerAvatar: liker.avatar,
+      likerAvatar: liker.avatar_url,
       goalId: goalId,
       goalTitle: goal.title,
       goalCategory: goal.category

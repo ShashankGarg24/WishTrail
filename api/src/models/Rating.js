@@ -1,12 +1,10 @@
 const mongoose = require('mongoose');
 
 const ratingSchema = new mongoose.Schema({
-  // User who submitted the rating
+  // User who submitted the rating (PostgreSQL user ID)
   userId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: [true, 'User ID is required'],
-    index: true
+    type: Number,
+    required: [true, 'User ID is required']
   },
   
   // Rating value (1-5 stars)
@@ -14,8 +12,7 @@ const ratingSchema = new mongoose.Schema({
     type: Number,
     required: [true, 'Rating is required'],
     min: [1, 'Rating must be at least 1'],
-    max: [5, 'Rating must be at most 5'],
-    index: true
+    max: [5, 'Rating must be at most 5']
   },
   
   // Optional feedback text
@@ -45,8 +42,7 @@ const ratingSchema = new mongoose.Schema({
   // Soft delete flag
   isActive: {
     type: Boolean,
-    default: true,
-    index: true
+    default: true
   }
   
 }, {
@@ -54,12 +50,6 @@ const ratingSchema = new mongoose.Schema({
   toJSON: { virtuals: true },
   toObject: { virtuals: true }
 });
-
-// Index for querying ratings by user and date
-ratingSchema.index({ userId: 1, createdAt: -1 });
-ratingSchema.index({ rating: 1, createdAt: -1 });
-
-// Statics
 
 // Get average rating
 ratingSchema.statics.getAverageRating = async function() {

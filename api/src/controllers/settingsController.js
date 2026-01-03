@@ -1,13 +1,12 @@
-const User = require('../models/User');
-const Block = require('../models/Block');
-const authService = require('../services/authService');
+const pgUserService = require('../services/pgUserService');
+const pgBlockService = require('../services/pgBlockService');
 
 // @desc    Get privacy settings
 // @route   GET /api/v1/settings/privacy
 // @access  Private
 const getPrivacySettings = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user.id).select('isPrivate areHabitsPrivate preferences.privacy').lean();
+    const user = await pgUserService.findById(req.user.id);
     
     if (!user) {
       return res.status(404).json({
@@ -19,8 +18,8 @@ const getPrivacySettings = async (req, res, next) => {
     res.status(200).json({
       success: true,
       data: {
-        isPrivate: user.isPrivate,
-        areHabitsPrivate: user.areHabitsPrivate ?? true
+        isPrivate: user.is_private,
+        areHabitsPrivate: user.are_habits_private ?? true
       }
     });
   } catch (error) {
@@ -42,22 +41,16 @@ const updatePrivacySettings = async (req, res, next) => {
     if (typeof areHabitsPrivate !== 'undefined') {
       updateData.areHabitsPrivate = areHabitsPrivate;
     }
-    if (privacy && ['public', 'friends', 'private'].includes(privacy)) {
-      updateData['preferences.privacy'] = privacy;
-    }
+    // Note: privacy preferences not yet in PostgreSQL schema
 
-    const user = await User.findByIdAndUpdate(
-      req.user.id,
-      { $set: updateData },
-      { new: true, runValidators: true }
-    ).select('isPrivate areHabitsPrivate preferences.privacy');
+    const user = await pgUserService.updateUser(req.user.id, updateData);
 
     res.status(200).json({
       success: true,
       message: 'Privacy settings updated successfully',
       data: {
-        isPrivate: user.isPrivate,
-        areHabitsPrivate: user.areHabitsPrivate
+        isPrivate: user.is_private,
+        areHabitsPrivate: user.are_habits_private
       }
     });
   } catch (error) {
@@ -70,7 +63,7 @@ const updatePrivacySettings = async (req, res, next) => {
 // @access  Private
 const getThemeSettings = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user.id).select('theme').lean();
+    const user = await pgUserService.findById(req.user.id);
     
     if (!user) {
       return res.status(404).json({
@@ -104,11 +97,10 @@ const updateThemeSettings = async (req, res, next) => {
       });
     }
 
-    const user = await User.findByIdAndUpdate(
+    const user = await pgUserService.updateUser(
       req.user.id,
-      { $set: { theme } },
-      { new: true, runValidators: true }
-    ).select('theme');
+      { theme }
+    );
 
     res.status(200).json({
       success: true,
@@ -125,27 +117,23 @@ const updateThemeSettings = async (req, res, next) => {
 const getBlockedUsers = async (req, res, next) => {
   try {
     const { page = 1, limit = 20 } = req.query;
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const offset = (parseInt(page) - 1) * parseInt(limit);
 
-    const blockedUsers = await Block.find({
-      blockerId: req.user.id,
-      isActive: true
-    })
-      .populate('blockedId', 'name username avatar')
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(parseInt(limit))
-      .lean();
-
-    const total = await Block.countDocuments({
-      blockerId: req.user.id,
-      isActive: true
+    // Get blocked users from PostgreSQL
+    const blockedUsers = await pgBlockService.getBlockedUsers(req.user.id, {
+      limit: parseInt(limit),
+      offset,
+      includeUser: true
     });
 
+    // Get total count
+    const totalBlocked = await pgBlockService.getBlockedUserIds(req.user.id);
+    const total = totalBlocked.length;
+
     const sanitizedUsers = blockedUsers.map(block => ({
-      name: block.blockedId.name,
-      username: block.blockedId.username,
-      avatar: block.blockedId.avatar,
+      name: block.user.name,
+      username: block.user.username,
+      avatar: block.user.avatarUrl
     }));
 
     res.status(200).json({
@@ -186,7 +174,8 @@ const blockUser = async (req, res, next) => {
       });
     }
 
-    const targetUser = await User.findById(userId).select('_id');
+    // Check if target user exists in PostgreSQL
+    const targetUser = await pgUserService.findById(userId);
     if (!targetUser) {
       return res.status(404).json({
         success: false,
@@ -195,33 +184,23 @@ const blockUser = async (req, res, next) => {
     }
 
     // Check if already blocked
-    const existingBlock = await Block.findOne({
-      blockerId: req.user.id,
-      blockedId: userId
-    });
-
-    if (existingBlock) {
-      if (existingBlock.isActive) {
-        return res.status(400).json({
-          success: false,
-          message: 'User is already blocked'
-        });
-      }
-      // Reactivate the block
-      existingBlock.isActive = true;
-      await existingBlock.save();
-    } else {
-      // Create new block
-      await Block.create({
-        blockerId: req.user.id,
-        blockedId: userId,
-        isActive: true
+    const isAlreadyBlocked = await pgBlockService.isBlocking(req.user.id, userId);
+    if (isAlreadyBlocked) {
+      return res.status(400).json({
+        success: false,
+        message: 'User is already blocked'
       });
     }
 
+    // Block the user (this will also remove follow relationships)
+    await pgBlockService.blockUser(req.user.id, userId);
+
     res.status(200).json({
       success: true,
-      message: 'User blocked successfully'
+      message: 'User blocked successfully',
+      data: {
+        isBlocked: true
+      }
     });
   } catch (error) {
     next(error);
@@ -235,8 +214,8 @@ const unblockUser = async (req, res, next) => {
   try {
     const { username } = req.params;
 
-    // Find the user by username
-    const targetUser = await User.findOne({ username }).select('_id');
+    // Find the user by username in PostgreSQL
+    const targetUser = await pgUserService.findByUsername(username);
     if (!targetUser) {
       return res.status(404).json({
         success: false,
@@ -244,25 +223,24 @@ const unblockUser = async (req, res, next) => {
       });
     }
 
-    const block = await Block.findOne({
-      blockerId: req.user.id,
-      blockedId: targetUser._id,
-      isActive: true
-    });
-
-    if (!block) {
+    // Check if block exists
+    const isBlocked = await pgBlockService.isBlocking(req.user.id, targetUser.id);
+    if (!isBlocked) {
       return res.status(404).json({
         success: false,
         message: 'Block not found'
       });
     }
 
-    block.isActive = false;
-    await block.save();
+    // Unblock the user
+    await pgBlockService.unblockUser(req.user.id, targetUser.id);
 
     res.status(200).json({
       success: true,
-      message: 'User unblocked successfully'
+      message: 'User unblocked successfully',
+      data: {
+        isBlocked: false
+      }
     });
   } catch (error) {
     next(error);

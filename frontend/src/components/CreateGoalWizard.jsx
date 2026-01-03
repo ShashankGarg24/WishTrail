@@ -263,7 +263,7 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
       } else {
         // Create new goal
         result = await createGoal(goalPayload)
-        if (!result?.success || !result?.goal?._id) throw new Error(result?.error || 'Failed to create goal')
+        if (!result?.success || !result?.goal?.id) throw new Error(result?.error || 'Failed to create goal')
       }
 
       // Refresh dashboard stats to reflect changes

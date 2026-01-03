@@ -154,7 +154,7 @@ const DiscoverPage = () => {
         setDiscoverHasMore(true)
         const usersData = await getUsers({ page: 1, limit: INITIAL_RECOMMENDATIONS_LIMIT })
         if (usersData.success) {
-          const filteredUsers = (usersData.users || []).filter(u => u && u._id && u._id !== user?._id)
+          const filteredUsers = (usersData.users || []).filter(u => u && u.id && u.id !== user?.id)
           setUsers(filteredUsers.slice(0, INITIAL_RECOMMENDATIONS_LIMIT))
           const totalPages = usersData.pagination?.pages || 1
           setDiscoverHasMore(1 < totalPages)
@@ -236,13 +236,13 @@ const DiscoverPage = () => {
 
 
   const mergeUniqueById = (prev, next) => {
-    const seen = new Set((prev || []).map((i) => i?._id).filter(Boolean));
+    const seen = new Set((prev || []).map((i) => i?.id).filter(Boolean));
     const merged = [...(prev || [])];
     for (const item of (next || [])) {
-      if (!item || !item._id) continue;
-      if (!seen.has(item._id)) {
+      if (!item || !item.id) continue;
+      if (!seen.has(item.id)) {
         merged.push(item);
-        seen.add(item._id);
+        seen.add(item.id);
       }
     }
     return merged;
@@ -253,10 +253,10 @@ const DiscoverPage = () => {
       await followUser(userId);
       // Update local state
       setUsers(users.map(u =>
-        u._id === userId ? { ...u, isFollowing: true } : u
+        u.id === userId ? { ...u, isFollowing: true } : u
       ));
       setSearchResults(searchResults.map(u =>
-        u._id === userId ? { ...u, isFollowing: true } : u
+        u.id === userId ? { ...u, isFollowing: true } : u
       ));
     } catch (error) {
       console.error('Error following user:', error);
@@ -268,10 +268,10 @@ const DiscoverPage = () => {
       await unfollowUser(userId);
       // Update local state
       setUsers(users.map(u =>
-        u._id === userId ? { ...u, isFollowing: false } : u
+        u.id === userId ? { ...u, isFollowing: false } : u
       ));
       setSearchResults(searchResults.map(u =>
-        u._id === userId ? { ...u, isFollowing: false } : u
+        u.id === userId ? { ...u, isFollowing: false } : u
       ));
     } catch (error) {
       console.error('Error unfollowing user:', error);
@@ -286,7 +286,7 @@ const DiscoverPage = () => {
       const next = discoverPage + 1;
       const resp = await getUsers({ page: next, limit: DISCOVER_PAGE_SIZE });
       if (resp.success) {
-        const filtered = (resp.users || []).filter(u => u && u._id && u._id !== user?._id);
+        const filtered = (resp.users || []).filter(u => u && u.id && u.id !== user?.id);
         setUsers(prev => mergeUniqueById(prev, filtered));
         setDiscoverPage(next);
         const totalPages = resp.pagination?.pages || next;
@@ -326,7 +326,7 @@ const DiscoverPage = () => {
     setLoadingMoreUserSearch(true);
     try {
       const { users: results, pagination } = await searchUsers({ search: t, interest: selectedInterest, page: next, limit: 18 });
-      const filtered = (results || []).filter(u => u && u._id && u._id !== user?._id);
+      const filtered = (results || []).filter(u => u && u.id && u.id !== user?.id);
       setSearchResults(prev => mergeUniqueById(prev, filtered));
       setUserSearchPage(next);
       const totalPages = pagination?.pages || next;
@@ -404,7 +404,7 @@ const DiscoverPage = () => {
     try {
       if (activeTab === 'users') {
         const { users: results, pagination } = await searchUsers({ search: t, interest: interestValue, page: 1, limit: 18 });
-        const filteredResults = (results || []).filter(u => u && u._id !== user?._id);
+        const filteredResults = (results || []).filter(u => u && u.id !== user?.id);
         setSearchResults(filteredResults);
         const totalPages = pagination?.pages || 1;
         setUserSearchHasMore(1 < totalPages);
@@ -623,9 +623,9 @@ const DiscoverPage = () => {
                 </div>
               )}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {displayUsers.filter(u => u && u._id).map((userItem, index) => (
+                {displayUsers.filter(u => u && u.id).map((userItem, index) => (
                   <motion.div
-                    key={`${userItem._id}-${index}`}
+                    key={`${userItem.id}-${index}`}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.4, delay: Math.min(0.05 * index, 0.3) }}
@@ -688,11 +688,11 @@ const DiscoverPage = () => {
                     )}
 
                     <div className="flex space-x-2">
-                      {userItem._id !== user?._id && (
+                      {userItem.id !== user?.id && (
                         <>
                           {userItem.isFollowing ? (
                             <button
-                              onClick={() => handleUnfollow(userItem._id)}
+                              onClick={() => handleUnfollow(userItem.id)}
                               className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-700 dark:text-white rounded-xl transition-colors duration-200 text-sm font-medium flex items-center justify-center space-x-1"
                             >
                               <UserCheck className="h-4 w-4" />
@@ -700,7 +700,7 @@ const DiscoverPage = () => {
                             </button>
                           ) : userItem.isRequested ? (
                             <button
-                              onClick={async () => { await cancelFollowRequest(userItem._id); setUsers(prev => prev.map(u => u._id === userItem._id ? { ...u, isRequested: false } : u)); }}
+                              onClick={async () => { await cancelFollowRequest(userItem.id); setUsers(prev => prev.map(u => u.id === userItem.id ? { ...u, isRequested: false } : u)); }}
                               className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-white rounded-xl transition-colors duration-200 text-sm font-medium flex items-center justify-center space-x-1"
                             >
                               <UserPlus className="h-4 w-4" />
@@ -708,7 +708,7 @@ const DiscoverPage = () => {
                             </button>
                           ) : (
                             <button
-                              onClick={() => handleFollow(userItem._id)}
+                              onClick={() => handleFollow(userItem.id)}
                               className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-xl transition-all duration-200 text-sm font-medium flex items-center justify-center space-x-1 shadow-lg hover:shadow-xl"
                             >
                               <UserPlus className="h-4 w-4" />
@@ -723,10 +723,10 @@ const DiscoverPage = () => {
                       <div className="relative">
                         <button
                           data-user-menu-btn="true"
-                          onClick={(e) => { e.stopPropagation(); setOpenUserMenuId(prev => prev === userItem._id ? null : userItem._id); }}
+                          onClick={(e) => { e.stopPropagation(); setOpenUserMenuId(prev => prev === userItem.id ? null : userItem.id); }}
                           className="px-2 py-1 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
                         >⋯</button>
-                        {openUserMenuId === userItem._id && (
+                        {openUserMenuId === userItem.id && (
                           <div
                             data-user-menu="true"
                             onClick={(e) => e.stopPropagation()}
@@ -734,11 +734,11 @@ const DiscoverPage = () => {
                           >
                             <button
                               className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
-                              onClick={() => { setReportTarget({ type: 'user', id: userItem._id, userId: userItem._id, username: userItem.username || '', label: userItem.username ? `@${userItem.username}` : 'user' }); setReportOpen(true); setOpenUserMenuId(null); }}
+                              onClick={() => { setReportTarget({ type: 'user', id: userItem.id, userId: userItem.id, username: userItem.username || '', label: userItem.username ? `@${userItem.username}` : 'user' }); setReportOpen(true); setOpenUserMenuId(null); }}
                             >Report</button>
                             <button
                               className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
-                              onClick={() => { setBlockUserId(userItem._id); setBlockUsername(userItem.username || ''); setBlockOpen(true); setOpenUserMenuId(null); }}
+                              onClick={() => { setBlockUserId(userItem.id); setBlockUsername(userItem.username || ''); setBlockOpen(true); setOpenUserMenuId(null); }}
                             >Block</button>
                           </div>
                         )}
@@ -799,11 +799,11 @@ const DiscoverPage = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {goalResults.map((g, idx) => (
                   <motion.div
-                    key={`${g._id || idx}`}
+                    key={`${g.id || idx}`}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.4, delay: Math.min(0.05 * idx, 0.3) }}
-                    onClick={() => g._id && openGoalModal(g._id)}
+                    onClick={() => g.id && openGoalModal(g.id)}
                     className="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-200 dark:border-gray-700 hover:border-purple-400 dark:hover:border-purple-500 transition-all duration-200 shadow-sm hover:shadow-lg cursor-pointer group"
                   >
                     <div className="flex items-center gap-3 mb-4">
@@ -823,7 +823,6 @@ const DiscoverPage = () => {
                     <h3 className="font-semibold text-gray-900 dark:text-white line-clamp-2 mb-3 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">{g.title}</h3>
                     <div className="flex items-center justify-between">
                       <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-white bg-gradient-to-r from-purple-500 to-blue-600 shadow-md">{g.category}</span>
-                      <span className="text-sm text-purple-600 dark:text-purple-400 font-medium group-hover:underline">View →</span>
                     </div>
                   </motion.div>
                 ))}
@@ -866,11 +865,11 @@ const DiscoverPage = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {trending.map((g, idx) => (
                     <motion.div
-                      key={`${g._id || idx}`}
+                      key={`${g.id || idx}`}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.4, delay: Math.min(0.05 * idx, 0.3) }}
-                      onClick={() => g._id && openGoalModal(g._id)}
+                      onClick={() => g.id && openGoalModal(g.id)}
                       className="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-200 dark:border-gray-700 hover:border-purple-400 dark:hover:border-purple-500 transition-all duration-200 shadow-sm hover:shadow-lg cursor-pointer group"
                     >
                       <div className="flex items-center gap-3 mb-4">
@@ -891,7 +890,6 @@ const DiscoverPage = () => {
                       <h3 className="font-semibold text-gray-900 dark:text-white line-clamp-2 mb-3 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">{g.title}</h3>
                       <div className="flex items-center justify-between">
                         <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-white bg-gradient-to-r from-purple-500 to-blue-600 shadow-md">{g.category}</span>
-                        <span className="text-sm text-purple-600 dark:text-purple-400 font-medium group-hover:underline">View →</span>
                       </div>
                     </motion.div>
                   ))}
@@ -934,11 +932,11 @@ const DiscoverPage = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {communityResults.map((c, idx) => (
                 <motion.div
-                  key={`${c._id || idx}`}
+                  key={`${c.id || idx}`}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4, delay: Math.min(0.05 * idx, 0.3) }}
-                  onClick={() => navigate(`/communities/${c._id}`)}
+                  onClick={() => navigate(`/communities/${c.id}`)}
                   className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600 transition-all duration-200 shadow-sm hover:shadow-md overflow-hidden cursor-pointer group"
                 >
                   <div className="h-28 relative bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-pink-500/20">

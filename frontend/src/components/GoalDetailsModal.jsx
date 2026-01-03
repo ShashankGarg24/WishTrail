@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Heart, MessageCircle, Send, CheckCircle, Target, Calendar, TrendingUp, Plus, ListChecks, X, AlertCircle, Zap, Award } from 'lucide-react'
+import { Heart, MessageCircle, Send, CheckCircle, Target, Calendar, TrendingUp, Plus, ListChecks, X, AlertCircle, Zap, Award, Clock, Sparkles, Trophy, Flag } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 const ActivityCommentsModal = lazy(() => import('./ActivityCommentsModal'));
 import useApiStore from '../store/apiStore'
 
@@ -274,19 +275,45 @@ export default function GoalDetailsModal({ isOpen, goalId, onClose, autoOpenComm
 
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={close} />
-            {loading || !data ? (
-                <div className="relative z-10 flex items-center justify-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary-200 dark:border-primary-800 border-t-primary-600" />
-                </div>
-            ) : null}
-            <div className={`relative w-full ${(!data?.share?.image) ? 'max-w-3xl' : 'max-w-6xl'} 
+        <AnimatePresence>
+            {isOpen && (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+                >
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                        onClick={close}
+                    />
+                    {loading || !data ? (
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            className="relative z-10 flex items-center justify-center"
+                        >
+                            <div className="flex flex-col items-center gap-4">
+                                <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary-200 dark:border-primary-800 border-t-primary-600" />
+                                <p className="text-white text-sm font-medium">Loading goal details...</p>
+                            </div>
+                        </motion.div>
+                    ) : null}
+                    <motion.div
+                        initial={{ scale: 0.95, opacity: 0, y: 20 }}
+                        animate={{ scale: 1, opacity: 1, y: 0 }}
+                        exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                        transition={{ type: "spring", duration: 0.5 }}
+                        className={`relative w-full ${(!data?.share?.image) ? 'max-w-4xl' : 'max-w-6xl'} 
         mx-auto bg-white dark:bg-gray-800 rounded-3xl shadow-2xl 
         ${isMobile ? 'max-h-[90vh] overflow-y-auto scrollbar-hide' : 'overflow-hidden'} 
-        border border-gray-200 dark:border-gray-700
+        border border-gray-200/50 dark:border-gray-700/50
         ${(!data?.share?.image) ? 'h-[85vh]' : 'h-[85vh]'}
-        ${(loading || !data) ? 'hidden' : ''}`}>
+        ${(loading || !data) ? 'hidden' : ''}`}
+                    >
                 {!loading && data && (
                     data?.share?.image ? (
                         <div className="grid grid-cols-1 md:[grid-template-columns:minmax(0,1fr)_420px] items-stretch md:h-full min-h-0">
@@ -300,118 +327,313 @@ export default function GoalDetailsModal({ isOpen, goalId, onClose, autoOpenComm
                             </div>
                             {/* Right: Details with timeline and toggleable comments */}
                             <div className="flex flex-col md:w-[420px] md:flex-shrink-0 md:h-full min-h-0">
-                                <div className="flex items-center gap-3 p-5 border-b border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/50">
-                                    <img
-                                        src={data?.user?.avatar || '/api/placeholder/48/48'}
-                                        alt={data?.user?.name || 'User'}
-                                        className="w-12 h-12 rounded-full cursor-pointer ring-2 ring-gray-200 dark:ring-gray-700 hover:ring-primary-500 transition-all"
-                                        onClick={() => handleUserClick(data?.user?.username)} />
-                                    <div className="flex-1 min-w-0 cursor-pointer"
+                                {/* Enhanced Header with gradient */}
+                                <div className="relative flex items-center gap-3 p-5 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-purple-50/50 to-blue-50/50 dark:from-purple-900/10 dark:to-blue-900/10">
+                                    <div className="absolute inset-0 bg-gradient-to-r from-purple-100/20 to-blue-100/20 dark:from-purple-900/5 dark:to-blue-900/5" />
+                                    <div className="relative">
+                                        <img
+                                            src={data?.user?.avatar || '/api/placeholder/48/48'}
+                                            alt={data?.user?.name || 'User'}
+                                            className="w-12 h-12 rounded-full cursor-pointer ring-2 ring-white dark:ring-gray-800 hover:ring-primary-500 transition-all hover:scale-105"
+                                            onClick={() => handleUserClick(data?.user?.username)} />
+                                        {data?.goal?.status === 'completed' && (
+                                            <div className="absolute -bottom-1 -right-1 bg-green-500 rounded-full p-1 ring-2 ring-white dark:ring-gray-800">
+                                                <CheckCircle className="h-3 w-3 text-white" />
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="relative flex-1 min-w-0 cursor-pointer"
                                         onClick={() => handleUserClick(data?.user?.username)}>
                                         <div className="text-base font-bold text-gray-900 dark:text-white truncate">{data?.user?.name}</div>
                                         {data?.user?.username && (<div className="text-sm text-gray-500 dark:text-gray-400">@{data.user.username}</div>)}
                                     </div>
-                                    <button onClick={close} className="p-2 rounded-xl text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
-                                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                        </svg>
+                                    <button onClick={close} className="relative p-2.5 rounded-xl text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-white/80 dark:hover:bg-gray-700/80 transition-all hover:rotate-90 duration-200">
+                                        <X className="w-5 h-5" />
                                     </button>
                                 </div>
                                 <div ref={rightPanelScrollRef} className={`flex-1 min-h-0 overflow-auto scrollbar-hide px-6 pb-0`}>
-                                    <div className="py-6 space-y-4">
-                                        {/* Title and Timeline Toggle */}
-                                        <div className="flex items-start justify-between gap-4">
-                                            <div>
-                                                <div className="text-xs text-gray-500">Title</div>
-                                                <div className="text-gray-900 dark:text-gray-100 font-semibold text-lg leading-snug">{data?.goal?.title}</div>
+                                    <div className="py-6 space-y-5">
+                                        {/* Enhanced Title Section with Stats */}
+                                        <motion.div
+                                            initial={{ opacity: 0, y: 10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            className="space-y-3"
+                                        >
+                                            <div className="flex items-start justify-between gap-4">
+                                                <div className="flex-1">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <Target className="h-4 w-4 text-primary-500" />
+                                                        <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Goal</span>
+                                                    </div>
+                                                    <h2 className="text-gray-900 dark:text-gray-100 font-bold text-xl leading-tight">{data?.goal?.title}</h2>
+                                                </div>
+                                                <motion.button
+                                                    whileHover={{ scale: 1.05 }}
+                                                    whileTap={{ scale: 0.95 }}
+                                                    onClick={() => setShowTimeline(!showTimeline)}
+                                                    className={`flex-shrink-0 p-3 rounded-xl border-2 transition-all duration-200 ${showTimeline
+                                                        ? 'bg-gradient-to-br from-primary-50 to-blue-50 border-primary-300 text-primary-600 dark:from-primary-900/30 dark:to-blue-900/30 dark:border-primary-600 dark:text-primary-400 shadow-lg'
+                                                        : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 hover:dark:bg-gray-600 shadow-sm'
+                                                        }`}
+                                                    title={showTimeline ? "View Details" : "View Timeline"}
+                                                >
+                                                    {showTimeline ? <Target className="h-5 w-5" /> : <Calendar className="h-5 w-5" />}
+                                                </motion.button>
                                             </div>
-                                            <button
-                                                onClick={() => setShowTimeline(!showTimeline)}
-                                                className={`flex-shrink-0 p-2.5 rounded-xl border-2 transition-all shadow-sm ${showTimeline ? 'bg-gradient-to-br from-primary-50 to-blue-50 border-primary-300 text-primary-600 dark:from-primary-900/20 dark:to-blue-900/20 dark:border-primary-600 dark:text-primary-400 scale-105' : 'bg-white border-gray-300 text-gray-600 hover:bg-gray-50 hover:border-gray-400 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 hover:dark:bg-gray-600'}`}
-                                                title={showTimeline ? "View Details" : "View Timeline"}
-                                            >
-                                                {showTimeline ? <Target className="h-5 w-5" /> : <Calendar className="h-5 w-5" />}
-                                            </button>
-                                        </div>
+
+                                            {/* Goal Stats Cards */}
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <motion.div
+                                                    whileHover={{ scale: 1.02 }}
+                                                    className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-3 border border-blue-200/50 dark:border-blue-800/50"
+                                                >
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="p-1.5 bg-blue-100 dark:bg-blue-900/40 rounded-lg">
+                                                            <TrendingUp className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                                                        </div>
+                                                        <div>
+                                                            <div className="text-xs text-blue-600 dark:text-blue-400 font-medium">Category</div>
+                                                            <div className="text-sm font-bold text-blue-900 dark:text-blue-100">{data?.goal?.category || 'General'}</div>
+                                                        </div>
+                                                    </div>
+                                                </motion.div>
+                                                <motion.div
+                                                    whileHover={{ scale: 1.02 }}
+                                                    className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl p-3 border border-purple-200/50 dark:border-purple-800/50"
+                                                >
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="p-1.5 bg-purple-100 dark:bg-purple-900/40 rounded-lg">
+                                                            {data?.goal?.status === 'completed' ? (
+                                                                <Trophy className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                                                            ) : (
+                                                                <Flag className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                                                            )}
+                                                        </div>
+                                                        <div>
+                                                            <div className="text-xs text-purple-600 dark:text-purple-400 font-medium">Status</div>
+                                                            <div className="text-sm font-bold text-purple-900 dark:text-purple-100 capitalize">{data?.goal?.status || 'Active'}</div>
+                                                        </div>
+                                                    </div>
+                                                </motion.div>
+                                            </div>
+                                        </motion.div>
 
                                         {showTimeline ? (
-                                            /* Vertical Timeline View */
-                                            <div className="relative pl-4 border-l-2 border-gray-200 dark:border-gray-800 space-y-8 my-4">
+                                            /* Enhanced Vertical Timeline View */
+                                            <motion.div
+                                                initial={{ opacity: 0 }}
+                                                animate={{ opacity: 1 }}
+                                                exit={{ opacity: 0 }}
+                                                className="relative pl-6 space-y-6 my-4"
+                                            >
+                                                {/* Timeline line */}
+                                                <div className="absolute left-[13px] top-4 bottom-4 w-0.5 bg-gradient-to-b from-primary-300 via-blue-300 to-purple-300 dark:from-primary-700 dark:via-blue-700 dark:to-purple-700" />
+                                                
                                                 {timelineEvents.map((event, idx) => {
                                                     const Icon = event.icon
                                                     const isSelected = selectedEvent === event.id
+                                                    const isFirst = idx === 0
+                                                    const isLast = idx === timelineEvents.length - 1
+                                                    
                                                     return (
-                                                        <div key={event.id} className={`relative pl-6 transition-all duration-300 ${isSelected ? 'opacity-100 scale-100' : 'opacity-70 hover:opacity-100'}`}>
-                                                            {/* Dot on line */}
-                                                            <div className={`absolute -left-[21px] top-1 w-3 h-3 rounded-full border-2 bg-white dark:bg-gray-900 ${isSelected ? 'border-purple-500 scale-125' : 'border-gray-300 dark:border-gray-600'}`} />
+                                                        <motion.div
+                                                            key={event.id}
+                                                            initial={{ opacity: 0, x: -20 }}
+                                                            animate={{ opacity: 1, x: 0 }}
+                                                            transition={{ delay: idx * 0.05 }}
+                                                            className={`relative pl-6 transition-all duration-300 ${isSelected ? 'opacity-100' : 'opacity-70 hover:opacity-100'}`}
+                                                        >
+                                                            {/* Enhanced Timeline Dot */}
+                                                            <motion.div
+                                                                whileHover={{ scale: 1.2 }}
+                                                                className={`absolute -left-[18px] top-2 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 ${isSelected
+                                                                    ? 'bg-gradient-to-br from-primary-400 to-blue-500 shadow-lg scale-110 ring-4 ring-primary-100 dark:ring-primary-900/50'
+                                                                    : 'bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 shadow-md'
+                                                                    }`}
+                                                            >
+                                                                <Icon className={`h-4 w-4 ${isSelected ? 'text-white' : event.color}`} />
+                                                            </motion.div>
 
-                                                            {/* Content Card */}
-                                                            <div
-                                                                className={`p-4 rounded-2xl border-2 cursor-pointer transition-all duration-200 ${isSelected ? 'bg-gradient-to-br from-primary-50 to-blue-50 border-primary-300 dark:from-primary-900/20 dark:to-blue-900/20 dark:border-primary-600 shadow-lg scale-105' : 'bg-white border-gray-200 dark:bg-gray-800 dark:border-gray-600 hover:border-primary-200 dark:hover:border-primary-700 hover:shadow-md'}`}
+                                                            {/* Enhanced Content Card */}
+                                                            <motion.div
+                                                                whileHover={{ scale: 1.02, x: 4 }}
+                                                                whileTap={{ scale: 0.98 }}
+                                                                className={`p-4 rounded-2xl border-2 cursor-pointer transition-all duration-200 ${isSelected
+                                                                    ? 'bg-gradient-to-br from-primary-50 to-blue-50 border-primary-300 dark:from-primary-900/30 dark:to-blue-900/30 dark:border-primary-600 shadow-xl'
+                                                                    : 'bg-white border-gray-200 dark:bg-gray-800/80 dark:border-gray-600 hover:border-primary-200 dark:hover:border-primary-700 hover:shadow-lg'
+                                                                    }`}
                                                                 onClick={() => handleEventClick(event)}
                                                             >
-                                                                <div className="flex items-center gap-3 mb-2">
-                                                                    <div className={`p-2 rounded-lg ${event.bgColor}`}>
-                                                                        <Icon className={`h-5 w-5 ${event.color}`} />
+                                                                <div className="flex items-start justify-between gap-3">
+                                                                    <div className="flex-1">
+                                                                        <div className="flex items-center gap-2 mb-1.5">
+                                                                            <span className={`text-sm font-bold ${isSelected ? 'text-primary-700 dark:text-primary-300' : 'text-gray-900 dark:text-white'}`}>
+                                                                                {event.title}
+                                                                            </span>
+                                                                            {(isFirst || isLast) && (
+                                                                                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${isFirst
+                                                                                    ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                                                                    : 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
+                                                                                    }`}>
+                                                                                    {isFirst ? 'Start' : 'Latest'}
+                                                                                </span>
+                                                                            )}
+                                                                        </div>
+                                                                        <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed mb-2">
+                                                                            {event.description}
+                                                                        </div>
+                                                                        {event.timestamp && (
+                                                                            <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                                                                                <Clock className="h-3 w-3" />
+                                                                                {new Date(event.timestamp).toLocaleString(undefined, {
+                                                                                    month: 'short',
+                                                                                    day: 'numeric',
+                                                                                    year: 'numeric',
+                                                                                    hour: '2-digit',
+                                                                                    minute: '2-digit'
+                                                                                })}
+                                                                            </div>
+                                                                        )}
                                                                     </div>
-                                                                    <span className={`text-sm font-bold ${isSelected ? 'text-primary-700 dark:text-primary-300' : 'text-gray-900 dark:text-white'}`}>{event.title}</span>
                                                                 </div>
-                                                                <div className="text-sm text-gray-700 dark:text-gray-300 ml-1">{event.description}</div>
-                                                            </div>
-                                                        </div>
+                                                            </motion.div>
+                                                        </motion.div>
                                                     )
                                                 })}
-                                            </div>
+                                            </motion.div>
                                         ) : (
-                                            /* Details View */
-                                            <>
+                                            /* Enhanced Details View */
+                                            <motion.div
+                                                initial={{ opacity: 0 }}
+                                                animate={{ opacity: 1 }}
+                                                exit={{ opacity: 0 }}
+                                                className="space-y-4"
+                                            >
                                                 {selectedEvent === 'created' && (
                                                     <>
-                                                        <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-                                                            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-primary-500 to-blue-500 shadow-md">
-                                                                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                                                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                                                </svg>
-                                                                {data?.goal?.category}
+                                                        <motion.div
+                                                            initial={{ opacity: 0, y: 10 }}
+                                                            animate={{ opacity: 1, y: 0 }}
+                                                            transition={{ delay: 0.1 }}
+                                                            className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-2xl p-4 border-2 border-emerald-200/50 dark:border-emerald-700/50 shadow-sm"
+                                                        >
+                                                            <div className="flex items-center gap-2 mb-3">
+                                                                <div className="p-2 bg-emerald-100 dark:bg-emerald-900/40 rounded-lg">
+                                                                    <Sparkles className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                                                                </div>
+                                                                <span className="text-sm font-bold text-emerald-700 dark:text-emerald-400">Description</span>
                                                             </div>
-                                                        </div>
-                                                        <div className="animate-in fade-in slide-in-from-bottom-3 duration-300">
-                                                            <div className="text-xs text-gray-500">Description</div>
-                                                            <div className={`text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed ${detailsExpanded ? '' : 'line-clamp-5'}`}>{data?.goal?.description || '—'}</div>
+                                                            <div className={`text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed ${detailsExpanded ? '' : 'line-clamp-5'}`}>
+                                                                {data?.goal?.description || 'No description provided.'}
+                                                            </div>
                                                             {String(data?.goal?.description || '').length > 200 && (
-                                                                <button className="mt-1 text-xs text-blue-600" onClick={() => setDetailsExpanded((v) => !v)}>{detailsExpanded ? 'Show less' : 'More'}</button>
+                                                                <motion.button
+                                                                    whileHover={{ scale: 1.05 }}
+                                                                    whileTap={{ scale: 0.95 }}
+                                                                    className="mt-3 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 flex items-center gap-1"
+                                                                    onClick={() => setDetailsExpanded((v) => !v)}
+                                                                >
+                                                                    {detailsExpanded ? 'Show less' : 'Read more'}
+                                                                    <TrendingUp className={`h-3 w-3 transition-transform ${detailsExpanded ? 'rotate-180' : ''}`} />
+                                                                </motion.button>
                                                             )}
-                                                        </div>
+                                                        </motion.div>
+
+                                                        {/* Goal Metadata */}
+                                                        {(data?.goal?.createdAt || data?.goal?.targetDate) && (
+                                                            <motion.div
+                                                                initial={{ opacity: 0, y: 10 }}
+                                                                animate={{ opacity: 1, y: 0 }}
+                                                                transition={{ delay: 0.2 }}
+                                                                className="grid grid-cols-2 gap-3"
+                                                            >
+                                                                {data?.goal?.createdAt && (
+                                                                    <div className="bg-white dark:bg-gray-800/80 rounded-xl p-3 border border-gray-200 dark:border-gray-700 shadow-sm">
+                                                                        <div className="flex items-center gap-2 mb-1">
+                                                                            <Calendar className="h-3.5 w-3.5 text-blue-500" />
+                                                                            <span className="text-xs font-medium text-gray-500">Created</span>
+                                                                        </div>
+                                                                        <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                                                                            {new Date(data.goal.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+                                                                {data?.goal?.targetDate && (
+                                                                    <div className="bg-white dark:bg-gray-800/80 rounded-xl p-3 border border-gray-200 dark:border-gray-700 shadow-sm">
+                                                                        <div className="flex items-center gap-2 mb-1">
+                                                                            <Target className="h-3.5 w-3.5 text-purple-500" />
+                                                                            <span className="text-xs font-medium text-gray-500">Target</span>
+                                                                        </div>
+                                                                        <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                                                                            {new Date(data.goal.targetDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+                                                            </motion.div>
+                                                        )}
                                                     </>
                                                 )}
 
                                                 {selectedEvent === 'completed' && (
-                                                    <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                                    <motion.div
+                                                        initial={{ opacity: 0, y: 10 }}
+                                                        animate={{ opacity: 1, y: 0 }}
+                                                        transition={{ delay: 0.1 }}
+                                                    >
                                                         {data?.share?.note ? (
-                                                            <div className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-2xl p-4 border-2 border-emerald-200 dark:border-emerald-700/50 shadow-sm">
-                                                                <div className="flex items-center gap-2 text-sm font-bold text-emerald-700 dark:text-emerald-400 mb-2">
-                                                                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                                                    </svg>
-                                                                    Completion Note
+                                                            <div className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-2xl p-5 border-2 border-emerald-200 dark:border-emerald-700/50 shadow-lg">
+                                                                <div className="flex items-center gap-3 mb-3">
+                                                                    <div className="p-2.5 bg-emerald-100 dark:bg-emerald-900/40 rounded-xl">
+                                                                        <Trophy className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                                                                    </div>
+                                                                    <span className="text-base font-bold text-emerald-700 dark:text-emerald-400">Completion Note</span>
                                                                 </div>
-                                                                <div className={`text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed ${detailsExpanded ? '' : 'line-clamp-6'}`}>{data.share.note}</div>
+                                                                <div className={`text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed ${detailsExpanded ? '' : 'line-clamp-6'}`}>
+                                                                    {data.share.note}
+                                                                </div>
                                                                 {String(data.share.note || '').length > 240 && (
-                                                                    <button className="mt-1 text-xs text-blue-600" onClick={() => setDetailsExpanded((v) => !v)}>{detailsExpanded ? 'Show less' : 'More'}</button>
+                                                                    <motion.button
+                                                                        whileHover={{ scale: 1.05 }}
+                                                                        whileTap={{ scale: 0.95 }}
+                                                                        className="mt-3 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 flex items-center gap-1"
+                                                                        onClick={() => setDetailsExpanded((v) => !v)}
+                                                                    >
+                                                                        {detailsExpanded ? 'Show less' : 'Read more'}
+                                                                        <TrendingUp className={`h-3 w-3 transition-transform ${detailsExpanded ? 'rotate-180' : ''}`} />
+                                                                    </motion.button>
                                                                 )}
                                                             </div>
                                                         ) : (
-                                                            <div className="text-sm text-gray-500 italic">No completion note added.</div>
-                                                        )}
-                                                        {data?.goal?.completedAt && (
-                                                            <div className="mt-2">
-                                                                <div className="text-xs text-gray-500">Completed</div>
-                                                                <div className="text-gray-800 dark:text-gray-200">{new Date(data.goal.completedAt).toLocaleString(undefined, { year: 'numeric', month: 'short', day: '2-digit' })}</div>
+                                                            <div className="bg-gray-50 dark:bg-gray-800/40 rounded-xl p-4 text-center border-2 border-dashed border-gray-300 dark:border-gray-600">
+                                                                <AlertCircle className="h-6 w-6 text-gray-400 mx-auto mb-2" />
+                                                                <div className="text-sm text-gray-500 italic">No completion note was added.</div>
                                                             </div>
                                                         )}
-                                                    </div>
+                                                        {data?.goal?.completedAt && (
+                                                            <motion.div
+                                                                initial={{ opacity: 0, y: 10 }}
+                                                                animate={{ opacity: 1, y: 0 }}
+                                                                transition={{ delay: 0.2 }}
+                                                                className="mt-4 bg-white dark:bg-gray-800/80 rounded-xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm"
+                                                            >
+                                                                <div className="flex items-center gap-2 mb-1.5">
+                                                                    <CheckCircle className="h-4 w-4 text-green-500" />
+                                                                    <span className="text-xs font-medium text-gray-500">Completed On</span>
+                                                                </div>
+                                                                <div className="text-base font-bold text-gray-800 dark:text-gray-200">
+                                                                    {new Date(data.goal.completedAt).toLocaleString(undefined, { 
+                                                                        year: 'numeric', 
+                                                                        month: 'long', 
+                                                                        day: 'numeric',
+                                                                        hour: '2-digit',
+                                                                        minute: '2-digit'
+                                                                    })}
+                                                                </div>
+                                                            </motion.div>
+                                                        )}
+                                                    </motion.div>
                                                 )}
-                                            </>
+                                            </motion.div>
                                         )}
                                     </div>
                                     {!isMobile && (
@@ -425,128 +647,357 @@ export default function GoalDetailsModal({ isOpen, goalId, onClose, autoOpenComm
                                         </div>
                                     )}
                                 </div>
-                                <div className="mt-auto border-t border-gray-200 dark:border-gray-700 p-4 flex items-center gap-2 sticky bottom-0 bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl shadow-lg z-10">
-                                    <button onClick={handleLike} disabled={liking} className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:scale-105 active:scale-95 ${data?.social?.isLiked ? 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 shadow-sm' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/30 dark:hover:text-red-400 hover:shadow-md'}`}>
+                                <div className="mt-auto border-t border-gray-200 dark:border-gray-700 p-4 flex items-center gap-2.5 sticky bottom-0 bg-white/98 dark:bg-gray-800/98 backdrop-blur-xl shadow-2xl z-10">
+                                    <motion.button
+                                        whileHover={{ scale: 1.05 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        onClick={handleLike}
+                                        disabled={liking}
+                                        className={`flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg ${data?.social?.isLiked
+                                            ? 'bg-gradient-to-r from-red-500 to-pink-500 text-white hover:from-red-600 hover:to-pink-600'
+                                            : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-red-50 hover:to-pink-50 hover:text-red-600 dark:hover:from-red-900/30 dark:hover:to-pink-900/30 dark:hover:text-red-400'
+                                            }`}
+                                    >
                                         <Heart className={`h-5 w-5 transition-all duration-200 ${data?.social?.isLiked ? 'fill-current' : ''}`} />
-                                        <span className="font-semibold">{data?.social?.likeCount || 0}</span>
-                                    </button>
-                                    <button onClick={openComments} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 hover:text-purple-600 dark:hover:from-purple-900/30 dark:hover:to-blue-900/30 dark:hover:text-purple-400 transition-all duration-200 hover:scale-105 active:scale-95 hover:shadow-md">
+                                        <span className="font-bold">{data?.social?.likeCount || 0}</span>
+                                    </motion.button>
+                                    <motion.button
+                                        whileHover={{ scale: 1.05 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        onClick={openComments}
+                                        className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 hover:text-purple-600 dark:hover:from-purple-900/30 dark:hover:to-blue-900/30 dark:hover:text-purple-400 transition-all duration-200 shadow-md hover:shadow-lg"
+                                    >
                                         <MessageCircle className="h-5 w-5" />
-                                        <span className="font-semibold">{data?.social?.commentCount || 0}</span>
-                                    </button>
-                                    <button onClick={() => {
-                                        try {
-                                            const id = data?.social?.activityId || data?.goal?._id;
-                                            const url = id ? `${window.location.origin}/feed?goalId=${data?.goal?._id}` : window.location.href;
-                                            navigator.clipboard.writeText(url);
-                                            window.dispatchEvent(new CustomEvent('wt_toast', { detail: { message: 'Link copied to clipboard', type: 'success', duration: 2000 } }));
-                                        } catch { }
-                                    }} className="inline-flex items-center justify-center px-3.5 py-2.5 rounded-xl text-sm font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-green-50 hover:text-green-600 dark:hover:bg-green-900/30 dark:hover:text-green-400 transition-all duration-200 hover:scale-105 active:scale-95 hover:shadow-md" title="Share">
+                                        <span className="font-bold">{data?.social?.commentCount || 0}</span>
+                                    </motion.button>
+                                    <motion.button
+                                        whileHover={{ scale: 1.1, rotate: 15 }}
+                                        whileTap={{ scale: 0.9 }}
+                                        onClick={() => {
+                                            try {
+                                                const id = data?.social?.activityId || data?.goal?._id;
+                                                const url = id ? `${window.location.origin}/feed?goalId=${data?.goal?._id}` : window.location.href;
+                                                navigator.clipboard.writeText(url);
+                                                window.dispatchEvent(new CustomEvent('wt_toast', { detail: { message: 'Link copied to clipboard', type: 'success', duration: 2000 } }));
+                                            } catch { }
+                                        }}
+                                        className="inline-flex items-center justify-center p-3 rounded-xl text-sm font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-green-50 hover:to-emerald-50 hover:text-green-600 dark:hover:from-green-900/30 dark:hover:to-emerald-900/30 dark:hover:text-green-400 transition-all duration-200 shadow-md hover:shadow-lg"
+                                        title="Share"
+                                    >
                                         <Send className="h-5 w-5" />
-                                    </button>
+                                    </motion.button>
                                 </div>
                             </div>
                         </div>
                     ) : (
                         <div className="flex flex-col h-full w-full min-h-0">
-                            <div className="flex items-center gap-3 p-4 border-b border-gray-200 dark:border-gray-800">
-                                <img
-                                    src={data?.user?.avatar || '/api/placeholder/40/40'}
-                                    alt={data?.user?.name || 'User'}
-                                    className="w-10 h-10 rounded-full cursor-pointer"
-                                    onClick={() => handleUserClick(data?.user?.username)} />
-                                <div className="flex-1 min-w-0 cursor-pointer"
-                                    onClick={() => handleUserClick(data?.user?.username)}>
-                                    <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{data?.user?.name}</div>
-                                    {data?.user?.username && (<div className="text-xs text-gray-500">@{data.user.username}</div>)}
+                            {/* Enhanced Header */}
+                            <div className="relative flex items-center gap-3 p-5 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-purple-50/50 to-blue-50/50 dark:from-purple-900/10 dark:to-blue-900/10">
+                                <div className="absolute inset-0 bg-gradient-to-r from-purple-100/20 to-blue-100/20 dark:from-purple-900/5 dark:to-blue-900/5" />
+                                <div className="relative">
+                                    <img
+                                        src={data?.user?.avatar || '/api/placeholder/40/40'}
+                                        alt={data?.user?.name || 'User'}
+                                        className="w-12 h-12 rounded-full cursor-pointer ring-2 ring-white dark:ring-gray-800 hover:ring-primary-500 transition-all hover:scale-105"
+                                        onClick={() => handleUserClick(data?.user?.username)} />
+                                    {data?.goal?.status === 'completed' && (
+                                        <div className="absolute -bottom-1 -right-1 bg-green-500 rounded-full p-1 ring-2 ring-white dark:ring-gray-800">
+                                            <CheckCircle className="h-3 w-3 text-white" />
+                                        </div>
+                                    )}
                                 </div>
-                                <button onClick={close} className="px-3 py-1.5 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800">✕</button>
+                                <div className="relative flex-1 min-w-0 cursor-pointer"
+                                    onClick={() => handleUserClick(data?.user?.username)}>
+                                    <div className="text-base font-bold text-gray-900 dark:text-white truncate">{data?.user?.name}</div>
+                                    {data?.user?.username && (<div className="text-sm text-gray-500 dark:text-gray-400">@{data.user.username}</div>)}
+                                </div>
+                                <button onClick={close} className="relative p-2.5 rounded-xl text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-white/80 dark:hover:bg-gray-700/80 transition-all hover:rotate-90 duration-200">
+                                    <X className="w-5 h-5" />
+                                </button>
                             </div>
                             <div ref={rightPanelScrollRef} className={`flex-1 min-h-0 overflow-auto scrollbar-hide`}>
-                                <div className="p-6 space-y-4">
-                                    {/* Title and Timeline Toggle */}
-                                    <div className="flex items-start justify-between gap-4">
-                                        <div>
-                                            <div className="text-xs text-gray-500">Title</div>
-                                            <div className="text-gray-900 dark:text-gray-100 font-semibold text-lg leading-snug">{data?.goal?.title}</div>
+                                <div className="p-6 space-y-5">
+                                    {/* Enhanced Title Section with Stats */}
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="space-y-3"
+                                    >
+                                        <div className="flex items-start justify-between gap-4">
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-2 mb-1.5">
+                                                    <Target className="h-4 w-4 text-primary-500" />
+                                                    <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Goal</span>
+                                                </div>
+                                                <h2 className="text-gray-900 dark:text-gray-100 font-bold text-2xl leading-tight">{data?.goal?.title}</h2>
+                                            </div>
+                                            <motion.button
+                                                whileHover={{ scale: 1.05 }}
+                                                whileTap={{ scale: 0.95 }}
+                                                onClick={() => setShowTimeline(!showTimeline)}
+                                                className={`flex-shrink-0 p-3 rounded-xl border-2 transition-all duration-200 shadow-sm ${showTimeline
+                                                    ? 'bg-gradient-to-br from-primary-50 to-blue-50 border-primary-300 text-primary-600 dark:from-primary-900/30 dark:to-blue-900/30 dark:border-primary-600 dark:text-primary-400 shadow-lg'
+                                                    : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 hover:dark:bg-gray-600'
+                                                    }`}
+                                                title={showTimeline ? "View Details" : "View Timeline"}
+                                            >
+                                                {showTimeline ? <Target className="h-5 w-5" /> : <Calendar className="h-5 w-5" />}
+                                            </motion.button>
                                         </div>
-                                        <button
-                                            onClick={() => setShowTimeline(!showTimeline)}
-                                            className={`flex-shrink-0 p-2 rounded-lg border transition-colors ${showTimeline ? 'bg-gradient-to-br from-purple-50 to-blue-50 border-purple-200 text-purple-600 dark:from-purple-900/20 dark:to-blue-900/20 dark:border-purple-800 dark:text-purple-400' : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400'}`}
-                                            title={showTimeline ? "View Details" : "View Timeline"}
-                                        >
-                                            {showTimeline ? <Target className="h-4 w-4" /> : <Calendar className="h-4 w-4" />}
-                                        </button>
-                                    </div>
+
+                                        {/* Goal Stats Cards */}
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <motion.div
+                                                whileHover={{ scale: 1.02 }}
+                                                className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-3 border border-blue-200/50 dark:border-blue-800/50 shadow-sm"
+                                            >
+                                                <div className="flex items-center gap-2">
+                                                    <div className="p-1.5 bg-blue-100 dark:bg-blue-900/40 rounded-lg">
+                                                        <TrendingUp className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                                                    </div>
+                                                    <div>
+                                                        <div className="text-xs text-blue-600 dark:text-blue-400 font-medium">Category</div>
+                                                        <div className="text-sm font-bold text-blue-900 dark:text-blue-100">{data?.goal?.category || 'General'}</div>
+                                                    </div>
+                                                </div>
+                                            </motion.div>
+                                            <motion.div
+                                                whileHover={{ scale: 1.02 }}
+                                                className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl p-3 border border-purple-200/50 dark:border-purple-800/50 shadow-sm"
+                                            >
+                                                <div className="flex items-center gap-2">
+                                                    <div className="p-1.5 bg-purple-100 dark:bg-purple-900/40 rounded-lg">
+                                                        {data?.goal?.status === 'completed' ? (
+                                                            <Trophy className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                                                        ) : (
+                                                            <Flag className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                                                        )}
+                                                    </div>
+                                                    <div>
+                                                        <div className="text-xs text-purple-600 dark:text-purple-400 font-medium">Status</div>
+                                                        <div className="text-sm font-bold text-purple-900 dark:text-purple-100 capitalize">{data?.goal?.status || 'Active'}</div>
+                                                    </div>
+                                                </div>
+                                            </motion.div>
+                                        </div>
+                                    </motion.div>
 
                                     {showTimeline ? (
-                                        /* Vertical Timeline View */
-                                        <div className="relative pl-4 border-l-2 border-gray-200 dark:border-gray-800 space-y-8 my-4">
+                                        /* Enhanced Vertical Timeline View */
+                                        <motion.div
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 1 }}
+                                            exit={{ opacity: 0 }}
+                                            className="relative pl-6 space-y-6 my-4"
+                                        >
+                                            {/* Timeline line */}
+                                            <div className="absolute left-[13px] top-4 bottom-4 w-0.5 bg-gradient-to-b from-primary-300 via-blue-300 to-purple-300 dark:from-primary-700 dark:via-blue-700 dark:to-purple-700" />
+                                            
                                             {timelineEvents.map((event, idx) => {
                                                 const Icon = event.icon
                                                 const isSelected = selectedEvent === event.id
+                                                const isFirst = idx === 0
+                                                const isLast = idx === timelineEvents.length - 1
+                                                
                                                 return (
-                                                    <div key={event.id} className={`relative pl-6 transition-all duration-300 ${isSelected ? 'opacity-100 scale-100' : 'opacity-70 hover:opacity-100'}`}>
-                                                        {/* Dot on line */}
-                                                        <div className={`absolute -left-[21px] top-1 w-3 h-3 rounded-full border-2 bg-white dark:bg-gray-900 ${isSelected ? 'border-purple-500 scale-125' : 'border-gray-300 dark:border-gray-600'}`} />
+                                                    <motion.div
+                                                        key={event.id}
+                                                        initial={{ opacity: 0, x: -20 }}
+                                                        animate={{ opacity: 1, x: 0 }}
+                                                        transition={{ delay: idx * 0.05 }}
+                                                        className={`relative pl-6 transition-all duration-300 ${isSelected ? 'opacity-100' : 'opacity-70 hover:opacity-100'}`}
+                                                    >
+                                                        {/* Enhanced Timeline Dot */}
+                                                        <motion.div
+                                                            whileHover={{ scale: 1.2 }}
+                                                            className={`absolute -left-[18px] top-2 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 ${isSelected
+                                                                ? 'bg-gradient-to-br from-primary-400 to-blue-500 shadow-lg scale-110 ring-4 ring-primary-100 dark:ring-primary-900/50'
+                                                                : 'bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 shadow-md'
+                                                                }`}
+                                                        >
+                                                            <Icon className={`h-4 w-4 ${isSelected ? 'text-white' : event.color}`} />
+                                                        </motion.div>
 
-                                                        {/* Content Card */}
-                                                        <div
-                                                            className={`p-3 rounded-xl border cursor-pointer transition-all ${isSelected ? 'bg-gradient-to-br from-purple-50 to-blue-50 border-purple-200 dark:from-purple-900/10 dark:to-blue-900/10 dark:border-purple-800 shadow-sm' : 'bg-white border-gray-100 dark:bg-gray-800/50 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'}`}
+                                                        {/* Enhanced Content Card */}
+                                                        <motion.div
+                                                            whileHover={{ scale: 1.02, x: 4 }}
+                                                            whileTap={{ scale: 0.98 }}
+                                                            className={`p-4 rounded-2xl border-2 cursor-pointer transition-all duration-200 ${isSelected
+                                                                ? 'bg-gradient-to-br from-primary-50 to-blue-50 border-primary-300 dark:from-primary-900/30 dark:to-blue-900/30 dark:border-primary-600 shadow-xl'
+                                                                : 'bg-white border-gray-200 dark:bg-gray-800/80 dark:border-gray-600 hover:border-primary-200 dark:hover:border-primary-700 hover:shadow-lg'
+                                                                }`}
                                                             onClick={() => handleEventClick(event)}
                                                         >
-                                                            <div className="flex items-center gap-2 mb-1">
-                                                                <Icon className={`h-4 w-4 ${event.color}`} />
-                                                                <span className={`text-sm font-semibold ${isSelected ? 'text-purple-700 dark:text-purple-300' : 'text-gray-900 dark:text-gray-100'}`}>{event.title}</span>
+                                                            <div className="flex items-start justify-between gap-3">
+                                                                <div className="flex-1">
+                                                                    <div className="flex items-center gap-2 mb-1.5">
+                                                                        <span className={`text-sm font-bold ${isSelected ? 'text-primary-700 dark:text-primary-300' : 'text-gray-900 dark:text-white'}`}>
+                                                                            {event.title}
+                                                                        </span>
+                                                                        {(isFirst || isLast) && (
+                                                                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${isFirst
+                                                                                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                                                                : 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
+                                                                                }`}>
+                                                                                {isFirst ? 'Start' : 'Latest'}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed mb-2">
+                                                                        {event.description}
+                                                                    </div>
+                                                                    {event.timestamp && (
+                                                                        <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                                                                            <Clock className="h-3 w-3" />
+                                                                            {new Date(event.timestamp).toLocaleString(undefined, {
+                                                                                month: 'short',
+                                                                                day: 'numeric',
+                                                                                year: 'numeric',
+                                                                                hour: '2-digit',
+                                                                                minute: '2-digit'
+                                                                            })}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
                                                             </div>
-                                                            <div className="text-xs text-gray-600 dark:text-gray-400">{event.description}</div>
-                                                        </div>
-                                                    </div>
+                                                        </motion.div>
+                                                    </motion.div>
                                                 )
                                             })}
-                                        </div>
+                                        </motion.div>
                                     ) : (
-                                        /* Details View */
-                                        <>
+                                        /* Enhanced Details View */
+                                        <motion.div
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 1 }}
+                                            exit={{ opacity: 0 }}
+                                            className="space-y-4"
+                                        >
                                             {selectedEvent === 'created' && (
                                                 <>
-                                                    <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-                                                        <div className="inline-block px-2 py-1 rounded-full text-xs font-medium text-white bg-gradient-to-r from-purple-500 to-blue-600 shadow-md">{data?.goal?.category}</div>
-                                                    </div>
-                                                    <div className="animate-in fade-in slide-in-from-bottom-3 duration-300">
-                                                        <div className="text-xs text-gray-500">Description</div>
-                                                        <div className={`text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed ${detailsExpanded ? '' : 'line-clamp-6'}`}>{data?.goal?.description || '—'}</div>
+                                                    <motion.div
+                                                        initial={{ opacity: 0, y: 10 }}
+                                                        animate={{ opacity: 1, y: 0 }}
+                                                        transition={{ delay: 0.1 }}
+                                                        className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-2xl p-4 border-2 border-emerald-200/50 dark:border-emerald-700/50 shadow-sm"
+                                                    >
+                                                        <div className="flex items-center gap-2 mb-3">
+                                                            <div className="p-2 bg-emerald-100 dark:bg-emerald-900/40 rounded-lg">
+                                                                <Sparkles className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                                                            </div>
+                                                            <span className="text-sm font-bold text-emerald-700 dark:text-emerald-400">Description</span>
+                                                        </div>
+                                                        <div className={`text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed ${detailsExpanded ? '' : 'line-clamp-6'}`}>
+                                                            {data?.goal?.description || 'No description provided.'}
+                                                        </div>
                                                         {String(data?.goal?.description || '').length > 200 && (
-                                                            <button className="mt-1 text-xs text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300" onClick={() => setDetailsExpanded((v) => !v)}>{detailsExpanded ? 'Show less' : 'More'}</button>
+                                                            <motion.button
+                                                                whileHover={{ scale: 1.05 }}
+                                                                whileTap={{ scale: 0.95 }}
+                                                                className="mt-3 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 flex items-center gap-1"
+                                                                onClick={() => setDetailsExpanded((v) => !v)}
+                                                            >
+                                                                {detailsExpanded ? 'Show less' : 'Read more'}
+                                                                <TrendingUp className={`h-3 w-3 transition-transform ${detailsExpanded ? 'rotate-180' : ''}`} />
+                                                            </motion.button>
                                                         )}
-                                                    </div>
+                                                    </motion.div>
+
+                                                    {/* Goal Metadata */}
+                                                    {(data?.goal?.createdAt || data?.goal?.targetDate) && (
+                                                        <motion.div
+                                                            initial={{ opacity: 0, y: 10 }}
+                                                            animate={{ opacity: 1, y: 0 }}
+                                                            transition={{ delay: 0.2 }}
+                                                            className="grid grid-cols-2 gap-3"
+                                                        >
+                                                            {data?.goal?.createdAt && (
+                                                                <div className="bg-white dark:bg-gray-800/80 rounded-xl p-3 border border-gray-200 dark:border-gray-700 shadow-sm">
+                                                                    <div className="flex items-center gap-2 mb-1">
+                                                                        <Calendar className="h-3.5 w-3.5 text-blue-500" />
+                                                                        <span className="text-xs font-medium text-gray-500">Created</span>
+                                                                    </div>
+                                                                    <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                                                                        {new Date(data.goal.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                            {data?.goal?.targetDate && (
+                                                                <div className="bg-white dark:bg-gray-800/80 rounded-xl p-3 border border-gray-200 dark:border-gray-700 shadow-sm">
+                                                                    <div className="flex items-center gap-2 mb-1">
+                                                                        <Target className="h-3.5 w-3.5 text-purple-500" />
+                                                                        <span className="text-xs font-medium text-gray-500">Target</span>
+                                                                    </div>
+                                                                    <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                                                                        {new Date(data.goal.targetDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </motion.div>
+                                                    )}
                                                 </>
                                             )}
 
                                             {selectedEvent === 'completed' && (
-                                                <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                                <motion.div
+                                                    initial={{ opacity: 0, y: 10 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    transition={{ delay: 0.1 }}
+                                                >
                                                     {data?.share?.note ? (
-                                                        <div className="bg-gray-50 dark:bg-gray-800/40 rounded-xl p-3 border border-gray-200 dark:border-gray-700">
-                                                            <div className="text-xs text-gray-500 mb-1">Completion note</div>
-                                                            <div className={`text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap ${detailsExpanded ? '' : 'line-clamp-6'}`}>{data.share.note}</div>
+                                                        <div className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-2xl p-5 border-2 border-emerald-200 dark:border-emerald-700/50 shadow-lg">
+                                                            <div className="flex items-center gap-3 mb-3">
+                                                                <div className="p-2.5 bg-emerald-100 dark:bg-emerald-900/40 rounded-xl">
+                                                                    <Trophy className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                                                                </div>
+                                                                <span className="text-base font-bold text-emerald-700 dark:text-emerald-400">Completion Note</span>
+                                                            </div>
+                                                            <div className={`text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed ${detailsExpanded ? '' : 'line-clamp-6'}`}>
+                                                                {data.share.note}
+                                                            </div>
                                                             {String(data.share.note || '').length > 240 && (
-                                                                <button className="mt-1 text-xs text-blue-600" onClick={() => setDetailsExpanded((v) => !v)}>{detailsExpanded ? 'Show less' : 'More'}</button>
+                                                                <motion.button
+                                                                    whileHover={{ scale: 1.05 }}
+                                                                    whileTap={{ scale: 0.95 }}
+                                                                    className="mt-3 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 flex items-center gap-1"
+                                                                    onClick={() => setDetailsExpanded((v) => !v)}
+                                                                >
+                                                                    {detailsExpanded ? 'Show less' : 'Read more'}
+                                                                    <TrendingUp className={`h-3 w-3 transition-transform ${detailsExpanded ? 'rotate-180' : ''}`} />
+                                                                </motion.button>
                                                             )}
                                                         </div>
                                                     ) : (
-                                                        <div className="text-sm text-gray-500 italic">No completion note added.</div>
-                                                    )}
-                                                    {data?.goal?.completedAt && (
-                                                        <div className="mt-2">
-                                                            <div>
-                                                                <div className="text-xs text-gray-500">Completed</div>
-                                                                <div className="text-gray-800 dark:text-gray-200">{new Date(data.goal.completedAt).toLocaleString(undefined, { year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</div>
-                                                            </div>
+                                                        <div className="bg-gray-50 dark:bg-gray-800/40 rounded-xl p-4 text-center border-2 border-dashed border-gray-300 dark:border-gray-600">
+                                                            <AlertCircle className="h-6 w-6 text-gray-400 mx-auto mb-2" />
+                                                            <div className="text-sm text-gray-500 italic">No completion note was added.</div>
                                                         </div>
                                                     )}
-                                                </div>
+                                                    {data?.goal?.completedAt && (
+                                                        <motion.div
+                                                            initial={{ opacity: 0, y: 10 }}
+                                                            animate={{ opacity: 1, y: 0 }}
+                                                            transition={{ delay: 0.2 }}
+                                                            className="mt-4 bg-white dark:bg-gray-800/80 rounded-xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm"
+                                                        >
+                                                            <div className="flex items-center gap-2 mb-1.5">
+                                                                <CheckCircle className="h-4 w-4 text-green-500" />
+                                                                <span className="text-xs font-medium text-gray-500">Completed On</span>
+                                                            </div>
+                                                            <div className="text-base font-bold text-gray-800 dark:text-gray-200">
+                                                                {new Date(data.goal.completedAt).toLocaleString(undefined, { 
+                                                                    year: 'numeric', 
+                                                                    month: 'long', 
+                                                                    day: 'numeric',
+                                                                    hour: '2-digit',
+                                                                    minute: '2-digit'
+                                                                })}
+                                                            </div>
+                                                        </motion.div>
+                                                    )}
+                                                </motion.div>
                                             )}
-                                        </>
+                                        </motion.div>
                                     )}
                                 </div>
                                 {!isMobile && (
@@ -559,36 +1010,57 @@ export default function GoalDetailsModal({ isOpen, goalId, onClose, autoOpenComm
                                     </div>
                                 )}
                             </div>
-                            <div className="mt-auto border-t border-gray-200 dark:border-gray-800 p-4 flex items-center gap-4 sticky bottom-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur z-10">
-                                <button onClick={handleLike} disabled={liking} className={`inline-flex items-center gap-2 text-sm font-medium transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:scale-110 active:scale-95 ${data?.social?.isLiked ? 'text-red-500' : 'text-gray-600 dark:text-gray-400 hover:text-red-500'}`}>
+                            <div className="mt-auto border-t border-gray-200 dark:border-gray-800 p-4 flex items-center gap-3 sticky bottom-0 bg-white/98 dark:bg-gray-900/98 backdrop-blur-xl shadow-2xl z-10">
+                                <motion.button
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={handleLike}
+                                    disabled={liking}
+                                    className={`flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg ${data?.social?.isLiked
+                                        ? 'bg-gradient-to-r from-red-500 to-pink-500 text-white hover:from-red-600 hover:to-pink-600'
+                                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-red-50 hover:to-pink-50 hover:text-red-600 dark:hover:from-red-900/30 dark:hover:to-pink-900/30 dark:hover:text-red-400'
+                                        }`}
+                                >
                                     <Heart className={`h-5 w-5 transition-all duration-200 ${data?.social?.isLiked ? 'fill-current' : ''}`} />
-                                    <span>{data?.social?.likeCount || 0}</span>
-                                </button>
-                                <button onClick={openComments} className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-all duration-200 hover:scale-110 active:scale-95">
+                                    <span className="font-bold">{data?.social?.likeCount || 0}</span>
+                                </motion.button>
+                                <motion.button
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={openComments}
+                                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 hover:text-purple-600 dark:hover:from-purple-900/30 dark:hover:to-blue-900/30 dark:hover:text-purple-400 transition-all duration-200 shadow-md hover:shadow-lg"
+                                >
                                     <MessageCircle className="h-5 w-5" />
-                                    <span>{data?.social?.commentCount || 0}</span>
-                                </button>
-                                <button onClick={() => {
-                                    try {
-                                        const id = data?.social?.activityId || data?.goal?._id;
-                                        const url = id ? `${window.location.origin}/feed?goalId=${data?.goal?._id}` : window.location.href;
-                                        navigator.clipboard.writeText(url);
-                                        window.dispatchEvent(new CustomEvent('wt_toast', { detail: { message: 'Link copied to clipboard', type: 'success', duration: 2000 } }));
-                                    } catch { }
-                                }} className="inline-flex items-center justify-center text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-green-500 transition-all duration-200 hover:scale-110 active:scale-95" title="Share">
+                                    <span className="font-bold">{data?.social?.commentCount || 0}</span>
+                                </motion.button>
+                                <motion.button
+                                    whileHover={{ scale: 1.1, rotate: 15 }}
+                                    whileTap={{ scale: 0.9 }}
+                                    onClick={() => {
+                                        try {
+                                            const id = data?.social?.activityId || data?.goal?._id;
+                                            const url = id ? `${window.location.origin}/feed?goalId=${data?.goal?._id}` : window.location.href;
+                                            navigator.clipboard.writeText(url);
+                                            window.dispatchEvent(new CustomEvent('wt_toast', { detail: { message: 'Link copied to clipboard', type: 'success', duration: 2000 } }));
+                                        } catch { }
+                                    }}
+                                    className="inline-flex items-center justify-center p-3 rounded-xl text-sm font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-green-50 hover:to-emerald-50 hover:text-green-600 dark:hover:from-green-900/30 dark:hover:to-emerald-900/30 dark:hover:text-green-400 transition-all duration-200 shadow-md hover:shadow-lg"
+                                    title="Share"
+                                >
                                     <Send className="h-5 w-5" />
-                                </button>
+                                </motion.button>
                             </div>
                         </div>
                     )
                 )}
-            </div>
+            </motion.div>
             {/* Mobile comments bottom sheet */}
-            <Suspense fallback={null}><ActivityCommentsModal
-                isOpen={!!commentsOpenActivityId}
-                onClose={() => setCommentsOpenActivityId(null)}
-                activity={{ _id: commentsOpenActivityId }}
-            />
+            <Suspense fallback={null}>
+                <ActivityCommentsModal
+                    isOpen={!!commentsOpenActivityId}
+                    onClose={() => setCommentsOpenActivityId(null)}
+                    activity={{ _id: commentsOpenActivityId }}
+                />
             </Suspense>
             {/* Nested Goal Modal for Subgoals */}
             {nestedGoalId && (
@@ -598,6 +1070,8 @@ export default function GoalDetailsModal({ isOpen, goalId, onClose, autoOpenComm
                     onClose={() => setNestedGoalId(null)}
                 />
             )}
-        </div>
+        </motion.div>
+            )}
+        </AnimatePresence>
     )
 }

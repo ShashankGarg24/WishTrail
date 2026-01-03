@@ -1,5 +1,6 @@
-const User = require('../models/User');
 const Notification = require('../models/Notification');
+const UserPreferences = require('../models/extended/UserPreferences');
+const pgUserService = require('./pgUserService');
 const redis = require('../config/redis');
 const axios = require('axios');
 
@@ -55,13 +56,30 @@ function getDayOfYear(date = new Date()) {
 }
 
 async function sendMorningQuotes(windowMinutes = 30) {
-  const users = await User.find({ isActive: true }).select('_id notificationSettings timezone interests').lean();
+  // Get active users from PostgreSQL
+  const pgUsers = await pgUserService.getActiveUsers();
+  
+  // Get preferences for these users from MongoDB
+  const userIds = pgUsers.map(u => u.id);
+  const preferences = await UserPreferences.find({ 
+    userId: { $in: userIds } 
+  }).select('userId notificationSettings interests').lean();
+  
+  // Create a map for quick lookup
+  const prefsMap = new Map();
+  preferences.forEach(p => {
+    prefsMap.set(p.userId, p);
+  });
+  
   const jobs = [];
   const targetH = 7, targetM = 0;
-  for (const u of users) {
-    const ns = u.notificationSettings || {};
+  
+  for (const u of pgUsers) {
+    const prefs = prefsMap.get(u.id) || {};
+    const ns = prefs.notificationSettings || {};
     const mot = ns.motivation || {};
     if (mot.enabled === false || mot.frequency === 'off') continue;
+    
     const { hhmm, weekday } = nowInTimezoneHHmmAndWeekday(u.timezone || 'UTC');
     const [h, m] = hhmm.split(':').map(n => Number(n));
     const nowMin = h * 60 + m;
@@ -70,18 +88,21 @@ async function sendMorningQuotes(windowMinutes = 30) {
     if (nowMin < targetMin) continue;
     // weekly => send on Mon & Thu after 07:00
     if ((mot.frequency || 'off') === 'weekly' && !['Mon', 'Thu'].includes(weekday)) continue;
+    
     // Idempotency: one per day per user
     try {
       const dayKey = new Date(); dayKey.setHours(0,0,0,0);
-      const sentKey = `motivation:sent:${dayKey.toISOString().slice(0,10)}:${String(u._id)}`;
+      const sentKey = `motivation:sent:${dayKey.toISOString().slice(0,10)}:${String(u.id)}`;
       const sent = await redis.get(sentKey);
       if (sent) continue;
       await redis.set(sentKey, '1', { ex: 36 * 60 * 60 });
     } catch {}
+    
     // Choose one interest deterministically; fallback to general
-    const interests = Array.isArray(u.interests) && u.interests.length ? u.interests : ['general'];
+    const interests = Array.isArray(prefs.interests) && prefs.interests.length ? prefs.interests : ['general'];
     const doy = getDayOfYear(new Date());
     const chosen = interests[doy % interests.length];
+    
     // Prefer nightly generated quote for the chosen interest from Redis
     const dayKey = new Date(); dayKey.setHours(0,0,0,0);
     const interestKey = sanitizeInterestKey(chosen);
@@ -92,8 +113,9 @@ async function sendMorningQuotes(windowMinutes = 30) {
       quote = await redis.get(fallbackKey);
     }
     if (!quote) quote = pickQuote();
+    
     jobs.push(Notification.createNotification({
-      userId: u._id,
+      userId: u.id,
       type: 'motivation_quote',
       title: 'Morning Motivation',
       message: quote,
@@ -108,7 +130,11 @@ async function generateNightlyQuotes() {
   const apiKey = process.env.GROQ_API_KEY;
   // Build a distinct interest list across users; always include a 'general' fallback
   let interests = [];
-  try { interests = await User.distinct('interests', { isActive: true }); } catch (_) { interests = []; }
+  try { 
+    interests = await UserPreferences.distinct('interests');
+  } catch (_) { 
+    interests = []; 
+  }
   if (!Array.isArray(interests)) interests = [];
   const interestList = Array.from(new Set([...(interests.filter(Boolean).map(String)), 'general']));
 

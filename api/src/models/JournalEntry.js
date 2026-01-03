@@ -2,16 +2,13 @@ const mongoose = require('mongoose');
 
 const journalEntrySchema = new mongoose.Schema({
   userId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true,
-    index: true
+    type: Number,
+    required: true
   },
   promptKey: {
     type: String,
     enum: ['smile', 'helped', 'sacrifice', 'grateful', 'freeform'],
-    default: 'freeform',
-    index: true
+    default: 'freeform'
   },
   promptText: {
     type: String,
@@ -31,26 +28,22 @@ const journalEntrySchema = new mongoose.Schema({
   mood: {
     type: String,
     enum: ['very_negative', 'negative', 'neutral', 'positive', 'very_positive'],
-    default: 'neutral',
-    index: true
+    default: 'neutral'
   },
   tags: [{ type: String, trim: true, maxlength: 32 }],
   visibility: {
     type: String,
     enum: ['private', 'friends', 'public'],
-    default: 'private',
-    index: true
+    default: 'private'
   },
   // For soft-deletion
   isActive: {
     type: Boolean,
-    default: true,
-    index: true
+    default: true
   },
   // Denormalized date key for quick daily lookups
   dayKey: {
-    type: String,
-    index: true
+    type: String
   },
 
   // AI generated motivation and signal extraction
@@ -64,9 +57,6 @@ const journalEntrySchema = new mongoose.Schema({
   toJSON: { virtuals: true },
   toObject: { virtuals: true }
 });
-
-journalEntrySchema.index({ userId: 1, createdAt: -1 });
-journalEntrySchema.index({ userId: 1, dayKey: 1 }, { unique: false });
 
 journalEntrySchema.pre('save', function (next) {
   if (!this.dayKey) {

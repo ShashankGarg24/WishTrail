@@ -18,6 +18,9 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
     loading
   } = useApiStore()
   
+  // Support both PostgreSQL (id) and MongoDB (_id) formats
+  const goalId = wish.id;
+  
   const [isCompletionModalOpen, setIsCompletionModalOpen] = useState(false)
   const [isShareModalOpen, setIsShareModalOpen] = useState(false)
   const [isDivisionOpen, setIsDivisionOpen] = useState(false)
@@ -37,18 +40,18 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
   const handleComplete = (formDataOrNote, shareCompletionNoteParam = true) => {
     // Backward compatibility: if first arg is FormData, pass as-is. Else build FormData
     if (formDataOrNote instanceof FormData) {
-      return onComplete?.(wish._id, formDataOrNote)
+      return onComplete?.(goalId, formDataOrNote)
     }
     const form = new FormData()
     form.append('completionNote', String(formDataOrNote || ''))
     form.append('shareCompletionNote', String(shareCompletionNoteParam))
-    return onComplete?.(wish._id, form)
+    return onComplete?.(goalId, form)
   }
 
   const handleDelete = () => {
     // If parent provides onDelete handler, use it directly (parent will show its own modal with dependencies)
     if (onDelete) {
-      onDelete(wish._id)
+      onDelete(goalId)
     } else {
       // Otherwise, show our own delete modal
       setIsDeleteModalOpen(true)
@@ -59,7 +62,7 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
     setIsDeleting(true)
     try {
       // Direct API call (only used when no onDelete prop provided)
-      await deleteGoal(wish._id)
+      await deleteGoal(goalId)
       setIsDeleteModalOpen(false)
     } catch (error) {
       console.error('Error deleting goal:', error)
@@ -74,7 +77,7 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
 
   const handleLike = () => {
     if (!isAuthenticated) return
-    likeGoal(wish._id)
+    likeGoal(goalId)
   }
 
   const handleShare = () => {
@@ -114,10 +117,10 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: index * 0.1 }}
-      onClick={() => { if (!isDivisionOpen && !isReadOnly) onOpenAnalytics?.(wish?._id) }}
+      onClick={() => { if (!isDivisionOpen && !isReadOnly) onOpenAnalytics?.(wish?.id) }}
       className={`glass-card-hover p-4 rounded-lg theme-transition ${onOpenAnalytics ? 'cursor-pointer' : ''} ${
         wish.completed ? 'bg-green-50/50 dark:bg-green-900/10' : ''
-      } ${isOverdue() ? 'ring-2 ring-red-200 dark:ring-red-800' : ''}`}
+      } ${isOverdue() ? 'ring-2 ring-2-red-200 dark:ring-red-800' : ''}`}
     >
       {/* Header */}
       <div className="flex items-start justify-between mb-3">
@@ -300,7 +303,7 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
       {/* View Post Button */}
       {!isReadOnly && onOpenGoal && (
         <button
-          onClick={(e) => { e.stopPropagation(); onOpenGoal?.(wish?._id); }}
+          onClick={(e) => { e.stopPropagation(); onOpenGoal?.(wish?.id); }}
           className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all border border-gray-200 dark:border-gray-700"
         >
           <FileText className="h-3.5 w-3.5" />
@@ -333,7 +336,7 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
           onClose={() => setIsEditWizardOpen(false)}
           year={year}
           editMode={true}
-          goalId={wish._id}
+          goalId={goalId}
           initialData={{
             title: wish.title,
             description: wish.description,

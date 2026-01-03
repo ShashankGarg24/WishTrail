@@ -18,7 +18,8 @@ const register = async (req, res, next) => {
       });
     }
     const deviceType = getDeviceType(req);
-    const result = await authService.register(req.body, deviceType);
+    const { timezone, locale } = req.body;
+    const result = await authService.register(req.body, deviceType, timezone, locale);
 
     // For web: set refresh token cookie. For app: return refresh token in body.
     if (deviceType === 'web') {
@@ -59,9 +60,9 @@ const login = async (req, res, next) => {
       });
     }
 
-    const { email, password, deviceToken, platform } = req.body;
+    const { email, password, deviceToken, platform, timezone, locale } = req.body;
     const deviceType = getDeviceType(req);
-    const result = await authService.login(email, password, deviceType);
+    const result = await authService.login(email, password, deviceType, timezone, locale);
 
     // ✅ Store Expo push token if login is from app
     if (deviceToken) {
@@ -489,10 +490,10 @@ const googleAuth = async (req, res, next) => {
       });
     }
 
-    const { token } = req.body;
+    const { token, timezone, locale } = req.body;
     const deviceType = getDeviceType(req);
     
-    const result = await authService.googleAuth(token, deviceType);
+    const result = await authService.googleAuth(token, deviceType, timezone, locale);
 
     // For web: set refresh token cookie
     if (deviceType === 'web') {

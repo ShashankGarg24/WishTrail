@@ -1,7 +1,5 @@
 const Report = require('../models/Report');
-const Block = require('../models/Block');
-const Follow = require('../models/Follow');
-const User = require('../models/User');
+const pgBlockService = require('../services/pgBlockService');
 const { sanitizeBlockedUsers } = require('../utility/sanitizer');
 
 // @desc Report a user or activity
@@ -28,11 +26,16 @@ const blockUser = async (req, res, next) => {
   try {
     const { userId } = req.params;
     const blockerId = req.user.id;
-    const doc = await Block.blockUser(blockerId, userId);
-    // auto-unfollow both ways
-    try { await Follow.unfollowUser(blockerId, userId); } catch {}
-    try { await Follow.unfollowUser(userId, blockerId); } catch {}
-    res.status(200).json({ success: true, data: { block: doc } });
+    const doc = await pgBlockService.blockUser(blockerId, parseInt(userId));
+    // Follow relationships are automatically removed by pgBlockService.blockUser
+    res.status(200).json({ 
+      success: true, 
+      data: { 
+        block: doc,
+        isBlocked: true,
+        message: 'User blocked successfully'
+      } 
+    });
   } catch (err) { next(err); }
 };
 
@@ -43,8 +46,14 @@ const unblockUser = async (req, res, next) => {
   try {
     const { userId } = req.params;
     const blockerId = req.user.id;
-    const doc = await Block.unblockUser(blockerId, userId);
-    res.status(200).json({ success: true, data: { block: doc } });
+    await pgBlockService.unblockUser(blockerId, parseInt(userId));
+    res.status(200).json({ 
+      success: true, 
+      data: {
+        isBlocked: false,
+        message: 'User unblocked successfully'
+      }
+    });
   } catch (err) { next(err); }
 };
 
@@ -53,11 +62,19 @@ const unblockUser = async (req, res, next) => {
 // @access Private
 const listBlocked = async (req, res, next) => {
   try {
-    const docs = await Block.find({ blockerId: req.user.id, isActive: true })
-      .populate('blockedId', 'name username avatar')
-      .lean();
+    const blockedUsers = await pgBlockService.getBlockedUsers(req.user.id, {
+      limit: 1000,
+      offset: 0,
+      includeUser: true
+    });
     
-    const users = docs.map(d => d?.blockedId).filter(Boolean);
+    const users = blockedUsers.map(block => ({
+      id: block.user.id,
+      name: block.user.name,
+      username: block.user.username,
+      avatar: block.user.avatarUrl
+    }));
+    
     const sanitized = sanitizeBlockedUsers(users);
     console.log('Sanitized blocked users:', sanitized);
     res.json({ success: true, data: { users: sanitized } });

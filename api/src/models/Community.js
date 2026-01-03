@@ -26,8 +26,7 @@ const communitySchema = new mongoose.Schema({
   visibility: {
     type: String,
     enum: ['public', 'private', 'invite-only'],
-    default: 'public',
-    index: true
+    default: 'public'
   },
   interests: { 
     type: [{ type: String, trim: true }],
@@ -36,8 +35,7 @@ const communitySchema = new mongoose.Schema({
   ownerId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true,
-    index: true
+    required: true
   },
   joinCode: {
     type: String,
@@ -62,35 +60,19 @@ const communitySchema = new mongoose.Schema({
     memberLimit: { type: Number, default: 0, min: 0 } // 0 = unlimited (subject to server cap)
   },
   stats: {
-    memberCount: { type: Number, default: 1, min: 0, index: true },
-    weeklyActivityCount: { type: Number, default: 0, min: 0, index: true },
+    memberCount: { type: Number, default: 1, min: 0},
+    weeklyActivityCount: { type: Number, default: 0, min: 0 },
     completionRate: { type: Number, default: 0, min: 0, max: 100 }
   },
   isActive: {
     type: Boolean,
-    default: true,
-    index: true
+    default: true
   }
 }, {
   timestamps: true,
   toJSON: { virtuals: true },
   toObject: { virtuals: true }
 });
-
-communitySchema.index({ name: 1 });
-communitySchema.index({ visibility: 1, 'stats.memberCount': -1 });
-communitySchema.index({ interests: 1, 'stats.memberCount': -1 });
-communitySchema.index({ createdAt: -1 });
-
-// Text index for full-text search on name
-communitySchema.index({ name: 'text'}, { 
-  weights: { name: 10},
-  name: 'community_text_search'
-});
-
-// Compound indexes for discover optimization
-communitySchema.index({ isActive: 1, visibility: 1, 'stats.memberCount': -1 });
-communitySchema.index({ isActive: 1, visibility: 1, interests: 1, 'stats.memberCount': -1 });
 
 communitySchema.virtual('slug').get(function() {
   const base = (this.name || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');

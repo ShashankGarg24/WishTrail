@@ -1,9 +1,11 @@
 const Activity = require('../models/Activity');
-const Like = require('../models/Like');
-const Follow = require('../models/Follow');
 const cacheService = require('../services/cacheService');
 const ActivityComment = require('../models/ActivityComment');
 const Notification = require('../models/Notification');
+
+// PostgreSQL Services
+const pgLikeService = require('../services/pgLikeService');
+const pgFollowService = require('../services/pgFollowService');
 
 // @desc    Get recent activities (global or personal)
 // @route   GET /api/v1/activities/recent
@@ -30,7 +32,7 @@ const getRecentActivities = async (req, res, next) => {
       // Fetch from database
       if (type === 'personal') {
         // Get activities from users the current user follows
-        const followingIds = await Follow.getFollowingIds(req.user.id);
+        const followingIds = await pgFollowService.getFollowingIds(req.user.id);
         followingIds.push(req.user.id); // Include own activities
         
         const totalActivities = await Activity.countDocuments({
@@ -131,7 +133,7 @@ const getUserActivities = async (req, res, next) => {
     const { page = 1, limit = 10 } = req.query;
     
     // Check if user can view activities (either own activities or following the user)
-    const canViewActivities = userId === req.user.id || await Follow.isFollowing(req.user.id, userId);
+    const canViewActivities = userId === req.user.id || await pgFollowService.isFollowing(req.user.id, userId);
     
     if (!canViewActivities) {
       return res.status(403).json({
@@ -167,28 +169,20 @@ const getUserActivities = async (req, res, next) => {
       }
 
       const likeFlag = typeof req.body?.like === 'boolean' ? req.body.like : null;
-      const query = { userId: req.user.id, targetType: 'activity', targetId: activity._id };
       try {
         if (likeFlag === true) {
-          await Like.updateOne(query, { $set: { isActive: true, reactionType: 'like' } }, { upsert: true });
+          await pgLikeService.like(req.user.id, 'activity', String(activity._id));
         } else if (likeFlag === false) {
-          await Like.updateOne(query, { $set: { isActive: false } }, { upsert: false });
+          await pgLikeService.unlike(req.user.id, 'activity', String(activity._id));
         } else {
-          // Toggle behaviour: flip isActive
-          const existing = await Like.findOne(query);
-          if (existing && existing.isActive) {
-            await Like.updateOne(query, { $set: { isActive: false } });
-          } else if (existing && !existing.isActive) {
-            await Like.updateOne(query, { $set: { isActive: true } });
-          } else {
-            await Like.updateOne(query, { $setOnInsert: { isActive: true, reactionType: 'like' } }, { upsert: true });
-          }
+          // Toggle behaviour
+          await pgLikeService.toggleLike(req.user.id, 'activity', String(activity._id));
         }
       } catch (_) {}
 
       const [likeCount, isLiked] = await Promise.all([
-        Like.getLikeCount('activity', activity._id),
-        Like.hasUserLiked(req.user.id, 'activity', activity._id)
+        pgLikeService.getLikeCount('activity', String(activity._id)),
+        pgLikeService.hasUserLiked(req.user.id, 'activity', String(activity._id))
       ]);
       if (isLiked) {
         await Notification.createActivityLikeNotification(req.user.id, activity);
@@ -220,7 +214,7 @@ const getActivity = async (req, res, next) => {
     // Check if user can view this activity
     const canView = activity.isPublic || 
       activity.userId._id.toString() === req.user.id.toString() ||
-      await Follow.isFollowing(req.user.id, activity.userId._id);
+      await pgFollowService.isFollowing(req.user.id, activity.userId._id);
     
     if (!canView) {
       return res.status(403).json({
@@ -230,8 +224,8 @@ const getActivity = async (req, res, next) => {
     }
     
     const [likeCount, isLiked, commentCount] = await Promise.all([
-      Like.getLikeCount('activity', id),
-      Like.hasUserLiked(req.user.id, 'activity', id),
+      pgLikeService.getLikeCount('activity', id),
+      pgLikeService.hasUserLiked(req.user.id, 'activity', id),
       ActivityComment.countDocuments({ activityId: id, isActive: true })
     ]);
 
@@ -355,7 +349,7 @@ const getActivityStats = async (req, res, next) => {
     
     // If viewing another user's stats, check if following them
     if (targetUserId !== req.user.id) {
-      const canView = await Follow.isFollowing(req.user.id, targetUserId);
+      const canView = await pgFollowService.isFollowing(req.user.id, targetUserId);
       if (!canView) {
         return res.status(403).json({
           success: false,
@@ -443,8 +437,8 @@ const getActivityComments = async (req, res, next) => {
     const enrichedMap = new Map();
     await Promise.all(allComments.map(async (c) => {
       const [likeCount, isLiked] = await Promise.all([
-        Like.getLikeCount('activity_comment', c._id),
-        Like.hasUserLiked(req.user.id, 'activity_comment', c._id)
+        pgLikeService.getLikeCount('activity_comment', String(c._id)),
+        pgLikeService.hasUserLiked(req.user.id, 'activity_comment', String(c._id))
       ]);
       enrichedMap.set(String(c._id), { likeCount, isLiked });
     }));
@@ -557,27 +551,20 @@ const toggleCommentLike = async (req, res, next) => {
     if (!comment || !comment.isActive) return res.status(404).json({ success: false, message: 'Comment not found' });
 
     const likeFlag = typeof req.body?.like === 'boolean' ? req.body.like : null;
-    const query = { userId: req.user.id, targetType: 'activity_comment', targetId: commentId };
     try {
       if (likeFlag === true) {
-        await Like.updateOne(query, { $set: { isActive: true, reactionType: 'like' } }, { upsert: true });
+        await pgLikeService.like(req.user.id, 'activity_comment', commentId);
       } else if (likeFlag === false) {
-        await Like.updateOne(query, { $set: { isActive: false } }, { upsert: false });
+        await pgLikeService.unlike(req.user.id, 'activity_comment', commentId);
       } else {
-        const existing = await Like.findOne(query);
-        if (existing && existing.isActive) {
-          await Like.updateOne(query, { $set: { isActive: false } });
-        } else if (existing && !existing.isActive) {
-          await Like.updateOne(query, { $set: { isActive: true } });
-        } else {
-          await Like.updateOne(query, { $setOnInsert: { isActive: true, reactionType: 'like' } }, { upsert: true });
-        }
+        // Toggle behaviour
+        await pgLikeService.toggleLike(req.user.id, 'activity_comment', commentId);
       }
     } catch (_) {}
 
     const [likeCount, isLiked] = await Promise.all([
-      Like.getLikeCount('activity_comment', commentId),
-      Like.hasUserLiked(req.user.id, 'activity_comment', commentId)
+      pgLikeService.getLikeCount('activity_comment', commentId),
+      pgLikeService.hasUserLiked(req.user.id, 'activity_comment', commentId)
     ]);
     if (isLiked) {
       await Notification.createCommentLikeNotification(req.user.id, comment);

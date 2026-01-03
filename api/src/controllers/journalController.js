@@ -1,5 +1,4 @@
 const journalService = require('../services/journalService');
-const User = require('../models/User');
 const JournalEntry = require('../models/JournalEntry');
 const PDFDocument = require('pdfkit');
 const axios = require('axios');
@@ -20,10 +19,10 @@ exports.createEntry = async (req, res, next) => {
     if (!content || String(content).trim().length === 0) {
       return res.status(400).json({ success: false, message: 'Content is required' });
     }
-    const entry = await journalService.createEntry(req.user._id, { content, promptKey, visibility, mood, tags });
+    const entry = await journalService.createEntry(req.user.id, { content, promptKey, visibility, mood, tags });
     
     // ✅ Sanitize entry response - return only essential fields
-    const sanitizedEntry = sanitizeJournalEntry(entry, true, req.user._id);
+    const sanitizedEntry = sanitizeJournalEntry(entry, true, req.user.id);
     
     res.status(201).json({ success: true, data: { entry: sanitizedEntry } });
   } catch (error) {
@@ -36,10 +35,10 @@ exports.updateEntry = async (req, res, next) => {
     const { entryId } = req.params;
     const { mood, visibility } = req.body;
     if (!entryId) return res.status(400).json({ success: false, message: 'entryId required' });
-    const updated = await journalService.updateEntry(req.user._id, entryId, { mood, visibility });
+    const updated = await journalService.updateEntry(req.user.id, entryId, { mood, visibility });
     
     // ✅ Sanitize updated entry response
-    const sanitizedEntry = sanitizeJournalEntry(updated, true, req.user._id);
+    const sanitizedEntry = sanitizeJournalEntry(updated, true, req.user.id);
     
     res.status(200).json({ success: true, data: { entry: sanitizedEntry } });
   } catch (error) {
@@ -51,10 +50,10 @@ exports.getMyEntries = async (req, res, next) => {
   try {
     const limit = Math.min(parseInt(req.query.limit) || 20, 50);
     const skip = parseInt(req.query.skip) || 0;
-    const entries = await journalService.listMyEntries(req.user._id, { limit, skip });
+    const entries = await journalService.listMyEntries(req.user.id, { limit, skip });
     
     // ✅ Sanitize entries - remove __v and internal fields
-    const sanitizedEntries = entries.map(e => sanitizeJournalEntry(e, true, req.user._id));
+    const sanitizedEntries = entries.map(e => sanitizeJournalEntry(e, true, req.user.id));
     
     res.status(200).json({ success: true, data: { entries: sanitizedEntries } });
   } catch (error) {
@@ -66,7 +65,7 @@ exports.getUserHighlights = async (req, res, next) => {
   try {
     const targetUserId = req.params.userId;
     const limit = Math.min(parseInt(req.query.limit) || 12, 24);
-    const viewerId = req.user?._id;
+    const viewerId = req.user?.id;
     const highlights = await journalService.getUserHighlights(targetUserId, viewerId, { limit });
     
     // ✅ Sanitize highlights - remove sensitive user data from nested objects
@@ -83,11 +82,12 @@ exports.getUserHighlights = async (req, res, next) => {
 // @access  Private
 exports.exportMyJournal = async (req, res, next) => {
   try {
-    const userId = req.user._id;
+    const userId = req.user.id;
     const { format = 'pdf', style = 'diary', includeMotivation = 'true', from, to } = req.query;
     const includeMot = String(includeMotivation) !== 'false';
 
-    const user = await User.findById(userId).select('name avatar createdAt').lean();
+    const pgUserService = require('../services/pgUserService');
+    const user = await pgUserService.getUserById(userId);
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
     // Validate date range
@@ -212,7 +212,7 @@ exports.exportMyJournal = async (req, res, next) => {
     doc.pipe(res);
 
     const writeCover = async () => {
-      const start = entries[0]?.createdAt ? new Date(entries[0].createdAt) : (user.createdAt ? new Date(user.createdAt) : new Date());
+      const start = entries[0]?.createdAt ? new Date(entries[0].createdAt) : (user.created_at ? new Date(user.created_at) : new Date());
       const end = entries[entries.length - 1]?.createdAt ? new Date(entries[entries.length - 1].createdAt) : new Date();
       const range = `${start.toLocaleString('en-US', { month: 'short', day: 'numeric' })} – ${end.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
       
@@ -238,9 +238,9 @@ exports.exportMyJournal = async (req, res, next) => {
       
       doc.moveDown(2.5);
       // Avatar circle
-      if (user.avatar) {
+      if (user.avatar_url) {
         try {
-          const resp = await axios.get(user.avatar, { responseType: 'arraybuffer', timeout: 5000, validateStatus: () => true });
+          const resp = await axios.get(user.avatar_url, { responseType: 'arraybuffer', timeout: 5000, validateStatus: () => true });
           const ctype = String(resp?.headers?.['content-type'] || '');
           if (!(/^image\/(jpeg|png)$/i.test(ctype))) throw new Error('unsupported image');
           const img = Buffer.from(resp.data || Buffer.alloc(0));

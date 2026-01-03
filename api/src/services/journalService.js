@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const JournalEntry = require('../models/JournalEntry');
 const Notification = require('../models/Notification');
-const User = require('../models/User');
+const { query } = require('../config/supabase');
 const axios = require('axios');
 const redis = require('../config/redis');
 
@@ -282,12 +282,18 @@ function parseHHmmToMinutes(text) {
 
 async function notifyDailyPrompt(windowMinutes = 30, targetHHmm = '20:00') {
   const prompt = getTodayPrompt();
-  const users = await User.find({ isActive: true }).select('_id notificationSettings timezone').lean();
+  // Query PostgreSQL for active users with timezone
+  // Note: notification_settings are in MongoDB UserPreferences, not migrated yet
+  const result = await query(
+    'SELECT id, timezone FROM users WHERE is_active = true',
+    []
+  );
+  const users = result.rows;
   const jobs = [];
   const targetMin = parseHHmmToMinutes(targetHHmm) ?? 20 * 60;
   for (const u of users) {
-    const ns = u.notificationSettings || {};
-    if (ns.journal && ns.journal.enabled === false) continue;
+    // TODO: Check notification settings from UserPreferences MongoDB collection if needed
+    // For now, send to all active users
     const tz = u.timezone || 'UTC';
     const localMin = minutesOfDayInTimezone(tz);
     // Send once any time after the target time (20:00) the same day
@@ -295,7 +301,7 @@ async function notifyDailyPrompt(windowMinutes = 30, targetHHmm = '20:00') {
     // Idempotency: one per day per user
     try {
       const dateKey = localDateKeyInTimezone(tz);
-      const key = `journal:promptSent:${dateKey}:${String(u._id)}`;
+      const key = `journal:promptSent:${dateKey}:${String(u.id)}`;
       const seen = await redis.get(key);
       if (seen) continue;
       // TTL until next local midnight + 1h buffer
@@ -303,7 +309,7 @@ async function notifyDailyPrompt(windowMinutes = 30, targetHHmm = '20:00') {
       await redis.set(key, '1', { ex: ttlSeconds });
     } catch { }
     jobs.push(Notification.createNotification({
-      userId: u._id,
+      userId: u.id,
       type: 'journal_prompt',
       title: 'Daily Journal',
       message: prompt.text,

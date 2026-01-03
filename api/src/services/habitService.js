@@ -1,9 +1,10 @@
 const mongoose = require('mongoose');
-const Habit = require('../models/Habit');
-const HabitLog = require('../models/HabitLog');
 const Notification = require('../models/Notification');
 const Activity = require('../models/Activity');
-const User = require('../models/User');
+const pgHabitService = require('./pgHabitService');
+const pgHabitLogService = require('./pgHabitLogService');
+const pgUserService = require('./pgUserService');
+const UserPreferences = require('../models/extended/UserPreferences');
 const redis = require('../config/redis');
 
 function toDateKeyUTC(date = new Date()) {
@@ -34,59 +35,72 @@ async function createHabit(userId, payload) {
   }
   
   // Default timezone to user's stored timezone if available, else UTC
-  const user = await User.findById(userId).select('timezone').lean();
-  const doc = new Habit({
+  const user = await pgUserService.getUserById(userId);
+  
+  // Create habit using PostgreSQL service
+  const habit = await pgHabitService.createHabit({
     userId,
     name: payload.name,
     description: payload.description || '',
     frequency: payload.frequency || 'daily',
-    daysOfWeek: Array.isArray(payload.daysOfWeek) ? payload.daysOfWeek : undefined,
+    daysOfWeek: Array.isArray(payload.daysOfWeek) ? payload.daysOfWeek : null,
     timezone: (payload.timezone || user?.timezone || 'UTC'),
     reminders: Array.isArray(payload.reminders) ? payload.reminders : [],
-    goalId: payload.goalId || undefined,
+    goalId: payload.goalId || null,
     isPublic: payload.isPublic !== undefined ? !!payload.isPublic : true,
     targetCompletions: payload.targetCompletions || null,
     targetDays: payload.targetDays || null
   });
-  await doc.save();
 
   // Optional social activity sharing (disabled by default)
   const shareEnabled = String(process.env.HABIT_SHARE_ENABLED || '').toLowerCase() === 'true';
   if (shareEnabled) {
     try {
-      const currentUser = await User.findById(userId).select('name avatar').lean();
-      await Activity.createActivity(userId, currentUser?.name, currentUser?.avatar, 'streak_milestone', {
-        metadata: { kind: 'habit_created', habitId: doc._id, habitName: doc.name }
+      const currentUser = await pgUserService.findById(userId);
+      await Activity.createActivity(userId, currentUser?.name, currentUser?.username, currentUser?.avatar_url, 'streak_milestone', {
+        metadata: { kind: 'habit_created', habitId: habit.id, habitName: habit.name }
       });
     } catch (_) {}
   }
 
-  return doc;
+  return habit;
 }
 
 async function listHabits(userId, { includeArchived = false, page = 1, limit = 50, sort = 'newest' } = {}) {
-  const q = { userId, isActive: true };
-  
   // Pagination
   const pageNum = Math.max(1, parseInt(page, 10));
   const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10)));
-  const skip = (pageNum - 1) * limitNum;
+  const offset = (pageNum - 1) * limitNum;
   
   // Determine sort order
-  let sortOrder = { updatedAt: -1 };
+  let sortBy = 'created_at';
+  let sortOrder = 'DESC';
   if (sort === 'oldest') {
-    sortOrder = { updatedAt: 1 };
+    sortOrder = 'ASC';
   } else if (sort === 'completion') {
-    sortOrder = { totalCompletions: -1, updatedAt: -1 };
-  } else { // 'newest' or default
-    sortOrder = { updatedAt: -1 };
+    sortBy = 'total_completions';
+    sortOrder = 'DESC';
   }
   
-  // Get total count and paginated habits
-  const [total, habits] = await Promise.all([
-    Habit.countDocuments(q),
-    Habit.find(q).sort(sortOrder).skip(skip).limit(limitNum).lean()
-  ]);
+  // Get habits from PostgreSQL
+  const habits = await pgHabitService.getUserHabits({
+    userId,
+    isActive: true,
+    isArchived: includeArchived ? undefined : false,
+    limit: limitNum,
+    offset,
+    sortBy,
+    sortOrder
+  });
+  
+  // Get total count
+  const { query } = require('../config/supabase');
+  const countSql = `
+    SELECT COUNT(*) FROM habits 
+    WHERE user_id = $1 AND is_active = true ${includeArchived ? '' : 'AND is_archived = false'}
+  `;
+  const countResult = await query(countSql, [userId]);
+  const total = parseInt(countResult.rows[0].count);
   
   const enriched = habits.map(h => ({
     ...h,
@@ -105,55 +119,57 @@ async function listHabits(userId, { includeArchived = false, page = 1, limit = 5
 }
 
 async function getHabit(userId, habitId) {
-  const h = await Habit.findOne({ _id: habitId, userId, isActive: true });
+  const h = await pgHabitService.getHabitById(habitId, userId);
   if (!h) throw Object.assign(new Error('Habit not found'), { statusCode: 404 });
   return h;
 }
 
 async function updateHabit(userId, habitId, payload) {
-  const h = await Habit.findOne({ _id: habitId, userId, isActive: true });
+  const h = await pgHabitService.getHabitById(habitId, userId);
   if (!h) throw Object.assign(new Error('Habit not found'), { statusCode: 404 });
   if (h.isArchived) throw Object.assign(new Error('Habit is archived'), { statusCode: 400 });
   
-  const set = {};
-  ['name','description','frequency','timezone'].forEach(k => { if (payload[k] !== undefined) set[k] = payload[k]; });
-  if (Array.isArray(payload.daysOfWeek)) set.daysOfWeek = payload.daysOfWeek;
-  if (Array.isArray(payload.reminders)) set.reminders = payload.reminders;
-  if (payload.goalId !== undefined) set.goalId = payload.goalId || undefined;
-  if (payload.isPublic !== undefined) set.isPublic = !!payload.isPublic;
-  if (payload.targetCompletions !== undefined) set.targetCompletions = payload.targetCompletions || null;
-  if (payload.targetDays !== undefined) set.targetDays = payload.targetDays || null;
+  const updates = {};
+  ['name','description','frequency','timezone'].forEach(k => { if (payload[k] !== undefined) updates[k] = payload[k]; });
+  if (Array.isArray(payload.daysOfWeek)) updates.daysOfWeek = payload.daysOfWeek;
+  if (Array.isArray(payload.reminders)) updates.reminders = payload.reminders;
+  if (payload.goalId !== undefined) updates.goalId = payload.goalId || null;
+  if (payload.isPublic !== undefined) updates.isPublic = !!payload.isPublic;
+  if (payload.targetCompletions !== undefined) updates.targetCompletions = payload.targetCompletions || null;
+  if (payload.targetDays !== undefined) updates.targetDays = payload.targetDays || null;
   
   // Validate that only one type of target is set (check both new values and existing)
-  const finalTargetCompletions = set.targetCompletions !== undefined ? set.targetCompletions : h.targetCompletions;
-  const finalTargetDays = set.targetDays !== undefined ? set.targetDays : h.targetDays;
+  const finalTargetCompletions = updates.targetCompletions !== undefined ? updates.targetCompletions : h.targetCompletions;
+  const finalTargetDays = updates.targetDays !== undefined ? updates.targetDays : h.targetDays;
   if (finalTargetCompletions && finalTargetDays) {
     throw Object.assign(
       new Error('Only one target type is allowed: either targetCompletions or targetDays, not both'), 
       { statusCode: 400 }
     );
   }
+  
   // Ensure timezone is set when editing reminders if habit has no meaningful timezone
-  if (Array.isArray(payload.reminders) && (set.timezone === undefined)) {
+  if (Array.isArray(payload.reminders) && (updates.timezone === undefined)) {
     try {
       if (!h.timezone || h.timezone === 'UTC') {
-        const u = await User.findById(userId).select('timezone').lean();
-        if (u?.timezone) set.timezone = u.timezone; else if (!h.timezone) set.timezone = 'UTC';
+        const u = await pgUserService.findById(userId);
+        if (u?.timezone) updates.timezone = u.timezone; else if (!h.timezone) updates.timezone = 'UTC';
       }
     } catch (_) {}
   }
-  const updated = await Habit.findByIdAndUpdate(habitId, { $set: set }, { new: true, runValidators: true });
+  
+  const updated = await pgHabitService.updateHabit(habitId, userId, updates);
   return updated;
 }
 
 async function archiveHabit(userId, habitId) {
-  const h = await Habit.findOneAndUpdate({ _id: habitId, userId }, { $set: { isArchived: true } }, { new: true });
+  const h = await pgHabitService.archiveHabit(habitId, userId, true);
   if (!h) throw Object.assign(new Error('Habit not found'), { statusCode: 404 });
   return h;
 }
 
 async function checkHabitDependencies(userId, habitId) {
-  const h = await Habit.findOne({ _id: habitId, userId });
+  const h = await pgHabitService.getHabitById(habitId, userId);
   if (!h) throw Object.assign(new Error('Habit not found'), { statusCode: 404 });
   
   const Goal = require('../models/Goal');
@@ -171,7 +187,7 @@ async function checkHabitDependencies(userId, habitId) {
 }
 
 async function deleteHabit(userId, habitId) {
-  const h = await Habit.findOne({ _id: habitId, userId });
+  const h = await pgHabitService.getHabitById(habitId, userId);
   if (!h) throw Object.assign(new Error('Habit not found'), { statusCode: 404 });
   
   const Goal = require('../models/Goal');
@@ -208,84 +224,42 @@ async function deleteHabit(userId, habitId) {
     await goal.save();
   }
   
-  await Habit.deleteOne({ _id: habitId, userId });
-  await HabitLog.deleteMany({ habitId, userId });
+  // Delete habit from PostgreSQL (soft delete)
+  await pgHabitService.deleteHabit(habitId, userId);
+  
+  // Delete habit logs from PostgreSQL
+  await pgHabitLogService.deleteHabitLogs(habitId, userId);
+  
   return { ok: true };
 }
 
 async function toggleLog(userId, habitId, { status = 'done', note = '', mood = 'neutral', journalEntryId = null, date = new Date() } = {}) {
-  const habit = await Habit.findOne({ _id: habitId, userId, isActive: true });
+  const habit = await pgHabitService.getHabitById(habitId, userId);
   if (!habit) throw Object.assign(new Error('Habit not found'), { statusCode: 404 });
   if (habit.isArchived) throw Object.assign(new Error('Habit is archived'), { statusCode: 400 });
 
   const dateKey = toDateKeyUTC(date);
-  const scheduled = isScheduledForDay(habit, date);
-  const isDone = status === 'done';
-  const isSkipped = status === 'skipped';
-
-  // Check if log already exists for this day
-  const existingLog = await HabitLog.findOne({ userId, habitId, dateKey });
-  const wasAlreadyDone = existingLog && existingLog.status === 'done';
-  const isNewDay = !wasAlreadyDone && isDone;
   
-  // Build update operation based on status
-  let updateOp;
-  if (isDone) {
-    // Marking done: increment completionCount, push current time to completionTimes
-    // If previously skipped, unmark skip and start fresh count
-    const prevCount = (existingLog && existingLog.status === 'done') ? (existingLog.completionCount || 0) : 0;
-    updateOp = {
-      $set: { status, note, mood, journalEntryId: journalEntryId || undefined, completionCount: prevCount + 1 },
-      $push: { completionTimes: new Date() }
-    };
-  } else if (isSkipped) {
-    // Marking skipped: reset completionCount to 0, clear completionTimes
-    updateOp = {
-      $set: { status, note, mood, journalEntryId: journalEntryId || undefined, completionCount: 0, completionTimes: [] }
-    };
-  } else {
-    // Other status (missed): just update status
-    updateOp = {
-      $set: { status, note, mood, journalEntryId: journalEntryId || undefined }
-    };
-  }
+  // pgHabitLogService.logHabit handles creating/updating log and calculating streaks
+  const log = await pgHabitLogService.logHabit({
+    userId,
+    habitId,
+    dateKey,
+    status,
+    note,
+    mood,
+    journalEntryId
+  });
   
-  // Upsert log
-  const log = await HabitLog.findOneAndUpdate(
-    { userId, habitId, dateKey },
-    updateOp,
-    { new: true, upsert: true, setDefaultsOnInsert: true }
-  );
-
-  // Update streaks if marking done on a scheduled day
-  if (isDone && scheduled) {
-    const prevKey = habit.lastLoggedDateKey;
-    const yesterday = (() => { const d = new Date(date); d.setUTCDate(d.getUTCDate() - 1); return toDateKeyUTC(d); })();
-    let nextStreak = 1;
-    if (prevKey === yesterday) {
-      nextStreak = (habit.currentStreak || 0) + 1;
-    }
-    const longest = Math.max(habit.longestStreak || 0, nextStreak);
-    const previousTotalCompletions = habit.totalCompletions || 0;
-    const previousTotalDays = habit.totalDays || 0;
-    const update = {
-      currentStreak: nextStreak,
-      longestStreak: longest,
-      lastLoggedDateKey: dateKey,
-      totalCompletions: previousTotalCompletions + 1
-    };
-    
-    // Increment totalDays only if this is a new day
-    if (isNewDay) {
-      update.totalDays = previousTotalDays + 1;
-    }
-    
-    await Habit.updateOne({ _id: habit._id }, { $set: update });
-
+  // Get updated habit stats after logging
+  const updatedHabit = await pgHabitService.getHabitById(habitId, userId);
+  
+  // Check for target achievements and milestones
+  if (status === 'done') {
     // Check if target has been achieved (for linked goals)
     const Goal = require('../models/Goal');
     const linkedGoals = await Goal.find({ 
-      'habitLinks.habitId': habit._id,
+      'habitLinks.habitId': habitId,
       userId: userId
     }).select('_id title category habitLinks').lean();
 
@@ -294,21 +268,16 @@ async function toggleLog(userId, habitId, { status = 'done', note = '', mood = '
       let targetType = '';
       
       // Check if targetCompletions achieved
-      if (habit.targetCompletions && habit.targetCompletions > 0) {
-        const wasNotAchieved = previousTotalCompletions < habit.targetCompletions;
-        const nowAchieved = (previousTotalCompletions + 1) >= habit.targetCompletions;
-        if (wasNotAchieved && nowAchieved) {
+      if (updatedHabit.targetCompletions && updatedHabit.targetCompletions > 0) {
+        if (updatedHabit.totalCompletions >= updatedHabit.targetCompletions) {
           targetAchieved = true;
           targetType = 'completions';
         }
       }
       
       // Check if targetDays achieved
-      if (!targetAchieved && habit.targetDays && habit.targetDays > 0) {
-        const newTotalDays = isNewDay ? previousTotalDays + 1 : previousTotalDays;
-        const wasNotAchieved = previousTotalDays < habit.targetDays;
-        const nowAchieved = newTotalDays >= habit.targetDays;
-        if (wasNotAchieved && nowAchieved) {
+      if (!targetAchieved && updatedHabit.targetDays && updatedHabit.targetDays > 0) {
+        if (updatedHabit.totalDays >= updatedHabit.targetDays) {
           targetAchieved = true;
           targetType = 'days';
         }
@@ -317,23 +286,24 @@ async function toggleLog(userId, habitId, { status = 'done', note = '', mood = '
       // Log activity if target was just achieved
       if (targetAchieved) {
         try {
-          const u = await User.findById(userId).select('name avatar').lean();
+          const u = await pgUserService.findById(userId);
           await Activity.createOrUpdateGoalActivity(
             userId,
             u?.name,
-            u?.avatar,
+            u?.username,
+            u?.avatar_url,
             'habit_target_achieved',
             {
               goalId: goal._id,
               goalTitle: goal.title,
               goalCategory: goal.category,
-              habitId: habit._id,
-              habitName: habit.name,
+              habitId: updatedHabit.id,
+              habitName: updatedHabit.name,
               targetType: targetType,
-              targetValue: targetType === 'completions' ? habit.targetCompletions : habit.targetDays,
-              currentValue: targetType === 'completions' ? (previousTotalCompletions + 1) : (isNewDay ? previousTotalDays + 1 : previousTotalDays)
+              targetValue: targetType === 'completions' ? updatedHabit.targetCompletions : updatedHabit.targetDays,
+              currentValue: targetType === 'completions' ? updatedHabit.totalCompletions : updatedHabit.totalDays
             },
-            { createNew: true } // Always create new activity
+            { createNew: true }
           );
         } catch (err) {
           console.error('Failed to log habit target achievement:', err);
@@ -343,149 +313,89 @@ async function toggleLog(userId, habitId, { status = 'done', note = '', mood = '
 
     // Milestones: 1, 7, 30, 100 (social sharing optional via flag)
     const shareEnabled = String(process.env.HABIT_SHARE_ENABLED || '').toLowerCase() === 'true';
-    if (shareEnabled && [1, 7, 30, 100].includes(nextStreak)) {
+    const currentStreak = updatedHabit.currentStreak || 0;
+    if (shareEnabled && [1, 7, 30, 100].includes(currentStreak)) {
       try {
-        const u = await User.findById(userId).select('name avatar').lean();
-        const metadata = { kind: 'habit_streak', habitId: habit._id, habitName: habit.name };
-        // Keep OG image path generation internal; only used if sharing enabled
-        if (nextStreak === 30) {
-          metadata.shareImagePath = `/api/v1/habits/${habit._id}/og-image?count=${nextStreak}`;
+        const u = await pgUserService.findById(userId);
+        const metadata = { kind: 'habit_streak', habitId: updatedHabit.id, habitName: updatedHabit.name };
+        if (currentStreak === 30) {
+          metadata.shareImagePath = `/api/v1/habits/${updatedHabit.id}/og-image?count=${currentStreak}`;
         }
-        await Activity.createActivity(userId, u?.name, u?.avatar, 'streak_milestone', {
-          streakCount: nextStreak,
+        await Activity.createActivity(userId, u?.name, u?.username, u?.avatar_url, 'streak_milestone', {
+          streakCount: currentStreak,
           metadata
         });
       } catch (_) {}
     }
+    
     // Mirror into community feed if a community item references this habit
     try {
       const CommunityItem = require('../models/CommunityItem');
       const CommunityActivity = require('../models/CommunityActivity');
-      const link = await CommunityItem.findOne({ type: 'habit', sourceId: habit._id, status: 'approved', isActive: true }).select('communityId').lean();
-      if (link && link.communityId && [1,7,30,100].includes(nextStreak)) {
-        const u = await User.findById(userId).select('name avatar').lean();
+      const link = await CommunityItem.findOne({ type: 'habit', sourceId: habitId, status: 'approved', isActive: true }).select('communityId').lean();
+      if (link && link.communityId && [1,7,30,100].includes(currentStreak)) {
+        const u = await pgUserService.findById(userId);
         await CommunityActivity.create({
           communityId: link.communityId,
           userId,
           name: u?.name,
-          avatar: u?.avatar,
+          avatar: u?.avatar_url,
           type: 'streak_milestone',
-          data: { streakCount: nextStreak, metadata: { habitId: habit._id, habitName: habit.name } }
+          data: { streakCount: currentStreak, metadata: { habitId: updatedHabit.id, habitName: updatedHabit.name } }
         });
       }
     } catch (_) {}
-  } else if (!isDone) {
-    // If missed or skipped, we need to adjust counts
-    const todayKey = toDateKeyUTC(new Date());
-    const updates = {};
-    
-    // Reset current streak if it's today
-    if (dateKey === todayKey && (habit.currentStreak || 0) > 0) {
-      updates.currentStreak = 0;
-    }
-    
-    // If skipping and there were previous completions today, decrement totalCompletions
-    if (isSkipped && existingLog && existingLog.status === 'done') {
-      const prevCompletionCount = existingLog.completionCount || 0;
-      if (prevCompletionCount > 0) {
-        updates.totalCompletions = Math.max(0, (habit.totalCompletions || 0) - prevCompletionCount);
-      }
-      // Also decrement totalDays since this day is no longer "done"
-      updates.totalDays = Math.max(0, (habit.totalDays || 0) - 1);
-    }
-    
-    if (Object.keys(updates).length > 0) {
-      await Habit.updateOne({ _id: habit._id }, { $set: updates });
-    }
   }
 
   return log;
 }
 
 async function getHeatmap(userId, habitId, { months = 3 } = {}) {
-  const habit = await Habit.findOne({ _id: habitId, userId });
+  const habit = await pgHabitService.getHabitById(habitId, userId);
   if (!habit) throw Object.assign(new Error('Habit not found'), { statusCode: 404 });
+  
   const from = new Date();
   from.setUTCMonth(from.getUTCMonth() - months);
   const fromKey = toDateKeyUTC(from);
-  const logs = await HabitLog.find({ userId, habitId, dateKey: { $gte: fromKey } })
-    .select('dateKey status')
-    .lean();
+  
+  const logs = await pgHabitLogService.getLogsByDateRange(habitId, fromKey, toDateKeyUTC(new Date()));
+  
   const map = {};
   for (const l of logs) map[l.dateKey] = l.status;
   return map;
 }
 
 async function getStats(userId) {
-  // Use aggregation to compute stats efficiently in MongoDB
-  const dayMs = 24 * 60 * 60 * 1000;
-  const stats = await Habit.aggregate([
-    { $match: { userId: new mongoose.Types.ObjectId(userId), isActive: true, isArchived: false } },
-    {
-      $project: {
-        currentStreak: { $ifNull: ["$currentStreak", 0] },
-        longestStreak: { $ifNull: ["$longestStreak", 0] },
-        totalCompletions: { $ifNull: ["$totalCompletions", 0] },
-        createdAt: 1,
-        daysSince: {
-          $max: [
-            1,
-            {
-              $ceil: {
-                $divide: [
-                  { $subtract: ["$$NOW", "$createdAt"] },
-                  dayMs
-                ]
-              }
-            }
-          ]
-        }
-      }
-    },
-    {
-      $project: {
-        currentStreak: 1,
-        longestStreak: 1,
-        consistency: {
-          $min: [
-            100,
-            {
-              $round: [
-                {
-                  $multiply: [
-                    { $cond: [{ $gt: ["$daysSince", 0] }, { $divide: ["$totalCompletions", "$daysSince"] }, 0] },
-                    100
-                  ]
-                },
-                0
-              ]
-            }
-          ]
-        }
-      }
-    },
-    {
-      $group: {
-        _id: null,
-        totalHabits: { $sum: 1 },
-        totalCurrentStreak: { $sum: "$currentStreak" },
-        bestStreak: { $max: "$longestStreak" },
-        avgConsistency: { $avg: "$consistency" }
-      }
-    },
-    {
-      $project: {
-        _id: 0,
-        totalHabits: 1,
-        totalCurrentStreak: 1,
-        bestStreak: 1,
-        avgConsistency: { $ifNull: [{ $round: ["$avgConsistency", 0] }, 0] }
-      }
-    }
-  ]);
-
-  const result = stats[0] || { totalHabits: 0, totalCurrentStreak: 0, bestStreak: 0, avgConsistency: 0 };
-  return result;
+  const habits = await pgHabitService.getUserHabits({
+    userId,
+    isActive: true,
+    isArchived: false,
+    limit: 1000
+  });
+  
+  if (!habits || habits.length === 0) {
+    return { totalHabits: 0, totalCurrentStreak: 0, bestStreak: 0, avgConsistency: 0 };
+  }
+  
+  let totalCurrentStreak = 0;
+  let bestStreak = 0;
+  let totalConsistency = 0;
+  
+  for (const habit of habits) {
+    totalCurrentStreak += habit.currentStreak || 0;
+    bestStreak = Math.max(bestStreak, habit.longestStreak || 0);
+    const consistency = computeConsistency(habit.totalCompletions || 0, habit.createdAt);
+    totalConsistency += consistency;
+  }
+  
+  const avgConsistency = Math.round(totalConsistency / habits.length);
+  
+  return {
+    totalHabits: habits.length,
+    totalCurrentStreak,
+    bestStreak,
+    avgConsistency
+  };
 }
 
 // Timezone-aware reminder: build local time from habit.timezone and compare to current UTC
@@ -534,7 +444,14 @@ function parseHHmmToMinutes(text) {
 
 // Return due habits for this exact minute considering timezone and schedule
 async function dueHabitsForReminder(userId, userTimezone, windowMinutes = 10) {
-  const habits = await Habit.find({ userId, isActive: true, isArchived: false }).lean();
+  // Use PostgreSQL for habits
+  const habits = await pgHabitService.getUserHabits({ 
+    userId, 
+    isActive: true, 
+    isArchived: false,
+    limit: 1000
+  });
+  
   const todayUTC = new Date();
   const jobs = [];
   for (const h of habits) {
@@ -559,37 +476,44 @@ async function dueHabitsForReminder(userId, userTimezone, windowMinutes = 10) {
 function isWithinQuietHours() { return false; }
 
 async function sendReminderNotifications({ windowMinutes = 10 } = {}) {
-  const users = await User.find({ isActive: true }).select('_id notificationSettings timezone').lean();
+  // Get active users from PostgreSQL
+  const { query } = require('../config/supabase');
+  const result = await query('SELECT id, timezone FROM users WHERE is_active = true', []);
+  const users = result.rows;
+  
   const jobs = [];
   for (const u of users) {
-    const ns = u.notificationSettings || {};
+    // Check notification preferences in MongoDB
+    const prefs = await UserPreferences.findOne({ userId: u.id }).select('notificationSettings').lean();
+    const ns = prefs?.notificationSettings || {};
     if (ns.habits && ns.habits.enabled === false) continue;
+    
     // Quiet hours removed
-    const due = await dueHabitsForReminder(u._id, u.timezone || 'Asia/Kolkata', windowMinutes);
+    const due = await dueHabitsForReminder(u.id, u.timezone || 'Asia/Kolkata', windowMinutes);
     for (const job of due) {
       const h = job.habit;
       // Skip if already done today (default true)
       const skipIfDone = ns.habits && typeof ns.habits.skipIfDone === 'boolean' ? ns.habits.skipIfDone : true;
       if (skipIfDone) {
         const todayKey = toDateKeyUTC(new Date());
-        const done = await HabitLog.findOne({ userId: u._id, habitId: h._id, dateKey: todayKey, status: 'done' }).select('_id').lean();
+        const done = await pgHabitLogService.isLoggedToday(h.id, todayKey);
         if (done) continue;
       }
       // Idempotency guard (10-min window key)
       try {
         const dateKey = toDateKeyUTC(new Date());
-        const key = `habit:reminder:${String(u._id)}:${String(h._id)}:${dateKey}:${job.matchedMinutes}`;
+        const key = `habit:reminder:${String(u.id)}:${String(h.id)}:${dateKey}:${job.matchedMinutes}`;
         const exists = await redis.get(key);
         if (!exists) {
           const ttl = Math.max(600, windowMinutes * 60); // >=10min
           await redis.set(key, '1', { ex: ttl });
           const timeHHmm = `${String(Math.floor(job.matchedMinutes / 60)).padStart(2,'0')}:${String(job.matchedMinutes % 60).padStart(2,'0')}`;
-          jobs.push(Notification.createHabitReminderNotification(u._id, h._id, h.name, timeHHmm));
+          jobs.push(Notification.createHabitReminderNotification(u.id, h.id, h.name, timeHHmm));
         }
       } catch (_) {
         // If redis unavailable, fall back to sending (dedup relies on notification rules/user settings)
         const timeHHmm = `${String(Math.floor(job.matchedMinutes / 60)).padStart(2,'0')}:${String(job.matchedMinutes % 60).padStart(2,'0')}`;
-        jobs.push(Notification.createHabitReminderNotification(u._id, h._id, h.name, timeHHmm));
+        jobs.push(Notification.createHabitReminderNotification(u.id, h.id, h.name, timeHHmm));
       }
     }
   }
@@ -601,7 +525,14 @@ async function analytics(userId, { days = 30 } = {}) {
   const from = new Date();
   from.setUTCDate(from.getUTCDate() - Math.max(1, days));
   const fromKey = toDateKeyUTC(from);
-  const logs = await HabitLog.find({ userId, dateKey: { $gte: fromKey } }).lean();
+  
+  const logs = await pgHabitLogService.getUserHabitLogs({
+    userId,
+    startDate: fromKey,
+    endDate: toDateKeyUTC(new Date()),
+    limit: 10000
+  });
+  
   const totals = { done: 0, missed: 0, skipped: 0 };
   const byHabit = {};
   for (const l of logs) {
@@ -609,13 +540,18 @@ async function analytics(userId, { days = 30 } = {}) {
     if (!byHabit[l.habitId]) byHabit[l.habitId] = { done: 0, missed: 0, skipped: 0 };
     byHabit[l.habitId][l.status] = (byHabit[l.habitId][l.status] || 0) + 1;
   }
-  // top streaks snapshot
-  const habits = await Habit.find({ userId, isActive: true }).select('name currentStreak longestStreak totalCompletions').lean();
+  // top streaks snapshot from PostgreSQL
+  const habitsResult = await pgHabitService.getUserHabits({ 
+    userId, 
+    isActive: true, 
+    limit: 1000 
+  });
+  const habits = habitsResult || []; // getUserHabits returns array directly, not wrapped
   const top = habits
     .sort((a,b) => (b.currentStreak||0) - (a.currentStreak||0))
     .slice(0, 5)
     .map(h => ({
-      id: h._id,
+      id: h.id,
       name: h.name,
       currentStreak: h.currentStreak || 0,
       longestStreak: h.longestStreak || 0,
@@ -626,7 +562,7 @@ async function analytics(userId, { days = 30 } = {}) {
 
 // Individual habit detailed analytics
 async function getHabitAnalytics(userId, habitId, { days = 90 } = {}) {
-  const habit = await Habit.findOne({ _id: habitId, userId });
+  const habit = await pgHabitService.getHabitById(habitId, userId);
   if (!habit) throw Object.assign(new Error('Habit not found'), { statusCode: 404 });
   
   const from = new Date();
@@ -634,9 +570,7 @@ async function getHabitAnalytics(userId, habitId, { days = 90 } = {}) {
   const fromKey = toDateKeyUTC(from);
   
   // Get all logs for this habit in the timeframe
-  const logs = await HabitLog.find({ userId, habitId, dateKey: { $gte: fromKey } })
-    .sort({ dateKey: 1 })
-    .lean();
+  const logs = await pgHabitLogService.getLogsByDateRange(habitId, fromKey, toDateKeyUTC(new Date()));
   
   // Calculate stats
   const stats = {

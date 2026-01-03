@@ -1,21 +1,30 @@
-const User = require('../models/User');
-const Block = require('../models/Block');
+const UserPreferences = require('../models/extended/UserPreferences');
+const pgBlockService = require('../services/pgBlockService');
 const userService = require('../services/userService');
+const pgUserService = require('../services/pgUserService');
+const pgGoalService = require('../services/pgGoalService');
 const { validationResult } = require('express-validator');
 const authService = require('../services/authService');
-const { sanitizeUser, sanitizeGoals, sanitizeGoalsForProfile } = require('../utility/sanitizer');
+const { sanitizeUser, sanitizeGoalsForProfile } = require('../utility/sanitizer');
 
 // Lightweight block status check
 const getBlockStatus = async (req, res, next) => {
   try {
     const { userId } = req.params;
-    const target = await User.findById(userId).select('_id').lean();
+    const target = await pgUserService.findById(userId);
     if (!target) return res.status(404).json({ success: false, message: 'User not found' });
     const [iBlocked, blockedMe] = await Promise.all([
-      Block.findOne({ blockerId: req.user.id, blockedId: userId, isActive: true }).lean(),
-      Block.findOne({ blockerId: userId, blockedId: req.user.id, isActive: true }).lean()
+      pgBlockService.isBlocking(req.user.id, parseInt(userId)),
+      pgBlockService.isBlocking(parseInt(userId), req.user.id)
     ]);
-    return res.json({ success: true, data: { iBlocked: !!iBlocked, blockedMe: !!blockedMe } });
+    return res.json({ 
+      success: true, 
+      data: { 
+        isBlocked: iBlocked, 
+        hasBlockedMe: blockedMe,
+        canViewProfile: !iBlocked && !blockedMe
+      } 
+    });
   } catch (err) { next(err); }
 };
 
@@ -46,7 +55,7 @@ const getUsers = async (req, res, next) => {
 const getUser = async (req, res, next) => {
   try {
     const { id: idOrUsername } = req.params;
-    const {user, stats, isFollowing, isRequested} = await userService.getUserByUsername(idOrUsername, req.user.id);
+    const {user, stats, isFollowing, isRequested, isBlocked} = await userService.getUserByUsername(idOrUsername, req.user.id);
     
     // ✅ Sanitize user data - hide sensitive fields for other users
     const isSelf = user.username === req.user.username;
@@ -54,9 +63,17 @@ const getUser = async (req, res, next) => {
     
     res.status(200).json({
       success: true,
-      data: {user: sanitizedUser, stats: stats, isFollowing: isFollowing, isRequested: isRequested}
+      data: {user: sanitizedUser, stats: stats, isFollowing: isFollowing, isRequested: isRequested, isBlocked: isBlocked || false}
     });
   } catch (error) {
+    // Handle block-specific errors
+    if (error.blocked) {
+      return res.status(403).json({
+        success: false,
+        message: error.message,
+        blocked: true
+      });
+    }
     next(error);
   }
 };
@@ -93,6 +110,35 @@ const getProfileSummary = async (req, res, next) => {
   }
 };
 
+// @desc    Get dashboard years (years with goals + manually added years)
+// @route   GET /api/v1/users/dashboard/years
+// @access  Private
+const getDashboardYears = async (req, res, next) => {
+  try {
+    // Get years where user has goals from PostgreSQL
+    const yearsWithGoals = await pgGoalService.getUserYearsWithGoals(req.user.id);
+    
+    // Get manually added years from UserPreferences
+    const prefs = await UserPreferences.findOne({ userId: req.user.id }).select('dashboardYears').lean();
+    const manualYears = prefs?.dashboardYears || [];
+    
+    // Combine and deduplicate
+    const allYears = [...new Set([...yearsWithGoals, ...manualYears])];
+    allYears.sort((a, b) => b - a); // Sort descending (newest first)
+    
+    return res.status(200).json({ 
+      success: true, 
+      data: { 
+        years: allYears,
+        yearsWithGoals,
+        manualYears
+      } 
+    });
+  } catch (error) { 
+    next(error); 
+  }
+}
+
 // @desc    Add a dashboard year to the current user
 // @route   POST /api/v1/users/dashboard/years
 // @access  Private
@@ -104,15 +150,17 @@ const addDashboardYear = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Provide valid year' })
     }
     const currentYear = new Date().getFullYear()
-    if (y < currentYear || y > currentYear + 5) {
-      return res.status(400).json({ success: false, message: `Year must be between ${currentYear} and ${currentYear + 5}` })
+    // Allow past years (up to 5 years back) and future years (up to 5 years ahead)
+    if (y < currentYear - 5 || y > currentYear + 5) {
+      return res.status(400).json({ success: false, message: `Year must be between ${currentYear - 5} and ${currentYear + 5}` })
     }
-    const user = await User.findByIdAndUpdate(
-      req.user.id,
+    // Use UserPreferences with PostgreSQL user ID
+    const prefs = await UserPreferences.findOneAndUpdate(
+      { userId: req.user.id },
       { $addToSet: { dashboardYears: y } },
-      { new: true }
-    ).select('_id dashboardYears')
-    return res.status(200).json({ success: true, data: { years: user.dashboardYears || [] } })
+      { new: true, upsert: true }
+    ).select('userId dashboardYears')
+    return res.status(200).json({ success: true, data: { years: prefs.dashboardYears || [] } })
   } catch (error) { next(error) }
 }
 
@@ -208,17 +256,21 @@ const deleteDashboardYear = async (req, res, next) => {
       });
       
       // 7. Clean up daily completions for completed goals
-      if (completedCount > 0) {
-        const completedGoals = goalsToDelete.filter(g => g.completed && g.completedAt);
-        for (const goal of completedGoals) {
-          const dateKey = new Date(goal.completedAt).toISOString().split('T')[0];
-          const pullKey = `dailyCompletions.${dateKey}`;
-          await User.updateOne(
-            { _id: req.user.id },
-            { $pull: { [pullKey]: { goalId: goal._id } } }
-          );
-        }
-      }
+      // TODO: Move dailyCompletions to a separate MongoDB collection with userId as Number
+      // if (completedCount > 0) {
+      //   const pgUser = await pgUserService.getUserById(req.user.id);
+      //   const userTimezone = pgUser?.timezone || 'UTC';
+      //   
+      //   const completedGoals = goalsToDelete.filter(g => g.completed && g.completedAt);
+      //   for (const goal of completedGoals) {
+      //     const dateKey = getDateKeyInTimezone(new Date(goal.completedAt), userTimezone);
+      //     const pullKey = `dailyCompletions.${dateKey}`;
+      //     await User.updateOne(
+      //       { _id: req.user.id },
+      //       { $pull: { [pullKey]: { goalId: goal._id } } }
+      //     );
+      //   }
+      // }
       
       // 8. Delete all goals for this year
       await Goal.deleteMany({ 
@@ -227,28 +279,25 @@ const deleteDashboardYear = async (req, res, next) => {
       });
     }
     
-    // 9. Update user statistics
-    await User.updateOne(
-      { _id: req.user.id },
-      { 
-        $inc: { 
-          totalGoals: -goalIds.length,
-          completedGoals: -completedCount
-        }
-      }
-    );
+    // 9. Update user statistics in PostgreSQL
+    if (goalIds.length > 0 || completedCount > 0) {
+      await pgUserService.incrementStats(req.user.id, { 
+        total_goals: -goalIds.length,
+        completed_goals: -completedCount
+      });
+    }
     
-    // 10. Remove year from user's dashboardYears
-    const user = await User.findByIdAndUpdate(
-      req.user.id,
+    // 10. Remove year from user's dashboardYears in UserPreferences
+    const prefs = await UserPreferences.findOneAndUpdate(
+      { userId: req.user.id },
       { $pull: { dashboardYears: y } },
-      { new: true }
-    ).select('_id dashboardYears');
+      { new: true, upsert: true }
+    ).select('userId dashboardYears');
     
     return res.status(200).json({ 
       success: true, 
       data: { 
-        years: user.dashboardYears || [],
+        years: prefs.dashboardYears || [],
         deletedGoals: goalIds.length,
         deletedCompletedGoals: completedCount
       },
@@ -307,30 +356,14 @@ const searchUsers = async (req, res, next) => {
       });
     }
 
-    // Try cache for interest-based searches (fast perceived speed)
-    const cacheService = require('../services/cacheService');
-    const cacheParams = { q: search || '', interest, page: parseInt(page), limit: parseInt(limit) };
-    let cached = null;
-    if (interest) {
-      cached = await cacheService.getUserSearch(cacheParams);
-    }
-
-    let payload = cached;
-    if (!payload) {
-      payload = await userService.searchUsers(search || '', { 
-        ...req.query, 
-        requestingUserId: req.user.id 
-      });
-      if (interest) {
-        // Store only minimal payload for cache
-        await cacheService.setUserSearch(payload, cacheParams);
-      }
-    }
+    const payload = await userService.searchUsers(search || '', { 
+      ...req.query, 
+      requestingUserId: req.user.id 
+    });
 
     res.status(200).json({
       success: true,
-      data: payload,
-      fromCache: !!cached
+      data: payload
     });
   } catch (error) {
     next(error);
@@ -342,14 +375,16 @@ const searchUsers = async (req, res, next) => {
 // @access  Private
 const getUserGoals = async (req, res, next) => {
   try {
-    const goalService = require('../services/goalService');
+    const pgFollowService = require('../services/pgFollowService');
     const { username } = req.params;
-    const Follow = require('../models/Follow');
-    const targetUser = await User.findOne({ username: username }).select('isPrivate isActive');
-      console.log('Target user for goals:', targetUser);
+    const { page = 1, limit = 9, status, category, year } = req.query;
+    
+    const targetUser = await pgUserService.getUserByUsername(username);
+    console.log('Target user for goals:', targetUser);
+    
     // Check privacy if viewing another user's goals
     if (username !== req.user.username) {
-      if (!targetUser || !targetUser.isActive) {
+      if (!targetUser || !targetUser.is_active) {
         return res.status(404).json({
           success: false,
           message: 'User not found'
@@ -357,8 +392,8 @@ const getUserGoals = async (req, res, next) => {
       }
 
       // Check if profile is private and user is not following
-      if (targetUser.isPrivate) {
-        const isFollowing = await Follow.isFollowing(req.user.id, id);
+      if (targetUser.is_private) {
+        const isFollowing = await pgFollowService.isFollowing(req.user.id, targetUser.id);
         if (!isFollowing) {
           return res.status(403).json({
             success: false,
@@ -368,7 +403,20 @@ const getUserGoals = async (req, res, next) => {
       }
     }
 
-    const result = await goalService.getGoals(targetUser._id, req.query);
+    // Build query params for pgGoalService
+    const queryParams = {
+      userId: targetUser.id,
+      page: parseInt(page),
+      limit: parseInt(limit)
+    };
+    
+    if (status === 'completed') queryParams.completed = true;
+    else if (status === 'active') queryParams.completed = false;
+    
+    if (category) queryParams.category = category;
+    if (year) queryParams.year = parseInt(year);
+
+    const result = await pgGoalService.getUserGoals(queryParams);
 
     // ✅ Sanitize goals - Use minimal fields for profile page display
     if (result.goals && Array.isArray(result.goals)) {
@@ -475,11 +523,7 @@ const updatePrivacy = async (req, res, next) => {
     }
 
     const { isPrivate } = req.body;
-    const user = await User.findByIdAndUpdate(
-      userId,
-      { isPrivate },
-      { new: true, runValidators: true }
-    ).select('-password'); // Exclude password from response
+    const user = await pgUserService.updateUser(userId, { is_private: isPrivate });
 
     if (!user) {
       return res.status(404).json({
@@ -513,8 +557,7 @@ const deleteUser = async (req, res, next) => {
       });
     }
 
-    const User = require('../models/User');
-    await User.findByIdAndUpdate(id, { isActive: false });
+    await pgUserService.updateUser(id, { is_active: false });
 
     res.status(200).json({
       success: true,
@@ -534,10 +577,10 @@ const updateTimezone = async (req, res, next) => {
     if (!timezone && typeof timezoneOffsetMinutes !== 'number') {
       return res.status(400).json({ success: false, message: 'Provide timezone or timezoneOffsetMinutes' });
     }
-    const set = {};
-    if (timezone) set.timezone = timezone;
-    if (typeof timezoneOffsetMinutes === 'number') set.timezoneOffsetMinutes = timezoneOffsetMinutes;
-    const user = await User.findByIdAndUpdate(req.user.id, { $set: set }, { new: true }).select('_id timezone timezoneOffsetMinutes');
+    const updates = {};
+    if (timezone) updates.timezone = timezone;
+    if (typeof timezoneOffsetMinutes === 'number') updates.timezone_offset_minutes = timezoneOffsetMinutes;
+    const user = await pgUserService.updateUser(req.user.id, updates);
     return res.status(200).json({ success: true, data: { user } });
   } catch (err) { next(err); }
 };
@@ -548,7 +591,6 @@ const updateTimezone = async (req, res, next) => {
 const getAnalytics = async (req, res, next) => {
   try {
     const { username } = req.query;
-    const Goal = require('../models/Goal');
     const habitService = require('../services/habitService');
     
     let targetUserId = req.user.id;
@@ -561,6 +603,7 @@ const getAnalytics = async (req, res, next) => {
         return res.status(404).json({ success: false, message: 'User not found' });
       }
       
+      targetUserId = targetUserData.user.id;
       targetUsername = targetUserData.user.username;
       isSelf = targetUsername === req.user.username;
       
@@ -577,32 +620,41 @@ const getAnalytics = async (req, res, next) => {
         }
       }
     }
-    // Get user to extract streaks
-    const user = await User.findOne({ username: targetUsername }).select('currentStreak longestStreak isActive');
-    if (!user || !user.isActive) {
+    // Get user from PostgreSQL
+    const user = await pgUserService.getUserByUsername(targetUsername);
+    if (!user || !user.is_active) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
     
-    // Get goals stats
-    const [totalGoals, completedGoals] = await Promise.all([
-      Goal.countDocuments({ userId: targetUserId, deletedAt: null }),
-      Goal.countDocuments({ userId: targetUserId, completed: true, deletedAt: null })
-    ]);
+    // Get goals stats from PostgreSQL
+    const goalsResult = await pgGoalService.getUserGoals({
+      userId: targetUserId,
+      page: 1,
+      limit: 1
+    });
+    const totalGoals = goalsResult.pagination.total;
+    const completedGoalsResult = await pgGoalService.getUserGoals({
+      userId: targetUserId,
+      completed: true,
+      page: 1,
+      limit: 1
+    });
+    const completedGoals = completedGoalsResult.pagination.total;
     
     // Get habits analytics (30 days by default)
     const habitAnalytics = await habitService.analytics(targetUserId, { days: 30 });
     
     const analytics = {
       habits: {
-        done: habitAnalytics.done || 0,
-        missed: habitAnalytics.missed || 0,
-        skipped: habitAnalytics.skipped || 0
+        done: habitAnalytics.totals?.done || 0,
+        missed: habitAnalytics.totals?.missed || 0,
+        skipped: habitAnalytics.totals?.skipped || 0
       },
       goals: {
         totalGoals: totalGoals || 0,
         completedGoals: completedGoals || 0,
-        currentStreak: user?.currentStreak || 0,
-        longestStreak: user?.longestStreak || 0
+        currentStreak: user?.current_streak || 0,
+        longestStreak: user?.longest_streak || 0
       },
       topHabits: habitAnalytics.topHabits || []
     };
@@ -623,13 +675,12 @@ const getUserAnalytics = async (req, res, next) => {
   try {
     const { id: targetUserId } = req.params;
     const requestingUserId = req.user.id;
-    const Goal = require('../models/Goal');
     const habitService = require('../services/habitService');
-    const Follow = require('../models/Follow');
+    const pgFollowService = require('../services/pgFollowService');
     
-    // Get target user
-    const targetUser = await User.findById(targetUserId).select('currentStreak longestStreak isPrivate');
-    if (!targetUser || !targetUser.isActive) {
+    // Get target user from PostgreSQL
+    const targetUser = await pgUserService.getUserById(targetUserId);
+    if (!targetUser || !targetUser.is_active) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
     
@@ -637,9 +688,9 @@ const getUserAnalytics = async (req, res, next) => {
     // 1. Viewing own profile
     // 2. Profile is public
     // 3. Requesting user is following target user
-    const isSelf = targetUserId === requestingUserId;
-    const isPublic = !targetUser.isPrivate;
-    const isFollowing = isSelf ? false : await Follow.isFollowing(requestingUserId, targetUserId);
+    const isSelf = String(targetUserId) === String(requestingUserId);
+    const isPublic = !targetUser.is_private;
+    const isFollowing = isSelf ? false : await pgFollowService.isFollowing(requestingUserId, targetUserId);
     
     if (!isSelf && !isPublic && !isFollowing) {
       return res.status(403).json({ 
@@ -648,26 +699,35 @@ const getUserAnalytics = async (req, res, next) => {
       });
     }
     
-    // Get goals stats
-    const [totalGoals, completedGoals] = await Promise.all([
-      Goal.countDocuments({ userId: targetUserId, deletedAt: null }),
-      Goal.countDocuments({ userId: targetUserId, completed: true, deletedAt: null })
-    ]);
+    // Get goals stats from PostgreSQL
+    const goalsResult = await pgGoalService.getUserGoals({
+      userId: targetUserId,
+      page: 1,
+      limit: 1
+    });
+    const totalGoals = goalsResult.pagination.total;
+    const completedGoalsResult = await pgGoalService.getUserGoals({
+      userId: targetUserId,
+      completed: true,
+      page: 1,
+      limit: 1
+    });
+    const completedGoals = completedGoalsResult.pagination.total;
     
     // Get habits analytics (30 days by default)
     const habitAnalytics = await habitService.analytics(targetUserId, { days: 30 });
     
     const analytics = {
       habits: {
-        done: habitAnalytics.done || 0,
-        missed: habitAnalytics.missed || 0,
-        skipped: habitAnalytics.skipped || 0
+        done: habitAnalytics.totals?.done || 0,
+        missed: habitAnalytics.totals?.missed || 0,
+        skipped: habitAnalytics.totals?.skipped || 0
       },
       goals: {
         totalGoals: totalGoals || 0,
         completedGoals: completedGoals || 0,
-        currentStreak: targetUser?.currentStreak || 0,
-        longestStreak: targetUser?.longestStreak || 0
+        currentStreak: targetUser?.current_streak || 0,
+        longestStreak: targetUser?.longest_streak || 0
       },
       topHabits: habitAnalytics.topHabits || []
     };
@@ -697,6 +757,7 @@ module.exports = {
   deleteUser,
   listInterests,
   updateTimezone,
+  getDashboardYears,
   addDashboardYear,
   deleteDashboardYear,
   getAnalytics,

@@ -3,7 +3,7 @@ const router = express.Router();
 const multer = require('multer');
 const { protect } = require('../middleware/auth');
 const cloudinaryService = require('../services/cloudinaryService');
-const User = require('../models/User');
+const pgUserService = require('../services/pgUserService');
 
 // Memory storage for serverless
 const storage = multer.memoryStorage();
@@ -29,7 +29,7 @@ router.post('/avatar', protect, upload.single('avatar'), async (req, res, next) 
       return res.status(500).json({ success: false, message: 'Failed to upload image' });
     }
 
-    const user = await User.findByIdAndUpdate(req.user.id, { avatar: url }, { new: true }).select('-password -refreshToken');
+    const user = await pgUserService.updateUser(req.user.id, { avatarUrl: url });
 
     return res.status(200).json({ success: true, message: 'Avatar updated', data: { url, user } });
   } catch (err) {

@@ -42,8 +42,14 @@ const BloomFilterService = {
   /**
    * Rebuild Bloom Filter from full DB snapshot
    */
-  async rebuildFromDatabase(UserModel) {
-    const users = await UserModel.find({}, { email: 1, username: 1 }).lean();
+  async rebuildFromDatabase(pgUserService) {
+    // Query PostgreSQL for all usernames and emails
+    const { query } = require('../config/supabase');
+    const result = await query(
+      'SELECT email, username FROM users WHERE is_active = true',
+      []
+    );
+    const users = result.rows;
 
     const expectedItems = Math.ceil((users.length || 10000) * 1.5)
     bloom = new BloomFilter(expectedItems, 0.01);
@@ -54,19 +60,21 @@ const BloomFilterService = {
     }
 
     await redisClient.set(BLOOM_KEY, JSON.stringify(bloom.saveAsJSON()));
-    console.log(`Bloom Filter rebuilt with ${users.length} entries`);
+    console.log(`Bloom Filter rebuilt with ${users.length} entries from PostgreSQL`);
   },
 
-  async rebuildIdExpectedUsersIncrease(UserModel) {
+  async rebuildIdExpectedUsersIncrease(pgUserService) {
     // Check if we exceeded threshold
-    const currentCount = await UserModel.countDocuments();
+    const { query } = require('../config/supabase');
+    const result = await query('SELECT COUNT(*) FROM users WHERE is_active = true', []);
+    const currentCount = parseInt(result.rows[0].count);
     const expectedUsers = Number(await redisClient.get("bloom:expected_users")) || 10000;
 
     if (currentCount > expectedUsers) {
       // Increase expected size and rebuild
       const newExpected = Math.ceil(currentCount * 1.5);
       await redisClient.set("bloom:expected_users", newExpected);
-      await BloomFilterService.rebuildFromDatabase(UserModel);
+      await BloomFilterService.rebuildFromDatabase(pgUserService);
       console.log("Bloom filter rebuilt with increased size:", newExpected);
     }
   }

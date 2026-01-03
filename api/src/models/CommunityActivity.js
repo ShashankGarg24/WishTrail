@@ -2,17 +2,17 @@ const mongoose = require('mongoose');
 const { getFeedConnection } = require('../config/database');
 
 const communityActivitySchema = new mongoose.Schema({
-  communityId: { type: mongoose.Schema.Types.ObjectId, ref: 'Community', required: true, index: true },
-  sourceActivityId: { type: mongoose.Schema.Types.ObjectId, ref: 'Activity', index: true },
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+  communityId: { type: mongoose.Schema.Types.ObjectId, ref: 'Community', required: true },
+  sourceActivityId: { type: mongoose.Schema.Types.ObjectId, ref: 'Activity'},
+  userId: { type: Number, required: true }, // PostgreSQL user ID (integer)
   name: String,
   avatar: String,
-  type: { type: String, required: true, index: true },
+  type: { type: String, required: true },
   data: {
     goalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Goal' },
     goalTitle: String,
     goalCategory: String,
-    targetUserId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    targetUserId: { type: Number }, // PostgreSQL user ID (integer)
     targetUserName: String,
     streakCount: Number,
     achievementId: { type: mongoose.Schema.Types.ObjectId, ref: 'Achievement' },
@@ -21,10 +21,10 @@ const communityActivitySchema = new mongoose.Schema({
   },
   reactions: {
     type: Map,
-    of: new mongoose.Schema({ count: { type: Number, default: 0 }, userIds: [{ type: mongoose.Schema.Types.ObjectId }] }, { _id: false }),
+    of: new mongoose.Schema({ count: { type: Number, default: 0 }, userIds: [{ type: Number }] }, { _id: false }), // PostgreSQL user IDs
     default: {}
   },
-  isActive: { type: Boolean, default: true, index: true },
+  isActive: { type: Boolean, default: true },
   // TTL for updates: 7 days
   expiresAt: { 
     type: Date, 
@@ -36,10 +36,6 @@ const communityActivitySchema = new mongoose.Schema({
   toJSON: { virtuals: true },
   toObject: { virtuals: true }
 });
-
-communityActivitySchema.index({ communityId: 1, createdAt: -1 });
-communityActivitySchema.index({ communityId: 1, sourceActivityId: 1 }, { unique: true, sparse: true });
-communityActivitySchema.index({ 'data.goalId': 1, createdAt: -1 });
 
 communityActivitySchema.virtual('message').get(function() {
   const messages = {

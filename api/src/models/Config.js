@@ -10,8 +10,7 @@ const configSchema = new mongoose.Schema({
     required: true,
     unique: true,
     trim: true,
-    lowercase: true,
-    index: true
+    lowercase: true
   },
   value: {
     type: mongoose.Schema.Types.Mixed,

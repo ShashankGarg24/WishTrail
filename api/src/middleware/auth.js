@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const pgUserService = require('../services/pgUserService');
 
 // Middleware to protect routes that require authentication
 const protect = async (req, res, next) => {
@@ -28,7 +28,7 @@ const protect = async (req, res, next) => {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       
       // Get user from the token (use userId from our JWT payload)
-      const user = await User.findById(decoded.userId).select('-password -refreshToken');
+      const user = await pgUserService.getUserById(decoded.userId);
       
       if (!user) {
         return res.status(401).json({
@@ -38,7 +38,7 @@ const protect = async (req, res, next) => {
       }
       
       // Check if user account is active
-      if (!user.isActive) {
+      if (!user.is_active) {
         return res.status(401).json({
           success: false,
           message: 'Your account has been deactivated'

@@ -398,8 +398,8 @@ const FeedPage = () => {
               )}
               {!storiesLoading && stories && stories.length > 0 && stories.slice(0, STORIES_LIMIT).map((g, idx) => (
                 <button
-                  key={g._id || idx}
-                  onClick={() => g._id && openGoalModal(g._id)}
+                  key={g.id || idx}
+                  onClick={() => g.id && openGoalModal(g.id)}
                   className="group relative shrink-0 w-16 focus:outline-none focus:ring-2 focus:ring-primary-500 rounded-xl p-1 -m-1 transition-all duration-200"
                   title={g.title}
                   aria-label={`Open goal ${g.title}`}
@@ -533,7 +533,7 @@ const FeedPage = () => {
                   <div className="px-4 pb-4">
                     <div 
                       className="bg-gradient-to-br from-gray-50 to-gray-100/50 dark:from-gray-700/30 dark:to-gray-800/30 rounded-xl p-4 border border-gray-200 dark:border-gray-700/50 cursor-pointer hover:border-primary-300 dark:hover:border-primary-600/50 transition-all group" 
-                      onClick={() => openGoalModal(activity?.data?.goalId?._id)}
+                      onClick={() => openGoalModal(activity?.data?.goalId)}
                     >
                       {(activity.type === 'goal_completed' || activity.type === 'goal_created' || activity.type === 'goal_activity' || 
                         activity.type === 'subgoal_added' || activity.type === 'subgoal_completed' ||
@@ -674,7 +674,7 @@ const FeedPage = () => {
                         <span>{activity.likeCount || 0}</span>
                       </button>
                       <button
-                        onClick={(e) => { e.stopPropagation(); if (isMobile) { setCommentsOpenActivityId(activity._id); } else { setScrollCommentsOnOpen(true); openGoalModal(activity?.data?.goalId?._id); } }}
+                        onClick={(e) => { e.stopPropagation(); if (isMobile) { setCommentsOpenActivityId(activity._id); } else { setScrollCommentsOnOpen(true); openGoalModal(activity?.data?.goalId); } }}
                         className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all"
                       >
                         <MessageCircle className="h-4 w-4" />

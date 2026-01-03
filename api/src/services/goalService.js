@@ -1,8 +1,10 @@
-const Goal = require('../models/Goal');
-const User = require('../models/User');
 const Activity = require('../models/Activity');
+const UserPreferences = require('../models/extended/UserPreferences');
+const GoalDetails = require('../models/extended/GoalDetails');
 const userService = require('./userService');
 const cacheService = require('./cacheService');
+const pgUserService = require('./pgUserService');
+const pgGoalService = require('./pgGoalService');
 
 // Map user interests to goal categories for consistent filtering
 function mapInterestToCategory(raw) {
@@ -63,55 +65,38 @@ class GoalService {
       sortOrder = 'desc'
     } = params;
     
-    let query = { userId };
+    const queryParams = { userId, page, limit };
     
     // Filter by status
     if (status === 'completed') {
-      query.completed = true;
+      queryParams.completed = true;
     } else if (status === 'active') {
-      query.completed = false;
+      queryParams.completed = false;
     }
     
     // Filter by category
     if (category) {
-      query.category = category;
+      queryParams.category = category;
     }
     
     // Sort options
-    const sortOptions = {};
-    sortOptions[sortBy] = sortOrder === 'desc' ? -1 : 1;
+    queryParams.sort = sortOrder === 'desc' ? 'newest' : 'oldest';
     
-    const goals = await Goal.find(query)
-      .sort(sortOptions)
-      .limit(limit * 1)
-      .skip((page - 1) * limit)
-      .populate('userId', 'name avatar');
-    
-    const total = await Goal.countDocuments(query);
-    
-    return {
-      goals,
-      pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total,
-        pages: Math.ceil(total / limit)
-      }
-    };
+    return await pgGoalService.getUserGoals(queryParams);
   }
   
   /**
    * Get goal by ID
    */
   async getGoalById(goalId, requestingUserId) {
-    const goal = await Goal.findById(goalId).populate('userId', 'name avatar');
+    const goal = await pgGoalService.getGoalById(goalId);
     
     if (!goal) {
       throw new Error('Goal not found');
     }
     
     // Check if user can view this goal
-    if (goal.userId._id.toString() !== requestingUserId && !goal.isPublic) {
+    if (goal.user_id !== requestingUserId && !goal.is_public) {
       throw new Error('Access denied');
     }
     
@@ -127,7 +112,9 @@ class GoalService {
       description,
       category,
       targetDate,
+      year,
       isPublic = true,
+      isDiscoverable = false,
       tags = []
     } = goalData;
     
@@ -136,30 +123,40 @@ class GoalService {
       throw new Error('Title and category are required');
     }
     
-    
-    const goal = await Goal.create({
+    const goal = await pgGoalService.createGoal({
       userId,
       title,
-      description,
       category,
+      year,
       targetDate,
       isPublic,
-      tags
+      isDiscoverable
     });
     
-    const currentUser = (await User.findById(userId).select('name avatar').lean());
+    // Create GoalDetails in MongoDB for extended data
+    if (description || tags.length > 0) {
+      await GoalDetails.create({
+        goalId: goal.id,
+        userId,
+        description,
+        tags
+      });
+    }
+    
+    const currentUser = await pgUserService.getUserById(userId);
     // Create activity - respect goal's privacy setting
     await Activity.createActivity(
       userId,
       currentUser.name,
-      currentUser.avatar,
+      currentUser.username,
+      currentUser.avatar_url,
       'goal_created',
       {
-        goalId: goal._id,
+        goalId: goal.id,
         goalTitle: title,
         goalCategory: category
       },
-      { isPublic: goal.isPublic }
+      { isPublic: goal.is_public }
     );
     
     return goal;
@@ -169,14 +166,14 @@ class GoalService {
    * Update a goal
    */
   async updateGoal(goalId, userId, updateData) {
-    const goal = await Goal.findById(goalId);
+    const goal = await pgGoalService.getGoalById(goalId);
     
     if (!goal) {
       throw new Error('Goal not found');
     }
     
     // Check ownership
-    if (goal.userId.toString() !== userId) {
+    if (goal.user_id !== userId) {
       throw new Error('Access denied');
     }
     
@@ -185,26 +182,35 @@ class GoalService {
       throw new Error('Cannot update completed goals');
     }
     
-    const allowedUpdates = [
-      'title', 'description', 'category', 'targetDate', 'isPublic', 'tags'
-    ];
+    const allowedUpdates = ['title', 'category', 'target_date', 'is_public', 'is_discoverable'];
+    const pgUpdates = {};
+    const detailUpdates = {};
     
-    const updates = {};
+    // Map updates to PostgreSQL field names and separate GoalDetails fields
     Object.keys(updateData).forEach(key => {
-      if (allowedUpdates.includes(key) && updateData[key] !== undefined) {
-        updates[key] = updateData[key];
+      if (updateData[key] !== undefined) {
+        if (key === 'targetDate') pgUpdates.target_date = updateData[key];
+        else if (key === 'isPublic') pgUpdates.is_public = updateData[key];
+        else if (key === 'isDiscoverable') pgUpdates.is_discoverable = updateData[key];
+        else if (allowedUpdates.includes(key)) pgUpdates[key] = updateData[key];
+        else if (key === 'description' || key === 'tags') detailUpdates[key] = updateData[key];
       }
     });
     
-    if (Object.keys(updates).length === 0) {
-      throw new Error('No valid updates provided');
+    let updatedGoal = goal;
+    if (Object.keys(pgUpdates).length > 0) {
+      updatedGoal = await pgGoalService.updateGoal(goalId, userId, pgUpdates);
     }
     
-    const updatedGoal = await Goal.findByIdAndUpdate(
-      goalId,
-      updates,
-      { new: true, runValidators: true }
-    );
+    // Update GoalDetails if needed
+    if (Object.keys(detailUpdates).length > 0) {
+      await GoalDetails.findOneAndUpdate(
+        { goalId },
+        { $set: detailUpdates },
+        { upsert: true }
+      );
+    }
+    
     try { await cacheService.invalidateTrendingGoals(); } catch (_) {}
     
     return updatedGoal;
@@ -215,20 +221,26 @@ class GoalService {
    * Note: This method is kept for compatibility but main logic is in goalController
    */
   async deleteGoal(goalId, userId) {
-    const goal = await Goal.findById(goalId);
+    const goal = await pgGoalService.getGoalById(goalId);
     
     if (!goal) {
       throw new Error('Goal not found');
     }
     
     // Check ownership
-    if (goal.userId.toString() !== userId) {
+    if (goal.user_id !== userId) {
       throw new Error('Access denied');
     }
     
     // Note: Full cascading delete is handled in goalController with transaction
     // This method is kept for service-level calls if needed
-    await Goal.deleteOne({ _id: goalId });
+    await pgGoalService.deleteGoal(goalId, userId);
+    
+    // Also soft-delete GoalDetails
+    await GoalDetails.findOneAndUpdate(
+      { goalId },
+      { isActive: false }
+    );
     
     try { 
       await cacheService.invalidateTrendingGoals(); 
@@ -245,14 +257,14 @@ class GoalService {
   async completeGoal(goalId, userId, completionData = {}) {
     const { completionNote, completionProof } = completionData;
     
-    const goal = await Goal.findById(goalId);
+    const goal = await pgGoalService.getGoalById(goalId);
     
     if (!goal) {
       throw new Error('Goal not found');
     }
     
     // Check ownership
-    if (goal.userId.toString() !== userId) {
+    if (goal.user_id !== userId) {
       throw new Error('Access denied');
     }
     
@@ -261,35 +273,30 @@ class GoalService {
       throw new Error('Goal is already completed');
     }
     
-    // Check if goal is locked
-    if (goal.isLocked) {
-      throw new Error('Goal is locked and cannot be completed');
+    // Mark as completed in PostgreSQL
+    const completedGoal = await pgGoalService.completeGoal(goalId, userId);
+    
+    // Store completion note/proof in GoalDetails
+    if (completionNote || completionProof) {
+      await GoalDetails.findOneAndUpdate(
+        { goalId },
+        { 
+          $set: { 
+            completionNote,
+            completionProof,
+            completedAt: completedGoal.completed_at
+          }
+        },
+        { upsert: true }
+      );
     }
     
-    // Mark as completed
-    goal.completed = true;
-    goal.completedAt = new Date();
-    goal.completionNote = completionNote;
-    goal.completionProof = completionProof;
-    
-    await goal.save();
     try { await cacheService.invalidateTrendingGoals(); } catch (_) {}
     
-    // Update user stats
-    const user = await User.findById(userId);
+    // Update user stats in PostgreSQL
+    const user = await pgUserService.getUserById(userId);
     if (user) {
-      user.completedGoals = (user.completedGoals || 0) + 1;
-      
-      // Update daily completions for streak calculation
-      const today = new Date().toDateString();
-      if (!user.dailyCompletions) {
-        user.dailyCompletions = new Map();
-      }
-      
-      const todayCount = user.dailyCompletions.get(today) || 0;
-      user.dailyCompletions.set(today, todayCount + 1);
-      
-      await user.save();
+      await pgUserService.incrementStats(userId, { completed_goals: 1 });
       await userService.updateUserStreak(userId);
     }
     
@@ -297,52 +304,54 @@ class GoalService {
     await Activity.createActivity(
       userId,
       user.name,
-      user.avatar,
+      user.username,
+      user.avatar_url,
       'goal_completed',
       {
-        goalId: goal._id,
-        goalTitle: goal.title,
-        goalCategory: goal.category,
+        goalId: completedGoal.id,
+        goalTitle: completedGoal.title,
+        goalCategory: completedGoal.category,
         completionNote,
         metadata: {
           completionNote: completionNote || '',
           completionAttachmentUrl: completionProof || ''
         }
       },
-      { isPublic: goal.isPublic }
+      { isPublic: completedGoal.is_public }
     );
+    
     // Mirror into community feed if a community item references this goal
     try {
       const CommunityItem = require('../models/CommunityItem');
       const CommunityActivity = require('../models/CommunityActivity');
-      const link = await CommunityItem.findOne({ type: 'goal', sourceId: goal._id, status: 'approved', isActive: true }).select('communityId title').lean();
+      const link = await CommunityItem.findOne({ type: 'goal', sourceId: goalId, status: 'approved', isActive: true }).select('communityId title').lean();
       if (link && link.communityId) {
         await CommunityActivity.create({
           communityId: link.communityId,
           userId,
           name: user?.name,
-          avatar: user?.avatar,
+          avatar: user?.avatar_url,
           type: 'goal_completed',
-          data: { goalId: goal._id, goalTitle: goal.title, goalCategory: goal.category}
+          data: { goalId: completedGoal.id, goalTitle: completedGoal.title, goalCategory: completedGoal.category}
         });
       }
     } catch (_) {}
     
-    return goal;
+    return completedGoal;
   }
   
   /**
    * Toggle goal completion status
    */
   async toggleGoal(goalId, userId) {
-    const goal = await Goal.findById(goalId);
+    const goal = await pgGoalService.getGoalById(goalId);
     
     if (!goal) {
       throw new Error('Goal not found');
     }
     
     // Check ownership
-    if (goal.userId.toString() !== userId) {
+    if (goal.user_id !== userId) {
       throw new Error('Access denied');
     }
     
@@ -353,9 +362,6 @@ class GoalService {
       // Complete the goal
       return await this.completeGoal(goalId, userId);
     }
-    
-    await goal.save();
-    return goal;
   }
   
   /**
@@ -364,27 +370,26 @@ class GoalService {
   async getYearlyGoals(userId, year, requestingUserId) {
     // Check if user can view these goals
     if (userId !== requestingUserId) {
-      const user = await User.findById(userId);
-      if (!user || !user.isActive) {
+      const user = await pgUserService.getUserById(userId);
+      if (!user || !user.is_active) {
         throw new Error('User not found');
       }
     }
     
-    const startOfYear = new Date(year, 0, 1);
-    const endOfYear = new Date(year + 1, 0, 1);
-    
-    const goals = await Goal.find({
+    // Get goals for this year from PostgreSQL
+    const result = await pgGoalService.getUserGoals({
       userId,
-      $or: [
-        { createdAt: { $gte: startOfYear, $lt: endOfYear } },
-        { completedAt: { $gte: startOfYear, $lt: endOfYear } }
-      ]
-    }).sort({ createdAt: -1 });
+      year,
+      page: 1,
+      limit: 1000 // Get all for the year
+    });
+    
+    const goals = result.goals;
     
     // Group goals by month
     const monthlyGoals = {};
     goals.forEach(goal => {
-      const month = goal.createdAt.getMonth();
+      const month = new Date(goal.created_at).getMonth();
       if (!monthlyGoals[month]) {
         monthlyGoals[month] = [];
       }
@@ -408,18 +413,16 @@ class GoalService {
    * Get trending goals
    */
   async getTrendingGoals(params = {}) {
-    const { limit = 10 } = params;
+    const { limit = 10, category, days = 7 } = params;
 
-    const trendingGoals = await Goal.aggregate([
-      { $match: { completed: true, isPublic: true, isActive: true } },
-      { $sort: { completedAt: -1 } },
-      { $limit: parseInt(limit) },
-      { $lookup: { from: 'users', localField: 'userId', foreignField: '_id', as: 'user' } },
-      { $unwind: { path: '$user', preserveNullAndEmptyArrays: true } },
-      { $project: { title: 1, description: 1, category: 1, completedAt: 1, likeCount: 1, user: { _id: '$user._id', name: '$user.name', avatar: '$user.avatar'} } }
-    ]);
+    const result = await pgGoalService.getTrendingGoals({
+      category,
+      page: 1,
+      limit: parseInt(limit),
+      days: parseInt(days)
+    });
 
-    return trendingGoals;
+    return result.goals;
   }
 
   /**
@@ -431,75 +434,56 @@ class GoalService {
       limit = 20,
       strategy = 'global', // global | category | personalized
       category,
-      userId
+      username,
+      days = 7
     } = params;
 
     const parsedLimit = Math.min(50, Math.max(1, parseInt(limit)));
     const parsedPage = Math.max(1, parseInt(page));
-    const skip = (parsedPage - 1) * parsedLimit;
 
-    const baseMatch = { completed: true, isPublic: true, isActive: true };
+    // For category strategy, pass category directly
     if (strategy === 'category' && category) {
-      baseMatch.category = category;
-    }
-
-    // Personalized categories derived from user interests (optional)
-    let interestCategories = [];
-    if (strategy === 'personalized' && userId) {
-      const user = await User.findById(userId).select('interests').lean();
-      const interests = Array.isArray(user && user.interests) ? user.interests : [];
-      // Map interests to goal categories
-      const catSet = new Set();
-      for (const i of interests) {
-        catSet.add(mapInterestToCategory(i));
-      }
-      interestCategories = Array.from(catSet);
-    }
-
-    // Build aggregation pipeline
-    const pipeline = [
-      { $match: baseMatch }
-    ];
-
-    if (interestCategories.length > 0) {
-      pipeline.push({
-        $addFields: {
-          _interestBoost: { $cond: [{ $in: ['$category', interestCategories] }, 5, 0] },
-          trendingScore: { $add: ['$_trendBase', { $cond: [{ $in: ['$category', interestCategories] }, 5, 0] }] }
-        }
-      });
-    } else {
-      pipeline.push({ $addFields: { trendingScore: '$_trendBase' } });
-    }
-
-    pipeline.push(
-      { $sort: { trendingScore: -1, completedAt: -1 } },
-      { $facet: {
-          data: [
-            { $skip: skip },
-            { $limit: parsedLimit },
-            { $lookup: { from: 'users', localField: 'userId', foreignField: '_id', as: 'user' } },
-            { $unwind: { path: '$user', preserveNullAndEmptyArrays: true } },
-            { $project: { _id: 1, title: 1, description: 1, category: 1, completedAt: 1, likeCount: 1, user: { _id: '$user._id', name: '$user.name', avatar: '$user.avatar'} } }
-          ],
-          total: [ { $count: 'count' } ]
-        }
-      }
-    );
-
-    const aggResult = await Goal.aggregate(pipeline).allowDiskUse(true);
-    const bucket = aggResult && aggResult[0] ? aggResult[0] : { data: [], total: [] };
-    const goals = bucket.data || [];
-    const total = (bucket.total && bucket.total[0] && bucket.total[0].count) ? bucket.total[0].count : 0;
-    return {
-      goals,
-      pagination: {
+      return await pgGoalService.getTrendingGoals({
+        category,
         page: parsedPage,
         limit: parsedLimit,
-        total,
-        pages: Math.ceil(total / parsedLimit)
+        days: parseInt(days)
+      });
+    }
+
+    // For personalized, get user interests and query multiple categories
+    if (strategy === 'personalized' && username) {
+      const pgUser = await pgUserService.findByUsername(username);
+      if (pgUser) {
+        const prefs = await UserPreferences.findOne({ userId: pgUser.id }).select('interests').lean();
+        const interests = Array.isArray(prefs && prefs.interests) ? prefs.interests : [];
+        
+        // Map interests to goal categories
+        const catSet = new Set();
+        for (const i of interests) {
+          catSet.add(mapInterestToCategory(i));
+        }
+        const interestCategories = Array.from(catSet);
+        
+        // If user has interests, fetch trending goals for those categories
+        if (interestCategories.length > 0) {
+          // For now, use first category (could be enhanced to fetch from multiple)
+          return await pgGoalService.getTrendingGoals({
+            category: interestCategories[0],
+            page: parsedPage,
+            limit: parsedLimit,
+            days: parseInt(days)
+          });
+        }
       }
-    };
+    }
+
+    // Default: global trending
+    return await pgGoalService.getTrendingGoals({
+      page: parsedPage,
+      limit: parsedLimit,
+      days: parseInt(days)
+    });
   }
   
   /**
@@ -523,143 +507,133 @@ class GoalService {
 
     // Debug logging
     console.log('[GoalService.searchGoals] Params:', { t, hasText, category, interest, requestingUserId });
-    // Will log baseMatch and pipeline below
 
     // Get blocked user IDs and following IDs
     let blockedUserIds = [];
     let followingIds = [];
-    const mongoose = require('mongoose');
     
     if (requestingUserId) {
-      const Block = require('../models/Block');
-      const Follow = require('../models/Follow');
+      const pgBlockService = require('./pgBlockService');
+      const pgFollowService = require('./pgFollowService');
       
-      const [blocks, following] = await Promise.all([
-        Block.find({
-          $or: [
-            { blockerId: requestingUserId, isActive: true },
-            { blockedId: requestingUserId, isActive: true }
-          ]
-        }).select('blockerId blockedId').lean(),
-        Follow.find({ 
-          followerId: requestingUserId, 
-          status: 'accepted', 
-          isActive: true 
-        }).select('followingId').lean()
+      const [blockedOut, blockedIn, following] = await Promise.all([
+        pgBlockService.getBlockedUserIds(requestingUserId),
+        pgBlockService.getBlockerUserIds(requestingUserId),
+        pgFollowService.getFollowingIds(requestingUserId)
       ]);
       
-      blockedUserIds = blocks.map(b => 
-        String(b.blockerId) === String(requestingUserId) ? b.blockedId : b.blockerId
-      );
-      followingIds = following.map(f => f.followingId);
+      // Combine blocked users (both directions)
+      blockedUserIds = [...blockedOut, ...blockedIn];
+      followingIds = following;
       
       // Add requesting user to blocked list to exclude their own goals
-      blockedUserIds.push(new mongoose.Types.ObjectId(requestingUserId));
+      blockedUserIds.push(requestingUserId);
     }
 
     // Build optimized base match query (uses compound index)
-    // Show all goals: completed, active, sub-goals (not just completed)
-    const baseMatch = {
-      isPublic: true,
-      isActive: true
-      // No completed filter - show both completed and active goals
-    };
-    // Debug log baseMatch before filters
-    console.log('[GoalService.searchGoals] baseMatch (before filters):', baseMatch);
+    // Build SQL query for PostgreSQL
+    const { query: pgQuery } = require('../config/supabase');
+    
+    // Build WHERE conditions
+    const conditions = [];
+    const values = [];
+    let paramIndex = 1;
 
-    // Add category filter to base match (index optimization)
+    // Base conditions
+    conditions.push(`g.is_public = true`);
+    conditions.push(`g.is_active = true`);
+
+    // Category filter
     if (category) {
-      baseMatch.category = category;
+      conditions.push(`g.category = $${paramIndex++}`);
+      values.push(category);
     } else if (interest) {
-      baseMatch.category = mapInterestToCategory(interest);
+      const mappedCategory = mapInterestToCategory(interest);
+      conditions.push(`g.category = $${paramIndex++}`);
+      values.push(mappedCategory);
     }
-    // Debug log baseMatch after category/interest
-    console.log('[GoalService.searchGoals] baseMatch (after category/interest):', baseMatch);
 
-    // Debug log baseMatch after text
-    console.log('[GoalService.searchGoals] baseMatch (after text):', baseMatch);
+    // Text search filter
+    if (hasText) {
+      conditions.push(`g.title ILIKE $${paramIndex++}`);
+      values.push(`%${t}%`);
+    }
 
-    // Optimized pipeline with fewer stages
-    const pipeline = [
-      // Debug log pipeline before execution
-      // (for brevity, only log baseMatch and $match stages)
-      // console.log('[GoalService.searchGoals] pipeline:', JSON.stringify(pipeline, null, 2));
-      // First match uses compound index: isPublic, isActive, completed, category
-      { $match: baseMatch },
+    // Exclude blocked users and requesting user
+    if (blockedUserIds.length > 0) {
+      conditions.push(`g.user_id != ALL($${paramIndex++})`);
+      values.push(blockedUserIds);
+    }
 
-      // Text filter: match normalized or raw title, case-insensitive
-      ...(hasText ? [{
-        $match: {
-          $or: [
-            { titleLower: { $regex: new RegExp(safe, 'i') } },
-            { title: { $regex: new RegExp(safe, 'i') } }
-          ]
-        }
-      }] : []),
-      
-      // Lookup users (only necessary fields)
-      { 
-        $lookup: { 
-          from: 'users', 
-          localField: 'userId', 
-          foreignField: '_id', 
-          as: 'user',
-          pipeline: [
-            { $match: { 
-              isActive: true,
-              _id: { $nin: blockedUserIds } // Excludes blocked users AND requesting user
-            } },
-            { $project: { _id: 1, name: 1, avatar: 1, username: 1, isPrivate: 1, 'preferences.privacy': 1 } }
-          ]
-        } 
-      },
-      { $unwind: '$user' },
-      // Filter for privacy: show goals from public users OR friends (users I follow)
-      // Support both isPrivate boolean and preferences.privacy enum
-      { $match: { 
-        $or: [
-          { 'user.isPrivate': { $ne: true }, 'user.preferences.privacy': { $in: ['public', null] } }, // Public users
-          { 'user.preferences.privacy': 'friends', 'user._id': { $in: followingIds } }, // Friends-only if I follow them
-          { 'user.isPrivate': true, 'user._id': { $in: followingIds } } // Private users if I follow them
-        ]
-      } },
-      
-      // Use facet for counting and pagination in single pass
-      { 
-        $facet: {
-          data: [
-            // Sort: completed goals by completion date, active goals by creation date
-            { $sort: { completed: -1, completedAt: -1, createdAt: -1 } },
-            { $skip: (Math.max(1, parseInt(page)) - 1) * parseInt(limit) },
-            { $limit: parseInt(limit) },
-            { 
-              $project: { 
-                _id: 1,
-                title: 1, 
-                description: 1,
-                category: 1,
-                completed: 1,
-                completedAt: 1, 
-                targetDate: 1,
-                startDate: 1,
-                likeCount: 1,
-                completionNote: 1,
-                subGoals: 1,
-                user: 1,
-                createdAt: 1
-              }
-            }
-          ],
-          total: [ { $count: 'count' } ]
-        }
+    // Privacy filter: show public users OR users I follow
+    const privacyConditions = [];
+    privacyConditions.push(`u.is_private = false`); // Public users
+    
+    if (followingIds.length > 0) {
+      privacyConditions.push(`u.id = ANY($${paramIndex++})`); // Users I follow
+      values.push(followingIds);
+    }
+    
+    conditions.push(`(${privacyConditions.join(' OR ')})`);
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    // Count query
+    const countSql = `
+      SELECT COUNT(*) as total
+      FROM goals g
+      INNER JOIN users u ON g.user_id = u.id
+      ${whereClause}
+    `;
+
+    // Data query with pagination
+    const offset = (Math.max(1, parseInt(page)) - 1) * parseInt(limit);
+    const dataSql = `
+      SELECT 
+        g.id,
+        g.title,
+        g.category,
+        g.completed,
+        g.completed_at as "completedAt",
+        g.target_date as "targetDate",
+        g.like_count as "likeCount",
+        g.created_at as "createdAt",
+        u.id as "userId",
+        u.name as "userName",
+        u.username,
+        u.avatar_url as "userAvatar"
+      FROM goals g
+      INNER JOIN users u ON g.user_id = u.id
+      ${whereClause}
+      ORDER BY g.completed DESC, g.completed_at DESC NULLS LAST, g.created_at DESC
+      LIMIT ${parseInt(limit)} OFFSET ${offset}
+    `;
+
+    console.log('[GoalService.searchGoals] SQL:', { dataSql, values });
+
+    const [countResult, dataResult] = await Promise.all([
+      pgQuery(countSql, values),
+      pgQuery(dataSql, values)
+    ]);
+
+    const total = parseInt(countResult.rows[0]?.total || 0);
+    const goals = dataResult.rows.map(row => ({
+      id: row.id,
+      title: row.title,
+      category: row.category,
+      completed: row.completed,
+      completedAt: row.completedAt,
+      targetDate: row.targetDate,
+      likeCount: row.likeCount,
+      createdAt: row.createdAt,
+      user: {
+        id: row.userId,
+        name: row.userName,
+        username: row.username,
+        avatar: row.userAvatar
       }
-    ];
+    }));
 
-    const res = await Goal.aggregate(pipeline);
-    const arr = res && res[0] ? res[0] : { data: [], total: [] };
-    const goals = arr.data || [];
-    const total = (arr.total && arr.total[0] && arr.total[0].count) ? arr.total[0].count : 0;
-    // Debug log result count
     console.log('[GoalService.searchGoals] result count:', { goals: goals.length, total });
     
     return {

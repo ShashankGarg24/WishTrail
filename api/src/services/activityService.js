@@ -1,9 +1,8 @@
 const Activity = require('../models/Activity');
-const Follow = require('../models/Follow');
-const Like = require('../models/Like');
-const User = require('../models/User');
+const pgFollowService = require('../services/pgFollowService');
+const pgLikeService = require('../services/pgLikeService');
+const pgBlockService = require('../services/pgBlockService');
 const ActivityComment = require('../models/ActivityComment');
-const Block = require('../models/Block');
 
 class ActivityService {
   /**
@@ -12,23 +11,23 @@ class ActivityService {
   async getActivityFeed(userId, params = {}) {
     const { page = 1, limit = 10 } = params;
     // Exclude blocked users both ways
-    const { blockedOut, blockedIn } = await Block.getBlockedSets(userId);
+    const blockedOut = await pgBlockService.getBlockedUserIds(userId);
+    const blockedIn = await pgBlockService.getBlockerUserIds(userId);
     const blockedSet = [...blockedOut, ...blockedIn];
   
-    const followingIds = await Follow.getFollowingIds(userId);
+    const followingIds = await pgFollowService.getFollowingIds(userId);
   
-    const baseProjectUser = 'name username avatar';
-
     const shape = (act) => {
       // Normalize to { user: {...}, ... }
+      console.log('Shaping activity:', act);
       const base = typeof act.toObject === 'function' ? act.toObject() : act;
-      const { userId: author, ...rest } = base;
-      const user = author && typeof author === 'object' ? {
-        _id: author._id, // keep internally but frontend should prefer username route
-        name: author.name,
-        username: author.username,
-        avatar: author.avatar,
-      } : undefined;
+      const { userId: authorId, name, username, avatar, ...rest } = base;
+      const user = {
+        name: name,
+        username: username,
+        avatar: avatar,
+      };
+      console.log('Shaped activity user:', user);
       return { ...rest, user };
     };
 
@@ -68,7 +67,6 @@ class ActivityService {
         .sort({ createdAt: -1 })
         .limit(limit)
         .skip((page - 1) * limit)
-        .populate('userId', baseProjectUser)
         .populate('data.goalId', 'title category')
         .populate('data.targetUserId', 'name username avatar')
         .lean(),
@@ -87,8 +85,8 @@ class ActivityService {
   async enrichWithLikes(activities, userId) {
     return Promise.all(
       activities.map(async (activity) => {
-        const isLiked = await Like.hasUserLiked(userId, 'activity', activity._id);
-        const likeCount = await Like.getLikeCount('activity', activity._id);
+        const isLiked = await pgLikeService.hasUserLiked(userId, 'activity', String(activity._id));
+        const likeCount = await pgLikeService.getLikeCount('activity', String(activity._id));
         const commentCount = await ActivityComment.countDocuments({ activityId: activity._id, isActive: true });
 
         const base = typeof activity.toObject === 'function' ? activity.toObject() : activity;
@@ -103,8 +101,9 @@ class ActivityService {
   async getRecentActivities(userId, params = {}) {
     const { page = 1, limit = 10, type = 'global' } = params;
     
-    const { blockedOut, blockedIn } = await Block.getBlockedSets(userId || null);
-    const blockedSet = [...(blockedOut || []), ...(blockedIn || [])];
+    const blockedOut = userId ? await pgBlockService.getBlockedUserIds(userId) : [];
+    const blockedIn = userId ? await pgBlockService.getBlockerUserIds(userId) : [];
+    const blockedSet = [...blockedOut, ...blockedIn];
     let query = { isActive: true, isPublic: true };
     if (type === 'personal') {
       query.userId = userId;
@@ -119,14 +118,11 @@ class ActivityService {
       }
     }
     
-    const baseProjectUser = 'name username avatar';
-
     const [list, total] = await Promise.all([
       Activity.find(query)
         .sort({ createdAt: -1 })
         .limit(limit)
         .skip((page - 1) * limit)
-        .populate('userId', baseProjectUser)
         .populate('data.goalId', 'title category')
         .populate('data.targetUserId', 'name username avatar')
         .lean(),
@@ -135,21 +131,21 @@ class ActivityService {
     
     const enriched = await Promise.all(
       list.map(async (activity) => {
-        const isLiked = userId ? await Like.hasUserLiked(userId, 'activity', activity._id) : false;
-        const likeCount = await Like.getLikeCount('activity', activity._id);
+        const isLiked = userId ? await pgLikeService.hasUserLiked(userId, 'activity', String(activity._id)) : false;
+        const likeCount = await pgLikeService.getLikeCount('activity', String(activity._id));
         const commentCount = await ActivityComment.countDocuments({ activityId: activity._id, isActive: true });
         return { ...activity, isLiked, likeCount, commentCount };
       })
     );
 
     const normalized = enriched.map((act) => {
-      const { userId: author, ...rest } = act;
-      const user = author && typeof author === 'object' ? {
-        _id: author._id,
-        name: author.name,
-        username: author.username,
-        avatar: author.avatar,
-      } : undefined;
+      const { userId: authorId, name, username, avatar, ...rest } = act;
+      const user = {
+        _id: authorId,
+        name: name,
+        username: username,
+        avatar: avatar,
+      };
       return { ...rest, user };
     });
     
@@ -167,7 +163,7 @@ class ActivityService {
     
     // Check if user can view activities
     const canViewActivities = userId === requestingUserId || 
-      await Follow.isFollowing(requestingUserId, userId);
+      await pgFollowService.isFollowing(requestingUserId, userId);
     
     if (!canViewActivities) {
       throw new Error('Access denied');
@@ -181,12 +177,24 @@ class ActivityService {
     .limit(limit * 1)
     .skip((page - 1) * limit)
     .populate('data.goalId', 'title category')
-    .populate('data.targetUserId', 'name avatar');
+    .populate('data.targetUserId', 'name username avatar')
+    .lean();
     
     const total = await Activity.countDocuments({ userId, isActive: true });
     
+    // Normalize activities to include user object
+    const normalized = activities.map((act) => {
+      const { userId: authorId, name, username, avatar, ...rest } = act;
+      const user = {
+        name: name,
+        username: username,
+        avatar: avatar,
+      };
+      return { ...rest, user };
+    });
+    
     return {
-      activities,
+      activities: normalized,
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
@@ -319,15 +327,15 @@ class ActivityService {
     const isBlocked = await Block.isBlockedBetween(requestingUserId, activity.userId._id);
     const canView = !isBlocked && (activity.isPublic || 
       activity.userId._id.toString() === requestingUserId ||
-      await Follow.isFollowing(requestingUserId, activity.userId._id));
+      await pgFollowService.isFollowing(requestingUserId, activity.userId));
     
     if (!canView) {
       throw new Error('Access denied');
     }
     
     // Add like status
-    const isLiked = await Like.isLiked(requestingUserId, 'activity', activityId);
-    const likeCount = await Like.getLikeCount('activity', activityId);
+    const isLiked = await pgLikeService.hasUserLiked(requestingUserId, 'activity', activityId);
+    const likeCount = await pgLikeService.getLikeCount('activity', activityId);
     const commentCount = await ActivityComment.countDocuments({ activityId, isActive: true });
     
     return {
@@ -352,13 +360,13 @@ class ActivityService {
       throw new Error('Cannot like your own activity');
     }
     
-    const result = await Like.toggleLike(userId, 'activity', activityId);
+    const result = await pgLikeService.toggleLike(userId, 'activity', activityId);
     // Fire push notification to the activity owner on like
     try {
       if (result && result.isLiked && String(activity.userId) !== String(userId)) {
-        const User = require('../models/User');
+        const pgUserService = require('./pgUserService');
         const Notification = require('../models/Notification');
-        const liker = await User.findById(userId).select('name avatar username');
+        const liker = await pgUserService.findById(userId);
         await Notification.createNotification({
           userId: activity.userId,
           type: 'activity_liked',
@@ -367,7 +375,7 @@ class ActivityService {
           data: {
             actorId: userId,
             actorName: liker?.name,
-            actorAvatar: liker?.avatar,
+            actorAvatar: liker?.avatar_url,
             activityId: activity._id,
             goalId: activity?.data?.goalId || undefined
           },
@@ -390,7 +398,7 @@ class ActivityService {
     
     // If viewing another user's stats, check if following them
     if (targetUserId && targetUserId !== userId) {
-      const canView = await Follow.isFollowing(userId, targetUserId);
+      const canView = await pgFollowService.isFollowing(userId, targetUserId);
       if (!canView) {
         throw new Error('Access denied');
       }
@@ -501,26 +509,16 @@ class ActivityService {
         $limit: parseInt(limit)
       },
       {
-        $lookup: {
-          from: 'users',
-          localField: 'userId',
-          foreignField: '_id',
-          as: 'user'
-        }
-      },
-      {
-        $unwind: '$user'
-      },
-      {
         $project: {
           type: 1,
           data: 1,
           createdAt: 1,
           likeCount: 1,
           user: {
-            _id: '$user._id',
-            name: '$user.name',
-            avatar: '$user.avatar'
+            _id: '$userId',
+            name: '$name',
+            username: '$username',
+            avatar: '$avatar'
           }
         }
       }

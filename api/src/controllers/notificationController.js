@@ -1,7 +1,6 @@
 const DeviceToken = require('../models/DeviceToken');
 const Notification = require('../models/Notification');
 const { sendFcmToUser } = require('../services/pushService');
-const User = require('../models/User');
 const { sanitizeNotification } = require('../utility/sanitizer');
 
 exports.registerDevice = async (req, res, next) => {

@@ -1,6 +1,6 @@
-const User = require('../models/User');
 const Notification = require('../models/Notification');
 const DeviceToken = require('../models/DeviceToken');
+const { query } = require('../config/supabase');
 
 // Helper: minutes now in user's timezone
 function localNowMinutes(timezone) {
@@ -43,29 +43,32 @@ function shouldStop() { return false; }
 
 async function sendDueInactivityReminders({ batchLimit = 1000 } = {}) {
   // Consider active users only
-  const users = await User.find({ isActive: true }).select('_id lastActiveAt notificationSettings timezone').lean();
+  const result = await query(
+    'SELECT id, last_active_at, notification_settings, timezone FROM users WHERE is_active = true'
+  );
+  const users = result.rows;
   let sent = 0;
   for (const u of users) {
     if (sent >= batchLimit) break;
     if (shouldStop(u)) continue;
     // device presence check; also covers NotRegistered cleanup via push layer
-    const hasDevice = await hasPushableDevice(u._id);
+    const hasDevice = await hasPushableDevice(u.id);
     if (!hasDevice) continue;
-    const gap = daysSince(u.lastActiveAt);
+    const gap = daysSince(u.last_active_at);
     const msg = messageForExactDay(gap);
     if (!msg) continue;
     // ensure we haven't sent this step since last activity
     const dup = await Notification.findOne({
-      userId: u._id,
+      userId: u.id,
       type: 'inactivity_reminder',
-      createdAt: { $gte: new Date(u.lastActiveAt || 0) },
+      createdAt: { $gte: new Date(u.last_active_at || 0) },
       'data.metadata.step': msg.step
     }).select('_id').lean();
     if (dup) continue;
     // quiet hours removed
     if (isWithinQuietHours(u)) continue;
     await Notification.createNotification({
-      userId: u._id,
+      userId: u.id,
       type: 'inactivity_reminder',
       title: msg.title,
       message: msg.message,

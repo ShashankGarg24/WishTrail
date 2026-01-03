@@ -1,7 +1,11 @@
-const User = require('../models/User');
-const Goal = require('../models/Goal');
+const pgUserService = require('./pgUserService');
+const pgFollowService = require('./pgFollowService');
+const pgBlockService = require('./pgBlockService');
+const pgGoalService = require('./pgGoalService');
+const pgHabitService = require('./pgHabitService');
+const UserPreferences = require('../models/extended/UserPreferences');
 const Activity = require('../models/Activity');
-const Follow = require('../models/Follow');
+const Notification = require('../models/Notification');
 
 class UserService {
   /**
@@ -17,51 +21,81 @@ class UserService {
       requestingUserId
     } = params;
     
-    let query = { isActive: true };
-    
-    // Search functionality
+    // Use PostgreSQL search if search term provided
     if (search && search.trim()) {
-      query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { username: { $regex: search, $options: 'i' } }
-      ];
+      const result = await pgUserService.searchUsers({
+        query: search,
+        page,
+        limit,
+        excludeIds: requestingUserId ? [requestingUserId] : []
+      });
+      
+      // Add following status if requesting user is provided
+      if (requestingUserId) {
+        const userIds = result.users.map(u => u.id);
+        const followingStatuses = await pgFollowService.getFollowingStatusBulk(requestingUserId, userIds);
+        
+        result.users = result.users.map(user => ({
+          id: user.id,
+          name: user.name,
+          username: user.username,
+          avatar: user.avatar,
+          bio: user.bio,
+          totalGoals: user.total_goals,
+          completedGoals: user.completed_goals,
+          currentStreak: user.current_streak,
+          isFollowing: followingStatuses[user.id]?.isFollowing || false,
+          isRequested: followingStatuses[user.id]?.isRequested || false
+        }));
+      } else {
+        result.users = result.users.map(user => ({
+          id: user.id,
+          name: user.name,
+          username: user.username,
+          avatar: user.avatar,
+          bio: user.bio,
+          totalGoals: user.total_goals,
+          completedGoals: user.completed_goals,
+          currentStreak: user.current_streak
+        }));
+      }
+      
+      return result;
     }
     
-    // Sort options
-    const sortOptions = {};
-    sortOptions[sortBy] = sortOrder === 'desc' ? -1 : 1;
-    
-    // Select only fields needed for Discover UI
-    const projection = 'name username avatar bio totalGoals completedGoals currentStreak';
-    
-    const users = await User.find(query)
-      .select(projection)
-      .sort(sortOptions)
-      .limit(limit * 1)
-      .skip((page - 1) * limit)
-      .lean();
-    
-    const total = await User.countDocuments(query);
+    // Get top users without search
+    const users = await pgUserService.getTopUsers(limit);
+    const total = users.length;
     
     // Add following status if requesting user is provided
     let usersWithFollowingStatus = users;
     if (requestingUserId) {
-      usersWithFollowingStatus = await Promise.all(
-        users.map(async (user) => {
-          const isFollowing = await Follow.isFollowing(requestingUserId, user._id);
-          // determine request status
-          let isRequested = false;
-          if (!isFollowing) {
-            const pending = await require('../models/Follow').findOne({ followerId: requestingUserId, followingId: user._id, status: 'pending', isActive: false });
-            isRequested = !!pending;
-          }
-          return {
-            ...user,
-            isFollowing,
-            isRequested
-          };
-        })
-      );
+      const userIds = users.map(u => u.id);
+      const followingStatuses = await pgFollowService.getFollowingStatusBulk(requestingUserId, userIds);
+      
+      usersWithFollowingStatus = users.map(user => ({
+        id: user.id,
+        name: user.name,
+        username: user.username,
+        avatar: user.avatar,
+        bio: user.bio,
+        totalGoals: user.total_goals,
+        completedGoals: user.completed_goals,
+        currentStreak: user.current_streak,
+        isFollowing: followingStatuses[user.id]?.isFollowing || false,
+        isRequested: followingStatuses[user.id]?.isRequested || false
+      }));
+    } else {
+      usersWithFollowingStatus = users.map(user => ({
+        id: user.id,
+        name: user.name,
+        username: user.username,
+        avatar: user.avatar,
+        bio: user.bio,
+        totalGoals: user.total_goals,
+        completedGoals: user.completed_goals,
+        currentStreak: user.current_streak
+      }));
     }
     
     return {
@@ -79,28 +113,62 @@ class UserService {
    * Get user by ID
    */
   async getUserById(userId, requestingUserId = null) {
-    const user = await User.findById(userId)
-      .select('-password -refreshToken -passwordResetToken -passwordResetExpires');
+    const user = await pgUserService.findById(userId);
     
-    if (!user || !user.isActive) {
+    if (!user) {
       throw new Error('User not found');
+    }
+    
+    // Check if there's a block relationship - only block if THEY blocked ME
+    let isBlocked = false;
+    let hasBlockedMe = false;
+    if (requestingUserId && requestingUserId !== userId) {
+      [isBlocked, hasBlockedMe] = await Promise.all([
+        pgBlockService.isBlocking(requestingUserId, userId),
+        pgBlockService.isBlocking(userId, requestingUserId)
+      ]);
+      
+      // Only deny access if they blocked me (not if I blocked them)
+      if (isBlocked || hasBlockedMe) {
+        error.statusCode = 403;
+        throw error;
+      }
     }
     
     // Check if requesting user is following this user
     let isFollowing = false;
+    let isRequested = false;
     if (requestingUserId && requestingUserId !== userId) {
-      isFollowing = await Follow.isFollowing(requestingUserId, userId);
+      const followStatus = await pgFollowService.getFollowingStatus(requestingUserId, userId);
+      isFollowing = followStatus?.isFollowing || false;
+      isRequested = followStatus?.isRequested || false;
     }
     
-    const userResponse = user.toObject();   
-    const userStats = await this.getUserStats(user);
-    // Also expose pending request
-    let isRequested = false;
-    if (requestingUserId && !isFollowing && String(requestingUserId) !== String(userId)) {
-      const pending = await require('../models/Follow').findOne({ followerId: requestingUserId, followingId: userId, status: 'pending', isActive: false });
-      isRequested = !!pending;
+    const userResponse = {
+      id: user.id,
+      name: user.name,
+      username: user.username,
+      email: user.email,
+      avatar: user.avatar,
+      bio: user.bio,
+      location: user.location,
+      isPrivate: user.is_private,
+      isVerified: user.is_verified,
+      createdAt: user.created_at,
+      updatedAt: user.updated_at
+    };
+    
+    // Fetch MongoDB extended fields (interests, currentMood, socialLinks)
+    const prefs = await UserPreferences.findOne({ userId: user.id }).lean();
+    if (prefs) {
+      userResponse.interests = prefs.interests || [];
+      userResponse.currentMood = prefs.preferences?.currentMood || '';
+      userResponse.youtube = prefs.socialLinks?.youtube || '';
+      userResponse.instagram = prefs.socialLinks?.instagram || '';
     }
-    return { user: userResponse, stats: userStats, isFollowing, isRequested };
+    
+    const userStats = await this.getUserStats(user);
+    return { user: userResponse, stats: userStats, isFollowing, isRequested, isBlocked };
   }
   
   /**
@@ -108,71 +176,106 @@ class UserService {
    */
   async getUserByUsername(username, requestingUserId = null) {
     const cleanUsername = username.replace(/^@/, '');    
-    const user = await User.findOne({ username: cleanUsername })
-      .select('_id name username avatar bio isPrivate areHabitsPrivate totalGoals followerCount followingCount isActive');
+    const user = await pgUserService.findByUsername(cleanUsername);
 
-    if (!user || !user.isActive) {
+    if (!user) {
       throw new Error('User not found');
+    }
+
+    // Check if there's a block relationship - only block if THEY blocked ME
+    let isBlocked = false;
+    let hasBlockedMe = false;
+    if (requestingUserId && user.id !== requestingUserId) {
+      [isBlocked, hasBlockedMe] = await Promise.all([
+        pgBlockService.isBlocking(requestingUserId, user.id),
+        pgBlockService.isBlocking(user.id, requestingUserId)
+      ]);
+      
+      // Only deny access if they blocked me (not if I blocked them)
+      if (isBlocked || hasBlockedMe) {
+        error.statusCode = 403;
+        throw error;
+      }
     }
 
     let isFollowing = false;
     let isRequested = false;
-    if (requestingUserId && user._id.toString() !== requestingUserId.toString()) {
-      isFollowing = await Follow.isFollowing(requestingUserId, user._id);
-      if (!isFollowing) {
-        const pending = await require('../models/Follow').findOne({ followerId: requestingUserId, followingId: user._id, status: 'pending', isActive: false });
-        isRequested = !!pending;
-      }
+    if (requestingUserId && user.id !== requestingUserId) {
+      const followStatus = await pgFollowService.getFollowingStatus(requestingUserId, user.id);
+      isFollowing = followStatus?.isFollowing || false;
+      isRequested = followStatus?.isRequested || false;
     }
+
+    // Get user preferences for habits privacy setting and extended fields
+    const prefs = await UserPreferences.findOne({ userId: user.id });
 
     // Return minimal user data
     const userResponse = {
-      _id: user._id,
+      id: user.id,
       name: user.name,
       username: user.username,
       avatar: user.avatar,
       bio: user.bio || '',
-      isPrivate: user.isPrivate || false,
-      areHabitsPrivate: user.areHabitsPrivate ?? true
+      isPrivate: user.is_private || false,
+      areHabitsPrivate: prefs?.privacy?.areHabitsPrivate ?? true,
+      interests: prefs?.interests || [],
+      currentMood: prefs?.preferences?.currentMood || '',
+      youtube: prefs?.socialLinks?.youtube || '',
+      instagram: prefs?.socialLinks?.instagram || ''
     };
     
     // Basic stats only
     const stats = {
-      totalGoals: user.totalGoals || 0,
-      followers: user.followerCount || 0,
-      followings: user.followingCount || 0
+      totalGoals: user.total_goals || 0,
+      followers: user.followers_count || 0,
+      followings: user.following_count || 0
     };
     
-    return { user: userResponse, stats, isFollowing, isRequested };
+    return { user: userResponse, stats, isFollowing, isRequested, isBlocked };
   }
   
   /**
    * Get dashboard statistics for user
    */
   async getDashboardStats(userId) {
-    const user = await User.findById(userId);
+    const user = await pgUserService.findById(userId);
     if (!user) {
       throw new Error('User not found');
     }
     
+    // Get today's completion count from PostgreSQL
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayGoals = await pgGoalService.getUserGoals({
+      userId,
+      completed: true,
+      page: 1,
+      limit: 100
+    });
+    
+    const todayCompletions = todayGoals.goals.filter(g => {
+      const completedDate = new Date(g.completed_at);
+      return completedDate >= today;
+    }).length;
+    
     // Return only essential stats
     return {
-      totalGoals: user.totalGoals || 0,
-      completedGoals: user.completedGoals || 0,
-      todayCompletions: user.getTodayCompletionCount() || 0,
+      totalGoals: user.total_goals || 0,
+      completedGoals: user.completed_goals || 0,
+      todayCompletions: todayCompletions || 0,
       dailyLimit: 3,
-      currentStreak: user.currentStreak || 0,
-      longestStreak: user.longestStreak || 0,
+      currentStreak: user.current_streak || 0,
+      longestStreak: user.longest_streak || 0,
     };
   }
   
   async getUserStats(user) {
     const stats = {
-      totalGoals: user.totalGoals,
-      completedGoals: user.completedGoals,
-      activeGoals: user.activeGoals,
-      followers: user.followerCount,
-      followings: user.followingCount
+      totalGoals: user.total_goals || 0,
+      completedGoals: user.completed_goals || 0,
+      activeGoals: (user.total_goals || 0) - (user.completed_goals || 0),
+      followers: user.followers_count || 0,
+      followings: user.following_count || 0
     };
 
     return stats;
@@ -182,29 +285,55 @@ class UserService {
    * Get user's profile summary
    */
   async getProfileSummary(userId) {
-    const user = await User.findById(userId)
-      .select('-password -refreshToken -passwordResetToken -passwordResetExpires');
+    const user = await pgUserService.findById(userId);
     
     if (!user) {
       throw new Error('User not found');
     }
     
-    // Get follower/following counts
-    const [followerCount, followingCount] = [
-      user.followerCount,
-      user.followingCount
-    ];
+    // Get recent goals from PostgreSQL
+    const recentGoalsResult = await pgGoalService.getUserGoals({
+      userId,
+      page: 1,
+      limit: 3,
+      sort: 'newest'
+    });
     
-    // Get recent goals
-    const recentGoals = await Goal.find({ userId })
-      .sort({ createdAt: -1 })
-      .limit(3)
-      .select('title category completed createdAt');
+    const userResponse = {
+      id: user.id,
+      name: user.name,
+      username: user.username,
+      email: user.email,
+      avatar: user.avatar,
+      bio: user.bio,
+      location: user.location,
+      totalGoals: user.total_goals,
+      completedGoals: user.completed_goals,
+      currentStreak: user.current_streak,
+      longestStreak: user.longest_streak,
+      followerCount: user.followers_count,
+      followingCount: user.following_count,
+      isPrivate: user.is_private,
+      isVerified: user.is_verified,
+      createdAt: user.created_at,
+      updatedAt: user.updated_at,
+      recentGoals: recentGoalsResult.goals.map(g => ({
+        id: g.id,
+        title: g.title,
+        category: g.category,
+        completed: g.completed,
+        createdAt: g.created_at
+      }))
+    };
     
-    const userResponse = user.toObject();
-    userResponse.followerCount = followerCount;
-    userResponse.followingCount = followingCount;
-    userResponse.recentGoals = recentGoals;
+    // Fetch MongoDB extended fields (interests, currentMood, socialLinks)
+    const prefs = await UserPreferences.findOne({ userId: user.id }).lean();
+    if (prefs) {
+      userResponse.interests = prefs.interests || [];
+      userResponse.currentMood = prefs.preferences?.currentMood || '';
+      userResponse.youtube = prefs.socialLinks?.youtube || '';
+      userResponse.instagram = prefs.socialLinks?.instagram || '';
+    }
     
     return userResponse;
   }
@@ -214,7 +343,7 @@ class UserService {
    */
   async listPopularInterests(limit = 50) {
     const pipeline = [
-      { $match: { isActive: true, interests: { $exists: true, $ne: [] } } },
+      { $match: { interests: { $exists: true, $ne: [] } } },
       { $unwind: '$interests' },
       { $group: { _id: '$interests', count: { $sum: 1 } } },
       // Ensure interests align with Goal categories ordering buckets
@@ -222,7 +351,7 @@ class UserService {
       { $limit: parseInt(limit) },
       { $project: { _id: 0, interest: '$_id' } }
     ];
-    const results = await User.aggregate(pipeline);
+    const results = await UserPreferences.aggregate(pipeline);
     return results;
   }
   
@@ -232,84 +361,51 @@ class UserService {
   async getSuggestedUsers(userId, params = {}) {
     const { limit = 10, category } = params;
     
-    // Get users current user is not following
-    const following = await Follow.getFollowing(userId);
-    const followingIds = following.map(f => f.followingId);
+    // Get users current user is following
+    const following = await pgFollowService.getFollowing(userId);
+    const followingIds = following.map(f => f.following_id);
     followingIds.push(userId); // Exclude current user
     
-    let pipeline = [
-      {
-        $match: {
-          _id: { $nin: followingIds },
-          isActive: true
-        }
-      }
-    ];
+    // Get top users excluding those already followed
+    const allUsers = await pgUserService.getTopUsers(limit * 3); // Get more to filter
+    
+    let suggestedUsers = allUsers.filter(user => !followingIds.includes(user.id));
     
     // Filter by category if specified
     if (category) {
-      pipeline.push({
-        $lookup: {
-          from: 'goals',
-          let: { userId: '$_id' },
-          pipeline: [
-            {
-              $match: {
-                $expr: { $eq: ['$userId', '$$userId'] },
-                category: category,
-                completed: true
-              }
-            }
-          ],
-          as: 'categoryGoals'
-        }
-      });
-      
-      pipeline.push({
-        $match: {
-          'categoryGoals.0': { $exists: true }
-        }
-      });
+      const usersWithCategoryGoals = await Promise.all(
+        suggestedUsers.map(async (user) => {
+          const goals = await pgGoalService.getUserGoals({
+            userId: user.id,
+            category,
+            completed: true,
+            limit: 1
+          });
+          return goals.goals.length > 0 ? user : null;
+        })
+      );
+      suggestedUsers = usersWithCategoryGoals.filter(u => u !== null);
     }
     
-    // Add follower count for sorting
-    pipeline.push({
-      $lookup: {
-        from: 'follows',
-        localField: '_id',
-        foreignField: 'followingId',
-        as: 'followers'
-      }
-    });
+    // Sort by suggestion score
+    suggestedUsers = suggestedUsers
+      .map(user => ({
+        ...user,
+        suggestionScore: (user.followers_count * 5) + (user.completed_goals * 2)
+      }))
+      .sort((a, b) => b.suggestionScore - a.suggestionScore)
+      .slice(0, limit)
+      .map(user => ({
+        id: user.id,
+        name: user.name,
+        username: user.username,
+        avatar: user.avatar,
+        bio: user.bio,
+        completedGoals: user.completed_goals,
+        followerCount: user.followers_count
+      }));
     
-    pipeline.push({
-      $addFields: {
-        followerCount: { $size: '$followers' },
-        suggestionScore: {
-          $add: [
-            { $multiply: [{ $size: '$followers' }, 5] },
-            { $multiply: ['$completedGoals', 2] }
-          ]
-        }
-      }
-    });
-    
-    pipeline.push(
-      { $sort: { suggestionScore: -1 } },
-      { $limit: parseInt(limit) },
-      {
-        $project: {
-          name: 1,
-          avatar: 1,
-          bio: 1,
-          completedGoals: 1,
-          followerCount: 1
-        }
-      }
-    );
-    
-    const users = await User.aggregate(pipeline);
-    return users;
+    return suggestedUsers;
   }
   
   /**
@@ -318,136 +414,113 @@ class UserService {
   async searchUsers(searchTerm, params = {}) {
     const { limit = 20, page = 1, requestingUserId, interest } = params;
 
-    const escapeRegex = (s) => String(s || '').replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
-
     // Get blocked user IDs (both directions: users I blocked + users who blocked me)
     let blockedUserIds = [];
     if (requestingUserId) {
-      const Block = require('../models/Block');
-      const blocks = await Block.find({
-        $or: [
-          { blockerId: requestingUserId, isActive: true },
-          { blockedId: requestingUserId, isActive: true }
-        ]
-      }).select('blockerId blockedId').lean();
-      
-      blockedUserIds = blocks.map(b => 
-        String(b.blockerId) === String(requestingUserId) ? b.blockedId : b.blockerId
-      );
+      const blockedOut = await pgBlockService.getBlockedUserIds(requestingUserId);
+      const blockedIn = await pgBlockService.getBlockerUserIds(requestingUserId);
+      blockedUserIds = [...blockedOut, ...blockedIn];
     }
 
-    const match = { 
-      isActive: true,
-      _id: { $nin: [...blockedUserIds, requestingUserId] } // Exclude blocked users and self
-    };
+    const excludeIds = [...blockedUserIds];
+    if (requestingUserId) {
+      excludeIds.push(requestingUserId);
+    }
     
+    // Filter by interest using UserPreferences if specified
+    let userIdsWithInterest = null;
     if (interest && String(interest).trim()) {
-      match.interests = String(interest).trim();
-    }
-
-    const q = (searchTerm || '').trim();
-    const hasQ = q.length >= 2;
-
-    // Build optimized aggregation pipeline
-    const pipeline = [];
-    
-    // First stage: filter by isActive and interest (uses index)
-    pipeline.push({ $match: match });
-
-    // If we have search term, add ranking logic
-    if (hasQ) {
-      const sw = `^${escapeRegex(q.toLowerCase())}`; // starts with
-      const ct = escapeRegex(q.toLowerCase()); // contains
-
-      pipeline.push(
-        {
-          $addFields: {
-            _uname: { $toLower: { $ifNull: ['$username', ''] } },
-            _name: { $toLower: { $ifNull: ['$name', ''] } }
-          }
-        },
-        {
-          $addFields: {
-            rank: {
-              $switch: {
-                branches: [
-                  { case: { $regexMatch: { input: '$_uname', regex: sw } }, then: 4 },
-                  { case: { $regexMatch: { input: '$_name',  regex: sw } }, then: 3 },
-                  { case: { $regexMatch: { input: '$_uname', regex: ct } }, then: 2 },
-                  { case: { $regexMatch: { input: '$_name',  regex: ct } }, then: 1 },
-                ],
-                default: 0
-              }
-            }
-          }
-        },
-        // Filter out non-matches when searching
-        { $match: { rank: { $gt: 0 } } }
-      );
-    }
-
-    // Add total count and paginated results using $facet
-    pipeline.push({
-      $facet: {
-        data: [
-          { $sort: hasQ 
-            ? { rank: -1, completedGoals: -1 }
-            : { completedGoals: -1, createdAt: -1 }
-          },
-          { $skip: (Math.max(1, parseInt(page)) - 1) * parseInt(limit) },
-          { $limit: parseInt(limit) },
-          // Project only needed fields for better performance
-          { $project: {
-            _id: 1,
-            name: 1,
-            username: 1,
-            avatar: 1,
-            bio: 1,
-            completedGoals: 1,
-            currentStreak: 1,
-            totalGoals: 1,
-            interests: 1,
-            isPrivate: 1
-          }}
-        ],
-        total: [
-          { $count: 'count' }
-        ]
+      const prefs = await UserPreferences.find({
+        interests: String(interest).trim()
+      }).select('userId').lean();
+      userIdsWithInterest = prefs.map(p => p.userId);
+      
+      if (userIdsWithInterest.length === 0) {
+        return {
+          users: [],
+          pagination: { page: parseInt(page), limit: parseInt(limit), total: 0, pages: 0 }
+        };
       }
-    });
+    }
 
-    const res = await User.aggregate(pipeline);
-    const arr = res && res[0] ? res[0] : { data: [], total: [] };
-    const users = arr.data || [];
-    const total = (arr.total && arr.total[0] && arr.total[0].count) ? arr.total[0].count : 0;
-
-    // Enrich with following status (use lean queries for speed)
-    let enrichedUsers = users;
-    if (requestingUserId && users.length > 0) {
-      const userIds = users.map(u => u._id);
+    let users = [];
+    
+    // If interest is specified, fetch users by interest IDs
+    if (userIdsWithInterest) {
+      // Filter out excluded IDs from the interest-based user list
+      const filteredUserIds = userIdsWithInterest.filter(id => !excludeIds.includes(id));
       
-      // Batch fetch all following relationships at once (much faster than individual queries)
-      const followingRecords = await Follow.find({
-        followerId: requestingUserId,
-        followingId: { $in: userIds },
-        isActive: true
-      }).select('followingId status').lean();
+      if (filteredUserIds.length === 0) {
+        return {
+          users: [],
+          pagination: { page: parseInt(page), limit: parseInt(limit), total: 0, pages: 0 }
+        };
+      }
       
-      const followingMap = new Map();
-      const requestedMap = new Map();
+      // Fetch users by IDs with pagination
+      const offset = (parseInt(page) - 1) * parseInt(limit);
+      const paginatedUserIds = filteredUserIds.slice(offset, offset + parseInt(limit));
       
-      followingRecords.forEach(f => {
-        if (f.status === 'accepted') {
-          followingMap.set(String(f.followingId), true);
-        } else if (f.status === 'pending') {
-          requestedMap.set(String(f.followingId), true);
-        }
+      // If there's also a search term, filter by name/username match
+      if (searchTerm && String(searchTerm).trim()) {
+        const searchLower = String(searchTerm).trim().toLowerCase();
+        const allUsers = await pgUserService.getUsersByIds(paginatedUserIds);
+        users = allUsers.filter(u => 
+          u.name.toLowerCase().includes(searchLower) || 
+          u.username.toLowerCase().includes(searchLower)
+        );
+      } else {
+        users = await pgUserService.getUsersByIds(paginatedUserIds);
+      }
+    } else {
+      // No interest filter, do regular search
+      const result = await pgUserService.searchUsers({
+        query: searchTerm,
+        page,
+        limit,
+        excludeIds
       });
+      users = result.users;
+    }
+
+    // Enrich with following status and block status
+    let enrichedUsers = users;
+    
+    // Double-check: Filter out any blocked users that might have slipped through
+    if (requestingUserId && excludeIds.length > 0) {
+      users = users.filter(u => !excludeIds.includes(u.id));
+    }
+    
+    if (requestingUserId && users.length > 0) {
+      const userIds = users.map(u => u.id);
+      const followingStatuses = await pgFollowService.getFollowingStatusBulk(requestingUserId, userIds);
       
       enrichedUsers = users.map(user => ({
-        ...user,
-        isFollowing: followingMap.get(String(user._id)) || false,
-        isRequested: requestedMap.get(String(user._id)) || false
+        id: user.id,
+        name: user.name,
+        username: user.username,
+        avatar: user.avatar,
+        bio: user.bio,
+        completedGoals: user.completed_goals,
+        currentStreak: user.current_streak,
+        totalGoals: user.total_goals,
+        isPrivate: user.is_private,
+        isFollowing: followingStatuses[user.id]?.isFollowing || false,
+        isRequested: followingStatuses[user.id]?.isRequested || false,
+        isBlocked: false // Blocked users are already filtered out
+      }));
+    } else {
+      enrichedUsers = users.map(user => ({
+        id: user.id,
+        name: user.name,
+        username: user.username,
+        avatar: user.avatar,
+        bio: user.bio,
+        completedGoals: user.completed_goals,
+        currentStreak: user.current_streak,
+        totalGoals: user.total_goals,
+        isPrivate: user.is_private,
+        isBlocked: false // Blocked users are already filtered out
       }));
     }
 
@@ -456,8 +529,8 @@ class UserService {
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
-        total,
-        pages: Math.ceil(total / parseInt(limit || 1))
+        total: enrichedUsers.length,
+        pages: Math.ceil(enrichedUsers.length / parseInt(limit || 1))
       }
     };
   }
@@ -468,25 +541,27 @@ class UserService {
   async getUserActivities(userId, requestingUserId, params = {}) {
     const { page = 1, limit = 10 } = params;
     
-    const user = await User.findById(userId);
-    if (!user || !user.isActive) {
+    const user = await pgUserService.findById(userId);
+    if (!user) {
       throw new Error('User not found');
     }
     
     // Check if user can view activities (either own activities or following the user)
-    const canViewActivities = userId === requestingUserId || 
-      await Follow.isFollowing(requestingUserId, userId);
+    let canViewActivities = userId === requestingUserId;
+    if (!canViewActivities) {
+      const followStatus = await pgFollowService.getFollowingStatus(requestingUserId, userId);
+      canViewActivities = followStatus?.isFollowing || false;
+    }
     
     if (!canViewActivities) {
       throw new Error('Access denied');
     }
     
+    // Activities are still in MongoDB
     const activities = await Activity.find({ userId })
       .sort({ createdAt: -1 })
       .limit(limit * 1)
-      .skip((page - 1) * limit)
-      .populate('data.goalId', 'title category')
-      .populate('data.targetUserId', 'name avatar');
+      .skip((page - 1) * limit);
     
     const total = await Activity.countDocuments({ userId });
     
@@ -506,7 +581,7 @@ class UserService {
    * Update user streak
    */
   async updateUserStreak(userId) {
-    const user = await User.findById(userId);
+    const user = await pgUserService.findById(userId);
     if (!user) return;
     
     const today = new Date();
@@ -515,46 +590,55 @@ class UserService {
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
     
-    // Check if user completed any goals today
-    const todayGoals = await Goal.countDocuments({
+    // Check if user completed any goals today using PostgreSQL
+    const todayGoalsResult = await pgGoalService.getUserGoals({
       userId,
       completed: true,
-      completedAt: { $gte: today }
+      page: 1,
+      limit: 100
     });
+    
+    const todayGoals = todayGoalsResult.goals.filter(g => {
+      const completedDate = new Date(g.completed_at);
+      return completedDate >= today;
+    }).length;
     
     if (todayGoals > 0) {
       // Check if user completed goals yesterday
-      const yesterdayGoals = await Goal.countDocuments({
-        userId,
-        completed: true,
-        completedAt: { $gte: yesterday, $lt: today }
-      });
+      const yesterdayGoals = todayGoalsResult.goals.filter(g => {
+        const completedDate = new Date(g.completed_at);
+        return completedDate >= yesterday && completedDate < today;
+      }).length;
       
-      if (yesterdayGoals > 0 || user.currentStreak === 0) {
+      let newStreak = user.current_streak || 0;
+      
+      if (yesterdayGoals > 0 || newStreak === 0) {
         // Continue or start streak
-        user.currentStreak = (user.currentStreak || 0) + 1;
+        newStreak = newStreak + 1;
       } else {
         // Streak broken, restart
-        user.currentStreak = 1;
+        newStreak = 1;
       }
       
       // Update longest streak
-      if (user.currentStreak > (user.longestStreak || 0)) {
-        user.longestStreak = user.currentStreak;
-      }
+      const newLongestStreak = Math.max(newStreak, user.longest_streak || 0);
       
-      await user.save();
+      await pgUserService.updateStats(userId, {
+        current_streak: newStreak,
+        longest_streak: newLongestStreak
+      });
       
-      // Create streak milestone activity
-      if (user.currentStreak % 7 === 0) { // Weekly milestones
+      // Create streak milestone activity (MongoDB)
+      if (newStreak % 7 === 0) { // Weekly milestones
         await Activity.createActivity(
           userId,
           user.name,
+          user.username,
           user.avatar,
           'streak_milestone',
           {
-            streakCount: user.currentStreak,
-            milestone: `${user.currentStreak} days`
+            streakCount: newStreak,
+            milestone: `${newStreak} days`
           }
         );
       }

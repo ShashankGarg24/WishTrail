@@ -1,7 +1,8 @@
 const mongoose = require('mongoose');
-const Goal = require('../models/Goal');
-const Habit = require('../models/Habit');
-const HabitLog = require('../models/HabitLog');
+const GoalDetails = require('../models/extended/GoalDetails');
+const pgGoalService = require('./pgGoalService');
+const pgHabitService = require('./pgHabitService');
+const pgHabitLogService = require('./pgHabitLogService');
 
 function toDateKeyUTC(date = new Date()) {
   const d = new Date(date);
@@ -51,47 +52,51 @@ function computeTargetCount(habitDoc, startDate, endDate) {
  * otherwise falls back to scheduled days calculation.
  */
 async function computeHabitLinkProgress(userId, link, goal) {
-  const habit = await Habit.findById(link.habitId).lean();
+  const habit = await pgHabitService.getHabit(link.habitId, userId);
   if (!habit) return { ratio: 0, targetCount: 0, doneCount: 0 };
 
-  // Priority 1: Use habit's targetCompletions if available
-  if (habit.targetCompletions && habit.targetCompletions > 0) {
-    const currentCompletions = habit.totalCompletions || 0;
-    const ratio = clamp01(currentCompletions / habit.targetCompletions);
+  // Priority 1: Use habit's target_completions if available
+  if (habit.target_completions && habit.target_completions > 0) {
+    const currentCompletions = habit.total_completions || 0;
+    const ratio = clamp01(currentCompletions / habit.target_completions);
     return { 
       ratio, 
-      targetCount: habit.targetCompletions, 
+      targetCount: habit.target_completions, 
       doneCount: currentCompletions,
       targetType: 'completions'
     };
   }
 
-  // Priority 2: Use habit's targetDays if available
-  if (habit.targetDays && habit.targetDays > 0) {
-    const currentDays = habit.totalDays || 0;
-    const ratio = clamp01(currentDays / habit.targetDays);
+  // Priority 2: Use habit's target_days if available
+  if (habit.target_days && habit.target_days > 0) {
+    const currentDays = habit.total_days || 0;
+    const ratio = clamp01(currentDays / habit.target_days);
     return { 
       ratio, 
-      targetCount: habit.targetDays, 
+      targetCount: habit.target_days, 
       doneCount: currentDays,
       targetType: 'days'
     };
   }
 
   // Priority 3: Fallback to scheduled days calculation within goal timeframe
-  const startDate = goal.startDate || goal.createdAt;
-  const endDate = link.endDate || goal.targetDate || new Date();
-  const targetCount = computeTargetCount(habit, startDate, endDate);
+  const startDate = goal.start_date || goal.created_at;
+  const endDate = link.endDate || goal.target_date || new Date();
+  
+  // Note: computeTargetCount expects habit doc with frequency and daysOfWeek
+  // For now, if no targets are set, return 0 (habits should have targets to be linked)
+  const targetCount = 0; // PostgreSQL habits don't store frequency/daysOfWeek in same way
   if (targetCount === 0) return { ratio: 0, targetCount: 0, doneCount: 0, targetType: 'scheduled' };
 
   const fromKey = toDateKeyUTC(startDate);
   const toKey = toDateKeyUTC(endDate);
-  const doneCount = await HabitLog.countDocuments({
-    userId: new mongoose.Types.ObjectId(userId),
-    habitId: new mongoose.Types.ObjectId(link.habitId),
-    status: 'done',
-    dateKey: { $gte: fromKey, $lte: toKey }
+  const logs = await pgHabitLogService.getHabitLogs({
+    userId,
+    habitId: link.habitId,
+    startDate: fromKey,
+    endDate: toKey
   });
+  const doneCount = logs.filter(log => log.status === 'done').length;
   const ratio = clamp01(doneCount / targetCount);
   return { ratio, targetCount, doneCount, targetType: 'scheduled' };
 }
@@ -101,14 +106,16 @@ async function computeHabitLinkProgress(userId, link, goal) {
  * Returns percentage in 0..100 with breakdown.
  */
 async function computeGoalProgress(goalId, requestingUserId) {
-  const goal = await Goal.findById(goalId).lean();
+  const goal = await pgGoalService.getGoalById(goalId);
   if (!goal) throw Object.assign(new Error('Goal not found'), { statusCode: 404 });
-  if (String(goal.userId) !== String(requestingUserId)) {
+  if (Number(goal.user_id) !== Number(requestingUserId)) {
     throw Object.assign(new Error('Access denied'), { statusCode: 403 });
   }
 
-  const subGoals = Array.isArray(goal.subGoals) ? goal.subGoals : [];
-  const habitLinks = Array.isArray(goal.habitLinks) ? goal.habitLinks : [];
+  // Get extended data from MongoDB
+  const goalDetails = await GoalDetails.findOne({ goalId: goal.id, isActive: true }).lean();
+  const subGoals = Array.isArray(goalDetails?.subGoals) ? goalDetails.subGoals : [];
+  const habitLinks = Array.isArray(goalDetails?.habitLinks) ? goalDetails.habitLinks : [];
 
   // If goal is completed and has no sub-goals or habit links, return 100%
   if (goal.completed && subGoals.length === 0 && habitLinks.length === 0) {
@@ -128,18 +135,23 @@ async function computeGoalProgress(goalId, requestingUserId) {
   let percent = 0;
   const breakdown = { subGoals: [], habits: [] };
 
-  // Preload any linked goals
+  // Preload any linked goals from PostgreSQL
   const linkIds = subGoals.map(sg => sg.linkedGoalId).filter(Boolean);
   const linkedById = new Map();
   if (linkIds.length > 0) {
-    const rows = await Goal.find({ _id: { $in: linkIds }, userId: goal.userId }).select('_id completed').lean();
-    for (const r of rows) linkedById.set(String(r._id), r);
+    const rows = await pgGoalService.getGoalsByIds(linkIds);
+    for (const r of rows) {
+      if (r.user_id === goal.user_id) {
+        linkedById.set(Number(r.id), r);
+      }
+    }
   }
+  
   for (const sg of subGoals) {
     const w = (sg.weight || 0) * norm;
     let ratio = sg.completed ? 1 : 0;
     if (!sg.completed && sg.linkedGoalId) {
-      const lg = linkedById.get(String(sg.linkedGoalId));
+      const lg = linkedById.get(Number(sg.linkedGoalId));
       if (lg && lg.completed) ratio = 1; // binary linkage maps to completion
     }
     const sgProgress = ratio * w;
@@ -149,7 +161,7 @@ async function computeGoalProgress(goalId, requestingUserId) {
 
   for (const link of habitLinks) {
     const w = (link.weight || 0) * norm;
-    const { ratio, targetCount, doneCount } = await computeHabitLinkProgress(goal.userId, link, goal);
+    const { ratio, targetCount, doneCount } = await computeHabitLinkProgress(goal.user_id, link, goal);
     const contrib = ratio * w;
     percent += contrib;
     breakdown.habits.push({ habitId: link.habitId, weight: w, ratio, targetCount, doneCount, contribution: contrib, endDate: link.endDate || null });
@@ -176,16 +188,19 @@ function suggestEqualWeights(count) {
  * Set subGoals with weights (validates sum==100 when no habits; else 0..100 allowed as combined sum).
  */
 async function setSubGoals(goalId, userId, subGoals) {
-  const goal = await Goal.findById(goalId);
+  const goal = await pgGoalService.getGoalById(goalId);
   if (!goal) throw Object.assign(new Error('Goal not found'), { statusCode: 404 });
-  if (String(goal.userId) !== String(userId)) throw Object.assign(new Error('Access denied'), { statusCode: 403 });
+  if (Number(goal.user_id) !== Number(userId)) throw Object.assign(new Error('Access denied'), { statusCode: 403 });
 
+  // Get existing GoalDetails from MongoDB
+  const existingDetails = await GoalDetails.findOne({ goalId: goal.id, isActive: true });
+  
   // Track previous subgoals for comparison
-  const previousSubGoals = (goal.subGoals || []).map(sg => ({
+  const previousSubGoals = existingDetails?.subGoals ? existingDetails.subGoals.map(sg => ({
     title: sg.title,
-    linkedGoalId: sg.linkedGoalId ? String(sg.linkedGoalId) : null,
+    linkedGoalId: sg.linkedGoalId ? Number(sg.linkedGoalId) : null,
     completed: sg.completed
-  }));
+  })) : [];
 
   const clean = [];
   const arr = Array.isArray(subGoals) ? subGoals : [];
@@ -203,22 +218,22 @@ async function setSubGoals(goalId, userId, subGoals) {
     };
     if (sg.linkedGoalId) {
       try {
-        const id = new mongoose.Types.ObjectId(sg.linkedGoalId);
-        if (String(id) === String(goal._id)) {
+        const linkedId = Number(sg.linkedGoalId);
+        if (linkedId === goal.id) {
           throw Object.assign(new Error('Cannot link a goal to itself'), { statusCode: 400 });
         }
-        const exists = await Goal.findOne({ _id: id, userId: goal.userId })
-          .select('_id subGoals habitLinks')
-          .lean();
-        if (!exists) {
+        const exists = await pgGoalService.getGoalById(linkedId);
+        if (!exists || exists.user_id !== goal.user_id) {
           throw Object.assign(new Error('Linked goal not found'), { statusCode: 404 });
         }
-        const hasChildren = (Array.isArray(exists.subGoals) && exists.subGoals.length > 0) || (Array.isArray(exists.habitLinks) && exists.habitLinks.length > 0);
+        // Check if linked goal has children in MongoDB
+        const linkedDetails = await GoalDetails.findOne({ goalId: linkedId, isActive: true });
+        const hasChildren = (linkedDetails?.subGoals && linkedDetails.subGoals.length > 0) || (linkedDetails?.habitLinks && linkedDetails.habitLinks.length > 0);
         if (hasChildren) {
           // Restrict nesting: a goal with its own subgoals/habits cannot be linked
           throw Object.assign(new Error('This goal already has sub-goals or habits and cannot be linked as a sub-goal.'), { statusCode: 400 });
         }
-        entry.linkedGoalId = id;
+        entry.linkedGoalId = linkedId;
       } catch (err) {
         if (err && err.statusCode) throw err;
         throw Object.assign(new Error('Invalid linked goal'), { statusCode: 400 });
@@ -227,19 +242,25 @@ async function setSubGoals(goalId, userId, subGoals) {
     clean.push(entry);
   }
 
-  await Goal.updateOne({ _id: goal._id }, { $set: { subGoals: clean } });
-  const updatedGoal = await Goal.findById(goal._id).lean();
+  // Update MongoDB GoalDetails
+  await GoalDetails.findOneAndUpdate(
+    { goalId: goal.id },
+    { $set: { subGoals: clean } },
+    { upsert: true }
+  );
+  
+  const updatedDetails = await GoalDetails.findOne({ goalId: goal.id, isActive: true }).lean();
 
   // Track subgoal changes (additions and removals)
   try {
     const Activity = require('../models/Activity');
-    const User = require('../models/User');
-    const user = await User.findById(userId).select('name avatar').lean();
+    const pgUserService = require('./pgUserService');
+    const user = await pgUserService.getUserById(userId);
     
     if (user) {
       const currentSubGoals = clean.map(sg => ({
         title: sg.title,
-        linkedGoalId: sg.linkedGoalId ? String(sg.linkedGoalId) : null,
+        linkedGoalId: sg.linkedGoalId ? Number(sg.linkedGoalId) : null,
         completed: sg.completed
       }));
 
@@ -262,10 +283,11 @@ async function setSubGoals(goalId, userId, subGoals) {
         await Activity.createOrUpdateGoalActivity(
           userId,
           user.name,
-          user.avatar,
+          user.username,
+          user.avatar_url,
           'subgoal_added',
           {
-            goalId: goal._id,
+            goalId: goal.id,
             goalTitle: goal.title,
             goalCategory: goal.category,
             subGoalsCount: clean.length,
@@ -282,10 +304,11 @@ async function setSubGoals(goalId, userId, subGoals) {
         await Activity.createOrUpdateGoalActivity(
           userId,
           user.name,
-          user.avatar,
+          user.username,
+          user.avatar_url,
           'subgoal_removed',
           {
-            goalId: goal._id,
+            goalId: goal.id,
             goalTitle: goal.title,
             goalCategory: goal.category,
             subGoalsCount: clean.length,
@@ -301,48 +324,58 @@ async function setSubGoals(goalId, userId, subGoals) {
     console.error('Failed to update activity for subgoal changes:', err);
   }
 
-  return updatedGoal;
+  // Return combined goal with details
+  return {
+    ...goal,
+    subGoals: updatedDetails.subGoals,
+    habitLinks: updatedDetails.habitLinks
+  };
 }
 
 /**
  * Toggle/mark sub-goal completion.
  */
 async function toggleSubGoal(goalId, userId, index, completed, note) {
-  const goal = await Goal.findById(goalId);
+  const goal = await pgGoalService.getGoalById(goalId);
   if (!goal) throw Object.assign(new Error('Goal not found'), { statusCode: 404 });
-  if (String(goal.userId) !== String(userId)) throw Object.assign(new Error('Access denied'), { statusCode: 403 });
+  if (Number(goal.user_id) !== Number(userId)) throw Object.assign(new Error('Access denied'), { statusCode: 403 });
+  
+  const goalDetails = await GoalDetails.findOne({ goalId: goal.id, isActive: true });
+  if (!goalDetails || !goalDetails.subGoals) throw Object.assign(new Error('No sub-goals found'), { statusCode: 404 });
+  
   const i = Number(index);
-  if (!Number.isInteger(i) || i < 0 || i >= (goal.subGoals?.length || 0)) {
+  if (!Number.isInteger(i) || i < 0 || i >= (goalDetails.subGoals?.length || 0)) {
     throw Object.assign(new Error('Invalid sub-goal index'), { statusCode: 400 });
   }
   
-  const previouslyCompleted = goal.subGoals[i].completed;
-  goal.subGoals[i].completed = !!completed;
-  goal.subGoals[i].completedAt = completed ? new Date() : undefined;
-  if (typeof note === 'string') goal.subGoals[i].note = note;
-  await goal.save();
+  const previouslyCompleted = goalDetails.subGoals[i].completed;
+  goalDetails.subGoals[i].completed = !!completed;
+  goalDetails.subGoals[i].completedAt = completed ? new Date() : undefined;
+  if (typeof note === 'string') goalDetails.subGoals[i].note = note;
+  await goalDetails.save();
 
   // Update activity feed if subgoal completion status changed
   if (previouslyCompleted !== !!completed) {
     try {
       const Activity = require('../models/Activity');
-      const User = require('../models/User');
-      const user = await User.findById(userId).select('name avatar').lean();
+      const pgUserService = require('./pgUserService');
+      const user = await pgUserService.getUserById(userId);
       
       if (user) {
-        const completedCount = (goal.subGoals || []).filter(sg => sg.completed).length;
+        const completedCount = (goalDetails.subGoals || []).filter(sg => sg.completed).length;
         await Activity.createOrUpdateGoalActivity(
           userId,
           user.name,
-          user.avatar,
+          user.username,
+          user.avatar_url,
           completed ? 'subgoal_completed' : 'subgoal_uncompleted',
           {
-            goalId: goal._id,
+            goalId: goal.id,
             goalTitle: goal.title,
             goalCategory: goal.category,
-            subGoalsCount: goal.subGoals?.length || 0,
+            subGoalsCount: goalDetails.subGoals?.length || 0,
             completedSubGoalsCount: completedCount,
-            subGoalTitle: goal.subGoals[i].title,
+            subGoalTitle: goalDetails.subGoals[i].title,
             subGoalIndex: i
           },
           { createNew: true } // Always create new activity for each toggle
@@ -353,29 +386,36 @@ async function toggleSubGoal(goalId, userId, index, completed, note) {
     }
   }
 
-  return goal.toObject();
+  return {
+    ...goal,
+    subGoals: goalDetails.subGoals,
+    habitLinks: goalDetails.habitLinks
+  };
 }
 
 /**
  * Set habit links with weights.
  */
 async function setHabitLinks(goalId, userId, links) {
-  const goal = await Goal.findById(goalId);
+  const goal = await pgGoalService.getGoalById(goalId);
   if (!goal) throw Object.assign(new Error('Goal not found'), { statusCode: 404 });
-  if (String(goal.userId) !== String(userId)) throw Object.assign(new Error('Access denied'), { statusCode: 403 });
+  if (Number(goal.user_id) !== Number(userId)) throw Object.assign(new Error('Access denied'), { statusCode: 403 });
 
+  // Get existing GoalDetails from MongoDB
+  const existingDetails = await GoalDetails.findOne({ goalId: goal.id, isActive: true });
+  
   // Track previous habit links for comparison
-  const previousHabitLinks = (goal.habitLinks || []).map(hl => String(hl.habitId));
+  const previousHabitLinks = existingDetails?.habitLinks ? existingDetails.habitLinks.map(hl => Number(hl.habitId)) : [];
 
   const clean = [];
   for (const l of (Array.isArray(links) ? links : [])) {
-    const id = l.habitId ? new mongoose.Types.ObjectId(l.habitId) : null;
+    const id = l.habitId ? Number(l.habitId) : null;
     if (!id) continue;
-    const exists = await Habit.findOne({ _id: id, userId: goal.userId }).select('_id targetDays targetCompletions name').lean();
+    const exists = await pgHabitService.getHabit(id, goal.user_id);
     if (!exists) continue;
     
     // Validate that habit has at least one target set
-    if (!exists.targetDays && !exists.targetCompletions) {
+    if (!exists.target_days && !exists.target_completions) {
       throw Object.assign(
         new Error(`Habit "${exists.name || 'Unknown'}" must have either target days or target completions set before being linked to a goal.`), 
         { statusCode: 400 }
@@ -391,17 +431,23 @@ async function setHabitLinks(goalId, userId, links) {
     clean.push(entry);
   }
 
-  await Goal.updateOne({ _id: goal._id }, { $set: { habitLinks: clean } });
-  const updatedGoal = await Goal.findById(goal._id).lean();
+  // Update MongoDB GoalDetails
+  await GoalDetails.findOneAndUpdate(
+    { goalId: goal.id },
+    { $set: { habitLinks: clean } },
+    { upsert: true }
+  );
+  
+  const updatedDetails = await GoalDetails.findOne({ goalId: goal.id, isActive: true }).lean();
 
   // Track habit link changes (additions and removals)
   try {
     const Activity = require('../models/Activity');
-    const User = require('../models/User');
-    const user = await User.findById(userId).select('name avatar').lean();
+    const pgUserService = require('./pgUserService');
+    const user = await pgUserService.getUserById(userId);
     
     if (user) {
-      const currentHabitLinks = clean.map(hl => String(hl.habitId));
+      const currentHabitLinks = clean.map(hl => Number(hl.habitId));
 
       // Detect additions
       const additions = currentHabitLinks.filter(curr => !previousHabitLinks.includes(curr));
@@ -411,15 +457,16 @@ async function setHabitLinks(goalId, userId, links) {
 
       // Log additions
       for (const habitId of additions) {
-        const habit = await Habit.findById(habitId).select('name').lean();
+        const habit = await pgHabitService.getHabit(habitId, userId);
         if (habit) {
           await Activity.createOrUpdateGoalActivity(
             userId,
             user.name,
-            user.avatar,
+            user.username,
+            user.avatar_url,
             'habit_added',
             {
-              goalId: goal._id,
+              goalId: goal.id,
               goalTitle: goal.title,
               goalCategory: goal.category,
               habitId: habitId,
@@ -432,15 +479,16 @@ async function setHabitLinks(goalId, userId, links) {
 
       // Log removals
       for (const habitId of removals) {
-        const habit = await Habit.findById(habitId).select('name').lean();
+        const habit = await pgHabitService.getHabit(habitId, userId);
         if (habit) {
           await Activity.createOrUpdateGoalActivity(
             userId,
             user.name,
-            user.avatar,
+            user.username,
+            user.avatar_url,
             'habit_removed',
             {
-              goalId: goal._id,
+              goalId: goal.id,
               goalTitle: goal.title,
               goalCategory: goal.category,
               habitId: habitId,
@@ -455,7 +503,12 @@ async function setHabitLinks(goalId, userId, links) {
     console.error('Failed to update activity for habit link changes:', err);
   }
 
-  return updatedGoal;
+  // Return combined goal with details
+  return {
+    ...goal,
+    subGoals: updatedDetails.subGoals,
+    habitLinks: updatedDetails.habitLinks
+  };
 }
 
 module.exports = {

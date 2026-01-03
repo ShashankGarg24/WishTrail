@@ -5,23 +5,20 @@ const userAchievementSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: [true, 'User ID is required'],
-    index: true
+    required: [true, 'User ID is required']
   },
   
   // Achievement that was earned
   achievementId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Achievement',
-    required: [true, 'Achievement ID is required'],
-    index: true
+    required: [true, 'Achievement ID is required']
   },
   
   // When the achievement was earned
   earnedAt: {
     type: Date,
-    default: Date.now,
-    index: -1
+    default: Date.now
   },
   
   // Progress towards achievement (for partial achievements)
@@ -71,14 +68,6 @@ const userAchievementSchema = new mongoose.Schema({
   toJSON: { virtuals: true },
   toObject: { virtuals: true }
 });
-
-// Compound unique index to prevent duplicate achievements (unless repeatable)
-userAchievementSchema.index({ userId: 1, achievementId: 1, occurrenceNumber: 1 }, { unique: true });
-
-// Additional indexes for performance
-userAchievementSchema.index({ userId: 1, earnedAt: -1 });
-userAchievementSchema.index({ achievementId: 1, earnedAt: -1 });
-userAchievementSchema.index({ earnedAt: -1 });
 
 // Virtual for time since earned
 userAchievementSchema.virtual('timeSinceEarned').get(function() {
@@ -171,12 +160,13 @@ userAchievementSchema.statics.awardAchievement = async function(userId, achievem
     const savedAchievement = await userAchievement.save();
 
     
-    const currentUser = (await User.findById(userId).select('name avatar').lean());
+    const currentUser = (await User.findById(userId).select('name username avatar').lean());
 
     // Create activity record
     await Activity.createActivity(
       userId,
       currentUser.name,
+      currentUser.username,
       currentUser.avatar,
       'achievement_earned',
       {

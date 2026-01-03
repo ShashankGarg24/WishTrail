@@ -3,16 +3,15 @@ const Community = require('../models/Community');
 const CommunityMember = require('../models/CommunityMember');
 const CommunityItem = require('../models/CommunityItem');
 const CommunityParticipation = require('../models/CommunityParticipation');
-const CommunityAnnouncement = require('../models/CommunityAnnouncement');
-const Activity = require('../models/Activity');
 const ChatMessage = require('../models/ChatMessage');
 const CommunityActivity = require('../models/CommunityActivity');
-const Notification = require('../models/Notification');
-const User = require('../models/User');
-const Goal = require('../models/Goal');
-const Habit = require('../models/Habit');
-const HabitLog = require('../models/HabitLog');
 const goalDivisionService = require('./goalDivisionService');
+
+// PostgreSQL Services
+const pgGoalService = require('./pgGoalService');
+const pgHabitService = require('./pgHabitService');
+const pgHabitLogService = require('./pgHabitLogService');
+const GoalDetails = require('../models/extended/GoalDetails');
 
 async function createCommunity(ownerId, payload) {
   const session = await mongoose.startSession();
@@ -147,18 +146,18 @@ async function getCommunityDashboard(communityId) {
   const sevenDaysKey = toDateKeyUTC(sevenDaysAgo);
 
   // Weekly activity: goal completions last 7 days + habit 'done' logs for habits linked to this community last 7 days
-  const weeklyGoalCount = await Goal.countDocuments({ 'communityInfo.communityId': community._id, completed: true, completedAt: { $gte: sevenDaysAgo } });
-  const personalHabits = await Habit.find({ 'communityInfo.communityId': community._id, isActive: true }).select('_id').lean();
-  const habitIds = personalHabits.map(h => h._id);
+  const weeklyGoalCount = await pgGoalService.countCommunityGoals({ communityId: community._id, completed: true, completedAfter: sevenDaysAgo });
+  const personalHabits = await pgHabitService.getHabitsByCommunity(community._id);
+  const habitIds = personalHabits.map(h => h.id);
   const weeklyHabitDone = habitIds.length > 0
-    ? await HabitLog.countDocuments({ habitId: { $in: habitIds }, status: 'done', dateKey: { $gte: sevenDaysKey } })
+    ? await pgHabitLogService.countLogs({ habitIds, status: 'done', dateKeyGte: sevenDaysKey })
     : 0;
   const weeklyActivityCount = weeklyGoalCount + weeklyHabitDone;
 
   // Completion rate: fraction of completed personal goals linked to this community (all-time)
-  const totalCommunityGoals = await Goal.countDocuments({ 'communityInfo.communityId': community._id, isActive: true });
+  const totalCommunityGoals = await pgGoalService.countCommunityGoals({ communityId: community._id, isActive: true });
   const completedCommunityGoals = totalCommunityGoals > 0
-    ? await Goal.countDocuments({ 'communityInfo.communityId': community._id, isActive: true, completed: true })
+    ? await pgGoalService.countCommunityGoals({ communityId: community._id, isActive: true, completed: true })
     : 0;
   const completionRate = totalCommunityGoals === 0 ? 0 : Math.min(100, Math.round((completedCommunityGoals / totalCommunityGoals) * 100));
 
@@ -214,19 +213,14 @@ async function getCommunityAnalytics(communityId, { weeks = 12 } = {}) {
   const oldestKey = toDateKeyUTC(oldest);
 
   // Goals: completions linked to this community
-  const goalMatch = { 'communityInfo.communityId': community._id, completed: true, completedAt: { $gte: oldest }, isActive: true };
-  const completedGoals = await Goal.find(goalMatch).select('completedAt userId').lean();
+  const completedGoals = await pgGoalService.getCommunityGoalCompletions({ communityId: community._id, completedAfter: oldest });
 
   // Habits: personal copies linked to this community, then logs in range
-  const personalHabits = await Habit.find({ 'communityInfo.communityId': community._id, isActive: true })
-    .select('_id userId currentStreak longestStreak lastLoggedDateKey')
-    .lean();
-  const habitIds = personalHabits.map(h => h._id);
+  const personalHabits = await pgHabitService.getHabitsByCommunity(community._id);
+  const habitIds = personalHabits.map(h => h.id);
   let habitLogs = [];
   if (habitIds.length > 0) {
-    habitLogs = await HabitLog.find({ habitId: { $in: habitIds }, status: 'done', dateKey: { $gte: oldestKey } })
-      .select('dateKey habitId userId')
-      .lean();
+    habitLogs = await pgHabitLogService.getLogsByDateRange({ habitIds, status: 'done', dateKeyGte: oldestKey });
   }
 
   // Build weekly bins
@@ -380,21 +374,25 @@ async function createCommunityOwnedItem(communityId, creatorId, payload) {
   }
   if (payload.type === 'goal') {
     // Create a minimal Goal document as community source (not owned by user to avoid appearing in personal goals)
-    const g = new Goal({
+    const g = await pgGoalService.createGoal({
       userId: creatorId, // Keep for attribution but mark as community-only
       title: payload.title,
-      description: payload.description || '',
       category: 'Other', // Use valid enum value for source goals
       targetDate: payload.targetDate || null,
       year: new Date().getFullYear(),
       isPublic: true,
-      isActive: true,
       isCommunitySource: true, // Flag to identify this as a community source goal
+    });
+    
+    // Store description and original category in GoalDetails (MongoDB)
+    await GoalDetails.create({
+      goalId: g.id,
+      description: payload.description || '',
       originalCategory: payload.category || 'Other', // Store original category for personal copies
     });
-    await g.save();
+    
     const participationType = payload.participationType === 'collaborative' ? 'collaborative' : 'individual';
-    const item = new CommunityItem({ communityId, type: 'goal', participationType, sourceId: g._id, title: g.title, description: g.description, createdBy: creatorId, status: 'approved' });
+    const item = new CommunityItem({ communityId, type: 'goal', participationType, sourceId: g.id, title: g.title, description: payload.description, createdBy: creatorId, status: 'approved' });
     await item.save();
     // Auto-join creator so it appears in their dashboard
     const existingParticipation = await CommunityParticipation.findOne({ communityId, itemId: item._id, userId: creatorId });
@@ -413,22 +411,25 @@ async function createCommunityOwnedItem(communityId, creatorId, payload) {
     
     // Create personal copy for creator so it appears in Community goals section
     try {
-      const personalGoal = new Goal({
+      const personalGoal = await pgGoalService.createGoal({
         userId: creatorId,
         title: g.title,
-        description: g.description || '',
         category: payload.category || 'Other', // Use the original category they selected
-        targetDate: g.targetDate || null,
+        targetDate: g.target_date || null,
         year: new Date().getFullYear(),
         isPublic: false, // Personal copy should be private by default
-        isActive: true,
+      });
+      
+      // Store community info and description in GoalDetails
+      await GoalDetails.create({
+        goalId: personalGoal.id,
+        description: payload.description || '',
         communityInfo: {
           communityId,
           itemId: item._id,
-          sourceId: g._id
+          sourceId: g.id
         }
       });
-      await personalGoal.save();
     } catch (err) {
       console.error('Error creating personal copy for creator:', err);
     }
@@ -442,13 +443,13 @@ async function createCommunityOwnedItem(communityId, creatorId, payload) {
         name: u?.name,
         avatar: u?.avatar,
         type: 'community_item_added',
-        data: { goalId: g._id, goalTitle: g.title }
+        data: { goalId: g.id, goalTitle: g.title }
       });
     } catch (_) {}
     return item;
   } else {
     // Create community source habit (hidden from personal dashboard)
-    const h = new Habit({
+    const h = await pgHabitService.createHabit({
       userId: creatorId,
       name: payload.title,
       description: payload.description || '',
@@ -457,11 +458,10 @@ async function createCommunityOwnedItem(communityId, creatorId, payload) {
       timezone: payload.timezone || 'UTC',
       reminders: Array.isArray(payload.reminders) ? payload.reminders : [],
       isPublic: true,
-      isActive: true,
       isCommunitySource: true, // Flag to hide from personal habits
     });
-    await h.save();
-    const item = new CommunityItem({ communityId, type: 'habit', participationType: 'individual', sourceId: h._id, title: h.name, description: h.description, createdBy: creatorId, status: 'approved' });
+    
+    const item = new CommunityItem({ communityId, type: 'habit', participationType: 'individual', sourceId: h.id, title: h.name, description: h.description, createdBy: creatorId, status: 'approved' });
     await item.save();
     
     // Auto-join creator so it appears in their dashboard  

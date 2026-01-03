@@ -6,7 +6,6 @@ const otpSchema = new mongoose.Schema({
     required: [true, 'Email is required'],
     lowercase: true,
     trim: true,
-    index: true,
     match: [
       /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/,
       'Please provide a valid email address'
@@ -52,10 +51,6 @@ const otpSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
-
-// Compound index for efficient queries
-otpSchema.index({ email: 1, code: 1, isVerified: 1 });
-otpSchema.index({ email: 1, purpose: 1 });
 
 // Static method to generate OTP
 otpSchema.statics.generateCode = function() {

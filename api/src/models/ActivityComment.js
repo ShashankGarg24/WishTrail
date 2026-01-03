@@ -4,14 +4,12 @@ const activityCommentSchema = new mongoose.Schema({
   activityId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Activity',
-    required: true,
-    index: true
+    required: true
   },
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true,
-    index: true
+    required: true
   },
   text: {
     type: String,
@@ -22,8 +20,7 @@ const activityCommentSchema = new mongoose.Schema({
   parentCommentId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'ActivityComment',
-    default: null,
-    index: true
+    default: null
   },
   mentionUserId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -32,14 +29,10 @@ const activityCommentSchema = new mongoose.Schema({
   },
   isActive: {
     type: Boolean,
-    default: true,
-    index: true
+    default: true
   }
 }, {
   timestamps: true
 });
-
-activityCommentSchema.index({ activityId: 1, createdAt: -1 });
-activityCommentSchema.index({ parentCommentId: 1, createdAt: 1 });
 
 module.exports = mongoose.model('ActivityComment', activityCommentSchema); 

@@ -67,6 +67,7 @@ const DashboardPage = () => {
     createGoal,
     toggleGoalCompletion,
     deleteGoal,
+    getDashboardYears,
     addDashboardYear,
     deleteDashboardYear,
     dashboardYears,
@@ -79,8 +80,8 @@ const DashboardPage = () => {
     loadHabitAnalytics,
     habitStats,
     loadHabitStats,
-    loadCommunityGoalsForYear,
-    communityGoalsByYear,
+    // loadCommunityGoalsForYear,
+    // communityGoalsByYear,
   } = useApiStore()
 
   const [openGoalId, setOpenGoalId] = useState(null)
@@ -209,14 +210,8 @@ const DashboardPage = () => {
     if (!hasLoadedInitialData) {
       prevYearRef.current = selectedYear;
       
-      // Ensure current year is added to dashboardYears if not present
-      const ensureCurrentYear = async () => {
-        if (dashboardYears && !dashboardYears.includes(currentYear)) {
-          await addDashboardYear(currentYear);
-        }
-      };
-      ensureCurrentYear();
-      
+      // Fetch dashboard years first
+      getDashboardYears()
       getDashboardStats()
       setIsLoadingGoals(true)
       getGoals({ 
@@ -388,11 +383,11 @@ const DashboardPage = () => {
   }, [goals, hasLoadedInitialData, isLoadingGoals])
 
   // Load community goals (not paginated with personal goals)
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    try { loadCommunityGoalsForYear(selectedYear).catch(() => { }) } catch { }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated, selectedYear])
+  // useEffect(() => {
+  //   if (!isAuthenticated) return;
+  //   try { loadCommunityGoalsForYear(selectedYear).catch(() => { }) } catch { }
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [isAuthenticated, selectedYear])
 
   // Deep link open via ?goalId=
   useEffect(() => {
@@ -455,11 +450,11 @@ const DashboardPage = () => {
     return filtered;
   }, [goals, selectedYear]);
 
-  const communityGoals = useMemo(() => {
-    return Array.isArray(communityGoalsByYear?.[String(selectedYear)]?.goals)
-      ? communityGoalsByYear[String(selectedYear)].goals
-      : [];
-  }, [communityGoalsByYear, selectedYear]);
+  // const communityGoals = useMemo(() => {
+  //   return Array.isArray(communityGoalsByYear?.[String(selectedYear)]?.goals)
+  //     ? communityGoalsByYear[String(selectedYear)].goals
+  //     : [];
+  // }, [communityGoalsByYear, selectedYear]);
 
   // When searching, visibleGoals comes directly from search results
   // Backend now handles filter and sort, so just use the data directly

@@ -557,7 +557,7 @@ module.exports = {
         limit,
         strategy,
         category,
-        userId: req.user.id
+        userId: req.user.username
       });
 
       const ttl = strategy === 'personalized'

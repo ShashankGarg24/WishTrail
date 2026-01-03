@@ -1,13 +1,13 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const crypto = require('crypto');
 const { OAuth2Client } = require('google-auth-library');
-const User = require('../models/User');
+const UserPreferences = require('../models/extended/UserPreferences');
 const PasswordReset = require('../models/PasswordReset');
 const OTP = require('../models/Otp');
 const emailService = require('./emailService');
 const BloomFilterService = require('../utility/BloomFilterService');
 const { ALLOWED_MOOD_EMOJIS } = require('../config/constants');
+const pgUserService = require('./pgUserService');
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -16,7 +16,7 @@ class AuthService {
   /**
    * Create user
    */
-  async register(profileData, deviceType) {
+  async register(profileData, deviceType, timezone = 'UTC', locale = 'en-US') {
     const { email, name, password, username, dateOfBirth, interests, location } = profileData || {};
     // Check if OTP was verified (you might want to implement a temporary verification token)
     const recentVerifiedOTP = await OTP.findOne({
@@ -31,14 +31,10 @@ class AuthService {
     }
 
     // Check if user already exists (double check)
-    const existingUser = await User.findOne({ 
-      $or: [
-        { email },
-        ...(username ? [{ username }] : [])
-      ]
-    });
+    const existingByEmail = await pgUserService.getUserByEmail(email);
+    const existingByUsername = username ? await pgUserService.getUserByUsername(username) : null;
     
-    if (existingUser) {
+    if (existingByEmail || existingByUsername) {
       throw new Error('User already exists with this email or username');
     }
 
@@ -47,32 +43,39 @@ class AuthService {
       name,
       email,
       password,
-      isActive: true,
+      username: username || null,
+      dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
+      is_active: true,
       isVerified: true, // Since they verified via OTP
-      profileCompleted: true
+      profileCompleted: true,
+      timezone: timezone || 'UTC',
+      locale: locale || 'en-US'
     };
 
-    // Add optional fields
-    if (username) userData.username = username;
-    if (dateOfBirth) userData.dateOfBirth = new Date(dateOfBirth);
-    if (interests && interests.length > 0) userData.interests = interests;
-    if (location) userData.location = location;
+    // Add location fields if provided
+    if (location) {
+      userData.city = location.city || null;
+      userData.state = location.state || null;
+      userData.country = location.country || null;
+    }
 
-    // Initialize dashboard years with current year
-    try {
-      const currentYear = new Date().getFullYear();
-      userData.dashboardYears = [currentYear];
-    } catch (_) {}
+    const user = await pgUserService.createUser(userData);
 
-    const user = await User.create(userData);
+    // Create user preferences in MongoDB with interests and dashboard years
+    const currentYear = new Date().getFullYear();
+    await UserPreferences.create({
+      userId: user.id,
+      interests: interests || [],
+      dashboardYears: [currentYear],
+      moodEmojis: ALLOWED_MOOD_EMOJIS
+    });
 
     // Generate tokens
-    const { accessToken, refreshToken } = this.generateTokens(user._id);
+    const { accessToken, refreshToken } = this.generateTokens(user.id);
     
     // Save refresh token (default to web if deviceType is unknown)
     const kind = deviceType === 'app' ? 'app' : 'web';
-    user.refreshTokens[kind] = refreshToken;
-    await user.save();
+    await pgUserService.updateRefreshToken(user.id, kind, refreshToken);
 
     // Send welcome email
     try {
@@ -86,18 +89,16 @@ class AuthService {
     await OTP.deleteMany({ email, purpose: 'signup', isVerified: true });
 
     // Remove password from response
-    const userResponse = user.toObject();
     const hasPassword = !!user.password; // Check if password exists
+    const userResponse = { ...user, hasPassword };
     delete userResponse.password;
-    delete userResponse.refreshToken;
     
     //populate bloom filter
-    await BloomFilterService.add(username);
+    if (username) await BloomFilterService.add(username);
     await BloomFilterService.add(email);
-    BloomFilterService.rebuildIdExpectedUsersIncrease(User);
 
     return {
-      user: { ...userResponse, hasPassword },
+      user: userResponse,
       token: accessToken,
       refreshToken
     };
@@ -106,12 +107,13 @@ class AuthService {
   /**
    * Login user
    */
-  async login(email, password, deviceType) {
-    // Find user and include password for comparison
-    const user = await User.findOne({ email, isActive: true }).select('+password');
+  async login(email, password, deviceType, timezone = 'UTC', locale = 'en-US') {
+    // Find user by email
+    const user = await pgUserService.getUserByEmail(email, true); // true = include password
     console.log('Login attempt for email:', email);
     console.log('User found:', user);
-    if (!user) {
+    
+    if (!user || !user.is_active) {
       throw new Error('No user is registered with the given email.');
     }
     
@@ -121,26 +123,26 @@ class AuthService {
       throw new Error('Invalid credentials');
     }
     
-    // Update last login
-    user.lastLogin = new Date();
-    user.loginCount = (user.loginCount || 0) + 1;
-    
     // Generate tokens
-    const { accessToken, refreshToken } = this.generateTokens(user._id);
+    const { accessToken, refreshToken } = this.generateTokens(user.id);
     
-    // Save refresh token
-    deviceType === 'app' ? user.refreshTokens.app = refreshToken : user.refreshTokens.web = refreshToken;
-    await user.save();
+    // Update last login, timezone, locale, and save refresh token
+    const kind = deviceType === 'app' ? 'app' : 'web';
+    await pgUserService.updateRefreshToken(user.id, kind, refreshToken);
+    await pgUserService.updateUser(user.id, {
+      last_login: new Date(),
+      login_count: (user.login_count || 0) + 1,
+      timezone: timezone || 'UTC',
+      locale: locale || 'en-US'
+    });
     
     // Remove password from response
-    const userResponse = user.toObject();
-    const hasPassword = !!user.password; // Check if password exists
+    const hasPassword = !!user.password;
+    const userResponse = { ...user, hasPassword };
     delete userResponse.password;
-    delete userResponse.refreshTokens.app;
-    delete userResponse.refreshTokens.web;
     
     return {
-      user: { ...userResponse, hasPassword },
+      user: userResponse,
       token: accessToken,
       refreshToken
     };
@@ -155,13 +157,7 @@ class AuthService {
     }
   
     // Clear the specific token
-    await User.findByIdAndUpdate(
-      userId,
-      {
-        $set: { [`refreshTokens.${deviceType}`]: null }
-      },
-      { new: true }
-    );
+    await pgUserService.updateRefreshToken(userId, deviceType, null);
   
     return { message: `${deviceType} logged out successfully` };
   }
@@ -170,16 +166,28 @@ class AuthService {
    * Get current user
    */
   async getCurrentUser(userId) {
-    const user = await User.findById(userId).select('+password');
+    const user = await pgUserService.getUserById(userId, true); // true = include password
     
-    if (!user || !user.isActive) {
+    if (!user || !user.is_active) {
       throw new Error('User not found');
     }
     
-    const userResponse = user.toObject();
+    const userResponse = { ...user };
     const hasPassword = !!user.password; // Check if password exists
     delete userResponse.password;
-    delete userResponse.refreshTokens;
+    delete userResponse.refreshTokenWeb;
+    delete userResponse.refreshTokenApp;
+    
+    // Fetch MongoDB extended fields (interests, currentMood, socialLinks)
+    const UserPreferences = require('../models/extended/UserPreferences');
+    const prefs = await UserPreferences.findOne({ userId }).lean();
+    
+    if (prefs) {
+      userResponse.interests = prefs.interests || [];
+      userResponse.currentMood = prefs.preferences?.currentMood || '';
+      userResponse.youtube = prefs.socialLinks?.youtube || '';
+      userResponse.instagram = prefs.socialLinks?.instagram || '';
+    }
     
     return { ...userResponse, hasPassword };
   }
@@ -188,8 +196,10 @@ class AuthService {
    * Update user profile
    */
   async updateProfile(userId, updateData) {
-    const allowedUpdates = ['name', 'bio', 'location', 'dateOfBirth', 'avatar', 'interests', 'currentMood', 'website', 'youtube', 'instagram', 'username'];
-    const updates = {};
+    const pgAllowedUpdates = ['name', 'bio', 'location', 'dateOfBirth', 'avatar', 'website', 'username'];
+    const mongoAllowedUpdates = ['interests', 'currentMood', 'youtube', 'instagram'];
+    const pgUpdates = {};
+    const mongoUpdates = {};
     
     // Validate mood emoji if provided
     if (updateData.currentMood !== undefined && updateData.currentMood !== '') {
@@ -221,41 +231,86 @@ class AuthService {
 
     // Username uniqueness check
     if (updateData.username) {
-      const existing = await User.findOne({ username: updateData.username, _id: { $ne: userId } });
-      if (existing) {
-        throw new Error('Username already exists');
+      const existing = await pgUserService.getUserByUsername(updateData.username);
+      if (existing && existing.id !== userId) {
+        const error = new Error('Username already exists');
+        error.statusCode = 400;
+        throw error;
       }
     }
 
-    // Filter allowed updates
+    // Separate PostgreSQL and MongoDB updates
     Object.keys(updateData).forEach(key => {
-      if (allowedUpdates.includes(key) && updateData[key] !== undefined) {
-        updates[key] = updateData[key];
+      if (pgAllowedUpdates.includes(key) && updateData[key] !== undefined) {
+        // Map camelCase to snake_case for PostgreSQL
+        if (key === 'avatar') {
+          pgUpdates['avatar_url'] = updateData[key];
+        } else if (key === 'dateOfBirth') {
+          pgUpdates['date_of_birth'] = updateData[key];
+        } else {
+          pgUpdates[key] = updateData[key];
+        }
+      }
+      if (mongoAllowedUpdates.includes(key) && updateData[key] !== undefined) {
+        mongoUpdates[key] = updateData[key];
       }
     });
 
-    if (Object.keys(updates).length === 0) {
+    if (Object.keys(pgUpdates).length === 0 && Object.keys(mongoUpdates).length === 0) {
       throw new Error('No valid updates provided');
     }
 
-    const user = await User.findByIdAndUpdate(
-      userId,
-      updates,
-      { new: true, runValidators: true }
-    ).select('-password -refreshToken');
-
-    if (!user) {
-      throw new Error('User not found');
+    let user = null;
+    
+    // Update PostgreSQL fields
+    if (Object.keys(pgUpdates).length > 0) {
+      user = await pgUserService.updateUser(userId, pgUpdates);
+      if (!user) {
+        throw new Error('User not found');
+      }
+    } else {
+      user = await pgUserService.getUserById(userId);
     }
 
-    return user;
+    // Update MongoDB extended fields (interests, currentMood, social links)
+    if (Object.keys(mongoUpdates).length > 0) {
+      const UserPreferences = require('../models/extended/UserPreferences');
+      const updateFields = {};
+      
+      if (mongoUpdates.interests !== undefined) {
+        updateFields.interests = mongoUpdates.interests;
+      }
+      if (mongoUpdates.currentMood !== undefined) {
+        updateFields['preferences.currentMood'] = mongoUpdates.currentMood;
+      }
+      if (mongoUpdates.youtube !== undefined) {
+        updateFields['socialLinks.youtube'] = mongoUpdates.youtube;
+      }
+      if (mongoUpdates.instagram !== undefined) {
+        updateFields['socialLinks.instagram'] = mongoUpdates.instagram;
+      }
+      
+      await UserPreferences.findOneAndUpdate(
+        { userId },
+        { $set: updateFields },
+        { upsert: true, new: true }
+      );
+    }
+
+    // Remove sensitive fields
+    const userResponse = { ...user };
+    delete userResponse.password;
+    delete userResponse.refreshTokenWeb;
+    delete userResponse.refreshTokenApp;
+
+    return userResponse;
   }
   
   /**
    * Update password
    */
   async updatePassword(userId, currentPassword, newPassword) {
-    const user = await User.findById(userId).select('+password +refreshTokens.app +refreshTokens.web');
+    const user = await pgUserService.getUserById(userId, true); // true = include password
     
     if (!user) {
       throw new Error('User not found');
@@ -271,13 +326,18 @@ class AuthService {
       throw new Error('New password cannot be same as the current password');
     }
     
-    // Update password (will be hashed by pre-save middleware)
-    user.password = newPassword;
-    user.passwordChangedAt = new Date();
+    // Hash the new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    
+    // Update password and invalidate all refresh tokens for security
+    await pgUserService.updateUser(userId, {
+      password: hashedPassword,
+      passwordChangedAt: new Date()
+    });
+    
     // Invalidate all existing refresh tokens for security
-    user.refreshTokens.app = null;
-    user.refreshTokens.web = null;
-    await user.save();
+    await pgUserService.updateRefreshToken(userId, 'app', null);
+    await pgUserService.updateRefreshToken(userId, 'web', null);
 
     // Send confirmation email
     try {
@@ -295,7 +355,7 @@ class AuthService {
    * Request OTP for setting password (for users without password)
    */
   async requestPasswordSetupOTP(userId) {
-    const user = await User.findById(userId).select('+password');
+    const user = await pgUserService.getUserById(userId, true); // true = include password
     
     if (!user) {
       throw new Error('User not found');
@@ -337,7 +397,7 @@ class AuthService {
    * Verify OTP and set new password (for users without password)
    */
   async setPasswordWithOTP(userId, otp, newPassword) {
-    const user = await User.findById(userId).select('+password +refreshTokens.app +refreshTokens.web');
+    const user = await pgUserService.getUserById(userId, true); // true = include password
     
     if (!user) {
       throw new Error('User not found');
@@ -365,13 +425,18 @@ class AuthService {
     otpRecord.isVerified = true;
     await otpRecord.save();
 
-    // Update password (will be hashed by pre-save middleware)
-    user.password = newPassword;
-    user.passwordChangedAt = new Date();
+    // Hash the new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    
+    // Update password
+    await pgUserService.updateUser(userId, {
+      password: hashedPassword,
+      passwordChangedAt: new Date()
+    });
+    
     // Invalidate all existing refresh tokens for security
-    user.refreshTokens.app = null;
-    user.refreshTokens.web = null;
-    await user.save();
+    await pgUserService.updateRefreshToken(userId, 'app', null);
+    await pgUserService.updateRefreshToken(userId, 'web', null);
 
     // Delete verified OTP
     await OTP.deleteMany({ email: user.email, purpose: 'password_setup' });
@@ -421,21 +486,22 @@ class AuthService {
         throw new Error('Invalid token type');
       }
       
-      const user = await User.findById(decoded.userId).select('+refreshTokens.app +refreshTokens.web');
-      if (!user || !user.isActive || user.refreshTokens[deviceType] !== refreshToken) {
+      const user = await pgUserService.getUserById(decoded.userId);
+      if (!user || !user.is_active) {
+        throw new Error('Invalid refresh token');
+      }
+      
+      // Get the stored refresh token for this device type
+      const storedToken = await pgUserService.getRefreshToken(user.id, deviceType);
+      if (storedToken !== refreshToken) {
         throw new Error('Invalid refresh token');
       }
       
       // Generate new tokens
-      const tokens = this.generateTokens(user._id);
+      const tokens = this.generateTokens(user.id);
       
       // Rotate and persist the newly generated refresh token
-      if (deviceType === 'app') {
-        user.refreshTokens.app = tokens.refreshToken;
-      } else {
-        user.refreshTokens.web = tokens.refreshToken;
-      }
-      await user.save();
+      await pgUserService.updateRefreshToken(user.id, deviceType, tokens.refreshToken);
       
       return tokens;
     } catch (error) {
@@ -453,7 +519,7 @@ class AuthService {
     const existsInBloom = BloomFilterService.mightExist;
     
     if (email && existsInBloom(email)) {
-      const emailExists = await User.findOne({ email });
+      const emailExists = await pgUserService.getUserByEmail(email);
       checks.push({
         field: 'email',
         value: email,
@@ -462,7 +528,7 @@ class AuthService {
     }
     
     if (username && existsInBloom(username)) {
-      const usernameExists = await User.findOne({ username });
+      const usernameExists = await pgUserService.getUserByUsername(username);
       checks.push({
         field: 'username',
         value: username,
@@ -484,7 +550,7 @@ class AuthService {
      async requestOTP({ email, name, password }) {
     // Check if user already exists - use bloom filter for optimization
     if (BloomFilterService.mightExist(email)) {
-      const existingUser = await User.findOne({ email });
+      const existingUser = await pgUserService.getUserByEmail(email);
       if (existingUser) {
         throw new Error('User already exists with this email');
       }
@@ -581,8 +647,8 @@ class AuthService {
    */
   async forgotPassword(email) {
     // Check if user exists
-    const user = await User.findOne({ email, isActive: true });
-    if (!user) {
+    const user = await pgUserService.getUserByEmail(email);
+    if (!user || !user.is_active) {
       // Don't reveal if user exists or not for security
       return {
         message: 'If an account with this email exists, you will receive a password reset link.',
@@ -620,20 +686,23 @@ class AuthService {
     const passwordReset = await PasswordReset.verifyResetToken(token);
     
     // Get the user
-    const user = await User.findOne({ email: passwordReset.email, isActive: true }).select('+refreshTokens.app +refreshTokens.web');
-    if (!user) {
+    const user = await pgUserService.getUserByEmail(passwordReset.email);
+    if (!user || !user.is_active) {
       throw new Error('User not found');
     }
 
+    // Hash the new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    
     // Update user password
-    user.password = newPassword;
-    user.passwordChangedAt = new Date();
+    await pgUserService.updateUser(user.id, {
+      password: hashedPassword,
+      passwordChangedAt: new Date()
+    });
     
     // Invalidate all existing refresh tokens for security
-    user.refreshTokens.app = null;
-    user.refreshTokens.web = null;
-    
-    await user.save();
+    await pgUserService.updateRefreshToken(user.id, 'app', null);
+    await pgUserService.updateRefreshToken(user.id, 'web', null);
 
     // Mark token as used
     await PasswordReset.markTokenAsUsed(token);
@@ -653,7 +722,7 @@ class AuthService {
   /**
    * Google OAuth Login/Register
    */
-  async googleAuth(googleToken, deviceType) {
+  async googleAuth(googleToken, deviceType, timezone = 'UTC', locale = 'en-US') {
     try {
       // Verify Google token
       const ticket = await googleClient.verifyIdToken({
@@ -669,22 +738,26 @@ class AuthService {
       }
 
       // Check if user exists
-      let user = await User.findOne({ email });
+      let user = await pgUserService.getUserByEmail(email);
 
       if (user) {
         // Existing user - login (DO NOT override name or avatar)
-        user.lastLogin = new Date();
-        user.loginCount = (user.loginCount || 0) + 1;
+        const updates = {
+          last_login: new Date(),
+          login_count: (user.login_count || 0) + 1,
+          timezone: timezone || 'UTC',
+          locale: locale || 'en-US'
+        };
         
         // Update Google ID if not set (link account)
-        if (!user.googleId) {
-          user.googleId = googleId;
+        if (!user.google_id) {
+          updates.google_id = googleId;
         }
         
         // Note: We intentionally do NOT update name or avatar for existing users
         // Users may have customized these after initial signup
         
-        await user.save();
+        user = await pgUserService.updateUser(user.id, updates);
       } else {
         // New user - register
         // Generate a unique username from email
@@ -705,7 +778,7 @@ class AuthService {
         
         // Ensure username is unique - use bloom filter first for optimization
         // Check bloom filter first (fast), only query DB if bloom filter says it might exist
-        while (BloomFilterService.mightExist(username) && await User.findOne({ username })) {
+        while (BloomFilterService.mightExist(username) && await pgUserService.getUserByUsername(username)) {
           // Append counter, but ensure total length doesn't exceed 20 chars
           const counterStr = String(counter);
           const maxBaseLength = 20 - counterStr.length;
@@ -722,58 +795,59 @@ class AuthService {
         }
 
 
-        // Download Google avatar and upload to Cloudinary
+        // Download Google avatar and upload to Cloudinary (with timeout)
         let avatarUrl = picture;
         try {
           const cloudinary = require('../utility/cloudinary');
           const axios = require('axios');
-          const response = await axios.get(picture, { responseType: 'arraybuffer' });
-          const uploadRes = await cloudinary.uploader.upload_stream({
-            folder: 'avatars',
-            resource_type: 'image',
-            overwrite: true,
-            public_id: `google_${username}_${Date.now()}`
-          }, (error, result) => {
-            if (error) throw error;
-            avatarUrl = result.secure_url;
+          
+          // Download image with 5 second timeout
+          const response = await axios.get(picture, { 
+            responseType: 'arraybuffer',
+            timeout: 5000
           });
-          // Use a Promise to wrap the stream
-          await new Promise((resolve, reject) => {
-            const stream = cloudinary.uploader.upload_stream({
-              folder: 'avatars',
-              resource_type: 'image',
-              overwrite: true,
-              public_id: `google_${username}_${Date.now()}`
-            }, (error, result) => {
-              if (error) reject(error);
-              else {
-                avatarUrl = result.secure_url;
-                resolve(result);
-              }
-            });
-            stream.end(Buffer.from(response.data, 'binary'));
-          });
+          
+          // Upload to Cloudinary with timeout
+          await Promise.race([
+            new Promise((resolve, reject) => {
+              const stream = cloudinary.uploader.upload_stream({
+                folder: 'avatars',
+                resource_type: 'image',
+                overwrite: true,
+                public_id: `google_${username}_${Date.now()}`
+              }, (error, result) => {
+                if (error) reject(error);
+                else {
+                  avatarUrl = result.secure_url;
+                  resolve(result);
+                }
+              });
+              stream.end(Buffer.from(response.data, 'binary'));
+            }),
+            new Promise((_, reject) => 
+              setTimeout(() => reject(new Error('Cloudinary upload timeout')), 8000)
+            )
+          ]);
         } catch (err) {
-          // fallback to Google picture if Cloudinary fails
+          // Fallback to Google picture if Cloudinary fails or times out
+          console.log('Cloudinary upload failed, using Google avatar:', err.message);
           avatarUrl = picture;
         }
 
-        user = await User.create({
+        user = await pgUserService.createUser({
           name,
           email,
           username,
           googleId,
           avatar: avatarUrl,
           isVerified: true,
-          isActive: true,
-          profileCompleted: false, // User needs to complete profile later
-          dashboardYears: [new Date().getFullYear()]
+          is_active: true,
+          profileCompleted: false // User needs to complete profile later
         });
 
         // Add to bloom filter
         await BloomFilterService.add(username);
         await BloomFilterService.add(email);
-        BloomFilterService.rebuildIdExpectedUsersIncrease(User);
 
         // Send welcome email
         try {
@@ -784,19 +858,18 @@ class AuthService {
       }
 
       // Generate tokens
-      const { accessToken, refreshToken } = this.generateTokens(user._id);
+      const { accessToken, refreshToken } = this.generateTokens(user.id);
       
       // Save refresh token
       const kind = deviceType === 'app' ? 'app' : 'web';
-      user.refreshTokens[kind] = refreshToken;
-      await user.save();
+      await pgUserService.updateRefreshToken(user.id, kind, refreshToken);
 
       // Remove sensitive data from response
-      const userResponse = user.toObject();
+      const userResponse = { ...user };
       const hasPassword = !!user.password; // Check if password exists
       delete userResponse.password;
-      delete userResponse.refreshTokens.app;
-      delete userResponse.refreshTokens.web;
+      delete userResponse.refreshTokenWeb;
+      delete userResponse.refreshTokenApp;
 
       return {
         user: { ...userResponse, hasPassword },

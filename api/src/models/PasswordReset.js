@@ -43,9 +43,6 @@ const passwordResetSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Compound index for efficient queries
-passwordResetSchema.index({ email: 1, token: 1, isUsed: 1 });
-
 // Static method to create password reset token
 passwordResetSchema.statics.createResetToken = async function(email, expiryMinutes = 60) {
   // Clean up any existing unused tokens for this email

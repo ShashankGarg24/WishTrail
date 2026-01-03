@@ -12,7 +12,7 @@ export default function SettingsPage() {
     { id: "privacy", label: "Privacy", icon: Shield, component: <Suspense fallback={null}><PrivacySettings /></Suspense> },
     { id: "theme", label: "Theme", icon: Palette, component: <Suspense fallback={null}><ThemeSettings /></Suspense> },
     { id: "blocked", label: "Blocked", icon: UserX, component: <Suspense fallback={null}><BlockedUsers /></Suspense> },
-    { id: "notifications", label: "Notifications", icon: Bell, component: <Suspense fallback={null}><NotificationsSettings /></Suspense> },
+    // { id: "notifications", label: "Notifications", icon: Bell, component: <Suspense fallback={null}><NotificationsSettings /></Suspense> },
     { id: "password", label: "Password", icon: Lock, component: <Suspense fallback={null}><PasswordSettings /></Suspense> },
   ];
 
