@@ -3,6 +3,7 @@ const JournalEntry = require('../models/JournalEntry');
 const PDFDocument = require('pdfkit');
 const axios = require('axios');
 const { sanitizeJournalEntry } = require('../utility/sanitizer');
+const { validateJournalEntry, validateJournalExport, handleValidationResponse } = require('../utility/premiumEnforcement');
 
 exports.getPrompt = async (req, res, next) => {
   try {
@@ -19,6 +20,12 @@ exports.createEntry = async (req, res, next) => {
     if (!content || String(content).trim().length === 0) {
       return res.status(400).json({ success: false, message: 'Content is required' });
     }
+    
+    // ✅ PREMIUM CHECK: Validate journal entry limits
+    const validation = await validateJournalEntry(req);
+    const errorResponse = handleValidationResponse(res, validation);
+    if (errorResponse) return errorResponse;
+    
     const entry = await journalService.createEntry(req.user.id, { content, promptKey, visibility, mood, tags });
     
     // ✅ Sanitize entry response - return only essential fields
@@ -82,6 +89,11 @@ exports.getUserHighlights = async (req, res, next) => {
 // @access  Private
 exports.exportMyJournal = async (req, res, next) => {
   try {
+    // ✅ PREMIUM CHECK: Validate export permission
+    const validation = await validateJournalExport(req);
+    const errorResponse = handleValidationResponse(res, validation);
+    if (errorResponse) return errorResponse;
+    
     const userId = req.user.id;
     const { format = 'pdf', style = 'diary', includeMotivation = 'true', from, to } = req.query;
     const includeMot = String(includeMotivation) !== 'false';

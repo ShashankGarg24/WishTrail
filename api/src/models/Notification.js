@@ -349,12 +349,10 @@ notificationSchema.statics.deleteNotification = async function(notificationId, u
 
 // Static method to create follow notification
 notificationSchema.statics.createFollowNotification = async function(followerId, followingId) {
-  console.log('[createFollowNotification] Called with followerId:', followerId, 'followingId:', followingId);
   const pgUserService = require('../services/pgUserService');
   const follower = await pgUserService.findById(followerId);
   
   if (!follower) {
-    console.log('[createFollowNotification] Follower not found');
     return;
   }
 
@@ -365,11 +363,9 @@ notificationSchema.statics.createFollowNotification = async function(followerId,
     'data.followerId': followerId 
   });
   if (existing) {
-    console.log('[createFollowNotification] Notification already exists');
     return existing;
   }
 
-  console.log('[createFollowNotification] Creating new notification for:', follower.name);
   return this.createNotification({
     userId: followingId,
     type: 'new_follower',

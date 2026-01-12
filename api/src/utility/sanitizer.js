@@ -19,18 +19,28 @@ const PUBLIC_USER_FIELDS = [
   'name',
   'username',
   'avatar',
+  'avatar_url',
   'bio',
   'location',
   'interests',
   'isVerified',
+  'is_verified',
   'isPremium',
   'isPrivate',
+  'is_private',
   'areHabitsPrivate',
   'socialLinks',
   'createdAt',
+  'created_at',
   'followersCount',
+  'followers_count',
   'followingCount',
-  'goalsCount'
+  'following_count',
+  'goalsCount',
+  'total_goals',
+  'completed_goals',
+  'current_streak',
+  'longest_streak'
 ];
 
 // Additional fields for own profile (self-view)
@@ -38,10 +48,13 @@ const PRIVATE_USER_FIELDS = [
   ...PUBLIC_USER_FIELDS,
   'email',
   'dateOfBirth',
+  'date_of_birth',
   'notificationSettings',
   'dashboardYears',
   'timezone',
-  'timezoneOffsetMinutes'
+  'timezoneOffsetMinutes',
+  'premium_expires_at',
+  'premiumExpiresAt'
 ];
 
 /**
@@ -53,7 +66,11 @@ const sanitizeAuthMe = (user) => {
   if (!user) return null;
   
   const obj = user.toObject ? user.toObject() : { ...user };
-  console.log('Sanitizing auth/me user:', obj);
+  
+  // Compute isPremium based on expiration timestamp
+  const premiumExpiresAt = obj.premium_expires_at || obj.premiumExpiresAt;
+  const isPremium = premiumExpiresAt && new Date(premiumExpiresAt) > new Date();
+  
   return {
     name: obj.name,
     email: obj.email,
@@ -71,7 +88,9 @@ const sanitizeAuthMe = (user) => {
     instagram: obj.instagram || '',
     website: obj.website || '',
     youtube: obj.youtube || '',
-    dashboardYears: obj.dashboardYears || []
+    dashboardYears: obj.dashboardYears || [],
+    isPremium: isPremium,
+    premiumExpiresAt: isPremium ? premiumExpiresAt : null
   };
 };
 
@@ -87,14 +106,21 @@ const sanitizeUser = (user, isSelf = false) => {
   // Convert Mongoose document to plain object if needed
   const obj = user.toObject ? user.toObject() : { ...user };
   
+  // Compute isPremium based on expiration timestamp
+  const premiumExpiresAt = obj.premium_expires_at || obj.premiumExpiresAt;
+  const isPremium = premiumExpiresAt && new Date(premiumExpiresAt) > new Date();
+  
+  // Add computed isPremium field
+  obj.isPremium = isPremium;
+  
   if (isSelf) {
     // User viewing their own profile - include private fields but remove sensitive ones
     SENSITIVE_USER_FIELDS.forEach(field => delete obj[field]);
     return obj;
   }
   
-  // Public view - only return safe fields
-  const sanitized = {};
+  // Public view - only return safe fields (including isPremium)
+  const sanitized = { isPremium: isPremium };
   PUBLIC_USER_FIELDS.forEach(field => {
     if (obj[field] !== undefined) {
       sanitized[field] = obj[field];
@@ -204,7 +230,6 @@ const sanitizeJournalEntry = (entry, isOwner = false, viewerId = null) => {
     createdAt: obj.createdAt,
     id: obj._id ? obj._id.toString() : undefined
   };
-  console.log('Sanitizing journal entry:', sanitized);
   
   // Include AI motivation if available (flatten from ai.motivation to motivation)
   if (obj.ai && obj.ai.motivation) {
@@ -338,7 +363,6 @@ const sanitizeNotification = (notification) => {
         notificationId: obj.id || obj._id 
       }
     ];
-    console.log('[sanitizeNotification] Added actions to follow_request:', sanitized.actions);
   }
   
   // Sanitize data based on what's populated

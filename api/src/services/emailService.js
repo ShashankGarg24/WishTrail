@@ -85,14 +85,6 @@ class EmailService {
       ]);
 
       const info = await sendWithTimeout;
-      
-      // Log the result for testing
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Email sent successfully:', info.messageId);
-        if (info.previewUrl) {
-          console.log('Preview URL:', info.previewUrl);
-        }
-      }
 
       return {
         success: true,
@@ -514,13 +506,6 @@ class EmailService {
       }
 
       const info = await this.transporter.sendMail(mailOptions);
-      
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Password reset email sent successfully:', info.messageId);
-        if (info.previewUrl) {
-          console.log('Preview URL:', info.previewUrl);
-        }
-      }
 
       return {
         success: true,

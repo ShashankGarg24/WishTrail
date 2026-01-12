@@ -65,7 +65,6 @@ router.post('/', protect, upload.single('screenshot'), async (req, res, next) =>
     if (webhookUrl) {
       try {
         const resp = await axios.post(webhookUrl, feedbackPayload, { timeout: 10000 });
-        console.log('Feedback webhook POST', { status: resp?.status, ok: resp?.status >= 200 && resp?.status < 300 });
       } catch (err) {
         console.error('Failed to post feedback to sheet webhook:', err?.response?.status || err.message);
         // Continue; still acknowledge receipt

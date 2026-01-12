@@ -110,8 +110,6 @@ class AuthService {
   async login(email, password, deviceType, timezone = 'UTC', locale = 'en-US') {
     // Find user by email
     const user = await pgUserService.getUserByEmail(email, true); // true = include password
-    console.log('Login attempt for email:', email);
-    console.log('User found:', user);
     
     if (!user || !user.is_active) {
       throw new Error('No user is registered with the given email.');
@@ -302,6 +300,17 @@ class AuthService {
     delete userResponse.password;
     delete userResponse.refreshTokenWeb;
     delete userResponse.refreshTokenApp;
+
+    // Fetch and include MongoDB extended fields in response
+    const UserPreferences = require('../models/extended/UserPreferences');
+    const prefs = await UserPreferences.findOne({ userId }).lean();
+    
+    if (prefs) {
+      userResponse.interests = prefs.interests || [];
+      userResponse.currentMood = prefs.preferences?.currentMood || '';
+      userResponse.youtube = prefs.socialLinks?.youtube || '';
+      userResponse.instagram = prefs.socialLinks?.instagram || '';
+    }
 
     return userResponse;
   }

@@ -14,12 +14,12 @@ class UserService {
     const hashedPassword = password ? await bcrypt.hash(password, 10) : null;
     
     const queryText = `
-      INSERT INTO users (name, username, email, password, date_of_birth, location, website, gender, avatar_url, cover_image_url, bio, is_private, is_verified, profile_completed, timezone, locale)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
-      RETURNING id, name, username, email, avatar_url, cover_image_url, bio, location, website, date_of_birth, gender,
+      INSERT INTO users (name, username, email, password, date_of_birth, location, website, gender, avatar_url, bio, is_private, is_verified, profile_completed, timezone, locale)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+      RETURNING id, name, username, email, avatar_url, bio, location, website, date_of_birth, gender,
                 total_goals, completed_goals, current_streak, longest_streak,
                 followers_count, following_count, is_private, is_active, is_verified, profile_completed,
-                timezone, locale, created_at, updated_at, last_active_at
+                timezone, locale, premium_expires_at, created_at, updated_at, last_active_at
     `;
     
     const result = await query(queryText, [
@@ -32,7 +32,6 @@ class UserService {
       website,
       gender,
       avatarUrl,
-      coverImageUrl,
       bio,
       isPrivate,
       isVerified,
@@ -72,14 +71,14 @@ class UserService {
 
     const sql = `
       INSERT INTO users (
-        name, username, email, password, bio, avatar_url, cover_image_url,
+        name, username, email, password, bio, avatar_url,
         location, website, date_of_birth, gender, total_goals, completed_goals,
         followers_count, following_count, is_verified, is_active
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
-      RETURNING id, name, username, email, bio, avatar_url, cover_image_url,
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+      RETURNING id, name, username, email, bio, avatar_url,
                 location, website, date_of_birth, gender, total_goals, completed_goals,
                 followers_count, following_count, is_verified, is_active,
-                timezone, locale, created_at, updated_at
+                timezone, locale, premium_expires_at, created_at, updated_at
     `;
 
     const result = await query(sql, [
@@ -89,7 +88,6 @@ class UserService {
       password, // Use pre-hashed password directly
       bio,
       avatarUrl,
-      coverImageUrl,
       location,
       website,
       dateOfBirth,
@@ -110,8 +108,8 @@ class UserService {
    */
   async findByEmail(email, includePassword = false) {
     const fields = includePassword 
-      ? 'id, name, username, email, password, avatar_url, cover_image_url, bio, location, website, date_of_birth, gender, total_goals, completed_goals, current_streak, longest_streak, followers_count, following_count, is_private, is_active, is_verified, profile_completed, login_count, last_login, refresh_token_app, refresh_token_web, timezone, locale, created_at, updated_at, last_active_at'
-      : 'id, name, username, email, avatar_url, cover_image_url, bio, location, website, date_of_birth, gender, total_goals, completed_goals, current_streak, longest_streak, followers_count, following_count, is_private, is_active, is_verified, profile_completed, login_count, last_login, timezone, locale, created_at, updated_at, last_active_at';
+      ? 'id, name, username, email, password, avatar_url, bio, location, website, date_of_birth, gender, total_goals, completed_goals, current_streak, longest_streak, followers_count, following_count, is_private, is_active, is_verified, profile_completed, refresh_token_app, refresh_token_web, timezone, locale, premium_expires_at, created_at, updated_at, last_active_at'
+      : 'id, name, username, email, avatar_url, bio, location, website, date_of_birth, gender, total_goals, completed_goals, current_streak, longest_streak, followers_count, following_count, is_private, is_active, is_verified, profile_completed, timezone, locale, premium_expires_at, created_at, updated_at, last_active_at';
     
     const queryText = `SELECT ${fields} FROM users WHERE email = $1 AND is_active = true`;
     const result = await query(queryText, [email.toLowerCase()]);
@@ -125,7 +123,7 @@ class UserService {
   async findById(id, includePassword = false) {
     const fields = includePassword 
       ? '*'
-      : 'id, name, username, email, avatar_url, cover_image_url, bio, location, website, date_of_birth, gender, total_goals, completed_goals, current_streak, longest_streak, followers_count, following_count, is_private, is_active, is_verified, profile_completed, login_count, last_login, google_id, timezone, locale, created_at, updated_at, last_active_at';
+      : 'id, name, username, email, avatar_url, bio, location, website, date_of_birth, gender, total_goals, completed_goals, current_streak, longest_streak, followers_count, following_count, is_private, is_active, is_verified, profile_completed, google_id, timezone, locale, premium_expires_at, created_at, updated_at';
     
     const queryText = `SELECT ${fields} FROM users WHERE id = $1 AND is_active = true`;
     const result = await query(queryText, [id]);
@@ -139,7 +137,7 @@ class UserService {
   async findByUsername(username, includePassword = false) {
     const fields = includePassword 
       ? '*'
-      : 'id, name, username, email, avatar_url, cover_image_url, bio, location, website, date_of_birth, gender, total_goals, completed_goals, current_streak, longest_streak, followers_count, following_count, is_private, is_active, is_verified, profile_completed, login_count, last_login, timezone, locale, created_at, updated_at, last_active_at';
+      : 'id, name, username, email, avatar_url, bio, location, website, date_of_birth, gender, total_goals, completed_goals, current_streak, longest_streak, followers_count, following_count, is_private, is_active, is_verified, profile_completed, timezone, locale, premium_expires_at, created_at, updated_at';
     
     const queryText = `SELECT ${fields} FROM users WHERE username = $1 AND is_active = true`;
     const result = await query(queryText, [username.toLowerCase()]);
@@ -156,10 +154,10 @@ class UserService {
     }
     
     const queryText = `
-      SELECT id, name, username, email, avatar_url, cover_image_url, bio, location, website, 
+      SELECT id, name, username, email, avatar_url, bio, location, website, 
              date_of_birth, gender, total_goals, completed_goals, current_streak, longest_streak, 
              followers_count, following_count, is_private, is_active, is_verified, profile_completed, 
-             timezone, locale, created_at, updated_at, last_active_at
+             timezone, locale, premium_expires_at, created_at, updated_at, last_active_at
       FROM users 
       WHERE id = ANY($1) AND is_active = true
       ORDER BY name ASC
@@ -173,7 +171,7 @@ class UserService {
    * Update user profile
    */
   async updateUser(id, updates) {
-    const allowedFields = ['name', 'username', 'bio', 'location', 'website', 'date_of_birth', 'gender', 'avatar_url', 'cover_image_url', 'is_private', 'is_verified', 'profile_completed', 'login_count', 'last_login', 'google_id', 'timezone', 'locale'];
+    const allowedFields = ['name', 'username', 'bio', 'location', 'website', 'date_of_birth', 'gender', 'avatar_url', 'is_private', 'is_verified', 'profile_completed', 'google_id', 'timezone', 'locale'];
     const setClause = [];
     const values = [];
     let paramIndex = 1;
@@ -195,10 +193,10 @@ class UserService {
       UPDATE users 
       SET ${setClause.join(', ')}, updated_at = CURRENT_TIMESTAMP
       WHERE id = $${paramIndex} AND is_active = true
-      RETURNING id, name, username, email, avatar_url, cover_image_url, bio, location, website, date_of_birth, gender,
+      RETURNING id, name, username, email, avatar_url, bio, location, website, date_of_birth, gender,
                 total_goals, completed_goals, current_streak, longest_streak,
                 followers_count, following_count, is_private, is_active, is_verified, profile_completed,
-                login_count, last_login, google_id, timezone, locale, created_at, updated_at, last_active_at
+                google_id, timezone, locale, premium_expires_at, created_at, updated_at, last_active_at
     `;
     
     const result = await query(queryText, values);
@@ -608,6 +606,141 @@ class UserService {
     `;
     const result = await query(queryText, [userIds]);
     return result.rows;
+  }
+
+  /**
+   * Update user's premium expiration date
+   * @param {number} userId - User ID
+   * @param {Date|null} premiumExpiresAt - Premium expiration timestamp (null to remove premium)
+   * @returns {Promise<Object>} Updated user
+   */
+  async updatePremiumExpiration(userId, premiumExpiresAt) {
+    const queryText = `
+      UPDATE users 
+      SET premium_expires_at = $1, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $2 AND is_active = true
+      RETURNING id, name, username, email, premium_expires_at, updated_at
+    `;
+    
+    const result = await query(queryText, [premiumExpiresAt, userId]);
+    return result.rows[0] || null;
+  }
+
+  /**
+   * Grant premium to user (set expiration date)
+   * @param {number} userId - User ID
+   * @param {number} durationMonths - Duration in months
+   * @returns {Promise<Object>} Updated user
+   */
+  async grantPremium(userId, durationMonths = 1) {
+    // Get current user to check existing premium status
+    const user = await this.findById(userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    let expirationDate;
+    const now = new Date();
+    
+    // If user has active premium, extend from current expiration
+    if (user.premium_expires_at && new Date(user.premium_expires_at) > now) {
+      expirationDate = new Date(user.premium_expires_at);
+      expirationDate.setMonth(expirationDate.getMonth() + durationMonths);
+    } else {
+      // Start from now if no active premium
+      expirationDate = new Date(now);
+      expirationDate.setMonth(expirationDate.getMonth() + durationMonths);
+    }
+
+    return await this.updatePremiumExpiration(userId, expirationDate);
+  }
+
+  /**
+   * Revoke premium from user
+   * @param {number} userId - User ID
+   * @returns {Promise<Object>} Updated user
+   */
+  async revokePremium(userId) {
+    return await this.updatePremiumExpiration(userId, null);
+  }
+
+  /**
+   * Get all active premium users
+   * @returns {Promise<Array>} Premium users
+   */
+  async getActivePremiumUsers() {
+    const queryText = `
+      SELECT id, name, username, email, premium_expires_at, created_at
+      FROM users
+      WHERE premium_expires_at > CURRENT_TIMESTAMP
+        AND is_active = true
+      ORDER BY premium_expires_at ASC
+    `;
+    
+    const result = await query(queryText);
+    return result.rows;
+  }
+
+  /**
+   * Get users with premium expiring soon (within X days)
+   * @param {number} daysThreshold - Days threshold (default: 7)
+   * @returns {Promise<Array>} Users with expiring premium
+   */
+  async getUsersWithExpiringPremium(daysThreshold = 7) {
+    const queryText = `
+      SELECT id, name, username, email, premium_expires_at,
+             EXTRACT(DAY FROM (premium_expires_at - CURRENT_TIMESTAMP)) as days_remaining
+      FROM users
+      WHERE premium_expires_at IS NOT NULL
+        AND premium_expires_at > CURRENT_TIMESTAMP
+        AND premium_expires_at <= CURRENT_TIMESTAMP + INTERVAL '${daysThreshold} days'
+        AND is_active = true
+      ORDER BY premium_expires_at ASC
+    `;
+    
+    const result = await query(queryText);
+    return result.rows;
+  }
+
+  /**
+   * Get expired premium users (for re-engagement)
+   * @param {number} daysAgo - Days since expiration (default: 30)
+   * @returns {Promise<Array>} Users with expired premium
+   */
+  async getExpiredPremiumUsers(daysAgo = 30) {
+    const queryText = `
+      SELECT id, name, username, email, premium_expires_at,
+             EXTRACT(DAY FROM (CURRENT_TIMESTAMP - premium_expires_at)) as days_since_expired
+      FROM users
+      WHERE premium_expires_at IS NOT NULL
+        AND premium_expires_at <= CURRENT_TIMESTAMP
+        AND premium_expires_at >= CURRENT_TIMESTAMP - INTERVAL '${daysAgo} days'
+        AND is_active = true
+      ORDER BY premium_expires_at DESC
+    `;
+    
+    const result = await query(queryText);
+    return result.rows;
+  }
+
+  /**
+   * Get premium statistics
+   * @returns {Promise<Object>} Premium stats
+   */
+  async getPremiumStats() {
+    const queryText = `
+      SELECT 
+        COUNT(CASE WHEN premium_expires_at > CURRENT_TIMESTAMP THEN 1 END) as active_premium_users,
+        COUNT(CASE WHEN premium_expires_at <= CURRENT_TIMESTAMP THEN 1 END) as expired_premium_users,
+        COUNT(CASE WHEN premium_expires_at IS NULL THEN 1 END) as free_users,
+        COUNT(CASE WHEN premium_expires_at > CURRENT_TIMESTAMP 
+                   AND premium_expires_at <= CURRENT_TIMESTAMP + INTERVAL '7 days' THEN 1 END) as expiring_soon_users
+      FROM users
+      WHERE is_active = true
+    `;
+    
+    const result = await query(queryText);
+    return result.rows[0];
   }
 }
 

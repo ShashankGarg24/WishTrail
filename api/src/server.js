@@ -126,6 +126,11 @@ const createApp = async () => {
 
   // Lazy require routes after DB connections are ready
   apiRouter.use('/auth', require('./routes/authRoutes'));
+  
+  // Premium info middleware - attaches premium data to all authenticated requests
+  const { attachPremiumInfo } = require('./middleware/premium');
+  apiRouter.use(attachPremiumInfo);
+  
   apiRouter.use('/users', require('./routes/userRoutes'));
   apiRouter.use('/goals', require('./routes/goalRoutes'));
   apiRouter.use('/social', require('./routes/socialRoutes'));
@@ -142,6 +147,7 @@ const createApp = async () => {
   apiRouter.use('/notifications', require('./routes/notificationRoutes'));
   apiRouter.use('/communities', require('./routes/communityRoutes'));
   apiRouter.use('/settings', require('./routes/settingsRoutes'));
+  apiRouter.use('/premium', require('./routes/premiumRoutes'));
   // Config management
   apiRouter.use('/config', require('./routes/configRoutes'));
   // Cron endpoints for serverless environments; protect with CRON_SECRET

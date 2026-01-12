@@ -81,24 +81,6 @@ export const useHomePagePreload = () => {
         })
       })
     }
-
-    // Log performance metrics in development
-    if (import.meta.env.DEV) {
-      setTimeout(() => {
-        if (window.performance && window.performance.timing) {
-          const timing = window.performance.timing
-          const loadTime = timing.loadEventEnd - timing.navigationStart
-          const domContentLoaded = timing.domContentLoadedEventEnd - timing.navigationStart
-          const firstPaint = performance.getEntriesByType('paint')[0]?.startTime
-
-          console.group('🚀 Performance Metrics')
-          console.log('Total Load Time:', `${loadTime}ms`)
-          console.log('DOM Content Loaded:', `${domContentLoaded}ms`)
-          console.log('First Paint:', firstPaint ? `${Math.round(firstPaint)}ms` : 'N/A')
-          console.groupEnd()
-        }
-      }, 0)
-    }
   }, [])
 }
 
@@ -111,10 +93,8 @@ export const registerServiceWorker = () => {
       navigator.serviceWorker
         .register('/sw.js')
         .then(registration => {
-          console.log('SW registered:', registration)
         })
         .catch(error => {
-          console.log('SW registration failed:', error)
         })
     })
   }
@@ -131,7 +111,6 @@ export const useConnectionOptimization = () => {
       const handleConnectionChange = () => {
         if (connection.saveData || connection.effectiveType === 'slow-2g' || connection.effectiveType === '2g') {
           document.documentElement.classList.add('reduced-animations')
-          console.log('⚡ Reduced animations enabled for slow connection')
         } else {
           document.documentElement.classList.remove('reduced-animations')
         }

@@ -40,19 +40,16 @@ const JournalPromptModal = ({ isOpen, onClose, onSubmitted }) => {
       }
       if (entry?.motivation) {
         const entryId = entry?.id || entry?._id;
-        console.log('Setting llmResult with entryId:', entryId);
         setLlmResult({
           entryId: entryId,
           motivation: entry?.motivation || ''
         });
       } else {
-        console.log('No motivation found, closing modal');
         setContent('');
         onSubmitted?.();
         onClose();
       }
     } catch (error) {
-      console.error('Error creating journal entry:', error);
     } finally {
       setSubmitting(false);
     }

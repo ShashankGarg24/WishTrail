@@ -431,7 +431,7 @@ const FeedPage = () => {
               {/* Explore shortcut - always visible */}
               {!storiesLoading && (
                 <button
-                  onClick={() => navigate('/discover?tab=discover&mode=goals')}
+                  onClick={() => navigate('/discover?tab=goals')}
                   className="group shrink-0 w-16 focus:outline-none focus:ring-2 focus:ring-primary-500 rounded-xl p-1 -m-1 transition-all duration-200"
                   title="Explore more goals"
                   aria-label="Explore more goals"

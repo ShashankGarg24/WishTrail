@@ -4,6 +4,7 @@ pg.types.setTypeParser(1082, val => val);
 
 const { Pool } = pg;
 // Supabase PostgreSQL connection configuration
+
 const supabaseConfig = {
   host: process.env.SUPABASE_DB_HOST,
   port: process.env.SUPABASE_DB_PORT || 5432,

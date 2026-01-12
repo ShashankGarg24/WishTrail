@@ -36,12 +36,7 @@ class PgFollowService {
       if (existingResult.rows.length > 0) {
         // Reactivate existing follow
         const updateSql = `
-          UPDATE follows
-          SET is_active = true,
-              status = $1,
-              notifications_enabled = $2,
-              followed_at = CASE WHEN is_active = false THEN CURRENT_TIMESTAMP ELSE followed_at END,
-              updated_at = CURRENT_TIMESTAMP
+          DELETE FROM follows
           WHERE follower_id = $3 AND following_id = $4
           RETURNING *
         `;
@@ -97,7 +92,7 @@ class PgFollowService {
     const sql = `
       SELECT EXISTS(
         SELECT 1 FROM follows
-        WHERE follower_id = $1 AND following_id = $2 AND is_active = true
+        WHERE follower_id = $1 AND following_id = $2
       ) as is_following
     `;
 
@@ -119,7 +114,7 @@ class PgFollowService {
       FROM follows f
       INNER JOIN users u1 ON f.follower_id = u1.id
       INNER JOIN users u2 ON f.following_id = u2.id
-      WHERE f.follower_id = $1 AND f.following_id = $2 AND f.is_active = true
+      WHERE f.follower_id = $1 AND f.following_id = $2
     `;
 
     const result = await query(sql, [followerId, followingId]);
@@ -144,7 +139,7 @@ class PgFollowService {
              u.total_goals, u.completed_goals, u.followers_count, u.following_count
       FROM follows f
       INNER JOIN users u ON f.follower_id = u.id
-      WHERE f.following_id = $1 AND f.is_active = true
+      WHERE f.following_id = $1
     `;
 
     const values = [userId];
@@ -199,7 +194,7 @@ class PgFollowService {
              u.total_goals, u.completed_goals, u.followers_count, u.following_count
       FROM follows f
       INNER JOIN users u ON f.following_id = u.id
-      WHERE f.follower_id = $1 AND f.is_active = true
+      WHERE f.follower_id = $1
     `;
 
     const values = [userId];
@@ -253,8 +248,6 @@ class PgFollowService {
         INNER JOIN follows f2 ON f1.following_id = f2.follower_id
         WHERE f1.follower_id = $1 
           AND f2.following_id = $1
-          AND f1.is_active = true
-          AND f2.is_active = true
       )
       ORDER BY u.username ASC
       LIMIT $2 OFFSET $3
@@ -288,8 +281,6 @@ class PgFollowService {
       INNER JOIN follows f2 ON f1.follower_id = f2.follower_id
       WHERE f1.following_id = $1 
         AND f2.following_id = $2
-        AND f1.is_active = true
-        AND f2.is_active = true
     `;
 
     const result = await query(sql, [userId1, userId2]);
@@ -310,8 +301,6 @@ class PgFollowService {
         WHERE f1.follower_id = $1 
           AND f2.following_id = $1
           AND f1.following_id = $2
-          AND f1.is_active = true
-          AND f2.is_active = true
       ) as are_mutual
     `;
 
@@ -328,7 +317,7 @@ class PgFollowService {
     const sql = `
       SELECT follower_id
       FROM follows
-      WHERE following_id = $1 AND is_active = true AND status = 'accepted'
+      WHERE following_id = $1 AND status = 'accepted'
     `;
 
     const result = await query(sql, [userId]);
@@ -344,7 +333,7 @@ class PgFollowService {
     const sql = `
       SELECT following_id
       FROM follows
-      WHERE follower_id = $1 AND is_active = true AND status = 'accepted'
+      WHERE follower_id = $1 AND status = 'accepted'
     `;
 
     const result = await query(sql, [userId]);
@@ -362,7 +351,7 @@ class PgFollowService {
     const sql = `
       UPDATE follows
       SET notifications_enabled = $1, updated_at = CURRENT_TIMESTAMP
-      WHERE follower_id = $2 AND following_id = $3 AND is_active = true
+      WHERE follower_id = $2 AND following_id = $3
       RETURNING *
     `;
 
@@ -379,7 +368,7 @@ class PgFollowService {
     const sql = `
       SELECT COUNT(*) as count
       FROM follows
-      WHERE following_id = $1 AND is_active = true AND status = 'accepted'
+      WHERE following_id = $1 AND status = 'accepted'
     `;
 
     const result = await query(sql, [userId]);
@@ -395,7 +384,7 @@ class PgFollowService {
     const sql = `
       SELECT COUNT(*) as count
       FROM follows
-      WHERE follower_id = $1 AND is_active = true AND status = 'accepted'
+      WHERE follower_id = $1 AND status = 'accepted'
     `;
 
     const result = await query(sql, [userId]);
@@ -411,7 +400,7 @@ class PgFollowService {
   async getFollowSuggestions(userId, { limit = 10 } = {}) {
     const sql = `
       WITH user_following AS (
-        SELECT following_id FROM follows WHERE follower_id = $1 AND is_active = true
+        SELECT following_id FROM follows WHERE follower_id = $1
       ),
       potential_follows AS (
         SELECT DISTINCT f.following_id as suggested_id,
@@ -420,7 +409,6 @@ class PgFollowService {
         WHERE f.follower_id IN (SELECT following_id FROM user_following)
           AND f.following_id != $1
           AND f.following_id NOT IN (SELECT following_id FROM user_following)
-          AND f.is_active = true
         GROUP BY f.following_id
         ORDER BY mutual_count DESC
         LIMIT $2
@@ -455,9 +443,8 @@ class PgFollowService {
    */
   async removeFollower(userId, followerId) {
     const sql = `
-      UPDATE follows
-      SET is_active = false, updated_at = CURRENT_TIMESTAMP
-      WHERE follower_id = $1 AND following_id = $2 AND is_active = true
+      DELETE FROM follows
+      WHERE follower_id = $1 AND following_id = $2
       RETURNING id
     `;
 
@@ -486,7 +473,6 @@ class PgFollowService {
       const sql = `
         UPDATE follows
         SET status = 'accepted', 
-            is_active = true,
             followed_at = CURRENT_TIMESTAMP,
             updated_at = CURRENT_TIMESTAMP
         WHERE follower_id = $1 AND following_id = $2 AND status = 'pending'
@@ -511,8 +497,7 @@ class PgFollowService {
    */
   async rejectFollowRequest(followerId, followingId) {
     const sql = `
-      UPDATE follows
-      SET status = 'rejected', is_active = false, updated_at = CURRENT_TIMESTAMP
+      DELETE FROM follows
       WHERE follower_id = $1 AND following_id = $2 AND status = 'pending'
       RETURNING id
     `;
@@ -533,7 +518,7 @@ class PgFollowService {
              u.id as follower_user_id, u.username, u.name, u.avatar_url, u.bio
       FROM follows f
       INNER JOIN users u ON f.follower_id = u.id
-      WHERE f.following_id = $1 AND f.status = 'pending' AND f.is_active = false
+      WHERE f.following_id = $1 AND f.status = 'pending'
       ORDER BY f.created_at DESC
       LIMIT $2 OFFSET $3
     `;
@@ -561,7 +546,7 @@ class PgFollowService {
     const sql = `
       SELECT COUNT(*) as count
       FROM follows
-      WHERE following_id = $1 AND status = 'pending' AND is_active = false
+      WHERE following_id = $1 AND status = 'pending'
     `;
 
     const result = await query(sql, [userId]);
@@ -580,7 +565,7 @@ class PgFollowService {
     const sql = `
       SELECT following_id, true as is_following
       FROM follows
-      WHERE follower_id = $1 AND following_id = ANY($2) AND is_active = true
+      WHERE follower_id = $1 AND following_id = ANY($2)
     `;
 
     const result = await query(sql, [userId, targetUserIds]);
@@ -600,7 +585,7 @@ class PgFollowService {
    */
   async getFollowingStatus(followerId, followingId) {
     const sql = `
-      SELECT status, is_active
+      SELECT status
       FROM follows
       WHERE follower_id = $1 AND following_id = $2
       LIMIT 1
@@ -614,8 +599,8 @@ class PgFollowService {
 
     const row = result.rows[0];
     return {
-      isFollowing: row.is_active && row.status === 'accepted',
-      isRequested: !row.is_active && row.status === 'pending'
+      isFollowing: row.status === 'accepted',
+      isRequested: row.status === 'pending'
     };
   }
 
@@ -629,7 +614,7 @@ class PgFollowService {
     if (!targetUserIds || targetUserIds.length === 0) return {};
 
     const sql = `
-      SELECT following_id, status, is_active
+      SELECT following_id, status
       FROM follows
       WHERE follower_id = $1 AND following_id = ANY($2)
     `;
@@ -643,8 +628,8 @@ class PgFollowService {
     
     result.rows.forEach(row => {
       statusMap[row.following_id] = {
-        isFollowing: row.is_active && row.status === 'accepted',
-        isRequested: !row.is_active && row.status === 'pending'
+        isFollowing: row.status === 'accepted',
+        isRequested: row.status === 'pending'
       };
     });
     
@@ -664,7 +649,6 @@ class PgFollowService {
       followerId: row.follower_id,
       followingId: row.following_id,
       status: row.status,
-      isActive: row.is_active,
       notificationsEnabled: row.notifications_enabled,
       followedAt: row.followed_at,
       createdAt: row.created_at,

@@ -5,6 +5,7 @@ const pgGoalService = require('../services/pgGoalService');
 const pgUserService = require('../services/pgUserService');
 const { sanitizeHabit, sanitizeHabitForProfile } = require('../utility/sanitizer');
 const { getCurrentDateInTimezone, getDateRangeInTimezone } = require('../utility/timezone');
+const { validateHabitCreation, handleValidationResponse } = require('../utility/premiumEnforcement');
 
 exports.createHabit = async (req, res, next) => {
   try {
@@ -12,6 +13,13 @@ exports.createHabit = async (req, res, next) => {
     if (!name || String(name).trim().length === 0) {
       return res.status(400).json({ success: false, message: 'Habit name is required' });
     }
+    
+    // ✅ PREMIUM CHECK: Validate habit creation limits
+    const hasReminders = Array.isArray(reminders) && reminders.length > 0;
+    const validation = await validateHabitCreation(req, hasReminders);
+    const errorResponse = handleValidationResponse(res, validation);
+    if (errorResponse) return errorResponse;
+    
     const habit = await pgHabitService.createHabit({ userId: req.user.id, name, description, frequency, daysOfWeek, timezone, reminders, goalId, isPublic });
     res.status(201).json({ success: true, data: { habit } });
   } catch (error) { next(error); }
@@ -280,7 +288,7 @@ exports.toggleLog = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Invalid habit ID' });
     }
 
-    const { status, note, mood, journalEntryId, date } = req.body || {};
+    const { status, mood, journalEntryId, date } = req.body || {};
     const userId = req.user.id;
     
     // Verify habit exists and belongs to user
@@ -312,7 +320,6 @@ exports.toggleLog = async (req, res, next) => {
       habitId,
       dateKey,
       status: status || 'done',
-      note: note || '',
       mood: mood || 'neutral',
       journalEntryId
     });
@@ -503,8 +510,7 @@ exports.getHabitAnalytics = async (req, res, next) => {
         status,
         completion_count,
         completion_times,
-        mood,
-        note
+        mood
       FROM habit_logs
       WHERE habit_id = $1 AND user_id = $2 AND date_key >= $3
       ORDER BY date_key ASC
@@ -534,7 +540,6 @@ exports.getHabitAnalytics = async (req, res, next) => {
         date: l.date_key,
         status: l.status,
         mood: l.mood || 'neutral',
-        note: l.note || '',
         completionCount: l.completion_count || 0,
         completionTimes: l.completion_times || []
       };

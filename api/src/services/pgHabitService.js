@@ -584,6 +584,23 @@ class PgHabitService {
       avatarUrl: row.avatar_url
     };
   }
+
+  /**
+   * Count active habits for a user
+   * @param {number} userId - User ID
+   * @returns {Promise<number>} Count of active habits
+   */
+  async countActiveHabits(userId) {
+    const queryText = `
+      SELECT COUNT(*) as count
+      FROM habits
+      WHERE user_id = $1 
+        AND is_active = true 
+        AND is_archived = false
+    `;
+    const result = await query(queryText, [userId]);
+    return parseInt(result.rows[0]?.count || 0);
+  }
 }
 
 module.exports = new PgHabitService();

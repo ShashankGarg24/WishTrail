@@ -5,6 +5,7 @@ import {
   ArrowLeft, TrendingUp, Target, Calendar, BarChart3, Activity, X
 } from 'lucide-react';
 import { habitsAPI } from '../services/api';
+import { usePremiumStatus } from '../hooks/usePremium';
 import ExpandableText from '../components/ExpandableText';
 import { Line, Bar, Doughnut } from 'react-chartjs-2';
 import {
@@ -37,9 +38,11 @@ ChartJS.register(
 export default function HabitAnalyticsPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { isPremium } = usePremiumStatus();
+  const maxDays = isPremium ? 365 : 60;
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [days, setDays] = useState(90);
+  const [days, setDays] = useState(Math.min(90, maxDays));
   const [selectedDay, setSelectedDay] = useState(null);
   const heatmapRef = useRef(null);
 
@@ -605,14 +608,17 @@ export default function HabitAnalyticsPage() {
                 
                 <select
                   value={days}
-                  onChange={(e) => setDays(Number(e.target.value))}
+                  onChange={(e) => {
+                    const newDays = Number(e.target.value);
+                    setDays(Math.min(newDays, maxDays));
+                  }}
                   className="px-3 py-1.5 text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
                 >
                   <option value={30}>Last 30 days</option>
                   <option value={60}>Last 60 days</option>
-                  <option value={90}>Last 90 days</option>
-                  <option value={180}>Last 6 months</option>
-                  <option value={365}>Last year</option>
+                  {isPremium && <option value={90}>Last 90 days</option>}
+                  {isPremium && <option value={180}>Last 6 months</option>}
+                  {isPremium && <option value={365}>Last year</option>}
                 </select>
               </div>
             </div>

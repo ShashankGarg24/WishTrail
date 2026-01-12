@@ -6,6 +6,7 @@ import useApiStore from '../store/apiStore'
 const SettingsModal = lazy(() => import('./SettingsModal'));
 const FeedbackButton = lazy(() => import('./FeedbackButton'));
 const RatingModal = lazy(() => import('./RatingModal'));
+const MotivationModal = lazy(() => import('./MotivationModal'));
 
 const Header = () => {
   const { isAuthenticated, logout, unreadNotifications, getNotifications, user: currentUser } = useApiStore()
@@ -14,6 +15,7 @@ const Header = () => {
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false)
   const [isRatingOpen, setIsRatingOpen] = useState(false)
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false)
+  const [isMotivationOpen, setIsMotivationOpen] = useState(false)
   const location = useLocation()
   const menuRef = useRef(null)
   const navigate = useNavigate();
@@ -136,24 +138,36 @@ const Header = () => {
     return () => window.removeEventListener('wt_open_rating', handler)
   }, [])
 
+  // Global event to open motivation modal from anywhere
+  useEffect(() => {
+    const handler = () => setIsMotivationOpen(true)
+    window.addEventListener('wt_open_motivation', handler)
+    return () => window.removeEventListener('wt_open_motivation', handler)
+  }, [])
+
   return (
     <>
       <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-200 dark:border-gray-800 theme-transition">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
-            <Link to="/#" className="flex items-center space-x-2 group">
-              <motion.div
+            <div className="flex items-center space-x-2 group">
+              <motion.button
                 whileHover={{ rotate: 360 }}
+                whileTap={{ rotate: 360 }}
                 transition={{ duration: 0.6 }}
-                className="flex items-center"
+                onClick={(e) => {
+                  e.preventDefault()
+                  setIsMotivationOpen(true)
+                }}
+                className="flex items-center cursor-pointer"
               >
                 <Star className="h-7 w-7 text-purple-600 dark:text-purple-400 fill-purple-600 dark:fill-purple-400" />
-              </motion.div>
-              <span className="text-xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 dark:from-purple-400 dark:to-blue-400 bg-clip-text text-transparent">
+              </motion.button>
+              <Link to="/#" className="text-xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 dark:from-purple-400 dark:to-blue-400 bg-clip-text text-transparent">
                 WishTrail
-              </span>
-            </Link>
+              </Link>
+            </div>
             
             {/* Desktop Navigation */}
             <nav className="hidden md:flex items-center space-x-1">
@@ -353,6 +367,10 @@ const Header = () => {
       <Suspense fallback={null}><RatingModal
         isOpen={isRatingOpen}
         onClose={() => setIsRatingOpen(false)}
+      /></Suspense>
+      <Suspense fallback={null}><MotivationModal
+        isOpen={isMotivationOpen}
+        onClose={() => setIsMotivationOpen(false)}
       /></Suspense>
 
       {/* Logout Confirmation Modal */}

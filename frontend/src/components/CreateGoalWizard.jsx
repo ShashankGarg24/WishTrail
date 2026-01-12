@@ -3,6 +3,8 @@ import { motion } from 'framer-motion'
 import { X, Plus, Target, Calendar, Tag, AlertCircle, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react'
 import useApiStore from '../store/apiStore'
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
+import { useGoalLimits } from '../hooks/usePremium'
+import PremiumLimitIndicator from './PremiumLimitIndicator'
 const GoalDivisionEditor = lazy(() => import('./GoalDivisionEditor'));
 
 export default function CreateGoalWizard({ isOpen, onClose, year, initialData, editMode = false, goalId = null }) {
@@ -16,8 +18,15 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
     setHabitLinks,
     loadHabits,
     getDashboardStats,
-    habits
+    habits,
+    goals
   } = useApiStore()
+
+  // Premium state
+  const activeGoalsCount = useMemo(() => {
+    return goals?.filter(g => !g.completed && g.isActive !== false)?.length || 0
+  }, [goals])
+  const goalLimits = useGoalLimits(activeGoalsCount)
 
   const [step, setStep] = useState(1)
   const [saving, setSaving] = useState(false)
@@ -214,6 +223,17 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
   }
 
   const handleSave = async () => {
+    // Check premium limits before saving (only for new goals)
+    if (!editMode && !goalLimits.canCreate) {
+      window.dispatchEvent(new CustomEvent('wt_toast', { 
+        detail: { 
+          message: `Goal limit reached (${activeGoalsCount}/${goalLimits.maxGoals}). You cannot create more goals at this time.`, 
+          type: 'error' 
+        } 
+      }))
+      return
+    }
+
     setSaving(true)
     try {
       // Prepare basic goal data
@@ -263,7 +283,9 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
       } else {
         // Create new goal
         result = await createGoal(goalPayload)
-        if (!result?.success || !result?.goal?.id) throw new Error(result?.error || 'Failed to create goal')
+        if (!result?.success || !result?.goal?.id) {
+          throw new Error(result?.error || 'Failed to create goal')
+        }
       }
 
       // Refresh dashboard stats to reflect changes
@@ -350,6 +372,16 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
         {step === 1 && (
           <form onSubmit={(e) => { e.preventDefault(); goNext(); }} className="flex-1 overflow-y-auto">
             <div className="px-8 py-6 space-y-6">
+              {/* Premium Limit Indicator (only show for new goals) */}
+              {!editMode && (
+                <PremiumLimitIndicator
+                  current={activeGoalsCount}
+                  max={goalLimits.maxGoals}
+                  label="Active Goals"
+                  showUpgradeButton={false}
+                />
+              )}
+
               {/* Title */}
               <div>
                 <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -365,6 +397,7 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
                   placeholder="e.g., Run a marathon, Learn Spanish, Start a business"
                   required
                   maxLength={MAX_TITLE_CHARS}
+                  disabled={!editMode && !goalLimits.canCreate}
                 />
                 <div className="mt-1 text-xs text-gray-500 dark:text-gray-400 text-right">{formData.title.length}/{MAX_TITLE_CHARS}</div>
                 {errors.title && (
@@ -389,6 +422,7 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
                   className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 resize-none transition-colors ${errors.description ? 'border-red-500' : 'border-gray-300 dark:border-gray-700'}`}
                   placeholder="Describe your goal in detail, including why it's important to you"
                   required
+                  disabled={!editMode && !goalLimits.canCreate}
                   maxLength={MAX_DESC_CHARS}
                 />
                 <div className="mt-1 text-xs text-gray-500 dark:text-gray-400 text-right">{formData.description.length}/{MAX_DESC_CHARS}</div>
@@ -413,6 +447,7 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
                   onChange={handleInputChange}
                   className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-colors ${errors.category ? 'border-red-500' : 'border-gray-300 dark:border-gray-700'}`}
                   required
+                  disabled={!editMode && !goalLimits.canCreate}
                 >
                   <option value="">Select a category</option>
                   {categories.map(category => (
@@ -436,6 +471,7 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
                 </label>
                 <input 
                   type="date" 
+                  disabled={!editMode && !goalLimits.canCreate} 
                   id="targetDate" 
                   name="targetDate" 
                   value={formData.targetDate} 
@@ -517,10 +553,10 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
               <button 
                 type="button" 
                 onClick={handleSave} 
-                disabled={saving} 
+                disabled={saving || (!editMode && !goalLimits.canCreate)} 
                 className="flex-1 py-3 px-5 bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-lg shadow-primary-500/20 transition-all"
               >
-                {saving ? (editMode ? 'Updating…' : 'Saving…') : (editMode ? 'Update' : 'Create')}
+                {saving ? (editMode ? 'Updating…' : 'Saving…') : (!editMode && !goalLimits.canCreate ? 'Limit Reached' : (editMode ? 'Update' : 'Create'))}
               </button>
             </div>
           </div>

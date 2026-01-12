@@ -40,9 +40,7 @@ const GoalAnalyticsPage = () => {
     const loadGoalData = async () => {
       try {
         setLoading(true)
-        console.log('[GoalAnalytics] Loading goal analytics for ID:', goalId)
         const response = await getGoalAnalytics(goalId)
-        console.log('[GoalAnalytics] API Response:', response)
         
         if (response?.success && response?.data) {
           setGoalData(response.data)

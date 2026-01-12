@@ -30,8 +30,7 @@ class PgBlockService {
       if (existingResult.rows.length > 0) {
         // Reactivate existing block
         const updateSql = `
-          UPDATE blocks
-          SET is_active = true
+          DELETE FROM blocks
           WHERE blocker_id = $1 AND blocked_id = $2
           RETURNING *
         `;
@@ -40,8 +39,8 @@ class PgBlockService {
       } else {
         // Create new block
         const insertSql = `
-          INSERT INTO blocks (blocker_id, blocked_id, is_active)
-          VALUES ($1, $2, true)
+          INSERT INTO blocks (blocker_id, blocked_id)
+          VALUES ($1, $2)
           RETURNING *
         `;
         const insertResult = await client.query(insertSql, [blockerId, blockedId]);
@@ -50,8 +49,7 @@ class PgBlockService {
 
       // Remove any existing follow relationships
       await client.query(`
-        UPDATE follows
-        SET is_active = false
+        DELETE FROM follows
         WHERE (follower_id = $1 AND following_id = $2)
            OR (follower_id = $2 AND following_id = $1)
       `, [blockerId, blockedId]);
@@ -87,7 +85,7 @@ class PgBlockService {
     const sql = `
       SELECT EXISTS(
         SELECT 1 FROM blocks
-        WHERE blocker_id = $1 AND blocked_id = $2 AND is_active = true
+        WHERE blocker_id = $1 AND blocked_id = $2
       ) as is_blocking
     `;
 
@@ -106,7 +104,6 @@ class PgBlockService {
       SELECT EXISTS(
         SELECT 1 FROM blocks
         WHERE ((blocker_id = $1 AND blocked_id = $2) OR (blocker_id = $2 AND blocked_id = $1))
-          AND is_active = true
       ) as is_blocked
     `;
 
@@ -128,7 +125,7 @@ class PgBlockService {
       FROM blocks b
       INNER JOIN users u1 ON b.blocker_id = u1.id
       INNER JOIN users u2 ON b.blocked_id = u2.id
-      WHERE b.blocker_id = $1 AND b.blocked_id = $2 AND b.is_active = true
+      WHERE b.blocker_id = $1 AND b.blocked_id = $2
     `;
 
     const result = await query(sql, [blockerId, blockedId]);
@@ -147,7 +144,7 @@ class PgBlockService {
              u.id as blocked_user_id, u.username, u.name, u.avatar_url, u.bio
       FROM blocks b
       INNER JOIN users u ON b.blocked_id = u.id
-      WHERE b.blocker_id = $1 AND b.is_active = true
+      WHERE b.blocker_id = $1
       ORDER BY b.created_at DESC
       LIMIT $2 OFFSET $3
     `;
@@ -182,7 +179,7 @@ class PgBlockService {
              u.id as blocker_user_id, u.username, u.name, u.avatar_url, u.bio
       FROM blocks b
       INNER JOIN users u ON b.blocker_id = u.id
-      WHERE b.blocked_id = $1 AND b.is_active = true
+      WHERE b.blocked_id = $1
       ORDER BY b.created_at DESC
       LIMIT $2 OFFSET $3
     `;
@@ -214,7 +211,7 @@ class PgBlockService {
     const sql = `
       SELECT blocked_id
       FROM blocks
-      WHERE blocker_id = $1 AND is_active = true
+      WHERE blocker_id = $1
     `;
 
     const result = await query(sql, [userId]);
@@ -230,7 +227,7 @@ class PgBlockService {
     const sql = `
       SELECT blocker_id
       FROM blocks
-      WHERE blocked_id = $1 AND is_active = true
+      WHERE blocked_id = $1
     `;
 
     const result = await query(sql, [userId]);
@@ -270,13 +267,13 @@ class PgBlockService {
     const blockingSql = `
       SELECT blocked_id, true as is_blocking
       FROM blocks
-      WHERE blocker_id = $1 AND blocked_id = ANY($2) AND is_active = true
+      WHERE blocker_id = $1 AND blocked_id = ANY($2)
     `;
 
     const blockedBySql = `
       SELECT blocker_id, true as is_blocked_by
       FROM blocks
-      WHERE blocked_id = $1 AND blocker_id = ANY($2) AND is_active = true
+      WHERE blocked_id = $1 AND blocker_id = ANY($2)
     `;
 
     const [blockingResult, blockedByResult] = await Promise.all([
@@ -307,7 +304,7 @@ class PgBlockService {
     const sql = `
       SELECT COUNT(*) as count
       FROM blocks
-      WHERE blocker_id = $1 AND is_active = true
+      WHERE blocker_id = $1
     `;
 
     const result = await query(sql, [userId]);
@@ -334,7 +331,6 @@ class PgBlockService {
           SELECT 1 FROM blocks
           WHERE ((blocker_id = $2 AND blocked_id = user_id)
              OR (blocker_id = user_id AND blocked_id = $2))
-            AND is_active = true
         )
     `;
 
@@ -389,7 +385,6 @@ class PgBlockService {
       id: row.id,
       blockerId: row.blocker_id,
       blockedId: row.blocked_id,
-      isActive: row.is_active,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
       // Optional joined user data

@@ -164,43 +164,27 @@ const ProfilePage = () => {
     const loadTabContent = async () => {
       const targetUsername = isOwnProfile ? currentUser?.username : profileUser?.username;
       
-      console.log('loadTabContent triggered:', {
-        activeTab,
-        targetUsername,
-        isOwnProfile,
-        hasAnalytics: !!analytics,
-        profileUser: profileUser?.username,
-        currentUser: currentUser?.username
-      });
-      
       if (!targetUsername) {
-        console.log('No targetUsername, skipping');
         return;
       }
 
       // For other users' profiles, check privacy
       const canViewContent = isOwnProfile || !profileUser?.isPrivate || isFollowing;
-      console.log('canViewContent:', canViewContent, { isPrivate: profileUser?.isPrivate, isFollowing });
 
       // Load analytics when overview tab is viewed
       if (activeTab === 'overview' && !analytics) {
-        console.log('Attempting to load analytics...');
         // Own profile: always load (pass null to get own analytics)
         // Other profile: only if public or following (pass username)
         if (isOwnProfile || canViewContent) {
           try {
             const usernameParam = isOwnProfile ? null : targetUsername;
-            console.log('Calling getUserAnalytics with username:', usernameParam);
             const analyticsResult = await getUserAnalytics(usernameParam);
-            console.log('Analytics result:', analyticsResult);
             if (analyticsResult.success) {
               setAnalytics(analyticsResult.analytics);
             }
           } catch (error) {
             console.error('Failed to load analytics:', error);
           }
-        } else {
-          console.log('Cannot view content - profile is private');
         }
       }
 
@@ -964,7 +948,6 @@ const ProfilePage = () => {
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }} className="relative max-w-3xl mx-auto mb-8">
               <div className="flex justify-center mt-4">
                 <div className="relative flex w-full max-w-sm border-b border-gray-300 dark:border-gray-700">
-                  {console.log('Rendering tabs with activeTab:', activeTab, 'isOwnProfile:', isOwnProfile, 'profileUser:', profileUser, 'isFollowing:', isFollowing)}
                   {["overview", "goals", ...(isOwnProfile ? ["habits"] : (!profileUser?.areHabitsPrivate && (isFollowing || !profileUser?.isPrivate) ? ["habits"] : [])), ...(isOwnProfile ? ["journal"] : [])].map((tab) => (
                     <button
                       key={tab}

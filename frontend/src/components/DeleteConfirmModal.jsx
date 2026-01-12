@@ -3,12 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useEffect } from 'react'
 
 const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, goalTitle, isDeleting = false, itemType = 'goal', parentGoals = [] }) => {
-  // Debug logging
-  useEffect(() => {
-    if (isOpen) {
-      console.log('[DeleteConfirmModal] Opened with:', { itemType, parentGoals, goalTitle });
-    }
-  }, [isOpen, itemType, parentGoals, goalTitle]);
 
   // Prevent background scroll when modal is open
   useEffect(() => {

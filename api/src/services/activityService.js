@@ -19,7 +19,6 @@ class ActivityService {
   
     const shape = (act) => {
       // Normalize to { user: {...}, ... }
-      console.log('Shaping activity:', act);
       const base = typeof act.toObject === 'function' ? act.toObject() : act;
       const { userId: authorId, name, username, avatar, ...rest } = base;
       const user = {
@@ -27,7 +26,6 @@ class ActivityService {
         username: username,
         avatar: avatar,
       };
-      console.log('Shaped activity user:', user);
       return { ...rest, user };
     };
 

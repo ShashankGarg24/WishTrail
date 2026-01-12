@@ -10,7 +10,6 @@ self.addEventListener('activate', (event) => {
 // Do NOT handle push events here to avoid duplicates
 /* REMOVED - causing duplicate notifications
 self.addEventListener('push', (event) => {
-  console.log('[SW] Push event received:', event);
   
   let data = {};
   let notification = {};
@@ -103,9 +102,7 @@ self.addEventListener('notificationclose', (event) => {
 
 // Background message handler for FCM
 // This allows Firebase to handle messages when the app is in the background
-self.addEventListener('message', (event) => {
-  console.log('[SW] Message received:', event);
-  
+self.addEventListener('message', (event) => {  
   // Handle messages from the app if needed
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();

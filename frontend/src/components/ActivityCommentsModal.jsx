@@ -30,7 +30,7 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
       }
     }
     fetchComments()
-  }, [isOpen, inline, activity?._id])
+  }, [isOpen, inline, embedded, activity?._id])
 
   const formatTimeAgo = (iso) => {
     const now = new Date()

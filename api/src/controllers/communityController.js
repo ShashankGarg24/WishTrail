@@ -1,5 +1,6 @@
 const { validationResult } = require('express-validator');
 const communityService = require('../services/communityService');
+const { validateCommunityCreation, validateCommunityJoin, handleValidationResponse } = require('../utility/premiumEnforcement');
 
 module.exports = {
   async listMyCommunities(req, res, next) {
@@ -28,6 +29,11 @@ module.exports = {
   },
   async createCommunity(req, res, next) {
     try {
+      // ✅ PREMIUM CHECK: Validate community creation
+      const validation = await validateCommunityCreation(req);
+      const errorResponse = handleValidationResponse(res, validation);
+      if (errorResponse) return errorResponse;
+      
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
         return res.status(400).json({ success: false, message: 'Validation failed', errors: errors.array() });

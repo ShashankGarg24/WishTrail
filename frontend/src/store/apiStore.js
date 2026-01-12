@@ -1040,14 +1040,11 @@ const useApiStore = create(
             for (const key of keysToCheck) {
               const entry = bucket[key];
               if (entry && typeof entry.ts === 'number' && Date.now() - entry.ts < ttlMs) {
-                console.log('[apiStore.getGoalPost] Returning cached data for', key);
                 return { success: true, ...entry.data };
               }
             }
           }
-          console.log('[apiStore.getGoalPost] Making API call for goal:', id);
           const response = await goalsAPI.getGoalPost(id);
-          console.log('[apiStore.getGoalPost] Got response:', response);
           const resp = response?.data || {};
           // Cache by both goal and activity identifiers if present
           try {

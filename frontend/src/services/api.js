@@ -257,7 +257,6 @@ export const goalsAPI = {
   getOGImageUrl: (id) => `${api.defaults.baseURL}/goals/${id}/og-image`,
   searchGoals: (params) => api.get('/goals/search', { params }),
   getGoalPost: (id) => {
-    console.log('[goalsAPI.getGoalPost] Calling endpoint:', `/goals/${id}/post`);
     return api.get(`/goals/${id}/post`);
   },
   getGoalAnalytics: (id) => api.get(`/goals/${id}/analytics`),
@@ -463,6 +462,14 @@ export const settingsAPI = {
   // Password
   updatePassword: (data) => api.post('/settings/password', data)
 }
+
+// Premium API
+export const premiumAPI = {
+  getStatus: () => api.get('/premium/status'),
+  getFeatures: () => api.get('/premium/features'),
+  subscribe: (planData) => api.post('/premium/subscribe', planData),
+  cancel: () => api.post('/premium/cancel')
+};
 
 // Utility functions
 export const handleApiError = (error) => {

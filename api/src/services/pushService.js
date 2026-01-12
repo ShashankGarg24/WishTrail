@@ -99,15 +99,11 @@ function ensureFirebaseInitialized() {
         credential: admin.credential.cert(creds),
         projectId: creds.project_id // Explicitly set project ID
       });
-      console.log('[push] Firebase Admin initialized successfully (service account from env)');
-      console.log('[push] Project ID:', creds.project_id);
-      console.log('[push] Client email:', creds.client_email);
       return;
     }
 
     // Fall back to ADC / GOOGLE_APPLICATION_CREDENTIALS file path
     admin.initializeApp();
-    console.log('[push] Firebase Admin initialized (ADC)');
   } catch (e) {
     console.error('[push] Firebase init error', e?.message || e);
   }
@@ -125,8 +121,6 @@ async function sendFcmToUser(userId, notification) {
       const tokens = await DeviceToken.find({ userId, isActive: true, provider: { $in: ['fcm', 'expo'] } })
         .select('token provider platform')
         .lean();
-
-      console.log('[push] tokens found', { userId: String(userId), count: tokens.length });
       if (!tokens.length) return;
 
       await sendFcmInternal(tokens, notification);
@@ -153,7 +147,6 @@ async function sendFcmInternal(tokens, notification) {
     }
   }
   
-  console.log('[push] Token deduplication:', { original: tokens.length, unique: uniqueTokens.length });
   
   // Separate web and mobile tokens to avoid duplicates
   const webTokens = uniqueTokens
@@ -164,7 +157,6 @@ async function sendFcmInternal(tokens, notification) {
     .filter(t => t.platform !== 'web' && (t.provider === 'fcm' || (t.token && !t.token.startsWith('ExponentPushToken'))))
     .map(t => t.token);
 
-  console.log('[push] Separated tokens:', { web: webTokens.length, mobile: mobileTokens.length });
 
   const invalidFcm = [];
   let successCount = 0;
@@ -235,7 +227,6 @@ async function sendFcmInternal(tokens, notification) {
       };
       const resp = await admin.messaging().sendEachForMulticast(msg);
       successCount += resp.successCount || 0;
-      console.log('[push] fcm result', { successCount: resp.successCount, failureCount: resp.failureCount });
       (resp.responses || []).forEach((r, idx) => {
         if (!r.success) {
           const code = r.error && r.error.code;
@@ -253,7 +244,6 @@ async function sendFcmInternal(tokens, notification) {
 
   if (invalidFcm.length) {
     await DeviceToken.updateMany({ token: { $in: invalidFcm } }, { $set: { isActive: false } });
-    console.log('[push] deactivated invalid FCM tokens', { invalidCount: invalidFcm.length });
   }
 
   return { ok: true, count: tokens.length, successCount };
@@ -326,7 +316,6 @@ async function sendToWebPush(webTokens, notification, dataUrl, invalidFcm) {
   };
 
   const resp = await admin.messaging().sendEachForMulticast(msg);
-  console.log('[push] web fcm result', { successCount: resp.successCount, failureCount: resp.failureCount });
   
   (resp.responses || []).forEach((r, idx) => {
     if (!r.success) {

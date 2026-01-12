@@ -14,11 +14,9 @@ const BloomFilterService = {
     if (saved) {
       const parsed = typeof saved === 'string' ? JSON.parse(saved) : saved;
       bloom = BloomFilter.fromJSON(parsed);
-      console.log('Bloom Filter loaded from Redis');
     } else {
       let expectedUsers = Number(await redisClient.get("bloom:expected_users")) || expectedItems;
       bloom = BloomFilter.create(expectedUsers, errorRate);
-      console.log('Bloom Filter initialized fresh');
     }
   },
 
@@ -60,7 +58,6 @@ const BloomFilterService = {
     }
 
     await redisClient.set(BLOOM_KEY, JSON.stringify(bloom.saveAsJSON()));
-    console.log(`Bloom Filter rebuilt with ${users.length} entries from PostgreSQL`);
   },
 
   async rebuildIdExpectedUsersIncrease(pgUserService) {
@@ -75,7 +72,6 @@ const BloomFilterService = {
       const newExpected = Math.ceil(currentCount * 1.5);
       await redisClient.set("bloom:expected_users", newExpected);
       await BloomFilterService.rebuildFromDatabase(pgUserService);
-      console.log("Bloom filter rebuilt with increased size:", newExpected);
     }
   }
 };

@@ -535,6 +535,23 @@ class GoalService {
     
     return 0;
   }
+
+  /**
+   * Count active goals for a user
+   * @param {number} userId - User ID
+   * @returns {Promise<number>} Count of active goals
+   */
+  async countActiveGoals(userId) {
+    const queryText = `
+      SELECT COUNT(*) as count
+      FROM goals
+      WHERE user_id = $1 
+        AND completed = false 
+        AND is_active = true
+    `;
+    const result = await query(queryText, [userId]);
+    return parseInt(result.rows[0]?.count || 0);
+  }
 }
 
 module.exports = new GoalService();

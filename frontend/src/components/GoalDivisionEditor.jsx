@@ -2,12 +2,15 @@ import { lazy, Suspense, useEffect, useMemo, useState, useRef } from 'react'
 import useApiStore from '../store/apiStore'
 import { goalsAPI } from '../services/api'
 import { motion } from 'framer-motion'
+import { usePremiumStatus } from '../hooks/usePremium'
 const CreateHabitModal = lazy(() => import('./CreateHabitModal'));
 const CreateWishModal = lazy(() => import('./CreateWishModal'));
 import { ChevronDown, ChevronRight, Trash2, Plus, Link} from 'lucide-react'
 
 export default function GoalDivisionEditor({ goal, goalId, habits, onClose, draftMode = false, renderInline = false, value, onChange }) {
   const { setSubGoals, setHabitLinks, getGoalProgress } = useApiStore()
+  const { isPremium } = usePremiumStatus()
+  const maxSubgoals = isPremium ? 10 : 1
   const [localSubGoals, setLocalSubGoals] = useState([])
   const [localHabitLinks, setLocalHabitLinks] = useState([])
   const [saving, setSaving] = useState(false)
@@ -90,7 +93,6 @@ export default function GoalDivisionEditor({ goal, goalId, habits, onClose, draf
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    console.log('Effect triggered')
   }, [localSubGoals, localHabitLinks, draftMode])
 
   const totalWeight = useMemo(() => {
@@ -112,7 +114,18 @@ export default function GoalDivisionEditor({ goal, goalId, habits, onClose, draf
     setAutoAdjusted(true)
   }
 
-  const addSubGoal = () => setLocalSubGoals(prev => [...prev, { title: '', linkedGoalId: '', weight: 0, completed: false, note: '' }])
+  const addSubGoal = () => {
+    if (localSubGoals.length >= maxSubgoals) {
+      window.dispatchEvent(new CustomEvent('wt_toast', { 
+        detail: { 
+          message: `Subgoal limit reached (${maxSubgoals} max). You cannot add more subgoals at this time.`, 
+          type: 'warning' 
+        } 
+      }))
+      return
+    }
+    setLocalSubGoals(prev => [...prev, { title: '', linkedGoalId: '', weight: 0, completed: false, note: '' }])
+  }
   const addHabitLink = () => setLocalHabitLinks(prev => [...prev, { habitId: '', weight: 0, endDate: '' }])
   const addHabitInline = () => { if (!draftMode) setIsCreateHabitOpen(true) }
   const createGoal = () => {
@@ -154,7 +167,6 @@ export default function GoalDivisionEditor({ goal, goalId, habits, onClose, draf
       setAutoAdjusted(true)
     }
     setDidInitNormalize(true)
-    console.log('Auto-normalized weights on init')
   }, [localSubGoals, localHabitLinks, didInitNormalize])
 
   const normalizeToHundred = (arr) => {

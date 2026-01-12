@@ -5,6 +5,7 @@ import {
   XCircle, SkipForward, Award, BarChart3, Activity
 } from 'lucide-react';
 import { habitsAPI } from '../services/api';
+import { usePremiumStatus } from '../hooks/usePremium';
 import { Doughnut, Bar, Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -35,11 +36,11 @@ ChartJS.register(
 );
 
 export default function HabitAnalyticsModal({ habit, isOpen, onClose }) {
+  const { isPremium } = usePremiumStatus();
+  const maxDays = isPremium ? 365 : 60;
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [days, setDays] = useState(90);
-
-  console.log('HabitAnalyticsModal render:', { isOpen, habitId: habit?.id, loading, hasAnalytics: !!analytics });
+  const [days, setDays] = useState(Math.min(90, maxDays));
 
   useEffect(() => {
     if (isOpen) {
@@ -50,9 +51,7 @@ export default function HabitAnalyticsModal({ habit, isOpen, onClose }) {
   }, [isOpen]);
 
   useEffect(() => {
-    console.log('useEffect triggered:', { isOpen, habitId: habit?.id, days });
     if (isOpen && habit?.id) {
-      console.log('Resetting state and calling loadAnalytics');
       setAnalytics(null);
       setLoading(true);
       loadAnalytics();
@@ -62,19 +61,15 @@ export default function HabitAnalyticsModal({ habit, isOpen, onClose }) {
   const loadAnalytics = async () => {
     try {
       setLoading(true);
-      console.log('Loading analytics for habit:', habit.id, 'days:', days);
       const response = await habitsAPI.analytics(habit.id, { days });
-      console.log('Analytics response:', response);
       if (response.data?.success) {
         setAnalytics(response.data.data.analytics);
       } else {
-        console.error('Analytics API returned unsuccessful response:', response);
         window.dispatchEvent(new CustomEvent('wt_toast', {
           detail: { message: 'Failed to load analytics', type: 'error' }
         }));
       }
     } catch (err) {
-      console.error('Analytics API error:', err);
       window.dispatchEvent(new CustomEvent('wt_toast', {
         detail: { message: err.message || 'Failed to load analytics', type: 'error' }
       }));
@@ -511,14 +506,17 @@ export default function HabitAnalyticsModal({ habit, isOpen, onClose }) {
           <div className="flex items-center gap-3">
             <select
               value={days}
-              onChange={(e) => setDays(Number(e.target.value))}
+              onChange={(e) => {
+                const newDays = Number(e.target.value);
+                setDays(Math.min(newDays, maxDays));
+              }}
               className="px-4 py-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-white/40 hover:bg-white/20 transition-all cursor-pointer"
             >
               <option value={30} className="bg-gray-900 text-white">Last 30 days</option>
               <option value={60} className="bg-gray-900 text-white">Last 60 days</option>
-              <option value={90} className="bg-gray-900 text-white">Last 90 days</option>
-              <option value={180} className="bg-gray-900 text-white">Last 6 months</option>
-              <option value={365} className="bg-gray-900 text-white">Last year</option>
+              {isPremium && <option value={90} className="bg-gray-900 text-white">Last 90 days</option>}
+              {isPremium && <option value={180} className="bg-gray-900 text-white">Last 6 months</option>}
+              {isPremium && <option value={365} className="bg-gray-900 text-white">Last year</option>}
             </select>
             <button 
               onClick={onClose} 

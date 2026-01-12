@@ -505,9 +505,6 @@ class GoalService {
     const escapeRegex = (s) => String(s || '').replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
     const safe = hasText ? escapeRegex(t) : '';
 
-    // Debug logging
-    console.log('[GoalService.searchGoals] Params:', { t, hasText, category, interest, requestingUserId });
-
     // Get blocked user IDs and following IDs
     let blockedUserIds = [];
     let followingIds = [];
@@ -609,8 +606,6 @@ class GoalService {
       LIMIT ${parseInt(limit)} OFFSET ${offset}
     `;
 
-    console.log('[GoalService.searchGoals] SQL:', { dataSql, values });
-
     const [countResult, dataResult] = await Promise.all([
       pgQuery(countSql, values),
       pgQuery(dataSql, values)
@@ -634,7 +629,6 @@ class GoalService {
       }
     }));
 
-    console.log('[GoalService.searchGoals] result count:', { goals: goals.length, total });
     
     return {
       goals,

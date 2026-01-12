@@ -5,6 +5,7 @@ import { communitiesAPI } from '../services/api'
 import useApiStore from '../store/apiStore'
 import SkeletonList from '../components/loader/SkeletonList'
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
+import { INTERESTS_LIST } from '../constants/interests'
 const GoalDetailsModal = lazy(() => import('../components/GoalDetailsModal'));
 const ReportModal = lazy(() => import('../components/ReportModal'));
 const BlockModal = lazy(() => import('../components/BlockModal'));
@@ -18,8 +19,6 @@ const DiscoverPage = () => {
     searchUsers,
     getUsers,
     getTrendingGoals,
-    loadInterests,
-    interestsCatalog,
     cancelFollowRequest,
     followUser,
     unfollowUser,
@@ -96,12 +95,9 @@ const DiscoverPage = () => {
     } catch { }
   }, [location.search])
 
+  // No need to fetch interests - using static list
   useEffect(() => {
     if (!isAuthenticated) return
-    // Don't fetch initial content - only load interests catalog
-    if (!interestsCatalog || interestsCatalog.length === 0) {
-      loadInterests().catch(() => { })
-    }
   }, [isAuthenticated])
 
   // Tab changes now only clear state, don't fetch
@@ -578,9 +574,7 @@ const DiscoverPage = () => {
           <div className="relative">
             <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
               {(() => {
-                const items = (interestsCatalog && interestsCatalog.length > 0)
-                  ? interestsCatalog.map(x => x.interest).slice(0, 12)
-                  : ['fitness', 'health', 'travel', 'education', 'career', 'finance', 'hobbies', 'relationships', 'personal_growth', 'creativity', 'technology', 'business'];
+                const items = INTERESTS_LIST.map(x => x.id).slice(0, 12);
                 
                 return items.map((i) => {
                   const active = selectedInterest === i;

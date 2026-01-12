@@ -203,6 +203,21 @@ const DashboardPage = () => {
     }
   }
 
+  // Update selectedYear to latest available year once data is loaded
+  useEffect(() => {
+    if (!isAuthenticated || !hasLoadedInitialData) return;
+    
+    // Only update if there are years in the data and selectedYear is still at currentYear default
+    if (availableYears.length > 0 && selectedYear === currentYear) {
+      const latestYear = Math.max(...availableYears);
+      // Only switch to latest year if it's different from current year
+      if (latestYear !== currentYear) {
+        setSelectedYear(latestYear);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasLoadedInitialData, availableYears])
+
   // Load dashboard data on mount
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -1151,12 +1166,9 @@ const DashboardPage = () => {
                                 onClick={async (e) => { 
                                   e.stopPropagation(); 
                                   // Check dependencies before showing delete modal
-                                  console.log('[Habit Delete] Checking dependencies for habit:', h.id);
                                   const depResult = await useApiStore.getState().checkHabitDependencies(h.id);
-                                  console.log('[Habit Delete] Dependencies result:', depResult);
                                   if (depResult.success && depResult.data) {
                                     const linkedGoals = depResult.data.data.linkedGoals || [];
-                                    console.log('[Habit Delete] Setting linkedGoals:', linkedGoals);
                                     setHabitDependencies(linkedGoals);
                                     
                                     // If there are dependencies, show warning modal first

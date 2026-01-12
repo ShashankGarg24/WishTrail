@@ -1,7 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { X, Calendar, Bell, Plus, Minus, Info } from 'lucide-react';
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock';
 import { habitsAPI } from '../services/api';
+import useApiStore from '../store/apiStore';
+import { useHabitLimits } from '../hooks/usePremium';
+import PremiumLimitIndicator from './PremiumLimitIndicator';
 
 const dayOptions = [
   { label: 'Sun', value: 0 },
@@ -14,6 +17,7 @@ const dayOptions = [
 ];
 
 export default function CreateHabitModal({ isOpen, onClose, onCreated, initialData }) {
+  const { habits } = useApiStore();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [frequency, setFrequency] = useState('daily');
@@ -23,6 +27,12 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
   const [targetDays, setTargetDays] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+
+  // Premium limits
+  const activeHabitsCount = useMemo(() => {
+    return habits?.filter(h => h.isActive !== false)?.length || 0
+  }, [habits])
+  const habitLimits = useHabitLimits(activeHabitsCount)
 
   useEffect(() => {
     if (!isOpen) return;
@@ -47,6 +57,18 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Check premium limits
+    if (!habitLimits.canCreate) {
+      window.dispatchEvent(new CustomEvent('wt_toast', { 
+        detail: { 
+          message: `Habit limit reached (${activeHabitsCount}/${habitLimits.maxHabits}). You cannot create more habits at this time.`, 
+          type: 'error' 
+        } 
+      }))
+      return
+    }
+    
     setSubmitting(true);
     setError(''); // Clear previous errors
     try {
@@ -117,6 +139,14 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
                 <span className="text-sm">{error}</span>
               </div>
             )}
+
+            {/* Premium Limit Indicator */}
+            <PremiumLimitIndicator
+              current={activeHabitsCount}
+              max={habitLimits.maxHabits}
+              label="Active Habits"
+              showUpgradeButton={false}
+            />
 
             {/* Basic Info Section */}
             <div className="space-y-4">
@@ -293,10 +323,10 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
             </button>
             <button 
               type="submit" 
-              disabled={submitting} 
+              disabled={submitting || !habitLimits.canCreate} 
               className="flex-1 py-3 px-5 bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-lg shadow-primary-500/20 transition-all"
             >
-              {submitting ? 'Creating…' : 'Create Habit'}
+              {submitting ? 'Creating…' : !habitLimits.canCreate ? 'Limit Reached' : 'Create Habit'}
             </button>
           </div>
         </form>

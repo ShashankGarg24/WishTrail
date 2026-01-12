@@ -428,7 +428,6 @@ achievementSchema.statics.createDefaultAchievements = async function() {
         { upsert: true, new: true }
       );
     }
-    console.log('Default achievements created successfully');
   } catch (error) {
     console.error('Error creating default achievements:', error);
   }

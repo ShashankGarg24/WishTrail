@@ -70,15 +70,40 @@ const getGoalPost = async (req, res, next) => {
     const shareNote = goalDetails?.shareCompletionNote ? (goalDetails.completionNote || '') : '';
     const shareImage = goalDetails?.shareCompletionNote ? (goalDetails.completionAttachmentUrl || '') : '';
 
-
-    // Latest comments count
-
-    // Note: Activities in MongoDB still have old ObjectId references for goalId
-    // PostgreSQL goals won't have matching Activity documents until activities are migrated
-    // Skip Activity queries for now since data.goalId in Activity is ObjectId but goals are now BigInt in PostgreSQL
+    // Find the activity for this goal
+    let activityId = null;
     let likeCount = goal.like_count || 0;
     let isLiked = false;
     let commentCount = 0;
+
+    try {
+      const goalActivity = await Activity.findOne({
+        'data.goalId': goal.id,
+        type: { $in: ['goal_activity', 'goal_created', 'goal_completed'] },
+        isActive: true
+      }).select('_id').lean();
+
+      if (goalActivity) {
+        activityId = goalActivity._id;
+
+        // Get like status for this user
+        const likeActivity = await Activity.findOne({
+          userId: req.user.id,
+          type: 'goal_liked',
+          'data.goalId': goal.id,
+          isActive: true
+        }).lean();
+        isLiked = !!likeActivity;
+
+        // Get comment count
+        commentCount = await ActivityComment.countDocuments({
+          activityId: goalActivity._id,
+          isActive: true
+        });
+      }
+    } catch (err) {
+      console.error('[getGoalPost] Error fetching activity data:', err);
+    }
 
     // Build timeline from activities related to this goal
     // TODO: Migrate Activity.data.goalId to store PostgreSQL BigInt IDs
@@ -143,7 +168,7 @@ const getGoalPost = async (req, res, next) => {
           likeCount,
           isLiked,
           commentCount,
-          activityId: null // TODO: Update when Activity.data.goalId is migrated to PostgreSQL IDs
+          activityId: activityId ? String(activityId) : null
         }
       }
     });
@@ -421,6 +446,35 @@ const createGoal = async (req, res, next) => {
     const { title, description, category, targetDate, year, subGoals, habitLinks } = req.body;
     const isPublicFlag = (req.body.isPublic === true || req.body.isPublic === 'true') ? true : false;
     const isDiscoverableFlag = (req.body.isDiscoverable === true || req.body.isDiscoverable === 'true') ? true : false;
+
+    // ✅ PREMIUM CHECK: Validate active goals limit
+    const user = await pgUserService.findById(req.user.id);
+    const activeGoalsCount = await pgGoalService.countActiveGoals(req.user.id);
+    const goalLimits = req.getFeatureLimits ? req.getFeatureLimits('goals') : require('../config/premiumFeatures').getFeatureLimits('goals', user.premium_expires_at);
+    
+    if (goalLimits.maxActiveGoals !== -1 && activeGoalsCount >= goalLimits.maxActiveGoals) {
+      return res.status(403).json({
+        success: false,
+        message: `Goal limit reached. ${req.isPremium ? 'Premium' : 'Free'} users can have ${goalLimits.maxActiveGoals} active goals.`,
+        error: 'GOAL_LIMIT_REACHED',
+        limit: goalLimits.maxActiveGoals,
+        current: activeGoalsCount,
+        upgradeUrl: '/premium/plans'
+      });
+    }
+
+    // ✅ PREMIUM CHECK: Validate subgoals limit
+    const subGoalsArray = Array.isArray(subGoals) ? subGoals : [];
+    if (subGoalsArray.length > goalLimits.maxSubgoalsPerGoal) {
+      return res.status(403).json({
+        success: false,
+        message: `Subgoal limit reached. ${req.isPremium ? 'Premium' : 'Free'} users can have ${goalLimits.maxSubgoalsPerGoal} subgoals per goal.`,
+        error: 'SUBGOAL_LIMIT_REACHED',
+        limit: goalLimits.maxSubgoalsPerGoal,
+        current: subGoalsArray.length,
+        upgradeUrl: '/premium/plans'
+      });
+    }
 
     // Check daily goal creation limit (max 5 per day)
     const dailyCheck = await pgGoalService.checkDailyLimit(req.user.id, 5);

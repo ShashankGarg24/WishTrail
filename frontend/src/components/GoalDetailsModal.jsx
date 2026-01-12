@@ -197,8 +197,6 @@ export default function GoalDetailsModal({ isOpen, goalId, onClose, autoOpenComm
         const newIsLiked = !currentIsLiked;
         const newLikeCount = currentIsLiked ? currentLikeCount - 1 : currentLikeCount + 1;
 
-        console.log('[GoalDetailsModal] Like clicked:', { currentIsLiked, newIsLiked, currentLikeCount, newLikeCount });
-
         // Optimistic update - create entirely new object
         setData(prev => {
             if (!prev) return prev;
@@ -215,7 +213,6 @@ export default function GoalDetailsModal({ isOpen, goalId, onClose, autoOpenComm
         setLiking(true);
         try {
             const result = await useApiStore.getState().likeActivity(activityId, newIsLiked);
-            console.log('[GoalDetailsModal] Like API result:', result);
             
             if (result?.success) {
                 // Update with actual values from API
@@ -232,7 +229,6 @@ export default function GoalDetailsModal({ isOpen, goalId, onClose, autoOpenComm
                 });
             } else {
                 // Revert on failure
-                console.log('[GoalDetailsModal] Like failed, reverting');
                 setData(prev => {
                     if (!prev) return prev;
                     return {

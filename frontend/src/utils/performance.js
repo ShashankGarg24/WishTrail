@@ -160,22 +160,6 @@ export const shouldReduceAnimations = () => {
   return false;
 };
 
-// Monitor performance
-export const logPerformance = () => {
-  if (window.performance && window.performance.timing) {
-    const timing = window.performance.timing;
-    const pageLoadTime = timing.loadEventEnd - timing.navigationStart;
-    const connectTime = timing.responseEnd - timing.requestStart;
-    const renderTime = timing.domComplete - timing.domLoading;
-    
-    console.log('Performance Metrics:', {
-      pageLoadTime: `${pageLoadTime}ms`,
-      connectTime: `${connectTime}ms`,
-      renderTime: `${renderTime}ms`
-    });
-  }
-};
-
 // Cache resources
 export const cacheResource = (url, ttl = 3600000) => { // 1 hour default
   const cached = localStorage.getItem(url);
@@ -210,6 +194,5 @@ export default {
   getDeviceType,
   getConnectionSpeed,
   shouldReduceAnimations,
-  logPerformance,
   cacheResource
 };
