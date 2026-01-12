@@ -54,7 +54,7 @@ const PRIVATE_USER_FIELDS = [
   'timezone',
   'timezoneOffsetMinutes',
   'premium_expires_at',
-  'premiumExpiresAt'
+  'isPremium',
 ];
 
 /**
@@ -68,8 +68,8 @@ const sanitizeAuthMe = (user) => {
   const obj = user.toObject ? user.toObject() : { ...user };
   
   // Compute isPremium based on expiration timestamp
-  const premiumExpiresAt = obj.premium_expires_at || obj.premiumExpiresAt;
-  const isPremium = premiumExpiresAt && new Date(premiumExpiresAt) > new Date();
+  const premiumExpiresAt = obj.premiumExpiresAt;
+  const isPremium = premiumExpiresAt != null && new Date(premiumExpiresAt) > new Date();
   
   return {
     name: obj.name,
@@ -89,8 +89,7 @@ const sanitizeAuthMe = (user) => {
     website: obj.website || '',
     youtube: obj.youtube || '',
     dashboardYears: obj.dashboardYears || [],
-    isPremium: isPremium,
-    premiumExpiresAt: isPremium ? premiumExpiresAt : null
+    isPremium: isPremium
   };
 };
 
@@ -107,20 +106,19 @@ const sanitizeUser = (user, isSelf = false) => {
   const obj = user.toObject ? user.toObject() : { ...user };
   
   // Compute isPremium based on expiration timestamp
-  const premiumExpiresAt = obj.premium_expires_at || obj.premiumExpiresAt;
-  const isPremium = premiumExpiresAt && new Date(premiumExpiresAt) > new Date();
+  const premiumExpiresAt = obj.premiumExpiresAt;
+  const isPremium = premiumExpiresAt != null && new Date(premiumExpiresAt) > new Date();
   
   // Add computed isPremium field
-  obj.isPremium = isPremium;
   
   if (isSelf) {
+    obj.isPremium = isPremium;
     // User viewing their own profile - include private fields but remove sensitive ones
     SENSITIVE_USER_FIELDS.forEach(field => delete obj[field]);
     return obj;
-  }
-  
+  }  
   // Public view - only return safe fields (including isPremium)
-  const sanitized = { isPremium: isPremium };
+  const sanitized = {};
   PUBLIC_USER_FIELDS.forEach(field => {
     if (obj[field] !== undefined) {
       sanitized[field] = obj[field];

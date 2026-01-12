@@ -214,14 +214,15 @@ class UserService {
       id: user.id,
       name: user.name,
       username: user.username,
-      avatar: user.avatar,
+      avatar: user.avatar_url,
       bio: user.bio || '',
       isPrivate: user.is_private || false,
       areHabitsPrivate: prefs?.privacy?.areHabitsPrivate ?? true,
       interests: prefs?.interests || [],
       currentMood: prefs?.preferences?.currentMood || '',
       youtube: prefs?.socialLinks?.youtube || '',
-      instagram: prefs?.socialLinks?.instagram || ''
+      instagram: prefs?.socialLinks?.instagram || '',
+      premiumExpiresAt: user.premium_expires_at || null
     };
     
     // Basic stats only
