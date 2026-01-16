@@ -3,7 +3,7 @@ import { Shield, Lock, Eye, Database, Globe, Mail, FileText } from 'lucide-react
 import { Link } from 'react-router-dom'
 
 const PrivacyPolicy = () => {
-  const lastUpdated = "December 24, 2025"
+  const lastUpdated = "January 1, 2026"
 
   const sections = [
     {

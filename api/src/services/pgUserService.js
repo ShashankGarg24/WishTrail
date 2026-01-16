@@ -14,9 +14,9 @@ class UserService {
     const hashedPassword = password ? await bcrypt.hash(password, 10) : null;
     
     const queryText = `
-      INSERT INTO users (name, username, email, password, date_of_birth, location, website, gender, avatar_url, bio, is_private, is_verified, profile_completed, timezone, locale)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
-      RETURNING id, name, username, email, avatar_url, bio, location, website, date_of_birth, gender,
+      INSERT INTO users (name, username, email, password, date_of_birth, location, gender, avatar_url, bio, is_private, is_verified, profile_completed, timezone, locale)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+      RETURNING id, name, username, email, avatar_url, bio, location, date_of_birth, gender,
                 total_goals, completed_goals, current_streak, longest_streak,
                 followers_count, following_count, is_private, is_active, is_verified, profile_completed,
                 timezone, locale, premium_expires_at, created_at, updated_at, last_active_at
@@ -29,7 +29,6 @@ class UserService {
       hashedPassword, 
       dateOfBirth,
       location,
-      website,
       gender,
       avatarUrl,
       bio,
@@ -72,11 +71,11 @@ class UserService {
     const sql = `
       INSERT INTO users (
         name, username, email, password, bio, avatar_url,
-        location, website, date_of_birth, gender, total_goals, completed_goals,
+        location, date_of_birth, gender, total_goals, completed_goals,
         followers_count, following_count, is_verified, is_active
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
       RETURNING id, name, username, email, bio, avatar_url,
-                location, website, date_of_birth, gender, total_goals, completed_goals,
+                location, date_of_birth, gender, total_goals, completed_goals,
                 followers_count, following_count, is_verified, is_active,
                 timezone, locale, premium_expires_at, created_at, updated_at
     `;
@@ -89,7 +88,6 @@ class UserService {
       bio,
       avatarUrl,
       location,
-      website,
       dateOfBirth,
       gender,
       totalGoals,
@@ -108,8 +106,8 @@ class UserService {
    */
   async findByEmail(email, includePassword = false) {
     const fields = includePassword 
-      ? 'id, name, username, email, password, avatar_url, bio, location, website, date_of_birth, gender, total_goals, completed_goals, current_streak, longest_streak, followers_count, following_count, is_private, is_active, is_verified, profile_completed, refresh_token_app, refresh_token_web, timezone, locale, premium_expires_at, created_at, updated_at, last_active_at'
-      : 'id, name, username, email, avatar_url, bio, location, website, date_of_birth, gender, total_goals, completed_goals, current_streak, longest_streak, followers_count, following_count, is_private, is_active, is_verified, profile_completed, timezone, locale, premium_expires_at, created_at, updated_at, last_active_at';
+      ? 'id, name, username, email, password, avatar_url, bio, location, date_of_birth, gender, total_goals, completed_goals, current_streak, longest_streak, followers_count, following_count, is_private, is_active, is_verified, profile_completed, refresh_token_app, refresh_token_web, timezone, locale, premium_expires_at, created_at, updated_at, last_active_at'
+      : 'id, name, username, email, avatar_url, bio, location, date_of_birth, gender, total_goals, completed_goals, current_streak, longest_streak, followers_count, following_count, is_private, is_active, is_verified, profile_completed, timezone, locale, premium_expires_at, created_at, updated_at, last_active_at';
     
     const queryText = `SELECT ${fields} FROM users WHERE email = $1 AND is_active = true`;
     const result = await query(queryText, [email.toLowerCase()]);
@@ -123,7 +121,7 @@ class UserService {
   async findById(id, includePassword = false) {
     const fields = includePassword 
       ? '*'
-      : 'id, name, username, email, avatar_url, bio, location, website, date_of_birth, gender, total_goals, completed_goals, current_streak, longest_streak, followers_count, following_count, is_private, is_active, is_verified, profile_completed, google_id, timezone, locale, premium_expires_at, created_at, updated_at';
+      : 'id, name, username, email, avatar_url, bio, location, date_of_birth, gender, total_goals, completed_goals, current_streak, longest_streak, followers_count, following_count, is_private, is_active, is_verified, profile_completed, google_id, timezone, locale, premium_expires_at, created_at, updated_at';
     
     const queryText = `SELECT ${fields} FROM users WHERE id = $1 AND is_active = true`;
     const result = await query(queryText, [id]);
@@ -137,7 +135,7 @@ class UserService {
   async findByUsername(username, includePassword = false) {
     const fields = includePassword 
       ? '*'
-      : 'id, name, username, email, avatar_url, bio, location, website, date_of_birth, gender, total_goals, completed_goals, current_streak, longest_streak, followers_count, following_count, is_private, is_active, is_verified, profile_completed, timezone, locale, premium_expires_at, created_at, updated_at';
+      : 'id, name, username, email, avatar_url, bio, location, date_of_birth, gender, total_goals, completed_goals, current_streak, longest_streak, followers_count, following_count, is_private, is_active, is_verified, profile_completed, timezone, locale, premium_expires_at, created_at, updated_at';
     
     const queryText = `SELECT ${fields} FROM users WHERE username = $1 AND is_active = true`;
     const result = await query(queryText, [username.toLowerCase()]);
@@ -154,7 +152,7 @@ class UserService {
     }
     
     const queryText = `
-      SELECT id, name, username, email, avatar_url, bio, location, website, 
+      SELECT id, name, username, email, avatar_url, bio, location, 
              date_of_birth, gender, total_goals, completed_goals, current_streak, longest_streak, 
              followers_count, following_count, is_private, is_active, is_verified, profile_completed, 
              timezone, locale, premium_expires_at, created_at, updated_at, last_active_at
@@ -193,7 +191,7 @@ class UserService {
       UPDATE users 
       SET ${setClause.join(', ')}, updated_at = CURRENT_TIMESTAMP
       WHERE id = $${paramIndex} AND is_active = true
-      RETURNING id, name, username, email, avatar_url, bio, location, website, date_of_birth, gender,
+      RETURNING id, name, username, email, avatar_url, bio, location, date_of_birth, gender,
                 total_goals, completed_goals, current_streak, longest_streak,
                 followers_count, following_count, is_private, is_active, is_verified, profile_completed,
                 google_id, timezone, locale, premium_expires_at, created_at, updated_at, last_active_at

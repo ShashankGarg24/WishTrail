@@ -85,8 +85,6 @@ async function listHabits(userId, { includeArchived = false, page = 1, limit = 5
   // Get habits from PostgreSQL
   const habits = await pgHabitService.getUserHabits({
     userId,
-    isActive: true,
-    isArchived: includeArchived ? undefined : false,
     limit: limitNum,
     offset,
     sortBy,
@@ -97,7 +95,7 @@ async function listHabits(userId, { includeArchived = false, page = 1, limit = 5
   const { query } = require('../config/supabase');
   const countSql = `
     SELECT COUNT(*) FROM habits 
-    WHERE user_id = $1 AND is_active = true ${includeArchived ? '' : 'AND is_archived = false'}
+    WHERE user_id = $1}
   `;
   const countResult = await query(countSql, [userId]);
   const total = parseInt(countResult.rows[0].count);
@@ -368,8 +366,6 @@ async function getHeatmap(userId, habitId, { months = 3 } = {}) {
 async function getStats(userId) {
   const habits = await pgHabitService.getUserHabits({
     userId,
-    isActive: true,
-    isArchived: false,
     limit: 1000
   });
   
@@ -447,8 +443,6 @@ async function dueHabitsForReminder(userId, userTimezone, windowMinutes = 10) {
   // Use PostgreSQL for habits
   const habits = await pgHabitService.getUserHabits({ 
     userId, 
-    isActive: true, 
-    isArchived: false,
     limit: 1000
   });
   
@@ -543,7 +537,6 @@ async function analytics(userId, { days = 30 } = {}) {
   // top streaks snapshot from PostgreSQL
   const habitsResult = await pgHabitService.getUserHabits({ 
     userId, 
-    isActive: true, 
     limit: 1000 
   });
   const habits = habitsResult || []; // getUserHabits returns array directly, not wrapped

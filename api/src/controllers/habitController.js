@@ -92,7 +92,6 @@ exports.listHabits = async (req, res, next) => {
     const offset = (page - 1) * limit;
     const habits = await pgHabitService.getUserHabits({
       userId: targetUserId,
-      isArchived: includeArchived ? undefined : false,
       limit,
       offset,
       sortBy,
@@ -104,8 +103,7 @@ exports.listHabits = async (req, res, next) => {
     const countSql = `
       SELECT COUNT(*) as total
       FROM habits
-      WHERE user_id = $1 AND is_active = true
-      ${!includeArchived ? 'AND is_archived = false' : ''}
+      WHERE user_id = $1
     `;
     const countResult = await query(countSql, [targetUserId]);
     const total = parseInt(countResult.rows[0].total);
@@ -146,8 +144,7 @@ exports.searchHabits = async (req, res, next) => {
     const countSql = `
       SELECT COUNT(*) as total
       FROM habits
-      WHERE user_id = $1 AND is_active = true AND is_archived = false
-        AND (name ILIKE $2 OR description ILIKE $2)
+      WHERE user_id = $1 AND (name ILIKE $2 OR description ILIKE $2)
     `;
     const countResult = await query(countSql, [userId, `%${q.trim()}%`]);
     const total = parseInt(countResult.rows[0].total);
@@ -398,8 +395,6 @@ exports.getStats = async (req, res, next) => {
     const statsSql = `
       SELECT 
         COUNT(*) as total_habits,
-        COUNT(*) FILTER (WHERE is_archived = false) as active_habits,
-        COUNT(*) FILTER (WHERE is_archived = true) as archived_habits,
         SUM(current_streak) as total_current_streak,
         MAX(current_streak) as max_current_streak,
         SUM(longest_streak) as total_longest_streak,
@@ -407,7 +402,7 @@ exports.getStats = async (req, res, next) => {
         SUM(total_completions) as total_completions,
         SUM(total_days) as total_days
       FROM habits
-      WHERE user_id = $1 AND is_active = true
+      WHERE user_id = $1 
     `;
     
     const result = await query(statsSql, [userId]);
@@ -415,8 +410,6 @@ exports.getStats = async (req, res, next) => {
     
     const stats = {
       totalHabits: parseInt(row.total_habits) || 0,
-      activeHabits: parseInt(row.active_habits) || 0,
-      archivedHabits: parseInt(row.archived_habits) || 0,
       totalCurrentStreak: parseInt(row.total_current_streak) || 0,
       maxCurrentStreak: parseInt(row.max_current_streak) || 0,
       totalLongestStreak: parseInt(row.total_longest_streak) || 0,
@@ -454,7 +447,7 @@ exports.getAnalytics = async (req, res, next) => {
         h.total_completions
       FROM habits h
       LEFT JOIN habit_logs hl ON h.id = hl.habit_id AND hl.date_key >= $2
-      WHERE h.user_id = $1 AND h.is_active = true AND h.is_archived = false
+      WHERE h.user_id = $1
       GROUP BY h.id, h.name, h.current_streak, h.longest_streak, h.total_completions
       ORDER BY completions DESC
     `;

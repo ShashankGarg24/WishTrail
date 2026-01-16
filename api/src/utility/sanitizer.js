@@ -260,7 +260,6 @@ const sanitizeHabit = (habit) => {
     description: obj.description || '',
     frequency: obj.frequency,
     daysOfWeek: obj.daysOfWeek || obj.days_of_week || [],
-    timezone: obj.timezone,
     reminders: obj.reminders || [],
     currentStreak: obj.currentStreak || obj.current_streak || 0,
     longestStreak: obj.longestStreak || obj.longest_streak || 0,
@@ -270,8 +269,6 @@ const sanitizeHabit = (habit) => {
     targetDays: obj.targetDays || obj.target_days || null,
     goalId: obj.goalId || obj.goal_id || null,
     isPublic: obj.isPublic !== undefined ? obj.isPublic : (obj.is_public !== undefined ? obj.is_public : false),
-    isArchived: obj.isArchived !== undefined ? obj.isArchived : (obj.is_archived !== undefined ? obj.is_archived : false),
-    isCommunitySource: obj.isCommunitySource !== undefined ? obj.isCommunitySource : (obj.is_community_source !== undefined ? obj.is_community_source : false),
     createdAt: obj.createdAt || obj.created_at,
     updatedAt: obj.updatedAt || obj.updated_at
   };

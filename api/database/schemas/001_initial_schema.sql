@@ -397,7 +397,6 @@ SELECT
   avatar_url,
   bio,
   location,
-  website,
   date_of_birth,
   gender,
   total_goals,

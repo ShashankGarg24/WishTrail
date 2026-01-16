@@ -71,7 +71,6 @@ const notificationSchema = new mongoose.Schema({
     },
     goalTitle: String,
     goalCategory: String,
-    goalDueDate: Date,
     
     // For achievement notifications
     achievementId: {
@@ -113,12 +112,6 @@ const notificationSchema = new mongoose.Schema({
     commentId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'ActivityComment'
-    },
-    
-    // Additional metadata
-    metadata: {
-      type: Map,
-      of: mongoose.Schema.Types.Mixed
     }
   },
   // Community context
@@ -241,13 +234,12 @@ notificationSchema.statics.createNotification = async function(notificationData)
         if ((t === 'journal_prompt' || t === 'weekly_summary' || t === 'monthly_summary') && ns?.journal && ns.journal.enabled === false) allowPush = false;
         if (t === 'motivation_quote' && ns?.motivation && ns.motivation.enabled === false) allowPush = false;
 
-        // Quiet hours removed per new spec
-
-        if (allowPush) {
-          const { sendFcmToUser } = require('../services/pushService');
-          await sendFcmToUser(saved.userId, saved);
-          await this.updateOne({ _id: saved._id }, { $set: { isDelivered: true, deliveredAt: new Date() } });
-        }
+        // UNCOMMENT BELOW TO RE-ENABLE NOTIFICATION
+        // if (allowPush) {
+        //   const { sendFcmToUser } = require('../services/pushService');
+        //   await sendFcmToUser(saved.userId, saved);
+        //   await this.updateOne({ _id: saved._id }, { $set: { isDelivered: true, deliveredAt: new Date() } });
+        // }
       } catch (_) {}
     }
     return saved;

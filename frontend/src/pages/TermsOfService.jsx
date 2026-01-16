@@ -3,7 +3,7 @@ import { FileText, AlertCircle, Scale, Users, Shield, Ban } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 const TermsOfService = () => {
-  const lastUpdated = "December 24, 2025"
+  const lastUpdated = "January 1, 2026"
 
   const sections = [
     {

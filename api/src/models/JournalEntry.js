@@ -5,15 +5,6 @@ const journalEntrySchema = new mongoose.Schema({
     type: Number,
     required: true
   },
-  promptKey: {
-    type: String,
-    enum: ['smile', 'helped', 'sacrifice', 'grateful', 'freeform'],
-    default: 'freeform'
-  },
-  promptText: {
-    type: String,
-    default: ''
-  },
   content: {
     type: String,
     required: true,
@@ -30,16 +21,11 @@ const journalEntrySchema = new mongoose.Schema({
     enum: ['very_negative', 'negative', 'neutral', 'positive', 'very_positive'],
     default: 'neutral'
   },
-  tags: [{ type: String, trim: true, maxlength: 32 }],
+
   visibility: {
     type: String,
     enum: ['private', 'friends', 'public'],
     default: 'private'
-  },
-  // For soft-deletion
-  isActive: {
-    type: Boolean,
-    default: true
   },
   // Denormalized date key for quick daily lookups
   dayKey: {

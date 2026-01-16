@@ -3,7 +3,7 @@ import { Copyright, FileText, Mail, AlertCircle, Scale, Ban, CheckCircle } from 
 import { Link } from 'react-router-dom'
 
 const CopyrightPolicy = () => {
-  const lastUpdated = "December 25, 2025"
+  const lastUpdated = "January 1, 2026"
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 py-12">

@@ -76,23 +76,11 @@ const activitySchema = new mongoose.Schema({
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Achievement'
     },
-    achievementName: String,
-    
-    // Additional context data
-    metadata: {
-      type: Map,
-      of: mongoose.Schema.Types.Mixed
-    }
+    achievementName: String
   },
   
   // Activity visibility
   isPublic: {
-    type: Boolean,
-    default: true
-  },
-  
-  // For potential future features
-  isActive: {
     type: Boolean,
     default: true
   },

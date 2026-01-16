@@ -18,40 +18,27 @@ class PgHabitService {
       description = '',
       frequency = 'daily',
       daysOfWeek = null,
-      timezone = 'UTC',
       reminders = [],
-      goalId = null,
       targetCompletions = null,
       targetDays = null,
-      isPublic = true,
-      communityId = null,
-      communityItemId = null,
-      communitySourceId = null,
-      isCommunitySource = false
+      isPublic = true
     } = habitData;
 
     const sql = `
       INSERT INTO habits (
-        user_id, name, description, frequency, days_of_week, timezone,
-        reminders, goal_id, target_completions, target_days, is_public,
-        community_id, community_item_id, community_source_id, is_community_source
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+        user_id, name, description, frequency, days_of_week,
+        reminders, target_completions, target_days, is_public
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
       RETURNING *
     `;
 
     const values = [
       userId, name, description, frequency,
       daysOfWeek ? `{${daysOfWeek.join(',')}}` : null,
-      timezone,
       JSON.stringify(reminders),
-      goalId,
       targetCompletions,
       targetDays,
-      isPublic,
-      communityId,
-      communityItemId,
-      communitySourceId,
-      isCommunitySource
+      isPublic
     ];
 
     const result = await query(sql, values);
@@ -69,7 +56,7 @@ class PgHabitService {
       SELECT h.*, u.username, u.name as user_name, u.avatar_url
       FROM habits h
       INNER JOIN users u ON h.user_id = u.id
-      WHERE h.id = $1 AND h.is_active = true
+      WHERE h.id = $1
     `;
     const values = [id];
 
@@ -90,10 +77,6 @@ class PgHabitService {
   async getUserHabits({
     userId,
     frequency = null,
-    isActive = true,
-    isArchived = false,
-    isCommunitySource = false,
-    goalId = null,
     limit = 50,
     offset = 0,
     sortBy = 'created_at',
@@ -106,20 +89,6 @@ class PgHabitService {
     if (frequency) {
       conditions.push(`h.frequency = $${paramIndex++}`);
       values.push(frequency);
-    }
-
-    conditions.push(`h.is_active = $${paramIndex++}`);
-    values.push(isActive);
-
-    conditions.push(`h.is_archived = $${paramIndex++}`);
-    values.push(isArchived);
-
-    conditions.push(`h.is_community_source = $${paramIndex++}`);
-    values.push(isCommunitySource);
-
-    if (goalId) {
-      conditions.push(`h.goal_id = $${paramIndex++}`);
-      values.push(goalId);
     }
 
     const allowedSortFields = ['created_at', 'name', 'current_streak', 'total_completions'];
@@ -150,9 +119,9 @@ class PgHabitService {
    */
   async updateHabit(id, userId, updates) {
     const allowedFields = [
-      'name', 'description', 'frequency', 'days_of_week', 'timezone',
-      'reminders', 'goal_id', 'target_completions', 'target_days',
-      'is_public', 'is_archived'
+      'name', 'description', 'frequency', 'days_of_week',
+      'reminders', 'target_completions', 'target_days',
+      'is_public'
     ];
 
     const setClause = [];
@@ -184,7 +153,7 @@ class PgHabitService {
     const sql = `
       UPDATE habits
       SET ${setClause.join(', ')}
-      WHERE id = $${paramIndex} AND user_id = $${paramIndex + 1} AND is_active = true
+      WHERE id = $${paramIndex} AND user_id = $${paramIndex + 1}
       RETURNING *
     `;
 
@@ -195,57 +164,21 @@ class PgHabitService {
   }
 
   /**
-   * Archive/unarchive habit
-   * @param {number} id - Habit ID
-   * @param {number} userId - User ID for ownership check
-   * @param {boolean} isArchived - Archive status
-   * @returns {Promise<Object|null>} Updated habit or null
-   */
-  async archiveHabit(id, userId, isArchived = true) {
-    const sql = `
-      UPDATE habits
-      SET is_archived = $1, updated_at = CURRENT_TIMESTAMP
-      WHERE id = $2 AND user_id = $3 AND is_active = true
-      RETURNING *
-    `;
-
-    const result = await query(sql, [isArchived, id, userId]);
-    return result.rows[0] ? this._formatHabit(result.rows[0]) : null;
-  }
-
-  /**
-   * Soft delete habit
    * @param {number} id - Habit ID
    * @param {number} userId - User ID for ownership check
    * @returns {Promise<boolean>} Success status
    */
   async deleteHabit(id, userId) {
     const sql = `
-      UPDATE habits
-      SET is_active = false, updated_at = CURRENT_TIMESTAMP
-      WHERE id = $1 AND user_id = $2 AND is_active = true
+      DELETE FROM habits
+      WHERE id = $1 AND user_id = $2
       RETURNING id
     `;
 
     const result = await query(sql, [id, userId]);
     return result.rowCount > 0;
   }
-  /**
-   * Unlink habits from a goal
-   * @param {number} goalId - Goal ID to unlink from
-   * @returns {Promise<number>} Number of habits updated
-   */
-  async unlinkHabitsFromGoal(goalId) {
-    const sql = `
-      UPDATE habits
-      SET goal_id = NULL, updated_at = CURRENT_TIMESTAMP
-      WHERE goal_id = $1
-      RETURNING id
-    `;
-
-    const result = await query(sql, [goalId]);
-    return result.rowCount;
-  }
+ 
   /**
    * Update habit streak and stats
    * @param {number} id - Habit ID
@@ -295,7 +228,7 @@ class PgHabitService {
     const sql = `
       UPDATE habits
       SET ${setClause.join(', ')}
-      WHERE id = $${paramIndex} AND is_active = true
+      WHERE id = $${paramIndex}
       RETURNING *
     `;
 
@@ -334,7 +267,7 @@ class PgHabitService {
     const sql = `
       UPDATE habits
       SET ${setClause.join(', ')}
-      WHERE id = $${paramIndex} AND is_active = true
+      WHERE id = $${paramIndex}
       RETURNING *
     `;
 
@@ -342,24 +275,6 @@ class PgHabitService {
 
     const result = await query(sql, values);
     return result.rows[0] ? this._formatHabit(result.rows[0]) : null;
-  }
-
-  /**
-   * Get habits by goal ID
-   * @param {number} goalId - Goal ID
-   * @returns {Promise<Array>} Array of habits
-   */
-  async getHabitsByGoalId(goalId) {
-    const sql = `
-      SELECT h.*, u.username, u.name as user_name, u.avatar_url
-      FROM habits h
-      INNER JOIN users u ON h.user_id = u.id
-      WHERE h.goal_id = $1 AND h.is_active = true
-      ORDER BY h.created_at DESC
-    `;
-
-    const result = await query(sql, [goalId]);
-    return result.rows.map(row => this._formatHabit(row));
   }
 
   /**
@@ -374,7 +289,7 @@ class PgHabitService {
       SELECT h.*, u.username, u.name as user_name, u.avatar_url
       FROM habits h
       INNER JOIN users u ON h.user_id = u.id
-      WHERE h.id = ANY($1) AND h.is_active = true
+      WHERE h.id = ANY($1) 
       ORDER BY h.created_at DESC
     `;
 
@@ -392,7 +307,7 @@ class PgHabitService {
       SELECT h.*, u.username, u.name as user_name, u.avatar_url
       FROM habits h
       INNER JOIN users u ON h.user_id = u.id
-      WHERE h.is_public = true AND h.is_active = true
+      WHERE h.is_public = true
     `;
 
     const values = [limit, offset];
@@ -500,7 +415,7 @@ class PgHabitService {
     const sql = `
       SELECT COUNT(*) as count
       FROM habits
-      WHERE user_id = $1 AND is_active = true AND is_community_source = false
+      WHERE user_id = $1
     `;
 
     const result = await query(sql, [userId]);
@@ -519,8 +434,7 @@ class PgHabitService {
                      plainto_tsquery('english', $1)) as rank
       FROM habits h
       INNER JOIN users u ON h.user_id = u.id
-      WHERE h.is_active = true
-        AND h.is_public = true
+      WHERE h.is_public = true
         AND (
           h.name ILIKE $2
           OR h.description ILIKE $2
@@ -557,9 +471,7 @@ class PgHabitService {
       description: row.description,
       frequency: row.frequency,
       daysOfWeek: row.days_of_week,
-      timezone: row.timezone,
       reminders: typeof row.reminders === 'string' ? JSON.parse(row.reminders) : row.reminders,
-      goalId: row.goal_id,
       currentStreak: row.current_streak,
       longestStreak: row.longest_streak,
       lastLoggedDateKey: row.last_logged_date_key,
@@ -568,14 +480,6 @@ class PgHabitService {
       targetCompletions: row.target_completions,
       targetDays: row.target_days,
       isPublic: row.is_public,
-      isActive: row.is_active,
-      isArchived: row.is_archived,
-      communityInfo: {
-        communityId: row.community_id,
-        itemId: row.community_item_id,
-        sourceId: row.community_source_id
-      },
-      isCommunitySource: row.is_community_source,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
       // User data if joined
@@ -595,8 +499,6 @@ class PgHabitService {
       SELECT COUNT(*) as count
       FROM habits
       WHERE user_id = $1 
-        AND is_active = true 
-        AND is_archived = false
     `;
     const result = await query(queryText, [userId]);
     return parseInt(result.rows[0]?.count || 0);

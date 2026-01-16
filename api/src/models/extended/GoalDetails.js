@@ -19,60 +19,7 @@ const goalDetailsSchema = new mongoose.Schema({
     maxlength: 1000,
     default: ''
   },
-  
-  // Sub-goals (nested structure - not in PostgreSQL)
-  subGoals: [{
-    title: {
-      type: String,
-      required: true,
-      trim: true,
-      maxlength: 200
-    },
-    linkedGoalId: {
-      type: Number, // Reference to another goal in PostgreSQL
-      sparse: true
-    },
-    weight: {
-      type: Number,
-      default: 0,
-      min: 0,
-      max: 100
-    },
-    completed: {
-      type: Boolean,
-      default: false
-    },
-    completedAt: {
-      type: Date,
-      default: null
-    },
-    description: {
-      type: String,
-      trim: true,
-      maxlength: 500,
-      default: ''
-    }
-  }],
-  
-  // Habit links (many-to-many relationship)
-  habitLinks: [{
-    habitId: {
-      type: Number, // Reference to PostgreSQL habits table
-      required: true
-    },
-    habitName: String, // Denormalized for display
-    weight: {
-      type: Number,
-      default: 0,
-      min: 0,
-      max: 100
-    },
-    endDate: {
-      type: Date,
-      default: null
-    }
-  }],
-  
+ 
   // Progress tracking (computed, cached here)
   progress: {
     percent: {
@@ -83,16 +30,16 @@ const goalDetailsSchema = new mongoose.Schema({
     },
     breakdown: {
       subGoals: [{
-        id: mongoose.Schema.Types.Mixed,
+        id: Number,
         title: String,
-        completed: Boolean,
-        weight: Number
+        weight: Number,
+        completedAt: Date
       }],
       habits: [{
         id: Number,
         name: String,
-        progress: Number,
-        weight: Number
+        weight: Number,
+        endDate: Date
       }]
     },
     lastCalculated: {
@@ -127,18 +74,7 @@ const goalDetailsSchema = new mongoose.Schema({
   //     default: 0
   //   }
   // },
-  
-  // Metadata
-  metadata: {
-    tags: [String],
-    customFields: mongoose.Schema.Types.Mixed
-  },
-  
-  // Soft delete
-  isActive: {
-    type: Boolean,
-    default: true
-  }
+
 }, {
   timestamps: true,
   versionKey: false

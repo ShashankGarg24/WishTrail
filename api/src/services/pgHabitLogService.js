@@ -18,9 +18,7 @@ class PgHabitLogService {
       habitId,
       dateKey,
       status = 'done',
-      note = '',
       mood = 'neutral',
-      journalEntryId = null,
       completionCount = 1
     } = logData;
 
@@ -38,29 +36,27 @@ class PgHabitLogService {
         const updateSql = `
           UPDATE habit_logs
           SET status = $1,
-              note = $2,
-              mood = $3,
-              journal_entry_id = $4,
-              completion_count = completion_count + $5,
+              mood = $2,
+              completion_count = completion_count + $3,
               completion_times = array_append(completion_times, CURRENT_TIMESTAMP)
-          WHERE id = $6
+          WHERE id = $4
           RETURNING *
         `;
         const updateResult = await client.query(updateSql, [
-          status, note, mood, journalEntryId, completionCount, existingResult.rows[0].id
+          status, mood, completionCount, existingResult.rows[0].id
         ]);
         log = updateResult.rows[0];
       } else {
         // Create new log
         const insertSql = `
           INSERT INTO habit_logs (
-            user_id, habit_id, date_key, status, note, mood,
-            journal_entry_id, completion_count, completion_times
-          ) VALUES ($1, $2, $3::date, $4, $5, $6, $7, $8, ARRAY[CURRENT_TIMESTAMP])
+            user_id, habit_id, date_key, status, mood,
+            completion_count, completion_times
+          ) VALUES ($1, $2, $3::date, $4, $5, $6, ARRAY[CURRENT_TIMESTAMP])
           RETURNING *
         `;
         const insertResult = await client.query(insertSql, [
-          userId, habitId, dateKey, status, note, mood, journalEntryId, completionCount
+          userId, habitId, dateKey, status, mood, completionCount
         ]);
         log = insertResult.rows[0];
       }
@@ -295,7 +291,7 @@ class PgHabitLogService {
    * @returns {Promise<Object|null>} Updated habit log or null
    */
   async updateHabitLog(id, userId, updates) {
-    const allowedFields = ['status', 'note', 'mood', 'journal_entry_id'];
+    const allowedFields = ['status', 'mood'];
 
     const setClause = [];
     const values = [];
@@ -421,7 +417,6 @@ class PgHabitLogService {
         status,
         completion_count,
         mood,
-        note
       FROM habit_logs
       WHERE habit_id = $1 AND date_key >= $2 AND date_key <= $3
       ORDER BY date_key ASC
@@ -432,8 +427,7 @@ class PgHabitLogService {
       dateKey: row.date_key,
       status: row.status,
       completionCount: row.completion_count,
-      mood: row.mood,
-      note: row.note
+      mood: row.mood
     }));
   }
 
@@ -514,9 +508,7 @@ class PgHabitLogService {
       habitId: row.habit_id,
       dateKey: row.date_key,
       status: row.status,
-      note: row.note,
       mood: row.mood,
-      journalEntryId: row.journal_entry_id,
       completionCount: row.completion_count,
       completionTimes: row.completion_times,
       createdAt: row.created_at,

@@ -509,7 +509,6 @@ class PgLikeService {
       targetType: row.target_type,
       targetId: row.target_id,
       reactionType: row.reaction_type,
-      isActive: row.is_active,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
       // Optional joined user data

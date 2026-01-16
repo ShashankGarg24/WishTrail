@@ -8,15 +8,14 @@ class GoalService {
   /**
    * Create a new goal
    */
-  async createGoal({ userId, title, category, year, targetDate, isPublic = false, isDiscoverable = false }) {
+  async createGoal({ userId, title, category, year, targetDate, isPublic = false }) {
     const currentYear = year || new Date().getFullYear();
     
     const queryText = `
-      INSERT INTO goals (user_id, title, category, year, target_date, is_public, is_discoverable)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
-      RETURNING id, user_id, title, category, year, target_date, completed, completed_at,
-                is_public, is_discoverable, is_active, is_community_source,
-                like_count, created_at, updated_at
+      INSERT INTO goals (user_id, title, category, year, target_date, is_public)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING id, user_id, title, category, year, target_date, completed_at,
+                is_public, created_at, updated_at
     `;
     
     const result = await query(queryText, [
@@ -32,13 +31,12 @@ class GoalService {
   async getGoalById(id) {
     const queryText = `
       SELECT g.id, g.user_id, g.title, g.category, g.year, g.target_date,
-             g.completed, g.completed_at, g.is_public, g.is_discoverable,
-             g.is_active, g.is_community_source, g.like_count,
+             g.completed_at, g.is_public,
              g.created_at, g.updated_at,
              u.name as user_name, u.username, u.avatar_url as user_avatar
       FROM goals g
       INNER JOIN users u ON g.user_id = u.id
-      WHERE g.id = $1 AND g.is_active = true
+      WHERE g.id = $1
     `;
     
     const result = await query(queryText, [id]);
@@ -50,7 +48,7 @@ class GoalService {
    */
   async getUserGoals({ userId, year, category, completed, page = 1, limit = 10, sort = 'newest' }) {
     const offset = (page - 1) * limit;
-    const conditions = ['user_id = $1', 'is_active = true'];
+    const conditions = ['user_id = $1'];
     const values = [userId];
     let paramIndex = 2;
     
@@ -67,22 +65,24 @@ class GoalService {
     }
     
     if (completed !== undefined) {
-      conditions.push(`completed = $${paramIndex}`);
-      values.push(completed);
-      paramIndex++;
+      if(completed) {
+        conditions.push(`completed_at IS NOT NULL`);
+      } else {
+        conditions.push(`completed_at IS NULL`);
+      }
     }
     
-    let orderBy = 'completed ASC, updated_at DESC'; // In-progress first, then by update
+    let orderBy = 'completed_at ASC, updated_at DESC'; // In-progress first, then by update
     if (sort === 'oldest') {
-      orderBy = 'completed ASC, created_at ASC';
+      orderBy = 'completed_at ASC, created_at ASC';
     } else if (sort === 'newest') {
-      orderBy = 'completed ASC, created_at DESC';
+      orderBy = 'completed_at ASC, created_at DESC';
     }
     
     const queryText = `
-      SELECT id, user_id, title, category, year, target_date,
-             completed, completed_at, is_public, is_discoverable,
-             like_count, created_at, updated_at
+      SELECT id, user_id, title, category, year, target_date, 
+            completed_at, is_public,
+            created_at, updated_at
       FROM goals
       WHERE ${conditions.join(' AND ')}
       ORDER BY ${orderBy}
@@ -116,7 +116,7 @@ class GoalService {
    * Update goal
    */
   async updateGoal(id, userId, updates) {
-    const allowedFields = ['title', 'category', 'target_date', 'is_public', 'is_discoverable'];
+    const allowedFields = ['title', 'category', 'target_date', 'is_public'];
     const setClause = [];
     const values = [];
     let paramIndex = 1;
@@ -138,10 +138,9 @@ class GoalService {
     const queryText = `
       UPDATE goals
       SET ${setClause.join(', ')}, updated_at = CURRENT_TIMESTAMP
-      WHERE id = $${paramIndex} AND user_id = $${paramIndex + 1} AND is_active = true AND completed = false
+      WHERE id = $${paramIndex} AND user_id = $${paramIndex + 1} AND completed_at IS NULL
       RETURNING id, user_id, title, category, year, target_date,
-                completed, completed_at, is_public, is_discoverable,
-                like_count, created_at, updated_at
+                completed_at, is_public, created_at, updated_at
     `;
     
     const result = await query(queryText, values);
@@ -154,11 +153,10 @@ class GoalService {
   async completeGoal(id, userId) {
     const queryText = `
       UPDATE goals
-      SET completed = true, 
-          completed_at = CURRENT_TIMESTAMP,
+      SET completed_at = CURRENT_TIMESTAMP,
           updated_at = CURRENT_TIMESTAMP
-      WHERE id = $1 AND user_id = $2 AND completed = false AND is_active = true
-      RETURNING id, user_id, title, category, year, completed, completed_at, created_at, updated_at
+      WHERE id = $1 AND user_id = $2 AND completed_at IS NULL
+      RETURNING id, user_id, title, category, year, completed_at, created_at, updated_at
     `;
     
     const result = await query(queryText, [id, userId]);
@@ -170,8 +168,7 @@ class GoalService {
    */
   async deleteGoal(id, userId) {
     const queryText = `
-      UPDATE goals
-      SET is_active = false, updated_at = CURRENT_TIMESTAMP
+      DELETE FROM goals
       WHERE id = $1 AND user_id = $2
       RETURNING id
     `;
@@ -194,7 +191,6 @@ class GoalService {
    */
   async searchGoals({ query: searchQuery, category, page = 1, limit = 20, excludeUserIds = [] }) {
     const offset = (page - 1) * limit;
-    const conditions = ['is_discoverable = true', 'is_active = true', 'completed = true'];
     const values = [`%${searchQuery}%`, searchQuery];
     let paramIndex = 3;
     
@@ -212,19 +208,17 @@ class GoalService {
     
     const queryText = `
       SELECT g.id, g.user_id, g.title, g.category, g.year,
-             g.completed, g.completed_at, g.like_count,
+             g.completed_at,
              g.created_at,
              u.name as user_name, u.username, u.avatar_url as user_avatar
       FROM goals g
       INNER JOIN users u ON g.user_id = u.id
-      WHERE ${conditions.join(' AND ')}
-        AND (
+      WHERE (
           g.title ILIKE $1 OR
           to_tsvector('english', g.title) @@ plainto_tsquery('english', $2)
         )
-        AND u.is_active = true
         AND u.is_private = false
-      ORDER BY g.like_count DESC, g.completed_at DESC
+      ORDER BY g.completed_at DESC
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
     
@@ -249,11 +243,7 @@ class GoalService {
     cutoffDate.setDate(cutoffDate.getDate() - days);
     
     const conditions = [
-      'g.is_discoverable = true',
-      'g.is_active = true',
-      'g.completed = true',
       'g.completed_at > $1',
-      'u.is_active = true',
       'u.is_private = false'
     ];
     
@@ -268,14 +258,13 @@ class GoalService {
     
     const queryText = `
       SELECT g.id, g.user_id, g.title, g.category, g.year,
-             g.completed, g.completed_at, g.like_count,
-             g.created_at,
+             g.completed_at, g.created_at,
              u.name as user_name, u.username, u.avatar_url as user_avatar,
-             (g.like_count * 10 + EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - g.completed_at)) / 86400) as trend_score
+             (1 / (1 + EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - g.completed_at)) / 86400)) AS trend_score
       FROM goals g
       INNER JOIN users u ON g.user_id = u.id
       WHERE ${conditions.join(' AND ')}
-      ORDER BY trend_score DESC, g.like_count DESC
+      ORDER BY trend_score DESC, g.completed_at DESC
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
     
@@ -299,12 +288,12 @@ class GoalService {
       SELECT 
         year,
         COUNT(*) as total,
-        COUNT(*) FILTER (WHERE completed = true) as completed,
-        COUNT(*) FILTER (WHERE completed = false) as pending,
+        COUNT(*) FILTER (WHERE completed_at IS NOT NULL) as completed,
+        COUNT(*) FILTER (WHERE completed_at IS NULL) as pending,
         category,
-        COUNT(*) FILTER (WHERE completed = true) as completed_in_category
+        COUNT(*) FILTER (WHERE completed_at IS NOT NULL) as completed_in_category
       FROM goals
-      WHERE user_id = $1 AND year = $2 AND is_active = true
+      WHERE user_id = $1 AND year = $2 
       GROUP BY year, category
     `;
     
@@ -395,9 +384,9 @@ class GoalService {
     if (!ids || ids.length === 0) return [];
     
     const queryText = `
-      SELECT id, user_id, title, category, year, completed, completed_at, is_public, created_at
+      SELECT id, user_id, title, category, year, completed_at, is_public, created_at
       FROM goals
-      WHERE id = ANY($1) AND is_active = true
+      WHERE id = ANY($1)
     `;
     
     const result = await query(queryText, [ids]);
@@ -411,7 +400,7 @@ class GoalService {
     const queryText = `
       SELECT DISTINCT year
       FROM goals
-      WHERE user_id = $1 AND is_active = true
+      WHERE user_id = $1
       ORDER BY year DESC
     `;
     
@@ -439,8 +428,7 @@ class GoalService {
       FROM goals g
       INNER JOIN users u ON g.user_id = u.id
       WHERE g.category = $1
-        AND g.completed = true
-        AND u.is_active = true
+        AND g.completed_at IS NOT NULL = true
         ${startDate ? 'AND g.completed_at >= $4' : ''}
       GROUP BY u.id, u.name, u.username, u.avatar_url
       ORDER BY "goalCount" DESC
@@ -468,8 +456,7 @@ class GoalService {
       FROM goals g
       INNER JOIN users u ON g.user_id = u.id
       WHERE g.category = $1
-        AND g.completed = true
-        AND u.is_active = true
+        AND g.completed_at IS NOT NULL
         ${startDate ? 'AND g.completed_at >= $2' : ''}
     `;
     
@@ -546,8 +533,7 @@ class GoalService {
       SELECT COUNT(*) as count
       FROM goals
       WHERE user_id = $1 
-        AND completed = false 
-        AND is_active = true
+        AND completed_at IS NOT NULL
     `;
     const result = await query(queryText, [userId]);
     return parseInt(result.rows[0]?.count || 0);

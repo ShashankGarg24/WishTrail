@@ -3,7 +3,7 @@ import { Heart, MessageCircle, Flag, Shield, Users, ThumbsUp, AlertTriangle, Ban
 import { Link } from 'react-router-dom'
 
 const CommunityGuidelines = () => {
-  const lastUpdated = "December 25, 2025"
+  const lastUpdated = "January 1, 2026"
 
   const coreValues = [
     {

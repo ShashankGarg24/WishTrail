@@ -538,7 +538,6 @@ class GoalService {
 
     // Base conditions
     conditions.push(`g.is_public = true`);
-    conditions.push(`g.is_active = true`);
 
     // Category filter
     if (category) {
@@ -590,10 +589,8 @@ class GoalService {
         g.id,
         g.title,
         g.category,
-        g.completed,
         g.completed_at as "completedAt",
         g.target_date as "targetDate",
-        g.like_count as "likeCount",
         g.created_at as "createdAt",
         u.id as "userId",
         u.name as "userName",
@@ -602,7 +599,7 @@ class GoalService {
       FROM goals g
       INNER JOIN users u ON g.user_id = u.id
       ${whereClause}
-      ORDER BY g.completed DESC, g.completed_at DESC NULLS LAST, g.created_at DESC
+      ORDER BY g.completed_at DESC NULLS LAST, g.created_at DESC
       LIMIT ${parseInt(limit)} OFFSET ${offset}
     `;
 
@@ -616,10 +613,8 @@ class GoalService {
       id: row.id,
       title: row.title,
       category: row.category,
-      completed: row.completed,
       completedAt: row.completedAt,
       targetDate: row.targetDate,
-      likeCount: row.likeCount,
       createdAt: row.createdAt,
       user: {
         id: row.userId,
