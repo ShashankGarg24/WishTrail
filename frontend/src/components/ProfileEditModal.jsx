@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, User, Mail, MapPin, Globe, Youtube, Instagram, Camera, Save, ExternalLink, Heart, AlertCircle, Smile, Loader2 } from 'lucide-react'
+import toast from 'react-hot-toast'
 import useApiStore from '../store/apiStore'
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
 import { uploadAPI } from '../services/api'
@@ -173,12 +174,22 @@ const ProfileEditModal = ({ isOpen, onClose }) => {
   };
 
   const handleInterestToggle = (interestId) => {
-    setFormData(prev => ({
-      ...prev,
-      interests: prev.interests.includes(interestId)
-        ? prev.interests.filter(id => id !== interestId)
-        : [...prev.interests, interestId]
-    }));
+    setFormData(prev => {
+      const isSelected = prev.interests.includes(interestId);
+      
+      // If trying to add and already have 5, prevent addition
+      if (!isSelected && prev.interests.length >= 5) {
+        toast.error('Maximum 5 interests allowed');
+        return prev;
+      }
+      
+      return {
+        ...prev,
+        interests: isSelected
+          ? prev.interests.filter(id => id !== interestId)
+          : [...prev.interests, interestId]
+      };
+    });
   };
 
   const handleCancel = () => {
@@ -412,7 +423,7 @@ const ProfileEditModal = ({ isOpen, onClose }) => {
                   onChange={handleLocationInputChange}
                   autoComplete="off"
                   onFocus={() => setShowSuggestions(true)}
-                  onBlur={() => setTimeout(() => setShowSuggestions(false), 100)}
+                  onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                   className="w-full pl-9 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 text-sm"
                   placeholder="Enter your city"
                 />
@@ -504,8 +515,8 @@ const ProfileEditModal = ({ isOpen, onClose }) => {
                   </button>
                 ))}
               </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                Selected: {formData.interests.length} interests
+              <p className={`text-xs mt-2 ${formData.interests.length >= 5 ? 'text-orange-600 dark:text-orange-400 font-medium' : 'text-gray-500 dark:text-gray-400'}`}>
+                Selected: {formData.interests.length}/5 interests
               </p>
             </div>
 

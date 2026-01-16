@@ -169,7 +169,7 @@ class UserService {
    * Update user profile
    */
   async updateUser(id, updates) {
-    const allowedFields = ['name', 'username', 'bio', 'location', 'website', 'date_of_birth', 'gender', 'avatar_url', 'is_private', 'is_verified', 'profile_completed', 'google_id', 'timezone', 'locale'];
+    const allowedFields = ['name', 'username', 'bio', 'location', 'date_of_birth', 'gender', 'avatar_url', 'is_private', 'is_verified', 'profile_completed', 'google_id', 'timezone', 'locale'];
     const setClause = [];
     const values = [];
     let paramIndex = 1;

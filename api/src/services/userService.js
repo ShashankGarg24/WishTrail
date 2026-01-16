@@ -220,6 +220,7 @@ class UserService {
       areHabitsPrivate: prefs?.privacy?.areHabitsPrivate ?? true,
       interests: prefs?.interests || [],
       currentMood: prefs?.preferences?.currentMood || '',
+      website: prefs?.socialLinks?.website || '',
       youtube: prefs?.socialLinks?.youtube || '',
       instagram: prefs?.socialLinks?.instagram || '',
       premiumExpiresAt: user.premium_expires_at || null
@@ -431,9 +432,13 @@ class UserService {
     // Filter by interest using UserPreferences if specified
     let userIdsWithInterest = null;
     if (interest && String(interest).trim()) {
+      const interestToSearch = String(interest).trim();
+      
+      // Case-insensitive search using regex
       const prefs = await UserPreferences.find({
-        interests: String(interest).trim()
-      }).select('userId').lean();
+        interests: { $regex: new RegExp(`^${interestToSearch}$`, 'i') }
+      }).select('userId interests').lean();
+      
       userIdsWithInterest = prefs.map(p => p.userId);
       
       if (userIdsWithInterest.length === 0) {
@@ -489,6 +494,7 @@ class UserService {
     
     // Double-check: Filter out any blocked users that might have slipped through
     if (requestingUserId && excludeIds.length > 0) {
+      const beforeFilter = users.length;
       users = users.filter(u => !excludeIds.includes(u.id));
     }
     
@@ -500,7 +506,7 @@ class UserService {
         id: user.id,
         name: user.name,
         username: user.username,
-        avatar: user.avatar,
+        avatar: user.avatar_url || user.avatar,
         bio: user.bio,
         completedGoals: user.completed_goals,
         currentStreak: user.current_streak,
@@ -515,7 +521,7 @@ class UserService {
         id: user.id,
         name: user.name,
         username: user.username,
-        avatar: user.avatar,
+        avatar: user.avatar_url || user.avatar,
         bio: user.bio,
         completedGoals: user.completed_goals,
         currentStreak: user.current_streak,
@@ -523,8 +529,10 @@ class UserService {
         isPrivate: user.is_private,
         isBlocked: false // Blocked users are already filtered out
       }));
+      console.log('✨ Enriched users (no auth):', enrichedUsers.length);
     }
-
+    
+    console.log('📦 Returning:', enrichedUsers.length, 'users');
     return {
       users: enrichedUsers,
       pagination: {

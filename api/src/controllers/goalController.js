@@ -455,8 +455,9 @@ const createGoal = async (req, res, next) => {
         message: `Goal limit reached. ${req.isPremium ? 'Premium' : 'Free'} users can have ${goalLimits.maxActiveGoals} active goals.`,
         error: 'GOAL_LIMIT_REACHED',
         limit: goalLimits.maxActiveGoals,
-        current: activeGoalsCount,
-        upgradeUrl: '/premium/plans'
+        current: activeGoalsCount
+        // ,
+        // upgradeUrl: '/premium/plans'
       });
     }
 
@@ -468,8 +469,9 @@ const createGoal = async (req, res, next) => {
         message: `Subgoal limit reached. ${req.isPremium ? 'Premium' : 'Free'} users can have ${goalLimits.maxSubgoalsPerGoal} subgoals per goal.`,
         error: 'SUBGOAL_LIMIT_REACHED',
         limit: goalLimits.maxSubgoalsPerGoal,
-        current: subGoalsArray.length,
-        upgradeUrl: '/premium/plans'
+        current: subGoalsArray.length
+        // ,
+        // upgradeUrl: '/premium/plans'
       });
     }
 
@@ -625,7 +627,7 @@ const updateGoal = async (req, res, next) => {
     // } catch { }
 
     // Don't allow updating completed goals
-    if (goal.completed) {
+    if (goal.completedAt) {
       return res.status(400).json({
         success: false,
         message: 'Cannot update completed goals'
@@ -634,7 +636,6 @@ const updateGoal = async (req, res, next) => {
 
     const { title, description, category, targetDate, subGoals, habitLinks } = req.body;
     const isPublicFlag = (req.body.isPublic === true || req.body.isPublic === 'true') ? true : goal.is_public;
-    const isDiscoverableFlag = (req.body.isDiscoverable === true || req.body.isDiscoverable === 'true') ? true : goal.is_discoverable;
 
     // Update PostgreSQL fields
     const pgUpdates = {};
@@ -642,7 +643,6 @@ const updateGoal = async (req, res, next) => {
     if (category) pgUpdates.category = category;
     if (targetDate) pgUpdates.target_date = targetDate;
     pgUpdates.is_public = isPublicFlag;
-    pgUpdates.is_discoverable = isDiscoverableFlag;
 
     const updatedGoal = await pgGoalService.updateGoal(req.params.id, req.user.id, pgUpdates);
     if (!updatedGoal) {
@@ -660,7 +660,7 @@ const updateGoal = async (req, res, next) => {
             title: String(sg.title || '').trim(),
             linkedGoalId: sg.linkedGoalId || undefined,
             weight: Number(sg.weight || 0),
-            completed: sg.completed || false,
+            completed: sg.completedAt != null || false,
             completedAt: sg.completedAt || undefined,
             description: sg.description || ''
           }))

@@ -12,6 +12,7 @@ const pgGoalService = require('../services/pgGoalService');
 const pgHabitService = require('../services/pgHabitService');
 const JournalEntry = require('../models/JournalEntry');
 const Community = require('../models/Community');
+const { getDateKeyInTimezone } = require('./timezone');
 
 /**
  * Check if user can create a goal (premium limits)
@@ -84,27 +85,31 @@ async function validateHabitCreation(req, hasReminders = false) {
 async function validateJournalEntry(req) {
   const user = await pgUserService.findById(req.user.id);
   const limits = getFeatureLimits('journal', user.premium_expires_at);
+  const userTimezone = user.timezone || 'UTC';
   
-  // Get today's entry count
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
+  console.log('Journal limits for user', user.id, limits);
   
+  // Get today's date key in user's timezone (YYYY-MM-DD format)
+  const todayKey = getDateKeyInTimezone(new Date(), userTimezone);
+  
+  console.log('Counting journal entries for user', user.id, 'for dayKey', todayKey, 'in timezone', userTimezone);
+  
+  // Count entries by dayKey (which is already stored in user's timezone)
   const todayCount = await JournalEntry.countDocuments({
     userId: req.user.id,
-    createdAt: { $gte: today, $lt: tomorrow },
-    isDeleted: false
+    dayKey: todayKey
   });
+  
+  console.log('Today journal entries count for user', user.id, todayCount);
   
   // Check daily limit
   if (limits.maxEntriesPerDay !== -1 && todayCount >= limits.maxEntriesPerDay) {
     return {
       allowed: false,
       error: 'JOURNAL_LIMIT_REACHED',
-      message: `Daily journal limit reached. ${user.premium_expires_at ? 'Premium' : 'Free'} users can create ${limits.maxEntriesPerDay} ${limits.maxEntriesPerDay === 1 ? 'entry' : 'entries'} per day.`,
-      limit: limits.maxEntriesPerDay,
-      current: todayCount
+      // message: `Daily journal limit reached. ${user.premium_expires_at ? 'Premium' : 'Free'} users can create ${limits.maxEntriesPerDay} ${limits.maxEntriesPerDay === 1 ? 'entry' : 'entries'} per day.`,
+      // limit: limits.maxEntriesPerDay,
+      // current: todayCount
     };
   }
   
@@ -260,8 +265,9 @@ function handleValidationResponse(res, validation) {
       error: validation.error,
       limit: validation.limit,
       current: validation.current,
-      feature: validation.feature,
-      upgradeUrl: '/premium/plans'
+      feature: validation.feature
+      // ,
+      // upgradeUrl: '/premium/plans'
     });
   }
   return null; // No error, continue

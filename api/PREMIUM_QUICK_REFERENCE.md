@@ -77,8 +77,9 @@ const check = await validateFeatureAccess(user, 'goals', 'maxActiveGoals', 10);
 if (!check.allowed) {
   return res.status(403).json({
     success: false,
-    message: check.reason,
-    upgradeUrl: '/premium'
+    message: check.reason
+    // ,
+    // upgradeUrl: '/premium'
   });
 }
 ```

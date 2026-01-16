@@ -114,7 +114,6 @@ class GoalService {
       targetDate,
       year,
       isPublic = true,
-      isDiscoverable = false,
       tags = []
     } = goalData;
     
@@ -130,7 +129,6 @@ class GoalService {
       year,
       targetDate,
       isPublic,
-      isDiscoverable
     });
     
     // Create GoalDetails in MongoDB for extended data
@@ -178,11 +176,11 @@ class GoalService {
     }
     
     // Prevent updating completed goals
-    if (goal.completed) {
+    if (goal.completedAt) {
       throw new Error('Cannot update completed goals');
     }
     
-    const allowedUpdates = ['title', 'category', 'target_date', 'is_public', 'is_discoverable'];
+    const allowedUpdates = ['title', 'category', 'target_date', 'is_public'];
     const pgUpdates = {};
     const detailUpdates = {};
     
@@ -191,7 +189,6 @@ class GoalService {
       if (updateData[key] !== undefined) {
         if (key === 'targetDate') pgUpdates.target_date = updateData[key];
         else if (key === 'isPublic') pgUpdates.is_public = updateData[key];
-        else if (key === 'isDiscoverable') pgUpdates.is_discoverable = updateData[key];
         else if (allowedUpdates.includes(key)) pgUpdates[key] = updateData[key];
         else if (key === 'description' || key === 'tags') detailUpdates[key] = updateData[key];
       }

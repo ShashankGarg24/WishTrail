@@ -183,6 +183,7 @@ class AuthService {
     if (prefs) {
       userResponse.interests = prefs.interests || [];
       userResponse.currentMood = prefs.preferences?.currentMood || '';
+      userResponse.website = prefs.socialLinks?.website || '';
       userResponse.youtube = prefs.socialLinks?.youtube || '';
       userResponse.instagram = prefs.socialLinks?.instagram || '';
     }
@@ -194,15 +195,33 @@ class AuthService {
    * Update user profile
    */
   async updateProfile(userId, updateData) {
-    const pgAllowedUpdates = ['name', 'bio', 'location', 'dateOfBirth', 'avatar', 'website', 'username'];
-    const mongoAllowedUpdates = ['interests', 'currentMood', 'youtube', 'instagram'];
+    const pgAllowedUpdates = ['name', 'bio', 'location', 'dateOfBirth', 'avatar', 'username'];
+    const mongoAllowedUpdates = ['interests', 'currentMood', 'youtube', 'instagram', 'website'];
     const pgUpdates = {};
     const mongoUpdates = {};
+    
+    // Validate interests limit
+    if (updateData.interests !== undefined) {
+      if (!Array.isArray(updateData.interests)) {
+        throw new Error('Interests must be an array');
+      }
+      if (updateData.interests.length > 5) {
+        throw new Error('Maximum 5 interests allowed');
+      }
+    }
     
     // Validate mood emoji if provided
     if (updateData.currentMood !== undefined && updateData.currentMood !== '') {
       if (!ALLOWED_MOOD_EMOJIS.includes(updateData.currentMood)) {
         throw new Error('Invalid mood emoji. Please select from the allowed list.');
+      }
+    }
+    
+    // Validate website URL if provided
+    if (updateData.website && updateData.website.trim() !== '') {
+      const websitePattern = /^(https?:\/\/)?(www\.)?[a-zA-Z0-9-]+(\.[a-zA-Z]{2,})+/i;
+      if (!websitePattern.test(updateData.website)) {
+        throw new Error('Invalid website URL format');
       }
     }
     
@@ -281,6 +300,9 @@ class AuthService {
       if (mongoUpdates.currentMood !== undefined) {
         updateFields['preferences.currentMood'] = mongoUpdates.currentMood;
       }
+      if (mongoUpdates.website !== undefined) {
+        updateFields['socialLinks.website'] = mongoUpdates.website;
+      }
       if (mongoUpdates.youtube !== undefined) {
         updateFields['socialLinks.youtube'] = mongoUpdates.youtube;
       }
@@ -308,6 +330,7 @@ class AuthService {
     if (prefs) {
       userResponse.interests = prefs.interests || [];
       userResponse.currentMood = prefs.preferences?.currentMood || '';
+      userResponse.website = prefs.socialLinks?.website || '';
       userResponse.youtube = prefs.socialLinks?.youtube || '';
       userResponse.instagram = prefs.socialLinks?.instagram || '';
     }

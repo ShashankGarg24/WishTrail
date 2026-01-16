@@ -8,6 +8,7 @@ import { journalsAPI } from "../services/api";
 import { habitsAPI } from '../services/api';
 import ShareSheet from '../components/ShareSheet';
 import toast from 'react-hot-toast';
+import { getDateKeyInTimezone } from '../utils/timezoneUtils';
 const ProfileEditModal = lazy(() => import("../components/ProfileEditModal"));
 const ReportModal = lazy(() => import("../components/ReportModal"));
 const BlockModal = lazy(() => import("../components/BlockModal"));
@@ -131,6 +132,8 @@ const ProfilePage = () => {
 
     if (isOwnProfile) {
       fetchOwnProfile();
+      // Load journal entries to check if today's journal exists
+      getMyJournalEntries({ limit: 50 }).catch(() => {});
     } else {
       fetchUserProfile();
     }
@@ -283,11 +286,15 @@ const ProfilePage = () => {
 
   const hasTodayJournal = (() => {
     if (!isOwnProfile) return false;
-    const today = new Date(); today.setUTCHours(0, 0, 0, 0);
-    const todayKey = today.toISOString().split('T')[0];
+    
+    // Get today's date in user's timezone (YYYY-MM-DD format)
+    const todayKey = getDateKeyInTimezone(new Date());
+    
+    // Check if any journal entry has a dayKey matching today
     if (Array.isArray(journalEntries) && journalEntries.length > 0) {
-      return journalEntries.some(e => (e.dayKey || (new Date(e.createdAt).toISOString().split('T')[0])) === todayKey);
+      return journalEntries.some(e => e.dayKey === todayKey);
     }
+    
     return false;
   })();
 

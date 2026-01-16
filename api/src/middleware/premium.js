@@ -44,7 +44,7 @@ const requirePremium = (req, res, next) => {
         success: false,
         message: 'Premium subscription required',
         error: 'PREMIUM_REQUIRED',
-        upgradeUrl: '/premium/plans',
+        // upgradeUrl: '/premium/plans',
         premiumExpired: premiumExpiresAt ? new Date(premiumExpiresAt) < new Date() : false
       });
     }
@@ -104,8 +104,9 @@ const checkFeatureLimit = (featureCategory, action, getCurrentValue = null) => {
           action: action,
           limit: check.limit,
           currentValue: currentValue,
-          isPremium: isPremiumActive(premiumExpiresAt),
-          upgradeUrl: '/premium/plans'
+          isPremium: isPremiumActive(premiumExpiresAt)
+          // ,
+          // upgradeUrl: '/premium/plans'
         });
       }
 

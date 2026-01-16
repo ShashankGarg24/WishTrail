@@ -92,8 +92,9 @@ const createJournalEntry = async (req, res, next) => {
         message: validation.reason,
         error: 'FEATURE_LIMIT_REACHED',
         limit: validation.limit,
-        currentCount: todayEntries,
-        upgradeUrl: '/premium/plans'
+        currentCount: todayEntries
+        // ,
+        // upgradeUrl: '/premium/plans'
       });
     }
     
@@ -124,8 +125,9 @@ const uploadImage = async (req, res, next) => {
     if (!limits.canUploadVideos && req.file.mimetype.startsWith('video/')) {
       return res.status(403).json({
         success: false,
-        message: 'Video uploads require premium subscription',
-        upgradeUrl: '/premium/plans'
+        message: 'Video uploads require premium subscription'
+        // ,
+        // upgradeUrl: '/premium/plans'
       });
     }
     
@@ -133,8 +135,9 @@ const uploadImage = async (req, res, next) => {
     if (req.file.size > limits.maxFileUploadSizeMB * 1024 * 1024) {
       return res.status(413).json({
         success: false,
-        message: `File size exceeds limit of ${limits.maxFileUploadSizeMB}MB`,
-        upgradeUrl: '/premium/plans'
+        message: `File size exceeds limit of ${limits.maxFileUploadSizeMB}MB`
+        // ,
+        // upgradeUrl: '/premium/plans'
       });
     }
     
@@ -233,8 +236,9 @@ const createMultipleHabits = async (req, res, next) => {
         message: `You can only create ${maxAllowed} more habit(s)`,
         limit: limits.maxActiveHabits,
         current: currentCount,
-        requested: habits.length,
-        upgradeUrl: '/premium/plans'
+        requested: habits.length
+        // ,
+        // upgradeUrl: '/premium/plans'
       });
     }
     
@@ -264,8 +268,9 @@ const searchJournalEntries = async (req, res, next) => {
     if (!check.allowed) {
       return res.status(403).json({
         success: false,
-        message: 'Journal search is a premium feature',
-        upgradeUrl: '/premium/plans'
+        message: 'Journal search is a premium feature'
+        // ,
+        // upgradeUrl: '/premium/plans'
       });
     }
     
@@ -360,8 +365,9 @@ const createCommunity = async (req, res, next) => {
     if (!check.allowed) {
       return res.status(403).json({
         success: false,
-        message: 'Creating communities is a premium feature',
-        upgradeUrl: '/premium/plans'
+        message: 'Creating communities is a premium feature'
+        // ,
+        // upgradeUrl: '/premium/plans'
       });
     }
     

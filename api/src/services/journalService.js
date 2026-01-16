@@ -4,6 +4,8 @@ const Notification = require('../models/Notification');
 const { query } = require('../config/supabase');
 const axios = require('axios');
 const redis = require('../config/redis');
+const pgUserService = require('./pgUserService');
+const { getDateKeyInTimezone } = require('../utility/timezone');
 
 const PROMPTS = [
   { key: 'smile', text: 'What made you smile today?' },
@@ -103,9 +105,14 @@ Journal content: <<<${content}>>>`;
 }
 
 async function createEntry(userId, { content, promptKey, visibility = 'private', mood = 'neutral', tags = [] }) {
-  // Enforce 1 per day
-  const todayKey = new Date(); todayKey.setUTCHours(0, 0, 0, 0);
-  const dayKey = todayKey.toISOString().split('T')[0];
+  // Get user's timezone for proper day calculation
+  const user = await pgUserService.findById(userId);
+  const userTimezone = user?.timezone || 'UTC';
+  
+  // Calculate today's date key in user's timezone
+  const dayKey = getDateKeyInTimezone(new Date(), userTimezone);
+  
+  // Enforce 1 per day (check by dayKey in user's timezone)
   const existing = await JournalEntry.findOne({ userId, dayKey, isActive: true }).lean();
   if (existing) {
     const err = new Error('Daily journal already submitted. Come back tomorrow.');
@@ -157,7 +164,7 @@ async function createEntry(userId, { content, promptKey, visibility = 'private',
 }
 
 async function updateEntry(userId, entryId, { mood, visibility }) {
-  const entry = await JournalEntry.findOne({ _id: entryId, userId, isActive: true });
+  const entry = await JournalEntry.findOne({ _id: entryId, userId });
   if (!entry) {
     const err = new Error('Entry not found');
     err.statusCode = 404;
@@ -169,7 +176,7 @@ async function updateEntry(userId, entryId, { mood, visibility }) {
   return entry.toObject();
 }
 async function listMyEntries(userId, { limit = 20, skip = 0 } = {}) {
-  return JournalEntry.find({ userId, isActive: true })
+  return JournalEntry.find({ userId })
     .sort({ createdAt: -1 })
     .limit(limit)
     .skip(skip)
