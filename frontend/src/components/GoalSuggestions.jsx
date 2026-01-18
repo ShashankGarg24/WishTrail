@@ -677,7 +677,6 @@ const GoalSuggestions = ({ interests = [], onSelect, variant = 'inline', limit =
 
   useEffect(() => {
     regenerate()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(interests), limit])
 
   if (!forceExpanded && variant === 'inline' && !expanded) {

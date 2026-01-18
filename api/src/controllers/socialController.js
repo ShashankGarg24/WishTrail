@@ -76,8 +76,7 @@ const followUser = async (req, res, next) => {
         currentUser.avatar_url,
         'user_followed',
         {
-          targetUserId: parseInt(userId),
-          targetUserName: userToFollow.name
+          targetUserId: parseInt(userId)
         }
       );
     }

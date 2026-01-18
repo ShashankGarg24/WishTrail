@@ -92,16 +92,6 @@ const MotivationModal = ({ isOpen, onClose }) => {
               ))}
             </div>
 
-            {/* Close button */}
-            <motion.button
-              whileHover={{ scale: 1.1, rotate: 90 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={onClose}
-              className="absolute top-4 right-4 p-2 rounded-full bg-white/50 dark:bg-gray-700/50 text-gray-600 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-gray-700/80 transition-colors z-10"
-            >
-              <X className="h-5 w-5" />
-            </motion.button>
-
             {/* Main content */}
             <div className="relative z-10 flex flex-col items-center text-center space-y-6">
               {/* Icon animation */}

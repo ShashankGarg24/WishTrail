@@ -3,7 +3,7 @@
  * Handles all like/reaction operations for PostgreSQL
  */
 
-const { query, getClient, transaction } = require('../config/supabase');
+const { query, transaction } = require('../config/supabase');
 
 class PgLikeService {
   /**
@@ -40,25 +40,19 @@ class PgLikeService {
         const existing = existingResult.rows[0];
         
         // Toggle active status
-        const newStatus = !existing.is_active;
-        action = newStatus ? 'liked' : 'unliked';
-
         const updateSql = `
-          UPDATE likes
-          SET is_active = $1,
-              reaction_type = $2,
-              updated_at = CURRENT_TIMESTAMP
-          WHERE id = $3
+          DELETE FROM likes
+          WHERE id = $1
           RETURNING *
         `;
-        const updateResult = await client.query(updateSql, [newStatus, reactionType, existing.id]);
+        const updateResult = await client.query(updateSql, [ existing.id]);
         like = updateResult.rows[0];
       } else {
         // Create new like
         action = 'liked';
         const insertSql = `
-          INSERT INTO likes (user_id, target_type, target_id, reaction_type, is_active)
-          VALUES ($1, $2, $3, $4, true)
+          INSERT INTO likes (user_id, target_type, target_id, reaction_type)
+          VALUES ($1, $2, $3, $4)
           RETURNING *
         `;
         const insertResult = await client.query(insertSql, [userId, targetType, targetId, reactionType]);
@@ -94,30 +88,15 @@ class PgLikeService {
         WHERE user_id = $1 AND target_type = $2 AND target_id = $3
       `;
       const existingResult = await client.query(existingSql, [userId, targetType, targetId]);
-
       let like;
 
       if (existingResult.rows.length > 0) {
-        // Update to active if not active
-        if (!existingResult.rows[0].is_active) {
-          const updateSql = `
-            UPDATE likes
-            SET is_active = true,
-                reaction_type = $1,
-                updated_at = CURRENT_TIMESTAMP
-            WHERE id = $2
-            RETURNING *
-          `;
-          const updateResult = await client.query(updateSql, [reactionType, existingResult.rows[0].id]);
-          like = updateResult.rows[0];
-        } else {
-          like = existingResult.rows[0];
-        }
+        like = existingResult.rows[0];
       } else {
         // Create new like
         const insertSql = `
-          INSERT INTO likes (user_id, target_type, target_id, reaction_type, is_active)
-          VALUES ($1, $2, $3, $4, true)
+          INSERT INTO likes (user_id, target_type, target_id, reaction_type)
+          VALUES ($1, $2, $3, $4)
           RETURNING *
         `;
         const insertResult = await client.query(insertSql, [userId, targetType, targetId, reactionType]);
@@ -135,18 +114,44 @@ class PgLikeService {
    * @param {number} targetId - Target ID
    * @returns {Promise<boolean>} Success status
    */
-  async unlikeTarget(userId, targetType, targetId) {
+  async unlikeTarget(likeData) {
+    const {
+      userId,
+      targetType,
+      targetId,
+    } = likeData;
+
     return await transaction(async (client) => {
       const sql = `
-        UPDATE likes
-        SET is_active = false, updated_at = CURRENT_TIMESTAMP
-        WHERE user_id = $1 AND target_type = $2 AND target_id = $3 AND is_active = true
-        RETURNING id
+        DELETE FROM likes
+        WHERE user_id = $1 AND target_type = $2 AND target_id = $3
       `;
 
       const result = await client.query(sql, [userId, targetType, targetId]);
       return result.rowCount > 0;
     });
+  }
+  
+  /**
+   * Simple like method (wrapper for likeTarget)
+   * @param {number} userId - User ID
+   * @param {string} targetType - Target type
+   * @param {string|number} targetId - Target ID
+   * @returns {Promise<Object>} Like object
+   */
+  async like(userId, targetType, targetId) {
+    return this.likeTarget({ userId, targetType, targetId });
+  }
+  
+  /**
+   * Simple unlike method (wrapper for unlikeTarget)
+   * @param {number} userId - User ID
+   * @param {string} targetType - Target type
+   * @param {string|number} targetId - Target ID
+   * @returns {Promise<boolean>} Success status
+   */
+  async unlike(userId, targetType, targetId) {
+    return this.unlikeTarget({userId, targetType, targetId});
   }
 
   /**
@@ -160,7 +165,7 @@ class PgLikeService {
     const sql = `
       SELECT EXISTS(
         SELECT 1 FROM likes
-        WHERE user_id = $1 AND target_type = $2 AND target_id = $3 AND is_active = true
+        WHERE user_id = $1 AND target_type = $2 AND target_id = $3
       ) as has_liked
     `;
 
@@ -193,7 +198,7 @@ class PgLikeService {
   async getLikesForTarget({
     targetType,
     targetId,
-    reactionType = null,
+    reactionType = 'like',
     includeUser = true,
     limit = 50,
     offset = 0
@@ -202,7 +207,7 @@ class PgLikeService {
       SELECT l.*, u.username, u.name as user_name, u.avatar_url, u.bio
       FROM likes l
       INNER JOIN users u ON l.user_id = u.id
-      WHERE l.target_type = $1 AND l.target_id = $2 AND l.is_active = true
+      WHERE l.target_type = $1 AND l.target_id = $2
     `;
 
     const values = [targetType, targetId];
@@ -247,7 +252,7 @@ class PgLikeService {
     let sql = `
       SELECT l.*
       FROM likes l
-      WHERE l.user_id = $1 AND l.is_active = true
+      WHERE l.user_id = $1
     `;
 
     const values = [userId];
@@ -272,11 +277,11 @@ class PgLikeService {
    * @param {string} reactionType - Optional reaction type filter
    * @returns {Promise<number>} Like count
    */
-  async getLikeCount(targetType, targetId, reactionType = null) {
+  async getLikeCount(targetId, targetType, reactionType = 'like') {
     let sql = `
       SELECT COUNT(*) as count
       FROM likes
-      WHERE target_type = $1 AND target_id = $2 AND is_active = true
+      WHERE target_type = $1 AND target_id = $2
     `;
 
     const values = [targetType, targetId];
@@ -287,6 +292,8 @@ class PgLikeService {
     }
 
     const result = await query(sql, values);
+    console.log(result.rows);
+    console.log(values)
     return parseInt(result.rows[0].count);
   }
 
@@ -300,7 +307,7 @@ class PgLikeService {
     const sql = `
       SELECT reaction_type, COUNT(*) as count
       FROM likes
-      WHERE target_type = $1 AND target_id = $2 AND is_active = true
+      WHERE target_type = $1 AND target_id = $2
       GROUP BY reaction_type
     `;
 
@@ -337,7 +344,7 @@ class PgLikeService {
     const sql = `
       SELECT target_id, true as has_liked
       FROM likes
-      WHERE user_id = $1 AND target_type = $2 AND target_id = ANY($3) AND is_active = true
+      WHERE user_id = $1 AND target_type = $2 AND target_id = ANY($3)
     `;
 
     const result = await query(sql, [userId, targetType, targetIds]);
@@ -362,7 +369,7 @@ class PgLikeService {
              l.reaction_type, l.created_at as liked_at
       FROM likes l
       INNER JOIN users u ON l.user_id = u.id
-      WHERE l.target_type = $1 AND l.target_id = $2 AND l.is_active = true
+      WHERE l.target_type = $1 AND l.target_id = $2
       ORDER BY l.created_at DESC
       LIMIT $3 OFFSET $4
     `;
@@ -422,7 +429,7 @@ class PgLikeService {
     const sql = `
       SELECT COUNT(*) as count
       FROM likes
-      WHERE user_id = $1 AND is_active = true
+      WHERE user_id = $1
     `;
 
     const result = await query(sql, [userId]);
@@ -441,7 +448,6 @@ class PgLikeService {
       INNER JOIN goals g ON l.target_id = g.id
       WHERE l.target_type = 'goal' 
         AND g.user_id = $1 
-        AND l.is_active = true
     `;
 
     const result = await query(sql, [userId]);
@@ -459,7 +465,6 @@ class PgLikeService {
       SELECT target_id, COUNT(*) as like_count
       FROM likes
       WHERE target_type = $1 
-        AND is_active = true
         AND created_at >= CURRENT_TIMESTAMP - INTERVAL '${days} days'
       GROUP BY target_id
       ORDER BY like_count DESC
@@ -486,7 +491,7 @@ class PgLikeService {
       SELECT l.*, u.username, u.name as user_name, u.avatar_url
       FROM likes l
       INNER JOIN users u ON l.user_id = u.id
-      WHERE l.user_id = ANY($1) AND l.is_active = true
+      WHERE l.user_id = ANY($1)
       ORDER BY l.created_at DESC
       LIMIT $2 OFFSET $3
     `;

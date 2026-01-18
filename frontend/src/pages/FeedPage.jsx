@@ -542,7 +542,7 @@ const FeedPage = () => {
                           <div className="flex items-start justify-between gap-3 mb-3">
                             <div className="flex-1">
                               <h4 className="font-semibold text-gray-900 dark:text-white text-base group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
-                                {activity.data?.goalTitle || 'Goal Achievement'}
+                                {activity.data?.goal?.title || 'Goal Achievement'}
                               </h4>
                               {/* Show sub-goal name for specific events */}
                               {(activity.type === 'subgoal_added' || activity.type === 'subgoal_completed') && 

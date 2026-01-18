@@ -19,7 +19,7 @@ class GoalService {
     `;
     
     const result = await query(queryText, [
-      userId, title, category, currentYear, targetDate, isPublic, isDiscoverable
+      userId, title, category, currentYear, targetDate, isPublic
     ]);
     
     return result.rows[0];

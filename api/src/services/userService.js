@@ -566,16 +566,93 @@ class UserService {
       throw new Error('Access denied');
     }
     
-    // Activities are still in MongoDB
+    // Activities are still in MongoDB - fetch with lean()
     const activities = await Activity.find({ userId })
       .sort({ createdAt: -1 })
       .limit(limit * 1)
-      .skip((page - 1) * limit);
+      .skip((page - 1) * limit)
+      .lean();
     
     const total = await Activity.countDocuments({ userId });
     
+    // Enrich activities with PostgreSQL data and achievements
+    const goalIds = [...new Set(activities.map(a => a.data?.goalId).filter(Boolean))];
+    const userIds = [...new Set(activities.map(a => a.data?.targetUserId).filter(Boolean))];
+    const achievementIds = [...new Set(activities.map(a => a.data?.achievementId).filter(Boolean))];
+    
+    const Achievement = require('../models/Achievement');
+    const [goals, users, achievements] = await Promise.all([
+      goalIds.length > 0 ? pgGoalService.getGoalsByIds(goalIds) : Promise.resolve([]),
+      userIds.length > 0 ? pgUserService.getUsersByIds(userIds) : Promise.resolve([]),
+      achievementIds.length > 0 ? Achievement.find({ _id: { $in: achievementIds } }).select('name description icon').lean() : Promise.resolve([])
+    ]);
+    
+    const goalMap = new Map(goals.map(g => [g.id, g]));
+    const userMap = new Map(users.map(u => [u.id, u]));
+    const achievementMap = new Map(achievements.map(a => [a._id.toString(), a]));
+    
+    const enrichedActivities = activities.map(activity => {
+      const enriched = { ...activity };
+      if (activity.data?.goalId) {
+        const goal = goalMap.get(activity.data.goalId);
+        if (goal) {
+          // Create nested goal object for backward compatibility
+          enriched.data = {
+            ...enriched.data,
+            goal: {
+              id: goal.id,
+              title: goal.title,
+              category: goal.category,
+              completed: goal.completed,
+              completed_at: goal.completed_at
+            },
+            // Also keep flat fields for compatibility
+            goalTitle: goal.title,
+            goalCategory: goal.category
+          };
+        }
+      }
+      if (activity.data?.targetUserId) {
+        const targetUser = userMap.get(activity.data.targetUserId);
+        if (targetUser) {
+          // Create nested user object for backward compatibility
+          enriched.data = {
+            ...enriched.data,
+            targetUser: {
+              id: targetUser.id,
+              name: targetUser.name,
+              username: targetUser.username,
+              avatar_url: targetUser.avatar_url
+            },
+            // Also keep flat fields for compatibility
+            targetUserName: targetUser.name
+          };
+        }
+      }
+      if (activity.data?.achievementId) {
+        const achievement = achievementMap.get(activity.data.achievementId.toString());
+        if (achievement) {
+          // Create nested achievement object for backward compatibility
+          enriched.data = {
+            ...enriched.data,
+            achievement: {
+              _id: achievement._id,
+              name: achievement.name,
+              description: achievement.description,
+              icon: achievement.icon
+            },
+            // Also keep flat fields for compatibility
+            achievementName: achievement.name,
+            achievementDescription: achievement.description,
+            achievementIcon: achievement.icon
+          };
+        }
+      }
+      return enriched;
+    });
+    
     return {
-      activities,
+      activities: enrichedActivities,
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
@@ -646,8 +723,7 @@ class UserService {
           user.avatar,
           'streak_milestone',
           {
-            streakCount: newStreak,
-            milestone: `${newStreak} days`
+            streakCount: newStreak
           }
         );
       }

@@ -170,8 +170,7 @@ userAchievementSchema.statics.awardAchievement = async function(userId, achievem
       currentUser.avatar,
       'achievement_earned',
       {
-        achievementId,
-        achievementName: achievement.name
+        achievementId
       }
     );
     

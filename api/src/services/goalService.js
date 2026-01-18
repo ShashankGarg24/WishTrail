@@ -150,9 +150,7 @@ class GoalService {
       currentUser.avatar_url,
       'goal_created',
       {
-        goalId: goal.id,
-        goalTitle: title,
-        goalCategory: category
+        goalId: goal.id
       },
       { isPublic: goal.is_public }
     );
@@ -305,14 +303,7 @@ class GoalService {
       user.avatar_url,
       'goal_completed',
       {
-        goalId: completedGoal.id,
-        goalTitle: completedGoal.title,
-        goalCategory: completedGoal.category,
-        completionNote,
-        metadata: {
-          completionNote: completionNote || '',
-          completionAttachmentUrl: completionProof || ''
-        }
+        goalId: completedGoal.id
       },
       { isPublic: completedGoal.is_public }
     );

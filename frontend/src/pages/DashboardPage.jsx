@@ -902,11 +902,11 @@ const DashboardPage = () => {
               <button onClick={() => setIsCreateModalOpen(true)} className="btn-primary justify-center md:justify-start !px-3 !py-1 md:!px-6 md:!py-3 !text-sm md:!text-base">
                 <Plus className="h-9 w-4 md:h-5 md:w-5 mr-1 md:mr-2" />Add Goal
               </button>
-              {dashboardStats && dashboardStats.totalGoals > 0 && (
+              {
                 <button onClick={() => setIsSuggestionsOpen(true)} className="btn-primary justify-center md:justify-start !px-3 !py-1 md:!px-6 md:!py-3 !text-sm md:!text-base">
                   <Lightbulb className="h-9 w-4 md:h-5 md:w-5 mr-1 md:mr-2" />Discover Goals
                 </button>
-              )}
+              }
             </div>
 
             {/* Goals List */}

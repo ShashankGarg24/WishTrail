@@ -234,8 +234,6 @@ CREATE TABLE IF NOT EXISTS follows (
   follower_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   following_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   status VARCHAR(20) DEFAULT 'accepted' CHECK (status IN ('pending', 'accepted', 'rejected', 'blocked')),
-  is_active BOOLEAN DEFAULT true,
-  notifications_enabled BOOLEAN DEFAULT true,
   followed_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
   
@@ -245,10 +243,9 @@ CREATE TABLE IF NOT EXISTS follows (
 );
 
 -- Indexes for follows
-CREATE INDEX idx_follows_follower ON follows(follower_id, is_active);
-CREATE INDEX idx_follows_following ON follows(following_id, is_active);
+CREATE INDEX idx_follows_follower ON follows(follower_id);
+CREATE INDEX idx_follows_following ON follows(following_id);
 CREATE INDEX idx_follows_status ON follows(status);
-CREATE INDEX idx_follows_active ON follows(is_active) WHERE is_active = true;
 
 -- ============================================
 -- LIKES TABLE
@@ -301,20 +298,20 @@ CREATE INDEX idx_blocks_active ON blocks(is_active) WHERE is_active = true;
 CREATE OR REPLACE FUNCTION update_follow_counts()
 RETURNS TRIGGER AS $$
 BEGIN
-  IF (TG_OP = 'INSERT' AND NEW.status = 'accepted' AND NEW.is_active = true) THEN
+  IF (TG_OP = 'INSERT' AND NEW.status = 'accepted') THEN
     -- Increment counts
     UPDATE users SET following_count = following_count + 1 WHERE id = NEW.follower_id;
     UPDATE users SET followers_count = followers_count + 1 WHERE id = NEW.following_id;
   ELSIF (TG_OP = 'UPDATE') THEN
-    -- Handle status or active changes
-    IF (OLD.status != 'accepted' OR OLD.is_active = false) AND (NEW.status = 'accepted' AND NEW.is_active = true) THEN
+    -- Handle status changes
+    IF (OLD.status != 'accepted') AND (NEW.status = 'accepted') THEN
       UPDATE users SET following_count = following_count + 1 WHERE id = NEW.follower_id;
       UPDATE users SET followers_count = followers_count + 1 WHERE id = NEW.following_id;
-    ELSIF (OLD.status = 'accepted' AND OLD.is_active = true) AND (NEW.status != 'accepted' OR NEW.is_active = false) THEN
+    ELSIF (OLD.status = 'accepted') AND (NEW.status != 'accepted') THEN
       UPDATE users SET following_count = GREATEST(0, following_count - 1) WHERE id = NEW.follower_id;
       UPDATE users SET followers_count = GREATEST(0, followers_count - 1) WHERE id = NEW.following_id;
     END IF;
-  ELSIF (TG_OP = 'DELETE' AND OLD.status = 'accepted' AND OLD.is_active = true) THEN
+  ELSIF (TG_OP = 'DELETE' AND OLD.status = 'accepted') THEN
     -- Decrement counts
     UPDATE users SET following_count = GREATEST(0, following_count - 1) WHERE id = OLD.follower_id;
     UPDATE users SET followers_count = GREATEST(0, followers_count - 1) WHERE id = OLD.following_id;

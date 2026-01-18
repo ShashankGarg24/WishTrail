@@ -29,7 +29,7 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
   const [isDeleting, setIsDeleting] = useState(false)
 
   const handleToggle = () => {
-    if (wish.completed) {
+    if (wish.completedAt) {
       // Completed goals cannot be uncompleted
       return;
     } else {
@@ -100,12 +100,12 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
     if (!wish.targetDate) return false
     const today = new Date()
     const target = new Date(wish.targetDate)
-    return target < today && !wish.completed
+    return target < today && !wish.completedAt
   }
 
   const canComplete = () => {
     // Check if goal is completed
-    return !wish.completed
+    return !wish.completedAt
   }
 
   const progressPercent = typeof wish?.progress?.percent === 'number' ? Math.max(0, Math.min(100, wish.progress.percent)) : null
@@ -119,25 +119,25 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
       transition={{ duration: 0.5, delay: index * 0.1 }}
       onClick={() => { if (!isDivisionOpen && !isReadOnly) onOpenAnalytics?.(wish?.id) }}
       className={`glass-card-hover p-4 rounded-lg theme-transition ${onOpenAnalytics ? 'cursor-pointer' : ''} ${
-        wish.completed ? 'bg-green-50/50 dark:bg-green-900/10' : ''
+        wish.completedAt ? 'bg-green-50/50 dark:bg-green-900/10' : ''
       } ${isOverdue() ? 'ring-2 ring-2-red-200 dark:ring-red-800' : ''}`}
     >
       {/* Header */}
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center space-x-2">
           <button
-            onClick={(e) => { e.stopPropagation(); if (isReadOnly || wish.completed) return; handleToggle(); }}
+            onClick={(e) => { e.stopPropagation(); if (isReadOnly || wish.completedAt) return; handleToggle(); }}
             className={`flex-shrink-0 transition-colors ${
               isReadOnly ? 'cursor-not-allowed' : ''
             }`}
-            disabled={loading || isReadOnly || wish.completed}
+            disabled={loading || isReadOnly || wish.completedAt}
             title={
-              wish.completed 
+              wish.completedAt
                   ? 'Goal completed permanently' 
                   : 'Mark as complete'
             }
           >
-            {wish.completed ? (
+            {wish.completedAt ? (
               <CheckCircle className="h-5 w-5 text-green-500" />
             ) : (
               <Circle className="h-5 w-5 text-gray-400 hover:text-primary-500" />
@@ -145,7 +145,7 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
           </button>
           <div className="flex-1 min-w-0">
             <h3 className={`font-semibold text-base line-clamp-2 break-anywhere ${
-              wish.completed 
+              wish.completedAt 
                 ? 'text-gray-500 dark:text-gray-400 line-through' 
                 : 'text-gray-900 dark:text-white'
             }`}>
@@ -158,7 +158,7 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
         {isViewingOwnGoals && (
         <div className="flex items-center gap-1 ml-2">
           {/* Only show edit button for uncompleted goals (not for community goals) */}
-          {!wish.completed && !isCommunityMirror && (
+          {!wish.completedAt && !isCommunityMirror && (
             <button
               onClick={(e) => { e.stopPropagation(); handleEdit(); }}
               className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
@@ -168,7 +168,7 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
             </button>
           )}
           {/* Removed wrench button; flow uses edit wizard */}
-          {isViewingOwnGoals && wish.completed && (
+          {isViewingOwnGoals && wish.completedAt && (
             <button
               onClick={(e) => { e.stopPropagation(); handleShare(); }}
               className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
@@ -190,7 +190,7 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
 
       {/* Description */}
       <p className={`text-xs mb-3 line-clamp-4 break-anywhere ${
-        wish.completed 
+        wish.completedAt
           ? 'text-gray-400 dark:text-gray-500' 
           : 'text-gray-600 dark:text-gray-300'
       }`}>
@@ -198,7 +198,7 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
       </p>
 
       {/* Inline compact progress bar (incomplete goals) */}
-      {!wish.completed && hasDivision && progressPercent !== null && (
+      {!wish.completedAt && hasDivision && progressPercent !== null && (
         <div className="mb-3">
           <div className="flex items-center justify-between text-[10px] text-gray-600 dark:text-gray-400 mb-1">
             <span>Progress</span>
@@ -247,7 +247,7 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
       </div>
 
       {/* Completion state */}
-      {wish.completed && (
+      {wish.completedAt && (
         <div className="mt-3 p-2.5 bg-green-100 dark:bg-green-900/20 rounded-lg">
           <div className="flex items-center justify-between mb-1.5">
             <div className="flex items-center space-x-1.5">

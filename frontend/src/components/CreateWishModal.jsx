@@ -85,10 +85,7 @@ const CreateWishModal = ({ isOpen, onClose, onSave, year, initialData }) => {
     if (formData.title.trim().length > MAX_TITLE_CHARS) {
       newErrors.title = `Title cannot exceed ${MAX_TITLE_CHARS} characters`
     }
-    
-    if (!formData.description.trim()) {
-      newErrors.description = 'Description is required'
-    }
+  
     if (formData.description.trim().length > MAX_DESC_CHARS) {
       newErrors.description = `Description cannot exceed ${MAX_DESC_CHARS} characters`
     }
@@ -230,7 +227,7 @@ const CreateWishModal = ({ isOpen, onClose, onSave, year, initialData }) => {
           {/* Description */}
           <div>
             <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Description <span className="text-red-500">*</span>
+              Description
             </label>
             <textarea
               id="description"

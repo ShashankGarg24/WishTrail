@@ -67,8 +67,7 @@ class PgBlockService {
   async unblockUser(blockerId, blockedId) {
     const sql = `
       DELETE FROM blocks
-      WHERE blocker_id = $1 AND blocked_id = $2
-      RETURNING id
+      WHERE blocker_id = $1 AND blocked_id = $2;
     `;
 
     const result = await query(sql, [blockerId, blockedId]);

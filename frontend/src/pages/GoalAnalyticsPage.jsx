@@ -64,7 +64,7 @@ const GoalAnalyticsPage = () => {
   }, [goalId, isAuthenticated, getGoalAnalytics, navigate])
 
   const handleCompleteGoal = async (completionPayload /* FormData */) => {
-    if (!goalData?.goal || goalData.goal.completed) return
+    if (!goalData?.goal || goalData.goal.completedAt) return
     
     // Instantly update the UI to show completed state
     setGoalData(prev => ({
@@ -127,7 +127,7 @@ const GoalAnalyticsPage = () => {
     // Progress
     const progressPercent = goal.progress?.percent || 0
     const subGoalsTotal = goal.subGoals?.length || 0
-    const subGoalsCompleted = goal.subGoals?.filter(sg => sg.completed)?.length || 0
+    const subGoalsCompleted = goal.subGoals?.filter(sg => sg.completedAt)?.length || 0
     const habitLinksTotal = goal.habitLinks?.length || 0
     
     // Engagement - use the new structure
@@ -149,7 +149,7 @@ const GoalAnalyticsPage = () => {
     // Sub-goal completions
     if (goal.subGoals && goal.subGoals.length > 0) {
       goal.subGoals.forEach(sg => {
-        if (sg.completed && sg.completedAt) {
+        if (sg.completedAt) {
           timelineEvents.push({
             date: new Date(sg.completedAt),
             title: 'Sub-goal Completed',
@@ -185,8 +185,8 @@ const GoalAnalyticsPage = () => {
       totalLikes,
       totalComments,
       totalTimelineEvents: timelineEvents.length,
-      isCompleted: goal.completed,
-      isOverdue: targetDate && targetDate < now && !goal.completed,
+      isCompleted: goal.completedAt,
+      isOverdue: targetDate && targetDate < now && !goal.completedAt,
       targetDate,
       createdDate,
       completedDate,
@@ -515,13 +515,13 @@ const GoalAnalyticsPage = () => {
                     }
                   }}
                   className={`p-3 rounded-lg border cursor-pointer transition-all hover:shadow-md hover:scale-[1.01] ${
-                    subGoal.completed
+                    subGoal.completedAt
                       ? 'bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800 hover:border-green-300 dark:hover:border-green-700'
                       : 'bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 hover:border-primary-300 dark:hover:border-primary-700'
                   }`}
                 >
                   <div className="flex items-start gap-2">
-                    {subGoal.completed ? (
+                    {subGoal.completedAt ? (
                       <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" />
                     ) : (
                       <div className="h-4 w-4 rounded-full border-2 border-gray-300 dark:border-gray-600 flex-shrink-0 mt-0.5" />
@@ -529,7 +529,7 @@ const GoalAnalyticsPage = () => {
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
                         <h3 className={`text-sm font-medium ${
-                          subGoal.completed
+                          subGoal.completedAt
                             ? 'text-gray-700 dark:text-gray-300 line-through'
                             : 'text-gray-900 dark:text-white'
                         }`}>
@@ -555,7 +555,7 @@ const GoalAnalyticsPage = () => {
                           Weight: {subGoal.weight}%
                         </p>
                       )}
-                      {subGoal.completed && subGoal.completedAt && (
+                      {subGoal.completedAt && (
                         <p className="text-xs text-green-600 dark:text-green-400 mt-1">
                           Completed on {new Date(subGoal.completedAt).toLocaleDateString('en-US', {
                             month: 'short',

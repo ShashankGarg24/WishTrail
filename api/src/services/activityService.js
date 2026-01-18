@@ -2,9 +2,104 @@ const Activity = require('../models/Activity');
 const pgFollowService = require('../services/pgFollowService');
 const pgLikeService = require('../services/pgLikeService');
 const pgBlockService = require('../services/pgBlockService');
+const pgGoalService = require('../services/pgGoalService');
+const pgUserService = require('../services/pgUserService');
 const ActivityComment = require('../models/ActivityComment');
 
 class ActivityService {
+  /**
+   * Enrich activities with goal and user data from PostgreSQL
+   */
+  async enrichWithPostgresData(activities) {
+    const activityArray = Array.isArray(activities) ? activities : [activities];
+    
+    // Collect unique goal, user, and achievement IDs
+    const goalIds = new Set();
+    const userIds = new Set();
+    const achievementIds = new Set();
+    
+    activityArray.forEach(activity => {
+      if (activity.data?.goalId) goalIds.add(activity.data.goalId);
+      if (activity.data?.targetUserId) userIds.add(activity.data.targetUserId);
+      if (activity.data?.achievementId) achievementIds.add(activity.data.achievementId.toString());
+      if (activity.userId) userIds.add(activity.userId);
+    });
+    
+    // Fetch data in parallel
+    const Achievement = require('../models/Achievement');
+    const [goals, users, achievements] = await Promise.all([
+      goalIds.size > 0 ? pgGoalService.getGoalsByIds(Array.from(goalIds)) : [],
+      userIds.size > 0 ? pgUserService.getUsersByIds(Array.from(userIds)) : [],
+      achievementIds.size > 0 ? Achievement.find({ _id: { $in: Array.from(achievementIds) } }).select('name description icon').lean() : []
+    ]);
+    
+    // Create lookup maps
+    const goalMap = new Map(goals.map(g => [g.id, g]));
+    const userMap = new Map(users.map(u => [u.id, u]));
+    const achievementMap = new Map(achievements.map(a => [a._id.toString(), a]));
+    
+    // Enrich activities
+    const enriched = activityArray.map(activity => {
+      const enrichedActivity = { ...activity };
+      if (activity.data?.goalId) {
+        const goal = goalMap.get(activity.data.goalId.toString());
+        if (goal) {
+          // Create nested goal object for backward compatibility
+          enrichedActivity.data = {
+            ...enrichedActivity.data,
+            goalTitle: goal.title,
+            goalCategory: goal.category,
+            isCompleted: goal.completed,
+            completedAt: goal.completed_at
+          };
+        }
+      }
+      
+      if (activity.data?.targetUserId) {
+        const user = userMap.get(activity.data.targetUserId);
+        if (user) {
+          // Create nested user object for backward compatibility
+          enrichedActivity.data = {
+            ...enrichedActivity.data,
+            targetUser: {
+              id: user.id,
+              name: user.name,
+              username: user.username,
+              avatar_url: user.avatar_url
+            },
+            // Also keep flat fields for compatibility
+            targetUserName: user.name,
+            targetUserAvatar: user.avatar_url
+          };
+        }
+      }
+      
+      if (activity.data?.achievementId) {
+        const achievement = achievementMap.get(activity.data.achievementId.toString());
+        if (achievement) {
+          // Create nested achievement object for backward compatibility
+          enrichedActivity.data = {
+            ...enrichedActivity.data,
+            achievement: {
+              _id: achievement._id,
+              name: achievement.name,
+              description: achievement.description,
+              icon: achievement.icon
+            },
+            // Also keep flat fields for compatibility
+            achievementName: achievement.name,
+            achievementDescription: achievement.description,
+            achievementIcon: achievement.icon
+          };
+        }
+      }
+      
+      return enrichedActivity;
+    });
+    
+    return Array.isArray(activities) ? enriched : enriched[0];
+  }
+
   /**
    * Get activity feed from followed users
    */
@@ -38,7 +133,6 @@ class ActivityService {
     }
   
     const query = {
-      isActive: true,
       isPublic: true,
       $or: [
         { 
@@ -65,13 +159,13 @@ class ActivityService {
         .sort({ createdAt: -1 })
         .limit(limit)
         .skip((page - 1) * limit)
-        .populate('data.goalId', 'title category')
-        .populate('data.targetUserId', 'name username avatar')
         .lean(),
       Activity.countDocuments(query)
     ]);
   
-    const enriched = await this.enrichWithLikes(list, userId);
+    // Enrich with PostgreSQL data and likes
+    const enrichedWithPg = await this.enrichWithPostgresData(list);
+    const enriched = await this.enrichWithLikes(enrichedWithPg, userId);
     const normalized = enriched.map(shape);
   
     return {
@@ -121,14 +215,15 @@ class ActivityService {
         .sort({ createdAt: -1 })
         .limit(limit)
         .skip((page - 1) * limit)
-        .populate('data.goalId', 'title category')
-        .populate('data.targetUserId', 'name username avatar')
         .lean(),
       Activity.countDocuments(query)
     ]);
     
+    // Enrich with PostgreSQL data first
+    const enrichedWithPg = await this.enrichWithPostgresData(list);
+    
     const enriched = await Promise.all(
-      list.map(async (activity) => {
+      enrichedWithPg.map(async (activity) => {
         const isLiked = userId ? await pgLikeService.hasUserLiked(userId, 'activity', String(activity._id)) : false;
         const likeCount = await pgLikeService.getLikeCount('activity', String(activity._id));
         const commentCount = await ActivityComment.countDocuments({ activityId: activity._id, isActive: true });
@@ -174,14 +269,15 @@ class ActivityService {
     .sort({ createdAt: -1 })
     .limit(limit * 1)
     .skip((page - 1) * limit)
-    .populate('data.goalId', 'title category')
-    .populate('data.targetUserId', 'name username avatar')
     .lean();
+    
+    // Enrich with PostgreSQL data
+    const enrichedActivities = await this.enrichWithPostgresData(activities);
     
     const total = await Activity.countDocuments({ userId, isActive: true });
     
     // Normalize activities to include user object
-    const normalized = activities.map((act) => {
+    const normalized = enrichedActivities.map((act) => {
       const { userId: authorId, name, username, avatar, ...rest } = act;
       const user = {
         name: name,
@@ -312,20 +408,19 @@ class ActivityService {
    * Get activity by ID
    */
   async getActivityById(activityId, requestingUserId) {
-    const activity = await Activity.findById(activityId)
-      .populate('userId', 'name avatar')
-      // likes is not a reference path; compute counts separately
-      ;
+    const activity = await Activity.findById(activityId).lean();
     
     if (!activity) {
       throw new Error('Activity not found');
     }
     
+    // Enrich with PostgreSQL data
+    const enrichedActivity = await this.enrichWithPostgresData(activity);
+    
     // Check if user can view this activity
-    const isBlocked = await Block.isBlockedBetween(requestingUserId, activity.userId._id);
-    const canView = !isBlocked && (activity.isPublic || 
-      activity.userId._id.toString() === requestingUserId ||
-      await pgFollowService.isFollowing(requestingUserId, activity.userId));
+    const canView = enrichedActivity.isPublic || 
+      enrichedActivity.userId === requestingUserId ||
+      await pgFollowService.isFollowing(requestingUserId, enrichedActivity.userId);
     
     if (!canView) {
       throw new Error('Access denied');
@@ -337,7 +432,7 @@ class ActivityService {
     const commentCount = await ActivityComment.countDocuments({ activityId, isActive: true });
     
     return {
-      ...activity.toObject(),
+      ...enrichedActivity,
       isLiked,
       likeCount,
       commentCount

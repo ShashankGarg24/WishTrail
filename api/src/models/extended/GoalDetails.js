@@ -30,15 +30,32 @@ const goalDetailsSchema = new mongoose.Schema({
     },
     breakdown: {
       subGoals: [{
-        id: Number,
         title: String,
-        weight: Number,
-        completedAt: Date
+        linkedGoalId: Number,
+        weight: {
+          type: Number,
+          default: 0,
+          min: 0,
+          max: 100
+        },
+        completed: {
+          type: Boolean,
+          default: false
+        },
+        completedAt: Date,
+        description: String
       }],
       habits: [{
-        id: Number,
-        name: String,
-        weight: Number,
+        habitId: {
+          type: Number,
+          required: true
+        },
+        weight: {
+          type: Number,
+          default: 0,
+          min: 0,
+          max: 100
+        },
         endDate: Date
       }]
     },
@@ -89,19 +106,21 @@ goalDetailsSchema.virtual('linkedGoals', {
 
 // Method to calculate progress
 goalDetailsSchema.methods.calculateProgress = async function() {
-  const subGoalsCompleted = this.subGoals.filter(sg => sg.completed).length;
-  const subGoalsTotal = this.subGoals.length;
+  const subGoals = this.progress?.breakdown?.subGoals || [];
+  const habits = this.progress?.breakdown?.habits || [];
   
-  // Get habit progress (would need to query PostgreSQL habit_logs)
-  // This is a simplified version
-  const totalWeight = this.subGoals.reduce((sum, sg) => sum + (sg.weight || 0), 0) +
-                      this.habitLinks.reduce((sum, hl) => sum + (hl.weight || 0), 0);
+  const subGoalsCompleted = subGoals.filter(sg => sg.completed).length;
+  const subGoalsTotal = subGoals.length;
+  
+  // Calculate total weight
+  const totalWeight = subGoals.reduce((sum, sg) => sum + (sg.weight || 0), 0) +
+                      habits.reduce((sum, hl) => sum + (hl.weight || 0), 0);
   
   if (totalWeight === 0) {
     return subGoalsTotal > 0 ? Math.round((subGoalsCompleted / subGoalsTotal) * 100) : 0;
   }
   
-  const subGoalProgress = this.subGoals.reduce((sum, sg) => {
+  const subGoalProgress = subGoals.reduce((sum, sg) => {
     return sum + (sg.completed ? (sg.weight || 0) : 0);
   }, 0);
   
@@ -116,8 +135,14 @@ goalDetailsSchema.statics.getOrCreate = async function(goalId, defaults = {}) {
     details = await this.create({
       goalId,
       description: defaults.description || '',
-      subGoals: defaults.subGoals || [],
-      habitLinks: defaults.habitLinks || [],
+      progress: {
+        percent: 0,
+        breakdown: {
+          subGoals: defaults.subGoals || [],
+          habits: defaults.habitLinks || []
+        },
+        lastCalculated: new Date()
+      },
       ...defaults
     });
   }

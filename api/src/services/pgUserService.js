@@ -382,7 +382,7 @@ class UserService {
    */
   async getTopUsers(limit = 10) {
     const queryText = `
-      SELECT id, name, username, avatar, bio, location,
+      SELECT id, name, username, avatar_url, bio, location,
              total_goals, completed_goals, current_streak, longest_streak,
              followers_count, following_count, is_verified, created_at
       FROM users

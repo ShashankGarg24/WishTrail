@@ -24,7 +24,7 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
 
   // Premium state
   const activeGoalsCount = useMemo(() => {
-    return goals?.filter(g => !g.completed && g.isActive !== false)?.length || 0
+    return goals?.filter(g => !g.completedAt)?.length || 0
   }, [goals])
   const goalLimits = useGoalLimits(activeGoalsCount)
 
@@ -153,7 +153,6 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
     const newErrors = {}
     if (!formData.title.trim()) newErrors.title = 'Title is required'
     if (formData.title.trim().length > MAX_TITLE_CHARS) newErrors.title = `Title cannot exceed ${MAX_TITLE_CHARS} characters`
-    if (!formData.description.trim()) newErrors.description = 'Description is required'
     if (formData.description.trim().length > MAX_DESC_CHARS) newErrors.description = `Description cannot exceed ${MAX_DESC_CHARS} characters`
     if (!formData.category) newErrors.category = 'Category is required'
     if (formData.targetDate) {
@@ -411,7 +410,7 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
               {/* Description */}
               <div>
                 <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Description <span className="text-red-500">*</span>
+                  Description
                 </label>
                 <textarea
                   id="description"

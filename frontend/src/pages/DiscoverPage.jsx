@@ -809,7 +809,7 @@ const DiscoverPage = () => {
                       <div className="min-w-0 flex-1">
                         <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{g.user?.name || 'User'}</div>
                         <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                          {g.completed && <span className="inline-block w-2 h-2 rounded-full bg-green-500"></span>}
+                          {g.completedAt && <span className="inline-block w-2 h-2 rounded-full bg-green-500"></span>}
                           {g.completedAt ? new Date(g.completedAt).toLocaleDateString() : (g.createdAt ? new Date(g.createdAt).toLocaleDateString() : '')}
                         </div>
                       </div>
@@ -875,7 +875,7 @@ const DiscoverPage = () => {
                         <div className="min-w-0 flex-1">
                           <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{g.user?.name || 'User'}</div>
                           <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                            {g.completed && <span className="inline-block w-2 h-2 rounded-full bg-green-500"></span>}
+                            {g.completedAt && <span className="inline-block w-2 h-2 rounded-full bg-green-500"></span>}
                             {g.completedAt ? new Date(g.completedAt).toLocaleDateString() : (g.createdAt ? new Date(g.createdAt).toLocaleDateString() : '')}
                           </div>
                         </div>

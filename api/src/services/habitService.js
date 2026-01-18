@@ -58,7 +58,7 @@ async function createHabit(userId, payload) {
     try {
       const currentUser = await pgUserService.findById(userId);
       await Activity.createActivity(userId, currentUser?.name, currentUser?.username, currentUser?.avatar_url, 'streak_milestone', {
-        metadata: { kind: 'habit_created', habitId: habit.id, habitName: habit.name }
+        // Minimal data - metadata removed
       });
     } catch (_) {}
   }
@@ -315,13 +315,8 @@ async function toggleLog(userId, habitId, { status = 'done', note = '', mood = '
     if (shareEnabled && [1, 7, 30, 100].includes(currentStreak)) {
       try {
         const u = await pgUserService.findById(userId);
-        const metadata = { kind: 'habit_streak', habitId: updatedHabit.id, habitName: updatedHabit.name };
-        if (currentStreak === 30) {
-          metadata.shareImagePath = `/api/v1/habits/${updatedHabit.id}/og-image?count=${currentStreak}`;
-        }
         await Activity.createActivity(userId, u?.name, u?.username, u?.avatar_url, 'streak_milestone', {
-          streakCount: currentStreak,
-          metadata
+          streakCount: currentStreak
         });
       } catch (_) {}
     }

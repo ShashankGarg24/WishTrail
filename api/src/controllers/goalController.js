@@ -72,28 +72,29 @@ const getGoalPost = async (req, res, next) => {
 
     // Find the activity for this goal
     let activityId = null;
-    let likeCount = goal.like_count || 0;
+    let likeCount = 0;
     let isLiked = false;
     let commentCount = 0;
 
     try {
       const goalActivity = await Activity.findOne({
         'data.goalId': goal.id,
-        type: { $in: ['goal_activity', 'goal_created', 'goal_completed'] },
-        isActive: true
+        type: { $in: ['goal_activity', 'goal_created', 'goal_completed'] }
       }).select('_id').lean();
 
       if (goalActivity) {
         activityId = goalActivity._id;
 
         // Get like status for this user
-        const likeActivity = await Activity.findOne({
-          userId: req.user.id,
-          type: 'goal_liked',
-          'data.goalId': goal.id,
-          isActive: true
-        }).lean();
-        isLiked = !!likeActivity;
+        likeCount = await pgLikeService.getLikeCount(
+          String(activityId),
+          'activity'
+        );
+        isLiked = await pgLikeService.hasUserLiked(
+          req.user.id,
+          'activity',
+          String(activityId)
+        );
 
         // Get comment count
         commentCount = await ActivityComment.countDocuments({
@@ -120,8 +121,8 @@ const getGoalPost = async (req, res, next) => {
 
     // ✅ Enrich sub-goals with real completion date
     let enrichedSubGoals = [];
-    if (goalDetails?.subGoals && goalDetails.subGoals.length > 0) {
-      const linkedIds = goalDetails.subGoals.map(sg => sg.linkedGoalId).filter(Boolean);
+    if (goalDetails?.progress?.breakdown?.subGoals && goalDetails.progress.breakdown.subGoals.length > 0) {
+      const linkedIds = goalDetails.progress.breakdown.subGoals.map(sg => sg.linkedGoalId).filter(Boolean);
       const linkedGoals = await pgGoalService.getGoalsByIds(linkedIds);
 
       const linkedMap = {};
@@ -129,7 +130,7 @@ const getGoalPost = async (req, res, next) => {
         linkedMap[String(lg.id)] = lg;
       }
 
-      enrichedSubGoals = goalDetails.subGoals.map(sg => {
+      enrichedSubGoals = goalDetails.progress.breakdown.subGoals.map(sg => {
         const linked = sg.linkedGoalId ? linkedMap[String(sg.linkedGoalId)] : null;
         return {
           title: sg.title,
@@ -214,7 +215,6 @@ const getGoals = async (req, res, next) => {
         const detailsWithCommunity = await GoalDetails.find({
           goalId: { $in: goalIds },
           'communityInfo': { $exists: true },
-          isActive: true
         }).select('goalId').lean();
         const communityGoalIds = new Set(detailsWithCommunity.map(d => d.goalId));
         filteredGoals = rawGoals.filter(g => communityGoalIds.has(g.id));
@@ -223,9 +223,10 @@ const getGoals = async (req, res, next) => {
       const goals = [];
       const wantProgress = String(includeProgress) === 'true';
       const goalIds = filteredGoals.map(g => g.id);
+
       const detailsMap = {};
       if (goalIds.length > 0) {
-        const details = await GoalDetails.find({ goalId: { $in: goalIds }, isActive: true }).lean();
+        const details = await GoalDetails.find({ goalId: { $in: goalIds }}).lean();
         details.forEach(d => { detailsMap[d.goalId] = d; });
       }
       
@@ -237,15 +238,13 @@ const getGoals = async (req, res, next) => {
           category: g.category,
           year: g.year,
           targetDate: g.target_date,
-          completed: g.completed,
           completedAt: g.completed_at,
           isPublic: g.is_public,
-          isDiscoverable: g.is_discoverable,
           createdAt: g.created_at,
           updatedAt: g.updated_at,
           description: detailsMap[g.id]?.description || '',
-          subGoals: detailsMap[g.id]?.subGoals || [],
-          habitLinks: detailsMap[g.id]?.habitLinks || []
+          subGoals: detailsMap[g.id]?.progress?.breakdown?.subGoals || [],
+          habitLinks: detailsMap[g.id]?.progress?.breakdown?.habits || []
         };
         
         if (wantProgress) {
@@ -297,7 +296,6 @@ const getGoals = async (req, res, next) => {
       const detailsWithCommunity = await GoalDetails.find({
         goalId: { $in: goalIds },
         'communityInfo': { $exists: true },
-        isActive: true
       }).select('goalId').lean();
       const communityGoalIds = new Set(detailsWithCommunity.map(d => d.goalId));
       rawGoals = rawGoals.filter(g => communityGoalIds.has(g.id));
@@ -311,7 +309,7 @@ const getGoals = async (req, res, next) => {
     const goalIds = rawGoals.map(g => g.id);
     const detailsMap = {};
     if (goalIds.length > 0) {
-      const details = await GoalDetails.find({ goalId: { $in: goalIds }, isActive: true }).lean();
+      const details = await GoalDetails.find({ goalId: { $in: goalIds } }).lean();
       details.forEach(d => { detailsMap[d.goalId] = d; });
     }
     
@@ -323,15 +321,13 @@ const getGoals = async (req, res, next) => {
         category: g.category,
         year: g.year,
         targetDate: g.target_date,
-        completed: g.completed,
         completedAt: g.completed_at,
         isPublic: g.is_public,
-        isDiscoverable: g.is_discoverable,
         createdAt: g.created_at,
         updatedAt: g.updated_at,
         description: detailsMap[g.id]?.description || '',
-        subGoals: detailsMap[g.id]?.subGoals || [],
-        habitLinks: detailsMap[g.id]?.habitLinks || []
+        subGoals: detailsMap[g.id]?.progress?.breakdown?.subGoals || [],
+        habitLinks: detailsMap[g.id]?.progress?.breakdown?.habits || []
       };
       
       if (wantProgress) {
@@ -404,12 +400,11 @@ const getGoal = async (req, res, next) => {
       completed: goal.completed,
       completedAt: goal.completed_at,
       isPublic: goal.is_public,
-      isDiscoverable: goal.is_discoverable,
       createdAt: goal.created_at,
       updatedAt: goal.updated_at,
       description: goalDetails?.description || '',
-      subGoals: goalDetails?.subGoals || [],
-      habitLinks: goalDetails?.habitLinks || [],
+      subGoals: goalDetails?.progress?.breakdown?.subGoals || [],
+      habitLinks: goalDetails?.progress?.breakdown?.habits || [],
       completionNote: goalDetails?.completionNote || '',
       completionAttachmentUrl: goalDetails?.completionAttachmentUrl || '',
       shareCompletionNote: goalDetails?.shareCompletionNote || false
@@ -442,7 +437,6 @@ const createGoal = async (req, res, next) => {
 
     const { title, description, category, targetDate, year, subGoals, habitLinks } = req.body;
     const isPublicFlag = (req.body.isPublic === true || req.body.isPublic === 'true') ? true : false;
-    const isDiscoverableFlag = (req.body.isDiscoverable === true || req.body.isDiscoverable === 'true') ? true : false;
 
     // ✅ PREMIUM CHECK: Validate active goals limit
     const user = await pgUserService.findById(req.user.id);
@@ -496,6 +490,7 @@ const createGoal = async (req, res, next) => {
 
     const session = await mongoose.startSession();
     let createdGoal = null;
+    let goalId = null;
     await session.withTransaction(async () => {
       // Create goal in PostgreSQL
       const goal = await pgGoalService.createGoal({
@@ -504,37 +499,49 @@ const createGoal = async (req, res, next) => {
         category,
         year: currentYear,
         targetDate,
-        isPublic: isPublicFlag,
-        isDiscoverable: isDiscoverableFlag
+        isPublic: isPublicFlag
       });
+      
+      goalId = goal.id;
 
       // Prepare sub-goals and habit links
       const processedSubGoals = Array.isArray(subGoals) && subGoals.length > 0
-        ? subGoals.map(sg => ({
-            title: String(sg.title || '').trim(),
-            linkedGoalId: sg.linkedGoalId || undefined,
-            weight: Number(sg.weight || 0),
-            completed: false,
-            completedAt: sg.completedAt || undefined,
-            description: sg.description || ''
-          }))
+        ? subGoals.map(sg => {
+            const linkedGoalId = sg.linkedGoalId ? Number(sg.linkedGoalId) : undefined;
+            return {
+              title: String(sg.title || '').trim(),
+              linkedGoalId: (linkedGoalId && !isNaN(linkedGoalId)) ? linkedGoalId : undefined,
+              weight: Number(sg.weight || 0),
+              completed: false,
+              completedAt: sg.completedAt || undefined,
+              description: sg.description || ''
+            };
+          })
         : [];
 
       const processedHabitLinks = Array.isArray(habitLinks) && habitLinks.length > 0
-        ? habitLinks.map(hl => ({
-            habitId: hl.habitId,
-            habitName: hl.habitName || 'Habit',
-            weight: Number(hl.weight || 0),
-            endDate: hl.endDate || undefined
-          }))
+        ? habitLinks.map(hl => {
+            const habitId = hl.habitId ? Number(hl.habitId) : undefined;
+            return {
+              habitId: (habitId && !isNaN(habitId)) ? habitId : undefined,
+              weight: Number(hl.weight || 0),
+              endDate: hl.endDate || undefined
+            };
+          })
         : [];
 
       // Create extended details in MongoDB
       await GoalDetails.create([{
         goalId: goal.id,
         description: description || '',
-        subGoals: processedSubGoals,
-        habitLinks: processedHabitLinks,
+        progress: {
+          percent: 0,
+          breakdown: {
+            subGoals: processedSubGoals,
+            habits: processedHabitLinks
+          },
+          lastCalculated: new Date()
+        },
         isActive: true
       }], { session });
 
@@ -547,17 +554,11 @@ const createGoal = async (req, res, next) => {
         targetDate: goal.target_date,
         completed: goal.completed,
         isPublic: goal.is_public,
-        isDiscoverable: goal.is_discoverable,
         description: description || '',
         subGoals: processedSubGoals,
         habitLinks: processedHabitLinks,
         createdAt: goal.created_at
       };
-
-      // Update total_goals count in PostgreSQL
-      await pgUserService.incrementStats(req.user.id, { 
-        total_goals: 1
-      });
 
       // Get user data from PostgreSQL
       const currentUser = await pgUserService.findById(req.user.id);
@@ -577,6 +578,18 @@ const createGoal = async (req, res, next) => {
       );
     });
     session.endSession();
+    
+    // Update total_goals count in PostgreSQL AFTER successful transaction
+    // This ensures count only increments if goal creation succeeds
+    try {
+      await pgUserService.incrementStats(req.user.id, { 
+        total_goals: 1
+      });
+    } catch (statsError) {
+      console.error('Failed to update user stats after goal creation:', statsError);
+      // Goal was created successfully, but stats update failed
+      // Consider implementing a reconciliation job to fix such cases
+    }
 
     res.status(201).json({
       success: true,
@@ -655,28 +668,35 @@ const updateGoal = async (req, res, next) => {
 
     // Update sub-goals if provided
     if (Array.isArray(subGoals)) {
-      mongoUpdates.subGoals = subGoals.length > 0
-        ? subGoals.map(sg => ({
-            title: String(sg.title || '').trim(),
-            linkedGoalId: sg.linkedGoalId || undefined,
-            weight: Number(sg.weight || 0),
-            completed: sg.completedAt != null || false,
-            completedAt: sg.completedAt || undefined,
-            description: sg.description || ''
-          }))
+      mongoUpdates['progress.breakdown.subGoals'] = subGoals.length > 0
+        ? subGoals.map(sg => {
+            const linkedGoalId = sg.linkedGoalId ? Number(sg.linkedGoalId) : undefined;
+            return {
+              title: String(sg.title || '').trim(),
+              linkedGoalId: (linkedGoalId && !isNaN(linkedGoalId)) ? linkedGoalId : undefined,
+              weight: Number(sg.weight || 0),
+              completed: sg.completedAt != null || false,
+              completedAt: sg.completedAt || undefined,
+              description: sg.description || ''
+            };
+          })
         : [];
+      mongoUpdates['progress.lastCalculated'] = new Date();
     }
 
     // Update habit links if provided
     if (Array.isArray(habitLinks)) {
-      mongoUpdates.habitLinks = habitLinks.length > 0
-        ? habitLinks.map(hl => ({
-            habitId: hl.habitId,
-            habitName: hl.habitName || 'Habit',
-            weight: Number(hl.weight || 0),
-            endDate: hl.endDate || undefined
-          }))
+      mongoUpdates['progress.breakdown.habits'] = habitLinks.length > 0
+        ? habitLinks.map(hl => {
+            const habitId = hl.habitId ? Number(hl.habitId) : undefined;
+            return {
+              habitId: (habitId && !isNaN(habitId)) ? habitId : undefined,
+              weight: Number(hl.weight || 0),
+              endDate: hl.endDate || undefined
+            };
+          })
         : [];
+      mongoUpdates['progress.lastCalculated'] = new Date();
     }
 
     const updatedDetails = await GoalDetails.findOneAndUpdate(
@@ -693,10 +713,9 @@ const updateGoal = async (req, res, next) => {
       category: updatedGoal.category,
       targetDate: updatedGoal.target_date,
       isPublic: updatedGoal.is_public,
-      isDiscoverable: updatedGoal.is_discoverable,
       description: updatedDetails.description,
-      subGoals: updatedDetails.subGoals,
-      habitLinks: updatedDetails.habitLinks,
+      subGoals: updatedDetails.progress?.breakdown?.subGoals || [],
+      habitLinks: updatedDetails.progress?.breakdown?.habits || [],
       updatedAt: updatedGoal.updated_at
     };
 
@@ -858,7 +877,14 @@ const deleteGoal = async (req, res, next) => {
     //   'data.goalId': goalId 
     // });
 
-    // 9. Update user statistics in PostgreSQL
+    // 9. Delete the goal itself from PostgreSQL (soft delete)
+    await pgGoalService.deleteGoal(goalId, userId);
+
+    // 10. Delete extended data from MongoDB (soft delete)
+    await GoalDetails.updateOne({ goalId }, { $set: { isActive: false } });
+
+    // 11. Update user statistics in PostgreSQL AFTER successful deletion
+    // This ensures count only decrements if goal deletion succeeds
     const decrements = { 
       total_goals: -1
     };
@@ -867,15 +893,15 @@ const deleteGoal = async (req, res, next) => {
       decrements.completed_goals = -1;
     }
     
-    await pgUserService.incrementStats(userId, decrements);
+    try {
+      await pgUserService.incrementStats(userId, decrements);
+    } catch (statsError) {
+      console.error('Failed to update user stats after goal deletion:', statsError);
+      // Goal was deleted successfully, but stats update failed
+      // Consider implementing a reconciliation job to fix such cases
+    }
 
     // dailyCompletions tracking is deprecated (was in MongoDB User model)
-
-    // 10. Delete the goal itself from PostgreSQL (soft delete)
-    await pgGoalService.deleteGoal(goalId, userId);
-
-    // 11. Delete extended data from MongoDB (soft delete)
-    await GoalDetails.updateOne({ goalId }, { $set: { isActive: false } });
 
     // 12. Invalidate caches
     try {
@@ -960,10 +986,6 @@ const toggleGoalCompletion = async (req, res, next) => {
 
         resultGoal = await pgGoalService.getGoalById(goal.id);
       } else {
-        // COMPLETE
-        // Daily completions check is deprecated (was in MongoDB User model)
-        // TODO: Implement daily completions tracking in separate collection if needed
-
         // Complete goal in PostgreSQL
         const updated = await pgGoalService.completeGoal(goal.id, req.user.id);
         if (!updated) {
@@ -982,9 +1004,6 @@ const toggleGoalCompletion = async (req, res, next) => {
           },
           { upsert: true, session }
         );
-
-        // completedGoals count and dailyCompletions tracking deprecated (were in MongoDB User model)
-        // TODO: Implement in separate MongoDB collection or PostgreSQL if needed
 
         // Get goal details for activity
         const goalDetails = await GoalDetails.findOne({ goalId: goal.id, isActive: true }).session(session);
@@ -1048,6 +1067,20 @@ const toggleGoalCompletion = async (req, res, next) => {
       }
     });
     session.endSession();
+    
+    // Update completed_goals count in PostgreSQL AFTER successful transaction
+    // This ensures count only increments if goal completion succeeds
+    if (resultGoal && resultGoal.completed) {
+      try {
+        await pgUserService.incrementStats(req.user.id, { 
+          completed_goals: 1
+        });
+      } catch (statsError) {
+        console.error('Failed to update user stats after goal completion:', statsError);
+        // Goal was completed successfully, but stats update failed
+        // Consider implementing a reconciliation job to fix such cases
+      }
+    }
 
     return res.status(200).json({ success: true, data: { goal: resultGoal } });
   } catch (error) {
@@ -1450,21 +1483,21 @@ module.exports = {
       }
 
       // Get extended details from MongoDB
-      const goalDetails = await GoalDetails.findOne({ goalId: goal.id, isActive: true }).lean();
+      const goalDetails = await GoalDetails.findOne({ goalId: goal.id }).lean();
 
       // Get engagement metrics
       // Note: Activities in MongoDB still have old ObjectId references for goalId
       // PostgreSQL goals won't have matching Activity documents until activities are migrated
       let commentCount = 0;
-      let likeCount = goal.like_count || 0;
+      let likeCount = 0;
       
       // Skip Activity queries for now since data.goalId in Activity is ObjectId but goals are now BigInt in PostgreSQL
       // TODO: Migrate Activity.data.goalId to store PostgreSQL BigInt IDs
 
       // Enrich sub-goals with completion dates
       let enrichedSubGoals = [];
-      if (goalDetails?.subGoals && goalDetails.subGoals.length > 0) {
-        const linkedIds = goalDetails.subGoals.map(sg => sg.linkedGoalId).filter(Boolean);
+      if (goalDetails?.progress?.breakdown?.subGoals && goalDetails.progress.breakdown.subGoals.length > 0) {
+        const linkedIds = goalDetails.progress.breakdown.subGoals.map(sg => sg.linkedGoalId).filter(Boolean);
         const linkedGoals = await pgGoalService.getGoalsByIds(linkedIds);
 
         const linkedMap = {};
@@ -1472,7 +1505,7 @@ module.exports = {
           linkedMap[String(lg.id)] = lg;
         }
 
-        enrichedSubGoals = goalDetails.subGoals.map(sg => {
+        enrichedSubGoals = goalDetails.progress.breakdown.subGoals.map(sg => {
           const linked = sg.linkedGoalId ? linkedMap[String(sg.linkedGoalId)] : null;
           return {
             id: sg.linkedGoalId || null,
@@ -1487,8 +1520,8 @@ module.exports = {
 
       // Enrich habit links with habit data
       let enrichedHabits = [];
-      if (goalDetails?.habitLinks && goalDetails.habitLinks.length > 0) {
-        const habitIds = goalDetails.habitLinks.map(hl => hl.habitId).filter(Boolean);
+      if (goalDetails?.progress?.breakdown?.habits && goalDetails.progress.breakdown.habits.length > 0) {
+        const habitIds = goalDetails.progress.breakdown.habits.map(hl => hl.habitId).filter(Boolean);
         const habits = await pgHabitService.getHabitsByIds(habitIds);
 
         const habitMap = {};
@@ -1496,7 +1529,7 @@ module.exports = {
           habitMap[String(h.id)] = h;
         }
 
-        enrichedHabits = goalDetails.habitLinks.map(hl => {
+        enrichedHabits = goalDetails.progress.breakdown.habits.map(hl => {
           const habit = hl.habitId ? habitMap[String(hl.habitId)] : null;
           return {
             id: hl.habitId,

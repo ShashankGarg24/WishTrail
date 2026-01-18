@@ -10,8 +10,12 @@ const reportContent = async (req, res, next) => {
     const { targetType, targetId, reason, description } = req.body;
     if (!['user', 'activity'].includes(targetType)) return res.status(400).json({ success: false, message: 'Invalid targetType' });
     if (!reason) return res.status(400).json({ success: false, message: 'Reason is required' });
+    
+    // Convert targetId to appropriate type: Number for users, keep as-is for activities (ObjectId string)
+    const formattedTargetId = targetType === 'user' ? parseInt(targetId) : targetId;
+    
     const doc = await Report.findOneAndUpdate(
-      { reporterId: req.user.id, targetType, targetId },
+      { reporterId: req.user.id, targetType, targetId: formattedTargetId },
       { $set: { reason, description: description || '' } },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );

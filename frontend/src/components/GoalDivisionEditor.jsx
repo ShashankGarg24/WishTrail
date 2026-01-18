@@ -204,7 +204,7 @@ export default function GoalDivisionEditor({ goal, goalId, habits, onClose, draf
       const normalized = normalizeToHundred(allWeights)
       const nextSubs = localSubGoals.map((s, i) => ({ ...s, weight: normalized[i] }))
       const nextHabs = localHabitLinks.map((h, j) => ({ ...h, weight: normalized[localSubGoals.length + j] }))
-      const subPayload = nextSubs.map(s => ({ title: String(s.title || '').trim(), linkedGoalId: s.linkedGoalId || undefined, weight: Number(s.weight || 0), completed: !!s.completed, note: s.note || '' }))
+      const subPayload = nextSubs.map(s => ({ title: String(s.title || '').trim(), linkedGoalId: s.linkedGoalId || undefined, weight: Number(s.weight || 0), completed: !!s.completedAt, note: s.note || '' }))
       const habitPayload = nextHabs.map(h => ({ habitId: h.habitId, weight: Number(h.weight || 0), endDate: h.endDate || undefined }))
       await setSubGoals(goal._id, subPayload)
       await setHabitLinks(goal._id, habitPayload)

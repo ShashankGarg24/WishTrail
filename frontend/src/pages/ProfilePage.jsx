@@ -394,7 +394,7 @@ const ProfilePage = () => {
     }
 
     try {
-      const result = await followUser(profileUser?._id);
+      const result = await followUser(profileUser?.id);
       if (result.success) {
         // Show success toast
         if (result.isRequested || isPrivate) {
@@ -445,7 +445,7 @@ const ProfilePage = () => {
     }
 
     try {
-      const result = await unfollowUser(profileUser?._id);
+      const result = await unfollowUser(profileUser?.id);
       if (result.success) {
         toast.success('Unfollowed successfully');
         // Keep the optimistic state (already set above)
@@ -1078,7 +1078,7 @@ const ProfilePage = () => {
                           <Clock className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                           Goals in Progress
                         </h3>
-                        {userGoals.filter(goal => !goal.completed).length > 0 && (
+                        {userGoals.filter(goal => !goal.completedAt).length > 0 && (
                           <button 
                             onClick={() => handleTabChange('goals')}
                             className="text-sm text-purple-600 dark:text-purple-400 hover:underline font-medium"
@@ -1089,7 +1089,7 @@ const ProfilePage = () => {
                       </div>
                       {isProfileAccessible() ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                          {userGoals.filter(goal => !goal.completed).slice(0, PROGRESS_GOALS_PER_PAGE).map((goal, index) => (
+                          {userGoals.filter(goal => !goal.completedAt).slice(0, PROGRESS_GOALS_PER_PAGE).map((goal, index) => (
                             <motion.div
                               key={goal.id}
                               initial={{ opacity: 0, y: 10 }}
@@ -1110,7 +1110,7 @@ const ProfilePage = () => {
                               </div>
                             </motion.div>
                           ))}
-                          {userGoals.filter(goal => !goal.completed).length === 0 && (
+                          {userGoals.filter(goal => !goal.completedAt).length === 0 && (
                             <div className="col-span-full text-center py-12">
                               <div className="bg-gray-100 dark:bg-gray-700/50 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
                                 <Target className="h-8 w-8 text-gray-400" />

@@ -3,7 +3,7 @@
  * Handles all follow/following relationship operations for PostgreSQL
  */
 
-const { query, getClient, transaction } = require('../config/supabase');
+const { query, transaction } = require('../config/supabase');
 
 class PgFollowService {
   /**
@@ -16,7 +16,6 @@ class PgFollowService {
   async followUser(followerId, followingId, options = {}) {
     const {
       status = 'accepted',
-      notificationsEnabled = true
     } = options;
 
     // Prevent self-follow
@@ -41,19 +40,19 @@ class PgFollowService {
           RETURNING *
         `;
         const updateResult = await client.query(updateSql, [
-          status, notificationsEnabled, followerId, followingId
+          status, followerId, followingId
         ]);
         follow = updateResult.rows[0];
       } else {
         // Create new follow
         const insertSql = `
           INSERT INTO follows (
-            follower_id, following_id, status, notifications_enabled
-          ) VALUES ($1, $2, $3, $4)
+            follower_id, following_id, status
+          ) VALUES ($1, $2, $3)
           RETURNING *
         `;
         const insertResult = await client.query(insertSql, [
-          followerId, followingId, status, notificationsEnabled
+          followerId, followingId, status
         ]);
         follow = insertResult.rows[0];
       }
@@ -341,25 +340,6 @@ class PgFollowService {
   }
 
   /**
-   * Update follow notification preferences
-   * @param {number} followerId - Follower user ID
-   * @param {number} followingId - Following user ID
-   * @param {boolean} notificationsEnabled - Notification preference
-   * @returns {Promise<Object|null>} Updated follow or null
-   */
-  async updateNotificationPreference(followerId, followingId, notificationsEnabled) {
-    const sql = `
-      UPDATE follows
-      SET notifications_enabled = $1, updated_at = CURRENT_TIMESTAMP
-      WHERE follower_id = $2 AND following_id = $3
-      RETURNING *
-    `;
-
-    const result = await query(sql, [notificationsEnabled, followerId, followingId]);
-    return result.rows[0] ? this._formatFollow(result.rows[0]) : null;
-  }
-
-  /**
    * Get followers count for user
    * @param {number} userId - User ID
    * @returns {Promise<number>} Followers count
@@ -459,7 +439,7 @@ class PgFollowService {
    * @returns {Promise<Object>} Follow request
    */
   async requestFollow(followerId, followingId) {
-    return await this.followUser(followerId, followingId, { status: 'pending', notificationsEnabled: true });
+    return await this.followUser(followerId, followingId, { status: 'pending' });
   }
 
   /**
@@ -473,8 +453,7 @@ class PgFollowService {
       const sql = `
         UPDATE follows
         SET status = 'accepted', 
-            followed_at = CURRENT_TIMESTAMP,
-            updated_at = CURRENT_TIMESTAMP
+            followed_at = CURRENT_TIMESTAMP
         WHERE follower_id = $1 AND following_id = $2 AND status = 'pending'
         RETURNING *
       `;
@@ -645,14 +624,11 @@ class PgFollowService {
     if (!row) return null;
 
     return {
-      id: row.id,
       followerId: row.follower_id,
       followingId: row.following_id,
       status: row.status,
-      notificationsEnabled: row.notifications_enabled,
       followedAt: row.followed_at,
       createdAt: row.created_at,
-      updatedAt: row.updated_at,
       // Optional joined user data
       followerUsername: row.follower_username,
       followerName: row.follower_name,

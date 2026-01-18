@@ -7,9 +7,9 @@ const activityCommentSchema = new mongoose.Schema({
     required: true
   },
   userId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
+    type: String, // Changed to String to support PostgreSQL user IDs
+    required: true,
+    index: true
   },
   text: {
     type: String,
@@ -23,12 +23,19 @@ const activityCommentSchema = new mongoose.Schema({
     default: null
   },
   mentionUserId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    type: String, // Changed to String to support PostgreSQL user IDs
     default: null
+  },
+  isActive: {
+    type: Boolean,
+    default: true
   }
 }, {
   timestamps: true
 });
+
+// Index for efficient queries
+activityCommentSchema.index({ activityId: 1, createdAt: -1 });
+activityCommentSchema.index({ parentCommentId: 1 });
 
 module.exports = mongoose.model('ActivityComment', activityCommentSchema); 
