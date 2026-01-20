@@ -49,6 +49,19 @@ const activitySchema = new mongoose.Schema({
     },
     lastUpdateType: String, // 'created', 'completed', 'subgoal_added', 'subgoal_completed', etc.
     
+    // Timeline updates for goal_activity type
+    updates: [{
+      // Subgoal updates
+      subGoalId: Number,
+      subGoalAddedAt: Date,
+      subGoalCompletedAt: Date,
+      
+      // Habit updates
+      habitId: Number,
+      habitAddedAt: Date,
+      habitTargetCompletedAt: Date
+    }],
+    
     // For user-related activities (PostgreSQL user ID)
     targetUserId: {
       type: Number
@@ -175,20 +188,27 @@ activitySchema.statics.createActivity = async function(userId, name, username, a
 // Static method to create or update goal activity (consolidated)
 activitySchema.statics.createOrUpdateGoalActivity = async function(userId, name, username, avatar, updateType, goalData, options = {}) {
   try {
-    const { goalId } = goalData;
+    const { goalId, updates } = goalData;
 
     // If createNew option is set, always create a new standalone activity
     if (options.createNew) {
+      const activityData = {
+        goalId,
+        lastUpdateType: updateType
+      };
+      
+      // Add updates array if provided
+      if (updates) {
+        activityData.updates = updates;
+      }
+      
       const newActivity = new this({
         userId,
         name,
         username,
         avatar,
         type: updateType,
-        data: {
-          goalId,
-          lastUpdateType: updateType
-        },
+        data: activityData,
         isPublic: options.isPublic !== undefined ? options.isPublic : true,
         ...(options.communityId ? { communityId: options.communityId } : {})
       });
@@ -220,10 +240,18 @@ activitySchema.statics.createOrUpdateGoalActivity = async function(userId, name,
       activity.avatar = avatar; // Update in case avatar changed
       activity.data.lastUpdateType = updateType;
       
+      // Update updates array if provided
+      if (updates) {
+        activity.data.updates = updates;
+      }
+      
       if (updateType === 'completed') {
         activity.isPublic = options.isPublic !== undefined ? options.isPublic : true;
       }
 
+      // Mark data as modified so Mongoose saves it
+      activity.markModified('data');
+      
       // Update timestamps to bring to top
       activity.updatedAt = new Date();
       activity.createdAt = new Date(); // Move to top by updating createdAt
@@ -240,16 +268,23 @@ activitySchema.statics.createOrUpdateGoalActivity = async function(userId, name,
       return activity;
     } else {
       // Create new activity
+      const activityData = {
+        goalId,
+        lastUpdateType: updateType
+      };
+      
+      // Add updates array if provided
+      if (updates) {
+        activityData.updates = updates;
+      }
+      
       const newActivity = new this({
         userId,
         name,
         username,
         avatar,
         type: 'goal_activity',
-        data: {
-          goalId,
-          lastUpdateType: updateType
-        },
+        data: activityData,
         isPublic: options.isPublic !== undefined ? options.isPublic : true,
         ...(options && options.communityId ? { communityId: options.communityId } : {})
       });

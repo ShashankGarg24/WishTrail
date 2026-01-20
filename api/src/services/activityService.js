@@ -178,7 +178,7 @@ class ActivityService {
     return Promise.all(
       activities.map(async (activity) => {
         const isLiked = await pgLikeService.hasUserLiked(userId, 'activity', String(activity._id));
-        const likeCount = await pgLikeService.getLikeCount('activity', String(activity._id));
+        const likeCount = await pgLikeService.getLikeCount(String(activity._id), 'activity');
         const commentCount = await ActivityComment.countDocuments({ activityId: activity._id, isActive: true });
 
         const base = typeof activity.toObject === 'function' ? activity.toObject() : activity;

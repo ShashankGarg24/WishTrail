@@ -1098,6 +1098,16 @@ const useApiStore = create(
         }
       },
 
+      getGoalTimeline: async (id) => {
+        try {
+          const response = await goalsAPI.getGoalTimeline(id);
+          return { success: true, ...response.data };
+        } catch (error) {
+          const errorMessage = handleApiError(error);
+          return { success: false, error: errorMessage };
+        }
+      },
+
       // Search completed, discoverable goals (public users) - for discovery/explore pages
       searchPublicGoals: async (params = {}) => {
         try {

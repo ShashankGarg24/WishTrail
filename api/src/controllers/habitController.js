@@ -311,18 +311,16 @@ exports.toggleLog = async (req, res, next) => {
       dateKey = new Date().toISOString().split('T')[0];
     }
     
-    // Log the habit
-    const log = await pgHabitLogService.logHabit({
-      userId,
-      habitId,
-      dateKey,
+    // Log the habit using habitService which handles target achievements
+    const result = await habitService.toggleLog(userId, habitId, {
       status: status || 'done',
       mood: mood || 'neutral',
-      journalEntryId
+      journalEntryId,
+      date: new Date(dateKey)
     });
     
-    // Fetch updated habit to return current counts
-    const updatedHabit = await pgHabitService.getHabitById(habitId);
+    const log = result.log;
+    const updatedHabit = result.habit;
     
     res.status(200).json({ 
       success: true, 

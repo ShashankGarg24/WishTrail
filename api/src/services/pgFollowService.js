@@ -149,7 +149,7 @@ class PgFollowService {
       values.push(status);
     }
 
-    sql += ` ORDER BY f.followed_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
+    sql += ` ORDER BY f.created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
     values.push(limit, offset);
 
     const result = await query(sql, values);
@@ -204,7 +204,7 @@ class PgFollowService {
       values.push(status);
     }
 
-    sql += ` ORDER BY f.followed_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
+    sql += ` ORDER BY f.created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
     values.push(limit, offset);
 
     const result = await query(sql, values);
@@ -453,7 +453,7 @@ class PgFollowService {
       const sql = `
         UPDATE follows
         SET status = 'accepted', 
-            followed_at = CURRENT_TIMESTAMP
+            created_at = CURRENT_TIMESTAMP
         WHERE follower_id = $1 AND following_id = $2 AND status = 'pending'
         RETURNING *
       `;
@@ -627,7 +627,6 @@ class PgFollowService {
       followerId: row.follower_id,
       followingId: row.following_id,
       status: row.status,
-      followedAt: row.followed_at,
       createdAt: row.created_at,
       // Optional joined user data
       followerUsername: row.follower_username,

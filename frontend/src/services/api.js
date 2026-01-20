@@ -259,6 +259,7 @@ export const goalsAPI = {
   getGoalPost: (id) => {
     return api.get(`/goals/${id}/post`);
   },
+  getGoalTimeline: (id) => api.get(`/goals/${id}/timeline`),
   getGoalAnalytics: (id) => api.get(`/goals/${id}/analytics`),
   // Goal Division
   getProgress: (id) => api.get(`/goals/${id}/progress`),

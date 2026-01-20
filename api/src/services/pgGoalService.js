@@ -46,7 +46,7 @@ class GoalService {
   /**
    * Get user goals with filters
    */
-  async getUserGoals({ userId, year, category, completed, page = 1, limit = 10, sort = 'newest' }) {
+  async getUserGoals({ userId, year, category, completed, page = 1, limit = 10, sort = 'newest', excludeGoalId = null }) {
     const offset = (page - 1) * limit;
     const conditions = ['user_id = $1'];
     const values = [userId];
@@ -70,6 +70,13 @@ class GoalService {
       } else {
         conditions.push(`completed_at IS NULL`);
       }
+    }
+    
+    // Exclude specific goal ID (to prevent self-linking)
+    if (excludeGoalId) {
+      conditions.push(`id != $${paramIndex}`);
+      values.push(excludeGoalId);
+      paramIndex++;
     }
     
     let orderBy = 'completed_at ASC, updated_at DESC'; // In-progress first, then by update
@@ -428,7 +435,7 @@ class GoalService {
       FROM goals g
       INNER JOIN users u ON g.user_id = u.id
       WHERE g.category = $1
-        AND g.completed_at IS NOT NULL = true
+        AND g.completed_at IS NOT NULL
         ${startDate ? 'AND g.completed_at >= $4' : ''}
       GROUP BY u.id, u.name, u.username, u.avatar_url
       ORDER BY "goalCount" DESC
@@ -533,7 +540,7 @@ class GoalService {
       SELECT COUNT(*) as count
       FROM goals
       WHERE user_id = $1 
-        AND completed_at IS NOT NULL
+        AND completed_at IS NULL
     `;
     const result = await query(queryText, [userId]);
     return parseInt(result.rows[0]?.count || 0);

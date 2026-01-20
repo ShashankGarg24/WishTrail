@@ -255,57 +255,69 @@ async function toggleLog(userId, habitId, { status = 'done', note = '', mood = '
   // Check for target achievements and milestones
   if (status === 'done') {
     // Check if target has been achieved (for linked goals)
-    const Goal = require('../models/Goal');
-    const linkedGoals = await Goal.find({ 
-      'habitLinks.habitId': habitId,
-      userId: userId
-    }).select('_id title category habitLinks').lean();
+    const GoalDetails = require('../models/extended/GoalDetails');
+    const linkedGoalDetails = await GoalDetails.find({ 
+      'progress.breakdown.habits.habitId': habitId
+    }).select('goalId progress').lean();
+    
+    // Get the goal details from PostgreSQL for each linked goal
+    const pgGoalService = require('./pgGoalService');
+    for (const goalDetail of linkedGoalDetails) {
+      try {
+        const goal = await pgGoalService.getGoalById(goalDetail.goalId);
+        if (!goal) continue;
+        
+        let targetAchieved = false;
+        let targetType = '';
+        
+        // Check if targetCompletions achieved
+        if (updatedHabit.targetCompletions && updatedHabit.targetCompletions > 0) {
+          if (updatedHabit.totalCompletions >= updatedHabit.targetCompletions) {
+            targetAchieved = true;
+            targetType = 'completions';
+          }
+        }
+        
+        // Check if targetDays achieved
+        if (!targetAchieved && updatedHabit.targetDays && updatedHabit.targetDays > 0) {
+          if (updatedHabit.totalDays >= updatedHabit.targetDays) {
+            targetAchieved = true;
+            targetType = 'days';
+          }
+        }
 
-    for (const goal of linkedGoals) {
-      let targetAchieved = false;
-      let targetType = '';
-      
-      // Check if targetCompletions achieved
-      if (updatedHabit.targetCompletions && updatedHabit.targetCompletions > 0) {
-        if (updatedHabit.totalCompletions >= updatedHabit.targetCompletions) {
-          targetAchieved = true;
-          targetType = 'completions';
+        // Log activity if target was just achieved
+        if (targetAchieved) {
+          try {
+            // ✅ Optimized: Update all goal activities where this habit is linked in one query
+            const targetCompletionTime = new Date();
+            
+            const updateResult = await Activity.updateMany(
+              { 
+                type: 'goal_activity',
+                'data.updates.habitId': habitId.toString()
+              },
+              {
+                $set: {
+                  'data.updates.$[elem].habitTargetCompletedAt': targetCompletionTime,
+                  'data.lastUpdateType': 'habit_target_achieved'
+                }
+              },
+              {
+                arrayFilters: [
+                  { 
+                    'elem.habitId': habitId.toString(),
+                    'elem.habitTargetCompletedAt': null
+                  }
+                ]
+              }
+            );
+          } catch (err) {
+            console.error('[habitService] Failed to log habit target achievement:', err);
+          }
         }
-      }
-      
-      // Check if targetDays achieved
-      if (!targetAchieved && updatedHabit.targetDays && updatedHabit.targetDays > 0) {
-        if (updatedHabit.totalDays >= updatedHabit.targetDays) {
-          targetAchieved = true;
-          targetType = 'days';
-        }
-      }
-
-      // Log activity if target was just achieved
-      if (targetAchieved) {
-        try {
-          const u = await pgUserService.findById(userId);
-          await Activity.createOrUpdateGoalActivity(
-            userId,
-            u?.name,
-            u?.username,
-            u?.avatar_url,
-            'habit_target_achieved',
-            {
-              goalId: goal._id,
-              goalTitle: goal.title,
-              goalCategory: goal.category,
-              habitId: updatedHabit.id,
-              habitName: updatedHabit.name,
-              targetType: targetType,
-              targetValue: targetType === 'completions' ? updatedHabit.targetCompletions : updatedHabit.targetDays,
-              currentValue: targetType === 'completions' ? updatedHabit.totalCompletions : updatedHabit.totalDays
-            },
-            { createNew: true }
-          );
-        } catch (err) {
-          console.error('Failed to log habit target achievement:', err);
-        }
+      } catch (err) {
+        console.error('Failed to process linked goal for habit target:', err);
       }
     }
 
@@ -340,7 +352,7 @@ async function toggleLog(userId, habitId, { status = 'done', note = '', mood = '
     } catch (_) {}
   }
 
-  return log;
+  return { log, habit: updatedHabit };
 }
 
 async function getHeatmap(userId, habitId, { months = 3 } = {}) {

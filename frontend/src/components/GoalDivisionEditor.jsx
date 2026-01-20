@@ -8,7 +8,7 @@ const CreateWishModal = lazy(() => import('./CreateWishModal'));
 import { ChevronDown, ChevronRight, Trash2, Plus, Link} from 'lucide-react'
 
 export default function GoalDivisionEditor({ goal, goalId, habits, onClose, draftMode = false, renderInline = false, value, onChange }) {
-  const { setSubGoals, setHabitLinks, getGoalProgress } = useApiStore()
+  const { updateGoal, getGoalProgress } = useApiStore()
   const { isPremium } = usePremiumStatus()
   const maxSubgoals = isPremium ? 10 : 1
   const [localSubGoals, setLocalSubGoals] = useState([])
@@ -44,19 +44,24 @@ export default function GoalDivisionEditor({ goal, goalId, habits, onClose, draf
     setLocalHabitLinks(Array.isArray(goal?.habitLinks) ? goal.habitLinks.map(h => ({ ...h })) : [])
     setDidInitNormalize(false)
     setTimeout(() => { isInitializingRef.current = false }, 100)
-  }, [draftMode, goal?._id])
+  }, [draftMode, goal?.id])
   
   // Fetch all user goals (without year filter) to ensure linked goals from other years are available
   useEffect(() => {
     const fetchAllGoals = async () => {
-      const subGoalsData = draftMode ? (Array.isArray(value?.subGoals) ? value.subGoals : []) : (Array.isArray(goal?.subGoals) ? goal.subGoals : [])
-      const hasLinkedGoals = subGoalsData.some(sg => sg.linkedGoalId)
-      
-      if (!hasLinkedGoals) return
-      
       try {
-        // Fetch ALL user's goals without year filter and with high limit to avoid pagination
-        const response = await goalsAPI.getGoals({ includeProgress: false, limit: 1000 })
+        // Get current goal ID to exclude it from the list
+        const currentGoalId = draftMode ? goalId : goal?.id;
+        
+        // Fetch ALL user's goals (both completed and in-progress) without year filter
+        // Pass filter='all' explicitly to ensure we get goals regardless of completion status
+        // Pass excludeGoalId to prevent a goal from being its own subgoal
+        const response = await goalsAPI.getGoals({ 
+          includeProgress: false, 
+          limit: 1000,
+          filter: 'all', // Explicitly fetch all goals regardless of completion status
+          excludeGoalId: currentGoalId // Exclude current goal from backend
+        })
         if (response.data?.data?.goals) {
           setAdditionalGoals(response.data.data.goals)
         }
@@ -65,9 +70,10 @@ export default function GoalDivisionEditor({ goal, goalId, habits, onClose, draf
       }
     }
     
+    // Always fetch all goals when component mounts to ensure dropdown has complete list
     fetchAllGoals()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [draftMode, goal?._id])
+  }, [draftMode, goal?.id])
   
   // Sync local changes back to parent in draft mode (debounced to avoid API calls during sliding)
   useEffect(() => {
@@ -206,9 +212,10 @@ export default function GoalDivisionEditor({ goal, goalId, habits, onClose, draf
       const nextHabs = localHabitLinks.map((h, j) => ({ ...h, weight: normalized[localSubGoals.length + j] }))
       const subPayload = nextSubs.map(s => ({ title: String(s.title || '').trim(), linkedGoalId: s.linkedGoalId || undefined, weight: Number(s.weight || 0), completed: !!s.completedAt, note: s.note || '' }))
       const habitPayload = nextHabs.map(h => ({ habitId: h.habitId, weight: Number(h.weight || 0), endDate: h.endDate || undefined }))
-      await setSubGoals(goal._id, subPayload)
-      await setHabitLinks(goal._id, habitPayload)
-      const res = await getGoalProgress(goal._id)
+      
+      await updateGoal(goal.id, { subGoals: subPayload, habitLinks: habitPayload })
+      
+      const res = await getGoalProgress(goal.id)
       setProgress(res?.progress || null)
       onClose?.()
     } catch (e) {
@@ -252,40 +259,46 @@ export default function GoalDivisionEditor({ goal, goalId, habits, onClose, draf
                 <strong>Note:</strong> Only goals without existing sub-goals or habit links can be selected as sub-goals to prevent nested hierarchies.
               </p>
             </div>
-            {localSubGoals.map((sg, idx) => {
+            {(() => {
+              // Merge and deduplicate all goals once
               const allGoals = useApiStore.getState().goals || [];
+              const seen = new Set();
+              const uniqueGoals = [...allGoals, ...additionalGoals].filter(g => {
+                // Check both _id and id to handle duplicates properly
+                const pgId = g.id ? String(g.id) : null;
+                const uniqueKey = pgId;
+                
+                if (!uniqueKey) return false;
+                if (seen.has(uniqueKey)) return false;
+                
+                // Also check the other field to avoid duplicates across systems
+                if (pgId && seen.has(pgId)) return false;
+                
+                seen.add(uniqueKey);
+                if (pgId) seen.add(pgId);
+                
+                return true;
+              });
               
-              // Merge store goals with additionally fetched goals
-              const combinedGoals = [...allGoals, ...additionalGoals]
+              const currentGoalId = String(draftMode ? goalId : goal?.id);
               
-              // Filter available goals
-              let availableGoals = combinedGoals.filter(g => {
-                try { 
+              return localSubGoals.map((sg, idx) => {
+                // Filter available goals for this subgoal
+                const availableGoals = uniqueGoals.filter(g => {
+                  const gId = String(g.id);
+                  
                   // Always include the currently linked goal
-                  if (sg.linkedGoalId && String(g._id) === String(sg.linkedGoalId)) return true;
+                  if (sg.linkedGoalId && gId === String(sg.linkedGoalId)) return true;
                   
                   // Exclude current goal to prevent self-linking
-                  const currentGoalId = draftMode ? goalId : goal?._id;
-                  if (currentGoalId && String(g.id) === String(currentGoalId)) return false;
+                  if (currentGoalId && gId === currentGoalId) return false;
                   
                   // Exclude goals that already have sub-goals or habit links
                   if (Array.isArray(g.subGoals) && g.subGoals.length > 0) return false;
                   if (Array.isArray(g.habitLinks) && g.habitLinks.length > 0) return false;
                   
                   return true;
-                } catch { return true }
-              });
-              
-              // Remove duplicates based on _id
-              const seen = new Set()
-              availableGoals = availableGoals.filter(g => {
-                const id = String(g._id)
-                if (seen.has(id)) return false
-                seen.add(id)
-                return true
-              })
-              
-              availableGoals = availableGoals.slice(0, 50);
+                }).slice(0, 50);
               
               return (
               <div key={idx} className="grid grid-cols-12 gap-3 items-center">
@@ -294,9 +307,7 @@ export default function GoalDivisionEditor({ goal, goalId, habits, onClose, draf
                     value={sg.linkedGoalId || ''} 
                     onChange={(e) => {
                       const selectedGoalId = e.target.value;
-                      // Prevent selecting the current goal as its own sub-goal
-                      const currentGoalId = draftMode ? goalId : goal?._id;
-                      if (currentGoalId && selectedGoalId && String(selectedGoalId) === String(currentGoalId)) {
+                      if (currentGoalId && selectedGoalId && String(selectedGoalId) === currentGoalId) {
                         window.dispatchEvent(new CustomEvent('wt_toast', {
                           detail: { message: 'Cannot link a goal to itself', type: 'error' }
                         }));
@@ -307,9 +318,10 @@ export default function GoalDivisionEditor({ goal, goalId, habits, onClose, draf
                     className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                   >
                     <option value="">Link goal…</option>
-                    {availableGoals.map(g => (
-                      <option key={g._id} value={g._id}>{g.title}</option>
-                    ))}
+                    {availableGoals.map((g, gIdx) => {
+                      const goalId = g.id;
+                      return <option key={`${goalId}-${gIdx}`} value={goalId}>{g.title}</option>;
+                    })}
                   </select>
                 </div>
                 <div className="col-span-5 flex items-center gap-3">
@@ -318,7 +330,9 @@ export default function GoalDivisionEditor({ goal, goalId, habits, onClose, draf
                   <button title="Remove" onClick={() => removeSubGoal(idx)} className="p-2 rounded-md bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400"><Trash2 className="h-4 w-4" /></button>
                 </div>
               </div>
-            )})}
+              );
+            });
+            })()}
             {localSubGoals.length === 0 && <div className="text-sm text-gray-500 dark:text-gray-400">No sub-goals added.</div>}
             <div className="pt-2 flex items-center justify-end gap-2">
               <button onClick={addSubGoal} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200"><Link className="h-4 w-4" />Link</button>
@@ -345,7 +359,7 @@ export default function GoalDivisionEditor({ goal, goalId, habits, onClose, draf
               // Filter habits to only show those with targets
               const availableHabits = (habits || []).filter(h => {
                 // Always include the currently selected habit
-                const habitId = h.id || h._id;
+                const habitId = h.id;
                 if (hl.habitId && String(habitId) === String(hl.habitId)) return true;
                 
                 // Only show habits with targetDays or targetCompletions
@@ -357,7 +371,7 @@ export default function GoalDivisionEditor({ goal, goalId, habits, onClose, draf
                 <select value={hl.habitId} onChange={(e) => setLocalHabitLinks(prev => prev.map((h,i) => i===idx ? { ...h, habitId: e.target.value } : h))} className="col-span-7 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white">
                   <option value="">Select a habit…</option>
                   {availableHabits.map(h => (
-                    <option key={h.id || h._id} value={h.id || h._id}>{h.name}</option>
+                    <option key={h.id} value={h.id}>{h.name}</option>
                   ))}
                 </select>
                 <div className="col-span-5 flex items-center gap-3">
@@ -394,7 +408,7 @@ export default function GoalDivisionEditor({ goal, goalId, habits, onClose, draf
           onClose={() => setIsCreateHabitOpen(false)}
           onCreated={(habit) => {
             try {
-              const id = habit?._id
+              const id = habit?.id
               if (id) {
                 setLocalHabitLinks(prev => {
                   const next = [...prev]
@@ -419,8 +433,8 @@ export default function GoalDivisionEditor({ goal, goalId, habits, onClose, draf
           onSave={async (goalData) => {
             try {
               const res = await useApiStore.getState().createGoal(goalData)
-              if (res?.success && res.goal?._id) {
-                setLocalSubGoals(prev => prev.map((sg, i) => i === pendingLinkIndex ? { ...sg, linkedGoalId: res.goal._id, title: sg.title || res.goal.title } : sg))
+              if (res?.success && res.goal?.id) {
+                setLocalSubGoals(prev => prev.map((sg, i) => i === pendingLinkIndex ? { ...sg, linkedGoalId: res.goal.id, title: sg.title || res.goal.title } : sg))
                 setIsCreateGoalOpen(false)
                 setPendingLinkIndex(null)
                 return res

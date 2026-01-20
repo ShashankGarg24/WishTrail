@@ -3,9 +3,9 @@ import { motion } from 'framer-motion'
 import { X, Plus, Target, Calendar, Tag, AlertCircle, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react'
 import useApiStore from '../store/apiStore'
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
+const GoalDivisionEditor = lazy(() => import('./GoalDivisionEditor'));
 import { useGoalLimits } from '../hooks/usePremium'
 import PremiumLimitIndicator from './PremiumLimitIndicator'
-const GoalDivisionEditor = lazy(() => import('./GoalDivisionEditor'));
 
 export default function CreateGoalWizard({ isOpen, onClose, year, initialData, editMode = false, goalId = null }) {
   const MAX_TITLE_CHARS = 200
