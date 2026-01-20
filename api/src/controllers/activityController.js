@@ -335,7 +335,7 @@ const getActivity = async (req, res, next) => {
     const [likeCount, isLiked, commentCount] = await Promise.all([
       pgLikeService.getLikeCount('activity', id),
       pgLikeService.hasUserLiked(req.user.id, 'activity', id),
-      ActivityComment.countDocuments({ activityId: id, isActive: true })
+      ActivityComment.countDocuments({ activityId: id })
     ]);
 
     res.status(200).json({
@@ -526,16 +526,16 @@ const getActivityComments = async (req, res, next) => {
     const limit = parseInt(req.query.limit || '20');
 
     const [roots, count] = await Promise.all([
-      ActivityComment.find({ activityId: id, parentCommentId: null, isActive: true })
+      ActivityComment.find({ activityId: id, parentCommentId: nulle })
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
         .limit(limit)
         .lean(),
-      ActivityComment.countDocuments({ activityId: id, parentCommentId: null, isActive: true })
+      ActivityComment.countDocuments({ activityId: id, parentCommentId: null})
     ]);
 
     const rootIds = roots.map(r => r._id);
-    const replies = await ActivityComment.find({ parentCommentId: { $in: rootIds }, isActive: true })
+    const replies = await ActivityComment.find({ parentCommentId: { $in: rootIds } })
       .sort({ createdAt: 1 })
       .lean();
 

@@ -74,12 +74,6 @@ async function buildGoalTimeline(goal, goalDetails) {
       'data.goalId': goal.id
     }).lean();
 
-    console.log('[buildGoalTimeline] Goal:', goal.id, 'Activity found:', !!goalActivity);
-    if (goalActivity) {
-      console.log('[buildGoalTimeline] Activity type:', goalActivity.type);
-      console.log('[buildGoalTimeline] Updates array:', JSON.stringify(goalActivity.data?.updates, null, 2));
-    }
-
     if (goalActivity?.data?.updates) {
       // Collect all IDs to fetch in batch
       const subGoalIds = new Set();
@@ -1745,12 +1739,17 @@ module.exports = {
 
       // Get extended details from MongoDB
       const goalDetails = await GoalDetails.findOne({ goalId: goal.id }).lean();
+      const goalActivity = await Activity.findOne({
+        type: 'goal_activity',
+        'data.goalId': goal.id
+      }).lean();
 
       // Get engagement metrics
       // Note: Activities in MongoDB still have old ObjectId references for goalId
       // PostgreSQL goals won't have matching Activity documents until activities are migrated
-      let commentCount = 0;
-      let likeCount = 0;
+      const likeCount = await pgLikeService.getLikeCount(String(goalActivity._id), 'activity');
+      const commentCount = await ActivityComment.countDocuments({ activityId: goalActivity._id });
+      
       
       // Skip Activity queries for now since data.goalId in Activity is ObjectId but goals are now BigInt in PostgreSQL
       // TODO: Migrate Activity.data.goalId to store PostgreSQL BigInt IDs
@@ -1794,7 +1793,7 @@ module.exports = {
           habitMap[String(h.id)] = h;
         }
 
-        enrichedHabits = goalDetails.progress.breakdown.habits.map(hl => {
+          enrichedHabits = goalDetails.progress.breakdown.habits.map(hl => {
           const habit = hl.habitId ? habitMap[String(hl.habitId)] : null;
           
           // Calculate habit progress ratio
@@ -1804,18 +1803,18 @@ module.exports = {
           let currentCount = 0;
           
           if (habit) {
-            // Use target_completions if available
-            if (habit.target_completions && habit.target_completions > 0) {
+            // Use targetCompletions if available
+            if (habit.targetCompletions && habit.targetCompletions > 0) {
               targetType = 'completions';
-              targetCount = habit.target_completions;
-              currentCount = habit.total_completions || 0;
+              targetCount = habit.targetCompletions;
+              currentCount = habit.totalCompletions || 0;
               progressRatio = Math.min(1, currentCount / targetCount);
             } 
-            // Otherwise use target_days if available
-            else if (habit.target_days && habit.target_days > 0) {
+            // Otherwise use targetDays if available
+            else if (habit.targetDays && habit.targetDays > 0) {
               targetType = 'days';
-              targetCount = habit.target_days;
-              currentCount = habit.total_days || 0;
+              targetCount = habit.targetDays;
+              currentCount = habit.totalDays || 0;
               progressRatio = Math.min(1, currentCount / targetCount);
             }
           }

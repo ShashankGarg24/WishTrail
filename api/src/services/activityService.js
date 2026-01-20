@@ -179,7 +179,7 @@ class ActivityService {
       activities.map(async (activity) => {
         const isLiked = await pgLikeService.hasUserLiked(userId, 'activity', String(activity._id));
         const likeCount = await pgLikeService.getLikeCount(String(activity._id), 'activity');
-        const commentCount = await ActivityComment.countDocuments({ activityId: activity._id, isActive: true });
+        const commentCount = await ActivityComment.countDocuments({ activityId: activity._id });
 
         const base = typeof activity.toObject === 'function' ? activity.toObject() : activity;
         return { ...base, isLiked, likeCount, commentCount };
@@ -226,7 +226,7 @@ class ActivityService {
       enrichedWithPg.map(async (activity) => {
         const isLiked = userId ? await pgLikeService.hasUserLiked(userId, 'activity', String(activity._id)) : false;
         const likeCount = await pgLikeService.getLikeCount('activity', String(activity._id));
-        const commentCount = await ActivityComment.countDocuments({ activityId: activity._id, isActive: true });
+        const commentCount = await ActivityComment.countDocuments({ activityId: activity._id });
         return { ...activity, isLiked, likeCount, commentCount };
       })
     );
@@ -429,7 +429,7 @@ class ActivityService {
     // Add like status
     const isLiked = await pgLikeService.hasUserLiked(requestingUserId, 'activity', activityId);
     const likeCount = await pgLikeService.getLikeCount('activity', activityId);
-    const commentCount = await ActivityComment.countDocuments({ activityId, isActive: true });
+    const commentCount = await ActivityComment.countDocuments({ activityId });
     
     return {
       ...enrichedActivity,
