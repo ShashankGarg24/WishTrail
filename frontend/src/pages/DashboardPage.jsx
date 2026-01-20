@@ -186,7 +186,6 @@ const DashboardPage = () => {
       setIsLoadingGoals(true)
       await getGoals({ 
         year: selectedYear === yearToDelete ? currentYear : selectedYear, 
-        includeProgress: true, 
         page: 1,
         filter: goalFilter,
         sort: goalSort
@@ -229,12 +228,15 @@ const DashboardPage = () => {
       getDashboardYears()
       getDashboardStats()
       setIsLoadingGoals(true)
+      console.log('[Dashboard] Fetching goals with params:', { year: selectedYear, page, filter: goalFilter, sort: goalSort })
       getGoals({ 
-        year: selectedYear, 
-        includeProgress: true, 
+        year: selectedYear,
         page,
         filter: goalFilter,
         sort: goalSort
+      }).then((result) => {
+        console.log('[Dashboard] Goals fetched:', result)
+        console.log('[Dashboard] Goals count:', result?.goals?.length || 0)
       }).finally(() => {
         setIsLoadingGoals(false)
         setHasLoadedInitialData(true)
@@ -253,7 +255,7 @@ const DashboardPage = () => {
       setIsLoadingGoals(true)
       getGoals({ 
         year: selectedYear, 
-        includeProgress: true, 
+
         page: 1,
         filter: goalFilter,
         sort: goalSort
@@ -273,7 +275,7 @@ const DashboardPage = () => {
     setIsLoadingGoals(true)
     getGoals({ 
       year: selectedYear, 
-      includeProgress: true, 
+
       page,
       filter: goalFilter,
       sort: goalSort
@@ -318,7 +320,7 @@ const DashboardPage = () => {
           year: selectedYear, 
           page: 1, 
           limit: 50, 
-          includeProgress: true,
+
           filter: goalFilter,
           sort: goalSort
         }).finally(() => {
@@ -333,7 +335,7 @@ const DashboardPage = () => {
       } else {
         getGoals({ 
           year: selectedYear, 
-          includeProgress: true, 
+
           page: 1,
           filter: goalFilter,
           sort: goalSort
@@ -462,6 +464,12 @@ const DashboardPage = () => {
 
   const goalsForYear = useMemo(() => {
     const filtered = (goals || []).filter(g => g.year === selectedYear && !g.communityId && !g.isCommunitySource && !g.communityInfo);
+    console.log('[Dashboard] goalsForYear calculation:', {
+      totalGoals: (goals || []).length,
+      selectedYear,
+      filteredCount: filtered.length,
+      sampleGoal: goals?.[0]
+    })
     return filtered;
   }, [goals, selectedYear]);
 
@@ -587,7 +595,7 @@ const DashboardPage = () => {
     const result = await toggleGoalCompletion(goalId)
     if (result.success) {
       getDashboardStats({ force: true })
-      getGoals({ year: selectedYear, includeProgress: true, page }, { force: true })
+      getGoals({ year: selectedYearpage }, { force: true })
     }
   }
 
@@ -628,7 +636,7 @@ const DashboardPage = () => {
         setGoalToDelete(null)
         setGoalDependencies([])
         await getDashboardStats({ force: true })
-        getGoals({ year: selectedYear, includeProgress: true, page }, { force: true })
+        getGoals({ year: selectedYearpage }, { force: true })
       }
     } finally {
       setIsDeletingGoal(false)
@@ -655,7 +663,7 @@ const DashboardPage = () => {
     }
     if (result.success) {
       getDashboardStats({ force: true })
-      getGoals({ year: selectedYear, includeProgress: true, page }, { force: true })
+      getGoals({ year: selectedYearpage }, { force: true })
     }
     return result
   }

@@ -352,7 +352,7 @@ const getGoalTimeline = async (req, res, next) => {
 // @access  Private
 const getGoals = async (req, res, next) => {
   try {
-    const { year, category, status, page = 1, limit = 10, includeProgress, communityOnly, q, search, filter = 'all', sort = 'newest', excludeGoalId } = req.query;
+    const { year, category, status, page = 1, limit = 10, communityOnly, q, search, filter = 'all', sort = 'newest', excludeGoalId } = req.query;
     
     // If there's a search query, do simple user-specific search
     const searchQuery = q || search;
@@ -391,7 +391,6 @@ const getGoals = async (req, res, next) => {
       }
 
       const goals = [];
-      const wantProgress = String(includeProgress) === 'true';
       const goalIds = filteredGoals.map(g => g.id);
 
       const detailsMap = {};
@@ -417,17 +416,11 @@ const getGoals = async (req, res, next) => {
           habitLinks: detailsMap[g.id]?.progress?.breakdown?.habits || []
         };
         
-        if (wantProgress) {
-          try {
-            const progress = await goalDivisionService.computeGoalProgress(g.id, req.user.id);
-            obj.progress = progress;
-          } catch (_) { obj.progress = { percent: 0, breakdown: { subGoals: [], habits: [] } }; }
-        }
         goals.push(obj);
       }
       
       const total = result.pagination.total;
-      const sanitizedGoals = wantProgress ? goals : sanitizeGoalsForProfile(goals);
+      const sanitizedGoals =sanitizeGoalsForProfile(goals);
       
       return res.status(200).json({
         success: true,
@@ -474,7 +467,6 @@ const getGoals = async (req, res, next) => {
 
     // add virtual fields and optional computed progress
     const goals = [];
-    const wantProgress = String(includeProgress) === 'true';
     
     // Get extended details from MongoDB
     const goalIds = rawGoals.map(g => g.id);
@@ -501,18 +493,12 @@ const getGoals = async (req, res, next) => {
         habitLinks: detailsMap[g.id]?.progress?.breakdown?.habits || []
       };
       
-      if (wantProgress) {
-        try {
-          const progress = await goalDivisionService.computeGoalProgress(g.id, req.user.id);
-          obj.progress = progress;
-        } catch (_) { obj.progress = { percent: 0, breakdown: { subGoals: [], habits: [] } }; }
-      }
       goals.push(obj);
     }
     const total = result.pagination.total;
 
     // ✅ Sanitize goals - use minimal fields when not requesting progress (profile view)
-    const sanitizedGoals = wantProgress ? goals : sanitizeGoalsForProfile(goals);
+    const sanitizedGoals = sanitizeGoalsForProfile(goals);
 
     res.status(200).json({
       success: true,
@@ -581,12 +567,7 @@ const getGoal = async (req, res, next) => {
       shareCompletionNote: goalDetails?.shareCompletionNote || false
     };
 
-    const wantProgress = String(req.query.includeProgress) === 'true';
-    let progress = undefined;
-    if (wantProgress) {
-      try { progress = await goalDivisionService.computeGoalProgress(goal.id, req.user.id); } catch (_) { /* ignore */ }
-    }
-    res.status(200).json({ success: true, data: { goal: combinedGoal, progress } });
+    res.status(200).json({ success: true, data: { goal: combinedGoal } });
   } catch (error) {
     next(error);
   }
@@ -1815,12 +1796,40 @@ module.exports = {
 
         enrichedHabits = goalDetails.progress.breakdown.habits.map(hl => {
           const habit = hl.habitId ? habitMap[String(hl.habitId)] : null;
+          
+          // Calculate habit progress ratio
+          let progressRatio = 0;
+          let targetType = null;
+          let targetCount = 0;
+          let currentCount = 0;
+          
+          if (habit) {
+            // Use target_completions if available
+            if (habit.target_completions && habit.target_completions > 0) {
+              targetType = 'completions';
+              targetCount = habit.target_completions;
+              currentCount = habit.total_completions || 0;
+              progressRatio = Math.min(1, currentCount / targetCount);
+            } 
+            // Otherwise use target_days if available
+            else if (habit.target_days && habit.target_days > 0) {
+              targetType = 'days';
+              targetCount = habit.target_days;
+              currentCount = habit.total_days || 0;
+              progressRatio = Math.min(1, currentCount / targetCount);
+            }
+          }
+          
           return {
             id: hl.habitId,
             habitName: habit?.name || hl.habitName || 'Habit',
             name: habit?.name || hl.habitName || 'Habit',
             description: habit?.description || '',
-            weight: hl.weight || 0
+            weight: hl.weight || 0,
+            progressRatio,
+            targetType,
+            targetCount,
+            currentCount
           };
         });
       }

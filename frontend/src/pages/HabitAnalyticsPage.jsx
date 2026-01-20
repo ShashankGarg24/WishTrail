@@ -448,8 +448,6 @@ export default function HabitAnalyticsPage() {
 
   // Create heatmap data with completion counts
   const createHeatmapData = () => {
-    const today = new Date();
-    const daysArray = [];
     const map = {};
     
     // Build map from timeline (timeline is an array from backend)
@@ -464,10 +462,25 @@ export default function HabitAnalyticsPage() {
       };
     });
 
+    // Find the latest date from timeline (backend already converted to user timezone)
+    // If no timeline data, use current date
+    let latestDate;
+    if (timelineArr.length > 0) {
+      const latestDateStr = timelineArr.reduce((max, entry) => 
+        entry.date > max ? entry.date : max, 
+        timelineArr[0].date
+      );
+      latestDate = new Date(latestDateStr + 'T12:00:00Z'); // Use noon UTC to avoid timezone issues
+    } else {
+      latestDate = new Date();
+    }
+    
     const totalDaysToShow = days || 90;
+    const daysArray = [];
+    
     for (let i = totalDaysToShow - 1; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(date.getDate() - i);
+      const date = new Date(latestDate);
+      date.setUTCDate(date.getUTCDate() - i);
       const dateKey = date.toISOString().split('T')[0];
       const dayData = map[dateKey] || { status: 'none', completionCount: 0 };
       daysArray.push({
@@ -477,10 +490,10 @@ export default function HabitAnalyticsPage() {
         completionTimes: dayData.completionTimes || [],
         mood: dayData.mood,
         note: dayData.note,
-        day: date.getDate(),
-        month: date.getMonth(),
-        year: date.getFullYear(),
-        dayOfWeek: date.getDay()
+        day: date.getUTCDate(),
+        month: date.getUTCMonth(),
+        year: date.getUTCFullYear(),
+        dayOfWeek: date.getUTCDay()
       });
     }
     return daysArray;

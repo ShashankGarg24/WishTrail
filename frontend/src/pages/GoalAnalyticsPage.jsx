@@ -13,7 +13,9 @@ import {
   ListChecks,
   Activity,
   Award,
-  Zap
+  Zap,
+  PlusCircle,
+  Link
 } from 'lucide-react'
 import useApiStore from '../store/apiStore'
 import { createPortal } from 'react-dom'
@@ -21,6 +23,19 @@ import { API_CONFIG } from '../config/api'
 import ExpandableText from '../components/ExpandableText'
 
 const CompletionModal = lazy(() => import('../components/CompletionModal'));
+
+// Helper function to map event types to icons
+const getIconForEventType = (type) => {
+  const iconMap = {
+    'goal_created': Target,
+    'subgoal_added': PlusCircle,
+    'subgoal_completed': CheckCircle,
+    'habit_added': PlusCircle,
+    'habit_target_achieved': CheckCircle,
+    'goal_completed': Award
+  }
+  return iconMap[type] || Target
+}
 
 const GoalAnalyticsPage = () => {
   const { goalId } = useParams()
@@ -31,48 +46,66 @@ const GoalAnalyticsPage = () => {
   const [isCompletionModalOpen, setIsCompletionModalOpen] = useState(false)
   const { getGoalAnalytics, isAuthenticated, toggleGoalCompletion } = useApiStore()
 
+  const loadGoalData = async () => {
+    try {
+      setLoading(true)
+      const response = await getGoalAnalytics(goalId)
+      
+      if (response?.success && response?.data) {
+        setGoalData(response.data)
+      } else {
+        window.dispatchEvent(new CustomEvent('wt_toast', {
+          detail: { message: 'Failed to load goal analytics', type: 'error' }
+        }));
+        console.error('[GoalAnalytics] Invalid response structure:', response)
+      }
+    } catch (error) {
+      console.error('[GoalAnalytics] Error loading goal analytics:', error)
+      window.dispatchEvent(new CustomEvent('wt_toast', {
+        detail: { message: error.message || 'An error occurred', type: 'error' }
+      }));
+    } finally {
+      setLoading(false)
+    }
+  }
+
   useEffect(() => {
     if (!isAuthenticated) {
       navigate('/auth')
       return
     }
     
-    const loadGoalData = async () => {
-      try {
-        setLoading(true)
-        const response = await getGoalAnalytics(goalId)
-        
-        if (response?.success && response?.data) {
-          setGoalData(response.data)
-        } else {
-          window.dispatchEvent(new CustomEvent('wt_toast', {
-            detail: { message: 'Failed to load goal analytics', type: 'error' }
-          }));
-          console.error('[GoalAnalytics] Invalid response structure:', response)
-        }
-      } catch (error) {
-        console.error('[GoalAnalytics] Error loading goal analytics:', error)
-        window.dispatchEvent(new CustomEvent('wt_toast', {
-          detail: { message: error.message || 'An error occurred', type: 'error' }
-        }));
-      } finally {
-        setLoading(false)
+    loadGoalData()
+    
+    // Refresh data when page becomes visible (user switches back to tab)
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        loadGoalData()
       }
     }
     
-    loadGoalData()
-  }, [goalId, isAuthenticated, getGoalAnalytics, navigate])
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [goalId, isAuthenticated, navigate])
 
   const handleCompleteGoal = async (completionPayload /* FormData */) => {
     if (!goalData?.goal || goalData.goal.completedAt) return
+    
+    const completionDate = new Date().toISOString()
     
     // Instantly update the UI to show completed state
     setGoalData(prev => ({
       ...prev,
       goal: {
         ...prev.goal,
-        completed: true,
-        completedAt: new Date().toISOString()
+        completedAt: completionDate,
+        progress: {
+          ...prev.goal.progress,
+          percent: 100
+        }
       }
     }))
     
@@ -124,56 +157,104 @@ const GoalAnalyticsPage = () => {
     const daysSinceCreation = Math.floor((now - createdDate) / (1000 * 60 * 60 * 24))
     const daysUntilDeadline = targetDate ? Math.floor((targetDate - now) / (1000 * 60 * 60 * 24)) : null
     
-    // Progress
-    const progressPercent = goal.progress?.percent || 0
+    // Progress calculation - compute on the fly
     const subGoalsTotal = goal.subGoals?.length || 0
     const subGoalsCompleted = goal.subGoals?.filter(sg => sg.completedAt)?.length || 0
     const habitLinksTotal = goal.habitLinks?.length || 0
+    
+    // Calculate progress on the fly:
+    // 1. If goal is completed, always show 100%
+    // 2. If no subgoals/habits and not completed, show 0%
+    // 3. Otherwise calculate weighted progress from subgoals and habits
+    let progressPercent = 0
+    if (goal.completedAt) {
+      progressPercent = 100
+    } else if (subGoalsTotal === 0 && habitLinksTotal === 0) {
+      progressPercent = 0
+    } else {
+      // Calculate weighted progress
+      const allItems = [...(goal.subGoals || []), ...(goal.habitLinks || [])]
+      
+      // Get total weight or use equal weights
+      const totalWeight = allItems.reduce((sum, item) => sum + (item.weight || 0), 0)
+      const useEqualWeights = totalWeight === 0
+      const normalizedWeightFactor = useEqualWeights ? (100 / allItems.length) : (100 / totalWeight)
+      
+      let totalProgress = 0
+      
+      // Calculate subgoal contribution (0% or 100% based on completion)
+      goal.subGoals?.forEach(sg => {
+        const weight = useEqualWeights ? normalizedWeightFactor : (sg.weight || 0) * normalizedWeightFactor
+        const isCompleted = !!sg.completedAt
+        totalProgress += isCompleted ? weight : 0
+      })
+      
+      // Calculate habit contribution (ratio based on target)
+      goal.habitLinks?.forEach(habit => {
+        const weight = useEqualWeights ? normalizedWeightFactor : (habit.weight || 0) * normalizedWeightFactor
+        const ratio = habit.progressRatio || 0 // Backend provides this
+        totalProgress += ratio * weight
+      })
+      
+      progressPercent = Math.round(totalProgress * 100) / 100
+    }
     
     // Engagement - use the new structure
     const totalLikes = goal.likeCount || 0
     const totalComments = goal.commentCount || 0
     
-    // Timeline events
-    const timelineEvents = []
+    // Use backend timeline if available, otherwise build manually
+    let timelineEvents = []
     
-    // Created event
-    timelineEvents.push({
-      date: createdDate,
-      title: 'Goal Created',
-      description: 'Started tracking this goal',
-      icon: Target,
-      color: 'blue'
-    })
-    
-    // Sub-goal completions
-    if (goal.subGoals && goal.subGoals.length > 0) {
-      goal.subGoals.forEach(sg => {
-        if (sg.completedAt) {
-          timelineEvents.push({
-            date: new Date(sg.completedAt),
-            title: 'Sub-goal Completed',
-            description: sg.title,
-            icon: CheckCircle,
-            color: 'green'
-          })
-        }
-      })
-    }
-    
-    // Completion event
-    if (completedDate) {
+    if (goal.timeline && Array.isArray(goal.timeline)) {
+      // Map backend timeline to frontend format
+      timelineEvents = goal.timeline.map(event => ({
+        date: new Date(event.timestamp),
+        title: event.title,
+        description: event.description,
+        icon: getIconForEventType(event.type),
+        color: event.color || 'blue'
+      }))
+    } else {
+      // Fallback: build timeline manually (legacy)
+      // Created event
       timelineEvents.push({
-        date: completedDate,
-        title: 'Goal Completed! 🎉',
-        description: goal.completionNote || 'Successfully achieved this goal',
-        icon: Award,
-        color: 'green'
+        date: createdDate,
+        title: 'Goal Created',
+        description: 'Started tracking this goal',
+        icon: Target,
+        color: 'blue'
       })
+      
+      // Sub-goal completions
+      if (goal.subGoals && goal.subGoals.length > 0) {
+        goal.subGoals.forEach(sg => {
+          if (sg.completedAt) {
+            timelineEvents.push({
+              date: new Date(sg.completedAt),
+              title: 'Sub-goal Completed',
+              description: sg.title,
+              icon: CheckCircle,
+              color: 'green'
+            })
+          }
+        })
+      }
+      
+      // Completion event
+      if (completedDate) {
+        timelineEvents.push({
+          date: completedDate,
+          title: 'Goal Completed! 🎉',
+          description: goal.completionNote || 'Successfully achieved this goal',
+          icon: Award,
+          color: 'green'
+        })
+      }
+      
+      // Sort timeline by date
+      timelineEvents.sort((a, b) => a.date - b.date)
     }
-    
-    // Sort timeline by date
-    timelineEvents.sort((a, b) => a.date - b.date)
     
     return {
       daysSinceCreation,

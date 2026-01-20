@@ -176,12 +176,13 @@ const sanitizeGoalForProfile = (goal) => {
   const obj = goal.toObject ? goal.toObject() : { ...goal };
   
   return {
+    id: obj.id || (obj._id ? obj._id.toString() : undefined),
     title: obj.title,
     description: obj.description,
     category: obj.category,
+    year: obj.year,
     createdAt: obj.createdAt,
-    completedAt: obj.completedAt,
-    id: obj._id ? obj._id.toString() : undefined
+    completedAt: obj.completedAt
   };
 };
 
@@ -376,7 +377,7 @@ const sanitizeNotification = (notification) => {
     // Actor data (for comments, likes, etc.) - unified as 'actor'
     const actorSource = obj.data.actorId || obj.data.followerId || obj.data.likerId;
     if (actorSource) {
-      if (typeof actorSource === 'object' && actorSource._id) {
+      if (typeof actorSource === 'object' && actorSource.id) {
         sanitized.data.actor = {
           name: actorSource.name,
           username: actorSource.username,

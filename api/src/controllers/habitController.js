@@ -294,9 +294,9 @@ exports.toggleLog = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Habit not found' });
     }
     
-    // Determine date key
-    // If date is provided, use it directly (frontend calculates in user's timezone)
-    // Otherwise, fallback to server UTC date (for backward compatibility)
+    // Determine date key - always use UTC for storage
+    // date_key is for indexing/querying only
+    // Analytics will convert completion_times to user's timezone for display
     let dateKey;
     if (date) {
       // If date is already in YYYY-MM-DD format, use it directly
@@ -307,7 +307,7 @@ exports.toggleLog = async (req, res, next) => {
         dateKey = new Date(date).toISOString().split('T')[0];
       }
     } else {
-      // Fallback to server time (less accurate for global users)
+      // Use UTC date for storage (consistent indexing)
       dateKey = new Date().toISOString().split('T')[0];
     }
     
@@ -362,23 +362,73 @@ exports.getHeatmap = async (req, res, next) => {
     const days = months * 30;
     const { startDate: startDateKey } = getDateRangeInTimezone(days, userTimezone);
     
+    // Extend the query range to account for timezone differences
+    // Since date_key is stored in UTC, we need to fetch 1-2 days extra
+    // to ensure we capture logs that will convert to today in user's timezone
+    const extendedStartDate = new Date(startDateKey);
+    extendedStartDate.setUTCDate(extendedStartDate.getUTCDate() - 2);
+    const extendedStartKey = extendedStartDate.toISOString().split('T')[0];
+    
     // Get logs for the specified period
     const { query } = require('../config/supabase');
     
     const sql = `
-      SELECT date_key, status, completion_count, mood
+      SELECT date_key, status, completion_count, completion_times, mood
       FROM habit_logs
       WHERE habit_id = $1 AND user_id = $2 AND date_key >= $3
       ORDER BY date_key ASC
     `;
     
-    const result = await query(sql, [habitId, userId, startDateKey]);
-    const heatmap = result.rows.map(row => ({
-      dateKey: row.date_key,
-      status: row.status,
-      completionCount: row.completion_count,
-      mood: row.mood
-    }));
+    const result = await query(sql, [habitId, userId, extendedStartKey]);
+    
+    // Convert heatmap data to user's timezone by grouping completion_times
+    const heatmapMap = {};
+    
+    result.rows.forEach(row => {
+      if (row.completion_times && row.completion_times.length > 0) {
+        // Group completions by user's local date
+        row.completion_times.forEach(completionTime => {
+          let localDate;
+          try {
+            const timestamp = new Date(completionTime);
+            const formatter = new Intl.DateTimeFormat('en-CA', {
+              timeZone: userTimezone,
+              year: 'numeric',
+              month: '2-digit',
+              day: '2-digit'
+            });
+            localDate = formatter.format(timestamp);
+          } catch (err) {
+            localDate = new Date(completionTime).toISOString().split('T')[0];
+          }
+          
+          if (!heatmapMap[localDate]) {
+            heatmapMap[localDate] = {
+              dateKey: localDate,
+              status: row.status,
+              completionCount: 0,
+              mood: row.mood
+            };
+          }
+          
+          heatmapMap[localDate].completionCount++;
+        });
+      } else {
+        // Fallback: use date_key if no completion_times
+        if (!heatmapMap[row.date_key]) {
+          heatmapMap[row.date_key] = {
+            dateKey: row.date_key,
+            status: row.status,
+            completionCount: row.completion_count || 0,
+            mood: row.mood
+          };
+        }
+      }
+    });
+    
+    const heatmap = Object.values(heatmapMap).sort((a, b) => 
+      new Date(a.dateKey) - new Date(b.dateKey)
+    );
     
     res.status(200).json({ success: true, data: { heatmap } });
   } catch (error) { next(error); }
@@ -523,47 +573,119 @@ exports.getHabitAnalytics = async (req, res, next) => {
     const daysSinceStart = Math.ceil((Date.now() - new Date(sanitizedHabit.createdAt).getTime()) / (24*60*60*1000));
     const consistency = Math.min(100, Math.round((sanitizedHabit.totalDays / Math.max(1, daysSinceStart)) * 100));
     
-    // Build timeline with completion times
+    // Build timeline with completion times converted to user's timezone
     const timelineMap = {};
 
     logs.forEach(l => {
-      timelineMap[l.date_key] = {
-        date: l.date_key,
-        status: l.status,
-        mood: l.mood || 'neutral',
-        completionCount: l.completion_count || 0,
-        completionTimes: l.completion_times || []
-      };
+      // Only process completion_times if status is 'done'
+      // Skipped and missed days should show 0 completions
+      if (l.status === 'done' && l.completion_times && l.completion_times.length > 0) {
+        l.completion_times.forEach(completionTime => {
+          // Convert UTC timestamp to user's local date
+          let localDate;
+          try {
+            const timestamp = new Date(completionTime);
+            const formatter = new Intl.DateTimeFormat('en-CA', {
+              timeZone: userTimezone,
+              year: 'numeric',
+              month: '2-digit',
+              day: '2-digit'
+            });
+            localDate = formatter.format(timestamp);
+          } catch (err) {
+            // Fallback to UTC if timezone conversion fails
+            localDate = new Date(completionTime).toISOString().split('T')[0];
+          }
+          
+          // Initialize or update timeline entry for this date
+          if (!timelineMap[localDate]) {
+            timelineMap[localDate] = {
+              date: localDate,
+              status: l.status,
+              mood: l.mood || 'neutral',
+              completionCount: 0,
+              completionTimes: []
+            };
+          }
+          
+          timelineMap[localDate].completionCount++;
+          timelineMap[localDate].completionTimes.push(completionTime);
+        });
+      } else if (l.status === 'skipped' || l.status === 'missed') {
+        // For skipped/missed days, show the status but with 0 completions
+        // Convert date_key to user timezone if needed
+        let localDate;
+        try {
+          // If there are completion_times (before it was skipped), use first one for date
+          if (l.completion_times && l.completion_times.length > 0) {
+            const timestamp = new Date(l.completion_times[0]);
+            const formatter = new Intl.DateTimeFormat('en-CA', {
+              timeZone: userTimezone,
+              year: 'numeric',
+              month: '2-digit',
+              day: '2-digit'
+            });
+            localDate = formatter.format(timestamp);
+          } else {
+            // Otherwise use the date_key as-is
+            localDate = l.date_key;
+          }
+        } catch (err) {
+          localDate = l.date_key;
+        }
+        
+        timelineMap[localDate] = {
+          date: localDate,
+          status: l.status,
+          mood: l.mood || 'neutral',
+          completionCount: 0,
+          completionTimes: []
+        };
+      }
     });
 
-    const timeline = Object.values(timelineMap);
+    const timeline = Object.values(timelineMap).sort((a, b) => new Date(a.date) - new Date(b.date));
     
     // Calculate weekly breakdown (last 12 weeks or based on days parameter)
+    // Use timeline (which has dates in user's timezone) for weekly aggregation
     const weeklyData = [];
     const weeksToShow = Math.min(12, Math.ceil(days / 7));
-    console.log('log to show:', logs);
+    
+    // Get current date in user's timezone to calculate week boundaries
+    const now = new Date();
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: userTimezone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+    const todayInUserTz = formatter.format(now);
+    
     for (let i = weeksToShow - 1; i >= 0; i--) {
-      const weekStart = new Date();
-      weekStart.setUTCDate(weekStart.getUTCDate() - (i * 7) - 6);
-      const weekEnd = new Date();
-      weekEnd.setUTCDate(weekEnd.getUTCDate() - (i * 7));
+      // Calculate week boundaries in user's timezone
+      const weekEndDate = new Date(todayInUserTz + 'T00:00:00Z');
+      weekEndDate.setUTCDate(weekEndDate.getUTCDate() - (i * 7));
+      const weekStartDate = new Date(weekEndDate);
+      weekStartDate.setUTCDate(weekStartDate.getUTCDate() - 6);
       
-      const weekStartKey = weekStart.toISOString().split('T')[0];
-      const weekEndKey = weekEnd.toISOString().split('T')[0];
+      const weekStartKey = weekStartDate.toISOString().split('T')[0];
+      const weekEndKey = weekEndDate.toISOString().split('T')[0];
       
-      // Get logs for this week
-      const weekLogs = logs.filter(l => l.date_key >= weekStartKey && l.date_key <= weekEndKey);
-      console.log(weekStartKey, weekEndKey);
-      console.log(weekLogs);
-      const weekDoneLogs = weekLogs.filter(l => l.status === 'done');
-      const weekSkippedLogs = weekLogs.filter(l => l.status === 'skipped');
+      // Get timeline entries for this week (timeline dates are in user's timezone)
+      const weekTimelineEntries = timeline.filter(t => t.date >= weekStartKey && t.date <= weekEndKey);
       
-      // Total completions (sum of completion_count)
-      console.log(weekDoneLogs);
-      const weekCompletions = weekDoneLogs.reduce((sum, l) => sum + (l.completion_count || 1), 0);
-      console.log(weekCompletions);
-      // Active days (unique dates with done status)
-      const activeDays = new Set(weekDoneLogs.map(l => l.date_key)).size;
+      // Total completions from timeline
+      const weekCompletions = weekTimelineEntries.reduce((sum, t) => sum + (t.completionCount || 0), 0);
+      
+      // Active days (only count entries with 'done' status)
+      const activeDays = weekTimelineEntries.filter(t => t.status === 'done').length;
+      
+      // Skipped days from original logs
+      const weekSkippedLogs = logs.filter(l => 
+        l.date_key >= weekStartKey && 
+        l.date_key <= weekEndKey && 
+        l.status === 'skipped'
+      );
       const skippedDays = new Set(weekSkippedLogs.map(l => l.date_key)).size;
       
       // Calculate expected days based on frequency, only counting days within the filter range

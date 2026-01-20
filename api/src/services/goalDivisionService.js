@@ -117,10 +117,20 @@ async function computeGoalProgress(goalId, requestingUserId) {
   const subGoals = Array.isArray(goalDetails?.progress?.breakdown?.subGoals) ? goalDetails.progress.breakdown.subGoals : [];
   const habitLinks = Array.isArray(goalDetails?.progress?.breakdown?.habits) ? goalDetails.progress.breakdown.habits : [];
 
-  // If goal is completed and has no sub-goals or habit links, return 100%
-  if (goal.completed && subGoals.length === 0 && habitLinks.length === 0) {
+  // If goal is completed, always return 100% regardless of subgoals/habits
+  if (goal.completed_at) {
     return { 
       percent: 100, 
+      breakdown: { subGoals: [], habits: [] }, 
+      normalized: false, 
+      totalWeightBeforeNormalize: 0 
+    };
+  }
+
+  // If no sub-goals or habit links, progress is 0% (will become 100% when completed)
+  if (subGoals.length === 0 && habitLinks.length === 0) {
+    return { 
+      percent: 0, 
       breakdown: { subGoals: [], habits: [] }, 
       normalized: false, 
       totalWeightBeforeNormalize: 0 
@@ -152,7 +162,7 @@ async function computeGoalProgress(goalId, requestingUserId) {
     let ratio = sg.completed ? 1 : 0;
     if (!sg.completed && sg.linkedGoalId) {
       const lg = linkedById.get(Number(sg.linkedGoalId));
-      if (lg && lg.completed) ratio = 1; // binary linkage maps to completion
+      if (lg && lg.completed_at) ratio = 1; // Check completed_at from PostgreSQL
     }
     const sgProgress = ratio * w;
     percent += sgProgress;

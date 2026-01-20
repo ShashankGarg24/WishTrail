@@ -197,19 +197,6 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
         {wish.description}
       </p>
 
-      {/* Inline compact progress bar (incomplete goals) */}
-      {!wish.completedAt && hasDivision && progressPercent !== null && (
-        <div className="mb-3">
-          <div className="flex items-center justify-between text-[10px] text-gray-600 dark:text-gray-400 mb-1">
-            <span>Progress</span>
-            <span>{Math.round(progressPercent * 100) / 100}%</span>
-          </div>
-          <div className="w-full h-1.5 rounded-full bg-gray-200 dark:bg-gray-700">
-            <div className="h-1.5 rounded-full bg-primary-500" style={{ width: `${progressPercent}%` }} />
-          </div>
-        </div>
-      )}
-
       {/* Tags */}
       <div className="flex flex-wrap gap-2 mb-3">
         {/* Category */}

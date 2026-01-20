@@ -238,16 +238,37 @@ async function toggleLog(userId, habitId, { status = 'done', note = '', mood = '
 
   const dateKey = toDateKeyUTC(date);
   
-  // pgHabitLogService.logHabit handles creating/updating log and calculating streaks
-  const log = await pgHabitLogService.logHabit({
-    userId,
-    habitId,
-    dateKey,
-    status,
-    note,
-    mood,
-    journalEntryId
-  });
+  let log;
+  
+  // Check if log already exists for this date
+  const existingLog = await pgHabitLogService.getLogByDate(habitId, dateKey);
+  
+  if (status === 'skipped' || status === 'missed') {
+    // If marking as skipped/missed, update existing log or create new one
+    if (existingLog) {
+      log = await pgHabitLogService.updateHabitLog(existingLog.id, userId, { status, mood });
+    } else {
+      // Create a new log with skipped/missed status (no completions)
+      const { query } = require('../config/supabase');
+      const result = await query(`
+        INSERT INTO habit_logs (user_id, habit_id, date_key, status, mood, completion_count, completion_times)
+        VALUES ($1, $2, $3, $4, $5, 0, ARRAY[]::timestamp[])
+        RETURNING *
+      `, [userId, habitId, dateKey, status, mood]);
+      log = result.rows[0];
+    }
+  } else {
+    // For 'done' status, use logHabit which handles creating/updating log and calculating streaks
+    log = await pgHabitLogService.logHabit({
+      userId,
+      habitId,
+      dateKey,
+      status,
+      note,
+      mood,
+      journalEntryId
+    });
+  }
   
   // Get updated habit stats after logging
   const updatedHabit = await pgHabitService.getHabitById(habitId, userId);
@@ -561,7 +582,7 @@ async function analytics(userId, { days = 30 } = {}) {
 }
 
 // Individual habit detailed analytics
-async function getHabitAnalytics(userId, habitId, { days = 90 } = {}) {
+async function getHabitAnalytics(userId, habitId, { days = 90, userTimezone = 'UTC' } = {}) {
   const habit = await pgHabitService.getHabitById(habitId, userId);
   if (!habit) throw Object.assign(new Error('Habit not found'), { statusCode: 404 });
   
@@ -570,7 +591,10 @@ async function getHabitAnalytics(userId, habitId, { days = 90 } = {}) {
   const fromKey = toDateKeyUTC(from);
   
   // Get all logs for this habit in the timeframe
-  const logs = await pgHabitLogService.getLogsByDateRange(habitId, fromKey, toDateKeyUTC(new Date()));
+  // Add 1 day to ensure we include today's logs regardless of timezone
+  const toDate = new Date();
+  toDate.setUTCDate(toDate.getUTCDate() + 1);
+  const logs = await pgHabitLogService.getLogsByDateRange(habitId, fromKey, toDateKeyUTC(toDate));
   
   // Calculate stats
   const stats = {
@@ -590,19 +614,58 @@ async function getHabitAnalytics(userId, habitId, { days = 90 } = {}) {
     stats.daysPercentage = Math.min(100, Math.round((stats.totalDays / stats.targetDays) * 100));
   }
   
-  // Timeline data for charts (grouped by date)
+  // Timeline data for charts (grouped by date in user's timezone)
+  // Convert completion_times to user's local date for proper grouping
   const timeline = {};
   const statusCounts = { done: 0, missed: 0, skipped: 0 };
   
   logs.forEach(log => {
-    timeline[log.dateKey] = {
-      date: log.dateKey,
-      status: log.status,
-      mood: log.mood,
-      note: log.note,
-      completionCount: log.completionCount || 0,
-      completionTimes: log.completionTimes || []
-    };
+    // If log has completion_times, group them by user's local date
+    if (log.completionTimes && log.completionTimes.length > 0) {
+      log.completionTimes.forEach(completionTime => {
+        // Convert UTC timestamp to user's local date
+        let localDate;
+        try {
+          const timestamp = new Date(completionTime);
+          const formatter = new Intl.DateTimeFormat('en-CA', {
+            timeZone: userTimezone,
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+          });
+          localDate = formatter.format(timestamp);
+        } catch (err) {
+          // Fallback to UTC if timezone conversion fails
+          localDate = new Date(completionTime).toISOString().split('T')[0];
+        }
+        
+        // Initialize or update timeline entry for this date
+        if (!timeline[localDate]) {
+          timeline[localDate] = {
+            date: localDate,
+            status: log.status,
+            mood: log.mood,
+            note: log.note,
+            completionCount: 0,
+            completionTimes: []
+          };
+        }
+        
+        timeline[localDate].completionCount++;
+        timeline[localDate].completionTimes.push(completionTime);
+      });
+    } else {
+      // Fallback: use date_key if no completion_times
+      timeline[log.dateKey] = {
+        date: log.dateKey,
+        status: log.status,
+        mood: log.mood,
+        note: log.note,
+        completionCount: log.completionCount || 0,
+        completionTimes: []
+      };
+    }
+    
     if (statusCounts[log.status] !== undefined) {
       statusCounts[log.status]++;
     }

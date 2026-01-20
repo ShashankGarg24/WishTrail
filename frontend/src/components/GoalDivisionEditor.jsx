@@ -57,7 +57,6 @@ export default function GoalDivisionEditor({ goal, goalId, habits, onClose, draf
         // Pass filter='all' explicitly to ensure we get goals regardless of completion status
         // Pass excludeGoalId to prevent a goal from being its own subgoal
         const response = await goalsAPI.getGoals({ 
-          includeProgress: false, 
           limit: 1000,
           filter: 'all', // Explicitly fetch all goals regardless of completion status
           excludeGoalId: currentGoalId // Exclude current goal from backend
