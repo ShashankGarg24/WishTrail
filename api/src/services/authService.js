@@ -11,6 +11,9 @@ const pgUserService = require('./pgUserService');
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
+// Default avatar URL for users without profile picture
+const DEFAULT_AVATAR_URL = 'https://res.cloudinary.com/dmhqffeay/image/upload/v1737441346/avatars/default-avatar.png';
+
 class AuthService {
 
   /**
@@ -18,6 +21,28 @@ class AuthService {
    */
   async register(profileData, deviceType, timezone = 'UTC', locale = 'en-US') {
     const { email, name, password, username, dateOfBirth, interests, location } = profileData || {};
+    
+    // Validate interests
+    const ALLOWED_INTERESTS = [
+      'fitness', 'health', 'travel', 'education', 'career', 'finance', 'hobbies',
+      'relationships', 'personal_growth', 'creativity', 'technology', 'business',
+      'lifestyle', 'spirituality', 'sports', 'music', 'art', 'reading', 'cooking',
+      'gaming', 'nature', 'volunteering'
+    ];
+    
+    if (interests) {
+      if (!Array.isArray(interests)) {
+        throw new Error('Interests must be an array');
+      }
+      if (interests.length > 5) {
+        throw new Error('You can select a maximum of 5 interests');
+      }
+      // Validate each interest value
+      const invalidInterests = interests.filter(i => !ALLOWED_INTERESTS.includes(i));
+      if (invalidInterests.length > 0) {
+        throw new Error(`Invalid interests: ${invalidInterests.join(', ')}`);
+      }
+    }
     // Check if OTP was verified (you might want to implement a temporary verification token)
     const recentVerifiedOTP = await OTP.findOne({
       email,
@@ -66,8 +91,7 @@ class AuthService {
     await UserPreferences.create({
       userId: user.id,
       interests: interests || [],
-      dashboardYears: [currentYear],
-      moodEmojis: ALLOWED_MOOD_EMOJIS
+      dashboardYears: [currentYear]
     });
 
     // Generate tokens
@@ -92,6 +116,11 @@ class AuthService {
     const hasPassword = !!user.password; // Check if password exists
     const userResponse = { ...user, hasPassword };
     delete userResponse.password;
+    
+    // Set default avatar if none exists
+    if (!userResponse.avatar_url) {
+      userResponse.avatar_url = DEFAULT_AVATAR_URL;
+    }
     
     //populate bloom filter
     if (username) await BloomFilterService.add(username);
@@ -139,6 +168,11 @@ class AuthService {
     const userResponse = { ...user, hasPassword };
     delete userResponse.password;
     
+    // Set default avatar if none exists
+    if (!userResponse.avatar_url) {
+      userResponse.avatar_url = DEFAULT_AVATAR_URL;
+    }
+    
     return {
       user: userResponse,
       token: accessToken,
@@ -176,6 +210,11 @@ class AuthService {
     delete userResponse.refreshTokenWeb;
     delete userResponse.refreshTokenApp;
     
+    // Set default avatar if none exists
+    if (!userResponse.avatar_url) {
+      userResponse.avatar_url = DEFAULT_AVATAR_URL;
+    }
+    
     // Fetch MongoDB extended fields (interests, currentMood, socialLinks)
     const UserPreferences = require('../models/extended/UserPreferences');
     const prefs = await UserPreferences.findOne({ userId }).lean();
@@ -183,6 +222,7 @@ class AuthService {
     if (prefs) {
       userResponse.interests = prefs.interests || [];
       userResponse.currentMood = prefs.preferences?.currentMood || '';
+      userResponse.theme = prefs.preferences?.theme || 'light';
       userResponse.website = prefs.socialLinks?.website || '';
       userResponse.youtube = prefs.socialLinks?.youtube || '';
       userResponse.instagram = prefs.socialLinks?.instagram || '';
@@ -196,7 +236,7 @@ class AuthService {
    */
   async updateProfile(userId, updateData) {
     const pgAllowedUpdates = ['name', 'bio', 'location', 'dateOfBirth', 'avatar', 'username'];
-    const mongoAllowedUpdates = ['interests', 'currentMood', 'youtube', 'instagram', 'website'];
+    const mongoAllowedUpdates = ['interests', 'currentMood', 'theme', 'youtube', 'instagram', 'website'];
     const pgUpdates = {};
     const mongoUpdates = {};
     
@@ -214,6 +254,13 @@ class AuthService {
     if (updateData.currentMood !== undefined && updateData.currentMood !== '') {
       if (!ALLOWED_MOOD_EMOJIS.includes(updateData.currentMood)) {
         throw new Error('Invalid mood emoji. Please select from the allowed list.');
+      }
+    }
+    
+    // Validate theme if provided
+    if (updateData.theme !== undefined && updateData.theme !== '') {
+      if (!['light', 'dark'].includes(updateData.theme)) {
+        throw new Error('Invalid theme. Please select either light or dark.');
       }
     }
     
@@ -300,6 +347,9 @@ class AuthService {
       if (mongoUpdates.currentMood !== undefined) {
         updateFields['preferences.currentMood'] = mongoUpdates.currentMood;
       }
+      if (mongoUpdates.theme !== undefined) {
+        updateFields['preferences.theme'] = mongoUpdates.theme;
+      }
       if (mongoUpdates.website !== undefined) {
         updateFields['socialLinks.website'] = mongoUpdates.website;
       }
@@ -323,6 +373,11 @@ class AuthService {
     delete userResponse.refreshTokenWeb;
     delete userResponse.refreshTokenApp;
 
+    // Set default avatar if none exists
+    if (!userResponse.avatar_url) {
+      userResponse.avatar_url = DEFAULT_AVATAR_URL;
+    }
+
     // Fetch and include MongoDB extended fields in response
     const UserPreferences = require('../models/extended/UserPreferences');
     const prefs = await UserPreferences.findOne({ userId }).lean();
@@ -330,6 +385,7 @@ class AuthService {
     if (prefs) {
       userResponse.interests = prefs.interests || [];
       userResponse.currentMood = prefs.preferences?.currentMood || '';
+      userResponse.theme = prefs.preferences?.theme || 'light';
       userResponse.website = prefs.socialLinks?.website || '';
       userResponse.youtube = prefs.socialLinks?.youtube || '';
       userResponse.instagram = prefs.socialLinks?.instagram || '';
@@ -763,6 +819,7 @@ class AuthService {
       });
       
       const payload = ticket.getPayload();
+      console.log(payload)
       const { email, name, picture, sub: googleId, email_verified } = payload;
 
       if (!email_verified) {
@@ -775,8 +832,6 @@ class AuthService {
       if (user) {
         // Existing user - login (DO NOT override name or avatar)
         const updates = {
-          last_login: new Date(),
-          login_count: (user.login_count || 0) + 1,
           timezone: timezone || 'UTC',
           locale: locale || 'en-US'
         };
@@ -828,6 +883,7 @@ class AuthService {
 
 
         // Download Google avatar and upload to Cloudinary (with timeout)
+        console.log(picture)
         let avatarUrl = picture;
         try {
           const cloudinary = require('../utility/cloudinary');
@@ -870,11 +926,21 @@ class AuthService {
           name,
           email,
           username,
-          googleId,
-          avatar: avatarUrl,
+          google_id: googleId,
+          avatar_url: avatarUrl,
           isVerified: true,
           is_active: true,
-          profileCompleted: false // User needs to complete profile later
+          profileCompleted: false, // User needs to complete profile later
+          timezone: timezone || 'UTC',
+          locale: locale || 'en-US'
+        });
+
+        // Create user preferences in MongoDB with default dashboard year
+        const currentYear = new Date().getFullYear();
+        await UserPreferences.create({
+          userId: user.id,
+          interests: [], // Empty interests, user can add later
+          dashboardYears: [currentYear]
         });
 
         // Add to bloom filter
@@ -902,6 +968,11 @@ class AuthService {
       delete userResponse.password;
       delete userResponse.refreshTokenWeb;
       delete userResponse.refreshTokenApp;
+
+      // Set default avatar if none exists
+      if (!userResponse.avatar_url) {
+        userResponse.avatar_url = DEFAULT_AVATAR_URL;
+      }
 
       return {
         user: { ...userResponse, hasPassword },

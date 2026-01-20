@@ -9,13 +9,13 @@ class UserService {
   /**
    * Create a new user
    */
-  async createUser({ name, username, email, password, dateOfBirth = null, location = '', website = null, gender = null, avatarUrl = null, coverImageUrl = null, bio = '', isPrivate = false, isVerified = false, profileCompleted = false, timezone = 'UTC', locale = 'en-US' }) {
+  async createUser({ name, username, email, password, google_id = null, is_active = true, dateOfBirth = null, location = '', website = null, gender = null, avatar_url = null, bio = '', isPrivate = false, isVerified = false, profileCompleted = false, timezone = 'UTC', locale = 'en-US' }) {
     // Hash password only if provided (not required for OAuth users)
     const hashedPassword = password ? await bcrypt.hash(password, 10) : null;
     
     const queryText = `
-      INSERT INTO users (name, username, email, password, date_of_birth, location, gender, avatar_url, bio, is_private, is_verified, profile_completed, timezone, locale)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+      INSERT INTO users (name, username, email, password, date_of_birth, location, gender, avatar_url, bio, is_private, is_verified, profile_completed, timezone, locale, google_id)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
       RETURNING id, name, username, email, avatar_url, bio, location, date_of_birth, gender,
                 total_goals, completed_goals, current_streak, longest_streak,
                 followers_count, following_count, is_private, is_active, is_verified, profile_completed,
@@ -30,13 +30,14 @@ class UserService {
       dateOfBirth,
       location,
       gender,
-      avatarUrl,
+      avatar_url,
       bio,
       isPrivate,
       isVerified,
       profileCompleted,
       timezone,
-      locale
+      locale,
+      google_id
     ]);
     
     return result.rows[0];

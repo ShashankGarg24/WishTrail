@@ -1,5 +1,6 @@
 const pgUserService = require('../services/pgUserService');
 const pgBlockService = require('../services/pgBlockService');
+const UserPreferences = require('../models/extended/UserPreferences');
 
 // @desc    Get privacy settings
 // @route   GET /api/v1/settings/privacy
@@ -63,19 +64,12 @@ const updatePrivacySettings = async (req, res, next) => {
 // @access  Private
 const getThemeSettings = async (req, res, next) => {
   try {
-    const user = await pgUserService.findById(req.user.id);
+    const prefs = await UserPreferences.findOne({ userId: req.user.id });
     
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
-      });
-    }
-
     res.status(200).json({
       success: true,
       data: {
-        theme: user.theme || 'light'
+        theme: prefs?.preferences?.theme || 'light'
       }
     });
   } catch (error) {
@@ -90,21 +84,23 @@ const updateThemeSettings = async (req, res, next) => {
   try {
     const { theme } = req.body;
     
-    if (!theme || !['light', 'dark', 'system'].includes(theme)) {
+    if (!theme || !['light', 'dark'].includes(theme)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid theme value. Must be light, dark, or system'
+        message: 'Invalid theme value. Must be light or dark'
       });
     }
 
-    const user = await pgUserService.updateUser(
-      req.user.id,
-      { theme }
+    await UserPreferences.findOneAndUpdate(
+      { userId: req.user.id },
+      { $set: { 'preferences.theme': theme } },
+      { upsert: true, new: true }
     );
 
     res.status(200).json({
       success: true,
-      message: 'Theme updated successfully'
+      message: 'Theme updated successfully',
+      data: { theme }
     });
   } catch (error) {
     next(error);

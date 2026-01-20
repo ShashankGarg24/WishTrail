@@ -29,7 +29,7 @@ router.post('/avatar', protect, upload.single('avatar'), async (req, res, next) 
       return res.status(500).json({ success: false, message: 'Failed to upload image' });
     }
 
-    const user = await pgUserService.updateUser(req.user.id, { avatarUrl: url });
+    const user = await pgUserService.updateUser(req.user.id, { avatar_url: url });
 
     return res.status(200).json({ success: true, message: 'Avatar updated', data: { url, user } });
   } catch (err) {

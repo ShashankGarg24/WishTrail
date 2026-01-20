@@ -128,12 +128,25 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
   };
 
   const handleInterestToggle = (interestId) => {
-    setFormData(prev => ({
-      ...prev,
-      interests: prev.interests.includes(interestId)
-        ? prev.interests.filter(id => id !== interestId)
-        : [...prev.interests, interestId]
-    }));
+    setFormData(prev => {
+      const isSelected = prev.interests.includes(interestId);
+      
+      // If selecting and already at max (5), don't allow
+      if (!isSelected && prev.interests.length >= 5) {
+        setErrors({ interests: 'You can select a maximum of 5 interests' });
+        return prev;
+      }
+      
+      // Clear interests error when changing selection
+      setErrors(prev => ({ ...prev, interests: undefined }));
+      
+      return {
+        ...prev,
+        interests: isSelected
+          ? prev.interests.filter(id => id !== interestId)
+          : [...prev.interests, interestId]
+      };
+    });
   };
 
   const validateStep1 = () => {
@@ -676,7 +689,7 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
               onChange={handleLocationInputChange}
               autoComplete="off"
               onFocus={() => setShowSuggestions(true)}
-              onBlur={() => setTimeout(() => setShowSuggestions(false), 100)} // delay for click
+              onBlur={() => setTimeout(() => setShowSuggestions(false), 200)} // delay for click
               className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
               placeholder="Enter your city"
             />
@@ -708,19 +721,41 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
-          Interests (Choose any that appeal to you)
-        </label>
+        <div className="flex items-center justify-between mb-4">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            Interests (Choose any that appeal to you)
+          </label>
+          <span className={`text-xs font-medium ${
+            formData.interests.length >= 5 
+              ? 'text-red-600 dark:text-red-400' 
+              : 'text-gray-500 dark:text-gray-400'
+          }`}>
+            {formData.interests.length} / 5 selected
+          </span>
+        </div>
+        {errors.interests && (
+          <div className="mb-3 text-sm text-red-600 dark:text-red-400 flex items-center">
+            <AlertCircle className="w-4 h-4 mr-1" />
+            {errors.interests}
+          </div>
+        )}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-          {INTERESTS_OPTIONS.map(interest => (
+          {INTERESTS_OPTIONS.map(interest => {
+            const isSelected = formData.interests.includes(interest.id);
+            const isDisabled = !isSelected && formData.interests.length >= 5;
+            
+            return (
             <button
               key={interest.id}
               type="button"
               onClick={() => handleInterestToggle(interest.id)}
-              className={`p-3 rounded-lg border-2 transition-all hover:scale-105 ${
-                formData.interests.includes(interest.id)
-                  ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
-                  : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 text-gray-700 dark:text-gray-300'
+              disabled={isDisabled}
+              className={`p-3 rounded-lg border-2 transition-all ${
+                isDisabled 
+                  ? 'opacity-50 cursor-not-allowed border-gray-200 dark:border-gray-600 text-gray-400 dark:text-gray-500'
+                  : isSelected
+                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 hover:scale-105'
+                    : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 text-gray-700 dark:text-gray-300 hover:scale-105'
               }`}
             >
               <div className="text-center">
@@ -728,7 +763,8 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
                 <div className="text-xs font-medium">{interest.label}</div>
               </div>
             </button>
-          ))}
+            );
+          })}
         </div>
       </div>
 

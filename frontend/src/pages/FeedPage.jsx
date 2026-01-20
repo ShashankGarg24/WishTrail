@@ -368,6 +368,7 @@ const FeedPage = () => {
         )}
 
         {/* Stories bar: inspiring + trending goals */}
+        { stories.length > 0 && 
         <div className="mb-6">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
@@ -452,7 +453,7 @@ const FeedPage = () => {
             {/* Fade gradient on right edge */}
             <div className="pointer-events-none absolute right-0 top-0 h-full w-16 bg-gradient-to-l from-white dark:from-gray-800 via-white/80 dark:via-gray-800/80 to-transparent rounded-r-2xl" />
           </div>
-        </div>
+        </div>}
 
         {loading ? (
           <SkeletonList count={6} grid={false} avatar lines={4} />

@@ -335,7 +335,7 @@ const getActivity = async (req, res, next) => {
     const [likeCount, isLiked, commentCount] = await Promise.all([
       pgLikeService.getLikeCount('activity', id),
       pgLikeService.hasUserLiked(req.user.id, 'activity', id),
-      ActivityComment.countDocuments({ activityId: id })
+      ActivityComment.countDocuments({ activityId: id, isActive: true })
     ]);
 
     res.status(200).json({
