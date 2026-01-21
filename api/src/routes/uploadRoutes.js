@@ -7,7 +7,7 @@ const pgUserService = require('../services/pgUserService');
 
 // Memory storage for serverless
 const storage = multer.memoryStorage();
-const upload = multer({ storage, limits: { fileSize: 500 * 1024 } }); // 500KB limit
+const upload = multer({ storage, limits: { fileSize: 1 * 1024 * 1024 } }); // 1MB limit
 
 const CLOUDINARY_PROFILE_UPLOAD_FOLDER = process.env.CLOUDINARY_PROFILE_UPLOAD_FOLDER || 'wishtrail/user/profile';
 const CLOUDINARY_COMMUNITY_UPLOAD_FOLDER = process.env.CLOUDINARY_COMMUNITY_UPLOAD_FOLDER || 'wishtrail/community';
@@ -34,7 +34,7 @@ router.post('/avatar', protect, upload.single('avatar'), async (req, res, next) 
     return res.status(200).json({ success: true, message: 'Avatar updated', data: { url, user } });
   } catch (err) {
     if (err && err.code === 'LIMIT_FILE_SIZE') {
-      return res.status(413).json({ success: false, message: 'Image must be under 500 KB' });
+      return res.status(413).json({ success: false, message: 'Image must be under 1 MB' });
     }
     next(err);
   }

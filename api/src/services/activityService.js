@@ -50,7 +50,8 @@ class ActivityService {
             goalTitle: goal.title,
             goalCategory: goal.category,
             isCompleted: goal.completed,
-            completedAt: goal.completed_at
+            completedAt: goal.completed_at,
+            goalIsPublic: goal.is_public // Store goal privacy for filtering
           };
         }
       }
@@ -165,7 +166,19 @@ class ActivityService {
   
     // Enrich with PostgreSQL data and likes
     const enrichedWithPg = await this.enrichWithPostgresData(list);
-    const enriched = await this.enrichWithLikes(enrichedWithPg, userId);
+    
+    // Filter out activities that reference private goals
+    const filteredActivities = enrichedWithPg.filter(activity => {
+      // If activity references a goal, check if goal is public
+      if (activity.data?.goalId) {
+        // If goal wasn't found or is private, exclude this activity
+        return activity.data.goalIsPublic === true;
+      }
+      // Non-goal activities are included
+      return true;
+    });
+    
+    const enriched = await this.enrichWithLikes(filteredActivities, userId);
     const normalized = enriched.map(shape);
   
     return {
@@ -222,8 +235,19 @@ class ActivityService {
     // Enrich with PostgreSQL data first
     const enrichedWithPg = await this.enrichWithPostgresData(list);
     
+    // Filter out activities that reference private goals (only for global view)
+    const filteredActivities = type === 'global' 
+      ? enrichedWithPg.filter(activity => {
+          // If activity references a goal, check if goal is public
+          if (activity.data?.goalId) {
+            return activity.data.goalIsPublic === true;
+          }
+          return true;
+        })
+      : enrichedWithPg; // Personal view includes all activities
+    
     const enriched = await Promise.all(
-      enrichedWithPg.map(async (activity) => {
+      filteredActivities.map(async (activity) => {
         const isLiked = userId ? await pgLikeService.hasUserLiked(userId, 'activity', String(activity._id)) : false;
         const likeCount = await pgLikeService.getLikeCount('activity', String(activity._id));
         const commentCount = await ActivityComment.countDocuments({ activityId: activity._id });
@@ -467,8 +491,6 @@ class ActivityService {
           message: `${liker?.name || 'Someone'} liked your activity`,
           data: {
             actorId: userId,
-            actorName: liker?.name,
-            actorAvatar: liker?.avatar_url,
             activityId: activity._id,
             goalId: activity?.data?.goalId || undefined
           },
@@ -599,7 +621,7 @@ class ActivityService {
         $sort: { popularityScore: -1, createdAt: -1 }
       },
       {
-        $limit: parseInt(limit)
+        $limit: parseInt(limit) * 2 // Fetch more to account for filtering
       },
       {
         $project: {
@@ -617,7 +639,19 @@ class ActivityService {
       }
     ]);
     
-    return activities;
+    // Enrich with PostgreSQL data to check goal privacy
+    const enrichedActivities = await this.enrichWithPostgresData(activities);
+    
+    // Filter out activities with private goals
+    const publicActivities = enrichedActivities.filter(activity => {
+      if (activity.data?.goalId) {
+        return activity.data.goalIsPublic === true;
+      }
+      return true;
+    });
+    
+    // Return only the requested limit
+    return publicActivities.slice(0, parseInt(limit));
   }
 }
 

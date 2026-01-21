@@ -138,7 +138,7 @@ async function buildGoalTimeline(goal, goalDetails) {
         
         // Habit added event
         if (update.habitId && update.habitAddedAt) {
-          const habitName = habitsMap.get(update.habitId) || 'Unknown habit';
+          const habitName = habitsMap.get(update.habitId.toString()) || 'Unknown habit';
           
           timeline.push({
             type: 'habit_added',
@@ -152,7 +152,7 @@ async function buildGoalTimeline(goal, goalDetails) {
         
         // Habit target completed event
         if (update.habitId && update.habitTargetCompletedAt) {
-          const habitName = habitsMap.get(update.habitId) || 'Unknown habit';
+          const habitName = habitsMap.get(update.habitId.toString()) || 'Unknown habit';
           
           timeline.push({
             type: 'habit_target_achieved',

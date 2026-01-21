@@ -130,6 +130,7 @@ class UserService {
       
       // Only deny access if they blocked me (not if I blocked them)
       if (isBlocked || hasBlockedMe) {
+        const error = new Error('User not found');
         error.statusCode = 403;
         throw error;
       }
@@ -193,6 +194,7 @@ class UserService {
       
       // Only deny access if they blocked me (not if I blocked them)
       if (isBlocked || hasBlockedMe) {
+        const error = new Error('User not found');
         error.statusCode = 403;
         throw error;
       }
@@ -217,7 +219,7 @@ class UserService {
       avatar: user.avatar_url,
       bio: user.bio || '',
       isPrivate: user.is_private || false,
-      areHabitsPrivate: prefs?.privacy?.areHabitsPrivate ?? true,
+      showHabits: prefs?.privacy?.showHabits ?? false,
       interests: prefs?.interests || [],
       currentMood: prefs?.preferences?.currentMood || '',
       website: prefs?.socialLinks?.website || '',
@@ -381,7 +383,8 @@ class UserService {
             userId: user.id,
             category,
             completed: true,
-            limit: 1
+            limit: 1,
+            requestingUserId: userId // Filter private goals
           });
           return goals.goals.length > 0 ? user : null;
         })

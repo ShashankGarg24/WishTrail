@@ -475,10 +475,10 @@ class PgFollowService {
    * @returns {Promise<boolean>} Success status
    */
   async rejectFollowRequest(followerId, followingId) {
+    console.log('Rejecting follow request:', followerId, followingId);
     const sql = `
       DELETE FROM follows
-      WHERE follower_id = $1 AND following_id = $2 AND status = 'pending'
-      RETURNING id
+      WHERE follower_id = $1 AND following_id = $2 AND status = 'pending';
     `;
 
     const result = await query(sql, [followerId, followingId]);

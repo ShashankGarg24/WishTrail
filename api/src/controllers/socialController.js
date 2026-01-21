@@ -93,6 +93,7 @@ const cancelFollowRequest = async (req, res, next) => {
   try {
     const { userId } = req.params;
     const followerId = req.user.id;
+    console.log('Canceling follow request from', followerId, 'to', userId);
     // Reject the pending request
     const success = await pgFollowService.rejectFollowRequest(followerId, userId);
     if (!success) {

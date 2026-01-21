@@ -46,11 +46,16 @@ class GoalService {
   /**
    * Get user goals with filters
    */
-  async getUserGoals({ userId, year, category, completed, page = 1, limit = 10, sort = 'newest', excludeGoalId = null }) {
+  async getUserGoals({ userId, year, category, completed, page = 1, limit = 10, sort = 'newest', excludeGoalId = null, requestingUserId = null }) {
     const offset = (page - 1) * limit;
     const conditions = ['user_id = $1'];
     const values = [userId];
     let paramIndex = 2;
+    
+    // If requesting user is different from goal owner, only show public goals
+    if (requestingUserId && requestingUserId !== userId) {
+      conditions.push('is_public = true');
+    }
     
     if (year) {
       conditions.push(`year = $${paramIndex}`);

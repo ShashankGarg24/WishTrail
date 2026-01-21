@@ -29,7 +29,7 @@ const PUBLIC_USER_FIELDS = [
   'isPremium',
   'isPrivate',
   'is_private',
-  'areHabitsPrivate',
+  'showHabits',
   'socialLinks',
   'createdAt',
   'created_at',
@@ -67,7 +67,6 @@ const sanitizeAuthMe = (user) => {
   if (!user) return null;
   
   const obj = user.toObject ? user.toObject() : { ...user };
-  
   // Compute isPremium based on expiration timestamp
   const premiumExpiresAt = obj.premiumExpiresAt;
   const isPremium = premiumExpiresAt != null && new Date(premiumExpiresAt) > new Date();
@@ -90,7 +89,8 @@ const sanitizeAuthMe = (user) => {
     website: obj.website || '',
     youtube: obj.youtube || '',
     dashboardYears: obj.dashboardYears || [],
-    isPremium: isPremium
+    isPremium: isPremium,
+    hasPassword: obj.hasPassword || false
   };
 };
 
@@ -182,7 +182,8 @@ const sanitizeGoalForProfile = (goal) => {
     category: obj.category,
     year: obj.year,
     createdAt: obj.createdAt,
-    completedAt: obj.completedAt
+    completedAt: obj.completedAt,
+    isPublic: obj.isPublic,
   };
 };
 
@@ -262,7 +263,7 @@ const sanitizeHabit = (habit) => {
     description: obj.description || '',
     frequency: obj.frequency,
     daysOfWeek: obj.daysOfWeek || obj.days_of_week || [],
-    reminders: obj.reminders || [],
+    // reminders: obj.reminders || [],
     currentStreak: obj.currentStreak || obj.current_streak || 0,
     longestStreak: obj.longestStreak || obj.longest_streak || 0,
     totalCompletions: obj.totalCompletions || obj.total_completions || 0,
@@ -296,9 +297,9 @@ const sanitizeHabitForProfile = (habit) => {
     frequency: obj.frequency,
     daysOfWeek: obj.daysOfWeek || obj.days_of_week || [],
     timezone: obj.timezone,
-    reminders: (obj.reminders || []).map(r => ({
-      time: r.time
-    })),
+    // reminders: (obj.reminders || []).map(r => ({
+    //   time: r.time
+    // })),
     currentStreak: obj.currentStreak || obj.current_streak || 0,
     longestStreak: obj.longestStreak || obj.longest_streak || 0,
     totalCompletions: obj.totalCompletions || obj.total_completions || 0,
@@ -336,7 +337,7 @@ const sanitizeNotification = (notification) => {
   };
   
   const sanitized = {
-    id: obj.id,
+    id: obj._id || obj.id,
     type: obj.type,
     title: obj.title,
     message: obj.message,
@@ -371,25 +372,32 @@ const sanitizeNotification = (notification) => {
         sanitized.data.goalTitle = obj.data.goalId.title;
       } else {
         sanitized.data.goalId = obj.data.goalId;
+        // Include goalTitle if it exists in the data
+        if (obj.data.goalTitle) {
+          sanitized.data.goalTitle = obj.data.goalTitle;
+        }
       }
     }
     
+    // Goal category
+    if (obj.data.goalCategory) {
+      sanitized.data.goalCategory = obj.data.goalCategory;
+    }
+    
     // Actor data (for comments, likes, etc.) - unified as 'actor'
-    const actorSource = obj.data.actorId || obj.data.followerId || obj.data.likerId;
-    if (actorSource) {
-      if (typeof actorSource === 'object' && actorSource.id) {
-        sanitized.data.actor = {
-          name: actorSource.name,
-          username: actorSource.username,
-          avatar: actorSource.avatar
-        };
-      } else {
-        // Fallback to stored name/avatar if not populated
-        sanitized.data.actor = {
-          name: obj.data.actorName || obj.data.followerName || obj.data.likerName,
-          username: null,
-          avatar: obj.data.actorAvatar || obj.data.followerAvatar || obj.data.likerAvatar
-        };
+    // If already enriched with actor object, pass it through
+    if (obj.data.actor) {
+      sanitized.data.actor = {
+        id: obj.data.actor.id,
+        name: obj.data.actor.name,
+        username: obj.data.actor.username,
+        avatar: obj.data.actor.avatar
+      };
+    } else {
+      // Otherwise, just store the ID
+      const actorId = obj.data.actorId || obj.data.followerId || obj.data.likerId;
+      if (actorId) {
+        sanitized.data.actorId = actorId;
       }
     }
     

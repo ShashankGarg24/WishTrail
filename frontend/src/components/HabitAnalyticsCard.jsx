@@ -1,7 +1,7 @@
 import { TrendingUp, Flame, CheckCircle, XCircle, SkipForward, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-export default function HabitAnalyticsCard({ analytics, days = 30, embedded = false }) {
+export default function HabitAnalyticsCard({ analytics, days = 30, embedded = false, showHabits = true }) {
   const navigate = useNavigate();
   if (!analytics) {
     return embedded ? (
@@ -46,7 +46,7 @@ export default function HabitAnalyticsCard({ analytics, days = 30, embedded = fa
           <div className="text-sm text-gray-600 dark:text-gray-400 inline-flex items-center gap-1 justify-center"><XCircle className="h-4 w-4"/> Missed</div>
         </div>
       </div>
-      {top.length > 0 && (
+      {showHabits && top.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-3">
             <div className="text-sm font-semibold text-gray-700 dark:text-gray-300 inline-flex items-center gap-2">

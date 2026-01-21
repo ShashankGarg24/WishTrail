@@ -791,35 +791,51 @@ const DiscoverPage = () => {
                   <span className="text-sm text-gray-500 dark:text-gray-400">({goalResults.length})</span>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {goalResults.map((g, idx) => (
+                {goalResults.map((g, idx) => {
+                  const truncateTitle = (title, maxWords = 10) => {
+                    const words = title.split(' ');
+                    if (words.length <= maxWords) return title;
+                    return words.slice(0, maxWords).join(' ') + '...';
+                  };
+                  
+                  return (
                   <motion.div
                     key={`${g.id || idx}`}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.4, delay: Math.min(0.05 * idx, 0.3) }}
                     onClick={() => g.id && openGoalModal(g.id)}
-                    className="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-200 dark:border-gray-700 hover:border-purple-400 dark:hover:border-purple-500 transition-all duration-200 shadow-sm hover:shadow-lg cursor-pointer group"
+                    className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-200 dark:border-gray-700 hover:border-purple-400 dark:hover:border-purple-500 transition-all duration-200 shadow-sm hover:shadow-lg cursor-pointer group"
                   >
-                    <div className="flex items-center gap-3 mb-4">
+                    {/* Title on top */}
+                    <h3 className="font-semibold text-base text-gray-900 dark:text-white mb-2.5 min-h-[2.5rem] group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors leading-snug line-clamp-2">
+                      {g.title}
+                    </h3>
+                    
+                    {/* Category Badge */}
+                    <div className="mb-3">
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium text-white bg-gradient-to-r from-purple-500 to-blue-600 shadow-sm">
+                        {g.category}
+                      </span>
+                    </div>
+                    
+                    {/* User Info and Date */}
+                    <div className="flex items-center gap-2.5 pt-3 border-t border-gray-100 dark:border-gray-700">
                       <img
-                        src={g.user?.avatar || '/api/placeholder/48/48'}
+                        src={g.user?.avatar || '/api/placeholder/40/40'}
                         alt={g.user?.name || 'User'}
-                        className="w-10 h-10 rounded-full border border-gray-200 dark:border-gray-700 group-hover:border-purple-400 dark:group-hover:border-purple-500 transition-all" 
+                        className="w-8 h-8 rounded-full border border-gray-200 dark:border-gray-700 group-hover:border-purple-400 dark:group-hover:border-purple-500 transition-all flex-shrink-0" 
                       />
                       <div className="min-w-0 flex-1">
                         <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{g.user?.name || 'User'}</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                          {g.completedAt && <span className="inline-block w-2 h-2 rounded-full bg-green-500"></span>}
-                          {g.completedAt ? new Date(g.completedAt).toLocaleDateString() : (g.createdAt ? new Date(g.createdAt).toLocaleDateString() : '')}
+                        <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                          {g.completedAt && <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500"></span>}
+                          {g.completedAt ? new Date(g.completedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : (g.createdAt ? new Date(g.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '')}
                         </div>
                       </div>
                     </div>
-                    <h3 className="font-semibold text-gray-900 dark:text-white line-clamp-2 mb-3 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">{g.title}</h3>
-                    <div className="flex items-center justify-between">
-                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-white bg-gradient-to-r from-purple-500 to-blue-600 shadow-md">{g.category}</span>
-                    </div>
                   </motion.div>
-                ))}
+                )})}
               </div>
               </>
             ) : (
@@ -857,36 +873,56 @@ const DiscoverPage = () => {
                     <p className="text-sm text-gray-500 dark:text-gray-400">Search to discover more</p>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {trending.map((g, idx) => (
+                  {trending.map((g, idx) => {
+                    const truncateTitle = (title, maxWords = 10) => {
+                      const words = title.split(' ');
+                      if (words.length <= maxWords) return title;
+                      return words.slice(0, maxWords).join(' ') + '...';
+                    };
+                    
+                    return (
                     <motion.div
                       key={`${g.id || idx}`}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.4, delay: Math.min(0.05 * idx, 0.3) }}
                       onClick={() => g.id && openGoalModal(g.id)}
-                      className="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-200 dark:border-gray-700 hover:border-purple-400 dark:hover:border-purple-500 transition-all duration-200 shadow-sm hover:shadow-lg cursor-pointer group"
+                      className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-200 dark:border-gray-700 hover:border-purple-400 dark:hover:border-purple-500 transition-all duration-200 shadow-sm hover:shadow-lg cursor-pointer group relative"
                     >
-                      <div className="flex items-center gap-3 mb-4">
+                      {/* Trending icon */}
+                      <div className="absolute top-2.5 right-2.5">
+                        <TrendingUp className="h-4 w-4 text-purple-600 dark:text-purple-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </div>
+                      
+                      {/* Title on top */}
+                      <h3 className="font-semibold text-base text-gray-900 dark:text-white mb-2.5 min-h-[2.5rem] group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors leading-snug pr-7 line-clamp-2">
+                        {g.title}
+                      </h3>
+                      
+                      {/* Category Badge */}
+                      <div className="mb-3">
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium text-white bg-gradient-to-r from-purple-500 to-blue-600 shadow-sm">
+                          {g.category}
+                        </span>
+                      </div>
+                      
+                      {/* User Info and Date */}
+                      <div className="flex items-center gap-2.5 pt-3 border-t border-gray-100 dark:border-gray-700">
                         <img
-                          src={g.user?.avatar || '/api/placeholder/48/48'}
+                          src={g.user?.avatar || '/api/placeholder/40/40'}
                           alt={g.user?.name || 'User'}
-                          className="w-10 h-10 rounded-full border border-gray-200 dark:border-gray-700 group-hover:border-purple-400 dark:group-hover:border-purple-500 transition-all" 
+                          className="w-8 h-8 rounded-full border border-gray-200 dark:border-gray-700 group-hover:border-purple-400 dark:group-hover:border-purple-500 transition-all flex-shrink-0" 
                         />
                         <div className="min-w-0 flex-1">
                           <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{g.user?.name || 'User'}</div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                            {g.completedAt && <span className="inline-block w-2 h-2 rounded-full bg-green-500"></span>}
-                            {g.completedAt ? new Date(g.completedAt).toLocaleDateString() : (g.createdAt ? new Date(g.createdAt).toLocaleDateString() : '')}
+                          <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                            {g.completedAt && <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500"></span>}
+                            {g.completedAt ? new Date(g.completedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : (g.createdAt ? new Date(g.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '')}
                           </div>
                         </div>
-                        <TrendingUp className="h-4 w-4 text-purple-600 dark:text-purple-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </div>
-                      <h3 className="font-semibold text-gray-900 dark:text-white line-clamp-2 mb-3 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">{g.title}</h3>
-                      <div className="flex items-center justify-between">
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-white bg-gradient-to-r from-purple-500 to-blue-600 shadow-md">{g.category}</span>
                       </div>
                     </motion.div>
-                  ))}
+                  )})}
                   <div ref={discoverSentinelRef} className="col-span-full h-10"></div>
                   {loadingMoreDiscover && (
                     <div className="col-span-full flex items-center justify-center py-4">

@@ -369,7 +369,8 @@ const getUserGoals = async (req, res, next) => {
     const queryParams = {
       userId: targetUser.id,
       page: parseInt(page),
-      limit: parseInt(limit)
+      limit: parseInt(limit),
+      requestingUserId: req.user.id // Pass requesting user to filter private goals
     };
     
     if (status === 'completed') queryParams.completed = true;
@@ -592,14 +593,16 @@ const getAnalytics = async (req, res, next) => {
     const goalsResult = await pgGoalService.getUserGoals({
       userId: targetUserId,
       page: 1,
-      limit: 1
+      limit: 1,
+      requestingUserId: req.user.id // Filter private goals
     });
     const totalGoals = goalsResult.pagination.total;
     const completedGoalsResult = await pgGoalService.getUserGoals({
       userId: targetUserId,
       completed: true,
       page: 1,
-      limit: 1
+      limit: 1,
+      requestingUserId: req.user.id // Filter private goals
     });
     const completedGoals = completedGoalsResult.pagination.total;
     
@@ -665,14 +668,16 @@ const getUserAnalytics = async (req, res, next) => {
     const goalsResult = await pgGoalService.getUserGoals({
       userId: targetUserId,
       page: 1,
-      limit: 1
+      limit: 1,
+      requestingUserId: req.user.id // Filter private goals
     });
     const totalGoals = goalsResult.pagination.total;
     const completedGoalsResult = await pgGoalService.getUserGoals({
       userId: targetUserId,
       completed: true,
       page: 1,
-      limit: 1
+      limit: 1,
+      requestingUserId: req.user.id // Filter private goals
     });
     const completedGoals = completedGoalsResult.pagination.total;
     

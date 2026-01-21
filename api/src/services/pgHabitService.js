@@ -471,7 +471,7 @@ class PgHabitService {
       description: row.description,
       frequency: row.frequency,
       daysOfWeek: row.days_of_week,
-      reminders: typeof row.reminders === 'string' ? JSON.parse(row.reminders) : row.reminders,
+      // reminders: typeof row.reminders === 'string' ? JSON.parse(row.reminders) : row.reminders,
       currentStreak: row.current_streak,
       longestStreak: row.longest_streak,
       lastLoggedDateKey: row.last_logged_date_key,

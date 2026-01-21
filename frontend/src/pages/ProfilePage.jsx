@@ -214,14 +214,14 @@ const ProfilePage = () => {
         }
       }
 
-      // Load habits when habits tab is viewed (ONLY for own profile or if following/public AND habits not private)
+      // Load habits when habits tab is viewed (ONLY for own profile or if following/public AND habits visible)
       if (activeTab === 'habits' && userHabits.length === 0) {
         if (isOwnProfile) {
           // Always load for own profile
           const targetUserId = currentUser?._id;
           await fetchUserHabits(targetUserId);
-        } else if (canViewContent && !profileUser?.areHabitsPrivate) {
-          // Load for others only if profile accessible AND habits not private
+        } else if (canViewContent && profileUser?.showHabits) {
+          // Load for others only if profile accessible AND habits are visible (showHabits = true)
           const targetUserId = profileUser?._id;
           await fetchUserHabits(targetUserId);
         }
@@ -475,7 +475,7 @@ const ProfilePage = () => {
     setIsRequested(false);
 
     try {
-      const result = await cancelFollowRequest(profileUser?._id);
+      const result = await cancelFollowRequest(profileUser?.id);
       if (result.success) {
         toast.success('Request cancelled');
         setIsRequested(false);
@@ -783,10 +783,12 @@ const ProfilePage = () => {
               )}
             </div>
 
-            {/* 3-dots menu button - Desktop position */}
-            <div className="hidden md:block absolute top-0 right-0">
-              <button data-profile-menu-btn="true" onClick={() => setProfileMenuOpen(v => !v)} className="px-2 py-1 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800">⋮</button>
-            </div>
+            {/* 3-dots menu button - Desktop position (own profile only) */}
+            {isOwnProfile && (
+              <div className="hidden md:block absolute top-0 right-0">
+                <button data-profile-menu-btn="true" onClick={() => setProfileMenuOpen(v => !v)} className="px-2 py-1 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800">⋮</button>
+              </div>
+            )}
           </div>
 
           {/* Action Buttons */}
@@ -838,8 +840,8 @@ const ProfilePage = () => {
                         <span>Follow</span>
                       </button>
                     )}
-                    {/* 3-dots menu for mobile on other profiles - vertical dots */}
-                    <div className="relative md:hidden">
+                    {/* 3-dots menu for other profiles */}
+                    <div className="relative">
                       <button data-profile-menu-btn="true" onClick={() => setProfileMenuOpen(v => !v)} className="px-3 py-3 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors border border-gray-300 dark:border-gray-600">⋮</button>
                     </div>
                   </div>
@@ -955,7 +957,7 @@ const ProfilePage = () => {
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }} className="relative max-w-3xl mx-auto mb-8">
               <div className="flex justify-center mt-4">
                 <div className="relative flex w-full max-w-sm border-b border-gray-300 dark:border-gray-700">
-                  {["overview", "goals", ...(isOwnProfile ? ["habits"] : (!profileUser?.areHabitsPrivate && (isFollowing || !profileUser?.isPrivate) ? ["habits"] : [])), ...(isOwnProfile ? ["journal"] : [])].map((tab) => (
+                  {["overview", "goals", ...(isOwnProfile ? ["habits"] : (profileUser?.showHabits && (isFollowing || !profileUser?.isPrivate) ? ["habits"] : [])), ...(isOwnProfile ? ["journal"] : [])].map((tab) => (
                     <button
                       key={tab}
                       onClick={() => handleTabChange(tab)}
@@ -979,13 +981,13 @@ const ProfilePage = () => {
                     initial={false}
                     animate={{
                       left: (() => {
-                        const tabs = ["overview", "goals", ...(isOwnProfile ? ["habits"] : (!profileUser?.areHabitsPrivate && (isFollowing || !profileUser?.isPrivate) ? ["habits"] : [])), ...(isOwnProfile ? ["journal"] : [])];
+                        const tabs = ["overview", "goals", ...(isOwnProfile ? ["habits"] : (profileUser?.showHabits && (isFollowing || !profileUser?.isPrivate) ? ["habits"] : [])), ...(isOwnProfile ? ["journal"] : [])];
                         const activeIndex = tabs.indexOf(activeTab);
                         const tabCount = tabs.length;
                         return `${(activeIndex / tabCount) * 100}%`;
                       })(),
                       width: (() => {
-                        const tabs = ["overview", "goals", ...(isOwnProfile ? ["habits"] : (!profileUser?.areHabitsPrivate && (isFollowing || !profileUser?.isPrivate) ? ["habits"] : [])), ...(isOwnProfile ? ["journal"] : [])];
+                        const tabs = ["overview", "goals", ...(isOwnProfile ? ["habits"] : (profileUser?.showHabits && (isFollowing || !profileUser?.isPrivate) ? ["habits"] : [])), ...(isOwnProfile ? ["journal"] : [])];
                         const tabCount = tabs.length;
                         return `${100 / tabCount}%`;
                       })()
@@ -1484,7 +1486,7 @@ const ProfilePage = () => {
         /></Suspense>
       )}
       {/* Habit Detail Modal */}
-      {habitModalOpen && openHabitId && (
+      {isOwnProfile && habitModalOpen && openHabitId && (
         <Suspense fallback={null}><HabitDetailModal
           habit={userHabits.find(h => (h.id || h._id) === openHabitId)}
           isOpen={habitModalOpen}
@@ -1492,7 +1494,7 @@ const ProfilePage = () => {
             setHabitModalOpen(false);
             setOpenHabitId(null);
           }}
-          onLog={async (status) => {
+          onLog={isOwnProfile ? async (status) => {
             try {
               await habitsAPI.log(openHabitId, { status });
               toast.success(`Habit ${status === 'done' ? 'completed' : status}!`);
@@ -1500,12 +1502,12 @@ const ProfilePage = () => {
             } catch (error) {
               toast.error('Failed to log habit');
             }
-          }}
-          onEdit={() => {
+          } : undefined}
+          onEdit={isOwnProfile ? () => {
             // Navigate to edit or open edit modal if needed
             toast.info('Edit functionality coming soon');
-          }}
-          onDelete={async () => {
+          } : undefined}
+          onDelete={isOwnProfile ? async () => {
             try {
               await habitsAPI.remove(openHabitId);
               toast.success('Habit deleted');
@@ -1515,7 +1517,7 @@ const ProfilePage = () => {
             } catch (error) {
               toast.error('Failed to delete habit');
             }
-          }}
+          } : undefined}
         /></Suspense>
       )}
       {/* Profile Menu Modal */}

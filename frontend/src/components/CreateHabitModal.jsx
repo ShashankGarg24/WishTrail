@@ -76,8 +76,8 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
         name,
         description,
         frequency,
-        daysOfWeek: frequency === 'daily' ? [] : daysOfWeek.sort(),
-        reminders: reminders.filter(Boolean).map(t => ({ time: t })),
+        daysOfWeek: frequency === 'daily' ? [] : daysOfWeek.sort()
+        // reminders: reminders.filter(Boolean).map(t => ({ time: t })),
       };
       
       // Add targets if provided
@@ -140,13 +140,15 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
               </div>
             )}
 
-            {/* Premium Limit Indicator */}
-            <PremiumLimitIndicator
-              current={activeHabitsCount}
-              max={habitLimits.maxHabits}
-              label="Active Habits"
-              showUpgradeButton={false}
-            />
+            {/* Premium Limit Indicator - only show when limit reached */}
+            {!habitLimits.canCreate && (
+              <PremiumLimitIndicator
+                current={activeHabitsCount}
+                max={habitLimits.maxHabits}
+                label="Active Habits"
+                showUpgradeButton={false}
+              />
+            )}
 
             {/* Basic Info Section */}
             <div className="space-y-4">
@@ -166,7 +168,7 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Description (optional)</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Description</label>
                 <textarea 
                   value={description} 
                   onChange={(e) => setDescription(e.target.value)} 
@@ -222,7 +224,7 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
             </div>
 
             {/* Reminders Section */}
-            <div className="space-y-4">
+            {/* <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <Bell className="h-4 w-4 text-primary-600 dark:text-primary-400" />
                 <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Reminders (optional)</h4>
@@ -257,15 +259,14 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
                   <Plus className="h-4 w-4" /> Add Reminder
                 </button>
               </div>
-            </div>
+            </div> */}
 
             {/* Goals Section */}
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <Info className="h-4 w-4 text-primary-600 dark:text-primary-400" />
-                <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Goals (optional)</h4>
+                <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Goals</h4>
               </div>
-              <p className="text-xs text-gray-600 dark:text-gray-400">Set one target type to track your progress</p>
               <p className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-3 py-2 rounded-lg">
                 ⚠️ Choose either count-based OR days-based target (not both)
               </p>

@@ -45,7 +45,7 @@ async function createHabit(userId, payload) {
     frequency: payload.frequency || 'daily',
     daysOfWeek: Array.isArray(payload.daysOfWeek) ? payload.daysOfWeek : null,
     timezone: (payload.timezone || user?.timezone || 'UTC'),
-    reminders: Array.isArray(payload.reminders) ? payload.reminders : [],
+    // reminders: Array.isArray(payload.reminders) ? payload.reminders : [],
     goalId: payload.goalId || null,
     isPublic: payload.isPublic !== undefined ? !!payload.isPublic : true,
     targetCompletions: payload.targetCompletions || null,

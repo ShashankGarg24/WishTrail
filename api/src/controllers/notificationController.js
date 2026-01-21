@@ -2,6 +2,7 @@ const DeviceToken = require('../models/DeviceToken');
 const Notification = require('../models/Notification');
 const { sendFcmToUser } = require('../services/pushService');
 const { sanitizeNotification } = require('../utility/sanitizer');
+const pgFollowService = require('../services/pgFollowService');
 
 exports.registerDevice = async (req, res, next) => {
   try {
@@ -52,7 +53,6 @@ exports.registerDevice = async (req, res, next) => {
     // Optionally update user's canonical timezone if provided and changed (debounced by device hits naturally)
     try {
       if (timezone && req.user && req.user.id) {
-        const User = require('../models/User');
         await User.updateOne({ _id: req.user.id }, { $set: { timezone, timezoneOffsetMinutes: typeof timezoneOffsetMinutes === 'number' ? timezoneOffsetMinutes : undefined } });
       }
     } catch {}
@@ -111,12 +111,7 @@ const getNotifications = async (req, res, next) => {
         .sort({ createdAt: -1 })
         .limit(parsedLimit)
         .skip(skip)
-        .populate('data.followerId', 'name avatar username')
-        .populate('data.goalId', 'title category')
-        .populate('data.likerId', 'name avatar username')
-        .populate('data.actorId', 'name avatar username')
-        .populate('data.activityId', 'type message')
-        .populate('data.commentId'),
+        .lean(),
       Notification.countDocuments(baseQuery),
       // Unread count should reflect same scope/category
       Notification.countDocuments({ userId: req.user.id, isRead: false, ...(type ? { type } : (scopeValue === 'social' ? { type: { $in: socialTypes } } : {})) })
@@ -125,8 +120,11 @@ const getNotifications = async (req, res, next) => {
     console.log('[getNotifications] Query:', JSON.stringify(baseQuery));
     console.log('[getNotifications] Found items:', items.length, 'Types:', items.map(i => i.type));
 
+    // Enrich notifications with actor user data
+    const enrichedNotifications = await enrichNotificationsWithUserData(items);
+
     // Sanitize notifications
-    const sanitizedNotifications = items.map(notification => sanitizeNotification(notification));
+    const sanitizedNotifications = enrichedNotifications.map(notification => sanitizeNotification(notification));
     
     console.log('[getNotifications] Sanitized count:', sanitizedNotifications.length);
 
@@ -136,13 +134,85 @@ const getNotifications = async (req, res, next) => {
   }
 };
 
+// Helper function to enrich notifications with user data
+async function enrichNotificationsWithUserData(notifications) {
+  if (!notifications || notifications.length === 0) return [];
+  
+  try {
+    const pgUserService = require('../services/pgUserService');
+    
+    // Convert mongoose documents to plain objects if needed
+    const notificationArray = notifications.map(n => {
+      if (n && typeof n.toObject === 'function') return n.toObject();
+      return n;
+    });
+    
+    // Collect unique user IDs from actorId, followerId, and likerId
+    const userIds = new Set();
+    notificationArray.forEach(notif => {
+      if (notif.data?.actorId) userIds.add(notif.data.actorId);
+      if (notif.data?.followerId) userIds.add(notif.data.followerId);
+      if (notif.data?.likerId) userIds.add(notif.data.likerId);
+    });
+    
+    if (userIds.size === 0) return notificationArray;
+    
+    console.log('[enrichNotifications] Fetching users for IDs:', Array.from(userIds));
+    
+    // Fetch all users in one query
+    const users = await pgUserService.getUsersByIds(Array.from(userIds));
+    const userMap = new Map(users.map(u => [u.id, u]));
+    
+    console.log('[enrichNotifications] Found users:', users.length, 'User IDs:', users.map(u => u.id));
+    
+    // Enrich each notification
+    return notificationArray.map(notif => {
+      const enriched = { ...notif };
+      
+      // Ensure data object exists
+      if (!enriched.data) {
+        enriched.data = {};
+      }
+      
+      // Determine which ID to use for actor
+      const actorId = notif.data?.actorId || notif.data?.followerId || notif.data?.likerId;
+      if (actorId) {
+        const user = userMap.get(actorId.toString());
+        if (user) {
+          enriched.data = {
+            ...enriched.data,
+            actor: {
+              id: user.id,
+              name: user.name,
+              username: user.username,
+              avatar: user.avatar_url
+            }
+          };
+          console.log('[enrichNotifications] Enriched notification with actor:', user.name);
+        } else {
+          console.warn('[enrichNotifications] User not found for actorId:', actorId);
+          // Keep the actorId even if user not found
+          enriched.data.actorId = actorId;
+        }
+      }
+      
+      return enriched;
+    });
+  } catch (error) {
+    console.error('[enrichNotifications] Error enriching notifications:', error);
+    // Return original notifications if enrichment fails
+    return notifications;
+  }
+}
+
 // @desc    Mark a notification as read
 // @route   PATCH /api/v1/notifications/:id/read
 // @access  Private
 const markAsRead = async (req, res, next) => {
   try {
     const updated = await Notification.markAsRead(req.params.id, req.user.id);
-    const sanitized = sanitizeNotification(updated);
+    const enriched = await enrichNotificationsWithUserData([updated]);
+    const sanitized = sanitizeNotification(enriched[0]);
     return res.status(200).json({ success: true, data: { notification: sanitized } });
   } catch (err) {
     next(err);
@@ -167,7 +237,8 @@ const markAllAsRead = async (req, res, next) => {
 const deleteNotification = async (req, res, next) => {
   try {
     const deleted = await Notification.deleteNotification(req.params.id, req.user.id);
-    const sanitized = sanitizeNotification(deleted);
+    const enriched = await enrichNotificationsWithUserData([deleted]);
+    const sanitized = sanitizeNotification(enriched[0]);
     return res.status(200).json({ success: true, data: { notification: sanitized } });
   } catch (err) {
     next(err);
@@ -226,12 +297,14 @@ const getFollowRequests = async (req, res, next) => {
         .sort({ createdAt: -1 })
         .limit(parsedLimit)
         .skip(skip)
-        .populate('data.followerId', 'name avatar username')
-        .populate('data.actorId', 'name avatar username'),
+        .lean(),
       Notification.countDocuments(baseQuery)
     ]);
 
-    const sanitizedRequests = items.map(notification => sanitizeNotification(notification));
+    // Enrich with user data
+    const enrichedItems = await enrichNotificationsWithUserData(items);
+
+    const sanitizedRequests = enrichedItems.map(notification => sanitizeNotification(notification));
     
     return res.status(200).json({ 
       success: true, 
@@ -273,8 +346,7 @@ const acceptFollowRequest = async (req, res, next) => {
     const followerId = notification.data.followerId;
 
     // Accept the follow request
-    const Follow = require('../models/Follow');
-    await Follow.acceptFollowRequest(followerId, userId);
+    await pgFollowService.acceptFollowRequest(followerId, userId);
 
     // Convert the notification from follow_request to new_follower
     await Notification.convertFollowRequestToNewFollower(followerId, userId);
@@ -313,8 +385,7 @@ const rejectFollowRequest = async (req, res, next) => {
     const followerId = notification.data.followerId;
 
     // Reject the follow request
-    const Follow = require('../models/Follow');
-    await Follow.rejectFollowRequest(followerId, userId);
+    await pgFollowService.rejectFollowRequest(followerId, userId);
 
     // Delete the notification
     await Notification.deleteFollowRequestNotification(followerId, userId);

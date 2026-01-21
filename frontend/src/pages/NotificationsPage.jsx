@@ -182,7 +182,12 @@ const NotificationsPage = () => {
                           
                           <div className="flex-1 min-w-0">
                             <p className="text-sm text-gray-900 dark:text-gray-100">
-                              <span className="font-semibold cursor-pointer hover:text-primary-500" onClick={() => actorUsername && navigate(`/profile/@${actorUsername}?tab=overview`)}>
+                              <span className="font-semibold cursor-pointer hover:text-primary-500" 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (actorUsername) navigate(`/profile/@${actorUsername}?tab=overview`)
+                                }}
+                                >
                                 {actorName}
                               </span>
                               <span className="text-gray-600 dark:text-gray-400"> wants to follow you</span>
@@ -258,6 +263,7 @@ const NotificationsPage = () => {
                     {items.map((n) => {
                       const actorName = n.data?.actor?.name || 'Someone';
                       const actorAvatar = n.data?.actor?.avatar || '/api/placeholder/48/48';
+                      const actorUsername = n.data?.actor?.username;
                       const goalTitle = n.data?.goalTitle;
                       const isUnread = !n.isRead;
                       
@@ -270,7 +276,7 @@ const NotificationsPage = () => {
                           onClick={() => {
                             if (n.type === 'new_follower') navigate(`/profile/@${n.data.actor.username}?tab=overview`)
                             else if (n.data?.goalId) setOpenGoalId(n.data.goalId)
-                            markNotificationRead(n.id)
+                            if (isUnread) markNotificationRead(n.id)
                           }}
                         >
                           <div className="flex items-start gap-3">
@@ -278,10 +284,10 @@ const NotificationsPage = () => {
                               <img
                                 src={actorAvatar || '/api/placeholder/48/48'}
                                 alt={actorName}
-                                className="w-12 h-12 rounded-full ring-2 ring-white dark:ring-gray-700"
+                                className="w-12 h-12 rounded-full ring-2 ring-white dark:ring-gray-700 cursor-pointer hover:ring-primary-500 transition-all"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  if (n.data?.actor?.username) navigate(`/profile/@${n.data.actor.username}?tab=overview`)
+                                  if (actorUsername) navigate(`/profile/@${actorUsername}?tab=overview`)
                                 }}
                               />
                               {isUnread && (
@@ -291,7 +297,13 @@ const NotificationsPage = () => {
                             
                             <div className="flex-1 min-w-0">
                               <p className="text-sm text-gray-900 dark:text-gray-100">
-                                <span className="font-semibold">{actorName}</span>
+                                <span 
+                                  className="font-semibold cursor-pointer hover:text-primary-500 transition-colors"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (actorUsername) navigate(`/profile/@${actorUsername}?tab=overview`)
+                                  }}
+                                >{actorName}</span>
                                 <span className="text-gray-600 dark:text-gray-400"> {n.message?.replace(actorName, '').trim()}</span>
                               </p>
                               {goalTitle && (

@@ -1,7 +1,4 @@
-const User = require('../models/User');
-const Goal = require('../models/Goal');
 const Activity = require('../models/Activity');
-const Follow = require('../models/Follow');
 const goalService = require('../services/goalService');
 const cacheService = require('../services/cacheService');
 
@@ -17,6 +14,7 @@ const getExploreFeed = async (req, res, next) => {
       {
         $match: {
           completed: true,
+          isPublic: true, // Only show public goals
           completedAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } // Last 7 days
         }
       },

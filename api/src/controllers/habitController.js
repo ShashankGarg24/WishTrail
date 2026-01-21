@@ -3,9 +3,11 @@ const pgHabitService = require('../services/pgHabitService');
 const pgHabitLogService = require('../services/pgHabitLogService');
 const pgGoalService = require('../services/pgGoalService');
 const pgUserService = require('../services/pgUserService');
+const pgFollowService = require('../services/pgFollowService');
 const { sanitizeHabit, sanitizeHabitForProfile } = require('../utility/sanitizer');
 const { getCurrentDateInTimezone, getDateRangeInTimezone } = require('../utility/timezone');
 const { validateHabitCreation, handleValidationResponse } = require('../utility/premiumEnforcement');
+const UserPreferences = require('../models/extended/UserPreferences');
 
 exports.createHabit = async (req, res, next) => {
   try {
@@ -46,19 +48,21 @@ exports.listHabits = async (req, res, next) => {
     
     // Check privacy if viewing another user's habits
     if (targetUsername && targetUsername !== requestingUsername) {
-      const User = require('../models/User');
-      const Follow = require('../models/Follow');
-
-      const targetUser = await User.findOne({ username: targetUsername }).select('isPrivate areHabitsPrivate isActive _id');
-      if (!targetUser || !targetUser.isActive) {
+      // Get user from PostgreSQL
+      const targetUser = await pgUserService.getUserByUsername(targetUsername);
+      if (!targetUser || !targetUser.is_active) {
         return res.status(404).json({
           success: false,
           message: 'User not found'
         });
       }
       
-      // Check if habits are private
-      if (targetUser.areHabitsPrivate) {
+      // Get privacy settings from MongoDB UserPreferences
+      const targetPreferences = await UserPreferences.findOne({ userId: targetUser.id });
+      const showHabits = targetPreferences?.showHabits ?? true; // Default to true if not set
+      
+      // Check if habits are hidden (showHabits = false means private)
+      if (!showHabits) {
         return res.status(403).json({
           success: false,
           message: 'This user\'s habits are private'
@@ -66,8 +70,8 @@ exports.listHabits = async (req, res, next) => {
       }
       
       // Check if profile is private and user is not following
-      if (targetUser.isPrivate) {
-        const isFollowing = await Follow.isFollowing(requestingUserId, String(targetUser._id));
+      if (targetUser.is_private) {
+        const isFollowing = await pgFollowService.isFollowing(requestingUserId, targetUser.id);
         if (!isFollowing) {
           return res.status(403).json({
             success: false,
@@ -76,7 +80,7 @@ exports.listHabits = async (req, res, next) => {
         }
       }
 
-      targetUserId = String(targetUser._id);
+      targetUserId = targetUser.id;
     }
     
     // Determine sort parameters for PostgreSQL

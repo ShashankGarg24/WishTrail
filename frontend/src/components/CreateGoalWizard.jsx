@@ -371,8 +371,8 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
         {step === 1 && (
           <form onSubmit={(e) => { e.preventDefault(); goNext(); }} className="flex-1 overflow-y-auto">
             <div className="px-8 py-6 space-y-6">
-              {/* Premium Limit Indicator (only show for new goals) */}
-              {!editMode && (
+              {/* Premium Limit Indicator (only show when limit reached and for new goals) */}
+              {!editMode && !goalLimits.canCreate && (
                 <PremiumLimitIndicator
                   current={activeGoalsCount}
                   max={goalLimits.maxGoals}

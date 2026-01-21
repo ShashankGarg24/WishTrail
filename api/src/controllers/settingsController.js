@@ -8,6 +8,7 @@ const UserPreferences = require('../models/extended/UserPreferences');
 const getPrivacySettings = async (req, res, next) => {
   try {
     const user = await pgUserService.findById(req.user.id);
+    const prefs = await UserPreferences.findOne({ userId: req.user.id });
     
     if (!user) {
       return res.status(404).json({
@@ -20,7 +21,11 @@ const getPrivacySettings = async (req, res, next) => {
       success: true,
       data: {
         isPrivate: user.is_private,
-        areHabitsPrivate: user.are_habits_private ?? true
+        showHabits: prefs?.privacy?.showHabits ?? false,
+        showGoals: prefs?.privacy?.showGoals ?? true,
+        showActivity: prefs?.privacy?.showActivity ?? true,
+        showEmail: prefs?.privacy?.showEmail ?? false,
+        showLocation: prefs?.privacy?.showLocation ?? true
       }
     });
   } catch (error) {
@@ -33,25 +38,53 @@ const getPrivacySettings = async (req, res, next) => {
 // @access  Private
 const updatePrivacySettings = async (req, res, next) => {
   try {
-    const { isPrivate, areHabitsPrivate, privacy } = req.body;
+    const { isPrivate, showHabits, showGoals, showActivity, showEmail, showLocation } = req.body;
     
-    const updateData = {};
+    // Update PostgreSQL field (isPrivate)
     if (typeof isPrivate !== 'undefined') {
-      updateData.isPrivate = isPrivate;
+      await pgUserService.updateUser(req.user.id, { is_private: isPrivate });
     }
-    if (typeof areHabitsPrivate !== 'undefined') {
-      updateData.areHabitsPrivate = areHabitsPrivate;
+    
+    // Update MongoDB fields (showHabits, showGoals, etc.)
+    const mongoUpdates = {};
+    if (typeof showHabits !== 'undefined') {
+      mongoUpdates['privacy.showHabits'] = Boolean(showHabits);
     }
-    // Note: privacy preferences not yet in PostgreSQL schema
+    if (typeof showGoals !== 'undefined') {
+      mongoUpdates['privacy.showGoals'] = Boolean(showGoals);
+    }
+    if (typeof showActivity !== 'undefined') {
+      mongoUpdates['privacy.showActivity'] = Boolean(showActivity);
+    }
+    if (typeof showEmail !== 'undefined') {
+      mongoUpdates['privacy.showEmail'] = Boolean(showEmail);
+    }
+    if (typeof showLocation !== 'undefined') {
+      mongoUpdates['privacy.showLocation'] = Boolean(showLocation);
+    }
+    
+    if (Object.keys(mongoUpdates).length > 0) {
+      await UserPreferences.findOneAndUpdate(
+        { userId: req.user.id },
+        { $set: mongoUpdates },
+        { upsert: true, new: true }
+      );
+    }
 
-    const user = await pgUserService.updateUser(req.user.id, updateData);
+    // Fetch updated data
+    const user = await pgUserService.findById(req.user.id);
+    const prefs = await UserPreferences.findOne({ userId: req.user.id });
 
     res.status(200).json({
       success: true,
       message: 'Privacy settings updated successfully',
       data: {
         isPrivate: user.is_private,
-        areHabitsPrivate: user.are_habits_private
+        showHabits: prefs?.privacy?.showHabits ?? false,
+        showGoals: prefs?.privacy?.showGoals ?? true,
+        showActivity: prefs?.privacy?.showActivity ?? true,
+        showEmail: prefs?.privacy?.showEmail ?? false,
+        showLocation: prefs?.privacy?.showLocation ?? true
       }
     });
   } catch (error) {

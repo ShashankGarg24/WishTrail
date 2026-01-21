@@ -62,15 +62,11 @@ const notificationSchema = new mongoose.Schema({
     followerId: {
       type: Number
     },
-    followerName: String,
-    followerAvatar: String,
     
     // For goal-related notifications (Number to support PostgreSQL goal IDs)
     goalId: {
       type: Number
     },
-    goalTitle: String,
-    goalCategory: String,
     
     // For achievement notifications
     achievementId: {
@@ -88,15 +84,11 @@ const notificationSchema = new mongoose.Schema({
     likerId: {
       type: Number
     },
-    likerName: String,
-    likerAvatar: String,
-    
+
     // Generic actor (Number for PostgreSQL user IDs)
     actorId: {
       type: Number
     },
-    actorName: String,
-    actorAvatar: String,
     
     // For activity notifications
     activityId: {
@@ -107,7 +99,6 @@ const notificationSchema = new mongoose.Schema({
     habitId: {
       type: Number
     },
-    habitName: String,
     // For comment notifications
     commentId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -272,12 +263,7 @@ notificationSchema.statics.getUserNotifications = function(userId, options = {})
     .sort({ createdAt: -1 })
     .limit(limit)
     .skip(skip)
-    .populate('data.followerId', 'name avatar username')
-    .populate('data.goalId', 'title category')
-    .populate('data.likerId', 'name avatar username')
-    .populate('data.actorId', 'name avatar username')
-    .populate('data.activityId', 'type')
-    .populate('data.commentId');
+    .lean();
 };
 
 // Static method to get unread notification count
@@ -365,11 +351,7 @@ notificationSchema.statics.createFollowNotification = async function(followerId,
     message: `${follower.name} started following you`,
     data: {
       followerId: followerId,
-      followerName: follower.name,
-      followerAvatar: follower.avatar_url,
-      actorId: followerId,
-      actorName: follower.name,
-      actorAvatar: follower.avatar_url
+      actorId: followerId
     }
   });
 };
@@ -383,7 +365,7 @@ notificationSchema.statics.createFollowRequestNotification = async function(foll
   const existing = await this.findOne({ userId: followingId, type: 'follow_request', 'data.followerId': followerId });
   if (existing) {
     // Refresh timestamp and mark unread
-    await this.updateOne({ _id: existing._id }, { $set: { isRead: false, readAt: null, title: 'Follow Request', message: `${follower.name} requested to follow you`, 'data.followerName': follower.name, 'data.followerAvatar': follower.avatar_url, 'data.actorName': follower.name, 'data.actorAvatar': follower.avatar_url, updatedAt: new Date(), createdAt: new Date() } });
+    await this.updateOne({ _id: existing._id }, { $set: { isRead: false, readAt: null, title: 'Follow Request', message: `${follower.name} requested to follow you`, updatedAt: new Date(), createdAt: new Date() } });
     return existing;
   }
   return this.createNotification({
@@ -393,11 +375,7 @@ notificationSchema.statics.createFollowRequestNotification = async function(foll
     message: `${follower.name} requested to follow you`,
     data: {
       followerId,
-      followerName: follower.name,
-      followerAvatar: follower.avatar_url,
-      actorId: followerId,
-      actorName: follower.name,
-      actorAvatar: follower.avatar_url
+      actorId: followerId
     },
     priority: 'high'
     // expiresAt will be set to null automatically in createNotification
@@ -423,8 +401,6 @@ notificationSchema.statics.convertFollowRequestToNewFollower = async function(fo
         type: 'new_follower',
         title: 'New Follower',
         message: `${follower.name} started following you`,
-        'data.followerName': follower.name,
-        'data.followerAvatar': follower.avatar_url,
         isRead: false,
         readAt: null,
         expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) // 1 year after acceptance
@@ -448,9 +424,7 @@ notificationSchema.statics.createFollowAcceptedNotification = async function(fol
     title: 'Request Accepted',
     message: `${following.name} accepted your follow request`,
     data: {
-      actorId: followingId,
-      actorName: following.name,
-      actorAvatar: following.avatar_url
+      actorId: followingId
     }
   });
 };
@@ -470,8 +444,6 @@ notificationSchema.statics.createActivityCommentNotification = async function(co
       message: `${commenter.name} commented on your activity`,
       data: {
         actorId: commenterId,
-        actorName: commenter.name,
-        actorAvatar: commenter.avatar_url,
         activityId: activity._id,
         goalId: activity?.data?.goalId || undefined
       }
@@ -496,8 +468,6 @@ notificationSchema.statics.createCommentReplyNotification = async function(repli
       message: `${replier.name} replied to your comment`,
       data: {
         actorId: replierId,
-        actorName: replier.name,
-        actorAvatar: replier.avatar_url,
         activityId: activity?._id,
         commentId: parentComment._id,
         goalId: activity?.data?.goalId || undefined
@@ -522,8 +492,6 @@ notificationSchema.statics.createMentionNotification = async function(mentionerI
       message: `${mentioner.name} mentioned you`,
       data: {
         actorId: mentionerId,
-        actorName: mentioner.name,
-        actorAvatar: mentioner.avatar_url,
         activityId: context.activityId,
         commentId: context.commentId,
         goalId: context.goalId
@@ -548,7 +516,7 @@ notificationSchema.statics.createActivityLikeNotification = async function(liker
     if (existing) {
       const ageMs = Date.now() - new Date(existing.createdAt).getTime();
       if (ageMs < 60000) return existing; // suppress within 60s
-      await this.updateOne({ _id: existing._id }, { $set: { isRead: false, readAt: null, title: 'Activity liked', message: `${liker.name} liked your activity`, 'data.actorName': liker.name, 'data.actorAvatar': liker.avatar_url, updatedAt: new Date(), createdAt: new Date() } });
+      await this.updateOne({ _id: existing._id }, { $set: { isRead: false, readAt: null, title: 'Activity liked', message: `${liker.name} liked your activity`, updatedAt: new Date(), createdAt: new Date() } });
       return existing;
     }
     return this.createNotification({
@@ -558,8 +526,6 @@ notificationSchema.statics.createActivityLikeNotification = async function(liker
       message: `${liker.name} liked your activity`,
       data: {
         actorId: likerId,
-        actorName: liker.name,
-        actorAvatar: liker.avatar_url,
         activityId: activity._id,
         goalId: activity?.data?.goalId || undefined
       }
@@ -593,7 +559,7 @@ notificationSchema.statics.createCommentLikeNotification = async function(likerI
     if (existing) {
       const ageMs = Date.now() - new Date(existing.createdAt).getTime();
       if (ageMs < 60000) return existing;
-      await this.updateOne({ _id: existing._id }, { $set: { isRead: false, readAt: null, title: 'Comment liked', message: `${liker.name} liked your comment`, 'data.actorName': liker.name, 'data.actorAvatar': liker.avatar_url, 'data.activityId': activityId || existing?.data?.activityId, 'data.goalId': goalId || existing?.data?.goalId, updatedAt: new Date(), createdAt: new Date() } });
+      await this.updateOne({ _id: existing._id }, { $set: { isRead: false, readAt: null, title: 'Comment liked', message: `${liker.name} liked your comment`, 'data.activityId': activityId || existing?.data?.activityId, 'data.goalId': goalId || existing?.data?.goalId, updatedAt: new Date(), createdAt: new Date() } });
       return existing;
     }
     return this.createNotification({
@@ -603,8 +569,6 @@ notificationSchema.statics.createCommentLikeNotification = async function(likerI
       message: `${liker.name} liked your comment`,
       data: {
         actorId: likerId,
-        actorName: liker.name,
-        actorAvatar: liker.avatar_url,
         commentId: comment._id,
         activityId: activityId || undefined,
         goalId: goalId || undefined
@@ -633,7 +597,7 @@ notificationSchema.statics.createGoalLikeNotification = async function(likerId, 
   if (existing) {
     const ageMs = Date.now() - new Date(existing.createdAt).getTime();
     if (ageMs < 60000) return existing;
-    await this.updateOne({ _id: existing._id }, { $set: { isRead: false, readAt: null, title: 'Goal Liked', message: `${liker.name} liked your goal "${goal.title}"`, 'data.likerName': liker.name, 'data.likerAvatar': liker.avatar_url, updatedAt: new Date(), createdAt: new Date() } });
+    await this.updateOne({ _id: existing._id }, { $set: { isRead: false, readAt: null, title: 'Goal Liked', message: `${liker.name} liked your goal "${goal.title}"`, updatedAt: new Date(), createdAt: new Date() } });
     return existing;
   }
   return this.createNotification({
@@ -643,8 +607,6 @@ notificationSchema.statics.createGoalLikeNotification = async function(likerId, 
     message: `${liker.name} liked your goal "${goal.title}"`,
     data: {
       likerId: likerId,
-      likerName: liker.name,
-      likerAvatar: liker.avatar_url,
       goalId: goalId,
       goalTitle: goal.title,
       goalCategory: goal.category

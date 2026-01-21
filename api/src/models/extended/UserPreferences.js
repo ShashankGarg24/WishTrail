@@ -30,19 +30,16 @@ const userPreferencesSchema = new mongoose.Schema({
       default: true
     },
     showGoals: {
-      type: String,
-      enum: ['public', 'followers', 'private'],
-      default: 'followers'
+      type: Boolean,
+      default: true
     },
     showHabits: {
-      type: String,
-      enum: ['public', 'followers', 'private'],
-      default: 'private'
+      type: Boolean,
+      default: false
     },
     showActivity: {
-      type: String,
-      enum: ['public', 'followers', 'private'],
-      default: 'followers'
+      type: Boolean,
+      default: true
     }
   },
 

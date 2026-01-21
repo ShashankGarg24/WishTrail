@@ -518,8 +518,7 @@ class AuthService {
     
     // Update password
     await pgUserService.updateUser(userId, {
-      password: hashedPassword,
-      passwordChangedAt: new Date()
+      password: hashedPassword
     });
     
     // Invalidate all existing refresh tokens for security

@@ -178,7 +178,19 @@ async function sendFcmInternal(tokens, notification) {
       let title = notification.title || 'Notification';
       let body = notification.message || '';
       try {
-        const actorName = notification?.data?.actorName || notification?.data?.likerName || notification?.data?.followerName || '';
+        // Fetch actor name dynamically from ID
+        let actorName = '';
+        const actorId = notification?.data?.actorId || notification?.data?.likerId || notification?.data?.followerId;
+        if (actorId) {
+          try {
+            const pgUserService = require('./pgUserService');
+            const actor = await pgUserService.findById(actorId);
+            actorName = actor?.name || '';
+          } catch (e) {
+            console.error('[push] failed to fetch actor:', e?.message);
+          }
+        }
+        
         const type = String(notification.type || '');
         const actionMap = {
           activity_liked: 'liked your activity',
@@ -254,7 +266,19 @@ async function sendToWebPush(webTokens, notification, dataUrl, invalidFcm) {
   let body = notification.message || '';
   
   try {
-    const actorName = notification?.data?.actorName || notification?.data?.likerName || notification?.data?.followerName || '';
+    // Fetch actor name dynamically from ID
+    let actorName = '';
+    const actorId = notification?.data?.actorId || notification?.data?.likerId || notification?.data?.followerId;
+    if (actorId) {
+      try {
+        const pgUserService = require('./pgUserService');
+        const actor = await pgUserService.findById(actorId);
+        actorName = actor?.name || '';
+      } catch (e) {
+        console.error('[push] failed to fetch actor:', e?.message);
+      }
+    }
+    
     const type = String(notification.type || '');
     const actionMap = {
       activity_liked: 'liked your activity',
