@@ -1,10 +1,12 @@
 ﻿import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Heart, MessageCircle, Send, CheckCircle, Target, Calendar, X, User } from 'lucide-react'
+import { Heart, MessageCircle, Send, CheckCircle, Target, Calendar, X, User, Edit3 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 const ActivityCommentsModal = lazy(() => import('./ActivityCommentsModal'));
+const CompletionModal = lazy(() => import('./CompletionModal'));
 import Timeline from './Timeline'
 import useApiStore from '../store/apiStore'
+import { createPortal } from 'react-dom'
 
 export default function GoalDetailsModal({ isOpen, goalId, onClose, autoOpenComments = false }) {
     const [loading, setLoading] = useState(false)
@@ -16,6 +18,7 @@ export default function GoalDetailsModal({ isOpen, goalId, onClose, autoOpenComm
     const [timeline, setTimeline] = useState(null)
     const [timelineLoading, setTimelineLoading] = useState(false)
     const [timelineVisible, setTimelineVisible] = useState(false)
+    const [isEditCompletionModalOpen, setIsEditCompletionModalOpen] = useState(false)
     const rightPanelScrollRef = useRef(null)
     const commentsAnchorRef = useRef(null)
     const navigate = useNavigate()
@@ -323,9 +326,20 @@ export default function GoalDetailsModal({ isOpen, goalId, onClose, autoOpenComm
                                                 {/* Completion Note */}
                                                 {data?.share?.note && data?.goal?.completedAt && (
                                                     <div className="mt-4 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-                                                        <div className="flex items-center gap-2 mb-1">
-                                                            <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
-                                                            <div className="text-sm font-medium text-green-700 dark:text-green-300">Completion Note</div>
+                                                        <div className="flex items-center justify-between gap-2 mb-1">
+                                                            <div className="flex items-center gap-2">
+                                                                <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
+                                                                <div className="text-sm font-medium text-green-700 dark:text-green-300">Completion Note</div>
+                                                            </div>
+                                                            {data?.goal?.userId === useApiStore.getState().user?.id && (
+                                                                <button
+                                                                    onClick={() => setIsEditCompletionModalOpen(true)}
+                                                                    className="p-1.5 rounded-lg hover:bg-green-100 dark:hover:bg-green-800 transition-colors"
+                                                                    title="Edit completion details"
+                                                                >
+                                                                    <Edit3 className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
+                                                                </button>
+                                                            )}
                                                         </div>
                                                         <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
                                                             {data.share.note}
@@ -614,5 +628,36 @@ export default function GoalDetailsModal({ isOpen, goalId, onClose, autoOpenComm
                 </motion.div>
             )}
         </AnimatePresence>
-    )
+        
+        {/* Edit Completion Modal */}
+        {isEditCompletionModalOpen && data?.goal && createPortal(
+            <Suspense fallback={null}>
+                <CompletionModal
+                    isOpen={isEditCompletionModalOpen}
+                    onClose={() => setIsEditCompletionModalOpen(false)}
+                    onComplete={async (formData) => {
+                        const result = await useApiStore.getState().updateGoalCompletion(goalId, formData);
+                        if (result.success) {
+                            // Reload goal data
+                            const resp = await useApiStore.getState().getGoalPost(goalId);
+                            if (resp?.success) {
+                                setData(resp.data);
+                            }
+                        }
+                        return result;
+                    }}
+                    goalTitle={data.goal.title}
+                    goal={data.goal}
+                    isEditMode={true}
+                    existingData={{
+                        completionNote: data.share?.note || '',
+                        completionAttachmentUrl: data.share?.image || '',
+                        completionFeeling: data.goal?.completionFeeling || 'neutral'
+                    }}
+                />
+            </Suspense>,
+            document.body
+        )}
+    </>
+)
 }

@@ -77,9 +77,10 @@ const goalDetailsSchema = new mongoose.Schema({
     trim: true,
     default: ''
   },
-  shareCompletionNote: {
-    type: Boolean,
-    default: false
+  completionFeeling: {
+    type: String,
+    enum: ['excited', 'proud', 'relieved', 'happy', 'satisfied', 'neutral', 'accomplished', 'grateful'],
+    default: 'neutral'
   },
   
   // Community info (if shared to community)

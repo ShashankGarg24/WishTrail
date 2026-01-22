@@ -99,4 +99,29 @@ router.patch('/:id/toggle', upload.single('attachment'), async (req, res, next) 
   }
 });
 
+// Update goal completion data (note, image, feeling, isPublic)
+router.patch('/:id/completion', upload.single('attachment'), async (req, res, next) => {
+  try {
+    let attachmentUrl = req.body.attachmentUrl || ''; // Default to existing or empty
+    
+    // If new file uploaded, upload to cloudinary
+    if (req.file && req.file.buffer && cloudinaryService.isConfigured()) {
+      const { url } = await cloudinaryService.uploadBuffer(req.file.buffer, { folder: 'wishtrail/user/goals' })
+      attachmentUrl = url || ''
+    }
+
+    // Pass through to controller
+    req.body.attachmentUrl = attachmentUrl
+    return goalController.updateGoalCompletion(req, res, next)
+  } catch (err) {
+    if (err && err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(413).json({ success: false, message: 'Image must be under 1 MB' })
+    }
+    if (err && /Only JPG|JPEG|PNG/.test(err.message)) {
+      return res.status(400).json({ success: false, message: 'Only JPG/JPEG/PNG images are allowed' })
+    }
+    next(err)
+  }
+});
+
 module.exports = router; 

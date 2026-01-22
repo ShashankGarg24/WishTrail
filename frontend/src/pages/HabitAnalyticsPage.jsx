@@ -616,7 +616,7 @@ export default function HabitAnalyticsPage() {
               )}
               <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
                 <p className="text-xs text-gray-500 dark:text-gray-500">
-                  Created {new Date(habit.createdAt).toLocaleDateString()}
+                  Created {formatDate(habit.createdAt)}
                 </p>
                 
                 <select

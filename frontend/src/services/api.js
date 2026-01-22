@@ -249,8 +249,10 @@ export const goalsAPI = {
   updateGoal: (id, goalData) => api.put(`/goals/${id}`, goalData),
   checkDependencies: (id) => api.get(`/goals/${id}/dependencies`),
   deleteGoal: (id) => api.delete(`/goals/${id}`),
-  toggleGoalCompletion: (id, completionNote, shareCompletionNote = true) =>
-    api.patch(`/goals/${id}/toggle`, { completionNote, shareCompletionNote }),
+  toggleGoalCompletion: (id, completionNote) =>
+    api.patch(`/goals/${id}/toggle`, { completionNote }),
+  updateGoalCompletion: (id, completionData) =>
+    api.patch(`/goals/${id}/completion`, completionData),
   likeGoal: (id) => api.patch(`/goals/${id}/like`),
   getYearlyGoals: (year, userId) => api.get(`/goals/yearly/${year}`, { params: { userId } }),
   getShareableGoal: (id) => api.get(`/goals/${id}/share`),

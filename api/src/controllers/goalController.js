@@ -206,9 +206,9 @@ const getGoalPost = async (req, res, next) => {
       if (!user || !user.is_active) return res.status(403).json({ success: false, message: 'Access denied' });
     }
     console.log(goalDetails)
-    // Determine shareable content
-    const shareNote = goalDetails?.shareCompletionNote ? (goalDetails.completionNote || '') : '';
-    const shareImage = goalDetails?.completionAttachmentUrl ? (goalDetails.completionAttachmentUrl || '') : '';
+    // Determine shareable content based on goal's public status
+    const shareNote = goal.is_public ? (goalDetails.completionNote || '') : '';
+    const shareImage = goal.is_public ? (goalDetails.completionAttachmentUrl || '') : '';
     console.log(shareImage);
 
     // Find the activity for this goal
@@ -407,7 +407,10 @@ const getGoals = async (req, res, next) => {
           updatedAt: g.updated_at,
           description: detailsMap[g.id]?.description || '',
           subGoals: detailsMap[g.id]?.progress?.breakdown?.subGoals || [],
-          habitLinks: detailsMap[g.id]?.progress?.breakdown?.habits || []
+          habitLinks: detailsMap[g.id]?.progress?.breakdown?.habits || [],
+          completionNote: detailsMap[g.id]?.completionNote || '',
+          completionAttachmentUrl: detailsMap[g.id]?.completionAttachmentUrl || '',
+          completionFeeling: detailsMap[g.id]?.completionFeeling || 'neutral'
         };
         
         goals.push(obj);
@@ -484,7 +487,10 @@ const getGoals = async (req, res, next) => {
         updatedAt: g.updated_at,
         description: detailsMap[g.id]?.description || '',
         subGoals: detailsMap[g.id]?.progress?.breakdown?.subGoals || [],
-        habitLinks: detailsMap[g.id]?.progress?.breakdown?.habits || []
+        habitLinks: detailsMap[g.id]?.progress?.breakdown?.habits || [],
+        completionNote: detailsMap[g.id]?.completionNote || '',
+        completionAttachmentUrl: detailsMap[g.id]?.completionAttachmentUrl || '',
+        completionFeeling: detailsMap[g.id]?.completionFeeling || 'neutral'
       };
       
       goals.push(obj);
@@ -557,8 +563,7 @@ const getGoal = async (req, res, next) => {
       subGoals: goalDetails?.progress?.breakdown?.subGoals || [],
       habitLinks: goalDetails?.progress?.breakdown?.habits || [],
       completionNote: goalDetails?.completionNote || '',
-      completionAttachmentUrl: goalDetails?.completionAttachmentUrl || '',
-      shareCompletionNote: goalDetails?.shareCompletionNote || false
+      completionAttachmentUrl: goalDetails?.completionAttachmentUrl || ''
     };
 
     res.status(200).json({ success: true, data: { goal: combinedGoal } });
@@ -794,7 +799,7 @@ const updateGoal = async (req, res, next) => {
     }
 
     const { title, description, category, targetDate, subGoals, habitLinks } = req.body;
-    const isPublicFlag = (req.body.isPublic === true || req.body.isPublic === 'true') ? true : goal.is_public;
+    const isPublicFlag = (req.body.isPublic === true || req.body.isPublic === 'true') ? true : false;
 
     // Update PostgreSQL fields
     const pgUpdates = {};
@@ -1162,18 +1167,7 @@ const toggleGoalCompletion = async (req, res, next) => {
         errors: errors.array(),
       })
     }
-    const { completionNote, shareCompletionNote: shareCompletionNoteRaw, attachmentUrl } = req.body
-    
-    // Validate completion note: must have at least 10 words
-    if (completionNote) {
-      const wordCount = completionNote.trim().split(/\s+/).filter(word => word.length > 0).length
-      if (wordCount < 10) {
-        return res.status(400).json({
-          success: false,
-          message: 'Completion note must contain at least 10 words'
-        })
-      }
-    }
+    const { completionNote, attachmentUrl, isPublic: isPublicRaw, completionFeeling } = req.body
     
     const session = await mongoose.startSession();
     let resultGoal = null;
@@ -1188,7 +1182,9 @@ const toggleGoalCompletion = async (req, res, next) => {
         throw Object.assign(new Error('Access denied'), { statusCode: 403 });
       }
 
-      const shareCompletionNote = String(shareCompletionNoteRaw) === 'true' || shareCompletionNoteRaw === true
+      // Allow user to change isPublic flag during completion
+      const newIsPublic = isPublicRaw === 'true' || isPublicRaw === true ? true : (isPublicRaw === 'false' || isPublicRaw === false ? false : goal.is_public)
+      const shareCompletion = newIsPublic ?? true
       
       // Get user's timezone to calculate correct "today"
       const pgUser = await pgUserService.getUserById(req.user.id);
@@ -1212,11 +1208,16 @@ const toggleGoalCompletion = async (req, res, next) => {
 
         resultGoal = await pgGoalService.getGoalById(goal.id);
       } else {
-        // Complete goal in PostgreSQL
+        // Complete goal in PostgreSQL and update isPublic if changed
         const updated = await pgGoalService.completeGoal(goal.id, req.user.id);
         console.log('[toggleGoalCompletion] Updated goal from pgGoalService:', JSON.stringify(updated, null, 2));
         if (!updated) {
           throw Object.assign(new Error('Goal state changed, please retry'), { statusCode: 409 });
+        }
+        
+        // Update isPublic if changed
+        if (newIsPublic !== goal.is_public) {
+          await pgGoalService.updateGoal(goal.id, req.user.id, { is_public: newIsPublic });
         }
 
         // Update completion details in MongoDB
@@ -1225,8 +1226,8 @@ const toggleGoalCompletion = async (req, res, next) => {
           {
             $set: {
               completionNote: completionNote || '',
-              shareCompletionNote: !!shareCompletionNote,
-              completionAttachmentUrl: attachmentUrl || ''
+              completionAttachmentUrl: attachmentUrl || '',
+              completionFeeling: completionFeeling || 'neutral'
             }
           },
           { upsert: true, session }
@@ -1245,12 +1246,12 @@ const toggleGoalCompletion = async (req, res, next) => {
             goalId: goal.id,
             goalTitle: goal.title,
             goalCategory: goal.category,
-            completionNote: shareCompletionNote ? (completionNote || '') : '',
-            completionAttachmentUrl: attachmentUrl || '',
+            completionNote: shareCompletion ? (completionNote || '') : '',
+            completionAttachmentUrl: shareCompletion ? (attachmentUrl || '') : '',
             subGoalsCount: goalDetails?.subGoals?.length || 0,
             completedSubGoalsCount: (goalDetails?.subGoals || []).filter(sg => sg.completed).length
           },
-          { isPublic: !!shareCompletionNote }
+          { isPublic: shareCompletion }
         );
 
         // ✅ Update subGoalCompletedAt in parent goal activities where this goal is a subgoal
@@ -1280,7 +1281,7 @@ const toggleGoalCompletion = async (req, res, next) => {
 
         // Mention detection in completion note (if public)
         try {
-          if (shareCompletionNote && completionNote) {
+          if (completionNote) {
             const mentionMatches = (completionNote.match(/@([a-zA-Z0-9._-]{3,20})/g) || []).map(m => m.slice(1).toLowerCase());
             if (mentionMatches.length > 0) {
               const pgUserService = require('../services/pgUserService');
@@ -1315,7 +1316,6 @@ const toggleGoalCompletion = async (req, res, next) => {
           completed: updated.completed,
           completedAt: updated.completed_at,
           completionNote: completionNote || '',
-          shareCompletionNote: !!shareCompletionNote,
           completionAttachmentUrl: attachmentUrl || ''
         };
       }
@@ -1345,6 +1345,98 @@ const toggleGoalCompletion = async (req, res, next) => {
   }
 }
 
+// @desc    Update goal completion data (note, image, feeling, isPublic)
+// @route   PATCH /api/v1/goals/:id/completion
+// @access  Private
+const updateGoalCompletion = async (req, res, next) => {
+  try {
+    const { completionNote, attachmentUrl, isPublic: isPublicRaw, completionFeeling } = req.body
+    
+    const goal = await pgGoalService.getGoalById(req.params.id);
+    if (!goal) {
+      return res.status(404).json({ success: false, message: 'Goal not found' });
+    }
+    
+    // Check ownership
+    if (Number(goal.user_id) !== Number(req.user.id)) {
+      return res.status(403).json({ success: false, message: 'Access denied' });
+    }
+    
+    // Check if goal is completed
+    if (!goal.completed_at) {
+      return res.status(400).json({ success: false, message: 'Goal is not completed yet' });
+    }
+    
+    const session = await mongoose.startSession();
+    await session.withTransaction(async () => {
+      // Update isPublic flag if changed
+      const newIsPublic = isPublicRaw === 'true' || isPublicRaw === true ? true : 
+                         (isPublicRaw === 'false' || isPublicRaw === false ? false : goal.is_public)
+      const shareCompletion = newIsPublic ?? true
+      
+      if (newIsPublic !== goal.is_public) {
+        await pgGoalService.updateGoal(goal.id, req.user.id, { is_public: newIsPublic });
+      }
+      
+      // Update completion details in MongoDB
+      const updateFields = {};
+      if (completionNote !== undefined) updateFields.completionNote = completionNote || '';
+      if (attachmentUrl !== undefined) updateFields.completionAttachmentUrl = attachmentUrl || '';
+      if (completionFeeling !== undefined) updateFields.completionFeeling = completionFeeling || 'neutral';
+      
+      await GoalDetails.findOneAndUpdate(
+        { goalId: goal.id },
+        { $set: updateFields },
+        { upsert: true, session }
+      );
+      
+      // Get user details for activity update
+      const pgUser = await pgUserService.getUserById(req.user.id);
+      const goalDetails = await GoalDetails.findOne({ goalId: goal.id }).session(session);
+      
+      // Update activity with new completion data
+      await Activity.createOrUpdateGoalActivity(
+        req.user.id,
+        pgUser.name,
+        pgUser.username,
+        pgUser.avatar_url,
+        'completed',
+        {
+          goalId: goal.id,
+          goalTitle: goal.title,
+          goalCategory: goal.category,
+          completionNote: shareCompletion ? (completionNote || '') : '',
+          completionAttachmentUrl: shareCompletion ? (attachmentUrl || '') : '',
+          subGoalsCount: goalDetails?.subGoals?.length || 0,
+          completedSubGoalsCount: (goalDetails?.subGoals || []).filter(sg => sg.completed).length
+        },
+        { isPublic: shareCompletion }
+      );
+    });
+    session.endSession();
+    
+    // Return updated goal data
+    const updatedGoal = await pgGoalService.getGoalById(goal.id);
+    const updatedDetails = await GoalDetails.findOne({ goalId: goal.id }).lean();
+    
+    const resultGoal = {
+      id: updatedGoal.id,
+      userId: updatedGoal.user_id,
+      title: updatedGoal.title,
+      category: updatedGoal.category,
+      isPublic: updatedGoal.is_public,
+      completed: updatedGoal.completed,
+      completedAt: updatedGoal.completed_at,
+      completionNote: updatedDetails?.completionNote || '',
+      completionAttachmentUrl: updatedDetails?.completionAttachmentUrl || '',
+      completionFeeling: updatedDetails?.completionFeeling || 'neutral'
+    };
+    
+    return res.status(200).json({ success: true, data: { goal: resultGoal } });
+  } catch (error) {
+    next(error);
+  }
+}
 
 
 // @desc    Like/unlike goal
@@ -1464,7 +1556,7 @@ const getShareableGoal = async (req, res, next) => {
         category: goal.category,
         completed: goal.completed,
         completedAt: goal.completed_at,
-        completionNote: goalDetails?.shareCompletionNote ? goalDetails.completionNote : null
+        completionNote: goal.is_public ? (goalDetails.completionNote || null) : null
       },
       user: {
         id: goal.user_id,
@@ -1474,7 +1566,7 @@ const getShareableGoal = async (req, res, next) => {
       shareUrl: `${req.protocol}://${req.get('host')}/users/${goal.user_id}`,
       openGraph: {
         title: `${goal.user_name} achieved their goal: ${goal.title}`,
-        description: goalDetails?.shareCompletionNote && goalDetails.completionNote
+        description: goal.is_public && goalDetails.completionNote
           ? `${goalDetails.completionNote.substring(0, 150)}...`
           : `${goal.category} goal completed successfully on ${new Date(goal.completed_at).toLocaleDateString()}`,
         image: `${req.protocol}://${req.get('host')}/api/v1/goals/${goal.id}/og-image`,
@@ -1644,6 +1736,7 @@ module.exports = {
   deleteGoal,
   checkGoalDependencies,
   toggleGoalCompletion,
+  updateGoalCompletion,
   toggleGoalLike,
   getYearlyGoalsSummary,
   getShareableGoal,
@@ -1852,7 +1945,7 @@ module.exports = {
             title: goal.title,
             description: goalDetails?.description || '',
             category: goal.category,
-            completed: goal.completed,
+            completionFeeling: goalDetails?.completionFeeling || 'neutral',
             completedAt: goal.completed_at,
             completionNote: goalDetails?.completionNote || '',
             createdAt: goal.created_at,

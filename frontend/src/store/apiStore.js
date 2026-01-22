@@ -920,9 +920,9 @@ const useApiStore = create(
         }
       },
 
-      toggleGoalCompletion: async (id, completionNote, shareCompletionNote = true) => {
+      toggleGoalCompletion: async (id, completionNote) => {
         try {
-          const response = await goalsAPI.toggleGoalCompletion(id, completionNote, shareCompletionNote);
+          const response = await goalsAPI.toggleGoalCompletion(id, completionNote);
           const { goal } = response.data.data;
 
           // Update in current goals list
@@ -941,6 +941,35 @@ const useApiStore = create(
           // Invalidate goal post detail cache for this goal
           try { get().invalidateGoalPostByGoal?.(id); } catch { }
           try { await get().getDashboardStats({ force: true }); } catch { }
+
+          return { success: true, goal };
+        } catch (error) {
+          const errorMessage = handleApiError(error);
+          set({ error: errorMessage });
+          return { success: false, error: errorMessage };
+        }
+      },
+
+      updateGoalCompletion: async (id, completionData) => {
+        try {
+          const response = await goalsAPI.updateGoalCompletion(id, completionData);
+          const { goal } = response.data.data;
+
+          // Update in current goals list
+          set(state => ({
+            goals: state.goals.map(g => g._id === id || g.id === id ? { ...g, ...goal } : g)
+          }));
+
+          // Invalidate caches
+          const yearToInvalidate = goal?.year;
+          const currentCache = get().cacheGoals || {};
+          const newCache = { ...currentCache };
+          if (yearToInvalidate !== undefined) {
+            Object.keys(newCache).forEach(k => { if (k.includes(`year=${yearToInvalidate}`)) delete newCache[k]; });
+          }
+          set({ cacheGoals: newCache });
+          // Invalidate goal post detail cache for this goal
+          try { get().invalidateGoalPostByGoal?.(id); } catch { }
 
           return { success: true, goal };
         } catch (error) {

@@ -37,6 +37,21 @@ const getIconForEventType = (type) => {
   return iconMap[type] || Target
 }
 
+// Helper function to format completion feeling with emoji
+const formatCompletionFeeling = (feeling) => {
+  const feelingMap = {
+    'neutral': { emoji: '😐', label: 'Neutral' },
+    'relieved': { emoji: '😌', label: 'Relieved' },
+    'satisfied': { emoji: '😊', label: 'Satisfied' },
+    'happy': { emoji: '😄', label: 'Happy' },
+    'proud': { emoji: '😎', label: 'Proud' },
+    'accomplished': { emoji: '🏆', label: 'Accomplished' },
+    'grateful': { emoji: '🙏', label: 'Grateful' },
+    'excited': { emoji: '🎉', label: 'Excited' }
+  }
+  return feelingMap[feeling] || feelingMap['neutral']
+}
+
 const GoalAnalyticsPage = () => {
   const { goalId } = useParams()
   const navigate = useNavigate()
@@ -273,7 +288,8 @@ const GoalAnalyticsPage = () => {
       completedDate,
       timelineEvents,
       subGoals: goal.subGoals || [],
-      habitLinks: goal.habitLinks || []
+      habitLinks: goal.habitLinks || [],
+      completionFeeling: goal.completionFeeling || 'neutral'
     }
   }, [goalData])
 
@@ -373,7 +389,7 @@ const GoalAnalyticsPage = () => {
         </div>
 
         {/* Analytics Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+        <div className={`grid ${analytics?.isCompleted ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-1 md:grid-cols-3'} gap-3 mb-5`}>
           {/* Overview Metrics */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -436,22 +452,28 @@ const GoalAnalyticsPage = () => {
             </div>
           </motion.div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.25 }}
-            className="glass-card-hover p-3 rounded-lg"
-          >
-            <div className="flex items-center justify-between mb-2">
-              <ListChecks className="h-6 w-6 text-green-500" />
-            </div>
-            <div className="text-2xl font-bold text-gray-900 dark:text-white mb-0.5">
-              {analytics?.subGoalsCompleted || 0}/{analytics?.subGoalsTotal || 0}
-            </div>
-            <div className="text-xs text-gray-600 dark:text-gray-400">
-              Sub-goals Completed
-            </div>
-          </motion.div>
+          {/* Only show completion feeling card if goal is completed */}
+          {analytics?.isCompleted && (() => {
+            const feeling = formatCompletionFeeling(analytics.completionFeeling)
+            return (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.25 }}
+                className="glass-card-hover p-3 rounded-lg bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/10 dark:to-emerald-900/10"
+              >
+                <div className="text-3xl mb-2">
+                  {feeling.emoji}
+                </div>
+                <div className="text-xl font-bold text-gray-900 dark:text-white mb-1">
+                  {feeling.label}
+                </div>
+                <div className="text-xs text-gray-500 dark:text-gray-500">
+                  How You Felt
+                </div>
+              </motion.div>
+            )
+          })()}
         </div>
 
         {/* Engagement Metrics */}

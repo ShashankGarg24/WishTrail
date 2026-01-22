@@ -66,6 +66,7 @@ const DashboardPage = () => {
     searchGoals,
     createGoal,
     toggleGoalCompletion,
+    updateGoalCompletion,
     deleteGoal,
     getDashboardYears,
     addDashboardYear,
@@ -643,7 +644,7 @@ const DashboardPage = () => {
     }
   }
 
-  const handleCompleteGoal = async (goalId, completionPayload /* FormData or note */, shareCompletionNote = true) => {
+  const handleCompleteGoal = async (goalId, completionPayload) => {
     let result
     if (completionPayload instanceof FormData) {
       try {
@@ -659,15 +660,38 @@ const DashboardPage = () => {
         result = { success: false, error: e.message }
       }
     } else {
-      result = await toggleGoalCompletion(goalId, completionPayload, shareCompletionNote)
+      result = await toggleGoalCompletion(goalId, completionPayload)
     }
     if (result.success) {
       getDashboardStats({ force: true })
-      getGoals({ year: selectedYearpage }, { force: true })
+      getGoals({ year: selectedYear, page }, { force: true })
     }
     return result
   }
 
+  const handleEditGoalCompletion = async (goalId, completionPayload) => {
+    let result
+    if (completionPayload instanceof FormData) {
+      try {
+        const res = await fetch(`${API_CONFIG.BASE_URL}/goals/${goalId}/completion`, {
+          method: 'PATCH',
+          credentials: 'include',
+          headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
+          body: completionPayload
+        })
+        const data = await res.json()
+        result = { success: res.ok && data.success, data }
+      } catch (e) {
+        result = { success: false, error: e.message }
+      }
+    } else {
+      result = await updateGoalCompletion(goalId, completionPayload)
+    }
+    if (result.success) {
+      getGoals({ year: selectedYear, page }, { force: true })
+    }
+    return result
+  }
   const closeGoalModal = () => {
     setOpenGoalId(null)
     setScrollCommentsOnOpen(false)
@@ -934,7 +958,19 @@ const DashboardPage = () => {
                   return (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                       {visibleGoals.map((goal, index) => (
-                        <WishCard key={goal.id} wish={goal} year={selectedYear} index={index} onToggle={() => handleToggleGoal(goal.id)} onDelete={() => handleDeleteGoal(goal.id)} onComplete={handleCompleteGoal} isViewingOwnGoals={true} onOpenGoal={(id) => setOpenGoalId(id)} onOpenAnalytics={(id) => navigate(`/goals/${id}/analytics`)} />
+                        <WishCard 
+                          key={goal.id} 
+                          wish={goal} 
+                          year={selectedYear} 
+                          index={index} 
+                          onToggle={() => handleToggleGoal(goal.id)} 
+                          onDelete={() => handleDeleteGoal(goal.id)} 
+                          onComplete={handleCompleteGoal} 
+                          onEditCompletion={handleEditGoalCompletion}
+                          isViewingOwnGoals={true} 
+                          onOpenGoal={(id) => setOpenGoalId(id)} 
+                          onOpenAnalytics={(id) => navigate(`/goals/${id}/analytics`)} 
+                        />
                       ))}
                     </div>
                   );

@@ -1,7 +1,7 @@
 import { lazy, Suspense, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { motion } from 'framer-motion'
-import { CheckCircle, Circle, Edit2, Trash2, Calendar, Tag, Clock, Star, Heart, Share2, FileText } from 'lucide-react'
+import { CheckCircle, Circle, Edit2, Trash2, Calendar, Tag, Clock, Star, Heart, Share2, FileText, Edit3 } from 'lucide-react'
 import useApiStore from '../store/apiStore'
 const CompletionModal = lazy(() => import('./CompletionModal'));
 const ShareModal = lazy(() => import('./ShareModal'));
@@ -9,7 +9,7 @@ const GoalDivisionEditor = lazy(() => import('./GoalDivisionEditor'));
 const CreateGoalWizard = lazy(() => import('./CreateGoalWizard'));
 const DeleteConfirmModal = lazy(() => import('./DeleteConfirmModal'));
 
-const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewingOwnGoals = true, onOpenGoal, onOpenAnalytics, footer, isReadOnly = false }) => {
+const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, onEditCompletion, isViewingOwnGoals = true, onOpenGoal, onOpenAnalytics, footer, isReadOnly = false }) => {
   const { 
     deleteGoal, 
     likeGoal,
@@ -22,6 +22,7 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
   const goalId = wish.id;
   
   const [isCompletionModalOpen, setIsCompletionModalOpen] = useState(false)
+  const [isEditCompletionModalOpen, setIsEditCompletionModalOpen] = useState(false)
   const [isShareModalOpen, setIsShareModalOpen] = useState(false)
   const [isDivisionOpen, setIsDivisionOpen] = useState(false)
   const [isEditWizardOpen, setIsEditWizardOpen] = useState(false)
@@ -37,15 +38,18 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
     }
   }
 
-  const handleComplete = (formDataOrNote, shareCompletionNoteParam = true) => {
+  const handleComplete = (formDataOrNote) => {
     // Backward compatibility: if first arg is FormData, pass as-is. Else build FormData
     if (formDataOrNote instanceof FormData) {
       return onComplete?.(goalId, formDataOrNote)
     }
     const form = new FormData()
     form.append('completionNote', String(formDataOrNote || ''))
-    form.append('shareCompletionNote', String(shareCompletionNoteParam))
     return onComplete?.(goalId, form)
+  }
+  
+  const handleEditCompletion = (formData) => {
+    return onEditCompletion?.(goalId, formData)
   }
 
   const handleDelete = () => {
@@ -167,6 +171,17 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
               <Edit2 className="h-3.5 w-3.5 text-gray-500 dark:text-gray-400 hover:text-primary-500" />
             </button>
           )}
+          {/* Edit completion button for completed goals */}
+          {wish.completedAt && (
+            <button
+              onClick={(e) => { e.stopPropagation(); setIsEditCompletionModalOpen(true); }}
+              className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              disabled={loading}
+              title="Edit completion details"
+            >
+              <Edit3 className="h-3.5 w-3.5 text-gray-500 dark:text-gray-400 hover:text-primary-500" />
+            </button>
+          )}
           {/* Removed wrench button; flow uses edit wizard */}
           {isViewingOwnGoals && wish.completedAt && (
             <button
@@ -242,7 +257,7 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
               <span className="text-xs font-medium text-green-700 dark:text-green-300">Completed!</span>
               {wish.completedAt && (
                 <span className="text-[10px] text-green-600 dark:text-green-400">
-                  {new Date(wish.completedAt).toLocaleDateString()}
+                  {formatDate(wish.completedAt)}
                 </span>
               )}
             </div>
@@ -287,11 +302,13 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
         </div>
       )}
 
-      {/* View Post Button */}
-      {!isReadOnly && onOpenGoal && (
+      {/* View Post Button - Always show at bottom */}
+      {onOpenGoal && (
         <button
           onClick={(e) => { e.stopPropagation(); onOpenGoal?.(wish?.id); }}
-          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all border border-gray-200 dark:border-gray-700"
+          className={`w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all border border-gray-200 dark:border-gray-700 ${
+            wish.completedAt ? 'mt-2' : 'mt-3'
+          }`}
         >
           <FileText className="h-3.5 w-3.5" />
           View Post
@@ -312,6 +329,24 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, isViewing
           onComplete={handleComplete}
           goalTitle={wish.title}
           goal={wish}
+        /></Suspense>,
+        document.body
+      )}
+
+      {/* Edit Completion Modal - Rendered at document body level */}
+      {isEditCompletionModalOpen && createPortal(
+        <Suspense fallback={null}><CompletionModal
+          isOpen={isEditCompletionModalOpen}
+          onClose={() => setIsEditCompletionModalOpen(false)}
+          onComplete={handleEditCompletion}
+          goalTitle={wish.title}
+          goal={wish}
+          isEditMode={true}
+          existingData={{
+            completionNote: wish.completionNote || '',
+            completionAttachmentUrl: wish.completionAttachmentUrl || '',
+            completionFeeling: wish.completionFeeling || 'neutral'
+          }}
         /></Suspense>,
         document.body
       )}

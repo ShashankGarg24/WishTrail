@@ -184,6 +184,9 @@ const sanitizeGoalForProfile = (goal) => {
     createdAt: obj.createdAt,
     completedAt: obj.completedAt,
     isPublic: obj.isPublic,
+    completionNote: obj.completionNote,
+    completionAttachmentUrl: obj.completionAttachmentUrl,
+    completionFeeling: obj.completionFeeling
   };
 };
 

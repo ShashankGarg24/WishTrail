@@ -5,15 +5,31 @@ import useApiStore from '../store/apiStore'
 const CelebrationModal = lazy(() => import('./CelebrationModal'));
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
 
-const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal }) => {
+const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal, isEditMode = false, existingData = null }) => {
   const MAX_NOTE_CHARS = 1000
-  const [completionNote, setCompletionNote] = useState('')
-  const [shareCompletionNote, setShareCompletionNote] = useState(true)
+  const [completionNote, setCompletionNote] = useState(existingData?.completionNote || '')
   const [showCelebration, setShowCelebration] = useState(false)
   const [attachmentFile, setAttachmentFile] = useState(null)
   const [attachmentError, setAttachmentError] = useState('')
-  const [attachmentPreview, setAttachmentPreview] = useState('')
+  const [attachmentPreview, setAttachmentPreview] = useState(existingData?.completionAttachmentUrl || '')
+  const [existingAttachmentUrl, setExistingAttachmentUrl] = useState(existingData?.completionAttachmentUrl || '')
+  const [removeExistingImage, setRemoveExistingImage] = useState(false)
+  const [completionFeeling, setCompletionFeeling] = useState(existingData?.completionFeeling || 'neutral')
   const { loading } = useApiStore()
+  
+  // Allow user to change isPublic flag during completion
+  const [isPublic, setIsPublic] = useState(goal?.isPublic ?? true)
+  
+  // Update state when existingData changes
+  useEffect(() => {
+    if (isEditMode && existingData) {
+      setCompletionNote(existingData.completionNote || '')
+      setCompletionFeeling(existingData.completionFeeling || 'neutral')
+      setExistingAttachmentUrl(existingData.completionAttachmentUrl || '')
+      setAttachmentPreview(existingData.completionAttachmentUrl || '')
+      setIsPublic(goal?.isPublic ?? true)
+    }
+  }, [isEditMode, existingData, goal])
 
   const validateNote = (note) => {
     const wordCount = note.trim().split(/\s+/).filter(word => word.length > 0).length
@@ -50,21 +66,19 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal }) => {
   }
 
   const removeAttachment = () => {
-    if (attachmentPreview) URL.revokeObjectURL(attachmentPreview)
+    if (attachmentPreview && !existingAttachmentUrl) {
+      URL.revokeObjectURL(attachmentPreview)
+    }
     setAttachmentPreview('')
     setAttachmentFile(null)
     setAttachmentError('')
+    if (isEditMode && existingAttachmentUrl) {
+      setRemoveExistingImage(true)
+    }
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-
-    if (!validateNote(completionNote)) {
-      window.dispatchEvent(new CustomEvent('wt_toast', {
-        detail: { message: 'Please add at least 10 words describing what you actually did', type: 'error' }
-      }));
-      return
-    }
 
     if (completionNote.trim().length > MAX_NOTE_CHARS) {
       window.dispatchEvent(new CustomEvent('wt_toast', {
@@ -84,35 +98,60 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal }) => {
       // Build FormData for multipart
       const form = new FormData()
       form.append('completionNote', completionNote.trim())
-      form.append('shareCompletionNote', String(shareCompletionNote))
-      if (attachmentFile) form.append('attachment', attachmentFile)
+      form.append('isPublic', String(isPublic))
+      form.append('completionFeeling', completionFeeling)
+      
+      // Handle image update logic
+      if (attachmentFile) {
+        // New file uploaded
+        form.append('attachment', attachmentFile)
+      } else if (isEditMode && removeExistingImage) {
+        // Remove existing image
+        form.append('attachmentUrl', '')
+      } else if (isEditMode && existingAttachmentUrl) {
+        // Keep existing image
+        form.append('attachmentUrl', existingAttachmentUrl)
+      }
 
       const result = await onComplete(form)
 
       if (result.success) {
         setCompletionNote('')
-        setShareCompletionNote(true)
+        setIsPublic(goal?.isPublic ?? true)
+        setCompletionFeeling('neutral')
         setAttachmentFile(null)
         setAttachmentError('')
-        if (attachmentPreview) URL.revokeObjectURL(attachmentPreview)
+        if (attachmentPreview && !existingAttachmentUrl) URL.revokeObjectURL(attachmentPreview)
         setAttachmentPreview('')
-        setTimeout(() => {
-          setShowCelebration(true)}, 500)
+        setExistingAttachmentUrl('')
+        setRemoveExistingImage(false)
+        
+        if (!isEditMode) {
+          setTimeout(() => {
+            setShowCelebration(true)
+          }, 500)
+        } else {
+          window.dispatchEvent(new CustomEvent('wt_toast', {
+            detail: { message: 'Goal completion updated successfully', type: 'success' }
+          }));
+          onClose()
+        }
       } else {
         window.dispatchEvent(new CustomEvent('wt_toast', {
-          detail: { message: result?.data?.message || 'Failed to complete goal. Please try again.', type: 'error' }
+          detail: { message: result?.data?.message || `Failed to ${isEditMode ? 'update' : 'complete'} goal. Please try again.`, type: 'error' }
         }));
       }
     } catch (err) {
       window.dispatchEvent(new CustomEvent('wt_toast', {
-        detail: { message: err?.response?.data?.message || 'Failed to complete goal. Please try again.', type: 'error' }
+        detail: { message: err?.response?.data?.message || `Failed to ${isEditMode ? 'update' : 'complete'} goal. Please try again.`, type: 'error' }
       }));
     }
   }
 
   const handleClose = () => {
     setCompletionNote('')
-    setShareCompletionNote(true)
+    setIsPublic(goal?.isPublic ?? true)
+    setCompletionFeeling('neutral')
     setAttachmentFile(null)
     setAttachmentError('')
     if (attachmentPreview) URL.revokeObjectURL(attachmentPreview)
@@ -169,7 +208,7 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal }) => {
           <div className="flex items-center space-x-2">
             <CheckCircle className="h-6 w-6 text-green-500" />
             <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-              Complete Goal
+              {isEditMode ? 'Edit Completion' : 'Complete Goal'}
             </h2>
           </div>
           <button
@@ -186,7 +225,7 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal }) => {
             "{goalTitle}"
           </h3>
           <p className="text-gray-600 dark:text-gray-400 text-sm">
-            Congratulations! Tell us what you actually did to achieve this goal.
+            Congratulations! Tell us what you did to achieve this goal.
           </p>
         </div>
 
@@ -195,37 +234,67 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal }) => {
           {/* Completion Note */}
           <div>
             <label htmlFor="completionNote" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              What did you do? <span className="text-red-500">*</span>
+              What did you do?
             </label>
             <textarea
               id="completionNote"
               value={completionNote}
               onChange={(e) => setCompletionNote(e.target.value)}
-              placeholder="Describe what you actually did to achieve this goal..."
+              placeholder="Describe what you did to achieve this goal..."
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white resize-none"
               rows={4}
-              required
               maxLength={MAX_NOTE_CHARS}
             />
-            <div className="flex items-center justify-between mt-2 text-xs">
-              <span className={`${
-                wordCount >= 10 ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'
-              }`}>
-                {wordCount >= 10 ? (
-                  <span className="flex items-center">
-                    <CheckCircle className="h-3 w-3 mr-1" />
-                    Looks good!
-                  </span>
-                ) : (
-                  <span className="flex items-center">
-                    <AlertCircle className="h-3 w-3 mr-1" />
-                    At least {10-wordCount} more words required
-                  </span>
-                )}
-              </span>
+            <div className="flex items-center justify-end mt-2 text-xs">
               <span className="text-gray-500 dark:text-gray-400">
                 {charCount}/{MAX_NOTE_CHARS} chars
               </span>
+            </div>
+          </div>
+
+          {/* Completion Feeling */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              How did you feel completing this?
+            </label>
+            <div className="space-y-2">
+              <div className="relative px-1">
+                {/* Dividers */}
+                <div className="absolute top-1 left-0 right-0 flex justify-between px-1">
+                  {Array.from({ length: 8 }).map((_, idx) => (
+                    <div key={idx} className="w-px h-3 bg-gray-300 dark:bg-gray-600"></div>
+                  ))}
+                </div>
+                
+                {/* Slider */}
+                <input
+                  type="range"
+                  min="0"
+                  max="7"
+                  step="1"
+                  value={[
+                    'neutral',
+                    'relieved',
+                    'satisfied',
+                    'happy',
+                    'proud',
+                    'accomplished',
+                    'grateful',
+                    'excited'
+                  ].indexOf(completionFeeling)}
+                  onChange={(e) => {
+                    const feelings = ['neutral', 'relieved', 'satisfied', 'happy', 'proud', 'accomplished', 'grateful', 'excited'];
+                    setCompletionFeeling(feelings[parseInt(e.target.value)]);
+                  }}
+                  className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-primary-500"
+                />
+              </div>
+              
+              <div className="text-center">
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300 capitalize">
+                  {completionFeeling}
+                </span>
+              </div>
             </div>
           </div>
 
@@ -260,20 +329,18 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal }) => {
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <div className="flex items-center space-x-2">
-                  {shareCompletionNote ? (
+                  {isPublic ? (
                     <Globe className="h-5 w-5 text-green-500" />
                   ) : (
                     <Lock className="h-5 w-5 text-gray-500" />
                   )}
                   <div>
                     <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      {attachmentFile ? 'Share note and image with followers' : 'Share note with followers'}
+                      Share completion with followers
                     </label>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {shareCompletionNote
-                        ? attachmentFile
-                          ? 'Your followers will see your note and image in their feed'
-                          : 'Your followers will see your note in their feed'
+                      {isPublic
+                        ? 'Your followers will see your completion note and image in their feed'
                         : 'Keep it private; nothing will be posted to your followers'}
                     </p>
                   </div>
@@ -281,18 +348,18 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal }) => {
               </div>
               <button
                 type="button"
-                onClick={() => setShareCompletionNote(!shareCompletionNote)}
+                onClick={() => setIsPublic(!isPublic)}
                 className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 ${
-                  shareCompletionNote ? 'bg-green-500' : 'bg-gray-200 dark:bg-gray-600'
+                  isPublic ? 'bg-green-500' : 'bg-gray-200 dark:bg-gray-600'
                 }`}
               >
                 <span className="sr-only">
-                  {shareCompletionNote ? 'Disable sharing' : 'Enable sharing'}
+                  {isPublic ? 'Make private' : 'Make public'}
                 </span>
                 <span
                   aria-hidden="true"
                   className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition ease-in-out duration-200 ${
-                    shareCompletionNote ? 'translate-x-5' : 'translate-x-0'
+                    isPublic ? 'translate-x-5' : 'translate-x-0'
                   }`}
                 />
               </button>
@@ -312,9 +379,9 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal }) => {
             <button
               type="submit"
               className="flex-1 py-2 px-4 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              disabled={!validateNote(completionNote) || charCount > MAX_NOTE_CHARS || loading}
+              disabled={charCount > MAX_NOTE_CHARS || loading}
             >
-              {loading ? 'Completing...' : 'Complete Goal'}
+              {loading ? (isEditMode ? 'Updating...' : 'Completing...') : (isEditMode ? 'Update' : 'Complete Goal')}
             </button>
           </div>
         </form>

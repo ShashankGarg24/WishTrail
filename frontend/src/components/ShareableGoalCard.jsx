@@ -97,7 +97,7 @@ const ShareableGoalCard = forwardRef(({ goal, user, onClose }, ref) => {
       </div>
 
       {/* Completion Note */}
-      {goal.completionNote && goal.shareCompletionNote && (
+      {goal.completionNote && (
         <div className="relative z-10 mb-6">
           <div className="bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm rounded-2xl p-4 border border-white/20 dark:border-gray-600/20">
             <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
