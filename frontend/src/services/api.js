@@ -415,6 +415,7 @@ export const habitsAPI = {
   log: (id, payload) => api.post(`/habits/${id}/log`, payload),
   heatmap: (id, params) => api.get(`/habits/${id}/heatmap`, { params }),
   analytics: (id, params) => api.get(`/habits/${id}/analytics`, { params }),
+  logs: (id, params) => api.get(`/habits/${id}/logs`, { params }),
 };
 
 // Location API

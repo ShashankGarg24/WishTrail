@@ -625,16 +625,19 @@ const useApiStore = create(
         set(state => ({ habits: [habit, ...(state.habits || [])], cacheHabitsTs: Date.now() }));
       },
 
-      logHabit: async (id, status) => {
+      logHabit: async (id, status, mood = 'neutral') => {
         try {
           // Get current date key in user's timezone
           const dateKey = getCurrentDateKey();
           
           const response = await habitsAPI.log(id, { 
             status, 
+            mood,
             date: dateKey  // Send date_key calculated in user's timezone
           });
           const data = response?.data?.data || response?.data;
+          console.log(response)
+          console.log(data)
           const updatedHabit = data?.habit;
           
           set(state => ({

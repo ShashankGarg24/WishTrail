@@ -246,15 +246,15 @@ async function toggleLog(userId, habitId, { status = 'done', note = '', mood = '
   if (status === 'skipped' || status === 'missed') {
     // If marking as skipped/missed, update existing log or create new one
     if (existingLog) {
-      log = await pgHabitLogService.updateHabitLog(existingLog.id, userId, { status, mood });
+      log = await pgHabitLogService.updateHabitLog(existingLog.id, userId, { status });
     } else {
       // Create a new log with skipped/missed status (no completions)
       const { query } = require('../config/supabase');
       const result = await query(`
-        INSERT INTO habit_logs (user_id, habit_id, date_key, status, mood, completion_count, completion_times)
-        VALUES ($1, $2, $3, $4, $5, 0, ARRAY[]::timestamp[])
+        INSERT INTO habit_logs (user_id, habit_id, date_key, status, completion_count, completion_times_mood)
+        VALUES ($1, $2, $3, $4, 0, ARRAY[]::jsonb[])
         RETURNING *
-      `, [userId, habitId, dateKey, status, mood]);
+      `, [userId, habitId, dateKey, status]);
       log = result.rows[0];
     }
   } else {
@@ -615,14 +615,14 @@ async function getHabitAnalytics(userId, habitId, { days = 90, userTimezone = 'U
   }
   
   // Timeline data for charts (grouped by date in user's timezone)
-  // Convert completion_times to user's local date for proper grouping
+  // Convert completion_times_mood to user's local date for proper grouping
   const timeline = {};
   const statusCounts = { done: 0, missed: 0, skipped: 0 };
   
   logs.forEach(log => {
-    // If log has completion_times, group them by user's local date
-    if (log.completionTimes && log.completionTimes.length > 0) {
-      log.completionTimes.forEach(completionTime => {
+    // If log has completion_times_mood, group them by user's local date
+    if (log.completionTimesMood && log.completionTimesMood.length > 0) {
+      log.completionTimesMood.forEach(completionTime => {
         // Convert UTC timestamp to user's local date
         let localDate;
         try {
@@ -647,22 +647,22 @@ async function getHabitAnalytics(userId, habitId, { days = 90, userTimezone = 'U
             mood: log.mood,
             note: log.note,
             completionCount: 0,
-            completionTimes: []
+            completionTimesMood: []
           };
         }
         
         timeline[localDate].completionCount++;
-        timeline[localDate].completionTimes.push(completionTime);
+        timeline[localDate].completionTimesMood.push(completionTime);
       });
     } else {
-      // Fallback: use date_key if no completion_times
+      // Fallback: use date_key if no completion_times_mood
       timeline[log.dateKey] = {
         date: log.dateKey,
         status: log.status,
         mood: log.mood,
         note: log.note,
         completionCount: log.completionCount || 0,
-        completionTimes: []
+        completionTimesMoodMood: []
       };
     }
     
@@ -735,14 +735,6 @@ async function getHabitAnalytics(userId, habitId, { days = 90, userTimezone = 'U
     });
   }
   
-  // Mood distribution
-  const moodCounts = { very_positive: 0, positive: 0, neutral: 0, negative: 0, very_negative: 0 };
-  logs.forEach(log => {
-    if (log.mood && moodCounts[log.mood] !== undefined) {
-      moodCounts[log.mood]++;
-    }
-  });
-  
   return {
     habit: {
       _id: habit._id,
@@ -758,8 +750,7 @@ async function getHabitAnalytics(userId, habitId, { days = 90, userTimezone = 'U
     consistency,
     statusCounts,
     timeline: Object.values(timeline),
-    weeklyData,
-    moodCounts
+    weeklyData
   };
 }
 

@@ -32,31 +32,30 @@ class PgHabitLogService {
 
       let log;
       if (existingResult.rows.length > 0) {
-        // Update existing log
+        // Update existing log - append new completion with timestamp and mood
         const updateSql = `
           UPDATE habit_logs
           SET status = $1,
-              mood = $2,
-              completion_count = completion_count + $3,
-              completion_times = array_append(completion_times, CURRENT_TIMESTAMP)
+              completion_count = completion_count + $2,
+              completion_times_mood = array_append(completion_times_mood, jsonb_build_object('timestamp', CURRENT_TIMESTAMP, 'mood', $3::text))
           WHERE id = $4
           RETURNING *
         `;
         const updateResult = await client.query(updateSql, [
-          status, mood, completionCount, existingResult.rows[0].id
+          status, completionCount, mood, existingResult.rows[0].id
         ]);
         log = updateResult.rows[0];
       } else {
-        // Create new log
+        // Create new log with first completion
         const insertSql = `
           INSERT INTO habit_logs (
-            user_id, habit_id, date_key, status, mood,
-            completion_count, completion_times
-          ) VALUES ($1, $2, $3::date, $4, $5, $6, ARRAY[CURRENT_TIMESTAMP])
+            user_id, habit_id, date_key, status,
+            completion_count, completion_times_mood
+          ) VALUES ($1, $2, $3::date, $4, $5, ARRAY[jsonb_build_object('timestamp', CURRENT_TIMESTAMP, 'mood', $6::text)])
           RETURNING *
         `;
         const insertResult = await client.query(insertSql, [
-          userId, habitId, dateKey, status, mood, completionCount
+          userId, habitId, dateKey, status, completionCount, mood
         ]);
         log = insertResult.rows[0];
       }
@@ -332,7 +331,7 @@ class PgHabitLogService {
       // If status is being changed to 'skipped' or 'missed', clear completion data
       if (updates.status === 'skipped' || updates.status === 'missed') {
         setClause.push(`completion_count = 0`);
-        setClause.push(`completion_times = ARRAY[]::timestamp[]`);
+        setClause.push(`completion_times_mood = ARRAY[]::timestamp[]`);
         
         console.log('[updateHabitLog] Clearing completions, adjusting habit stats');
         
@@ -644,7 +643,7 @@ class PgHabitLogService {
       status: row.status,
       mood: row.mood,
       completionCount: row.completion_count,
-      completionTimes: row.completion_times,
+      completionTimesMood: row.completion_times_mood,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
       // Joined data if available

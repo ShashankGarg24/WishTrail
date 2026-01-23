@@ -300,7 +300,7 @@ exports.toggleLog = async (req, res, next) => {
     
     // Determine date key - always use UTC for storage
     // date_key is for indexing/querying only
-    // Analytics will convert completion_times to user's timezone for display
+    // Analytics will convert completion_times_mood to user's timezone for display
     let dateKey;
     if (date) {
       // If date is already in YYYY-MM-DD format, use it directly
@@ -319,7 +319,6 @@ exports.toggleLog = async (req, res, next) => {
     const result = await habitService.toggleLog(userId, habitId, {
       status: status || 'done',
       mood: mood || 'neutral',
-      journalEntryId,
       date: new Date(dateKey)
     });
     
@@ -377,7 +376,7 @@ exports.getHeatmap = async (req, res, next) => {
     const { query } = require('../config/supabase');
     
     const sql = `
-      SELECT date_key, status, completion_count, completion_times, mood
+      SELECT date_key, status, completion_count, completion_times_mood
       FROM habit_logs
       WHERE habit_id = $1 AND user_id = $2 AND date_key >= $3
       ORDER BY date_key ASC
@@ -385,14 +384,15 @@ exports.getHeatmap = async (req, res, next) => {
     
     const result = await query(sql, [habitId, userId, extendedStartKey]);
     
-    // Convert heatmap data to user's timezone by grouping completion_times
+    // Convert heatmap data to user's timezone by grouping completion_times_mood
     const heatmapMap = {};
     
     result.rows.forEach(row => {
-      if (row.completion_times && row.completion_times.length > 0) {
+      if (row.completion_times_mood && row.completion_times_mood.length > 0) {
         // Group completions by user's local date
-        row.completion_times.forEach(completionTime => {
+        row.completion_times_mood.forEach(completion => {
           let localDate;
+          const completionTime = completion.timestamp || completion;
           try {
             const timestamp = new Date(completionTime);
             const formatter = new Intl.DateTimeFormat('en-CA', {
@@ -411,20 +411,24 @@ exports.getHeatmap = async (req, res, next) => {
               dateKey: localDate,
               status: row.status,
               completionCount: 0,
-              mood: row.mood
+              completions: []
             };
           }
           
           heatmapMap[localDate].completionCount++;
+          heatmapMap[localDate].completions.push({
+            timestamp: completionTime,
+            mood: completion.mood || 'neutral'
+          });
         });
       } else {
-        // Fallback: use date_key if no completion_times
+        // Fallback: use date_key if no completion_times_mood
         if (!heatmapMap[row.date_key]) {
           heatmapMap[row.date_key] = {
             dateKey: row.date_key,
             status: row.status,
             completionCount: row.completion_count || 0,
-            mood: row.mood
+            completions: []
           };
         }
       }
@@ -554,8 +558,7 @@ exports.getHabitAnalytics = async (req, res, next) => {
         date_key,
         status,
         completion_count,
-        completion_times,
-        mood
+        completion_times_mood
       FROM habit_logs
       WHERE habit_id = $1 AND user_id = $2 AND date_key >= $3
       ORDER BY date_key ASC
@@ -581,10 +584,13 @@ exports.getHabitAnalytics = async (req, res, next) => {
     const timelineMap = {};
 
     logs.forEach(l => {
-      // Only process completion_times if status is 'done'
+      // Only process completion_times_mood if status is 'done'
       // Skipped and missed days should show 0 completions
-      if (l.status === 'done' && l.completion_times && l.completion_times.length > 0) {
-        l.completion_times.forEach(completionTime => {
+      if (l.status === 'done' && l.completion_times_mood && l.completion_times_mood.length > 0) {
+        l.completion_times_mood.forEach(completion => {
+          const completionTime = completion.timestamp || completion;
+          const mood = completion.mood || 'neutral';
+          
           // Convert UTC timestamp to user's local date
           let localDate;
           try {
@@ -606,23 +612,26 @@ exports.getHabitAnalytics = async (req, res, next) => {
             timelineMap[localDate] = {
               date: localDate,
               status: l.status,
-              mood: l.mood || 'neutral',
               completionCount: 0,
-              completionTimes: []
+              completionTimesMood: []
             };
           }
           
           timelineMap[localDate].completionCount++;
-          timelineMap[localDate].completionTimes.push(completionTime);
+          timelineMap[localDate].completionTimesMood.push({
+            timestamp: completionTime,
+            mood: mood
+          });
         });
       } else if (l.status === 'skipped' || l.status === 'missed') {
         // For skipped/missed days, show the status but with 0 completions
         // Convert date_key to user timezone if needed
         let localDate;
         try {
-          // If there are completion_times (before it was skipped), use first one for date
-          if (l.completion_times && l.completion_times.length > 0) {
-            const timestamp = new Date(l.completion_times[0]);
+          // If there are completion_times_mood (before it was skipped), use first one for date
+          if (l.completion_times_mood && l.completion_times_mood.length > 0) {
+            const firstCompletion = l.completion_times_mood[0];
+            const timestamp = new Date(firstCompletion.timestamp || firstCompletion);
             const formatter = new Intl.DateTimeFormat('en-CA', {
               timeZone: userTimezone,
               year: 'numeric',
@@ -641,9 +650,8 @@ exports.getHabitAnalytics = async (req, res, next) => {
         timelineMap[localDate] = {
           date: localDate,
           status: l.status,
-          mood: l.mood || 'neutral',
           completionCount: 0,
-          completionTimes: []
+          completionTimesMood: []
         };
       }
     });
@@ -733,21 +741,6 @@ exports.getHabitAnalytics = async (req, res, next) => {
       });
     }
     
-    // Mood distribution
-    const moodCounts = {
-      very_positive: 0,
-      positive: 0,
-      neutral: 0,
-      negative: 0,
-      very_negative: 0
-    };
-    logs.forEach(log => {
-      const mood = log.mood || 'neutral';
-      if (moodCounts[mood] !== undefined) {
-        moodCounts[mood]++;
-      }
-    });
-    
     // Build stats object
     const stats = {
       totalCompletions: sanitizedHabit.totalCompletions,
@@ -795,8 +788,7 @@ exports.getHabitAnalytics = async (req, res, next) => {
         skipped: skips
       },
       timeline,
-      weeklyData,
-      moodCounts
+      weeklyData
     };
     
     res.status(200).json({ success: true, data: { analytics } });
@@ -828,6 +820,137 @@ exports.generateStreakOGImage = async (req, res, next) => {
     res.setHeader('Cache-Control', 'public, max-age=86400');
     res.send(canvas.toBuffer('image/png'));
   } catch (e) { next(e); }
+};
+
+/**
+ * Get habit daily logs with pagination
+ * Calculates average mood for each log based on all completions
+ */
+exports.getHabitLogs = async (req, res, next) => {
+  try {
+    const habitId = parseInt(req.params.id);
+    if (!habitId || isNaN(habitId)) {
+      return res.status(400).json({ success: false, message: 'Invalid habit ID' });
+    }
+
+    const userId = req.user.id;
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 20));
+    const offset = (page - 1) * limit;
+    
+    // Verify habit exists and belongs to user
+    const habit = await pgHabitService.getHabitById(habitId, userId);
+    if (!habit) {
+      return res.status(404).json({ success: false, message: 'Habit not found' });
+    }
+    
+    // Get user timezone for proper date display
+    const pgUser = await pgUserService.getUserById(userId);
+    const userTimezone = pgUser?.timezone || 'UTC';
+    
+    const { query } = require('../config/supabase');
+    
+    // Get total count
+    const countSql = `
+      SELECT COUNT(*) as total
+      FROM habit_logs
+      WHERE habit_id = $1 AND user_id = $2
+    `;
+    const countResult = await query(countSql, [habitId, userId]);
+    const total = parseInt(countResult.rows[0]?.total || 0);
+    
+    // Get paginated logs
+    const sql = `
+      SELECT 
+        id,
+        date_key,
+        status,
+        completion_count,
+        completion_times_mood,
+        created_at
+      FROM habit_logs
+      WHERE habit_id = $1 AND user_id = $2
+      ORDER BY date_key DESC
+      LIMIT $3 OFFSET $4
+    `;
+    
+    const result = await query(sql, [habitId, userId, limit, offset]);
+    
+    // Map mood values to numeric scores for averaging
+    const moodScores = {
+      'challenging': 1,
+      'okay': 2,
+      'neutral': 3,
+      'good': 4,
+      'great': 5
+    };
+    
+    const moodLabels = {
+      1: 'challenging',
+      2: 'okay',
+      3: 'neutral',
+      4: 'good',
+      5: 'great'
+    };
+    
+    // Process logs with average mood calculation
+    const logs = result.rows.map(log => {
+      let averageMood = null;
+      let completionTimesMood = [];
+      
+      // Process completion times and calculate average mood
+      if (log.completion_times_mood && Array.isArray(log.completion_times_mood) && log.completion_times_mood.length > 0) {
+        const moods = [];
+        
+        completionTimesMood = log.completion_times_mood.map(completion => {
+          const timestamp = completion.timestamp || completion;
+          const mood = completion.mood || 'neutral';
+          
+          // Collect mood for averaging
+          if (moodScores[mood]) {
+            moods.push(moodScores[mood]);
+          }
+          
+          return {
+            timestamp,
+            mood
+          };
+        });
+        
+        // Calculate average mood
+        if (moods.length > 0) {
+          const avgScore = Math.round(moods.reduce((sum, score) => sum + score, 0) / moods.length);
+          averageMood = moodLabels[avgScore] || 'neutral';
+        }
+      }
+      
+      return {
+        id: log.id,
+        dateKey: log.date_key,
+        status: log.status,
+        completionCount: log.completion_count || 0,
+        completionTimesMood,
+        averageMood,
+        createdAt: log.created_at
+      };
+    });
+    
+    res.json({
+      success: true,
+      data: {
+        logs,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+          hasMore: offset + logs.length < total
+        }
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
 

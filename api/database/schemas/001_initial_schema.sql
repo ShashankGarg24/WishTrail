@@ -206,10 +206,9 @@ CREATE TABLE IF NOT EXISTS habit_logs (
   status VARCHAR(20) DEFAULT 'done' CHECK (status IN ('done', 'missed', 'skipped')),
   value NUMERIC DEFAULT 1, -- Actual value (reps, minutes, etc.)
   note VARCHAR(400) DEFAULT '',
-  mood VARCHAR(20) CHECK (mood IN ('very_negative', 'negative', 'neutral', 'positive', 'very_positive')),
   journal_entry_id VARCHAR(24), -- MongoDB ObjectId reference
   completion_count INTEGER DEFAULT 0 CHECK (completion_count >= 0),
-  completion_times TIMESTAMP WITH TIME ZONE[] DEFAULT ARRAY[]::TIMESTAMP WITH TIME ZONE[],
+  completion_times_mood JSONB[] DEFAULT ARRAY[]::JSONB[], -- Array of {timestamp, mood} objects
   
   -- Timestamps
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,

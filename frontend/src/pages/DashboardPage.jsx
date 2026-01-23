@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, lazy, Suspense, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { Plus, Calendar, Target, CheckCircle, Circle, Star, Award, Lightbulb, Clock, XCircle, SkipForward, Activity, Compass, Pencil, Trash2, Search, X, Filter, SlidersHorizontal } from 'lucide-react'
+import { Plus, Calendar, Target, CheckCircle, Circle, Star, Award, Lightbulb, Clock, XCircle, SkipForward, Activity, Compass, Pencil, Trash2, Search, X, Filter, SlidersHorizontal, Smile, Meh, Frown, Heart, Sparkles } from 'lucide-react'
 const HabitDetailModal = lazy(() => import('../components/HabitDetailModal'));
 const CreateHabitModal = lazy(() => import('../components/CreateHabitModal'));
 const EditHabitModal = lazy(() => import('../components/EditHabitModal'));
@@ -48,6 +48,8 @@ const DashboardPage = () => {
   const [habitSearchQuery, setHabitSearchQuery] = useState('')
   const [isSearchingGoals, setIsSearchingGoals] = useState(false)
   const [isSearchingHabits, setIsSearchingHabits] = useState(false)
+  const [showMoodNudge, setShowMoodNudge] = useState(null) // { habitId, timestamp }
+  const [justLoggedHabits, setJustLoggedHabits] = useState(new Set())
   const goalSearchDebounceRef = useRef(null)
   const habitSearchDebounceRef = useRef(null)
   const [goalFilter, setGoalFilter] = useState('all') // all, completed, in-progress
@@ -732,11 +734,12 @@ const DashboardPage = () => {
     )
   }
 
-  const handleHabitLog = async (status) => {
+  const handleHabitLog = async (status, mood = 'neutral') => {
     if (!selectedHabit) return;
 
     try {
-      const res = await useApiStore.getState().logHabit(selectedHabit.id, status);
+      const res = await useApiStore.getState().logHabit(selectedHabit.id, status, mood);
+      console.log("Habit log response:", res);
       if (res.success) {
         setSelectedHabit((prev) =>
           prev
@@ -754,8 +757,10 @@ const DashboardPage = () => {
             }
             : prev
         );
+        handleStatusToast(status)
+      } else {
+        handleStatusToast("failed")
       }
-      handleStatusToast(status)
     } catch (err) {
       console.error("Failed to log habit:", err);
       window.dispatchEvent(new CustomEvent('wt_toast', {
@@ -764,7 +769,70 @@ const DashboardPage = () => {
     }
   };
 
+  const handleQuickHabitLog = async (habit) => {
+    if (!habit?.id) return;
+    if (justLoggedHabits.has(habit.id)) return;
+
+    try {
+      // Log with neutral mood first
+      await useApiStore.getState().logHabit(habit.id, 'done', 'neutral');
+      
+      // Update local state
+      setUserHabits(prev => prev.map(h => {
+        if (h.id !== habit.id) return h;
+        return {
+          ...h,
+          currentStreak: (h.currentStreak || 0) + 1,
+          longestStreak: Math.max(h.longestStreak || 0, (h.currentStreak || 0) + 1),
+          totalCompletions: (h.totalCompletions || 0) + 1,
+        };
+      }));
+
+      // Mark as logged
+      setJustLoggedHabits(prev => new Set([...prev, habit.id]));
+
+      // Show mood nudge
+      setShowMoodNudge({ habitId: habit.id, timestamp: Date.now() });
+
+      // Auto-dismiss after 2 seconds
+      setTimeout(() => {
+        setShowMoodNudge(prev => {
+          if (prev?.habitId === habit.id) return null;
+          return prev;
+        });
+      }, 2000);
+
+      window.dispatchEvent(new CustomEvent('wt_toast', {
+        detail: { message: '✓ Habit completed!', type: 'success', duration: 1500 }
+      }));
+    } catch (err) {
+      console.error('Failed to log habit:', err);
+      window.dispatchEvent(new CustomEvent('wt_toast', {
+        detail: { message: 'Failed to log habit', type: 'error' }
+      }));
+    }
+  };
+
+  const handleMoodUpdate = async (habitId, mood) => {
+    try {
+      // Update the mood for today's log
+      await useApiStore.getState().logHabit(habitId, 'done', mood);
+      setShowMoodNudge(null);
+      
+      window.dispatchEvent(new CustomEvent('wt_toast', {
+        detail: { message: '✓ Feeling saved!', type: 'success', duration: 1500 }
+      }));
+    } catch (err) {
+      console.error('Failed to update mood:', err);
+    }
+  };
+
   const handleStatusToast = async (status) => {
+    if("failed" === status) {
+      window.dispatchEvent(new CustomEvent('wt_toast',
+      { detail: { message: 'Failed to log habit. Please try again.', type: 'error' } }));
+      return;
+    }
     const msg = status === 'done' ? 'Habit logged successfully' : 'Habit skipped successfully';
     window.dispatchEvent(new CustomEvent('wt_toast',
       { detail: { message: msg, type: 'success', duration: 2000 } }));

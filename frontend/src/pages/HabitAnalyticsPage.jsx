@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  ArrowLeft, TrendingUp, Target, Calendar, BarChart3, Activity, X
+  ArrowLeft, TrendingUp, Target, Calendar, BarChart3, Activity, X, Clock, CheckCircle, XCircle, SkipForward, Smile, Meh, Frown, Heart, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { habitsAPI } from '../services/api';
 import { usePremiumStatus } from '../hooks/usePremium';
@@ -45,10 +45,58 @@ export default function HabitAnalyticsPage() {
   const [days, setDays] = useState(Math.min(90, maxDays));
   const [selectedDay, setSelectedDay] = useState(null);
   const heatmapRef = useRef(null);
+  
+  // Paginated logs state
+  const [logs, setLogs] = useState([]);
+  const [logsPage, setLogsPage] = useState(1);
+  const [logsLoading, setLogsLoading] = useState(false);
+  const [logsPagination, setLogsPagination] = useState(null);
+  const [expandedLogIds, setExpandedLogIds] = useState(new Set());
 
   useEffect(() => {
     loadAnalytics();
+    loadLogs(1); // Load first page of logs
   }, [id, days]);
+  
+  const loadLogs = async (page = 1) => {
+    try {
+      setLogsLoading(true);
+      const response = await habitsAPI.logs(id, { page, limit: 20 });
+      if (response.data?.success) {
+        if (page === 1) {
+          setLogs(response.data.data.logs);
+        } else {
+          setLogs(prev => [...prev, ...response.data.data.logs]);
+        }
+        setLogsPagination(response.data.data.pagination);
+        setLogsPage(page);
+      }
+    } catch (err) {
+      window.dispatchEvent(new CustomEvent('wt_toast', {
+        detail: { message: err.message || 'Failed to load logs', type: 'error' }
+      }));
+    } finally {
+      setLogsLoading(false);
+    }
+  };
+  
+  const loadMoreLogs = () => {
+    if (logsPagination && logsPagination.hasMore && !logsLoading) {
+      loadLogs(logsPage + 1);
+    }
+  };
+  
+  const toggleLogExpanded = (logId) => {
+    setExpandedLogIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(logId)) {
+        newSet.delete(logId);
+      } else {
+        newSet.add(logId);
+      }
+      return newSet;
+    });
+  };
 
   // Close popup when clicking outside - must be before early returns
   useEffect(() => {
@@ -456,7 +504,7 @@ export default function HabitAnalyticsPage() {
       map[entry.date] = {
         status: entry.status,
         completionCount: entry.completionCount || 0,
-        completionTimes: entry.completionTimes || [],
+        completionTimesMood: entry.completionTimesMood || [],
         mood: entry.mood,
         note: entry.note
       };
@@ -487,7 +535,7 @@ export default function HabitAnalyticsPage() {
         date: dateKey,
         status: dayData.status,
         completionCount: dayData.completionCount,
-        completionTimes: dayData.completionTimes || [],
+        completionTimesMood: dayData.completionTimesMood || [],
         mood: dayData.mood,
         note: dayData.note,
         day: date.getUTCDate(),
@@ -622,6 +670,8 @@ export default function HabitAnalyticsPage() {
                 <select
                   value={days}
                   onChange={(e) => {
+
+
                     const newDays = Number(e.target.value);
                     setDays(Math.min(newDays, maxDays));
                   }}
@@ -940,6 +990,217 @@ export default function HabitAnalyticsPage() {
               <div className="w-3 h-3 rounded-sm bg-green-600 dark:bg-green-400" title="4" />
               <div className="w-3 h-3 rounded-sm bg-green-700 dark:bg-green-500" title="5+" />
             </div>
+          </div>
+        </motion.div>
+
+        {/* Habit Logs List */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.5 }}
+          className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm"
+        >
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+              <Calendar className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
+              Daily Logs
+            </h3>
+            {logsPagination && (
+              <span className="text-sm text-gray-500 dark:text-gray-400">
+                {logsPagination.total} total logs
+              </span>
+            )}
+          </div>
+
+          <div className="space-y-2 max-h-[600px] overflow-y-auto">
+            {logs && logs.length > 0 ? (
+              <>
+                {logs.map((log, idx) => {
+                const statusColors = {
+                  done: 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800',
+                  skipped: 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800',
+                  missed: 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800',
+                  none: 'bg-gray-50 dark:bg-gray-800/40 border-gray-200 dark:border-gray-700'
+                };
+
+                const statusIcons = {
+                  done: <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />,
+                  skipped: <SkipForward className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />,
+                  missed: <XCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+                };
+
+                const moodIcons = {
+                  great: { icon: <Heart className="h-4 w-4 text-pink-600 dark:text-pink-400" />, label: 'Great', color: 'text-pink-600 dark:text-pink-400' },
+                  good: { icon: <Smile className="h-4 w-4 text-green-600 dark:text-green-400" />, label: 'Good', color: 'text-green-600 dark:text-green-400' },
+                  okay: { icon: <Meh className="h-4 w-4 text-blue-600 dark:text-blue-400" />, label: 'Okay', color: 'text-blue-600 dark:text-blue-400' },
+                  neutral: { icon: <Meh className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />, label: 'Neutral', color: 'text-yellow-600 dark:text-yellow-400' },
+                  challenging: { icon: <Frown className="h-4 w-4 text-orange-600 dark:text-orange-400" />, label: 'Challenging', color: 'text-orange-600 dark:text-orange-400' }
+                };
+
+                const formatDate = (dateStr) => {
+                  const date = new Date(dateStr + 'T12:00:00Z');
+                  const today = new Date();
+                  const yesterday = new Date(today);
+                  yesterday.setDate(yesterday.getDate() - 1);
+                  
+                  const dateKey = date.toISOString().split('T')[0];
+                  const todayKey = today.toISOString().split('T')[0];
+                  const yesterdayKey = yesterday.toISOString().split('T')[0];
+                  
+                  if (dateKey === todayKey) return 'Today';
+                  if (dateKey === yesterdayKey) return 'Yesterday';
+                  
+                  return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                };
+
+                const formatTime = (timestamp) => {
+                  if (!timestamp) return '';
+                  const date = new Date(timestamp);
+                  return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                };
+                
+                const averageMoodData = log.averageMood ? moodIcons[log.averageMood] : null;
+                  const isExpanded = expandedLogIds.has(log.id);
+
+                  return (
+                    <div
+                      key={log.id || idx}
+                      className={`p-4 rounded-xl border transition-all hover:shadow-md ${statusColors[log.status] || statusColors.none}`}
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        {/* Left: Date and Status */}
+                        <div className="flex items-start gap-3 flex-1">
+                          <div className="flex-shrink-0 mt-1">
+                            {statusIcons[log.status]}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1 flex-wrap">
+                              <span className="font-semibold text-gray-900 dark:text-white">
+                                {formatDate(log.dateKey)}
+                              </span>
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-white dark:bg-gray-900/50 text-gray-600 dark:text-gray-400 capitalize font-medium">
+                                {log.status}
+                              </span>
+                              {/* Average Mood Badge */}
+                              {averageMoodData && log.completionCount > 0 && (
+                                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700">
+                                  {averageMoodData.icon}
+                                  <span className={`text-xs font-medium ${averageMoodData.color}`}>
+                                    Avg: {averageMoodData.label}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Completion details */}
+                            {log.status === 'done' && (
+                              <div className="space-y-2 mt-2">
+                                {/* Completion count with expand button */}
+                                {log.completionCount > 0 && (
+                                  <button
+                                    onClick={() => toggleLogExpanded(log.id)}
+                                    className="flex items-center gap-2 text-sm hover:bg-white/50 dark:hover:bg-gray-900/50 rounded-lg p-1 -ml-1 transition-colors group w-full text-left"
+                                  >
+                                    <CheckCircle className="h-3.5 w-3.5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                                    <span className="text-gray-700 dark:text-gray-300 flex-1">
+                                      <span className="font-semibold">{log.completionCount}</span> completion{log.completionCount !== 1 ? 's' : ''}
+                                    </span>
+                                    {log.completionTimesMood && log.completionTimesMood.length > 0 && (
+                                      <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+                                        <Clock className="h-3 w-3" />
+                                        <span className="group-hover:text-primary-600 dark:group-hover:text-primary-400">
+                                          {isExpanded ? 'Hide' : 'Show'} times
+                                        </span>
+                                        {isExpanded ? (
+                                          <ChevronUp className="h-3.5 w-3.5" />
+                                        ) : (
+                                          <ChevronDown className="h-3.5 w-3.5" />
+                                        )}
+                                      </div>
+                                    )}
+                                  </button>
+                                )}
+
+                                {/* Completion times - Collapsible */}
+                                <AnimatePresence>
+                                  {isExpanded && log.completionTimesMood && log.completionTimesMood.length > 0 && (
+                                    <motion.div
+                                      initial={{ height: 0, opacity: 0 }}
+                                      animate={{ height: 'auto', opacity: 1 }}
+                                      exit={{ height: 0, opacity: 0 }}
+                                      transition={{ duration: 0.2 }}
+                                      className="space-y-2 overflow-hidden"
+                                    >
+                                      {log.completionTimesMood.map((completion, timeIdx) => {
+                                        const timestamp = completion.timestamp || completion;
+                                        const mood = completion.mood || 'neutral';
+                                        const moodData = moodIcons[mood];
+                                        
+                                        return (
+                                          <div key={timeIdx} className="flex items-center gap-3 p-2 rounded-lg bg-white/50 dark:bg-gray-900/30 ml-6">
+                                            <Clock className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                                            <span className="px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs font-medium">
+                                              {formatTime(timestamp)}
+                                            </span>
+                                            {moodData && (
+                                              <div className="flex items-center gap-1.5">
+                                                {moodData.icon}
+                                                <span className={`text-xs font-medium ${moodData.color}`}>
+                                                  {moodData.label}
+                                                </span>
+                                              </div>
+                                            )}
+                                          </div>
+                                        );
+                                      })}
+                                    </motion.div>
+                                  )}
+                                </AnimatePresence>
+                              {/* Note */}
+                              {log.note && (
+                                <div className="mt-2 p-2 rounded-lg bg-white/50 dark:bg-gray-900/30">
+                                  <p className="text-sm text-gray-600 dark:text-gray-400 italic">
+                                    "{log.note}"
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+              
+              {/* Load More Button */}
+              {logsPagination && logsPagination.hasMore && (
+                <button
+                  onClick={loadMoreLogs}
+                  disabled={logsLoading}
+                  className="w-full py-3 mt-4 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-primary-500 dark:hover:border-primary-500 hover:text-primary-600 dark:hover:text-primary-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {logsLoading ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-500" />
+                      Loading...
+                    </div>
+                  ) : (
+                    `Load More (${logsPagination.total - logs.length} remaining)`
+                  )}
+                </button>
+              )}
+            </>
+            ) : logsLoading ? (
+              <div className="text-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto" />
+              </div>
+            ) : (
+              <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+                <Calendar className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                <p>No log data available</p>
+              </div>
+            )}
           </div>
         </motion.div>
       </div>

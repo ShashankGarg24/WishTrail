@@ -1257,7 +1257,7 @@ const toggleGoalCompletion = async (req, res, next) => {
         // ✅ Update subGoalCompletedAt in parent goal activities where this goal is a subgoal
         // Optimized query: use array element match and positional update
         try {
-          const completionTimestamp = updated.completed_at || new Date();
+          const completionTimesMoodtamp = updated.completed_at || new Date();
           const updateResult = await Activity.updateMany(
             { 
               type: 'goal_activity',
@@ -1265,7 +1265,7 @@ const toggleGoalCompletion = async (req, res, next) => {
             },
             {
               $set: {
-                'data.updates.$[elem].subGoalCompletedAt': completionTimestamp
+                'data.updates.$[elem].subGoalCompletedAt': completionTimesMoodtamp
               }
             },
             {

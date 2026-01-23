@@ -1,11 +1,13 @@
 ﻿import { useEffect, useState } from 'react';
-import { CheckCircle, SkipForward, Clock, Pencil, X, Trash2, Calendar, Bell, BarChart3, AlertTriangle } from 'lucide-react';
+import { CheckCircle, SkipForward, Clock, Pencil, X, Trash2, Calendar, Bell, BarChart3, AlertTriangle, Smile, Meh, Frown, Heart, Sparkles } from 'lucide-react';
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock';
 import { useNavigate } from 'react-router-dom';
 
 export default function HabitDetailModal({ habit, isOpen, onClose, onLog, onEdit, onDelete }) {
   const navigate = useNavigate();
   const [showSkipConfirm, setShowSkipConfirm] = useState(false);
+  const [showFeelingSelection, setShowFeelingSelection] = useState(false);
+  const [selectedFeeling, setSelectedFeeling] = useState(null);
   
   useEffect(() => {
     if (isOpen) {
@@ -15,9 +17,13 @@ export default function HabitDetailModal({ habit, isOpen, onClose, onLog, onEdit
     return undefined;
   }, [isOpen]);
   
-  // Reset skip confirm when modal closes
+  // Reset skip confirm and feeling selection when modal closes
   useEffect(() => {
-    if (!isOpen) setShowSkipConfirm(false);
+    if (!isOpen) {
+      setShowSkipConfirm(false);
+      setShowFeelingSelection(false);
+      setSelectedFeeling(null);
+    }
   }, [isOpen]);
   if (!isOpen || !habit) return null;
   const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -29,6 +35,25 @@ export default function HabitDetailModal({ habit, isOpen, onClose, onLog, onEdit
     return Array.isArray(habit.daysOfWeek) && habit.daysOfWeek.includes(day);
   })();
   
+
+  const handleMarkDone = () => {
+    setShowFeelingSelection(true);
+  };
+
+  const handleFeelingSelect = (feeling) => {
+    setSelectedFeeling(feeling);
+    onLog?.('done', feeling);
+    setShowFeelingSelection(false);
+    setSelectedFeeling(null);
+  };
+
+  const feelings = [
+    { id: 'great', label: 'Great', icon: Heart, color: 'from-pink-500 to-rose-500', bgColor: 'bg-pink-50 dark:bg-pink-900/20', textColor: 'text-pink-700 dark:text-pink-300', description: 'Felt amazing!' },
+    { id: 'good', label: 'Good', icon: Smile, color: 'from-green-500 to-emerald-500', bgColor: 'bg-green-50 dark:bg-green-900/20', textColor: 'text-green-700 dark:text-green-300', description: 'Felt good' },
+    { id: 'okay', label: 'Okay', icon: Meh, color: 'from-yellow-500 to-amber-500', bgColor: 'bg-yellow-50 dark:bg-yellow-900/20', textColor: 'text-yellow-700 dark:text-yellow-300', description: 'Just okay' },
+    { id: 'challenging', label: 'Tough', icon: Frown, color: 'from-orange-500 to-red-500', bgColor: 'bg-orange-50 dark:bg-orange-900/20', textColor: 'text-orange-700 dark:text-orange-300', description: 'It was tough' },
+    { id: 'neutral', label: 'Skip', icon: Sparkles, color: 'from-gray-500 to-slate-500', bgColor: 'bg-gray-50 dark:bg-gray-800/40', textColor: 'text-gray-700 dark:text-gray-300', description: 'Just done' }
+  ];
   const handleAnalyticsClick = () => {
     onClose();
     navigate(`/habits/${habit.id}/analytics`);
@@ -113,56 +138,98 @@ export default function HabitDetailModal({ habit, isOpen, onClose, onLog, onEdit
 
         {/* Actions Footer */}
         <div className="bg-gray-50 dark:bg-gray-800/50 px-4 sm:px-8 py-3 sm:py-5 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-3">
-            {/* Analytics Button */}
-            <button
-              onClick={handleAnalyticsClick}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white text-xs sm:text-sm font-medium transition-all shadow-lg shadow-indigo-500/20"
-            >
-              <BarChart3 className="h-4 w-4" /> View Analytics
-            </button>
-            
-            {/* Log Actions */}
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              {showSkipConfirm ? (
-                <div className="flex items-center gap-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl px-3 py-2">
-                  <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 flex-shrink-0" />
-                  <span className="text-xs text-amber-800 dark:text-amber-200">Skip day? All progress will be lost for today.</span>
-                  <button
-                    onClick={() => { onLog?.('skipped'); setShowSkipConfirm(false); }}
-                    className="px-2 py-1 bg-amber-600 hover:bg-amber-700 text-white text-xs rounded-lg font-medium"
-                  >
-                    Yes, Skip
-                  </button>
-                  <button
-                    onClick={() => setShowSkipConfirm(false)}
-                    className="px-2 py-1 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 text-xs rounded-lg font-medium"
-                  >
-                    Cancel
-                  </button>
+          {showFeelingSelection ? (
+            /* Feeling Selection View */
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-900 dark:text-white">How did you feel?</h4>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Share how completing this habit felt</p>
                 </div>
-              ) : (
-                <>
-                  <button
-                    onClick={() => setShowSkipConfirm(true)}
-                    disabled={!isScheduledToday}
-                    className={`flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all ${isScheduledToday ? 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-lg shadow-amber-500/20' : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed opacity-60'}`}
-                    title={isScheduledToday ? 'Skip today' : 'Not scheduled today'}
-                  >
-                    <SkipForward className="h-4 w-4" /> Skip Day
-                  </button>
-                  <button
-                    onClick={() => onLog?.('done')}
-                    disabled={!isScheduledToday}
-                    className={`flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all ${isScheduledToday ? 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-lg shadow-green-500/20' : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed opacity-60'}`}
-                    title={isScheduledToday ? 'Mark done today' : 'Not scheduled today'}
-                  >
-                    <CheckCircle className="h-4 w-4" /> Mark Done
-                  </button>
-                </>
-              )}
+                <button
+                  onClick={() => setShowFeelingSelection(false)}
+                  className="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                  aria-label="Back"
+                >
+                  <X className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                </button>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                {feelings.map((feeling) => {
+                  const Icon = feeling.icon;
+                  return (
+                    <button
+                      key={feeling.id}
+                      onClick={() => handleFeelingSelect(feeling.id)}
+                      className={`${feeling.bgColor} border-2 border-transparent hover:border-current ${feeling.textColor} rounded-xl p-3 transition-all hover:scale-105 active:scale-95 group`}
+                    >
+                      <div className="flex flex-col items-center gap-2">
+                        <div className={`p-2.5 bg-gradient-to-br ${feeling.color} rounded-full group-hover:scale-110 transition-transform`}>
+                          <Icon className="h-5 w-5 text-white" />
+                        </div>
+                        <div className="text-center">
+                          <p className="text-sm font-bold">{feeling.label}</p>
+                          <p className="text-xs opacity-70 mt-0.5">{feeling.description}</p>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          ) : (
+            /* Normal Action Buttons */
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-3">
+              {/* Analytics Button */}
+              <button
+                onClick={handleAnalyticsClick}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white text-xs sm:text-sm font-medium transition-all shadow-lg shadow-indigo-500/20"
+              >
+                <BarChart3 className="h-4 w-4" /> View Analytics
+              </button>
+              
+              {/* Log Actions */}
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                {showSkipConfirm ? (
+                  <div className="flex items-center gap-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl px-3 py-2">
+                    <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+                    <span className="text-xs text-amber-800 dark:text-amber-200">Skip day? All progress will be lost for today.</span>
+                    <button
+                      onClick={() => { onLog?.('skipped'); setShowSkipConfirm(false); }}
+                      className="px-2 py-1 bg-amber-600 hover:bg-amber-700 text-white text-xs rounded-lg font-medium"
+                    >
+                      Yes, Skip
+                    </button>
+                    <button
+                      onClick={() => setShowSkipConfirm(false)}
+                      className="px-2 py-1 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 text-xs rounded-lg font-medium"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => setShowSkipConfirm(true)}
+                      disabled={!isScheduledToday}
+                      className={`flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all ${isScheduledToday ? 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-lg shadow-amber-500/20' : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed opacity-60'}`}
+                      title={isScheduledToday ? 'Skip today' : 'Not scheduled today'}
+                    >
+                      <SkipForward className="h-4 w-4" /> Skip Day
+                    </button>
+                    <button
+                      onClick={handleMarkDone}
+                      disabled={!isScheduledToday}
+                      className={`flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all ${isScheduledToday ? 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-lg shadow-green-500/20' : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed opacity-60'}`}
+                      title={isScheduledToday ? 'Mark done today' : 'Not scheduled today'}
+                    >
+                      <CheckCircle className="h-4 w-4" /> Mark Done
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

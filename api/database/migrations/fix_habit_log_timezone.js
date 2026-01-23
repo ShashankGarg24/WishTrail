@@ -31,12 +31,12 @@ async function fixHabitLogTimezones() {
         hl.habit_id,
         hl.user_id,
         hl.date_key,
-        hl.completion_times,
+        hl.completion_times_mood,
         u.timezone
       FROM habit_logs hl
       JOIN users u ON hl.user_id = u.id
-      WHERE hl.completion_times IS NOT NULL 
-        AND array_length(hl.completion_times, 1) > 0
+      WHERE hl.completion_times_mood IS NOT NULL 
+        AND array_length(hl.completion_times_mood, 1) > 0
       ORDER BY hl.user_id, hl.date_key
     `;
     
@@ -48,11 +48,11 @@ async function fixHabitLogTimezones() {
     
     for (const log of result.rows) {
       const userTimezone = log.timezone || 'UTC';
-      const completionTimes = log.completion_times;
+      const completionTimesMood = log.completion_times_mood;
       
       // Calculate what the date key should be based on the first completion time
       // in the user's timezone
-      const firstCompletion = new Date(completionTimes[0]);
+      const firstCompletion = new Date(completionTimesMood[0]);
       let correctDateKey;
       
       try {
@@ -72,7 +72,7 @@ async function fixHabitLogTimezones() {
         console.log(`User ${log.user_id}, Habit ${log.habit_id}:`);
         console.log(`  Current date_key: ${log.date_key}`);
         console.log(`  Correct date_key: ${correctDateKey}`);
-        console.log(`  First completion: ${completionTimes[0]}`);
+        console.log(`  First completion: ${completionTimesMood[0]}`);
         console.log(`  Timezone: ${userTimezone}`);
         
         // Check if a log already exists for the correct date
@@ -88,16 +88,16 @@ async function fixHabitLogTimezones() {
           
           const mergeQuery = `
             UPDATE habit_logs
-            SET completion_times = array(
-              SELECT DISTINCT unnest(completion_times || $1::timestamp[])
+            SET completion_times_mood = array(
+              SELECT DISTINCT unnest(completion_times_mood || $1::timestamp[])
               ORDER BY 1
             ),
             completion_count = array_length(
-              array(SELECT DISTINCT unnest(completion_times || $1::timestamp[])), 1
+              array(SELECT DISTINCT unnest(completion_times_mood || $1::timestamp[])), 1
             )
             WHERE id = $2
           `;
-          await client.query(mergeQuery, [completionTimes, checkResult.rows[0].id]);
+          await client.query(mergeQuery, [completionTimesMood, checkResult.rows[0].id]);
           
           // Delete the old log
           await client.query('DELETE FROM habit_logs WHERE id = $1', [log.id]);

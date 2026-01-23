@@ -1494,9 +1494,9 @@ const ProfilePage = () => {
             setHabitModalOpen(false);
             setOpenHabitId(null);
           }}
-          onLog={isOwnProfile ? async (status) => {
+          onLog={isOwnProfile ? async (status, mood = 'neutral') => {
             try {
-              await habitsAPI.log(openHabitId, { status });
+              await habitsAPI.log(openHabitId, { status, mood });
               toast.success(`Habit ${status === 'done' ? 'completed' : status}!`);
               fetchUserHabits(); // Refresh the habits list
             } catch (error) {
