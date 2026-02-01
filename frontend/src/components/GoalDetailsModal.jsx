@@ -181,6 +181,7 @@ export default function GoalDetailsModal({ isOpen, goalId, onClose, autoOpenComm
 
 
     return (
+        <>
         <AnimatePresence>
             {isOpen && (
                 <motion.div

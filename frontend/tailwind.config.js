@@ -39,6 +39,7 @@ export default {
       },
       fontFamily: {
         sans: ['Inter', 'ui-sans-serif', 'system-ui'],
+        manrope: ['Manrope', 'ui-sans-serif', 'system-ui'],
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',

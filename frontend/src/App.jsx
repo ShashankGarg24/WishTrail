@@ -2,20 +2,23 @@ import { Routes, Route, useLocation, useNavigate } from 'react-router-dom'
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { GoogleOAuthProvider } from '@react-oauth/google'
 import useApiStore from './store/apiStore'
-import Header from './components/Header'
+import HeaderNew from './components/HeaderNew'
 import ScrollMemory from './components/ScrollMemory'
 import BottomTabBar from './components/BottomTabBar'
-import Footer from './components/Footer'
+import FooterNew from './components/FooterNew'
 import { configService } from './services/configService'
 import { initializeWebPush } from './services/webPush'
 import { notificationsAPI } from './services/api'
 const HomePage = lazy(() => import('./pages/HomePage'))
 const AuthPage = lazy(() => import('./pages/AuthPage'))
 const DashboardPage = lazy(() => import('./pages/DashboardPage'))
+const DashboardPageNew = lazy(() => import('./pages/DashboardPageNew'))
 const ProfilePage = lazy(() => import('./pages/ProfilePage'))
 const InspirationPage = lazy(() => import('./pages/InspirationPage'))
 const FeedPage = lazy(() => import('./pages/FeedPage'))
+const FeedPageNew = lazy(() => import('./pages/FeedPageNew'))
 const DiscoverPage = lazy(() => import('./pages/DiscoverPage'))
+const DiscoverPageNew = lazy(() => import('./pages/DiscoverPageNew'))
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage'))
 const LeaderboardPage = lazy(() => import('./pages/LeaderboardPage'))
 const CommunitiesPage = lazy(() => import('./pages/CommunitiesPage'))
@@ -38,7 +41,7 @@ const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'))
 const TermsOfService = lazy(() => import('./pages/TermsOfService'))
 const CommunityGuidelines = lazy(() => import('./pages/CommunityGuidelines'))
 const CopyrightPolicy = lazy(() => import('./pages/CopyrightPolicy'))
-
+const LeaderboardPageNew = lazy(() => import('./pages/LeaderboardPageNew'))
 function App() {
   const { isDarkMode, initializeAuth, isAuthenticated} = useApiStore()
   const location = useLocation()
@@ -190,7 +193,7 @@ function App() {
         {/* Main content */}
         {/* <div className="relative min-h-screen pb-16 sm:pb-16"> */}
         <div className="relative min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-slate-900 dark:via-gray-900 dark:to-zinc-900 flex flex-col">
-          <Header />
+          <HeaderNew />
           <main className="flex-grow pt-16 pb-24 sm:pb-28">
             <ScrollMemory />
             <Routes>
@@ -198,13 +201,17 @@ function App() {
               <Route path="/auth" element={<Suspense fallback={null}><AuthPage /></Suspense>} />
               <Route path="/reset-password" element={<Suspense fallback={null}><ResetPasswordPage /></Suspense>} />
               <Route path="/dashboard" element={<Suspense fallback={null}><DashboardPage /></Suspense>} />
+              <Route path="/dashboard-new" element={<Suspense fallback={null}><DashboardPageNew /></Suspense>} />
               <Route path="/feed" element={<Suspense fallback={null}><FeedPage /></Suspense>} />
+              <Route path="/feed-new" element={<Suspense fallback={null}><FeedPageNew /></Suspense>} />
               <Route path="/discover" element={<Suspense fallback={null}><DiscoverPage /></Suspense>} />
+              <Route path="/discover-new" element={<Suspense fallback={null}><DiscoverPageNew /></Suspense>} />
               <Route path="/notifications" element={<Suspense fallback={null}><NotificationsPage /></Suspense>} />
               <Route path="/profile/:username" element={<Suspense fallback={null}><ProfilePage /></Suspense>} />
               <Route path="/inspiration" element={<Suspense fallback={null}><InspirationPage /></Suspense>} />
               <Route path="/settings" element={<Suspense fallback={null}><SettingsPage /></Suspense>} />
               <Route path="/leaderboard" element={<Suspense fallback={null}><LeaderboardPage /></Suspense>} />
+              <Route path="/leaderboard-new" element={<Suspense fallback={null}><LeaderboardPageNew /></Suspense>} />
               {/* <Route path="/communities" element={<Suspense fallback={null}><CommunitiesPage /></Suspense>} />
               <Route path="/communities/:id" element={<Suspense fallback={null}><CommunityDetailPage /></Suspense>} /> */}
               <Route path="/habits/:id/analytics" element={<Suspense fallback={null}><HabitAnalyticsPage /></Suspense>} />
@@ -229,7 +236,7 @@ function App() {
           {isAuthenticated && <BottomTabBar />}
           {/* Footer on web at all sizes; hide only inside native app */}
           {!inNativeApp && (
-            <Footer />
+            <FooterNew />
           )}
           <Suspense fallback={null}><FeedbackButton /></Suspense>
         </div>
