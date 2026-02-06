@@ -9,9 +9,9 @@ const FooterNew = () => {
   const quickLinks = [
     { name: 'Home', href: '/' },
     { name: 'Inspiration', href: '/inspiration' },
-    { name: 'Discover', href: '/discover' },
-    { name: 'Dashboard', href: '/dashboard' },
-    { name: 'Leaderboard', href: '/leaderboard' },
+    { name: 'Discover', href: '/discover-new' },
+    { name: 'Dashboard', href: '/dashboard-new' },
+    { name: 'Leaderboard', href: '/leaderboard-new' },
   ]
 
   const legalLinks = [

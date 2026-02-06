@@ -1,13 +1,13 @@
-﻿import { useEffect, useState } from 'react';
-import { CheckCircle, SkipForward, Clock, Pencil, X, Trash2, Calendar, Bell, BarChart3, AlertTriangle, Smile, Meh, Frown, Heart, Sparkles } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { CheckCircle, SkipForward, Clock, X, Calendar, BarChart3, Smile, Meh, Frown, Heart, Sparkles } from 'lucide-react';
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock';
 import { useNavigate } from 'react-router-dom';
 
+const THEME_COLOR = '#4c99e6';
+
 export default function HabitDetailModal({ habit, isOpen, onClose, onLog, onEdit, onDelete }) {
   const navigate = useNavigate();
-  const [showSkipConfirm, setShowSkipConfirm] = useState(false);
   const [showFeelingSelection, setShowFeelingSelection] = useState(false);
-  const [selectedFeeling, setSelectedFeeling] = useState(null);
   
   useEffect(() => {
     if (isOpen) {
@@ -17,161 +17,135 @@ export default function HabitDetailModal({ habit, isOpen, onClose, onLog, onEdit
     return undefined;
   }, [isOpen]);
   
-  // Reset skip confirm and feeling selection when modal closes
   useEffect(() => {
     if (!isOpen) {
-      setShowSkipConfirm(false);
       setShowFeelingSelection(false);
-      setSelectedFeeling(null);
     }
   }, [isOpen]);
+  
   if (!isOpen || !habit) return null;
+  
   const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  const schedule = habit.frequency === 'daily' ? 'Every day' : (habit.daysOfWeek || []).sort().map(d => days[d]).join(', ') || 'Weekly';
+  const schedule = habit.frequency === 'daily' ? 'Daily habit' : (habit.daysOfWeek || []).sort().map(d => days[d]).join(', ') || 'Weekly';
   const isScheduledToday = (() => {
     if (!habit) return false;
     if (habit.frequency === 'daily') return true;
     const day = new Date().getDay();
     return Array.isArray(habit.daysOfWeek) && habit.daysOfWeek.includes(day);
   })();
-  
 
   const handleMarkDone = () => {
     setShowFeelingSelection(true);
   };
 
   const handleFeelingSelect = (feeling) => {
-    setSelectedFeeling(feeling);
     onLog?.('done', feeling);
     setShowFeelingSelection(false);
-    setSelectedFeeling(null);
   };
 
   const feelings = [
-    { id: 'great', label: 'Great', icon: Heart, color: 'from-pink-500 to-rose-500', bgColor: 'bg-pink-50 dark:bg-pink-900/20', textColor: 'text-pink-700 dark:text-pink-300', description: 'Felt amazing!' },
-    { id: 'good', label: 'Good', icon: Smile, color: 'from-green-500 to-emerald-500', bgColor: 'bg-green-50 dark:bg-green-900/20', textColor: 'text-green-700 dark:text-green-300', description: 'Felt good' },
-    { id: 'okay', label: 'Okay', icon: Meh, color: 'from-yellow-500 to-amber-500', bgColor: 'bg-yellow-50 dark:bg-yellow-900/20', textColor: 'text-yellow-700 dark:text-yellow-300', description: 'Just okay' },
-    { id: 'challenging', label: 'Tough', icon: Frown, color: 'from-orange-500 to-red-500', bgColor: 'bg-orange-50 dark:bg-orange-900/20', textColor: 'text-orange-700 dark:text-orange-300', description: 'It was tough' },
-    { id: 'neutral', label: 'Skip', icon: Sparkles, color: 'from-gray-500 to-slate-500', bgColor: 'bg-gray-50 dark:bg-gray-800/40', textColor: 'text-gray-700 dark:text-gray-300', description: 'Just done' }
+    { id: 'great', label: 'GREAT', icon: Heart, color: '#ec4899', bgColor: 'bg-pink-500' },
+    { id: 'good', label: 'GOOD', icon: Smile, color: '#22c55e', bgColor: 'bg-green-500' },
+    { id: 'okay', label: 'OKAY', icon: Meh, color: '#f59e0b', bgColor: 'bg-orange-500' },
+    { id: 'challenging', label: 'TOUGH', icon: Frown, color: '#ef4444', bgColor: 'bg-red-500' },
+    { id: 'neutral', label: 'SKIP', icon: Sparkles, color: '#6b7280', bgColor: 'bg-gray-500' }
   ];
+  
   const handleAnalyticsClick = () => {
     onClose();
     navigate(`/habits/${habit.id}/analytics`);
   };
   
   return (
-    <div className="fixed inset-0 z-[101] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-2xl border border-gray-200 dark:border-gray-800 overflow-hidden h-[80vh] max-h-[80vh] flex flex-col">
+    <div className="fixed inset-0 z-[101] flex items-center justify-center p-4" style={{ zIndex: 1000 }}>
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div
+        className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-lg border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col"
+        style={{ fontFamily: 'Manrope, ui-sans-serif, system-ui', maxHeight: '90vh' }}
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
-        <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 px-4 sm:px-8 py-4 sm:py-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
-          <button onClick={onClose} className="absolute top-3 right-3 sm:top-4 sm:right-4 p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors" aria-label="Close">
-            <X className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+        <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-700 flex-shrink-0 relative">
+          <button
+            type="button"
+            onClick={onClose}
+            className="absolute top-5 right-5 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 transition-colors"
+            aria-label="Close"
+          >
+            <X className="h-5 w-5" />
           </button>
-          <h3 className="text-xl sm:text-2xl font-bold mb-2 pr-10 text-gray-900 dark:text-white">{habit.name}</h3>
-          <div className="flex items-center gap-4 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-            <span className="inline-flex items-center gap-1.5">
-              <Calendar className="h-4 w-4" /> {schedule}
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3 pr-10">{habit.name}</h3>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700">
+              <Calendar className="h-3.5 w-3.5" /> {schedule}
             </span>
             {isScheduledToday && (
-              <span className="inline-flex items-center gap-1.5 bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 px-2.5 py-1 rounded-full font-medium">
-                <Clock className="h-3.5 w-3.5" /> Scheduled today
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium text-white" style={{ backgroundColor: THEME_COLOR }}>
+                <Clock className="h-3.5 w-3.5" /> Scheduled for today
               </span>
             )}
           </div>
         </div>
 
         {/* Content - Scrollable */}
-        <div className="px-4 sm:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6 overflow-y-auto flex-1 min-h-0">
+        <div className="px-6 py-5 space-y-5 overflow-y-auto flex-1 min-h-0">
           {/* Description */}
           {habit.description && (
             <div>
-              <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Description</h4>
-              <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 whitespace-pre-wrap leading-relaxed">{habit.description}</p>
+              <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">Description</h4>
+              <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{habit.description}</p>
             </div>
           )}
 
-          {/* Stats Grid */}
+          {/* Progress Cards */}
           <div>
-            <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Progress</h4>
-            <div className="grid grid-cols-2 gap-3 sm:gap-4">
-              <div className="bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-900/20 dark:to-primary-900/10 border border-primary-200 dark:border-primary-800 rounded-xl p-3 sm:p-4 text-center">
-                <div className="text-xl sm:text-2xl md:text-3xl font-bold text-primary-600 dark:text-primary-400 mb-1">{habit.totalCompletions || 0}</div>
-                <div className="text-xs font-medium text-primary-700 dark:text-primary-300">Total Count</div>
+            <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-3 uppercase tracking-wide">Progress</h4>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-xl p-4 text-center border" style={{ backgroundColor: 'rgba(76, 153, 230, 0.08)', borderColor: 'rgba(76, 153, 230, 0.2)' }}>
+                <div className="text-2xl font-bold mb-1" style={{ color: THEME_COLOR }}>{habit.totalCompletions || 0}</div>
+                <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Total Count</div>
                 {habit.targetCompletions && (
-                  <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                    Goal: {habit.targetCompletions}
-                  </div>
+                  <div className="text-xs" style={{ color: THEME_COLOR }}>Goal: {habit.targetCompletions}</div>
                 )}
               </div>
-              <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/10 border border-green-200 dark:border-green-800 rounded-xl p-3 sm:p-4 text-center">
-                <div className="text-xl sm:text-2xl md:text-3xl font-bold text-green-600 dark:text-green-400 mb-1">{habit.totalDays || 0}</div>
-                <div className="text-xs font-medium text-green-700 dark:text-green-300">Active Days</div>
-                {habit.targetDays && (
-                  <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                    Goal: {habit.targetDays}
-                  </div>
-                )}
+              <div className="rounded-xl p-4 text-center border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/30">
+                <div className="text-2xl font-bold text-gray-900 dark:text-white mb-1">{habit.currentStreak || habit.totalDays || 0}</div>
+                <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Active Days</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">Current streak</div>
               </div>
             </div>
-          </div>
-
-          {/* Reminders */}
-          {Array.isArray(habit.reminders) && habit.reminders.length > 0 && (
-            <div>
-              <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Reminders</h4>
-              <div className="flex flex-wrap gap-2">
-                {habit.reminders.map((r, idx) => (
-                  <span key={idx} className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-medium border border-gray-200 dark:border-gray-700">
-                    <Bell className="h-3.5 w-3.5" /> {r.time}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Additional Info */}
-          <div className="text-xs text-gray-500 dark:text-gray-500">
-            <span>Timezone: {habit.timezone || 'UTC'}</span>
           </div>
         </div>
 
         {/* Actions Footer */}
-        <div className="bg-gray-50 dark:bg-gray-800/50 px-4 sm:px-8 py-3 sm:py-5 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
+        <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-700 flex-shrink-0">
           {showFeelingSelection ? (
-            /* Feeling Selection View */
+            /* Feeling Selection View - only shown after clicking Mark as Done */
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="text-sm font-semibold text-gray-900 dark:text-white">How did you feel?</h4>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Share how completing this habit felt</p>
-                </div>
+                <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">How did you feel?</h4>
                 <button
+                  type="button"
                   onClick={() => setShowFeelingSelection(false)}
-                  className="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-                  aria-label="Back"
+                  className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 transition-colors"
+                  aria-label="Close"
                 >
-                  <X className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                  <X className="h-4 w-4" />
                 </button>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+              <div className="grid grid-cols-5 gap-2">
                 {feelings.map((feeling) => {
                   const Icon = feeling.icon;
                   return (
                     <button
                       key={feeling.id}
+                      type="button"
                       onClick={() => handleFeelingSelect(feeling.id)}
-                      className={`${feeling.bgColor} border-2 border-transparent hover:border-current ${feeling.textColor} rounded-xl p-3 transition-all hover:scale-105 active:scale-95 group`}
+                      className="flex flex-col items-center gap-2 p-3 rounded-full transition-all hover:scale-105 active:scale-95"
+                      style={{ backgroundColor: feeling.color }}
                     >
-                      <div className="flex flex-col items-center gap-2">
-                        <div className={`p-2.5 bg-gradient-to-br ${feeling.color} rounded-full group-hover:scale-110 transition-transform`}>
-                          <Icon className="h-5 w-5 text-white" />
-                        </div>
-                        <div className="text-center">
-                          <p className="text-sm font-bold">{feeling.label}</p>
-                          <p className="text-xs opacity-70 mt-0.5">{feeling.description}</p>
-                        </div>
-                      </div>
+                      <Icon className="h-5 w-5 text-white" />
+                      <span className="text-xs font-medium text-white">{feeling.label}</span>
                     </button>
                   );
                 })}
@@ -179,55 +153,31 @@ export default function HabitDetailModal({ habit, isOpen, onClose, onLog, onEdit
             </div>
           ) : (
             /* Normal Action Buttons */
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-3">
-              {/* Analytics Button */}
+            <div className="flex items-center justify-between gap-3">
               <button
+                type="button"
                 onClick={handleAnalyticsClick}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white text-xs sm:text-sm font-medium transition-all shadow-lg shadow-indigo-500/20"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
               >
                 <BarChart3 className="h-4 w-4" /> View Analytics
               </button>
-              
-              {/* Log Actions */}
-              <div className="flex items-center gap-2 w-full sm:w-auto">
-                {showSkipConfirm ? (
-                  <div className="flex items-center gap-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl px-3 py-2">
-                    <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 flex-shrink-0" />
-                    <span className="text-xs text-amber-800 dark:text-amber-200">Skip day? All progress will be lost for today.</span>
-                    <button
-                      onClick={() => { onLog?.('skipped'); setShowSkipConfirm(false); }}
-                      className="px-2 py-1 bg-amber-600 hover:bg-amber-700 text-white text-xs rounded-lg font-medium"
-                    >
-                      Yes, Skip
-                    </button>
-                    <button
-                      onClick={() => setShowSkipConfirm(false)}
-                      className="px-2 py-1 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 text-xs rounded-lg font-medium"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                ) : (
-                  <>
-                    <button
-                      onClick={() => setShowSkipConfirm(true)}
-                      disabled={!isScheduledToday}
-                      className={`flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all ${isScheduledToday ? 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-lg shadow-amber-500/20' : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed opacity-60'}`}
-                      title={isScheduledToday ? 'Skip today' : 'Not scheduled today'}
-                    >
-                      <SkipForward className="h-4 w-4" /> Skip Day
-                    </button>
-                    <button
-                      onClick={handleMarkDone}
-                      disabled={!isScheduledToday}
-                      className={`flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all ${isScheduledToday ? 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-lg shadow-green-500/20' : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed opacity-60'}`}
-                      title={isScheduledToday ? 'Mark done today' : 'Not scheduled today'}
-                    >
-                      <CheckCircle className="h-4 w-4" /> Mark Done
-                    </button>
-                  </>
-                )}
-              </div>
+              <button
+                type="button"
+                onClick={() => onLog?.('skipped')}
+                disabled={!isScheduledToday}
+                className="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                Skip Day
+              </button>
+              <button
+                type="button"
+                onClick={handleMarkDone}
+                disabled={!isScheduledToday}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-medium hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
+                style={{ backgroundColor: THEME_COLOR }}
+              >
+                <CheckCircle className="h-4 w-4" /> Mark as Done
+              </button>
             </div>
           )}
         </div>

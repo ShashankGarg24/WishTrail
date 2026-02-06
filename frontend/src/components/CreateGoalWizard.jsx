@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState, useCallback, useRef, lazy, Suspense } from 'react'
 import { motion } from 'framer-motion'
-import { X, Plus, Target, Calendar, Tag, AlertCircle, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react'
+import { X, Target, Calendar, Tag, AlertCircle, ChevronLeft, Globe } from 'lucide-react'
 import useApiStore from '../store/apiStore'
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
 const GoalDivisionEditor = lazy(() => import('./GoalDivisionEditor'));
 import { useGoalLimits } from '../hooks/usePremium'
 import PremiumLimitIndicator from './PremiumLimitIndicator'
+
+const THEME_COLOR = '#4c99e6'
 
 export default function CreateGoalWizard({ isOpen, onClose, year, initialData, editMode = false, goalId = null }) {
   const MAX_TITLE_CHARS = 200
@@ -305,7 +307,8 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[9999]"
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[9999] font-manrope"
+      style={{ fontFamily: 'Manrope, ui-sans-serif, system-ui' }}
       onClick={onClose}
     >
       <motion.div
@@ -316,54 +319,56 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 px-8 py-6 border-b border-gray-200 dark:border-gray-700">
-          <button onClick={onClose} className="absolute top-4 right-4 p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
-            <X className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+        <div className="px-8 py-6 border-b border-gray-200 dark:border-gray-700">
+          <button onClick={onClose} className="absolute top-4 right-4 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-600 dark:text-gray-400">
+            <X className="h-5 w-5" />
           </button>
           <div className="flex items-center gap-3 mb-4">
-            <div className="p-2.5 bg-primary-100 dark:bg-primary-900/30 rounded-xl">
-              <Target className="h-6 w-6 text-primary-600 dark:text-primary-400" />
+            <div className="p-2 rounded-full text-white" style={{ backgroundColor: THEME_COLOR }}>
+              <Target className="h-5 w-5" />
             </div>
             <div>
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">
                 {editMode ? 'Edit Goal' : 'Create New Goal'}
               </h2>
-              <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
                 {editMode ? 'Update your goal details' : 'Define what you want to achieve'}
               </p>
             </div>
           </div>
 
-          {/* Stepper */}
-          <div className="flex items-center justify-center gap-3">
+          {/* Stepper: 1 Details | 2 Division */}
+          <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => setStep(1)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                step === 1 
-                  ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 border-2 border-primary-300 dark:border-primary-700' 
-                  : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-2 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-              }`}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all"
             >
-              <span className={`flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold ${
-                step === 1 ? 'bg-primary-500 text-white' : 'bg-gray-300 dark:bg-gray-600 text-gray-600 dark:text-gray-300'
-              }`}>1</span>
-              Details
+              <span
+                className="flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold text-white border-2 border-white"
+                style={{ backgroundColor: step === 1 ? THEME_COLOR : undefined, borderColor: step === 1 ? THEME_COLOR : undefined, ...(step !== 1 ? { backgroundColor: 'var(--tw-gray-200)', color: 'var(--tw-gray-600)' } : {}) }}
+              >
+                {step === 1 ? (
+                  <span style={{ color: '#fff' }}>1</span>
+                ) : (
+                  <span className="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 flex items-center justify-center">1</span>
+                )}
+              </span>
+              <span className={step === 1 ? 'text-gray-900 dark:text-white font-medium' : 'text-gray-500 dark:text-gray-400'}>Details</span>
             </button>
-            <ChevronRight className="h-4 w-4 text-gray-400 dark:text-gray-600" />
+            <div className="w-8 h-0.5 bg-gray-200 dark:bg-gray-600 rounded" />
             <button
               type="button"
               onClick={() => { if (validateStep1()) setStep(2) }}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                step === 2 
-                  ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 border-2 border-primary-300 dark:border-primary-700' 
-                  : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-2 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-              }`}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all"
             >
-              <span className={`flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold ${
-                step === 2 ? 'bg-primary-500 text-white' : 'bg-gray-300 dark:bg-gray-600 text-gray-600 dark:text-gray-300'
-              }`}>2</span>
-              Division
+              <span
+                className={`flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold ${step === 2 ? 'text-white' : 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300'}`}
+                style={step === 2 ? { backgroundColor: THEME_COLOR } : {}}
+              >
+                2
+              </span>
+              <span className={step === 2 ? 'text-gray-900 dark:text-white font-medium' : 'text-gray-500 dark:text-gray-400'}>Division</span>
             </button>
           </div>
         </div>

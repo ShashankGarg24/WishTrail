@@ -20,6 +20,7 @@ const FeedPageNew = lazy(() => import('./pages/FeedPageNew'))
 const DiscoverPage = lazy(() => import('./pages/DiscoverPage'))
 const DiscoverPageNew = lazy(() => import('./pages/DiscoverPageNew'))
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage'))
+const NotificationsPageNew = lazy(() => import('./pages/NotificationsPageNew'))
 const LeaderboardPage = lazy(() => import('./pages/LeaderboardPage'))
 const CommunitiesPage = lazy(() => import('./pages/CommunitiesPage'))
 const CommunityDetailPage = lazy(() => import('./pages/CommunityDetailPage'))
@@ -36,6 +37,7 @@ import { SpeedInsights } from '@vercel/speed-insights/react';
 const FeedbackButton = lazy(() => import('./components/FeedbackButton'))
 const SettingsPage = lazy(() => import('./pages/SettingsPage'))
 const HabitAnalyticsPage = lazy(() => import('./pages/HabitAnalyticsPage'))
+const HabitAnalyticsPageNew = lazy(() => import('./pages/HabitAnalyticsPageNew'))
 const GoalAnalyticsPage = lazy(() => import('./pages/GoalAnalyticsPage'))
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'))
 const TermsOfService = lazy(() => import('./pages/TermsOfService'))
@@ -207,6 +209,7 @@ function App() {
               <Route path="/discover" element={<Suspense fallback={null}><DiscoverPage /></Suspense>} />
               <Route path="/discover-new" element={<Suspense fallback={null}><DiscoverPageNew /></Suspense>} />
               <Route path="/notifications" element={<Suspense fallback={null}><NotificationsPage /></Suspense>} />
+              <Route path="/notifications-new" element={<Suspense fallback={null}><NotificationsPageNew /></Suspense>} />
               <Route path="/profile/:username" element={<Suspense fallback={null}><ProfilePage /></Suspense>} />
               <Route path="/inspiration" element={<Suspense fallback={null}><InspirationPage /></Suspense>} />
               <Route path="/settings" element={<Suspense fallback={null}><SettingsPage /></Suspense>} />
@@ -215,6 +218,7 @@ function App() {
               {/* <Route path="/communities" element={<Suspense fallback={null}><CommunitiesPage /></Suspense>} />
               <Route path="/communities/:id" element={<Suspense fallback={null}><CommunityDetailPage /></Suspense>} /> */}
               <Route path="/habits/:id/analytics" element={<Suspense fallback={null}><HabitAnalyticsPage /></Suspense>} />
+              <Route path="/habits/:id/analytics-new" element={<Suspense fallback={null}><HabitAnalyticsPageNew /></Suspense>} />
               <Route path="/goals/:goalId/analytics" element={<Suspense fallback={null}><GoalAnalyticsPage /></Suspense>} />
               {/* Legal pages */}
               <Route path="/privacy-policy" element={<Suspense fallback={null}><PrivacyPolicy /></Suspense>} />

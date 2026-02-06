@@ -8,6 +8,11 @@ export default {
   theme: {
     extend: {
       colors: {
+        wt: {
+          DEFAULT: '#4c99e6',
+          light: '#6bade8',
+          dark: '#3d7ab8',
+        },
         primary: {
           50: '#eef2ff',
           100: '#e0e7ff',

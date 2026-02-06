@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, User, Mail, MapPin, Globe, Youtube, Instagram, Camera, Save, ExternalLink, Heart, AlertCircle, Smile, Loader2 } from 'lucide-react'
+import { X, User, MapPin, Globe, Youtube, Instagram, Camera, ExternalLink, Heart, AlertCircle, Smile, Loader2, Activity, Plane, Laptop, Palette } from 'lucide-react'
 import toast from 'react-hot-toast'
 import useApiStore from '../store/apiStore'
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
@@ -23,18 +23,20 @@ const MOOD_EMOJIS = [
   '💜', '❤️', '🧡', '💛', '💚', '💙', '💖', '💗', '💓', '💞'
 ]
 
+const THEME_COLOR = '#4c99e6'
+
 const INTERESTS_OPTIONS = [
-  { id: 'fitness', label: 'Fitness', icon: '💪' },
+  { id: 'fitness', label: 'Fitness', Icon: Activity },
+  { id: 'travel', label: 'Travel', Icon: Plane },
+  { id: 'technology', label: 'Technology', Icon: Laptop },
+  { id: 'hobbies', label: 'Hobbies', Icon: Palette },
   { id: 'health', label: 'Health', icon: '🏥' },
-  { id: 'travel', label: 'Travel', icon: '✈️' },
   { id: 'education', label: 'Education', icon: '📚' },
   { id: 'career', label: 'Career', icon: '💼' },
   { id: 'finance', label: 'Finance', icon: '💰' },
-  { id: 'hobbies', label: 'Hobbies', icon: '🎨' },
   { id: 'relationships', label: 'Relationships', icon: '❤️' },
   { id: 'personal_growth', label: 'Personal Growth', icon: '🌱' },
   { id: 'creativity', label: 'Creativity', icon: '🎭' },
-  { id: 'technology', label: 'Technology', icon: '💻' },
   { id: 'business', label: 'Business', icon: '📈' },
   { id: 'lifestyle', label: 'Lifestyle', icon: '🏡' },
   { id: 'spirituality', label: 'Spirituality', icon: '🕯️' },
@@ -46,7 +48,7 @@ const INTERESTS_OPTIONS = [
   { id: 'gaming', label: 'Gaming', icon: '🎮' },
   { id: 'nature', label: 'Nature', icon: '🌿' },
   { id: 'volunteering', label: 'Volunteering', icon: '🤝' }
-];
+]
 
 const ProfileEditModal = ({ isOpen, onClose }) => {
   const [usernameError, setUsernameError] = useState('');
@@ -270,42 +272,45 @@ const ProfileEditModal = ({ isOpen, onClose }) => {
           onClick={handleCancel}
         />
 
-        {/* Modal */}
+        {/* Modal - design match: theme #4c99e6, Manrope */}
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="relative w-full max-w-4xl h-[85vh] bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden"
+          className="relative w-full max-w-xl bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden"
+          style={{ fontFamily: 'Manrope, ui-sans-serif, system-ui', maxHeight: '90vh' }}
         >
           {/* Header */}
-          <div className="px-6 py-4 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+          <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-700">
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white">
                   Edit Profile
                 </h2>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Update your profile information</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Update your profile information</p>
               </div>
               <button
+                type="button"
                 onClick={handleCancel}
-                className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors"
+                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-500 dark:text-gray-400"
+                aria-label="Close"
               >
-                <X className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                <X className="h-5 w-5" />
               </button>
             </div>
           </div>
 
           {/* Content */}
-          <div className="overflow-y-auto scrollbar-hide max-h-[calc(85vh-80px)] px-6 py-6">
+          <div className="overflow-y-auto scrollbar-hide px-6 py-6" style={{ maxHeight: 'calc(90vh - 88px)' }}>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Profile Picture */}
-            <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
-              <div className="relative">
+            <div className="flex items-center gap-4 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
+              <div className="relative flex-shrink-0">
                 <img
-                  src={formData.avatar}
+                  src={formData.avatar || '/api/placeholder/80/80'}
                   alt="Profile"
-                  className="w-20 h-20 rounded-full border-2 border-gray-300 dark:border-gray-600 object-cover"
+                  className="w-20 h-20 rounded-full border border-gray-200 dark:border-gray-600 object-cover"
                 />
                 {avatarUploading && (
                   <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">
@@ -314,9 +319,10 @@ const ProfileEditModal = ({ isOpen, onClose }) => {
                 )}
                 <label
                   htmlFor="avatar-upload"
-                  className="absolute -bottom-1 -right-1 p-1.5 bg-primary-500 text-white rounded-full hover:bg-primary-600 transition-colors cursor-pointer shadow-md"
+                  className="absolute -bottom-0.5 -right-0.5 p-2 rounded-full cursor-pointer shadow-md text-white transition-opacity hover:opacity-90"
+                  style={{ backgroundColor: THEME_COLOR }}
                 >
-                  <Camera className="h-3.5 w-3.5" />
+                  <Camera className="h-4 w-4" />
                 </label>
                 <input
                   id="avatar-upload"
@@ -326,14 +332,14 @@ const ProfileEditModal = ({ isOpen, onClose }) => {
                   className="hidden"
                 />
               </div>
-              <div className="flex-1">
-                <h3 className="text-sm font-medium text-gray-900 dark:text-white">Profile Picture</h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Profile Picture</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                   Click camera icon to upload • JPG/PNG • Max 1MB
                 </p>
                 {avatarError && (
                   <div className="mt-2 text-xs text-red-600 dark:text-red-400 flex items-center gap-1">
-                    <AlertCircle className="h-3.5 w-3.5" />
+                    <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" />
                     <span>{avatarError}</span>
                   </div>
                 )}
@@ -341,76 +347,75 @@ const ProfileEditModal = ({ isOpen, onClose }) => {
             </div>
 
             {/* Basic Information */}
-            <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">
+            <div className="p-4 rounded-xl border border-gray-200 dark:border-gray-700">
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                <User className="h-4 w-4" style={{ color: THEME_COLOR }} />
                 Basic Information
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label htmlFor="name" className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5 uppercase tracking-wider">
                     Full Name
                   </label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <input
-                    id="name"
-                    name="name"
-                    type="text"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    className="w-full pl-9 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 text-sm"
-                    placeholder="Enter your full name"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="username" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Username
-                </label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <input
-                    id="username"
-                    name="username"
-                    type="text"
-                    value={formData.username}
-                    onChange={handleInputChange}
-                    className={`w-full pl-9 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 text-sm ${usernameError ? 'border-red-500 dark:border-red-500' : 'border-gray-300 dark:border-gray-600'}`}
-                    placeholder="Enter your username"
-                  />
-                </div>
-                {usernameError && (
-                  <div className="mt-1.5 text-xs text-red-600 dark:text-red-400 flex items-center gap-1">
-                    <AlertCircle className="h-3.5 w-3.5" />
-                    <span>{usernameError}</span>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <input
+                      id="name"
+                      name="name"
+                      type="text"
+                      value={formData.name}
+                      onChange={handleInputChange}
+                      className="w-full pl-10 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-[#4c99e6] focus:border-transparent"
+                      placeholder="Enter your full name"
+                    />
                   </div>
-                )}
+                </div>
+                <div>
+                  <label htmlFor="username" className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5 uppercase tracking-wider">
+                    Username
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">@</span>
+                    <input
+                      id="username"
+                      name="username"
+                      type="text"
+                      value={formData.username}
+                      onChange={handleInputChange}
+                      className={`w-full pl-9 pr-4 py-2.5 border rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-[#4c99e6] focus:border-transparent ${usernameError ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'}`}
+                      placeholder="username"
+                    />
+                  </div>
+                  {usernameError && (
+                    <div className="mt-1.5 text-xs text-red-600 flex items-center gap-1">
+                      <AlertCircle className="h-3.5 w-3.5" />
+                      <span>{usernameError}</span>
+                    </div>
+                  )}
+                </div>
               </div>
-              </div>
-
-              {/* Bio */}
-              <div className="md:col-span-2">
-                <label htmlFor="bio" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  About You
+              <div className="mt-4">
+                <label htmlFor="bio" className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5 uppercase tracking-wider">
+                  Bio
                 </label>
                 <textarea
                   id="bio"
                   name="bio"
                   rows={3}
+                  maxLength={500}
                   value={formData.bio}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 resize-none text-sm"
+                  className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 resize-none text-sm focus:outline-none focus:ring-2 focus:ring-[#4c99e6] focus:border-transparent"
                   placeholder="Tell us about yourself..."
                 />
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">{formData.bio.length}/500 characters</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5 text-right uppercase tracking-wide">{formData.bio.length}/500 characters</p>
               </div>
             </div>
 
             {/* Location */}
-            <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
-              <label htmlFor="location" className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
-                <MapPin className="inline-block h-4 w-4 mr-1" />
+            <div className="p-4 rounded-xl border border-gray-200 dark:border-gray-700">
+              <label htmlFor="location" className="block text-sm font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                <MapPin className="h-4 w-4" style={{ color: THEME_COLOR }} />
                 Location
               </label>
               <div className="relative">
@@ -424,7 +429,7 @@ const ProfileEditModal = ({ isOpen, onClose }) => {
                   autoComplete="off"
                   onFocus={() => setShowSuggestions(true)}
                   onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                  className="w-full pl-9 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 text-sm"
+                  className="w-full pl-9 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-[#4c99e6] focus:border-transparent"
                   placeholder="Enter your city"
                 />
                 {showSuggestions && Array.isArray(locationSuggestions) && locationSuggestions.length > 0 && (
@@ -452,16 +457,16 @@ const ProfileEditModal = ({ isOpen, onClose }) => {
             </div>
 
             {/* Current Mood */}
-            <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
-              <label className="block text-sm font-medium text-gray-900 dark:text-white mb-3">
-                <Smile className="inline-block h-4 w-4 mr-1" />
+            <div className="p-4 rounded-xl border border-gray-200 dark:border-gray-700">
+              <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                <Smile className="h-4 w-4" style={{ color: THEME_COLOR }} />
                 Current Mood
               </label>
               <div className="flex items-start gap-3">
                 <button
                   type="button"
                   onClick={() => setShowMoodPicker(!showMoodPicker)}
-                  className="flex-shrink-0 w-12 h-12 rounded-lg border-2 border-gray-300 dark:border-gray-600 hover:border-primary-500 dark:hover:border-primary-400 bg-white dark:bg-gray-800 flex items-center justify-center text-2xl transition-colors"
+                  className="flex-shrink-0 w-12 h-12 rounded-xl border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 flex items-center justify-center text-2xl transition-colors hover:border-[#4c99e6]"
                   title="Click to change mood"
                 >
                   {formData.currentMood}
@@ -478,7 +483,7 @@ const ProfileEditModal = ({ isOpen, onClose }) => {
                             setShowMoodPicker(false)
                           }}
                           className={`w-9 h-9 rounded-md flex items-center justify-center text-xl transition-all hover:bg-white dark:hover:bg-gray-700 ${
-                            formData.currentMood === emoji ? 'bg-white dark:bg-gray-700 ring-2 ring-primary-500' : ''
+                            formData.currentMood === emoji ? 'bg-white dark:bg-gray-700 ring-2 ring-[#4c99e6]' : ''
                           }`}
                         >
                           {emoji}
@@ -491,40 +496,44 @@ const ProfileEditModal = ({ isOpen, onClose }) => {
             </div>
 
             {/* Interests */}
-            <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
-              <label className="block text-sm font-medium text-gray-900 dark:text-white mb-3">
-                <Heart className="inline-block h-4 w-4 mr-1" />
+            <div className="p-4 rounded-xl border border-gray-200 dark:border-gray-700">
+              <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                <Heart className="h-4 w-4" style={{ color: THEME_COLOR }} />
                 Your Interests
               </label>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 max-h-64 overflow-y-auto scrollbar-hide p-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800">
-                {INTERESTS_OPTIONS.map(interest => (
-                  <button
-                    key={interest.id}
-                    type="button"
-                    onClick={() => handleInterestToggle(interest.id)}
-                    className={`p-3 rounded-lg border-2 transition-all hover:scale-105 ${
-                      formData.interests.includes(interest.id)
-                        ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300'
-                        : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 text-gray-700 dark:text-gray-300'
-                    }`}
-                  >
-                    <div className="text-center">
-                      <div className="text-xl mb-1">{interest.icon}</div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 max-h-64 overflow-y-auto scrollbar-hide">
+                {INTERESTS_OPTIONS.map(interest => {
+                  const selected = formData.interests.includes(interest.id)
+                  return (
+                    <button
+                      key={interest.id}
+                      type="button"
+                      onClick={() => handleInterestToggle(interest.id)}
+                      className={`p-3 rounded-xl border-2 transition-all text-left flex flex-col items-center justify-center min-h-[80px] ${
+                        selected
+                          ? 'border-current'
+                          : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 text-gray-700 dark:text-gray-300'
+                      }`}
+                      style={selected ? { borderColor: THEME_COLOR, backgroundColor: 'rgba(76, 153, 230, 0.08)' } : {}}
+                    >
+                      <div className="flex items-center justify-center w-8 h-8 mb-1.5">
+                        {interest.Icon ? <interest.Icon className="h-5 w-5 text-gray-600 dark:text-gray-400" style={selected ? { color: THEME_COLOR } : {}} /> : <span className="text-xl">{interest.icon}</span>}
+                      </div>
                       <div className="text-xs font-medium">{interest.label}</div>
-                    </div>
-                  </button>
-                ))}
+                    </button>
+                  )
+                })}
               </div>
-              <p className={`text-xs mt-2 ${formData.interests.length >= 5 ? 'text-orange-600 dark:text-orange-400 font-medium' : 'text-gray-500 dark:text-gray-400'}`}>
+              <p className={`text-xs mt-2 ${formData.interests.length >= 5 ? 'text-amber-600 dark:text-amber-400 font-medium' : 'text-gray-500 dark:text-gray-400'}`}>
                 Selected: {formData.interests.length}/5 interests
               </p>
             </div>
 
             {/* Social Links */}
-            <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
-              <label className="block text-sm font-medium text-gray-900 dark:text-white mb-3">
-                <ExternalLink className="inline-block h-4 w-4 mr-1" />
-                Social Links <span className="text-xs text-gray-500 dark:text-gray-400">(Optional)</span>
+            <div className="p-4 rounded-xl border border-gray-200 dark:border-gray-700">
+              <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                <ExternalLink className="h-4 w-4" style={{ color: THEME_COLOR }} />
+                Social Links <span className="text-xs font-normal text-gray-500 dark:text-gray-400">(Optional)</span>
               </label>
               
               <div className="grid grid-cols-1 gap-3">
@@ -540,7 +549,7 @@ const ProfileEditModal = ({ isOpen, onClose }) => {
                       type="url"
                       value={formData.website}
                       onChange={handleInputChange}
-                      className="w-full pl-9 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 text-sm"
+                      className="w-full pl-9 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-[#4c99e6] focus:border-transparent"
                       placeholder="https://your-website.com"
                     />
                   </div>
@@ -558,8 +567,8 @@ const ProfileEditModal = ({ isOpen, onClose }) => {
                       type="url"
                       value={formData.youtube}
                       onChange={handleInputChange}
-                      className={`w-full pl-9 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 text-sm ${
-                        urlErrors.youtube ? 'border-red-500 dark:border-red-500' : 'border-gray-300 dark:border-gray-600'
+                      className={`w-full pl-9 pr-4 py-2.5 border rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-[#4c99e6] focus:border-transparent ${
+                        urlErrors.youtube ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                       }`}
                       placeholder="https://youtube.com/@yourusername"
                     />
@@ -584,8 +593,8 @@ const ProfileEditModal = ({ isOpen, onClose }) => {
                       type="url"
                       value={formData.instagram}
                       onChange={handleInputChange}
-                      className={`w-full pl-9 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 text-sm ${
-                        urlErrors.instagram ? 'border-red-500 dark:border-red-500' : 'border-gray-300 dark:border-gray-600'
+                      className={`w-full pl-9 pr-4 py-2.5 border rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-[#4c99e6] focus:border-transparent ${
+                        urlErrors.instagram ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                       }`}
                       placeholder="https://instagram.com/yourusername"
                     />
@@ -601,18 +610,19 @@ const ProfileEditModal = ({ isOpen, onClose }) => {
             </div>
 
             {/* Action Buttons */}
-            <div className="flex gap-3 pt-6 border-t border-gray-200 dark:border-gray-700">
+            <div className="flex justify-end gap-3 pt-6 border-t border-gray-200 dark:border-gray-700">
               <button
                 type="button"
                 onClick={handleCancel}
-                className="flex-1 py-2.5 px-4 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-sm font-medium"
+                className="py-2.5 px-5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm font-medium"
                 disabled={loading}
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="flex-1 py-2.5 px-4 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium flex items-center justify-center gap-2"
+                className="py-2.5 px-5 text-white rounded-xl hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity text-sm font-medium flex items-center justify-center gap-2"
+                style={{ backgroundColor: THEME_COLOR }}
                 disabled={loading}
               >
                 {loading ? (
@@ -621,7 +631,7 @@ const ProfileEditModal = ({ isOpen, onClose }) => {
                     Saving...
                   </>
                 ) : (
-                  'Save'
+                  'Save Changes'
                 )}
               </button>
             </div>
