@@ -1073,11 +1073,11 @@ const ProfilePage = () => {
                             </p>
                             {isOwnProfile && (
                               <button
-                                onClick={() => navigate('/dashboard')}
+                                onClick={() => navigate('/dashboard-new?tab=goals')}
                                 className="px-5 py-2.5 rounded-xl text-white font-medium text-sm hover:opacity-90"
                                 style={{ backgroundColor: THEME_COLOR }}
                               >
-                                Create Your First Goal
+                                Create Your Goal
                               </button>
                             )}
                           </div>
@@ -1113,6 +1113,15 @@ const ProfilePage = () => {
                         ))}
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                      {isOwnProfile && (
+                          <button
+                            onClick={() => navigate('/dashboard')}
+                            className="rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 p-6 flex flex-col items-center justify-center min-h-[140px] hover:border-gray-400 dark:hover:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors"
+                          >
+                            <Plus className="h-10 w-10 text-gray-400 mb-2" />
+                            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Create New Goal</span>
+                          </button>
+                        )}
                         {userGoals
                           .filter((g) => {
                             if (goalFilter === 'all') return true;
@@ -1138,15 +1147,6 @@ const ProfilePage = () => {
                               </div>
                             </motion.div>
                           ))}
-                        {isOwnProfile && (
-                          <button
-                            onClick={() => navigate('/dashboard')}
-                            className="rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 p-6 flex flex-col items-center justify-center min-h-[140px] hover:border-gray-400 dark:hover:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors"
-                          >
-                            <Plus className="h-10 w-10 text-gray-400 mb-2" />
-                            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Create New Goal</span>
-                          </button>
-                        )}
                       </div>
                       {userGoals.length === 0 && (
                         <div className="text-center py-12 mt-4">
@@ -1192,9 +1192,9 @@ const ProfilePage = () => {
                       </h3>
                       {isOwnProfile && (
                         <button
-                          onClick={() => navigate('/dashboard')}
-                          className="px-4 py-2 rounded-xl bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-sm font-medium inline-flex items-center gap-2 hover:opacity-90"
-                        >
+                          onClick={() => navigate('/dashboard?tab=habits')}
+                          className="flex items-center gap-2 px-5 py-2 bg-[#4c99e6] hover:bg-[#3d88d5] text-white rounded-lg transition-colors shadow-sm font-manrope font-medium text-sm"
+                          >
                           <Plus className="h-4 w-4" />
                           New Habit
                         </button>
@@ -1329,8 +1329,13 @@ const ProfilePage = () => {
                         <button
                           onClick={() => setIsJournalOpen(true)}
                           disabled={hasTodayJournal}
-                          className={`px-4 py-2 rounded-xl inline-flex items-center gap-2 text-sm font-medium ${hasTodayJournal ? 'bg-gray-300 dark:bg-gray-700 text-gray-600 cursor-not-allowed' : 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:opacity-90'}`}
-                        >
+                          className={`flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-medium transition-colors shadow-sm font-manrope
+                            ${
+                              hasTodayJournal
+                                ? 'bg-gray-300 dark:bg-gray-700 text-gray-600 cursor-not-allowed'
+                                : 'bg-[#4c99e6] hover:bg-[#3d88d5] text-white'
+                            }
+                          `}                        >
                           <PenSquare className="h-4 w-4" />
                           {hasTodayJournal ? 'Journal Submitted' : 'Write Today’s Journal'}
                         </button>
