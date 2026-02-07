@@ -115,7 +115,7 @@ const DashboardPageNew = () => {
   // Calculate yearly progress
   const yearlyProgress = useMemo(() => {
     if (!goals || goals.length === 0) return 0
-    const completedGoals = goals.filter(g => g.completed).length
+    const completedGoals = goals.filter(g => g?.completedAt).length
     return Math.round((completedGoals / goals.length) * 100)
   }, [goals])
 
