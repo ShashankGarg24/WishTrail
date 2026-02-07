@@ -2,11 +2,12 @@ import { useState, useEffect, lazy, Suspense } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, Target, Search, UserPlus, Rocket, TrendingUp, Globe, BookOpen, Dumbbell, Heart, Briefcase, GraduationCap, Plane, Palette, DollarSign, Lightbulb } from 'lucide-react'
 import useApiStore from '../store/apiStore'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 
 const GoalDetailsModal = lazy(() => import('../components/GoalDetailsModal'))
 
 const DiscoverPageNew = () => {
+  const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState('goals')
   const [searchParams, setSearchParams] = useSearchParams()
   const [searchQuery, setSearchQuery] = useState('')
@@ -302,11 +303,6 @@ const DiscoverPageNew = () => {
                         <p className="text-sm text-gray-600 dark:text-gray-400 mb-6 line-clamp-2 font-manrope leading-relaxed">
                           {goal.description}
                         </p>
-                        
-                        <button className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#4c99e6] hover:bg-[#3d88d5] text-white rounded-lg transition-colors text-sm font-medium font-manrope">
-                          <Plus className="w-4 h-4" />
-                          Join Goal
-                        </button>
                       </motion.div>
                     )
                   })}
@@ -316,16 +312,17 @@ const DiscoverPageNew = () => {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: trendingGoals.length * 0.05 }}
+                    onClick={() => navigate('/dashboard-new?tab=goals')}
                     className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-[#4c99e6] dark:hover:border-[#4c99e6] hover:shadow-md transition-all cursor-pointer group flex flex-col items-center justify-center min-h-[280px]"
                   >
                     <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-full mb-4 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 transition-colors">
                       <Lightbulb className="w-8 h-8 text-gray-400 group-hover:text-[#4c99e6] transition-colors" />
                     </div>
                     <h3 className="font-semibold text-gray-900 dark:text-white font-manrope text-lg mb-2">
-                      Suggest a Goal
+                      Make You Own Goal
                     </h3>
                     <p className="text-sm text-gray-600 dark:text-gray-400 font-manrope text-center">
-                      Don't see what you're looking for? Help build the community library.
+                      Don't see what you're looking for? Help build the community by adding your own goal.
                     </p>
                   </motion.div>
                 </div>
@@ -341,9 +338,6 @@ const DiscoverPageNew = () => {
                     <h2 className="text-xl font-bold text-gray-900 dark:text-white font-manrope">
                       People to Follow
                     </h2>
-                    <button className="text-[#4c99e6] hover:text-[#3d88d5] text-sm font-medium font-manrope">
-                      View All
-                    </button>
                   </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -453,9 +447,11 @@ const DiscoverPageNew = () => {
                       Be the next Leader
                     </h3>
                     <p className="text-gray-400 font-manrope text-sm mb-4">
-                      Complete 5 more goals. Spark appear on the global leaderboard.
+                      Complete more goals. Spark appear on the global leaderboard.
                     </p>
-                    <button className="w-full px-4 py-2.5 bg-white hover:bg-gray-100 text-gray-900 rounded-lg transition-colors text-sm font-medium font-manrope">
+                    <button 
+                    onClick={() => navigate('/dashboard-new')}
+                    className="w-full px-4 py-2.5 bg-white hover:bg-gray-100 text-gray-900 rounded-lg transition-colors text-sm font-medium font-manrope">
                       Go to Dashboard
                     </button>
                   </motion.div>

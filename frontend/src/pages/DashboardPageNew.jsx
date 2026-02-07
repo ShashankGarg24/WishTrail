@@ -362,7 +362,7 @@ const DashboardPageNew = () => {
             {/* Discover Button */}
             <button
               onClick={() => activeTab === 'goals' ? undefined : setIsHabitIdeasOpen(true)}
-              className="flex items-center gap-2 px-5 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg transition-colors font-manrope font-medium text-sm"
+              className="flex items-center gap-2 px-5 py-2 bg-[#4c99e6] hover:bg-[#3d88d5] text-white rounded-lg transition-colors shadow-sm font-manrope font-medium text-sm"
             >
               <Target className="w-4 h-4" />
               {activeTab === 'goals' ? 'Discover Goals' : 'Discover Habits'}

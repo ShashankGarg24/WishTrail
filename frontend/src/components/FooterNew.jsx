@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Star } from 'lucide-react'
-import { Twitter, Instagram } from 'lucide-react'
+import { Star, Youtube, Instagram } from 'lucide-react'
 import useApiStore from '../store/apiStore'
 
 const FooterNew = () => {
@@ -64,19 +63,19 @@ const FooterNew = () => {
             </h3>
             <div className="flex items-center gap-3">
               <a
-                href="https://twitter.com/thewishtrail"
+                href="https://youtube.com/thewishtrail"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="p-2 rounded-lg bg-gray-100 hover:bg-[#4c99e6] dark:bg-gray-800 dark:hover:bg-[#4c99e6] text-gray-600 hover:text-white dark:text-gray-400 dark:hover:text-white transition-all"
-                aria-label="Twitter"
+                className="p-2 rounded-lg bg-gray-100 hover:bg-[#FF6B6B] dark:bg-gray-800 dark:hover:bg-[#FF6B6B] text-gray-600 hover:text-white dark:text-gray-400 dark:hover:text-white transition-all"
+                aria-label="YouTube"
               >
-                <Twitter className="w-5 h-5" />
+                <Youtube className="w-5 h-5" />
               </a>
               <a
                 href="https://www.instagram.com/thewishtrail/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="p-2 rounded-lg bg-gray-100 hover:bg-[#4c99e6] dark:bg-gray-800 dark:hover:bg-[#4c99e6] text-gray-600 hover:text-white dark:text-gray-400 dark:hover:text-white transition-all"
+                className="p-2 rounded-lg bg-gray-100 hover:bg-[#F07A8F] dark:bg-gray-800 dark:hover:bg-[#F07A8F] text-gray-600 hover:text-white dark:text-gray-400 dark:hover:text-white transition-all"
                 aria-label="Instagram"
               >
                 <Instagram className="w-5 h-5" />
