@@ -5,7 +5,7 @@ import { Plus, Target, Search, UserPlus, Rocket, TrendingUp, Globe, BookOpen, Du
 import useApiStore from '../store/apiStore'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 
-const GoalPostModal = lazy(() => import('../components/GoalPostModal'))
+const GoalPostModalNew = lazy(() => import('../components/GoalPostModalNew'))
 
 const DiscoverPageNew = () => {
   const navigate = useNavigate()
@@ -371,7 +371,8 @@ const DiscoverPageNew = () => {
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: index * 0.05 }}
-                          className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-all"
+                          onClick={() => navigate(`/profile/@${person.username}`)}
+                          className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-all cursor-pointer"
                         >
                         <div className="flex items-start gap-3 mb-4">
                           <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold font-manrope">
@@ -435,10 +436,11 @@ const DiscoverPageNew = () => {
                     <div className="space-y-3">
                       {topAchievers.map((achiever, index) => (
                         <motion.div
-                          key={achiever.id || achiever._id}
+                          key={achiever.id || achiever.username}
                           initial={{ opacity: 0, x: 20 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: 0.1 + index * 0.05 }}
+                          onClick={() => navigate(`/profile/@${achiever.username}`)}
                           className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 flex items-center gap-3 hover:shadow-md transition-all cursor-pointer"
                         >
                           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center text-white font-bold font-manrope text-sm">
@@ -513,10 +515,11 @@ const DiscoverPageNew = () => {
       {/* Modals */}
       <Suspense fallback={null}>
         {openGoalId && (
-          <GoalPostModal
+          <GoalPostModalNew
             goalId={openGoalId}
             isOpen={!!openGoalId}
             onClose={() => setOpenGoalId(null)}
+            openWithComments={false}
           />
         )}
       </Suspense>

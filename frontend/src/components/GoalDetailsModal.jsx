@@ -6,7 +6,7 @@ import useApiStore from '../store/apiStore'
 
 const THEME_COLOR = '#4c99e6'
 
-export default function GoalDetailsModal({ goal, isOpen, onClose }) {
+export default function GoalDetailsModal({ goal, isOpen, onClose, onViewPost }) {
   const navigate = useNavigate()
   const [isCompleting, setIsCompleting] = useState(false)
 
@@ -32,8 +32,12 @@ export default function GoalDetailsModal({ goal, isOpen, onClose }) {
 
   const handleViewPost = () => {
     if (!goalId) return
-    onClose?.()
-    navigate(`/goals/${goalId}`)
+    if (onViewPost) {
+      onViewPost(goalId)
+    } else {
+      onClose?.()
+      navigate(`/goals/${goalId}`)
+    }
   }
 
   const handleShare = (e) => {

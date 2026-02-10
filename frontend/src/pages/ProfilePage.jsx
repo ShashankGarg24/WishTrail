@@ -18,7 +18,7 @@ const JournalEntryModal = lazy(() => import("../components/JournalEntryModal"));
 const JournalExportModal = lazy(() => import("../components/JournalExportModal"));
 const HabitAnalyticsCard = lazy(() => import("../components/HabitAnalyticsCard"));
 const HabitDetailModal = lazy(() => import("../components/HabitDetailModal"));
-const GoalPostModal = lazy(() => import('../components/GoalPostModal'));
+const GoalPostModalNew = lazy(() => import('../components/GoalPostModalNew'));
 
 const ProfilePage = () => {
   const params = useParams();
@@ -1486,10 +1486,10 @@ const ProfilePage = () => {
       /></Suspense>
       {/* Goal Details Modal (with timeline) */}
       {openGoalId && (
-        <Suspense fallback={null}><GoalPostModal
+        <Suspense fallback={null}><GoalPostModalNew
           isOpen={!!openGoalId}
           goalId={openGoalId}
-          autoOpenComments={scrollCommentsOnOpen}
+          openWithComments={scrollCommentsOnOpen}
           onClose={closeGoalModal}
         /></Suspense>
       )}
@@ -1567,8 +1567,18 @@ const ProfilePage = () => {
                         e.preventDefault();
                         e.stopPropagation();
                         const profileUrl = `${window.location.origin}/profile/@${displayUser.username}`;
-                        shareUrlRef.current = profileUrl;
-                        setShareSheetOpen(true);
+                        if (isMobile) {
+                          shareUrlRef.current = profileUrl;
+                          setShareSheetOpen(true);
+                        } else {
+                          navigator.clipboard.writeText(profileUrl)
+                            .then(() => {
+                              toast.success('Profile link copied to clipboard', { duration: 2000 });
+                            })
+                            .catch(() => {
+                              toast.error('Failed to copy link');
+                            });
+                        }
                         setProfileMenuOpen(false);
                       }}
                     >
@@ -1583,8 +1593,18 @@ const ProfilePage = () => {
                         e.preventDefault();
                         e.stopPropagation();
                         const profileUrl = `${window.location.origin}/profile/@${displayUser.username}`;
-                        shareUrlRef.current = profileUrl;
-                        setShareSheetOpen(true);
+                        if (isMobile) {
+                          shareUrlRef.current = profileUrl;
+                          setShareSheetOpen(true);
+                        } else {
+                          navigator.clipboard.writeText(profileUrl)
+                            .then(() => {
+                              toast.success('Profile link copied to clipboard', { duration: 2000 });
+                            })
+                            .catch(() => {
+                              toast.error('Failed to copy link');
+                            });
+                        }
                         setProfileMenuOpen(false);
                       }}
                     >

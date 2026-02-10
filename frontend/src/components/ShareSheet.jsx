@@ -103,8 +103,10 @@ export default function ShareSheet({ isOpen, onClose, url, title = 'WishTrail' }
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(url)
-      window.dispatchEvent(new CustomEvent('wt_toast', { detail: { message: 'Link copied to clipboard', type: 'success', duration: 2000 } }))
-    } catch {}
+      toast.success('Link copied to clipboard', { duration: 2000 });
+    } catch {
+      toast.error('Failed to copy link');
+    }
     onClose?.()
   }
 

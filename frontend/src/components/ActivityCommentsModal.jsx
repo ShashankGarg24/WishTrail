@@ -6,7 +6,7 @@ import { activitiesAPI } from '../services/api'
 import useApiStore from '../store/apiStore'
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
 
-const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embedded = false }) => {
+const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embedded = false, hideInput = false, onCommentAdded }) => {
   const [comments, setComments] = useState([])
   const [loading, setLoading] = useState(false)
   const [input, setInput] = useState('')
@@ -30,6 +30,15 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
       }
     }
     fetchComments()
+
+    // Listen for comment added events to refresh
+    const handleCommentAdded = (e) => {
+      if (e.detail?.activityId === activity?._id) {
+        fetchComments();
+      }
+    };
+    window.addEventListener('commentAdded', handleCommentAdded);
+    return () => window.removeEventListener('commentAdded', handleCommentAdded);
   }, [isOpen, inline, embedded, activity?._id])
 
   const formatTimeAgo = (iso) => {
@@ -82,6 +91,7 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
       }
       setInput('')
       setReplyTo(null)
+      if (onCommentAdded) onCommentAdded();
       try { useApiStore.getState().invalidateGoalPostByActivity?.(activity._id) } catch { }
     } catch (e) { }
   }
@@ -240,7 +250,7 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
           )}
         </div>
 
-        {!replyTo && (
+        {!replyTo && !hideInput && (
           <div className="flex items-center gap-2 mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 sticky bottom-0 bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl z-10 rounded-b-xl">
             <input
               value={input}
@@ -261,6 +271,9 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
       </div>
     )
   }
+
+  // Export input state and handlers for external use
+  ActivityCommentsModal.useCommentInput = () => ({ input, setInput, handlePost, handleKeyDown, replyTo });
 
   if (inline) {
     return (

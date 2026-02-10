@@ -1,6 +1,7 @@
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom'
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { GoogleOAuthProvider } from '@react-oauth/google'
+import { Toaster } from 'react-hot-toast'
 import useApiStore from './store/apiStore'
 import HeaderNew from './components/HeaderNew'
 import ScrollMemory from './components/ScrollMemory'
@@ -186,6 +187,7 @@ function App() {
 
   return (
     <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
+      <Toaster position="top-right" />
       <div className="flex flex-col min-h-screen bg-white dark:bg-gray-900 transition-colors duration-300">
         {/* Background Elements */}
         <div className="fixed inset-0 pointer-events-none z-0">

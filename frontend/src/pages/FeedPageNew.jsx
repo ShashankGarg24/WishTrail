@@ -1,24 +1,43 @@
-import { useState, useEffect, lazy, Suspense } from 'react';
+import { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Heart, MessageCircle, Share2, Trophy, Zap, Target, Flame, Star, UserPlus } from 'lucide-react';
 import useApiStore from '../store/apiStore';
 import GoalPostModalNew from '../components/GoalPostModalNew';
+import toast from 'react-hot-toast';
 
 const ActivityCommentsModal = lazy(() => import('../components/ActivityCommentsModal'));
+const ReportModal = lazy(() => import('../components/ReportModal'));
+const BlockModal = lazy(() => import('../components/BlockModal'));
+const ShareSheet = lazy(() => import('../components/ShareSheet'));
 
 const FeedPageNew = () => {
-  const { user, getActivityFeed, likeActivity, getTrendingGoals } = useApiStore();
+  const navigate = useNavigate();
+  const { user, getActivityFeed, likeActivity, getTrendingGoals, report, blockUser, unfollowUser } = useApiStore();
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedGoalId, setSelectedGoalId] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [openWithComments, setOpenWithComments] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [commentsOpenActivityId, setCommentsOpenActivityId] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
   const [trendingGoals, setTrendingGoals] = useState([]);
   const [trendingLoading, setTrendingLoading] = useState(false);
+  
+  // Report and Block states
+  const [openActivityMenuId, setOpenActivityMenuId] = useState(null);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportTarget, setReportTarget] = useState({ type: null, id: null, label: '', username: '', userId: null });
+  const [blockOpen, setBlockOpen] = useState(false);
+  const [blockUserId, setBlockUserId] = useState(null);
+  const [blockUsername, setBlockUsername] = useState('');
+  
+  // Share state
+  const [shareSheetOpen, setShareSheetOpen] = useState(false);
+  const shareUrlRef = useRef('');
 
   // Format timestamp to "time ago" format
   const formatTimeAgo = (isoDate) => {
@@ -39,7 +58,6 @@ const FeedPageNew = () => {
   const transformActivity = (apiActivity) => {
     const {
       _id,
-      userId,
       name,
       avatar,
       type,
@@ -52,17 +70,19 @@ const FeedPageNew = () => {
 
     const completionNote = data?.metadata?.completionNote || data?.completionNote || '';
     const completionImage = data?.metadata?.completionAttachmentUrl || data?.completionAttachmentUrl || '';
-    const isCompleted = type === 'goal_completed' || data?.isCompleted === true;
-
+    const lastUpdatedType = data?.lastUpdateType;
+    const isCompleted = lastUpdatedType === 'completed' || data?.completedAt != null;
     // Determine activity type and format
     let activityType = 'goal_completed';
-    let action = 'COMPLETED A GOAL';
+    let action = 'Completed a goal';
     let content = {
       title: data?.goalTitle || 'Goal',
       category: data?.goalCategory,
     };
 
-    if (type === 'habit_target_achieved' || type === 'habit_streak_milestone') {
+    if (lastUpdatedType === 'created') {
+      action = 'Created a goal';
+    } else if (type === 'habit_target_achieved' || type === 'habit_streak_milestone') {
       activityType = 'habit_streak';
       action = 'Achieved a milestone';
       content = {
@@ -70,8 +90,6 @@ const FeedPageNew = () => {
         description: data?.note || '',
         days: data?.streakDays || 0,
       };
-    } else if (type === 'goal_created') {
-      action = 'Created a goal';
     } else if (type === 'habit_added') {
       action = 'Started a habit';
     }
@@ -81,6 +99,7 @@ const FeedPageNew = () => {
       user: {
         name: apiActivity.user.name || 'User',
         avatar: apiActivity.user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${name}`,
+        username: apiActivity.user.username || ''
       },
       type: activityType,
       action,
@@ -132,7 +151,6 @@ const FeedPageNew = () => {
 
       setHasMore(pagination && pagination.page < pagination.pages);
     } catch (err) {
-      console.error('Failed to load activity feed:', err);
       setError('Failed to load feed. Please try again.');
       if (pageNum === 1) {
         setActivities([]);
@@ -157,6 +175,19 @@ const FeedPageNew = () => {
     return () => window.removeEventListener('resize', compute);
   }, []);
 
+  // Close activity menu on outside click
+  useEffect(() => {
+    const onDocMouseDown = (e) => {
+      if (!openActivityMenuId) return;
+      const target = e.target;
+      const inside = target?.closest?.('[data-activity-menu="true"]') || target?.closest?.('[data-activity-menu-btn="true"]');
+      if (inside) return;
+      setOpenActivityMenuId(null);
+    };
+    document.addEventListener('mousedown', onDocMouseDown);
+    return () => document.removeEventListener('mousedown', onDocMouseDown);
+  }, [openActivityMenuId]);
+
   // Load trending goals
   const loadTrendingGoals = async () => {
     try {
@@ -168,7 +199,6 @@ const FeedPageNew = () => {
       const { goals } = await getTrendingGoals(params);
       setTrendingGoals((goals || []).slice(0, 6));
     } catch (err) {
-      console.error('Failed to load trending goals:', err);
       setTrendingGoals([]);
     } finally {
       setTrendingLoading(false);
@@ -222,7 +252,6 @@ const FeedPageNew = () => {
       // Make API call
       await likeActivity(activityId, !activity.isLiked);
     } catch (err) {
-      console.error('Failed to like activity:', err);
       // Revert optimistic update on error
       setActivities(prev =>
         prev.map(a =>
@@ -272,18 +301,30 @@ const FeedPageNew = () => {
   const handleOpenGoal = (goalId) => {
     setSelectedGoalId(goalId);
     setIsModalOpen(true);
+    setOpenWithComments(false);
   };
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setSelectedGoalId(null);
+    setOpenWithComments(false);
   };
 
-  const handleOpenComments = (activityId) => {
+  const handleOpenComments = (activityId, goalId) => {
     if (!activityId) return;
     if (isMobile) {
       setCommentsOpenActivityId(activityId);
       return;
+    }
+    
+    // Desktop behavior: if modal is already open for this goal, toggle comments
+    if (isModalOpen && selectedGoalId === goalId) {
+      setOpenWithComments(prev => !prev);
+    } else {
+      // Open modal with comments
+      setSelectedGoalId(goalId);
+      setIsModalOpen(true);
+      setOpenWithComments(true);
     }
   };
 
@@ -339,10 +380,24 @@ const FeedPageNew = () => {
                       <img
                         src={activity.user.avatar}
                         alt={activity.user.name}
-                        className="w-10 h-10 rounded-full"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (activity.user?.username) {
+                            navigate(`/profile/@${activity.user.username}`);
+                          }
+                        }}
+                        className="w-10 h-10 rounded-full cursor-pointer hover:opacity-80 transition-opacity"
                       />
                       <div>
-                        <h3 className="font-semibold text-gray-900">
+                        <h3 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (activity.user?.username) {
+                              navigate(`/profile/@${activity.user.username}`);
+                            }
+                          }}
+                          className="font-semibold text-gray-900 cursor-pointer hover:text-[#4c99e6] transition-colors"
+                        >
                           {activity.user.name}
                         </h3>
                         <p className="text-sm text-gray-500">
@@ -350,13 +405,74 @@ const FeedPageNew = () => {
                         </p>
                       </div>
                     </div>
-                    <button className="text-gray-400 hover:text-gray-600">
-                      <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-                        <circle cx="10" cy="4" r="1.5" />
-                        <circle cx="10" cy="10" r="1.5" />
-                        <circle cx="10" cy="16" r="1.5" />
-                      </svg>
-                    </button>
+                    <div className="relative">
+                      <button 
+                        data-activity-menu-btn="true"
+                        onClick={(e) => { 
+                          e.stopPropagation(); 
+                          setOpenActivityMenuId(prev => prev === activity.id ? null : activity.id); 
+                        }}
+                        className="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+                      >
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                          <circle cx="10" cy="4" r="1.5" />
+                          <circle cx="10" cy="10" r="1.5" />
+                          <circle cx="10" cy="16" r="1.5" />
+                        </svg>
+                      </button>
+                      {openActivityMenuId === activity.id && (
+                        <div
+                          data-activity-menu="true"
+                          onClick={(e) => e.stopPropagation()}
+                          className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-xl z-30 overflow-hidden"
+                        >
+                          <button
+                            className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                            onClick={() => { 
+                              setReportTarget({ 
+                                type: 'activity', 
+                                id: activity.id, 
+                                label: 'activity', 
+                                username: activity.user?.username || '', 
+                                userId: activity.user?._id || activity.user?.id || null 
+                              }); 
+                              setReportOpen(true); 
+                              setOpenActivityMenuId(null); 
+                            }}
+                          >
+                            Report Activity
+                          </button>
+                          {activity.user?._id && (
+                            <button
+                              className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                              onClick={async () => { 
+                                try { 
+                                  await unfollowUser(activity.user._id); 
+                                } catch (err) {
+                                  console.error('Failed to unfollow:', err);
+                                }
+                                setOpenActivityMenuId(null); 
+                              }}
+                            >
+                              Unfollow User
+                            </button>
+                          )}
+                          {activity.user?._id && (
+                            <button
+                              className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                              onClick={() => { 
+                                setBlockUserId(activity.user._id); 
+                                setBlockUsername(activity.user?.username || activity.user?.name || ''); 
+                                setBlockOpen(true); 
+                                setOpenActivityMenuId(null); 
+                              }}
+                            >
+                              Block User
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   {/* Activity Content - Clickable */}
@@ -443,7 +559,7 @@ const FeedPageNew = () => {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleOpenComments(activity.id);
+                          handleOpenComments(activity.id, activity.originalId);
                         }}
                         className="flex items-center gap-2 text-gray-600 hover:text-[#4c99e6] transition-colors"
                       >
@@ -452,7 +568,28 @@ const FeedPageNew = () => {
                       </button>
 
                       {/* Share Button */}
-                      <button onClick={(e) => e.stopPropagation()} className="flex items-center gap-2 text-gray-600 hover:text-[#4c99e6] transition-colors">
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          try {
+                            const gid = activity.originalId;
+                            const url = gid ? `${window.location.origin}/feed?goalId=${gid}` : window.location.href;
+                            if (isMobile) {
+                              shareUrlRef.current = url;
+                              setShareSheetOpen(true);
+                            } else {
+                              navigator.clipboard.writeText(url)
+                                .then(() => {
+                                  toast.success('Link copied to clipboard', { duration: 2000 });
+                                })
+                                .catch(() => {
+                                  toast.error('Failed to copy link');
+                                });
+                            }
+                          } catch { }
+                        }} 
+                        className="flex items-center gap-2 text-gray-600 hover:text-[#4c99e6] transition-colors"
+                      >
                         <Share2 className="w-5 h-5" />
                       </button>
                     </div>
@@ -571,6 +708,8 @@ const FeedPageNew = () => {
         isOpen={isModalOpen}
         onClose={handleCloseModal}
         goalId={selectedGoalId}
+        openWithComments={openWithComments}
+        onToggleComments={() => setOpenWithComments(prev => !prev)}
       />
 
       <Suspense fallback={null}>
@@ -578,6 +717,55 @@ const FeedPageNew = () => {
           isOpen={!!commentsOpenActivityId}
           onClose={() => setCommentsOpenActivityId(null)}
           activity={{ _id: commentsOpenActivityId }}
+        />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <ReportModal
+          isOpen={reportOpen}
+          onClose={() => setReportOpen(false)}
+          targetLabel={reportTarget.label}
+          onSubmit={async ({ reason, description }) => {
+            await report({ targetType: reportTarget.type, targetId: reportTarget.id, reason, description });
+            // After reporting, offer to block the user
+            const uid = reportTarget.userId || null;
+            if (uid) { 
+              setBlockUserId(uid); 
+              setBlockUsername(reportTarget.username || ''); 
+              setBlockOpen(true); 
+            }
+            setReportOpen(false);
+          }}
+          onReportAndBlock={reportTarget.type === 'user' ? async () => { 
+            if (reportTarget.id) { 
+              await blockUser(reportTarget.id); 
+            } 
+          } : undefined}
+        />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <BlockModal
+          isOpen={blockOpen}
+          onClose={() => setBlockOpen(false)}
+          username={blockUsername || ''}
+          onConfirm={async () => { 
+            if (blockUserId) { 
+              await blockUser(blockUserId); 
+              // Remove activities from this user
+              setActivities(prev => prev.filter(a => a.user?._id !== blockUserId));
+              setBlockOpen(false); 
+            } 
+          }}
+        />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <ShareSheet
+          isOpen={shareSheetOpen}
+          onClose={() => setShareSheetOpen(false)}
+          url={shareUrlRef.current}
+          title="WishTrail Goal"
         />
       </Suspense>
     </div>

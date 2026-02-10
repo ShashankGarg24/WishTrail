@@ -7,6 +7,7 @@ import { useSearchParams } from 'react-router-dom'
 
 const CreateGoalWizard = lazy(() => import('../components/CreateGoalWizard'))
 const GoalPostModal = lazy(() => import('../components/GoalPostModal'))
+const GoalPostModalNew = lazy(() => import('../components/GoalPostModalNew'))
 const GoalDetailsModal = lazy(() => import('../components/GoalDetailsModal'))
 const HabitDetailModal = lazy(() => import('../components/HabitDetailModal'))
 const CreateHabitModal = lazy(() => import('../components/CreateHabitModal'))
@@ -23,6 +24,7 @@ const DashboardPageNew = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isHabitModalOpen, setIsHabitModalOpen] = useState(false)
   const [openGoalId, setOpenGoalId] = useState(null)
+  const [openGoalPostId, setOpenGoalPostId] = useState(null)
   const [selectedGoal, setSelectedGoal] = useState(null)
   const [selectedHabit, setSelectedHabit] = useState(null)
   const [isEditHabitOpen, setIsEditHabitOpen] = useState(false)
@@ -892,6 +894,19 @@ const DashboardPageNew = () => {
             goal={selectedGoal}
             isOpen={!!selectedGoal}
             onClose={() => setSelectedGoal(null)}
+            onViewPost={(goalId) => {
+              setSelectedGoal(null);
+              setOpenGoalPostId(goalId);
+            }}
+          />
+        )}
+
+        {openGoalPostId && (
+          <GoalPostModalNew
+            goalId={openGoalPostId}
+            isOpen={!!openGoalPostId}
+            onClose={() => setOpenGoalPostId(null)}
+            openWithComments={false}
           />
         )}
 

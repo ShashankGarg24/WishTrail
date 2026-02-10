@@ -2,98 +2,59 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Trophy, TrendingUp, Award, ChevronDown, Target } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import useApiStore from '../store/apiStore'
 
 const LeaderboardPageNew = () => {
-  const [activeTab, setActiveTab] = useState('all-time')
-  const [showMore, setShowMore] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [leaderboardData, setLeaderboardData] = useState([])
+  const [totalPages, setTotalPages] = useState(1)
+  const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
 
-  // Mock top 3 data
-  const topThree = [
-    {
-      rank: 2,
-      name: 'Shashank G.',
-      badge: 'SILVER ACHIEVER',
-      goalsCompleted: 42,
-      avatar: null
-    },
-    {
-      rank: 1,
-      name: 'Shrasti Shukla',
-      badge: 'CHAMPION',
-      goalsCompleted: 58,
-      avatar: null
-    },
-    {
-      rank: 3,
-      name: 'TheWishTrail',
-      badge: 'BRONZE EXPLORER',
-      goalsCompleted: 35,
-      avatar: null
-    }
-  ]
+  const { getGlobalLeaderboard, user, isAuthenticated } = useApiStore()
 
-  // Mock rankings data
-  const allRankings = [
-    {
-      rank: 4,
-      name: 'Alex Rivers',
-      isYou: true,
-      consistency: 75,
-      goalsCompleted: 32,
-      avatar: null
-    },
-    {
-      rank: 5,
-      name: 'Marcus Chen',
-      isYou: false,
-      consistency: 65,
-      goalsCompleted: 29,
-      avatar: null
-    },
-    {
-      rank: 6,
-      name: 'Elena Rodriguez',
-      isYou: false,
-      consistency: 60,
-      goalsCompleted: 27,
-      avatar: null
-    },
-    {
-      rank: 7,
-      name: 'Jordan Smith',
-      isYou: false,
-      consistency: 55,
-      goalsCompleted: 24,
-      avatar: null
-    },
-    {
-      rank: 8,
-      name: 'Sarah Johnson',
-      isYou: false,
-      consistency: 50,
-      goalsCompleted: 22,
-      avatar: null
-    },
-    {
-      rank: 9,
-      name: 'Michael Brown',
-      isYou: false,
-      consistency: 48,
-      goalsCompleted: 20,
-      avatar: null
-    },
-    {
-      rank: 10,
-      name: 'Lisa Wang',
-      isYou: false,
-      consistency: 45,
-      goalsCompleted: 19,
-      avatar: null
-    }
-  ]
+  const ITEMS_PER_PAGE = 20
 
-  const visibleRankings = showMore ? allRankings : allRankings.slice(0, 4)
+  // Fetch leaderboard data
+  useEffect(() => {
+    (async () => {
+      setLoading(true)
+      const data = await getGlobalLeaderboard({ page: currentPage, limit: ITEMS_PER_PAGE })
+      setLeaderboardData(Array.isArray(data) ? data : [])
+      // Estimate total pages (you may need to adjust based on API response)
+      setTotalPages(data.length < ITEMS_PER_PAGE ? currentPage : currentPage + 1)
+      setLoading(false)
+    })()
+  }, [getGlobalLeaderboard, currentPage])
+
+  const handleUserClick = (username) => {
+    if (username) {
+      navigate(`/profile/@${username}`)
+    }
+  }
+
+  // Get top 3 from leaderboard
+  const topThree = leaderboardData.slice(0, 3).map((item, index) => ({
+    rank: index + 1,
+    name: item.name || item.displayName || item.username || 'Anonymous',
+    badge: index === 0 ? 'CHAMPION' : index === 1 ? 'SILVER ACHIEVER' : 'BRONZE EXPLORER',
+    goalsCompleted: item.completedGoals || 0,
+    avatar: item.avatar || null,
+    username: item.username
+  }))
+
+  // Reorder for podium display (2nd, 1st, 3rd)
+  const podiumOrder = topThree.length >= 3 ? [topThree[1], topThree[0], topThree[2]] : topThree
+
+  // Get remaining rankings (4+)
+  const allRankings = leaderboardData.slice(3).map((item, index) => ({
+    rank: (currentPage - 1) * ITEMS_PER_PAGE + index + 4,
+    name: item.name || item.displayName || item.username || 'Anonymous',
+    isYou: isAuthenticated && user && (item.username === user.username),
+    goalsCompleted: item.completedGoals || 0, 
+    avatar: item.avatar || null,
+    username: item.username
+  }))
 
   const getAvatarColor = (rank) => {
     const colors = [
@@ -136,83 +97,113 @@ const LeaderboardPageNew = () => {
           className="flex items-end justify-center gap-8 mb-16 max-w-4xl mx-auto"
         >
           {/* 2nd Place */}
-          <div className="flex-1 max-w-[240px]">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-100 dark:border-gray-700 text-center relative">
-              <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center text-gray-700 font-bold font-manrope text-sm">
-                2
-              </div>
-              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-gray-300 to-gray-400 mx-auto mb-4 flex items-center justify-center">
-                <div className="w-16 h-16 rounded-full bg-gray-200 dark:bg-gray-700"></div>
-              </div>
-              <h3 className="font-bold text-gray-900 dark:text-white font-manrope text-lg mb-1">
-                {topThree[0].name}
-              </h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400 font-manrope uppercase tracking-wide mb-4">
-                {topThree[0].badge}
-              </p>
-              <div className="pt-4 border-t border-gray-100 dark:border-gray-700">
-                <div className="text-3xl font-bold text-gray-900 dark:text-white font-manrope mb-1">
-                  {topThree[0].goalsCompleted}
+          {podiumOrder[0] && (
+            <div className="flex-1 max-w-[240px]">
+              <div 
+                onClick={() => handleUserClick(podiumOrder[0].username)}
+                className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-100 dark:border-gray-700 text-center relative cursor-pointer hover:shadow-xl transition-all">
+                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center text-gray-700 font-bold font-manrope text-sm">
+                  2
                 </div>
-                <div className="text-xs text-gray-500 dark:text-gray-400 font-manrope uppercase tracking-wide">
-                  Goals Completed
+                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-gray-300 to-gray-400 mx-auto mb-4 flex items-center justify-center">
+                  {podiumOrder[0].avatar ? (
+                    <img src={podiumOrder[0].avatar} alt={podiumOrder[0].name} className="w-full h-full rounded-full object-cover" />
+                  ) : (
+                    <div className="w-16 h-16 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-400 font-bold text-xl">
+                      {podiumOrder[0].name.charAt(0)}
+                    </div>
+                  )}
+                </div>
+                <h3 className="font-bold text-gray-900 dark:text-white font-manrope text-lg mb-1">
+                  {podiumOrder[0].name}
+                </h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400 font-manrope uppercase tracking-wide mb-4">
+                  {podiumOrder[0].badge}
+                </p>
+                <div className="pt-4 border-t border-gray-100 dark:border-gray-700">
+                  <div className="text-3xl font-bold text-gray-900 dark:text-white font-manrope mb-1">
+                    {podiumOrder[0].goalsCompleted}
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 font-manrope uppercase tracking-wide">
+                    Goals Completed
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* 1st Place - Larger */}
-          <div className="flex-1 max-w-[280px]">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-xl border-2 border-[#4c99e6] text-center relative transform scale-105">
-              <div className="absolute -top-5 left-1/2 transform -translate-x-1/2 w-10 h-10 bg-[#4c99e6] rounded-full flex items-center justify-center">
-                <Award className="w-5 h-5 text-white" />
-              </div>
-              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 mx-auto mb-4 flex items-center justify-center">
-                <div className="w-20 h-20 rounded-full bg-gray-200 dark:bg-gray-700"></div>
-              </div>
-              <h3 className="font-bold text-gray-900 dark:text-white font-manrope text-xl mb-1">
-                {topThree[1].name}
-              </h3>
-              <p className="text-xs text-[#4c99e6] font-manrope uppercase tracking-wide font-semibold mb-6 flex items-center justify-center gap-1">
-                <Award className="w-3 h-3" />
-                {topThree[1].badge}
-              </p>
-              <div className="pt-4 border-t border-gray-100 dark:border-gray-700">
-                <div className="text-4xl font-bold text-gray-900 dark:text-white font-manrope mb-1">
-                  {topThree[1].goalsCompleted}
+          {podiumOrder[1] && (
+            <div className="flex-1 max-w-[280px]">
+              <div 
+                onClick={() => handleUserClick(podiumOrder[1].username)}
+                className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-xl border-2 border-[#4c99e6] text-center relative transform scale-105 cursor-pointer hover:shadow-2xl transition-all">
+                <div className="absolute -top-5 left-1/2 transform -translate-x-1/2 w-10 h-10 bg-[#4c99e6] rounded-full flex items-center justify-center">
+                  <Award className="w-5 h-5 text-white" />
                 </div>
-                <div className="text-xs text-[#4c99e6] font-manrope uppercase tracking-wide font-semibold">
-                  Goals Completed
+                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 mx-auto mb-4 flex items-center justify-center">
+                  {podiumOrder[1].avatar ? (
+                    <img src={podiumOrder[1].avatar} alt={podiumOrder[1].name} className="w-full h-full rounded-full object-cover" />
+                  ) : (
+                    <div className="w-20 h-20 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-400 font-bold text-2xl">
+                      {podiumOrder[1].name.charAt(0)}
+                    </div>
+                  )}
+                </div>
+                <h3 className="font-bold text-gray-900 dark:text-white font-manrope text-xl mb-1">
+                  {podiumOrder[1].name}
+                </h3>
+                <p className="text-xs text-[#4c99e6] font-manrope uppercase tracking-wide font-semibold mb-6 flex items-center justify-center gap-1">
+                  <Award className="w-3 h-3" />
+                  {podiumOrder[1].badge}
+                </p>
+                <div className="pt-4 border-t border-gray-100 dark:border-gray-700">
+                  <div className="text-4xl font-bold text-gray-900 dark:text-white font-manrope mb-1">
+                    {podiumOrder[1].goalsCompleted}
+                  </div>
+                  <div className="text-xs text-[#4c99e6] font-manrope uppercase tracking-wide font-semibold">
+                    Goals Completed
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* 3rd Place */}
-          <div className="flex-1 max-w-[240px]">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-100 dark:border-gray-700 text-center relative">
-              <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 w-8 h-8 bg-orange-400 rounded-full flex items-center justify-center text-white font-bold font-manrope text-sm">
-                3
-              </div>
-              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-orange-400 to-amber-600 mx-auto mb-4 flex items-center justify-center">
-                <div className="w-16 h-16 rounded-full bg-gray-200 dark:bg-gray-700"></div>
-              </div>
-              <h3 className="font-bold text-gray-900 dark:text-white font-manrope text-lg mb-1">
-                {topThree[2].name}
-              </h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400 font-manrope uppercase tracking-wide mb-4">
-                {topThree[2].badge}
-              </p>
-              <div className="pt-4 border-t border-gray-100 dark:border-gray-700">
-                <div className="text-3xl font-bold text-gray-900 dark:text-white font-manrope mb-1">
-                  {topThree[2].goalsCompleted}
+          {podiumOrder[2] && (
+            <div className="flex-1 max-w-[240px]">
+              <div 
+                onClick={() => handleUserClick(podiumOrder[2].username)}
+                className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-100 dark:border-gray-700 text-center relative cursor-pointer hover:shadow-xl transition-all">
+                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 w-8 h-8 bg-orange-400 rounded-full flex items-center justify-center text-white font-bold font-manrope text-sm">
+                  3
                 </div>
-                <div className="text-xs text-gray-500 dark:text-gray-400 font-manrope uppercase tracking-wide">
-                  Goals Completed
+                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-orange-400 to-amber-600 mx-auto mb-4 flex items-center justify-center">
+                  {podiumOrder[2].avatar ? (
+                    <img src={podiumOrder[2].avatar} alt={podiumOrder[2].name} className="w-full h-full rounded-full object-cover" />
+                  ) : (
+                    <div className="w-16 h-16 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-400 font-bold text-xl">
+                      {podiumOrder[2].name.charAt(0)}
+                    </div>
+                  )}
+                </div>
+                <h3 className="font-bold text-gray-900 dark:text-white font-manrope text-lg mb-1">
+                  {podiumOrder[2].name}
+                </h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400 font-manrope uppercase tracking-wide mb-4">
+                  {podiumOrder[2].badge}
+                </p>
+                <div className="pt-4 border-t border-gray-100 dark:border-gray-700">
+                  <div className="text-3xl font-bold text-gray-900 dark:text-white font-manrope mb-1">
+                    {podiumOrder[2].goalsCompleted}
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 font-manrope uppercase tracking-wide">
+                    Goals Completed
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
         </motion.div>
 
         {/* All Rankings Section */}
@@ -227,30 +218,8 @@ const LeaderboardPageNew = () => {
             <div className="flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-[#4c99e6]" />
               <h2 className="text-xl font-bold text-gray-900 dark:text-white font-manrope">
-                All Rankings
+                All Time Rankings
               </h2>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setActiveTab('this-month')}
-                className={`px-4 py-2 rounded-lg font-medium font-manrope text-sm transition-all ${
-                  activeTab === 'this-month'
-                    ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white'
-                    : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
-                }`}
-              >
-                This Month
-              </button>
-              <button
-                onClick={() => setActiveTab('all-time')}
-                className={`px-4 py-2 rounded-lg font-medium font-manrope text-sm transition-all ${
-                  activeTab === 'all-time'
-                    ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white'
-                    : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
-                }`}
-              >
-                All Time
-              </button>
             </div>
           </div>
 
@@ -269,13 +238,14 @@ const LeaderboardPageNew = () => {
 
           {/* Rankings List */}
           <div className="space-y-2">
-            {visibleRankings.map((user, index) => (
+            {allRankings.map((user, index) => (
               <motion.div
                 key={user.rank}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 + index * 0.05 }}
-                className="grid grid-cols-12 gap-4 px-4 py-4 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors items-center"
+                onClick={() => handleUserClick(user.username)}
+                className="grid grid-cols-12 gap-4 px-4 py-4 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors items-center cursor-pointer"
               >
                 {/* Rank */}
                 <div className="col-span-1">
@@ -287,7 +257,11 @@ const LeaderboardPageNew = () => {
                 {/* User */}
                 <div className="col-span-8 flex items-center gap-3">
                   <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${getAvatarColor(user.rank)} flex items-center justify-center text-white font-bold font-manrope text-sm`}>
-                    {user.name.charAt(0)}
+                    {user.avatar ? (
+                      <img src={user.avatar} alt={user.name} className="w-full h-full rounded-full object-cover" />
+                    ) : (
+                      user.name.charAt(0)
+                    )}
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
@@ -313,15 +287,50 @@ const LeaderboardPageNew = () => {
             ))}
           </div>
 
-          {/* Load More Button */}
-          {!showMore && allRankings.length > 4 && (
-            <div className="mt-6 text-center">
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="mt-8 flex items-center justify-center gap-2">
               <button
-                onClick={() => setShowMore(true)}
-                className="inline-flex items-center gap-2 text-[#4c99e6] hover:text-[#3d88d5] font-medium font-manrope text-sm transition-colors"
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1 || loading}
+                className="px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed font-manrope font-medium text-sm transition-colors"
               >
-                Load More Rankings
-                <ChevronDown className="w-4 h-4" />
+                Previous
+              </button>
+              <div className="flex items-center gap-1">
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => setCurrentPage(pageNum)}
+                      disabled={loading}
+                      className={`w-10 h-10 rounded-lg font-manrope font-medium text-sm transition-colors ${
+                        currentPage === pageNum
+                          ? 'bg-[#4c99e6] text-white'
+                          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                      } disabled:opacity-50`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+              </div>
+              <button
+                onClick={() => setCurrentPage(p => p + 1)}
+                disabled={currentPage >= totalPages || loading}
+                className="px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed font-manrope font-medium text-sm transition-colors"
+              >
+                Next
               </button>
             </div>
           )}
