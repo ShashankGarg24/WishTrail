@@ -7,7 +7,7 @@ import SkeletonList from '../components/loader/SkeletonList'
 const ActivityCommentsModal = lazy(() => import('../components/ActivityCommentsModal'));
 const ReportModal = lazy(() => import('../components/ReportModal'));
 const BlockModal = lazy(() => import('../components/BlockModal'));
-const GoalDetailsModal = lazy(() => import('../components/GoalDetailsModal'));
+const GoalPostModal = lazy(() => import('../components/GoalPostModal'));
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
 const ShareSheet = lazy(() => import('../components/ShareSheet'));
 
@@ -779,7 +779,7 @@ const FeedPage = () => {
       </div>
       {/* Goal Details Modal (with timeline) */}
       {goalModalOpen && (
-        <Suspense fallback={null}><GoalDetailsModal
+        <Suspense fallback={null}><GoalPostModal
           isOpen={goalModalOpen}
           goalId={openGoalId}
           autoOpenComments={scrollCommentsOnOpen}

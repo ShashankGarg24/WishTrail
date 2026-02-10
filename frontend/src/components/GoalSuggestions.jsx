@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Sparkles, Tag, Lightbulb, RefreshCw } from 'lucide-react'
+import { Sparkles, Tag, Lightbulb, RefreshCw, BookOpen, Compass, Activity, Code, Heart } from 'lucide-react'
+
+const THEME_COLOR = '#4c99e6'
 
 const INTEREST_TO_GOALS = {
     fitness: [
@@ -667,7 +669,7 @@ function pickMixedSuggestions(interests, size = 6) {
 // variant: 'empty' | 'inline'
 // - empty: used when user has no active goals; shows suggestions by default
 // - inline: used when user has goals; collapsed by default with CTA to expand
-const GoalSuggestions = ({ interests = [], onSelect, variant = 'inline', limit = 6, forceExpanded = false, showHeader = true, titleOverride, containerClassName = 'mt-10', innerContainerClassName = 'max-w-5xl mx-auto' }) => {
+const GoalSuggestions = ({ interests = [], onSelect, onCreate, variant = 'inline', limit = 6, forceExpanded = false, showHeader = true, titleOverride, containerClassName = 'mt-10', innerContainerClassName = 'max-w-5xl mx-auto' }) => {
   const [expanded, setExpanded] = useState(forceExpanded || variant === 'empty')
   const [suggestions, setSuggestions] = useState([])
 
@@ -704,22 +706,22 @@ const GoalSuggestions = ({ interests = [], onSelect, variant = 'inline', limit =
   }
 
   return (
-    <div id="suggested-goals" className={containerClassName}>
-      <div className={innerContainerClassName}>
+    <div id="suggested-goals" className={containerClassName} style={{ fontFamily: 'Manrope' }}>
+      <div className={`${innerContainerClassName} flex flex-col h-full`}>
       {showHeader && (
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-6">
           <div className="flex items-center">
-            <Sparkles className="h-5 w-5 text-primary-500 mr-2" />
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
-              {titleOverride || (variant === 'empty' ? 'Suggested Goals to Get You Started' : 'Goal Suggestions')}
+            <Sparkles className="h-5 w-5 mr-3" style={{ color: THEME_COLOR }} />
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white" style={{ fontFamily: 'Manrope' }}>
+              {titleOverride || (variant === 'empty' ? 'Suggested Goals to Get You Started' : 'Goal Inspiration')}
             </h3>
           </div>
           <div className="flex items-center gap-3">
-            <button onClick={regenerate} className="text-sm text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 inline-flex items-center gap-1">
+            <button onClick={regenerate} className="text-sm text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 inline-flex items-center gap-1" style={{ fontFamily: 'Manrope' }}>
               <RefreshCw className="h-4 w-4" /> Shuffle
             </button>
             {!forceExpanded && variant === 'inline' && (
-              <button onClick={() => setExpanded(false)} className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200">
+              <button onClick={() => setExpanded(false)} className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200" style={{ fontFamily: 'Manrope' }}>
                 Hide
               </button>
             )}
@@ -727,35 +729,55 @@ const GoalSuggestions = ({ interests = [], onSelect, variant = 'inline', limit =
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 flex-1">
         <AnimatePresence initial={false}>
-          {suggestions.map((g, idx) => (
+          {suggestions.map((g, idx) => {
+            // Get category-based icon
+            const getCategoryIcon = (category) => {
+              const iconMap = {
+                'Health & Fitness': <Activity className="h-5 w-5" />,
+                'Education & Learning': <BookOpen className="h-5 w-5" />,
+                'Travel & Adventure': <Compass className="h-5 w-5" />,
+                'Career & Business': <Code className="h-5 w-5" />,
+                'Relationships': <Heart className="h-5 w-5" />,
+                'Creative Projects': <Lightbulb className="h-5 w-5" />,
+              }
+              return iconMap[category] || <Lightbulb className="h-5 w-5" />
+            }
+            
+            return (
             <motion.div
               key={`${g.title}-${idx}`}
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -12 }}
               transition={{ duration: 0.25, delay: Math.min(idx * 0.04, 0.25) }}
-              className="glass-card-hover p-4 rounded-xl border border-gray-200 dark:border-gray-700"
+              className="p-5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:shadow-lg hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-200"
             >
-              <div className="text-xs text-gray-500 dark:text-gray-400 mb-1 flex items-center">
-                <Tag className="h-3 w-3 mr-1" /> {g.category}
+              <div className="flex items-start justify-between mb-3">
+                <div className="p-2 rounded-lg" style={{ backgroundColor: `${THEME_COLOR}20` }}>
+                  <div style={{ color: THEME_COLOR }}>
+                    {getCategoryIcon(g.category)}
+                  </div>
+                </div>
               </div>
-              <div className="font-semibold text-gray-900 dark:text-white">{g.title}</div>
-              <div className="text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">{g.description}</div>
-              <div className="mt-3">
-                <button onClick={() => onSelect?.(g)} className="btn-primary text-sm px-3 py-1">Use this goal</button>
+              <div className="text-xs text-gray-500 dark:text-gray-400 mb-2 font-semibold uppercase tracking-wider" style={{ fontFamily: 'Manrope' }}>
+                {g.category}
               </div>
+              <div className="font-bold text-gray-900 dark:text-white mb-2 text-sm" style={{ fontFamily: 'Manrope' }}>{g.title}</div>
+              <div className="text-xs text-gray-600 dark:text-gray-400 mb-4 line-clamp-2" style={{ fontFamily: 'Manrope', lineHeight: '1.4' }}>{g.description}</div>
+              <button 
+                onClick={() => onSelect?.(g)} 
+                className="w-full py-2 px-3 text-white rounded-lg hover:opacity-90 transition-all font-medium text-sm"
+                style={{ backgroundColor: THEME_COLOR, fontFamily: 'Manrope' }}
+              >
+                Use this goal
+              </button>
             </motion.div>
-          ))}
+            )
+          })}
         </AnimatePresence>
       </div>
-
-      {variant === 'empty' && (
-        <div className="mt-6 text-sm text-gray-600 dark:text-gray-400">
-          Not sure where to start? Pick any idea and customize it. You can always edit or add more goals later.
-        </div>
-      )}
     </div>
   </div>
   )

@@ -6,7 +6,7 @@ import useApiStore from '../store/apiStore'
 import SkeletonList from '../components/loader/SkeletonList'
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { INTERESTS_LIST } from '../constants/interests'
-const GoalDetailsModal = lazy(() => import('../components/GoalDetailsModal'));
+const GoalPostModal = lazy(() => import('../components/GoalPostModal'));
 const ReportModal = lazy(() => import('../components/ReportModal'));
 const BlockModal = lazy(() => import('../components/BlockModal'));
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
@@ -1033,7 +1033,7 @@ const DiscoverPage = () => {
         }
         {/* Goal Details Modal (same as Feed) */}
         {goalModalOpen && (
-          <Suspense fallback={null}><GoalDetailsModal
+          <Suspense fallback={null}><GoalPostModal
             isOpen={goalModalOpen}
             goalId={openGoalId}
             autoOpenComments={scrollCommentsOnOpen}

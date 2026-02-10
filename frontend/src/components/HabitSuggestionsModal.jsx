@@ -44,7 +44,7 @@ function getCategoryLabel(category) {
   return CATEGORY_LABELS[c] || (c ? c.toUpperCase() : 'HABIT')
 }
 
-const HabitSuggestionsModal = ({ isOpen, onClose, interests = [], onSelect, limit = 6, title = 'Habit Suggestions' }) => {
+const HabitSuggestionsModal = ({ isOpen, onClose, interests = [], onSelect, onCreate, limit = 6, title = 'Habit Suggestions' }) => {
   const [suggestions, setSuggestions] = useState([])
   const [shuffleVersion, setShuffleVersion] = useState(0)
 
@@ -163,14 +163,15 @@ const HabitSuggestionsModal = ({ isOpen, onClose, interests = [], onSelect, limi
           </div>
 
           {/* Footer */}
-          <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-700 flex-shrink-0 text-center">
-            <button
-              type="button"
-              onClick={onClose}
-              className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
-            >
-              View full catalog
-            </button>
+          <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-700 flex-shrink-0">
+            <div className="max-w-full mx-auto text-center">
+              <p className="text-sm text-gray-500 dark:text-gray-400" style={{ fontFamily: 'Manrope' }}>
+                Can't find what you're looking for?{' '}
+                <button onClick={() => onCreate?.()} className="font-semibold transition-opacity hover:opacity-80" style={{ color: THEME_COLOR, fontFamily: 'Manrope' }}>
+                  Create from scratch
+                </button>
+              </p>
+            </div>
           </div>
         </motion.div>
       </div>

@@ -665,23 +665,53 @@ exports.getHabitAnalytics = async (req, res, next) => {
     
     // Get current date in user's timezone to calculate week boundaries
     const now = new Date();
-    const formatter = new Intl.DateTimeFormat('en-CA', {
-      timeZone: userTimezone,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit'
-    });
-    const todayInUserTz = formatter.format(now);
+    let weekEndDate = new Date(now);
+    
+    // Try to use user's timezone for date calculation, fall back to UTC if it fails
+    try {
+      const formatter = new Intl.DateTimeFormat('en-CA', {
+        timeZone: userTimezone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      });
+      const todayInUserTz = formatter.format(now);
+      
+      // Parse the formatted date string (format should be YYYY-MM-DD)
+      const parts = todayInUserTz.split('-');
+      if (parts.length === 3) {
+        const parsedYear = parseInt(parts[0]);
+        const parsedMonth = parseInt(parts[1]);
+        const parsedDay = parseInt(parts[2]);
+        
+        if (!isNaN(parsedYear) && !isNaN(parsedMonth) && !isNaN(parsedDay)) {
+          weekEndDate = new Date(Date.UTC(parsedYear, parsedMonth - 1, parsedDay));
+        }
+      }
+    } catch (err) {
+      // Fallback to UTC if timezone conversion fails
+      // weekEndDate already initialized to current date in UTC above
+    }
+    
+    // Validate the date before proceeding
+    if (isNaN(weekEndDate.getTime())) {
+      return res.status(500).json({ success: false, message: 'Invalid date calculation' });
+    }
     
     for (let i = weeksToShow - 1; i >= 0; i--) {
-      // Calculate week boundaries in user's timezone
-      const weekEndDate = new Date(todayInUserTz + 'T00:00:00Z');
-      weekEndDate.setUTCDate(weekEndDate.getUTCDate() - (i * 7));
-      const weekStartDate = new Date(weekEndDate);
-      weekStartDate.setUTCDate(weekStartDate.getUTCDate() - 6);
+      // Calculate week boundaries
+      const currentWeekEndDate = new Date(weekEndDate);
+      currentWeekEndDate.setUTCDate(currentWeekEndDate.getUTCDate() - (i * 7));
+      const currentWeekStartDate = new Date(currentWeekEndDate);
+      currentWeekStartDate.setUTCDate(currentWeekStartDate.getUTCDate() - 6);
       
-      const weekStartKey = weekStartDate.toISOString().split('T')[0];
-      const weekEndKey = weekEndDate.toISOString().split('T')[0];
+      // Validate dates before converting to ISO string
+      if (isNaN(currentWeekStartDate.getTime()) || isNaN(currentWeekEndDate.getTime())) {
+        continue; // Skip this week if dates are invalid
+      }
+      
+      const weekStartKey = currentWeekStartDate.toISOString().split('T')[0];
+      const weekEndKey = currentWeekEndDate.toISOString().split('T')[0];
       
       // Get timeline entries for this week (timeline dates are in user's timezone)
       const weekTimelineEntries = timeline.filter(t => t.date >= weekStartKey && t.date <= weekEndKey);

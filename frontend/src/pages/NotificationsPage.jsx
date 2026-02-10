@@ -4,7 +4,7 @@ import useApiStore from '../store/apiStore'
 import SkeletonNotifications from '../components/loader/SkeletonNotifications'
 import { useNavigate } from 'react-router-dom'
 
-const GoalDetailsModal = lazy(() => import('../components/GoalDetailsModal'));
+const GoalPostModal = lazy(() => import('../components/GoalPostModal'));
 
 const NotificationsPage = () => {
   const {
@@ -375,7 +375,7 @@ const NotificationsPage = () => {
       {/* Goal Details Modal */}
       {openGoalId && (
         <Suspense fallback={null}>
-          <GoalDetailsModal
+          <GoalPostModal
             isOpen={!!openGoalId}
             goalId={openGoalId}
             onClose={() => setOpenGoalId(null)}

@@ -10,7 +10,7 @@ import useApiStore from '../store/apiStore'
 const CreateGoalWizard = lazy(() => import('../components/CreateGoalWizard'));
 const GoalSuggestionsModal = lazy(() => import('../components/GoalSuggestionsModal'));
 const HabitSuggestionsModal = lazy(() => import('../components/HabitSuggestionsModal'));
-const GoalDetailsModal = lazy(() => import('../components/GoalDetailsModal'));
+const GoalPostModal = lazy(() => import('../components/GoalPostModal'));
 import { useNavigate, useSearchParams } from 'react-router-dom'
 
 const DashboardPage = () => {
@@ -1773,7 +1773,7 @@ const DashboardPage = () => {
 
       {/* Goal Details Modal (with timeline) */}
       {openGoalId && (
-        <Suspense fallback={null}><GoalDetailsModal
+        <Suspense fallback={null}><GoalPostModal
           isOpen={!!openGoalId}
           goalId={openGoalId}
           autoOpenComments={scrollCommentsOnOpen}

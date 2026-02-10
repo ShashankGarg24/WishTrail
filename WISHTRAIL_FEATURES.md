@@ -1110,7 +1110,7 @@ WishTrail is a **goal tracking and social wellness platform** that combines pers
 ### **Shared Components**
 
 #### **Modals**
-- GoalDetailsModal (view/edit/complete goals)
+- GoalPostModal (view/edit/complete goals)
 - HabitDetailModal (view/log habits)
 - HabitAnalyticsModal (embedded analytics)
 - ProfileEditModal (edit profile)

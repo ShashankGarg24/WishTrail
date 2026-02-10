@@ -7,6 +7,8 @@ const CreateHabitModal = lazy(() => import('./CreateHabitModal'));
 const CreateWishModal = lazy(() => import('./CreateWishModal'));
 import { ChevronDown, ChevronRight, Trash2, Plus, Link} from 'lucide-react'
 
+const THEME_COLOR = '#4c99e6'
+
 export default function GoalDivisionEditor({ goal, goalId, habits, onClose, draftMode = false, renderInline = false, value, onChange }) {
   const { updateGoal, getGoalProgress } = useApiStore()
   const { isPremium } = usePremiumStatus()
@@ -230,31 +232,31 @@ export default function GoalDivisionEditor({ goal, goalId, habits, onClose, draf
 
   const content = (
       <>
-      <motion.div initial={{ opacity: renderInline ? 1 : 0, y: renderInline ? 0 : 20 }} animate={{ opacity: 1, y: 0 }} className={`relative ${renderInline ? '' : 'bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-full max-w-3xl mx-4 p-6 border border-gray-200 dark:border-gray-800'}`} onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Goal Breakdown</h3>
-          {!renderInline && (<button onClick={onClose} className="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200">Close</button>)}
+      <motion.div initial={{ opacity: renderInline ? 1 : 0, y: renderInline ? 0 : 20 }} animate={{ opacity: 1, y: 0 }} className={`relative ${renderInline ? '' : 'bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-full max-w-3xl mx-4 p-6 border border-gray-200 dark:border-gray-800'}`} onClick={(e) => e.stopPropagation()} style={{ fontFamily: 'Manrope' }}>
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white" style={{ fontFamily: 'Manrope' }}>Goal Breakdown</h3>
+          {!renderInline && (<button onClick={onClose} className="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200" style={{ fontFamily: 'Manrope' }}>Close</button>)}
         </div>
-        <div className="mb-4">
-          <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400 mb-1">
-            <span>Total Weight</span>
-            <span title={autoAdjusted ? 'Adjusted to 100%' : ''}>{Math.min(100, Math.max(0, totalWeight))}%{autoAdjusted ? ' (auto-adjusted)' : ''}</span>
+        <div className="mb-6">
+          <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400 mb-2" style={{ fontFamily: 'Manrope' }}>
+            <span className="font-semibold">TOTAL WEIGHT</span>
+            <span title={autoAdjusted ? 'Adjusted to 100%' : ''} className="font-medium">{Math.min(100, Math.max(0, totalWeight))}%{autoAdjusted ? ' (auto-adjusted)' : ''}</span>
           </div>
-          <div className="w-full h-2 rounded-full bg-gray-200 dark:bg-gray-700">
-            <div className="h-2 rounded-full bg-primary-500" style={{ width: `${Math.min(100, Math.max(0, totalWeight))}%` }} />
+          <div className="w-full h-2.5 rounded-full" style={{ backgroundColor: '#e5e7eb' }}>
+            <div className="h-2.5 rounded-full transition-all duration-300" style={{ width: `${Math.min(100, Math.max(0, totalWeight))}%`, backgroundColor: THEME_COLOR }} />
           </div>
         </div>
 
         {/* Sub-Goals */}
         <div className="mb-6">
-          <button onClick={() => setShowSubs(v => !v)} className="w-full flex items-center justify-between mb-2 px-2 py-1 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800/50">
-            <span className="text-md font-semibold text-gray-900 dark:text-white flex items-center gap-2">{showSubs ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />} Sub-Goals</span>
-            <span className="text-xs text-gray-500 dark:text-gray-400">{localSubGoals.length}</span>
+          <button onClick={() => setShowSubs(v => !v)} className="w-full flex items-center justify-between mb-3 px-2 py-1 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800/50" style={{ fontFamily: 'Manrope' }}>
+            <span className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">{showSubs ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />} Sub-Goals</span>
+            <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: `${THEME_COLOR}20`, color: THEME_COLOR, fontFamily: 'Manrope', fontWeight: 500 }}>{localSubGoals.length}</span>
           </button>
           {showSubs && (
           <div className="space-y-2 max-h-80 overflow-auto pr-1">
-            <div className="mb-3 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-              <p className="text-xs text-blue-800 dark:text-blue-300">
+            <div className="mb-3 p-3 rounded-lg" style={{ backgroundColor: `${THEME_COLOR}10`, border: `1px solid ${THEME_COLOR}30` }}>
+              <p className="text-xs" style={{ color: THEME_COLOR, fontFamily: 'Manrope' }}>
                 <strong>Note:</strong> Only goals without existing sub-goals or habit links can be selected as sub-goals to prevent nested hierarchies.
               </p>
             </div>
@@ -314,7 +316,8 @@ export default function GoalDivisionEditor({ goal, goalId, habits, onClose, draf
                       }
                       setLocalSubGoals(prev => prev.map((s,i) => i===idx ? { ...s, linkedGoalId: selectedGoalId || undefined } : s));
                     }} 
-                    className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                    className="w-full px-3 py-2 rounded-lg border-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none transition-colors" 
+                    style={{ borderColor: `${THEME_COLOR}4d`, fontFamily: 'Manrope' }}
                   >
                     <option value="">Link goal…</option>
                     {availableGoals.map((g, gIdx) => {
@@ -324,18 +327,18 @@ export default function GoalDivisionEditor({ goal, goalId, habits, onClose, draf
                   </select>
                 </div>
                 <div className="col-span-5 flex items-center gap-3">
-                  <input type="range" min={0} max={100} step={5} value={round5(sg.weight || 0)} onChange={(e) => setLocalSubGoals(prev => prev.map((s,i) => i===idx ? { ...s, weight: round5(e.target.value) } : s))} className="flex-1" />
-                  <div className="w-10 text-right text-sm text-gray-700 dark:text-gray-300">{round5(sg.weight || 0)}%</div>
-                  <button title="Remove" onClick={() => removeSubGoal(idx)} className="p-2 rounded-md bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400"><Trash2 className="h-4 w-4" /></button>
+                  <input type="range" min={0} max={100} step={5} value={round5(sg.weight || 0)} onChange={(e) => setLocalSubGoals(prev => prev.map((s,i) => i===idx ? { ...s, weight: round5(e.target.value) } : s))} className="flex-1" style={{ accentColor: THEME_COLOR }} />
+                  <div className="w-10 text-right text-sm text-gray-700 dark:text-gray-300" style={{ fontFamily: 'Manrope' }}>{round5(sg.weight || 0)}%</div>
+                  <button title="Remove" onClick={() => removeSubGoal(idx)} className="p-2 rounded-md hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors" style={{ backgroundColor: '#fee2e2', color: '#dc2626', fontFamily: 'Manrope' }}><Trash2 className="h-4 w-4" /></button>
                 </div>
               </div>
               );
             });
             })()}
             {localSubGoals.length === 0 && <div className="text-sm text-gray-500 dark:text-gray-400">No sub-goals added.</div>}
-            <div className="pt-2 flex items-center justify-end gap-2">
-              <button onClick={addSubGoal} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200"><Link className="h-4 w-4" />Link</button>
-              {!draftMode && (<button onClick={createGoal} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 border border-primary-200 dark:border-primary-800"><Plus className="h-4 w-4" />Add New</button>)}
+            <div className="pt-2 w-full">
+              <button onClick={addSubGoal} className="w-full inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border-2 border-dashed font-medium transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50" style={{ borderColor: `${THEME_COLOR}40`, color: THEME_COLOR, fontFamily: 'Manrope' }}><Link className="h-4 w-4" />Link Sub-Goal</button>
+              {!draftMode && (<button onClick={createGoal} className="w-full inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border-2 border-dashed mt-2 font-medium transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50" style={{ borderColor: `${THEME_COLOR}40`, color: THEME_COLOR, fontFamily: 'Manrope' }}><Plus className="h-4 w-4" />Create & Link</button>)}
             </div>
           </div>
           )}
@@ -343,14 +346,14 @@ export default function GoalDivisionEditor({ goal, goalId, habits, onClose, draf
 
         {/* Habits */}
         <div className="mb-6">
-          <button onClick={() => setShowHabits(v => !v)} className="w-full flex items-center justify-between mb-2 px-2 py-1 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800/50">
-            <span className="text-md font-semibold text-gray-900 dark:text-white flex items-center gap-2">{showHabits ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />} Habits</span>
-            <span className="text-xs text-gray-500 dark:text-gray-400">{localHabitLinks.length}</span>
+          <button onClick={() => setShowHabits(v => !v)} className="w-full flex items-center justify-between mb-3 px-2 py-1 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800/50" style={{ fontFamily: 'Manrope' }}>
+            <span className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">{showHabits ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />} Habits</span>
+            <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: `${THEME_COLOR}20`, color: THEME_COLOR, fontFamily: 'Manrope', fontWeight: 500 }}>{localHabitLinks.length}</span>
           </button>
           {showHabits && (
           <div className="space-y-2 max-h-80 overflow-auto pr-1">
-            <div className="mb-3 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
-              <p className="text-xs text-amber-800 dark:text-amber-300">
+            <div className="mb-3 p-3 rounded-lg" style={{ backgroundColor: '#fef3c7', border: '1px solid #fcd34d' }}>
+              <p className="text-xs text-red-700 dark:text-red-400" style={{ fontFamily: 'Manrope' }}>
                 <strong>Note:</strong> Only habits with target days or target completions can be linked to goals for progress tracking.
               </p>
             </div>
@@ -367,23 +370,23 @@ export default function GoalDivisionEditor({ goal, goalId, habits, onClose, draf
               
               return (
               <div key={idx} className="grid grid-cols-12 gap-3 items-center">
-                <select value={hl.habitId} onChange={(e) => setLocalHabitLinks(prev => prev.map((h,i) => i===idx ? { ...h, habitId: e.target.value } : h))} className="col-span-7 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white">
+                <select value={hl.habitId} onChange={(e) => setLocalHabitLinks(prev => prev.map((h,i) => i===idx ? { ...h, habitId: e.target.value } : h))} className="col-span-7 px-3 py-2 rounded-lg border-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none transition-colors" style={{ fontFamily: 'Manrope', borderColor: `${THEME_COLOR}4d` }}>
                   <option value="">Select a habit…</option>
                   {availableHabits.map(h => (
                     <option key={h.id} value={h.id}>{h.name}</option>
                   ))}
                 </select>
                 <div className="col-span-5 flex items-center gap-3">
-                  <input type="range" min={0} max={100} step={5} value={round5(hl.weight || 0)} onChange={(e) => setLocalHabitLinks(prev => prev.map((h,i) => i===idx ? { ...h, weight: round5(e.target.value) } : h))} className="flex-1" />
-                  <div className="w-10 text-right text-sm text-gray-700 dark:text-gray-300">{round5(hl.weight || 0)}%</div>
-                  <button title="Remove" onClick={() => removeHabitLink(idx)} className="p-2 rounded-md bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400"><Trash2 className="h-4 w-4" /></button>
+                  <input type="range" min={0} max={100} step={5} value={round5(hl.weight || 0)} onChange={(e) => setLocalHabitLinks(prev => prev.map((h,i) => i===idx ? { ...h, weight: round5(e.target.value) } : h))} className="flex-1" style={{ accentColor: THEME_COLOR }} />
+                  <div className="w-10 text-right text-sm text-gray-700 dark:text-gray-300" style={{ fontFamily: 'Manrope' }}>{round5(hl.weight || 0)}%</div>
+                  <button title="Remove" onClick={() => removeHabitLink(idx)} className="p-2 rounded-md hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors" style={{ backgroundColor: '#fee2e2', color: '#dc2626', fontFamily: 'Manrope' }}><Trash2 className="h-4 w-4" /></button>
                 </div>
               </div>
             )})}
-            {localHabitLinks.length === 0 && <div className="text-sm text-gray-500 dark:text-gray-400">No habits linked yet.</div>}
-            <div className="pt-2 flex items-center justify-end gap-2">
-              <button onClick={addHabitLink} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200"><Link className="h-4 w-4" />Link</button>
-              {!draftMode && (<button onClick={addHabitInline} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 border border-primary-200 dark:border-primary-800"><Plus className="h-4 w-4" />Add New</button>)}
+            {localHabitLinks.length === 0 && <div className="text-sm text-gray-500 dark:text-gray-400" style={{ fontFamily: 'Manrope' }}>No habits linked yet.</div>}
+            <div className="pt-2 w-full">
+              <button onClick={addHabitLink} className="w-full inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border-2 border-dashed font-medium transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50" style={{ borderColor: `${THEME_COLOR}40`, color: THEME_COLOR, fontFamily: 'Manrope' }}><Link className="h-4 w-4" />Link Habit</button>
+              {!draftMode && (<button onClick={addHabitInline} className="w-full inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border-2 border-dashed mt-2 font-medium transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50" style={{ borderColor: `${THEME_COLOR}40`, color: THEME_COLOR, fontFamily: 'Manrope' }}><Plus className="h-4 w-4" />Create & Link</button>)}
             </div>
           </div>
           )}

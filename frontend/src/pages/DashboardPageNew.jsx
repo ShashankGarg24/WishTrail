@@ -5,12 +5,14 @@ import useApiStore from '../store/apiStore'
 import { useSearchParams } from 'react-router-dom'
 
 const CreateGoalWizard = lazy(() => import('../components/CreateGoalWizard'))
+const GoalPostModal = lazy(() => import('../components/GoalPostModal'))
 const GoalDetailsModal = lazy(() => import('../components/GoalDetailsModal'))
 const HabitDetailModal = lazy(() => import('../components/HabitDetailModal'))
 const CreateHabitModal = lazy(() => import('../components/CreateHabitModal'))
 const EditHabitModal = lazy(() => import('../components/EditHabitModal'))
 const DeleteConfirmModal = lazy(() => import('../components/DeleteConfirmModal'))
 const HabitSuggestionsModal = lazy(() => import('../components/HabitSuggestionsModal'))
+const GoalSuggestionsModal = lazy(() => import('../components/GoalSuggestionsModal'))
 const DependencyWarningModal = lazy(() => import('../components/DependencyWarningModal'))
 
 const DashboardPageNew = () => {
@@ -20,6 +22,7 @@ const DashboardPageNew = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isHabitModalOpen, setIsHabitModalOpen] = useState(false)
   const [openGoalId, setOpenGoalId] = useState(null)
+  const [selectedGoal, setSelectedGoal] = useState(null)
   const [selectedHabit, setSelectedHabit] = useState(null)
   const [isEditHabitOpen, setIsEditHabitOpen] = useState(false)
   const [isHabitDeleteModalOpen, setIsHabitDeleteModalOpen] = useState(false)
@@ -28,7 +31,9 @@ const DashboardPageNew = () => {
   const [isHabitWarningModalOpen, setIsHabitWarningModalOpen] = useState(false)
   const [isDeletingHabit, setIsDeletingHabit] = useState(false)
   const [isHabitIdeasOpen, setIsHabitIdeasOpen] = useState(false)
+  const [isGoalIdeasOpen, setIsGoalIdeasOpen] = useState(false)
   const [initialHabitData, setInitialHabitData] = useState(null)
+  const [initialGoalData, setInitialGoalData] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [isYearDropdownOpen, setIsYearDropdownOpen] = useState(false)
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false)
@@ -81,6 +86,12 @@ const DashboardPageNew = () => {
     setInitialHabitData(template || null)
     setIsHabitModalOpen(true)
     setIsHabitIdeasOpen(false)
+  }
+
+  const openPrefilledGoalModal = (template) => {
+    setInitialGoalData(template || null)
+    setIsCreateModalOpen(true)
+    setIsGoalIdeasOpen(false)
   }
 
   // Get greeting based on time
@@ -361,7 +372,7 @@ const DashboardPageNew = () => {
 
             {/* Discover Button */}
             <button
-              onClick={() => activeTab === 'goals' ? undefined : setIsHabitIdeasOpen(true)}
+              onClick={() => activeTab === 'goals' ? setIsGoalIdeasOpen(true) : setIsHabitIdeasOpen(true)}
               className="flex items-center gap-2 px-5 py-2 bg-[#4c99e6] hover:bg-[#3d88d5] text-white rounded-lg transition-colors shadow-sm font-manrope font-medium text-sm"
             >
               <Target className="w-4 h-4" />
@@ -639,37 +650,18 @@ const DashboardPageNew = () => {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: (index + 1) * 0.05 }}
-                  className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-all group relative"
+                  onClick={() => setSelectedGoal(goal)}
+                  className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-all group relative cursor-pointer"
                 >
                   {/* Action Buttons */}
                   <div className="absolute top-4 right-4 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
-                        setOpenGoalId(goal.id)
+                        setSelectedGoal(goal)
                       }}
                       className="p-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
                       title="Analytics"
-                    >
-                      <TrendingUp className="w-4 h-4 text-gray-600 dark:text-gray-300" />
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setOpenGoalId(goal.id)
-                      }}
-                      className="p-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
-                      title="Details"
-                    >
-                      <Eye className="w-4 h-4 text-gray-600 dark:text-gray-300" />
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setOpenGoalId(goal.id)
-                      }}
-                      className="p-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
-                      title="Edit"
                     >
                       <Edit className="w-4 h-4 text-gray-600 dark:text-gray-300" />
                     </button>
@@ -747,8 +739,6 @@ const DashboardPageNew = () => {
                       Expand your routine. Build a new habit cycle.
                     </p>
                   </motion.div>
-              {filteredHabits.length > 0 ? (
-                <>
                   {filteredHabits.map((habit, index) => (
                     <motion.div
                       key={habit.id}
@@ -825,26 +815,6 @@ const DashboardPageNew = () => {
                       </div>
                     </motion.div>
                   ))}
-                
-                </>
-              ) : (
-                <div className="col-span-2 text-center py-12">
-                  <CheckCircle className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 font-manrope">
-                    No habits yet
-                  </h3>
-                  <p className="text-gray-600 dark:text-gray-400 mb-6 font-manrope">
-                    Build better habits to achieve your goals
-                  </p>
-                  <button
-                    onClick={() => setIsHabitModalOpen(true)}
-                    className="inline-flex items-center gap-2 px-6 py-3 bg-[#4c99e6] hover:bg-[#3d88d5] text-white rounded-lg transition-colors font-manrope font-medium"
-                  >
-                    <Plus className="w-5 h-5" />
-                    Create Habit
-                  </button>
-                </div>
-              )}
             </div>
           )}
         </motion.div>
@@ -889,8 +859,9 @@ const DashboardPageNew = () => {
         {isCreateModalOpen && (
           <CreateGoalWizard
             isOpen={isCreateModalOpen}
-            onClose={() => setIsCreateModalOpen(false)}
+            onClose={() => { setIsCreateModalOpen(false); setInitialGoalData(null) }}
             year={selectedYear}
+            initialData={initialGoalData}
           />
         )}
 
@@ -904,10 +875,18 @@ const DashboardPageNew = () => {
         )}
 
         {openGoalId && (
-          <GoalDetailsModal
+          <GoalPostModal
             goalId={openGoalId}
             isOpen={!!openGoalId}
             onClose={() => setOpenGoalId(null)}
+          />
+        )}
+
+        {selectedGoal && (
+          <GoalDetailsModal
+            goal={selectedGoal}
+            isOpen={!!selectedGoal}
+            onClose={() => setSelectedGoal(null)}
           />
         )}
 
@@ -994,6 +973,17 @@ const DashboardPageNew = () => {
             onSelect={openPrefilledHabitModal}
             limit={6}
             title="Habit Suggestions"
+          />
+        )}
+        {isGoalIdeasOpen && (
+          <GoalSuggestionsModal
+            isOpen={isGoalIdeasOpen}
+            onClose={() => setIsGoalIdeasOpen(false)}
+            interests={user?.interests || []}
+            onSelect={openPrefilledGoalModal}
+            onCreate={() => { setIsGoalIdeasOpen(false); setInitialGoalData(null); setIsCreateModalOpen(true); }}
+            limit={6}
+            title="Goal Suggestions"
           />
         )}
       </Suspense>

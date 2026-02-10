@@ -29,6 +29,12 @@ class GoalService {
    * Get goal by ID
    */
   async getGoalById(id) {
+    // Defensive: ensure id is a number-like value to avoid passing invalid params to PG
+    const numericId = parseInt(id, 10);
+    if (!numericId || isNaN(numericId)) {
+      return null;
+    }
+
     const queryText = `
       SELECT g.id, g.user_id, g.title, g.category, g.year, g.target_date,
              g.completed_at, g.is_public,
@@ -39,7 +45,7 @@ class GoalService {
       WHERE g.id = $1
     `;
     
-    const result = await query(queryText, [id]);
+    const result = await query(queryText, [numericId]);
     return result.rows[0] || null;
   }
   

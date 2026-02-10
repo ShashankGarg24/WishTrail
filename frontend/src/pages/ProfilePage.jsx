@@ -17,7 +17,7 @@ const JournalEntryModal = lazy(() => import("../components/JournalEntryModal"));
 const JournalExportModal = lazy(() => import("../components/JournalExportModal"));
 const HabitAnalyticsCard = lazy(() => import("../components/HabitAnalyticsCard"));
 const HabitDetailModal = lazy(() => import("../components/HabitDetailModal"));
-const GoalDetailsModal = lazy(() => import('../components/GoalDetailsModal'));
+const GoalPostModal = lazy(() => import('../components/GoalPostModal'));
 
 const ProfilePage = () => {
   const params = useParams();
@@ -1469,7 +1469,7 @@ const ProfilePage = () => {
       /></Suspense>
       {/* Goal Details Modal (with timeline) */}
       {openGoalId && (
-        <Suspense fallback={null}><GoalDetailsModal
+        <Suspense fallback={null}><GoalPostModal
           isOpen={!!openGoalId}
           goalId={openGoalId}
           autoOpenComments={scrollCommentsOnOpen}

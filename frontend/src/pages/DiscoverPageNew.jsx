@@ -4,7 +4,7 @@ import { Plus, Target, Search, UserPlus, Rocket, TrendingUp, Globe, BookOpen, Du
 import useApiStore from '../store/apiStore'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 
-const GoalDetailsModal = lazy(() => import('../components/GoalDetailsModal'))
+const GoalPostModal = lazy(() => import('../components/GoalPostModal'))
 
 const DiscoverPageNew = () => {
   const navigate = useNavigate()
@@ -488,7 +488,7 @@ const DiscoverPageNew = () => {
       {/* Modals */}
       <Suspense fallback={null}>
         {openGoalId && (
-          <GoalDetailsModal
+          <GoalPostModal
             goalId={openGoalId}
             isOpen={!!openGoalId}
             onClose={() => setOpenGoalId(null)}

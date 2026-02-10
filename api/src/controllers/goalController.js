@@ -1817,7 +1817,13 @@ module.exports = {
   // @access  Private
   async getGoalAnalytics(req, res, next) {
     try {
-      const goal = await pgGoalService.getGoalById(req.params.id);
+      // Validate incoming id
+      const goalId = parseInt(req.params.id, 10);
+      if (!goalId || isNaN(goalId)) {
+        return res.status(400).json({ success: false, message: 'Invalid goal id' });
+      }
+
+      const goal = await pgGoalService.getGoalById(goalId);
 
       if (!goal) return res.status(404).json({ success: false, message: 'Goal not found' });
 

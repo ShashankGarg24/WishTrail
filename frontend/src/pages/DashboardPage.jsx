@@ -13,7 +13,7 @@ const GoalSuggestionsModal = lazy(() => import('../components/GoalSuggestionsMod
 const HabitSuggestionsModal = lazy(() => import('../components/HabitSuggestionsModal'));
 import { API_CONFIG } from '../config/api'
 import { habitsAPI } from '../services/api'
-const GoalDetailsModal = lazy(() => import('../components/GoalDetailsModal'));
+const GoalPostModal = lazy(() => import('../components/GoalPostModal'));
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
 
@@ -1636,12 +1636,12 @@ const DashboardPage = () => {
 
       {/* Goal Suggestions Modal */}
       {isSuggestionsOpen && (
-        <Suspense fallback={null}><GoalSuggestionsModal isOpen={isSuggestionsOpen} onClose={() => setIsSuggestionsOpen(false)} interests={userInterests} onSelect={openPrefilledCreateModal} limit={6} title="Goal Suggestions" /></Suspense>
+        <Suspense fallback={null}><GoalSuggestionsModal isOpen={isSuggestionsOpen} onClose={() => setIsSuggestionsOpen(false)} interests={userInterests} onSelect={openPrefilledCreateModal} onCreate={() => { setIsSuggestionsOpen(false); setInitialGoalData(null); setIsCreateModalOpen(true); }} limit={6} title="Goal Suggestions" /></Suspense>
       )}
 
       {/* Habit Suggestions Modal */}
       {isHabitIdeasOpen && (
-        <Suspense fallback={null}><HabitSuggestionsModal isOpen={isHabitIdeasOpen} onClose={() => setIsHabitIdeasOpen(false)} interests={userInterests} onSelect={openPrefilledHabitModal} limit={6} title="Habit Suggestions" /></Suspense>
+        <Suspense fallback={null}><HabitSuggestionsModal isOpen={isHabitIdeasOpen} onClose={() => setIsHabitIdeasOpen(false)} interests={userInterests} onSelect={openPrefilledHabitModal} onCreate={() => { setIsHabitIdeasOpen(false); setInitialHabitData(null); setIsHabitModalOpen(true); }} limit={6} title="Habit Suggestions" /></Suspense>
       )}
 
       {/* Create Habit Modal */}
@@ -1778,7 +1778,7 @@ const DashboardPage = () => {
 
       {/* Goal Details Modal (with timeline) */}
       {openGoalId && (
-        <Suspense fallback={null}><GoalDetailsModal
+        <Suspense fallback={null}><GoalPostModal
           isOpen={!!openGoalId}
           goalId={openGoalId}
           autoOpenComments={scrollCommentsOnOpen}
