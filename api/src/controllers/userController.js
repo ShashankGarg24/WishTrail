@@ -314,7 +314,7 @@ const searchUsers = async (req, res, next) => {
     if ((!search || search.trim().length < 2) && !interest) {
       return res.status(400).json({
         success: false,
-        message: 'Provide a search term (2+ chars) or an interest filter'
+        message: 'Provide a search term (2+ chars)'
       });
     }
 

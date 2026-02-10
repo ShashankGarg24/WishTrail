@@ -1,4 +1,5 @@
-import { useState, useEffect, lazy, Suspense } from 'react'
+import { useState, useEffect, lazy, Suspense, useMemo, useRef } from 'react'
+import { GOAL_CATEGORIES } from '../constants/goalCategories'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, Target, Search, UserPlus, Rocket, TrendingUp, Globe, BookOpen, Dumbbell, Heart, Briefcase, GraduationCap, Plane, Palette, DollarSign, Lightbulb } from 'lucide-react'
 import useApiStore from '../store/apiStore'
@@ -13,8 +14,14 @@ const DiscoverPageNew = () => {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [users, setUsers] = useState([])
+  const [debouncedUserSearch, setDebouncedUserSearch] = useState('')
+  const userDebounceTimeout = useRef(null)
+  const [topAchievers, setTopAchievers] = useState([])
   const [trendingGoals, setTrendingGoals] = useState([])
+  const [allTrendingGoals, setAllTrendingGoals] = useState([])
   const [openGoalId, setOpenGoalId] = useState(null)
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+  const debounceTimeout = useRef(null)
 
   const {
     isAuthenticated,
@@ -23,63 +30,18 @@ const DiscoverPageNew = () => {
     unfollowUser,
     getTrendingGoals,
     getUsers,
+    getGlobalLeaderboard,
+    leaderboard,
+    searchPublicGoals,
+    searchUsers,
   } = useApiStore()
 
-  // Category options
+  // Canonical categories (with 'All' option)
   const categories = [
-    { id: 'all', label: 'All', icon: Globe },
-    { id: 'fitness', label: 'Fitness', icon: Dumbbell },
-    { id: 'health', label: 'Health', icon: Heart },
-    { id: 'career', label: 'Career', icon: Briefcase },
-    { id: 'education', label: 'Education', icon: GraduationCap },
-    { id: 'travel', label: 'Travel', icon: Plane },
-    { id: 'hobbies', label: 'Hobbies', icon: Palette },
-    { id: 'finance', label: 'Finance', icon: DollarSign },
-  ]
+    { id: 'all', label: 'All', icon: Globe, color: 'bg-gray-400' },
+    ...GOAL_CATEGORIES
+  ];
 
-  // Mock trending goals data
-  const mockTrendingGoals = [
-    {
-      id: 1,
-      icon: Dumbbell,
-      category: 'FITNESS',
-      title: 'Marathon Preparations',
-      description: 'A structured training program to go from 0 to 42km in 6 months with recovery focuses',
-      categoryColor: 'blue'
-    },
-    {
-      id: 2,
-      icon: Lightbulb,
-      category: 'MINDSET',
-      title: 'Digital Detox Routine',
-      description: 'Decrease screen time by 40% and reclaim 2 hours of daily productivity through focus blocks.',
-      categoryColor: 'purple'
-    },
-    {
-      id: 3,
-      icon: DollarSign,
-      category: 'FINANCE',
-      title: 'Emergency Fund Builder',
-      description: 'Systematically save 3-6 months of expenses using the 50/30/20 budgeting framework.',
-      categoryColor: 'green'
-    },
-    {
-      id: 4,
-      icon: Globe,
-      category: 'EDUCATION',
-      title: 'Speak Basic Spanish',
-      description: 'Master common conversational phrases and essential grammar for your next travel adventure.',
-      categoryColor: 'orange'
-    },
-    {
-      id: 5,
-      icon: Heart,
-      category: 'HEALTH',
-      title: 'Meatless Weekdays',
-      description: 'A transition guide to plant-based eating for health and environmental sustainability.',
-      categoryColor: 'teal'
-    }
-  ]
 
   // Mock users data
   const mockUsers = [
@@ -117,10 +79,6 @@ const DiscoverPageNew = () => {
     }
   ]
 
-  const topAchievers = [
-    { id: 1, name: 'David Miller', username: '@davidm' },
-    { id: 2, name: 'Lisa Ray', username: '@lisaray' }
-  ]
 
   // Sync tab with URL
   useEffect(() => {
@@ -135,17 +93,77 @@ const DiscoverPageNew = () => {
     setActiveTab(tab)
   }
 
-  // Load data
+  // Debounce search input (goals)
   useEffect(() => {
-    if (!isAuthenticated) return
+    if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+    debounceTimeout.current = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 400);
+    return () => clearTimeout(debounceTimeout.current);
+  }, [searchQuery]);
+
+  // Debounce search input (users)
+  useEffect(() => {
+    if (userDebounceTimeout.current) clearTimeout(userDebounceTimeout.current);
+    userDebounceTimeout.current = setTimeout(() => {
+      setDebouncedUserSearch(searchQuery);
+    }, 400);
+    return () => clearTimeout(userDebounceTimeout.current);
+  }, [searchQuery]);
+
+  // Load trending goals and top achievers, and user search
+  useEffect(() => {
+    if (!isAuthenticated) return;
     if (activeTab === 'goals') {
-      // Load trending goals
-      setTrendingGoals(mockTrendingGoals)
+      (async () => {
+        // If searching, use searchPublicGoals API
+        if (debouncedSearch.trim() || (selectedCategory && selectedCategory !== 'all')) {
+          const params = {};
+          if (debouncedSearch.trim()) params.q = debouncedSearch.trim();
+          if (selectedCategory && selectedCategory !== 'all') params.category = selectedCategory;
+          const result = await searchPublicGoals(params);
+          setAllTrendingGoals((result && Array.isArray(result.goals)) ? result.goals : []);
+        } else {
+          const data = await getTrendingGoals({ page: 1, limit: 30 });
+          setAllTrendingGoals(data.goals || []);
+        }
+      })();
     } else {
-      // Load users
-      setUsers(mockUsers)
+      (async () => {
+        if (debouncedUserSearch.trim()) {
+          // Use searchUsers API, which searches by name and username
+          const result = await searchUsers({ search: debouncedUserSearch.trim() });
+          const foundUsers = result?.users || [];
+          // Map API response to match UI expectations (add stats object)
+          const mappedUsers = foundUsers.map(user => ({
+            ...user,
+            stats: {
+              goals: user.totalGoals || 0,
+              done: user.completedGoals || 0,
+              streak: user.currentStreak || 0
+            },
+            following: user.isFollowing || false
+          }));
+          setUsers(mappedUsers);
+        } else {
+          // No users shown by default - only show through search
+          setUsers([]);
+        }
+        // Fetch top achievers from leaderboard
+        const top = await getGlobalLeaderboard({ page: 1, limit: 3 });
+        setTopAchievers(Array.isArray(top) ? top.slice(0, 3) : []);
+      })();
     }
-  }, [activeTab, isAuthenticated])
+  }, [activeTab, isAuthenticated, getTrendingGoals, getGlobalLeaderboard, debouncedSearch, selectedCategory, searchPublicGoals, debouncedUserSearch, searchUsers]);
+
+  // Set trending goals from allTrendingGoals (already filtered by API)
+  useEffect(() => {
+    if (activeTab !== 'goals') return;
+    setTrendingGoals(allTrendingGoals);
+  }, [allTrendingGoals, activeTab]);
+
+  // No need to filter users locally, as API already searches by name/username
+  const filteredUsers = users;
 
   const handleFollow = async (userId) => {
     const result = await followUser(userId)
@@ -274,38 +292,33 @@ const DiscoverPageNew = () => {
                   Trending Goals
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {trendingGoals.map((goal, index) => {
-                    const IconComponent = goal.icon
-                    return (
-                      <motion.div
-                        key={goal.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.05 }}
-                        className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-all group cursor-pointer"
-                        onClick={() => setOpenGoalId(goal.id)}
-                      >
-                        <div className="flex items-start gap-4 mb-4">
-                          <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 transition-colors">
-                            <IconComponent className="w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-[#4c99e6] transition-colors" />
-                          </div>
-                          <div className="flex-1">
-                            <span className="inline-block px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs font-medium rounded font-manrope uppercase tracking-wide mb-3">
-                              {goal.category}
-                            </span>
-                          </div>
+                  {trendingGoals.map((goal, index) => (
+                    <motion.div
+                      key={goal.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                      className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-all group cursor-pointer"
+                      onClick={() => setOpenGoalId(goal.id)}
+                    >
+                      <div className="flex items-start gap-4 mb-4">
+                        <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 transition-colors">
+                          {/* Optionally show an icon if available */}
                         </div>
-                        
-                        <h3 className="font-semibold text-gray-900 dark:text-white font-manrope text-lg mb-3">
-                          {goal.title}
-                        </h3>
-                        
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-6 line-clamp-2 font-manrope leading-relaxed">
-                          {goal.description}
-                        </p>
-                      </motion.div>
-                    )
-                  })}
+                        <div className="flex-1">
+                          <span className="inline-block px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs font-medium rounded font-manrope uppercase tracking-wide mb-3">
+                            {goal.category}
+                          </span>
+                        </div>
+                      </div>
+                      <h3 className="font-semibold text-gray-900 dark:text-white font-manrope text-lg mb-3">
+                        {goal.title}
+                      </h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-6 line-clamp-2 font-manrope leading-relaxed">
+                        {goal.description}
+                      </p>
+                    </motion.div>
+                  ))}
 
                   {/* Suggest a Goal Card */}
                   <motion.div
@@ -340,15 +353,26 @@ const DiscoverPageNew = () => {
                     </h2>
                   </div>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {users.map((person, index) => (
-                      <motion.div
-                        key={person.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.05 }}
-                        className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-all"
-                      >
+                  {filteredUsers.length === 0 ? (
+                    <div className="bg-white dark:bg-gray-800 rounded-xl p-12 shadow-sm border border-gray-100 dark:border-gray-700 text-center">
+                      <Search className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white font-manrope mb-2">
+                        Search for People
+                      </h3>
+                      <p className="text-gray-500 dark:text-gray-400 font-manrope">
+                        Use the search bar above to find creators, mentors, or accountability partners.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {filteredUsers.map((person, index) => (
+                        <motion.div
+                          key={person.id}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: index * 0.05 }}
+                          className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-all"
+                        >
                         <div className="flex items-start gap-3 mb-4">
                           <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold font-manrope">
                             {person.name.charAt(0)}
@@ -397,7 +421,8 @@ const DiscoverPageNew = () => {
                         </div>
                       </motion.div>
                     ))}
-                  </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Right: Top Achievers & CTA */}
@@ -410,21 +435,21 @@ const DiscoverPageNew = () => {
                     <div className="space-y-3">
                       {topAchievers.map((achiever, index) => (
                         <motion.div
-                          key={achiever.id}
+                          key={achiever.id || achiever._id}
                           initial={{ opacity: 0, x: 20 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: 0.1 + index * 0.05 }}
                           className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 flex items-center gap-3 hover:shadow-md transition-all cursor-pointer"
                         >
                           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center text-white font-bold font-manrope text-sm">
-                            {achiever.name.charAt(0)}
+                            {(achiever.name || achiever.displayName || achiever.username || '').charAt(0)}
                           </div>
                           <div className="flex-1">
                             <h3 className="font-semibold text-gray-900 dark:text-white font-manrope text-sm">
-                              {achiever.name}
+                              {achiever.name || achiever.displayName || achiever.username}
                             </h3>
                             <p className="text-xs text-gray-500 dark:text-gray-400 font-manrope">
-                              {achiever.username}
+                              {achiever.username ? `@${achiever.username}` : ''}
                             </p>
                           </div>
                           <TrendingUp className="w-4 h-4 text-[#4c99e6]" />

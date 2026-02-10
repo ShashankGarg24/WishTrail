@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, useCallback, useRef, lazy, Suspense } from 'react'
+import { GOAL_CATEGORIES } from '../constants/goalCategories'
 import { motion } from 'framer-motion'
 import { X, Target, Calendar, Tag, AlertCircle, ChevronLeft, Globe } from 'lucide-react'
 import useApiStore from '../store/apiStore'
@@ -97,18 +98,8 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
 
   useEffect(() => { if (isOpen) { lockBodyScroll(); return () => unlockBodyScroll(); } }, [isOpen])
 
-  const categories = [
-    'Health & Fitness',
-    'Career & Business',
-    'Personal Development',
-    'Relationships',
-    'Education & Learning',
-    'Travel & Adventure',
-    'Financial Goals',
-    'Creative Projects',
-    'Family & Friends',
-    'Other'
-  ]
+  // Canonical categories for dropdown
+  const categories = GOAL_CATEGORIES;
 
   // Memoize the value prop to prevent infinite loops
   const divisionEditorValue = useMemo(() => ({
@@ -469,7 +460,7 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
                 >
                   <option value="">Select a category</option>
                   {categories.map(category => (
-                    <option key={category} value={category}>{category}</option>
+                    <option key={category.id} value={category.id}>{category.label}</option>
                   ))}
                 </select>
                 {errors.category && (

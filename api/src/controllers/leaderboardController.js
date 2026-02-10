@@ -1,3 +1,4 @@
+const { GOAL_CATEGORIES } = require('../constants/category');
 const cacheService = require('../services/cacheService');
 
 // PostgreSQL Services
@@ -13,6 +14,17 @@ const getGlobalLeaderboard = async (req, res, next) => {
     const { type = 'goals', page = 1, limit = 50, timeframe = 'all', category } = req.query;
     const parsedPage = parseInt(page);
     const parsedLimit = parseInt(limit);
+
+
+    // Validate category if provided
+    if (category && !GOAL_CATEGORIES.includes(category)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid category. Allowed categories: ${GOAL_CATEGORIES.join(', ')}`,
+        error: 'INVALID_CATEGORY',
+        allowed: GOAL_CATEGORIES
+      });
+    }
 
     // Create cache parameters (exclude user-specific data)
     const cacheParams = {
@@ -301,6 +313,15 @@ const getUserRank = async (userId, type = 'goals', timeframe = 'all') => {
 const getCategoryLeaderboard = async (req, res, next) => {
   try {
     const { category } = req.params;
+    // Validate category param
+    if (!category || !GOAL_CATEGORIES.includes(category)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid category. Allowed categories: ${GOAL_CATEGORIES.join(', ')}`,
+        error: 'INVALID_CATEGORY',
+        allowed: GOAL_CATEGORIES
+      });
+    }
     const { page = 1, limit = 50, timeframe = 'all' } = req.query;
     const parsedPage = parseInt(page);
     const parsedLimit = parseInt(limit);

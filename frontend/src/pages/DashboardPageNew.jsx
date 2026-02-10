@@ -1,3 +1,4 @@
+import { GOAL_CATEGORIES } from '../constants/goalCategories'
 import { useState, useEffect, useMemo, lazy, Suspense } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, Target, CheckCircle, TrendingUp, Calendar, ChevronDown, Search, Flag, Clock, Eye, Edit, Share2, Filter, ArrowUpDown } from 'lucide-react'
@@ -682,11 +683,15 @@ const DashboardPageNew = () => {
                         <h3 className="font-semibold text-gray-900 dark:text-white font-manrope text-base mb-2">
                           {goal.title}
                         </h3>
-                        {goal.category && (
-                          <span className="inline-block px-3 py-1 bg-blue-50 dark:bg-blue-900/30 text-[#4c99e6] text-xs font-medium rounded-md font-manrope uppercase tracking-wide">
-                            {goal.category}
-                          </span>
-                        )}
+                        {goal.category && (() => {
+                          const cat = GOAL_CATEGORIES.find(c => c.id === goal.category);
+                          return cat ? (
+                            <span className={`inline-flex items-center gap-1 px-3 py-1 ${cat.color} bg-opacity-10 text-xs font-medium rounded-md font-manrope uppercase tracking-wide`}>
+                              <span>{cat.icon}</span>
+                              {cat.label}
+                            </span>
+                          ) : null;
+                        })()}
                       </div>
                     </div>
 

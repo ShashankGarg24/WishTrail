@@ -1,3 +1,4 @@
+import { GOAL_CATEGORIES } from '../constants/goalCategories'
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -294,16 +295,15 @@ const LeaderboardPage = () => {
                   {openDropdown === 'category' && (
                     <div className="absolute top-full mt-1 left-0 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 py-1 z-50 max-h-60 overflow-y-auto min-w-[200px]">
                       <button onClick={() => { setSelectedCategory(''); setOpenDropdown(null); }} className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300">All Categories</button>
-                      <button onClick={() => { setSelectedCategory('Health & Fitness'); setOpenDropdown(null); }} className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300">💪 Health & Fitness</button>
-                      <button onClick={() => { setSelectedCategory('Education & Learning'); setOpenDropdown(null); }} className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300">📚 Education & Learning</button>
-                      <button onClick={() => { setSelectedCategory('Career & Business'); setOpenDropdown(null); }} className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300">💼 Career & Business</button>
-                      <button onClick={() => { setSelectedCategory('Personal Development'); setOpenDropdown(null); }} className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300">🌱 Personal Development</button>
-                      <button onClick={() => { setSelectedCategory('Financial Goals'); setOpenDropdown(null); }} className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300">💰 Financial Goals</button>
-                      <button onClick={() => { setSelectedCategory('Creative Projects'); setOpenDropdown(null); }} className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300">🎨 Creative Projects</button>
-                      <button onClick={() => { setSelectedCategory('Travel & Adventure'); setOpenDropdown(null); }} className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300">✈️ Travel & Adventure</button>
-                      <button onClick={() => { setSelectedCategory('Relationships'); setOpenDropdown(null); }} className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300">❤️ Relationships</button>
-                      <button onClick={() => { setSelectedCategory('Family & Friends'); setOpenDropdown(null); }} className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300">👨‍👩‍👧‍👦 Family & Friends</button>
-                      <button onClick={() => { setSelectedCategory('Other'); setOpenDropdown(null); }} className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300">📌 Other</button>
+                      {GOAL_CATEGORIES.map(cat => (
+                        <button
+                          key={cat.id}
+                          onClick={() => { setSelectedCategory(cat.id); setOpenDropdown(null); }}
+                          className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 flex items-center gap-2"
+                        >
+                          <span>{cat.icon}</span> {cat.label}
+                        </button>
+                      ))}
                     </div>
                   )}
                 </div>

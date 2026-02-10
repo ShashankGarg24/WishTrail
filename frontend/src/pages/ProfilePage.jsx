@@ -1,3 +1,4 @@
+import { GOAL_CATEGORIES } from '../constants/goalCategories'
 import { useState, useEffect, useRef, lazy, Suspense } from "react";
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Target, TrendingUp, Star, Edit2, ExternalLink, Youtube, Instagram, MapPin, Globe, Trophy, BookOpen, Clock, CheckCircle, Circle, User, UserPlus, UserCheck, ArrowLeft, Lock, Sparkles, Download, Flame, Award, BarChart2, Activity, MoreVertical, Plus, PenSquare } from "lucide-react";
@@ -1058,7 +1059,15 @@ const ProfilePage = () => {
                                 onClick={() => setOpenGoalId(goal.id)}
                               >
                                 <h4 className="font-semibold text-gray-900 dark:text-white text-sm line-clamp-2 group-hover:opacity-80">{goal.title}</h4>
-                                <span className="text-xs text-gray-500 dark:text-gray-400">{goal.category}</span>
+                                {goal.category && (() => {
+                                  const cat = GOAL_CATEGORIES.find(c => c.id === goal.category);
+                                  return cat ? (
+                                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 ${cat.color} bg-opacity-10 text-xs font-medium rounded font-manrope uppercase tracking-wide`}>
+                                      <span>{cat.icon}</span>
+                                      {cat.label}
+                                    </span>
+                                  ) : null;
+                                })()}
                               </motion.div>
                             ))}
                           </div>
@@ -1141,7 +1150,15 @@ const ProfilePage = () => {
                               <div className="flex items-start justify-between gap-3">
                                 <div className="min-w-0 flex-1">
                                   <h4 className="font-semibold text-gray-900 dark:text-white text-base line-clamp-2 group-hover:opacity-80">{goal.title}</h4>
-                                  <p className="text-xs text-gray-500 dark:text-gray-400 uppercase mt-0.5">{goal.category}</p>
+                                  {goal.category && (() => {
+                                    const cat = GOAL_CATEGORIES.find(c => c.id === goal.category);
+                                    return cat ? (
+                                      <p className={`text-xs mt-0.5 inline-flex items-center gap-1 ${cat.color} bg-opacity-10 font-medium rounded font-manrope uppercase tracking-wide`}>
+                                        <span>{cat.icon}</span>
+                                        {cat.label}
+                                      </p>
+                                    ) : null;
+                                  })()}
                                 </div>
                                 {goal.completedAt && <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />}
                               </div>
