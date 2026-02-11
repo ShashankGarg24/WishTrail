@@ -640,7 +640,7 @@ export default function HabitAnalyticsPageNew() {
         {/* Header */}
         <div className="mb-5">
           <button
-            onClick={() => navigate('/dashboard-new')}
+            onClick={() => navigate('/dashboard')}
             className="inline-flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors mb-3"
           >
             <ArrowLeft className="h-4 w-4" />

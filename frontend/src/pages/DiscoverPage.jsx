@@ -327,7 +327,7 @@ const DiscoverPageNew = () => {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: trendingGoals.length * 0.05 }}
-                    onClick={() => navigate('/dashboard-new?tab=goals')}
+                    onClick={() => navigate('/dashboard?tab=goals')}
                     className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-[#4c99e6] dark:hover:border-[#4c99e6] hover:shadow-md transition-all cursor-pointer group flex flex-col items-center justify-center min-h-[280px]"
                   >
                     <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-full mb-4 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 transition-colors">
@@ -479,7 +479,7 @@ const DiscoverPageNew = () => {
                       Complete more goals. Spark appear on the global leaderboard.
                     </p>
                     <button 
-                    onClick={() => navigate('/dashboard-new')}
+                    onClick={() => navigate('/dashboard')}
                     className="w-full px-4 py-2.5 bg-white hover:bg-gray-100 text-gray-900 rounded-lg transition-colors text-sm font-medium font-manrope">
                       Go to Dashboard
                     </button>

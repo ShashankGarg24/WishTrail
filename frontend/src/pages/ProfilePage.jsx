@@ -1117,7 +1117,7 @@ const ProfilePage = () => {
                             </p>
                             {isOwnProfile && (
                               <button
-                                onClick={() => navigate('/dashboard-new?tab=goals')}
+                                onClick={() => navigate('/dashboard?tab=goals')}
                                 className="px-5 py-2.5 rounded-xl text-white font-medium text-sm hover:opacity-90"
                                 style={{ backgroundColor: THEME_COLOR }}
                               >
