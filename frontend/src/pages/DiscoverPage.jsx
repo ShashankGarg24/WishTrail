@@ -7,7 +7,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom'
 import { getCategoryIcon } from '../utils/categoryIcons'
 import CategoryBadge from '../components/CategoryBadge'
 
-const GoalPostModalNew = lazy(() => import('../components/GoalPostModalNew'))
+const GoalPostModal = lazy(() => import('../components/GoalPostModal'))
 
 const DiscoverPageNew = () => {
   const navigate = useNavigate()
@@ -517,7 +517,7 @@ const DiscoverPageNew = () => {
       {/* Modals */}
       <Suspense fallback={null}>
         {openGoalId && (
-          <GoalPostModalNew
+          <GoalPostModal
             goalId={openGoalId}
             isOpen={!!openGoalId}
             onClose={() => setOpenGoalId(null)}

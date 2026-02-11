@@ -4,7 +4,7 @@ import { CheckCheck, RefreshCw, Trophy, Heart, MessageCircle, UserPlus, Check, X
 import { useNavigate } from 'react-router-dom';
 import useApiStore from '../store/apiStore';
 
-const GoalPostModalNew = lazy(() => import('../components/GoalPostModalNew'));
+const GoalPostModal = lazy(() => import('../components/GoalPostModal'));
 
 const NotificationsPageNew = () => {
   const navigate = useNavigate();
@@ -525,7 +525,7 @@ const NotificationsPageNew = () => {
       {/* Goal Post Modal */}
       {openGoalId && (
         <Suspense fallback={null}>
-          <GoalPostModalNew
+          <GoalPostModal
             isOpen={!!openGoalId}
             goalId={openGoalId}
             onClose={() => setOpenGoalId(null)}

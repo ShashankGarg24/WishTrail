@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Heart, MessageCircle, Share2, Trophy, Zap, Target, Flame, Star, UserPlus } from 'lucide-react';
 import useApiStore from '../store/apiStore';
-import GoalPostModalNew from '../components/GoalPostModalNew';
+import GoalPostModal from '../components/GoalPostModal';
 import toast from 'react-hot-toast';
 import CategoryBadge from '../components/CategoryBadge';
 
@@ -700,7 +700,7 @@ const FeedPage = () => {
       </div>
 
       {/* Goal Details Modal */}
-      <GoalPostModalNew
+      <GoalPostModal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
         goalId={selectedGoalId}

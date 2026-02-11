@@ -1,4 +1,3 @@
-import { GOAL_CATEGORIES } from '../constants/goalCategories'
 import { useState, useEffect, useMemo, lazy, Suspense } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import CategoryBadge from '../components/CategoryBadge'
@@ -9,7 +8,6 @@ import { useSearchParams } from 'react-router-dom'
 
 const CreateGoalWizard = lazy(() => import('../components/CreateGoalWizard'))
 const GoalPostModal = lazy(() => import('../components/GoalPostModal'))
-const GoalPostModalNew = lazy(() => import('../components/GoalPostModalNew'))
 const GoalDetailsModal = lazy(() => import('../components/GoalDetailsModal'))
 const HabitDetailModal = lazy(() => import('../components/HabitDetailModal'))
 const CreateHabitModal = lazy(() => import('../components/CreateHabitModal'))
@@ -875,14 +873,6 @@ const DashboardPageNew = () => {
           />
         )}
 
-        {openGoalId && (
-          <GoalPostModal
-            goalId={openGoalId}
-            isOpen={!!openGoalId}
-            onClose={() => setOpenGoalId(null)}
-          />
-        )}
-
         {selectedGoal && (
           <GoalDetailsModal
             goal={selectedGoal}
@@ -896,7 +886,7 @@ const DashboardPageNew = () => {
         )}
 
         {openGoalPostId && (
-          <GoalPostModalNew
+          <GoalPostModal
             goalId={openGoalPostId}
             isOpen={!!openGoalPostId}
             onClose={() => setOpenGoalPostId(null)}

@@ -3,10 +3,10 @@ import { lazy, Suspense, useEffect, useState } from 'react'
 import { GoogleOAuthProvider } from '@react-oauth/google'
 import { Toaster } from 'react-hot-toast'
 import useApiStore from './store/apiStore'
-import HeaderNew from './components/HeaderNew'
+import Header from './components/Header'
 import ScrollMemory from './components/ScrollMemory'
 import BottomTabBar from './components/BottomTabBar'
-import FooterNew from './components/FooterNew'
+import Footer from './components/Footer'
 import { configService } from './services/configService'
 import { initializeWebPush } from './services/webPush'
 import { notificationsAPI } from './services/api'
@@ -191,7 +191,7 @@ function App() {
         {/* Main content */}
         {/* <div className="relative min-h-screen pb-16 sm:pb-16"> */}
         <div className="relative min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-slate-900 dark:via-gray-900 dark:to-zinc-900 flex flex-col">
-          <HeaderNew />
+          <Header />
           <main className="flex-grow pt-16 pb-24 sm:pb-28">
             <ScrollMemory />
             <Routes>
@@ -230,7 +230,7 @@ function App() {
           {isAuthenticated && <BottomTabBar />}
           {/* Footer on web at all sizes; hide only inside native app */}
           {!inNativeApp && (
-            <FooterNew />
+            <Footer />
           )}
           <Suspense fallback={null}><FeedbackButton /></Suspense>
         </div>
