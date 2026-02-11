@@ -12,7 +12,6 @@ import { habitsAPI } from '../services/api';
 import ShareSheet from '../components/ShareSheet';
 import toast from 'react-hot-toast';
 import { getDateKeyInTimezone } from '../utils/timezoneUtils';
-const ProfileEditModal = lazy(() => import("../components/ProfileEditModal"));
 const ReportModal = lazy(() => import("../components/ReportModal"));
 const BlockModal = lazy(() => import("../components/BlockModal"));
 const JournalPromptModal = lazy(() => import("../components/JournalPromptModal"));
@@ -26,7 +25,6 @@ const ProfilePage = () => {
   const params = useParams();
   const usernameParam = params.username;
   const navigate = useNavigate();
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const initialTab = searchParams.get('tab') || 'overview';
   const [activeTab, setActiveTab] = useState(initialTab);
@@ -55,6 +53,7 @@ const ProfilePage = () => {
   const [hasMoreFollowers, setHasMoreFollowers] = useState(false);
   const [hasMoreFollowing, setHasMoreFollowing] = useState(false);
   const [loadingMoreFollows, setLoadingMoreFollows] = useState(false);
+  const [quoteModalOpen, setQuoteModalOpen] = useState(false);
   
   const FOLLOW_LIMIT = 20;
 
@@ -224,18 +223,18 @@ const ProfilePage = () => {
       if (activeTab === 'habits' && userHabits.length === 0) {
         if (isOwnProfile) {
           // Always load for own profile
-          const targetUserId = currentUser?._id;
+          const targetUserId = currentUser?.id;
           await fetchUserHabits(targetUserId);
         } else if (canViewContent && profileUser?.showHabits) {
           // Load for others only if profile accessible AND habits are visible (showHabits = true)
-          const targetUserId = profileUser?._id;
+          const targetUserId = profileUser?.id;
           await fetchUserHabits(targetUserId);
         }
       }
     };
 
     loadTabContent();
-  }, [activeTab, isOwnProfile, profileUser, isFollowing, analytics, userGoals.length, userHabits.length, currentUser?._id]);
+  }, [activeTab, isOwnProfile, profileUser, isFollowing, analytics, userGoals.length, userHabits.length, currentUser?.id]);
 
   useEffect(() => {
     
@@ -693,19 +692,13 @@ const ProfilePage = () => {
                 className="w-20 h-20 md:w-24 md:h-24 rounded-full object-cover border-2 border-white dark:border-gray-700 shadow-md"
               />
               {displayUser.currentMood && (
-                isOwnProfile ? (
-                  <button
-                    onClick={() => setIsEditModalOpen(true)}
-                    className="absolute -bottom-0.5 -right-0.5 bg-white dark:bg-gray-800 border-2 rounded-full p-1 shadow-md hover:scale-105 transition-transform"
-                    title="Change mood"
-                  >
-                    <span className="text-base">{displayUser.currentMood}</span>
-                  </button>
-                ) : (
-                  <div className="absolute -bottom-0.5 -right-0.5 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-600 rounded-full p-1 shadow-md">
-                    <span className="text-base">{displayUser.currentMood}</span>
-                  </div>
-                )
+                <button
+                  onClick={() => setQuoteModalOpen(true)}
+                  className="absolute -bottom-0.5 -right-0.5 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-600 rounded-full p-1 shadow-md hover:scale-110 hover:shadow-lg transition-all cursor-pointer"
+                  title={displayUser.quote ? "View mood & quote" : "Current mood"}
+                >
+                  <span className="text-base">{displayUser.currentMood}</span>
+                </button>
               )}
             </div>
 
@@ -886,7 +879,7 @@ const ProfilePage = () => {
             }}
             onOpenProfile={(u) => {
               try {
-                const path = u?.username ? `/profile/@${u.username}` : (`/profile/${u?._id || u?.id}`)
+                const path = u?.username ? `/profile/@${u.username}` : (`/profile/${u?.id}`)
                 if (path) navigate(path)
                 setFollowModalOpen(false)
               } catch { }
@@ -1255,12 +1248,12 @@ const ProfilePage = () => {
                           const consistency = habit.consistencyPercent ?? Math.min(100, ((habit.totalCompletions || 0) / Math.max(1, habit.durationDays || 30)) * 100);
                           return (
                             <motion.div
-                              key={habit.id || habit._id}
+                              key={habit.id}
                               initial={{ opacity: 0, y: 12 }}
                               animate={{ opacity: 1, y: 0 }}
                               transition={{ delay: index * 0.05 }}
                               onClick={() => {
-                                setOpenHabitId(habit.id || habit._id);
+                                setOpenHabitId(habit.id);
                                 setHabitModalOpen(true);
                               }}
                               className="rounded-xl p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md cursor-pointer"
@@ -1332,7 +1325,7 @@ const ProfilePage = () => {
                         <tbody>
                           {userHabits.length > 0 ? (
                             userHabits.slice(0, 5).map((h) => (
-                              <tr key={h.id || h._id} className="border-b border-gray-100 dark:border-gray-700/50">
+                              <tr key={h.id} className="border-b border-gray-100 dark:border-gray-700/50">
                                 <td className="py-3 flex items-center gap-2">
                                   <span className="text-gray-400">•</span>
                                   {h.name}
@@ -1404,7 +1397,7 @@ const ProfilePage = () => {
                       <div className="space-y-3 max-h-[500px] overflow-y-auto scrollbar-hide pr-1">
                         {journalFeed.map((e) => (
                           <button
-                            key={e.id || e._id}
+                            key={e.id}
                             onClick={() => { setSelectedEntry(e); setEntryModalOpen(true); }}
                             className="w-full text-left p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:shadow-md transition-all"
                           >
@@ -1450,13 +1443,6 @@ const ProfilePage = () => {
             </motion.div>
           </>
         )}
-        {/* Profile Edit Modal - only for own profile */}
-        {isOwnProfile && (
-          <Suspense fallback={null}><ProfileEditModal
-            isOpen={isEditModalOpen}
-            onClose={() => setIsEditModalOpen(false)}
-          /></Suspense>
-        )}
         {/* Journal Prompt Modal */}
         {isOwnProfile && (
           <Suspense fallback={null}><JournalPromptModal
@@ -1464,7 +1450,7 @@ const ProfilePage = () => {
             onClose={() => setIsJournalOpen(false)}
             onSubmitted={async () => {
               try {
-                await getUserJournalHighlights(currentUser?._id, { limit: 12 });
+                await getUserJournalHighlights(currentUser?.id, { limit: 12 });
                 const entries = await getMyJournalEntries({ limit: 10 });
                 // Update local journalFeed with fresh entries
                 if (Array.isArray(entries) && entries.length > 0) {
@@ -1493,15 +1479,15 @@ const ProfilePage = () => {
         targetLabel={displayUser?.username ? `@${displayUser.username}` : 'user'}
         onSubmit={async ({ reason, description }) => {
           try {
-            if (!displayUser?._id) return;
-            await report({ targetType: 'user', targetId: displayUser._id, reason, description });
+            if (!displayUser?.id) return;
+            await report({ targetType: 'user', targetId: displayUser.id, reason, description });
           } finally {
             // Offer to block after report
-            try { if (displayUser?._id) { setBlockOpen(true); } } catch { }
+            try { if (displayUser?.id) { setBlockOpen(true); } } catch { }
             setReportOpen(false);
           }
         }}
-        onReportAndBlock={displayUser?._id ? async () => { await blockUser(displayUser._id); } : undefined}
+        onReportAndBlock={displayUser?.id ? async () => { await blockUser(displayUser.id); } : undefined}
       /></Suspense>
       <Suspense fallback={null}><BlockModal
         isOpen={blockOpen}
@@ -1509,10 +1495,21 @@ const ProfilePage = () => {
         username={displayUser?.username || 'this user'}
         onConfirm={async () => {
           try {
-            if (!displayUser?._id) return;
-            await blockUser(displayUser._id);
-          } finally {
-            setBlockOpen(false);
+            if (!displayUser?.id) {
+              console.log(displayUser);
+              toast.error('User ID not found');
+              return;
+            }
+            const result = await blockUser(displayUser.id);
+            if (result.success) {
+              setBlockOpen(false);
+              // Navigate away from blocked user's profile
+              navigate('/dashboard');
+            } else {
+              toast.error(result.error || 'Failed to block user');
+            }
+          } catch (error) {
+            toast.error('Failed to block user');
           }
         }}
       /></Suspense>
@@ -1528,7 +1525,7 @@ const ProfilePage = () => {
       {/* Habit Detail Modal */}
       {isOwnProfile && habitModalOpen && openHabitId && (
         <Suspense fallback={null}><HabitDetailModal
-          habit={userHabits.find(h => (h.id || h._id) === openHabitId)}
+          habit={userHabits.find(h => (h.id) === openHabitId)}
           isOpen={habitModalOpen}
           onClose={() => {
             setHabitModalOpen(false);
@@ -1582,17 +1579,6 @@ const ProfilePage = () => {
               <div className="space-y-1 p-3">
                 {isOwnProfile ? (
                   <>
-                    {!isMobile && <button
-                      className="w-full text-center px-4 py-2 text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setIsEditModalOpen(true);
-                        setProfileMenuOpen(false);
-                      }}
-                    >
-                      Edit Profile
-                    </button>}
                     <button
                       className="w-full text-center px-4 py-2 text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                       onClick={(e) => {
@@ -1686,6 +1672,88 @@ const ProfilePage = () => {
         url={shareUrlRef.current}
         title={`${displayUser?.name}'s Profile - WishTrail`}
       />
+      
+      {/* Quote Modal */}
+      {quoteModalOpen && displayUser?.currentMood && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          onClick={() => setQuoteModalOpen(false)}
+        >
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm" />
+          
+          {/* Modal */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            transition={{ duration: 0.2 }}
+            className="relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full border border-gray-200 dark:border-gray-700">
+              {/* Mood Header */}
+              <div className="flex items-center justify-center pt-8 pb-4">
+                <div 
+                  className="w-20 h-20 rounded-full flex items-center justify-center shadow-lg"
+                  style={{ backgroundColor: 'rgba(76, 153, 230, 0.1)' }}
+                >
+                  <span className="text-5xl">{displayUser.currentMood}</span>
+                </div>
+              </div>
+              
+              {/* User Info */}
+              <div className="text-center px-6 pb-4">
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  @{displayUser.username}
+                </p>
+              </div>
+              
+              {/* Quote Section */}
+              {displayUser.quote ? (
+                <div className="px-6 pb-6">
+                  <div 
+                    className="p-5 rounded-xl border-l-4"
+                    style={{ 
+                      backgroundColor: 'rgba(76, 153, 230, 0.08)',
+                      borderLeftColor: '#4c99e6'
+                    }}
+                  >
+                    <div className="flex items-start gap-3">
+                      <Sparkles className="h-5 w-5 flex-shrink-0 mt-0.5" style={{ color: '#4c99e6' }} />
+                      <div className="flex-1">
+                        <p className="text-gray-800 dark:text-gray-200 leading-relaxed italic">
+                          &ldquo;{displayUser.quote}&rdquo;
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="px-6 pb-6">
+                  <div className="p-5 rounded-xl bg-gray-50 dark:bg-gray-700/30 text-center">
+                    <p className="text-sm text-gray-500 dark:text-gray-400 italic">
+                      No quote shared yet
+                    </p>
+                  </div>
+                </div>
+              )}
+              
+              {/* Close Button */}
+              <div className="border-t border-gray-200 dark:border-gray-700 p-4">
+                <button
+                  onClick={() => setQuoteModalOpen(false)}
+                  className="w-full px-4 py-2.5 rounded-xl text-white font-medium text-sm transition-opacity hover:opacity-90"
+                  style={{ backgroundColor: '#4c99e6' }}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
+      
       {/* Footer quote */}
       <footer className="text-center py-8 mt-8">
         <p className="text-gray-500 dark:text-gray-400 italic text-sm">

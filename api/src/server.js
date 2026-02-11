@@ -141,7 +141,6 @@ const createApp = async () => {
   apiRouter.use('/location', require('./routes/locationRoutes'));
   apiRouter.use('/journals', require('./routes/journalRoutes'));
   apiRouter.use('/feedback', require('./routes/feedbackRoutes'));
-  apiRouter.use('/ratings', require('./routes/ratingRoutes'));
   apiRouter.use('/habits', require('./routes/habitRoutes'));
   apiRouter.use('/moderation', require('./routes/moderationRoutes'));
   apiRouter.use('/notifications', require('./routes/notificationRoutes'));

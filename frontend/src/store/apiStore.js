@@ -182,6 +182,9 @@ const useApiStore = create(
             loading: false
           });
 
+          // Fetch complete user data from /me endpoint
+          await get().getMe({ force: true });
+
           return { success: true, user, token };
         } catch (error) {
           const errorMessage = handleApiError(error);
@@ -203,6 +206,9 @@ const useApiStore = create(
             isAuthenticated: true,
             loading: false
           });
+
+          // Fetch complete user data from /me endpoint
+          await get().getMe({ force: true });
 
           return { success: true, user, token };
         } catch (error) {
@@ -226,6 +232,9 @@ const useApiStore = create(
             loading: false
           });
 
+          // Fetch complete user data from /me endpoint
+          await get().getMe({ force: true });
+
           return { success: true, user, token };
         } catch (error) {
           const errorMessage = handleApiError(error);
@@ -247,6 +256,9 @@ const useApiStore = create(
             isAuthenticated: true,
             loading: false
           });
+
+          // Fetch complete user data from /me endpoint
+          await get().getMe({ force: true });
 
           return { success: true, user, token, isNewUser };
         } catch (error) {
@@ -1312,9 +1324,17 @@ const useApiStore = create(
             leaderboard: (state.leaderboard || []).map(u => u._id === userId ? { ...u, isFollowing: false } : u),
             followedUsers: (state.followedUsers || []).filter(id => id !== userId)
           }));
+          // Show success notification
+          window.dispatchEvent(new CustomEvent('wt_toast', {
+            detail: { message: 'User blocked successfully', type: 'success' }
+          }));
           return { success: true };
         } catch (error) {
           const errorMessage = handleApiError(error);
+          // Show error notification
+          window.dispatchEvent(new CustomEvent('wt_toast', {
+            detail: { message: errorMessage || 'Failed to block user', type: 'error' }
+          }));
           return { success: false, error: errorMessage };
         }
       },

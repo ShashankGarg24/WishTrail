@@ -281,22 +281,25 @@ const unblockUser = async (req, res, next) => {
 // @access  Private
 const getNotificationSettings = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user.id)
+    const prefs = await UserPreferences.findOne({ userId: req.user.id })
       .select('notificationSettings preferences.notifications')
       .lean();
     
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
+    if (!prefs) {
+      return res.status(200).json({
+        success: true,
+        data: {
+          notificationSettings: {},
+          preferences: {}
+        }
       });
     }
 
     res.status(200).json({
       success: true,
       data: {
-        notificationSettings: user.notificationSettings || {},
-        preferences: user.preferences?.notifications || {}
+        notificationSettings: prefs.notificationSettings || {},
+        preferences: prefs.preferences?.notifications || {}
       }
     });
   } catch (error) {
@@ -361,18 +364,18 @@ const updateNotificationSettings = async (req, res, next) => {
       }
     }
 
-    const user = await User.findByIdAndUpdate(
-      req.user.id,
+    const prefs = await UserPreferences.findOneAndUpdate(
+      { userId: req.user.id },
       { $set: updateData },
-      { new: true, runValidators: true }
+      { new: true, upsert: true, runValidators: true }
     ).select('notificationSettings preferences.notifications');
 
     res.status(200).json({
       success: true,
       message: 'Notification settings updated successfully',
       data: {
-        notificationSettings: user.notificationSettings,
-        preferences: user.preferences?.notifications
+        notificationSettings: prefs.notificationSettings || {},
+        preferences: prefs.preferences?.notifications || {}
       }
     });
   } catch (error) {
@@ -420,8 +423,8 @@ const updatePassword = async (req, res, next) => {
       });
     }
 
-    // Get user with password field
-    const user = await User.findById(req.user.id).select('+password');
+    // Get user from PostgreSQL
+    const user = await pgUserService.findById(req.user.id, true); // includePassword = true
     
     if (!user) {
       return res.status(404).json({
@@ -438,8 +441,8 @@ const updatePassword = async (req, res, next) => {
       });
     }
 
-    // Verify current password
-    const isMatch = await user.comparePassword(currentPassword);
+    // Verify current password using pgUserService
+    const isMatch = await pgUserService.verifyPassword(req.user.id, currentPassword);
     if (!isMatch) {
       return res.status(401).json({
         success: false,
@@ -447,9 +450,8 @@ const updatePassword = async (req, res, next) => {
       });
     }
 
-    // Update password
-    user.password = newPassword;
-    await user.save();
+    // Update password in PostgreSQL
+    await pgUserService.updatePassword(req.user.id, newPassword);
 
     res.status(200).json({
       success: true,

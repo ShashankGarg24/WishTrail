@@ -222,6 +222,7 @@ class AuthService {
     if (prefs) {
       userResponse.interests = prefs.interests || [];
       userResponse.currentMood = prefs.preferences?.currentMood || '';
+      userResponse.quote = prefs.preferences?.quote || '';
       userResponse.theme = prefs.preferences?.theme || 'light';
       userResponse.website = prefs.socialLinks?.website || '';
       userResponse.youtube = prefs.socialLinks?.youtube || '';
@@ -236,7 +237,7 @@ class AuthService {
    */
   async updateProfile(userId, updateData) {
     const pgAllowedUpdates = ['name', 'bio', 'location', 'dateOfBirth', 'avatar', 'username'];
-    const mongoAllowedUpdates = ['interests', 'currentMood', 'theme', 'youtube', 'instagram', 'website'];
+    const mongoAllowedUpdates = ['interests', 'currentMood', 'quote', 'theme', 'youtube', 'instagram', 'website'];
     const pgUpdates = {};
     const mongoUpdates = {};
     
@@ -347,6 +348,9 @@ class AuthService {
       if (mongoUpdates.currentMood !== undefined) {
         updateFields['preferences.currentMood'] = mongoUpdates.currentMood;
       }
+      if (mongoUpdates.quote !== undefined) {
+        updateFields['preferences.quote'] = mongoUpdates.quote;
+      }
       if (mongoUpdates.theme !== undefined) {
         updateFields['preferences.theme'] = mongoUpdates.theme;
       }
@@ -385,6 +389,7 @@ class AuthService {
     if (prefs) {
       userResponse.interests = prefs.interests || [];
       userResponse.currentMood = prefs.preferences?.currentMood || '';
+      userResponse.quote = prefs.preferences?.quote || '';
       userResponse.theme = prefs.preferences?.theme || 'light';
       userResponse.website = prefs.socialLinks?.website || '';
       userResponse.youtube = prefs.socialLinks?.youtube || '';

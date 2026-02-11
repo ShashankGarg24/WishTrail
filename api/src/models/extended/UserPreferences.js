@@ -73,7 +73,7 @@ const userPreferencesSchema = new mongoose.Schema({
   preferences: {
     currentMood: {
       type: String,
-      enum: [
+      enum: ['',
         '😊', '😄', '😃', '😁', '😆', '😅', '🤣', '😂', '🙂', '🙃',
         '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛',
         '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🥸', '🤩', '🥳',
@@ -89,7 +89,13 @@ const userPreferencesSchema = new mongoose.Schema({
         '👏', '🙌', '👐', '🤝', '🙏', '✌️', '🤞', '🤟', '🤘', '🤙',
         '💜', '❤️', '🧡', '💛', '💚', '💙', '💖', '💗', '💓', '💞'
       ],
-      default: '⭐'
+      default: ''
+    },
+    quote: {
+      type: String,
+      trim: true,
+      maxlength: 100,
+      default: ''
     },
     theme: {
       type: String,

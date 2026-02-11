@@ -31,7 +31,7 @@ const PermissionErrorPage = lazy(() => import('./pages/PermissionErrorPage'))
 const AuthExpiredPage = lazy(() => import('./pages/AuthExpiredPage'))
 import { SpeedInsights } from '@vercel/speed-insights/react';
 const FeedbackButton = lazy(() => import('./components/FeedbackButton'))
-const SettingsPage = lazy(() => import('./pages/SettingsPage'))
+const SettingsPageNew = lazy(() => import('./pages/SettingsPage'))
 const HabitAnalyticsPageNew = lazy(() => import('./pages/HabitAnalyticsPage'))
 const GoalAnalyticsPage = lazy(() => import('./pages/GoalAnalyticsPage'))
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'))
@@ -204,7 +204,7 @@ function App() {
               <Route path="/notifications" element={<Suspense fallback={null}><NotificationsPageNew /></Suspense>} />
               <Route path="/profile/:username" element={<Suspense fallback={null}><ProfilePage /></Suspense>} />
               <Route path="/inspiration" element={<Suspense fallback={null}><InspirationPage /></Suspense>} />
-              <Route path="/settings" element={<Suspense fallback={null}><SettingsPage /></Suspense>} />
+              <Route path="/settings" element={<Suspense fallback={null}><SettingsPageNew /></Suspense>} />
               <Route path="/leaderboard" element={<Suspense fallback={null}><LeaderboardPageNew /></Suspense>} />
               {/* <Route path="/communities" element={<Suspense fallback={null}><CommunitiesPage /></Suspense>} />
               <Route path="/communities/:id" element={<Suspense fallback={null}><CommunityDetailPage /></Suspense>} /> */}

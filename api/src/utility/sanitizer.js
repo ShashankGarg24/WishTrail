@@ -85,6 +85,7 @@ const sanitizeAuthMe = (user) => {
     username: obj.username,
     timezone: obj.timezone,
     currentMood: obj.currentMood,
+    quote: obj.quote,
     instagram: obj.instagram || '',
     website: obj.website || '',
     youtube: obj.youtube || '',

@@ -1,14 +1,15 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Search, Bell, User, LogOut, Settings, Star } from 'lucide-react'
-import { useState, useEffect, useRef, lazy, Suspense } from 'react'
+import { Search, Bell, User, LogOut, Settings, Star, MessageSquare } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
 import useApiStore from '../store/apiStore'
-const SettingsModal = lazy(() => import('./SettingsModal'))
+import FeedbackButton from './FeedbackButton'
 
 const Header = () => {
   const { isAuthenticated, logout, unreadNotifications, getNotifications, user: currentUser } = useApiStore()
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false)
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const [showLogoutModal, setShowLogoutModal] = useState(false)
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false)
   const location = useLocation()
   const menuRef = useRef(null)
   const navigate = useNavigate()
@@ -16,6 +17,7 @@ const Header = () => {
   // Main navigation links
   const mainNavigation = [
     { name: 'Feed', href: '/feed' },
+    { name: 'Inspiration', href: '/inspiration' },
     { name: 'Dashboard', href: '/dashboard' },
     { name: 'Leaderboard', href: '/leaderboard' },
   ]
@@ -47,6 +49,7 @@ const Header = () => {
   }
 
   const handleLogout = async () => {
+    setShowLogoutModal(false)
     setIsProfileMenuOpen(false)
     await logout()
     navigate('/')
@@ -119,13 +122,19 @@ const Header = () => {
               )}
             </button>
 
-            {/* Profile Dropdown */}
+            {/* Separator */}
+            <div className="h-6 w-px bg-gray-300 dark:bg-gray-600"></div>
+
+            {/* User Avatar and Dropdown */}
             <div className="relative" ref={menuRef}>
               <button
                 onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-                className="flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg px-3 py-2 transition-colors"
+                className="flex items-center gap-2.5 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg py-1.5 px-2 transition-colors"
               >
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold font-manrope">
+                <span className="text-sm font-medium text-gray-900 dark:text-white font-manrope">
+                  {currentUser?.name || 'User'}
+                </span>
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-sm font-semibold font-manrope">
                   {currentUser?.name?.charAt(0) || 'U'}
                 </div>
               </button>
@@ -134,48 +143,90 @@ const Header = () => {
               <AnimatePresence>
                 {isProfileMenuOpen && (
                   <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden"
+                    initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute right-0 mt-3 w-72 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden"
                   >
-                    <div className="p-3 border-b border-gray-100 dark:border-gray-700">
-                      <div className="text-sm font-semibold text-gray-900 dark:text-white font-manrope">
-                        {currentUser?.name || 'User'}
-                      </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400 font-manrope">
-                        @{currentUser?.username || 'username'}
+                    {/* User Info Header */}
+                    <div className="p-4 bg-gradient-to-br from-gray-50 to-white dark:from-gray-800 dark:to-gray-800 border-b border-gray-100 dark:border-gray-700">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-lg font-bold font-manrope shadow-md">
+                          {currentUser?.name?.charAt(0) || 'U'}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-base font-semibold text-gray-900 dark:text-white font-manrope truncate">
+                            {currentUser?.name || 'User'}
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400 font-manrope truncate">
+                            @{currentUser?.username || 'username'}
+                          </div>
+                          {currentUser?.premium && (
+                            <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-amber-400 to-orange-400 rounded-full text-[10px] font-bold text-white uppercase tracking-wider mt-0.5">
+                              <Star className="w-2.5 h-2.5 fill-white" />
+                              Pro Explorer
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
+
+                    {/* Menu Items */}
                     <div className="py-2">
                       <button
                         onClick={() => {
                           setIsProfileMenuOpen(false)
                           navigate(`/profile/@${currentUser?.username}`)
                         }}
-                        className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 font-manrope"
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors font-manrope group"
                       >
-                        <User className="w-4 h-4" />
-                        View Profile
+                        <div className="w-9 h-9 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center group-hover:bg-gray-200 dark:group-hover:bg-gray-600 transition-colors">
+                          <User className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                        </div>
+                        <span className="font-medium">My Profile</span>
                       </button>
+
                       <button
                         onClick={() => {
                           setIsProfileMenuOpen(false)
-                          setIsSettingsOpen(true)
+                          navigate('/settings')
                         }}
-                        className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 font-manrope"
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors font-manrope group"
                       >
-                        <Settings className="w-4 h-4" />
-                        Settings
+                        <div className="w-9 h-9 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center group-hover:bg-gray-200 dark:group-hover:bg-gray-600 transition-colors">
+                          <Settings className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                        </div>
+                        <span className="font-medium">Settings</span>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setIsProfileMenuOpen(false)
+                          setShowFeedbackModal(true)
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors font-manrope group"
+                      >
+                        <div className="w-9 h-9 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center group-hover:bg-gray-200 dark:group-hover:bg-gray-600 transition-colors">
+                          <MessageSquare className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                        </div>
+                        <span className="font-medium">Feedback</span>
                       </button>
                     </div>
+
+                    {/* Sign Out */}
                     <div className="py-2 border-t border-gray-100 dark:border-gray-700">
                       <button
-                        onClick={handleLogout}
-                        className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 font-manrope"
+                        onClick={() => {
+                          setIsProfileMenuOpen(false)
+                          setShowLogoutModal(true)
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors font-manrope group"
                       >
-                        <LogOut className="w-4 h-4" />
-                        Logout
+                        <div className="w-9 h-9 rounded-lg bg-red-50 dark:bg-red-900/20 flex items-center justify-center group-hover:bg-red-100 dark:group-hover:bg-red-900/30 transition-colors">
+                          <LogOut className="w-4 h-4 text-red-600 dark:text-red-400" />
+                        </div>
+                        <span className="font-medium">Sign Out</span>
                       </button>
                     </div>
                   </motion.div>
@@ -186,15 +237,63 @@ const Header = () => {
         </div>
       </div>
 
-      {/* Settings Modal */}
-      <Suspense fallback={null}>
-        {isSettingsOpen && (
-          <SettingsModal
-            isOpen={isSettingsOpen}
-            onClose={() => setIsSettingsOpen(false)}
-          />
+      {/* Logout Confirmation Modal */}
+      <AnimatePresence>
+        {showLogoutModal && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 z-50"
+              onClick={() => setShowLogoutModal(false)}
+            />
+
+            {/* Modal */}
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6"
+              >
+                <div className="text-center">
+                  <div className="mx-auto w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mb-4">
+                    <LogOut className="w-6 h-6 text-red-600 dark:text-red-400" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white font-manrope mb-2">
+                    Sign Out
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 font-manrope mb-6">
+                    Are you sure you want to sign out of your account?
+                  </p>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setShowLogoutModal(false)}
+                      className="flex-1 px-4 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors font-manrope"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleLogout}
+                      className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors font-manrope"
+                    >
+                      Sign Out
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          </>
         )}
-      </Suspense>
+      </AnimatePresence>
+
+      {/* Feedback Modal */}
+      <FeedbackButton 
+        isOpen={showFeedbackModal} 
+        onClose={() => setShowFeedbackModal(false)} 
+      />
     </header>
   )
 }
