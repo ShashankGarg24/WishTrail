@@ -1,3 +1,4 @@
+import CategoryBadge from './CategoryBadge';
 import { useEffect, useState } from 'react'
 import { Eye, BarChart3, Share2, CheckCircle, X } from 'lucide-react'
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
@@ -92,11 +93,7 @@ export default function GoalDetailsModal({ goal, isOpen, onClose, onViewPost }) 
           </button>
           <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3 pr-10">{goal.title}</h3>
           <div className="flex items-center gap-2 flex-wrap">
-            {goal.category && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs text-[#23527a] bg-blue-50 dark:bg-blue-900/20">
-                {goal.category}
-              </span>
-            )}
+            <CategoryBadge category={goal.category} />
             {goal.priority && (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700">
                 {goal.priority}
@@ -135,7 +132,7 @@ export default function GoalDetailsModal({ goal, isOpen, onClose, onViewPost }) 
                 <Eye className="h-4 w-4" /> View Post
               </button>
 
-              {goal.completed ? (
+              {goal.completedAt ? (
                 <button
                   type="button"
                   onClick={handleShare}

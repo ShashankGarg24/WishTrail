@@ -1,4 +1,5 @@
 import { useState, useEffect, lazy, Suspense, useRef } from 'react';
+import CategoryBadge from './CategoryBadge';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Heart, MessageCircle, Share2, TrendingUp, Send } from 'lucide-react';
@@ -334,11 +335,7 @@ const GoalPostModalNew = ({ isOpen, onClose, goalId, openWithComments = false, o
                   </h2>
 
                   <div className="flex items-center gap-2 mb-3">
-                    {goalData.goal?.category && (
-                      <span className="inline-block px-3 py-1 bg-blue-50 text-[#4c99e6] text-xs font-semibold rounded-full">
-                        {goalData.goal.category}
-                      </span>
-                    )}
+                    <CategoryBadge category={goalData.goal?.category} />
                     {(goalData.goal?.isCompleted || goalData.goal?.completedAt) && (
                       <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-green-50 text-green-600 text-xs font-semibold rounded-full">
                         <svg className="w-3 h-3" viewBox="0 0 12 12" fill="currentColor">

@@ -156,15 +156,11 @@ async function enrichNotificationsWithUserData(notifications) {
     });
     
     if (userIds.size === 0) return notificationArray;
-    
-    console.log('[enrichNotifications] Fetching users for IDs:', Array.from(userIds));
-    
+        
     // Fetch all users in one query
     const users = await pgUserService.getUsersByIds(Array.from(userIds));
     const userMap = new Map(users.map(u => [u.id, u]));
-    
-    console.log('[enrichNotifications] Found users:', users.length, 'User IDs:', users.map(u => u.id));
-    
+      
     // Enrich each notification
     return notificationArray.map(notif => {
       const enriched = { ...notif };
@@ -188,9 +184,7 @@ async function enrichNotificationsWithUserData(notifications) {
               avatar: user.avatar_url
             }
           };
-          console.log('[enrichNotifications] Enriched notification with actor:', user.name);
         } else {
-          console.warn('[enrichNotifications] User not found for actorId:', actorId);
           // Keep the actorId even if user not found
           enriched.data.actorId = actorId;
         }

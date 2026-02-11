@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Sparkles, Tag, Lightbulb, RefreshCw, BookOpen, Compass, Activity, Code, Heart } from 'lucide-react'
+import { Sparkles, Lightbulb, RefreshCw } from 'lucide-react'
+import { getCategoryIcon } from '../utils/categoryIcons'
 
 const THEME_COLOR = '#4c99e6'
 
@@ -732,19 +733,6 @@ const GoalSuggestions = ({ interests = [], onSelect, onCreate, variant = 'inline
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 flex-1">
         <AnimatePresence initial={false}>
           {suggestions.map((g, idx) => {
-            // Get category-based icon
-            const getCategoryIcon = (category) => {
-              const iconMap = {
-                'Health & Fitness': <Activity className="h-5 w-5" />,
-                'Education & Learning': <BookOpen className="h-5 w-5" />,
-                'Travel & Adventure': <Compass className="h-5 w-5" />,
-                'Career & Business': <Code className="h-5 w-5" />,
-                'Relationships': <Heart className="h-5 w-5" />,
-                'Creative Projects': <Lightbulb className="h-5 w-5" />,
-              }
-              return iconMap[category] || <Lightbulb className="h-5 w-5" />
-            }
-            
             return (
             <motion.div
               key={`${g.title}-${idx}`}

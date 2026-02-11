@@ -12,17 +12,12 @@ import { initializeWebPush } from './services/webPush'
 import { notificationsAPI } from './services/api'
 const HomePage = lazy(() => import('./pages/HomePage'))
 const AuthPage = lazy(() => import('./pages/AuthPage'))
-const DashboardPage = lazy(() => import('./pages/DashboardPage'))
-const DashboardPageNew = lazy(() => import('./pages/DashboardPageNew'))
+const DashboardPageNew = lazy(() => import('./pages/DashboardPage'))
 const ProfilePage = lazy(() => import('./pages/ProfilePage'))
 const InspirationPage = lazy(() => import('./pages/InspirationPage'))
 const FeedPage = lazy(() => import('./pages/FeedPage'))
-const FeedPageNew = lazy(() => import('./pages/FeedPageNew'))
-const DiscoverPage = lazy(() => import('./pages/DiscoverPage'))
-const DiscoverPageNew = lazy(() => import('./pages/DiscoverPageNew'))
-const NotificationsPage = lazy(() => import('./pages/NotificationsPage'))
-const NotificationsPageNew = lazy(() => import('./pages/NotificationsPageNew'))
-const LeaderboardPage = lazy(() => import('./pages/LeaderboardPage'))
+const DiscoverPageNew = lazy(() => import('./pages/DiscoverPage'))
+const NotificationsPageNew = lazy(() => import('./pages/NotificationsPage'))
 const CommunitiesPage = lazy(() => import('./pages/CommunitiesPage'))
 const CommunityDetailPage = lazy(() => import('./pages/CommunityDetailPage'))
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'))
@@ -37,14 +32,13 @@ const AuthExpiredPage = lazy(() => import('./pages/AuthExpiredPage'))
 import { SpeedInsights } from '@vercel/speed-insights/react';
 const FeedbackButton = lazy(() => import('./components/FeedbackButton'))
 const SettingsPage = lazy(() => import('./pages/SettingsPage'))
-const HabitAnalyticsPage = lazy(() => import('./pages/HabitAnalyticsPage'))
-const HabitAnalyticsPageNew = lazy(() => import('./pages/HabitAnalyticsPageNew'))
+const HabitAnalyticsPageNew = lazy(() => import('./pages/HabitAnalyticsPage'))
 const GoalAnalyticsPage = lazy(() => import('./pages/GoalAnalyticsPage'))
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'))
 const TermsOfService = lazy(() => import('./pages/TermsOfService'))
 const CommunityGuidelines = lazy(() => import('./pages/CommunityGuidelines'))
 const CopyrightPolicy = lazy(() => import('./pages/CopyrightPolicy'))
-const LeaderboardPageNew = lazy(() => import('./pages/LeaderboardPageNew'))
+const LeaderboardPageNew = lazy(() => import('./pages/LeaderboardPage'))
 function App() {
   const { isDarkMode, initializeAuth, isAuthenticated} = useApiStore()
   const location = useLocation()
@@ -204,23 +198,17 @@ function App() {
               <Route path="/" element={<Suspense fallback={null}><HomePage /></Suspense>} />
               <Route path="/auth" element={<Suspense fallback={null}><AuthPage /></Suspense>} />
               <Route path="/reset-password" element={<Suspense fallback={null}><ResetPasswordPage /></Suspense>} />
-              <Route path="/dashboard" element={<Suspense fallback={null}><DashboardPage /></Suspense>} />
-              <Route path="/dashboard-new" element={<Suspense fallback={null}><DashboardPageNew /></Suspense>} />
+              <Route path="/dashboard" element={<Suspense fallback={null}><DashboardPageNew /></Suspense>} />
               <Route path="/feed" element={<Suspense fallback={null}><FeedPage /></Suspense>} />
-              <Route path="/feed-new" element={<Suspense fallback={null}><FeedPageNew /></Suspense>} />
-              <Route path="/discover" element={<Suspense fallback={null}><DiscoverPage /></Suspense>} />
-              <Route path="/discover-new" element={<Suspense fallback={null}><DiscoverPageNew /></Suspense>} />
-              <Route path="/notifications" element={<Suspense fallback={null}><NotificationsPage /></Suspense>} />
-              <Route path="/notifications-new" element={<Suspense fallback={null}><NotificationsPageNew /></Suspense>} />
+              <Route path="/discover" element={<Suspense fallback={null}><DiscoverPageNew /></Suspense>} />
+              <Route path="/notifications" element={<Suspense fallback={null}><NotificationsPageNew /></Suspense>} />
               <Route path="/profile/:username" element={<Suspense fallback={null}><ProfilePage /></Suspense>} />
               <Route path="/inspiration" element={<Suspense fallback={null}><InspirationPage /></Suspense>} />
               <Route path="/settings" element={<Suspense fallback={null}><SettingsPage /></Suspense>} />
-              <Route path="/leaderboard" element={<Suspense fallback={null}><LeaderboardPage /></Suspense>} />
-              <Route path="/leaderboard-new" element={<Suspense fallback={null}><LeaderboardPageNew /></Suspense>} />
+              <Route path="/leaderboard" element={<Suspense fallback={null}><LeaderboardPageNew /></Suspense>} />
               {/* <Route path="/communities" element={<Suspense fallback={null}><CommunitiesPage /></Suspense>} />
               <Route path="/communities/:id" element={<Suspense fallback={null}><CommunityDetailPage /></Suspense>} /> */}
-              <Route path="/habits/:id/analytics" element={<Suspense fallback={null}><HabitAnalyticsPage /></Suspense>} />
-              <Route path="/habits/:id/analytics-new" element={<Suspense fallback={null}><HabitAnalyticsPageNew /></Suspense>} />
+              <Route path="/habits/:id/analytics" element={<Suspense fallback={null}><HabitAnalyticsPageNew /></Suspense>} />
               <Route path="/goals/:goalId/analytics" element={<Suspense fallback={null}><GoalAnalyticsPage /></Suspense>} />
               {/* Legal pages */}
               <Route path="/privacy-policy" element={<Suspense fallback={null}><PrivacyPolicy /></Suspense>} />

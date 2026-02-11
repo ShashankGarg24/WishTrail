@@ -2,8 +2,10 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  ArrowLeft, TrendingUp, Target, Calendar, BarChart3, Activity, X, Clock, CheckCircle, XCircle, SkipForward, Smile, Meh, Frown, Heart, ChevronDown, ChevronUp
+  ArrowLeft, TrendingUp, Target, Calendar, BarChart3, LayoutGrid, X, Clock, CheckCircle, XCircle, SkipForward, Smile, Meh, Frown, Heart, ChevronDown, ChevronUp, Pencil, RefreshCw, Flame, Trophy
 } from 'lucide-react';
+
+const THEME_COLOR = '#4c99e6';
 import { habitsAPI } from '../services/api';
 import { usePremiumStatus } from '../hooks/usePremium';
 import ExpandableText from '../components/ExpandableText';
@@ -35,7 +37,7 @@ ChartJS.register(
   Filler
 );
 
-export default function HabitAnalyticsPage() {
+export default function HabitAnalyticsPageNew() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { isPremium } = usePremiumStatus();
@@ -135,9 +137,9 @@ export default function HabitAnalyticsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 font-manrope" style={{ fontFamily: 'Manrope, ui-sans-serif, system-ui' }}>
         <div className="max-w-7xl mx-auto">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto mt-20" />
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mt-20" style={{ borderColor: THEME_COLOR }} />
         </div>
       </div>
     );
@@ -145,13 +147,14 @@ export default function HabitAnalyticsPage() {
 
   if (!analytics) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 font-manrope" style={{ fontFamily: 'Manrope, ui-sans-serif, system-ui' }}>
         <div className="max-w-7xl mx-auto">
           <div className="text-center py-20">
             <p className="text-gray-600 dark:text-gray-400 mb-4">Analytics not found</p>
             <button
               onClick={() => navigate(-1)}
-              className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              className="px-4 py-2 text-white rounded-lg transition-colors"
+              style={{ backgroundColor: THEME_COLOR }}
             >
               Go Back
             </button>
@@ -205,21 +208,21 @@ export default function HabitAnalyticsPage() {
   const currentStreak = stats?.currentStreak || 0;
   const longestStreak = stats?.longestStreak || 0;
 
-  // Chart configurations
-  // Status distribution doughnut
+  // Chart configurations - theme color #4c99e6 = rgb(76, 153, 230)
+  const themeRgb = '76, 153, 230';
   const statusChartData = {
-    labels: ['Completed', 'Missed', 'Skipped'],
+    labels: ['Completed', 'Skipped', 'Missed'],
     datasets: [{
-      data: [statusCounts.done, statusCounts.missed, statusCounts.skipped],
+      data: [statusCounts.done, statusCounts.skipped, statusCounts.missed],
       backgroundColor: [
-        'rgba(34, 197, 94, 0.8)',
-        'rgba(239, 68, 68, 0.8)',
-        'rgba(251, 191, 36, 0.8)'
+        `rgba(${themeRgb}, 0.9)`,
+        'rgba(107, 114, 128, 0.7)',
+        'rgba(209, 213, 219, 0.7)'
       ],
       borderColor: [
-        'rgb(34, 197, 94)',
-        'rgb(239, 68, 68)',
-        'rgb(251, 191, 36)'
+        `rgb(${themeRgb})`,
+        'rgb(107, 114, 128)',
+        'rgb(209, 213, 219)'
       ],
       borderWidth: 2
     }]
@@ -347,15 +350,14 @@ export default function HabitAnalyticsPage() {
     return Math.max(0, remaining); // Ensure non-negative
   });
 
-  // Weekly breakdown bar chart - stacked bars showing days (Active + Skipped + Remaining = Expected)
   const weeklyChartData = {
     labels: weekLabels,
     datasets: [
       {
         label: 'Active Days',
         data: weeklyActiveDays,
-        backgroundColor: 'rgba(34, 197, 94, 0.8)',
-        borderColor: 'rgb(34, 197, 94)',
+        backgroundColor: `rgba(${themeRgb}, 0.85)`,
+        borderColor: `rgb(${themeRgb})`,
         borderWidth: 0,
         borderRadius: 0,
         stack: 'stack1'
@@ -363,8 +365,8 @@ export default function HabitAnalyticsPage() {
       {
         label: 'Skipped',
         data: weeklySkipped,
-        backgroundColor: 'rgba(251, 191, 36, 0.8)',
-        borderColor: 'rgb(251, 191, 36)',
+        backgroundColor: 'rgba(107, 114, 128, 0.6)',
+        borderColor: 'rgb(107, 114, 128)',
         borderWidth: 0,
         borderRadius: 0,
         stack: 'stack1'
@@ -372,8 +374,8 @@ export default function HabitAnalyticsPage() {
       {
         label: 'Remaining',
         data: weeklyRemaining,
-        backgroundColor: 'rgba(156, 163, 175, 0.5)',
-        borderColor: 'rgb(156, 163, 175)',
+        backgroundColor: 'rgba(209, 213, 219, 0.5)',
+        borderColor: 'rgb(209, 213, 219)',
         borderWidth: 0,
         borderRadius: 4,
         stack: 'stack1'
@@ -432,21 +434,20 @@ export default function HabitAnalyticsPage() {
     }
   };
 
-  // Weekly trend line chart (Activity Trends - shows total completed per week)
   const weeklyTrendData = {
     labels: weekLabels,
     datasets: [{
-      label: 'Completed',
+      label: 'Completions',
       data: weeklyCompletions,
-      borderColor: 'rgb(99, 102, 241)',
-      backgroundColor: 'rgba(99, 102, 241, 0.1)',
+      borderColor: THEME_COLOR,
+      backgroundColor: `rgba(${themeRgb}, 0.12)`,
       borderWidth: 3,
       fill: true,
       tension: 0.4,
       pointRadius: 4,
       pointHoverRadius: 6,
-      pointBackgroundColor: 'rgb(99, 102, 241)',
-      pointBorderColor: '#fff',
+      pointBackgroundColor: '#fff',
+      pointBorderColor: THEME_COLOR,
       pointBorderWidth: 2
     }]
   };
@@ -603,18 +604,16 @@ export default function HabitAnalyticsPage() {
   
   const heatmapMonths = groupByMonth();
 
-  // Get color intensity based on completion count
   const getHeatmapColor = (day) => {
     if (day.status === 'skipped') return 'bg-amber-400 dark:bg-amber-500';
     if (day.status !== 'done' || day.completionCount === 0) return 'bg-gray-200 dark:bg-gray-700';
-    
-    // Different shades based on completions
+    return '';
+  };
+  const getHeatmapStyle = (day) => {
+    if (day.status === 'skipped' || day.status !== 'done' || day.completionCount === 0) return {};
     const count = day.completionCount;
-    if (count >= 5) return 'bg-green-700 dark:bg-green-500';
-    if (count >= 4) return 'bg-green-600 dark:bg-green-400';
-    if (count >= 3) return 'bg-green-500 dark:bg-green-400';
-    if (count >= 2) return 'bg-green-400 dark:bg-green-500/80';
-    return 'bg-green-300 dark:bg-green-600/70';
+    const opacity = count >= 5 ? 1 : count >= 4 ? 0.9 : count >= 3 ? 0.75 : count >= 2 ? 0.55 : 0.35;
+    return { backgroundColor: THEME_COLOR, opacity };
   };
 
   // Format time for display
@@ -636,53 +635,45 @@ export default function HabitAnalyticsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4 pb-16">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 pb-16 font-manrope" style={{ fontFamily: 'Manrope, ui-sans-serif, system-ui' }}>
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-5">
           <button
-            onClick={() => navigate(-1)}
-            className="inline-flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors mb-3"
+            onClick={() => navigate('/dashboard-new')}
+            className="inline-flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors mb-3"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back
+            Back to Habits
           </button>
           
-          <div className="glass-card-hover p-4 rounded-xl">
-            <div>
-              <h1 className="text-xl font-bold text-gray-900 dark:text-white mb-1.5">
-                {habit.name}
-              </h1>
-              {habit.description && (
-                <div className="mb-2">
-                  <ExpandableText
-                    text={habit.description}
-                    maxLength={200}
-                    className="text-sm text-gray-600 dark:text-gray-400"
-                  />
-                </div>
-              )}
-              <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                <p className="text-xs text-gray-500 dark:text-gray-500">
-                  Created {formatDate(habit.createdAt)}
-                </p>
-                
-                <select
-                  value={days}
-                  onChange={(e) => {
-
-
-                    const newDays = Number(e.target.value);
-                    setDays(Math.min(newDays, maxDays));
-                  }}
-                  className="px-3 py-1.5 text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
-                >
-                  <option value={30}>Last 30 days</option>
-                  <option value={60}>Last 60 days</option>
-                  {isPremium && <option value={90}>Last 90 days</option>}
-                  {isPremium && <option value={180}>Last 6 months</option>}
-                  {isPremium && <option value={365}>Last year</option>}
-                </select>
+          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-4 rounded-xl shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+              <div>
+                <h1 className="text-xl font-bold text-gray-900 dark:text-white mb-1">
+                  {habit.name}
+                </h1>
+                {habit.description && (
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                    <ExpandableText text={habit.description} maxLength={200} className="text-sm text-gray-600 dark:text-gray-400" />
+                  </p>
+                )}
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <div className="flex flex-col">
+                  <span className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Timeframe</span>
+                  <select
+                    value={days}
+                    onChange={(e) => setDays(Math.min(Number(e.target.value), maxDays))}
+                    className="mt-0.5 px-3 py-2 text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#4c99e6]"
+                  >
+                    <option value={30}>Last 30 days</option>
+                    <option value={60}>Last 60 days</option>
+                    {isPremium && <option value={90}>Last 90 days</option>}
+                    {isPremium && <option value={180}>Last 6 months</option>}
+                    {isPremium && <option value={365}>Last year</option>}
+                  </select>
+                </div>            
               </div>
             </div>
           </div>
@@ -690,113 +681,96 @@ export default function HabitAnalyticsPage() {
 
         {/* Key Stats Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
-          {/* Target Progress - Count Based */}
           {habit.targetCompletions && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-gradient-to-br from-indigo-50 to-indigo-100 dark:from-indigo-900/20 dark:to-indigo-800/20 rounded-lg p-3 shadow-sm border border-indigo-200 dark:border-indigo-800"
+              className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-200 dark:border-gray-700"
             >
-              <div className="flex items-center gap-2 mb-1.5">
-                <div className="p-1.5 bg-indigo-500 rounded-lg">
-                  <Target className="w-4 h-4 text-white" />
+              <div className="flex items-center gap-2 mb-2">
+                <div className="p-1.5 rounded-lg text-white" style={{ backgroundColor: THEME_COLOR }}>
+                  <Target className="w-4 h-4" />
                 </div>
-                <span className="text-xs font-medium text-indigo-900 dark:text-indigo-300">Target Progress</span>
+                <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Target Progress</span>
               </div>
-              <p className="text-xl font-bold text-indigo-900 dark:text-white">
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">
                 {stats?.totalCompletions || 0}/{habit.targetCompletions}
               </p>
-              <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-1">
-                {Math.round(((stats?.totalCompletions || 0) / habit.targetCompletions) * 100)}% to goal
-              </p>
+              <div className="mt-2 h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                <div className="h-full rounded-full" style={{ width: `${Math.min(100, ((stats?.totalCompletions || 0) / habit.targetCompletions) * 100)}%`, backgroundColor: THEME_COLOR }} />
+              </div>
+              <p className="text-xs mt-1" style={{ color: THEME_COLOR }}>{Math.round(((stats?.totalCompletions || 0) / habit.targetCompletions) * 100)}%</p>
             </motion.div>
           )}
-
-          {/* Target Progress - Days Based */}
-          {habit.targetDays && (
+          {habit.targetDays && !habit.targetCompletions && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-gradient-to-br from-indigo-50 to-indigo-100 dark:from-indigo-900/20 dark:to-indigo-800/20 rounded-lg p-3 shadow-sm border border-indigo-200 dark:border-indigo-800"
+              className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-200 dark:border-gray-700"
             >
-              <div className="flex items-center gap-2 mb-1.5">
-                <div className="p-1.5 bg-indigo-500 rounded-lg">
-                  <Target className="w-4 h-4 text-white" />
+              <div className="flex items-center gap-2 mb-2">
+                <div className="p-1.5 rounded-lg text-white" style={{ backgroundColor: THEME_COLOR }}>
+                  <Target className="w-4 h-4" />
                 </div>
-                <span className="text-xs font-medium text-indigo-900 dark:text-indigo-300">Target Progress</span>
+                <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Target Progress</span>
               </div>
-              <p className="text-xl font-bold text-indigo-900 dark:text-white">
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">
                 {stats?.totalDays || 0}/{habit.targetDays}
               </p>
-              <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-1">
-                {Math.round(((stats?.totalDays || 0) / habit.targetDays) * 100)}% to goal
-              </p>
+              <p className="text-xs mt-1" style={{ color: THEME_COLOR }}>{Math.round(((stats?.totalDays || 0) / habit.targetDays) * 100)}%</p>
             </motion.div>
           )}
 
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-gradient-to-br from-purple-50 to-blue-100 dark:from-purple-900/20 dark:to-blue-800/20 rounded-lg p-3 shadow-sm border border-purple-200 dark:border-purple-800"
+            className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-200 dark:border-gray-700"
           >
-            <div className="flex items-center gap-2 mb-1.5">
-              <div className="p-1.5 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
-                <Calendar className="w-4 h-4 text-white" />
+            <div className="flex items-center gap-2 mb-2">
+              <div className="p-1.5 rounded-lg text-white" style={{ backgroundColor: THEME_COLOR }}>
+                <Calendar className="w-4 h-4" />
               </div>
-              <span className="text-xs font-medium text-purple-900 dark:text-purple-300">Active Days</span>
+              <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Active Days</span>
             </div>
-            <p className="text-xl font-bold text-purple-900 dark:text-white">{activeDays}</p>
-            <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">Days with activity</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">{activeDays}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">days this month</p>
           </motion.div>
 
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-lg p-3 shadow-sm border border-green-200 dark:border-green-800"
+            className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-200 dark:border-gray-700"
           >
-            <div className="flex items-center gap-2 mb-1.5">
-              <div className="p-1.5 bg-green-500 rounded-lg">
-                <Activity className="w-4 h-4 text-white" />
+            <div className="flex items-center gap-2 mb-2">
+              <div className="p-1.5 rounded-lg text-white" style={{ backgroundColor: THEME_COLOR }}>
+                <TrendingUp className="w-4 h-4" />
               </div>
-              <span className="text-xs font-medium text-green-900 dark:text-green-300">Completion Rate</span>
+              <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Completion Rate</span>
             </div>
-            <p className="text-xl font-bold text-green-900 dark:text-white">{completionRate}%</p>
-            <p className="text-xs text-green-600 dark:text-green-400 mt-1">
-              {activeDays} of {expectedDaysAdjusted} expected
-            </p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">{completionRate}%</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">avg. consistency · Targeting 95% overall</p>
           </motion.div>
 
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-lg p-3 shadow-sm border border-purple-200 dark:border-purple-800"
+            className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-200 dark:border-gray-700"
           >
-            <div className="flex items-center gap-2 mb-1.5">
-              <div className="p-1.5 bg-purple-500 rounded-lg">
-                <TrendingUp className="w-4 h-4 text-white" />
+            <div className="flex items-center gap-2 mb-2">
+              <div className="p-1.5 rounded-lg text-orange-500">
+                <Flame className="w-4 h-4" />
               </div>
-              <span className="text-xs font-medium text-purple-900 dark:text-purple-300">Current Streak</span>
+              <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Current Streak</span>
             </div>
-            <p className="text-xl font-bold text-purple-900 dark:text-white">{currentStreak}</p>
-            <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">days in a row</p>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/20 rounded-lg p-3 shadow-sm border border-amber-200 dark:border-amber-800"
-          >
-            <div className="flex items-center gap-2 mb-1.5">
-              <div className="p-1.5 bg-amber-500 rounded-lg">
-                <Target className="w-4 h-4 text-white" />
-              </div>
-              <span className="text-xs font-medium text-amber-900 dark:text-amber-300">Longest Streak</span>
-            </div>
-            <p className="text-xl font-bold text-amber-900 dark:text-white">{longestStreak}</p>
-            <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">best performance</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">{currentStreak}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">days in a row</p>
+            {longestStreak > 0 && (
+              <span className="inline-flex items-center gap-1 mt-2 text-xs px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200">
+                <Trophy className="w-3.5 h-3.5" /> Personal best: {longestStreak} days
+              </span>
+            )}
           </motion.div>
         </div>
 
@@ -807,20 +781,21 @@ export default function HabitAnalyticsPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
-            className="glass-card-hover p-4 rounded-xl"
+            className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm"
           >
             <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-indigo-500" />
+              <TrendingUp className="w-4 h-4" style={{ color: THEME_COLOR }} />
               Activity Trends
             </h3>
-            {/* Fixed Y-axis label */}
-            <div className="text-xs text-gray-500 dark:text-gray-400 mb-1 text-center sm:text-left">Times Completed</div>
+            <div className="flex items-center gap-2 mb-2 text-xs text-gray-500 dark:text-gray-400">
+              <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: THEME_COLOR }} />
+              <span>Completions</span>
+            </div>
             <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
               <div className="h-48 sm:h-56" style={{ minWidth: weekLabels.length > 6 ? `${Math.max(weekLabels.length * 50, 300)}px` : '100%' }}>
                 <Line data={weeklyTrendData} options={weeklyTrendOptions} />
               </div>
             </div>
-            {/* Fixed X-axis range label */}
             <div className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
               {weekLabels[0]} to {weekLabels[weekLabels.length - 1]}
             </div>
@@ -831,41 +806,39 @@ export default function HabitAnalyticsPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
-            className="glass-card-hover p-4 rounded-xl"
+            className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm"
           >
             <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-              <Target className="w-4 h-4 text-green-500" />
+              <RefreshCw className="w-4 h-4" style={{ color: THEME_COLOR }} />
               Status Distribution
             </h3>
             <div className="h-56">
               <Doughnut data={statusChartData} options={statusChartOptions} />
             </div>
           </motion.div>
+        </div>
 
+        {/* Activity Breakdown + Heatmap side by side */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-5">
           {/* Activity Breakdown */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6 }}
-            className="glass-card-hover p-4 rounded-xl lg:col-span-2"
+            className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm"
           >
             <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-              <BarChart3 className="w-4 h-4 text-purple-500" />
+              <BarChart3 className="w-4 h-4" style={{ color: THEME_COLOR }} />
               Activity Breakdown
             </h3>
-            {/* Fixed Legend */}
-            <div className="flex flex-wrap items-center gap-3 sm:gap-4 mb-3 text-xs sm:text-sm">
+            <div className="flex flex-wrap items-center gap-3 mb-3 text-xs">
               <div className="flex items-center gap-1.5">
-                <div className="w-3 h-3 rounded-sm bg-green-500"></div>
-                <span className="text-gray-600 dark:text-gray-400">Active Days</span>
+                <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: THEME_COLOR }} />
+                <span className="text-gray-600 dark:text-gray-400">Completions</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <div className="w-3 h-3 rounded-sm bg-yellow-400"></div>
-                <span className="text-gray-600 dark:text-gray-400">Skipped</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-3 h-3 rounded-sm bg-gray-400"></div>
-                <span className="text-gray-600 dark:text-gray-400">Remaining</span>
+                <div className="w-3 h-3 rounded-sm bg-gray-400" />
+                <span className="text-gray-600 dark:text-gray-400">Skips</span>
               </div>
             </div>
             <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
@@ -873,25 +846,33 @@ export default function HabitAnalyticsPage() {
                 <Bar data={weeklyChartData} options={weeklyChartOptions} />
               </div>
             </div>
-            {/* Fixed X-axis range label */}
             <div className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
               {weekLabels[0]} to {weekLabels[weekLabels.length - 1]}
             </div>
           </motion.div>
-        </div>
 
-        {/* Activity Heatmap */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.7 }}
-          className="glass-card-hover p-4 rounded-xl mb-5 relative"
-          ref={heatmapRef}
-        >
-          <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-blue-500" />
-            Activity Heatmap
-          </h3>
+          {/* Activity Heatmap */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.65 }}
+            className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm relative"
+            ref={heatmapRef}
+          >
+            <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+              <LayoutGrid className="w-4 h-4" style={{ color: THEME_COLOR }} />
+              Activity Heatmap
+            </h3>
+            <div className="flex items-center gap-2 mb-2 text-xs text-gray-500 dark:text-gray-400">
+              <span>Less</span>
+              <div className="flex-1 h-2 rounded-full overflow-hidden flex">
+                <div className="flex-1" style={{ backgroundColor: 'rgba(76, 153, 230, 0.25)' }} />
+                <div className="flex-1" style={{ backgroundColor: 'rgba(76, 153, 230, 0.5)' }} />
+                <div className="flex-1" style={{ backgroundColor: 'rgba(76, 153, 230, 0.75)' }} />
+                <div className="flex-1" style={{ backgroundColor: THEME_COLOR }} />
+              </div>
+              <span>More</span>
+            </div>
           
           {/* Heatmap grid grouped by month */}
           <div className="overflow-x-auto relative">
@@ -916,7 +897,8 @@ export default function HabitAnalyticsPage() {
                           <div
                             key={dayIdx}
                             onClick={(e) => handleDayClick(day, e)}
-                            className={`w-3 h-3 rounded-sm ${getHeatmapColor(day)} cursor-pointer hover:ring-2 hover:ring-primary-400 hover:ring-offset-1 transition-all`}
+                            className={`w-3 h-3 rounded-sm ${getHeatmapColor(day)} cursor-pointer hover:ring-2 hover:ring-offset-1 transition-all`}
+                            style={getHeatmapStyle(day)}
                             title={`${day.date} - ${day.completionCount} completion${day.completionCount !== 1 ? 's' : ''}`}
                           />
                         ))}
@@ -955,7 +937,7 @@ export default function HabitAnalyticsPage() {
                   
                   {/* Status */}
                   <div className="flex items-center gap-2 mb-1">
-                    <div className={`w-3 h-3 rounded-sm ${getHeatmapColor(selectedDay)}`} />
+                    <div className={`w-3 h-3 rounded-sm ${getHeatmapColor(selectedDay)}`} style={getHeatmapStyle(selectedDay)} />
                     <span className="text-sm text-gray-600 dark:text-gray-400 capitalize">
                       {selectedDay.status === 'none' ? 'No Activity' : selectedDay.status}
                     </span>
@@ -984,14 +966,15 @@ export default function HabitAnalyticsPage() {
             </div>
             <div className="flex items-center gap-0.5">
               <span className="mr-1">Completions:</span>
-              <div className="w-3 h-3 rounded-sm bg-green-300 dark:bg-green-600/70" title="1" />
-              <div className="w-3 h-3 rounded-sm bg-green-400 dark:bg-green-500/80" title="2" />
-              <div className="w-3 h-3 rounded-sm bg-green-500 dark:bg-green-400" title="3" />
-              <div className="w-3 h-3 rounded-sm bg-green-600 dark:bg-green-400" title="4" />
-              <div className="w-3 h-3 rounded-sm bg-green-700 dark:bg-green-500" title="5+" />
+              <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: THEME_COLOR, opacity: 0.35 }} title="1" />
+              <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: THEME_COLOR, opacity: 0.55 }} title="2" />
+              <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: THEME_COLOR, opacity: 0.75 }} title="3" />
+              <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: THEME_COLOR, opacity: 0.9 }} title="4" />
+              <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: THEME_COLOR }} title="5+" />
             </div>
           </div>
         </motion.div>
+        </div>
 
         {/* Habit Logs List */}
         <motion.div
@@ -1002,7 +985,7 @@ export default function HabitAnalyticsPage() {
         >
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <Calendar className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
+              <Calendar className="h-6 w-6" style={{ color: THEME_COLOR }} />
               Daily Logs
             </h3>
             {logsPagination && (
@@ -1178,7 +1161,7 @@ export default function HabitAnalyticsPage() {
                 <button
                   onClick={loadMoreLogs}
                   disabled={logsLoading}
-                  className="w-full py-3 mt-4 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-primary-500 dark:hover:border-primary-500 hover:text-primary-600 dark:hover:text-primary-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full py-3 mt-4 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-[#4c99e6] hover:text-[#4c99e6] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {logsLoading ? (
                     <div className="flex items-center justify-center gap-2">

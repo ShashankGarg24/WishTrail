@@ -1,3 +1,4 @@
+import CategoryBadge from '../components/CategoryBadge';
 import { useState, useEffect, useMemo, lazy, Suspense } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
@@ -359,9 +360,8 @@ const GoalAnalyticsPage = () => {
                   </div>
                 )}
                 <div className="flex flex-wrap gap-1.5">
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: 'rgba(76,153,230,0.08)', color: THEME_COLOR }}>
-                    {goal.category}
-                  </span>
+                  <CategoryBadge category={goal.category} />
+                  
                   {analytics?.isOverdue && (
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
                       <Clock className="h-3 w-3 mr-1" />

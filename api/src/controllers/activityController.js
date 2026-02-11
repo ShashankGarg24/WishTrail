@@ -44,6 +44,21 @@ async function enrichActivities(activities) {
   const enriched = activityArray.map(activity => {
     const enrichedActivity = { ...activity };
     
+    // Enrich main user data (the person who created the activity)
+    if (activity.userId) {
+      const user = userMap.get(activity.userId);
+      if (user) {
+        enrichedActivity.name = user.name;
+        enrichedActivity.username = user.username;
+        enrichedActivity.avatar = user.avatar_url;
+        // Add isPremium flag
+        enrichedActivity.data = {
+          ...enrichedActivity.data,
+          isPremium: user.is_premium || false
+        };
+      }
+    }
+    
     if (activity.data?.goalId) {
       const goal = goalMap.get(activity.data.goalId);
       if (goal) {
@@ -173,7 +188,6 @@ const getRecentActivities = async (req, res, next) => {
       } else {
         // Global activities
         const filter = {
-        isActive: true,
         isPublic: true,
         type: { $in: [
           'goal_activity', 
@@ -200,6 +214,7 @@ const getRecentActivities = async (req, res, next) => {
           .lean()
       ]);
 
+      console.log(`Fetched ${activityList.length} activities from DB for global feed (total: ${totalActivities})`);
       // Enrich with PostgreSQL data
       const enrichedActivities = await enrichActivities(activityList);
 

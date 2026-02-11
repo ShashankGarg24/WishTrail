@@ -2,6 +2,8 @@ import { GOAL_CATEGORIES } from '../constants/goalCategories'
 import { useState, useEffect, useRef, lazy, Suspense } from "react";
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Target, TrendingUp, Star, Edit2, ExternalLink, Youtube, Instagram, MapPin, Globe, Trophy, BookOpen, Clock, CheckCircle, Circle, User, UserPlus, UserCheck, ArrowLeft, Lock, Sparkles, Download, Flame, Award, BarChart2, Activity, MoreVertical, Plus, PenSquare } from "lucide-react";
+import { getCategoryIcon } from '../utils/categoryIcons';
+import CategoryBadge from '../components/CategoryBadge';
 const FollowListModal = lazy(() => import("../components/FollowListModal"));
 import { motion } from "framer-motion";
 import useApiStore from "../store/apiStore";
@@ -641,7 +643,7 @@ const ProfilePage = () => {
           className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 md:p-8 mb-6"
         >
           <div className="flex flex-col md:flex-row md:items-start gap-6 relative">
-            {/* Ellipsis top right */}
+            {/* Ellipsis menu - always top right */}
             <button
               data-profile-menu-btn="true"
               onClick={() => setProfileMenuOpen((v) => !v)}
@@ -650,6 +652,38 @@ const ProfilePage = () => {
             >
               <MoreVertical className="h-5 w-5" />
             </button>
+
+            {/* Action buttons - desktop: next to menu, mobile: hidden here (shown below) */}
+            {!isOwnProfile && isAuthenticated && (
+              <div className="hidden md:flex absolute top-0 right-12 items-center gap-2">
+                {isFollowing ? (
+                  <button
+                    onClick={handleUnfollow}
+                    className="px-4 py-2.5 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-medium text-sm transition-colors"
+                  >
+                    <UserCheck className="h-4 w-4 inline mr-1.5" />
+                    Following
+                  </button>
+                ) : isRequested ? (
+                  <button
+                    onClick={handleCancelRequest}
+                    className="px-4 py-2.5 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-medium text-sm transition-colors"
+                  >
+                    <UserCheck className="h-4 w-4 inline mr-1.5" />
+                    Requested
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleFollow}
+                    className="px-4 py-2.5 rounded-xl text-white font-medium text-sm transition-opacity hover:opacity-90"
+                    style={{ backgroundColor: THEME_COLOR }}
+                  >
+                    <UserPlus className="h-4 w-4 inline mr-1.5" />
+                    Follow
+                  </button>
+                )}
+              </div>
+            )}
 
             {/* Avatar */}
             <div className="relative flex-shrink-0">
@@ -758,39 +792,39 @@ const ProfilePage = () => {
                   )}
                 </div>
               )}
-            </div>
 
-            {/* Action buttons - only for other users; own profile uses three-dots menu */}
-            {!isOwnProfile && isAuthenticated && (
-              <div className="flex flex-col sm:flex-row gap-3 flex-shrink-0">
-                {isFollowing ? (
-                  <button
-                    onClick={handleUnfollow}
-                    className="px-4 py-2.5 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-medium text-sm transition-colors"
-                  >
-                    <UserCheck className="h-4 w-4 inline mr-1.5" />
-                    Following
-                  </button>
-                ) : isRequested ? (
-                  <button
-                    onClick={handleCancelRequest}
-                    className="px-4 py-2.5 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-medium text-sm transition-colors"
-                  >
-                    <UserCheck className="h-4 w-4 inline mr-1.5" />
-                    Requested
-                  </button>
-                ) : (
-                  <button
-                    onClick={handleFollow}
-                    className="px-4 py-2.5 rounded-xl text-white font-medium text-sm transition-opacity hover:opacity-90"
-                    style={{ backgroundColor: THEME_COLOR }}
-                  >
-                    <UserPlus className="h-4 w-4 inline mr-1.5" />
-                    Follow
-                  </button>
-                )}
-              </div>
-            )}
+              {/* Action buttons - mobile only: shown below profile info */}
+              {!isOwnProfile && isAuthenticated && (
+                <div className="flex md:hidden gap-3 mt-4">
+                  {isFollowing ? (
+                    <button
+                      onClick={handleUnfollow}
+                      className="flex-1 px-4 py-2.5 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-medium text-sm transition-colors"
+                    >
+                      <UserCheck className="h-4 w-4 inline mr-1.5" />
+                      Following
+                    </button>
+                  ) : isRequested ? (
+                    <button
+                      onClick={handleCancelRequest}
+                      className="flex-1 px-4 py-2.5 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-medium text-sm transition-colors"
+                    >
+                      <UserCheck className="h-4 w-4 inline mr-1.5" />
+                      Requested
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleFollow}
+                      className="flex-1 px-4 py-2.5 rounded-xl text-white font-medium text-sm transition-opacity hover:opacity-90"
+                      style={{ backgroundColor: THEME_COLOR }}
+                    >
+                      <UserPlus className="h-4 w-4 inline mr-1.5" />
+                      Follow
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Follow List Modal */}
@@ -1058,16 +1092,17 @@ const ProfilePage = () => {
                                 className="p-4 rounded-xl border border-gray-200 dark:border-gray-700 hover:shadow-md cursor-pointer group"
                                 onClick={() => setOpenGoalId(goal.id)}
                               >
-                                <h4 className="font-semibold text-gray-900 dark:text-white text-sm line-clamp-2 group-hover:opacity-80">{goal.title}</h4>
-                                {goal.category && (() => {
-                                  const cat = GOAL_CATEGORIES.find(c => c.id === goal.category);
-                                  return cat ? (
-                                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 ${cat.color} bg-opacity-10 text-xs font-medium rounded font-manrope uppercase tracking-wide`}>
-                                      <span>{cat.icon}</span>
-                                      {cat.label}
-                                    </span>
-                                  ) : null;
-                                })()}
+                                <div className="flex items-start gap-3 mb-2">
+                                  <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded-lg group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 transition-colors">
+                                    <div className="text-gray-500 dark:text-gray-400 group-hover:text-[#4c99e6] transition-colors">
+                                      {getCategoryIcon(goal.category, 'w-4 h-4')}
+                                    </div>
+                                  </div>
+                                  <div className="flex-1">
+                                    <h4 className="font-semibold text-gray-900 dark:text-white text-sm line-clamp-2 group-hover:opacity-80">{goal.title}</h4>
+                                  </div>
+                                </div>
+                                <CategoryBadge category={goal.category} />
                               </motion.div>
                             ))}
                           </div>
@@ -1147,18 +1182,15 @@ const ProfilePage = () => {
                               onClick={() => setOpenGoalId(goal.id)}
                               className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md cursor-pointer group"
                             >
-                              <div className="flex items-start justify-between gap-3">
+                              <div className="flex items-start gap-3 mb-3">
+                                <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded-lg group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 transition-colors">
+                                  <div className="text-gray-500 dark:text-gray-400 group-hover:text-[#4c99e6] transition-colors">
+                                    {getCategoryIcon(goal.category, 'w-5 h-5')}
+                                  </div>
+                                </div>
                                 <div className="min-w-0 flex-1">
-                                  <h4 className="font-semibold text-gray-900 dark:text-white text-base line-clamp-2 group-hover:opacity-80">{goal.title}</h4>
-                                  {goal.category && (() => {
-                                    const cat = GOAL_CATEGORIES.find(c => c.id === goal.category);
-                                    return cat ? (
-                                      <p className={`text-xs mt-0.5 inline-flex items-center gap-1 ${cat.color} bg-opacity-10 font-medium rounded font-manrope uppercase tracking-wide`}>
-                                        <span>{cat.icon}</span>
-                                        {cat.label}
-                                      </p>
-                                    ) : null;
-                                  })()}
+                                  <h4 className="font-semibold text-gray-900 dark:text-white text-base line-clamp-2 group-hover:opacity-80 mb-2">{goal.title}</h4>
+                                  <CategoryBadge category={goal.category} />
                                 </div>
                                 {goal.completedAt && <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />}
                               </div>

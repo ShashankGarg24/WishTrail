@@ -85,10 +85,10 @@ const optionalAuth = async (req, res, next) => {
       // Verify token
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       
-      // Get user from the token
-      const user = await User.findById(decoded.userId).select('-password -refreshToken');
+      // Get user from the token (use userId from our JWT payload)
+      const user = await pgUserService.getUserById(decoded.userId);
       
-      if (user && user.isActive) {
+      if (user && user.is_active) {
         req.user = user;
       }
       
