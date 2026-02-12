@@ -57,6 +57,23 @@ const DashboardPageNew = () => {
     loadHabits,
   } = useApiStore()
 
+  
+  // Load initial data
+  useEffect(() => {
+    if (!isAuthenticated) return
+    getDashboardStats()
+    getGoals({ year: selectedYear, page: 1 })
+    loadHabits({ page: 1 })
+  }, [isAuthenticated, selectedYear])
+
+  // Sync tab with URL
+  useEffect(() => {
+    const tabFromUrl = searchParams.get('tab') || 'goals'
+    if (tabFromUrl !== activeTab) {
+      setActiveTab(tabFromUrl)
+    }
+  }, [searchParams])
+
   const handleHabitCreated = (habit) => {
     if (habit?.id) {
       useApiStore.getState().appendHabit?.(habit)
@@ -100,26 +117,10 @@ const DashboardPageNew = () => {
   // Get greeting based on time
   const getGreeting = () => {
     const hour = new Date().getHours()
-    if (hour < 12) return 'Good morning'
-    if (hour < 18) return 'Good afternoon'
+    if (hour >=  5 && hour < 12) return 'Good morning'
+    if (hour >= 12 && hour < 17) return 'Good afternoon'
     return 'Good evening'
   }
-
-  // Load initial data
-  useEffect(() => {
-    if (!isAuthenticated) return
-    getDashboardStats()
-    getGoals({ year: selectedYear, page: 1 })
-    loadHabits({ page: 1 })
-  }, [isAuthenticated, selectedYear])
-
-  // Sync tab with URL
-  useEffect(() => {
-    const tabFromUrl = searchParams.get('tab') || 'goals'
-    if (tabFromUrl !== activeTab) {
-      setActiveTab(tabFromUrl)
-    }
-  }, [searchParams])
 
   const handleTabChange = (tab) => {
     setSearchParams({ tab })

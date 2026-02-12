@@ -132,7 +132,7 @@ const DiscoverPageNew = () => {
       })();
     } else {
       (async () => {
-        if (debouncedUserSearch.trim()) {
+        if (debouncedUserSearch.trim() && debouncedUserSearch.trim().length >= 2) {
           // Use searchUsers API, which searches by name and username
           const result = await searchUsers({ search: debouncedUserSearch.trim() });
           const foundUsers = result?.users || [];
@@ -148,7 +148,7 @@ const DiscoverPageNew = () => {
           }));
           setUsers(mappedUsers);
         } else {
-          // No users shown by default - only show through search
+          // No users shown by default - only show through search (min 2 chars)
           setUsers([]);
         }
         // Fetch top achievers from leaderboard

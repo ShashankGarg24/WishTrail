@@ -253,11 +253,10 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
   const completionImageUrl = goalData?.completion?.attachmentUrl || goalData?.share?.attachmentUrl || goalData?.share?.image || '';
   const hasCompletionImage = Boolean(completionImageUrl);
 
-  if (!isOpen) return null;
-
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 overflow-hidden" style={{ fontFamily: 'Manrope, sans-serif' }}>
+      {isOpen && (
+      <div key="goal-post-modal" className="fixed inset-0 z-[100] flex items-center justify-center p-4 overflow-hidden" style={{ fontFamily: 'Manrope, sans-serif' }}>
         {/* Backdrop */}
         <motion.div
           initial={{ opacity: 0 }}
@@ -539,21 +538,26 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
           ) : null}
         </motion.div>
       </div>
-      <Suspense fallback={null}>
-        <ActivityCommentsModal
-          isOpen={!!commentsOpenActivityId}
-          onClose={() => setCommentsOpenActivityId(null)}
-          activity={{ _id: commentsOpenActivityId }}
-        />
-      </Suspense>
-      <Suspense fallback={null}>
-        <ShareSheet
-          isOpen={shareSheetOpen}
-          onClose={() => setShareSheetOpen(false)}
-          url={shareUrlRef.current}
-          title="WishTrail Goal"
-        />
-      </Suspense>
+      )}
+      {commentsOpenActivityId && (
+        <Suspense key="activity-comments" fallback={null}>
+          <ActivityCommentsModal
+            isOpen={!!commentsOpenActivityId}
+            onClose={() => setCommentsOpenActivityId(null)}
+            activity={{ _id: commentsOpenActivityId }}
+          />
+        </Suspense>
+      )}
+      {shareSheetOpen && (
+        <Suspense key="share-sheet" fallback={null}>
+          <ShareSheet
+            isOpen={shareSheetOpen}
+            onClose={() => setShareSheetOpen(false)}
+            url={shareUrlRef.current}
+            title="WishTrail Goal"
+          />
+        </Suspense>
+      )}
     </AnimatePresence>
   );
 };

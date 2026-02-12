@@ -97,7 +97,7 @@ const InspirationPage = () => {
                 <div className="flex gap-6 overflow-x-auto pb-4 scrollbar-hide">
                   {displayLeaderboard.map((achiever, idx) => (
                     <div
-                      key={achiever._id}
+                      key={achiever.username}
                       className="bg-gray-50 dark:bg-gray-900/50 rounded-xl p-5 cursor-pointer hover:shadow-md transition-shadow border border-gray-200 dark:border-gray-700 flex-shrink-0 w-80"
                       onClick={() => {
                         if (achiever?.username) navigate(`/profile/@${achiever.username}?tab=overview`);
@@ -195,12 +195,12 @@ const InspirationPage = () => {
                                 )}
                               </div>
                               <p className="text-sm text-gray-700 dark:text-gray-300 mb-1" style={{ fontFamily: 'Manrope, sans-serif' }}>
-                                {activity.type === 'goal_completed' && `Completed: ${activity.data?.goalTitle || 'Morning Yoga Session'}`}
-                                {activity.type === 'goal_created' && `Created a new goal: ${activity.data?.goalTitle || 'New Goal'}`}
-                                {activity.type === 'user_followed' && `Started following ${activity.data?.targetUserName || 'someone'}`}
-                                {activity.type === 'streak_milestone' && `Reached a ${activity.data?.streakCount || 0} day streak!`}
-                                {activity.type === 'achievement_earned' && `Earned "${activity.data?.achievementName || 'achievement'}" badge`}
-                                {!['goal_completed', 'goal_created', 'user_followed', 'streak_milestone', 'achievement_earned'].includes(activity.type) && 'Just completed: Morning Yoga Session'}
+                                {activity.type === 'goal_completed' ? `Completed: ${activity.data?.goalTitle || 'Morning Yoga Session'}` :
+                                 activity.type === 'goal_created' ? `Created a new goal: ${activity.data?.goalTitle || 'New Goal'}` :
+                                 activity.type === 'user_followed' ? `Started following ${activity.data?.targetUserName || 'someone'}` :
+                                 activity.type === 'streak_milestone' ? `Reached a ${activity.data?.streakCount || 0} day streak!` :
+                                 activity.type === 'achievement_earned' ? `Earned "${activity.data?.achievementName || 'achievement'}" badge` :
+                                 'Just completed: Morning Yoga Session'}
                               </p>
                               <span className="text-xs text-gray-500 dark:text-gray-400">{formatTimeAgo(activity.createdAt)}</span>
                             </div>

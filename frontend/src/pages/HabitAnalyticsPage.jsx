@@ -654,9 +654,9 @@ export default function HabitAnalyticsPageNew() {
                   {habit.name}
                 </h1>
                 {habit.description && (
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                  <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">
                     <ExpandableText text={habit.description} maxLength={200} className="text-sm text-gray-600 dark:text-gray-400" />
-                  </p>
+                  </div>
                 )}
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
