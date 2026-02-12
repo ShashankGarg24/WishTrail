@@ -49,10 +49,14 @@ const ResetPasswordPage = () => {
     
     if (!formData.newPassword) {
       newErrors.newPassword = 'New password is required';
-    } else if (formData.newPassword.length < 6) {
-      newErrors.newPassword = 'Password must be at least 6 characters long';
-    } else if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.newPassword)) {
-      newErrors.newPassword = 'Password must contain at least one uppercase letter, one lowercase letter, and one number';
+    } else if (formData.newPassword.length < 8) {
+      newErrors.newPassword = 'Password must be at least 8 characters long';
+    } else if (!/[a-zA-Z]/.test(formData.newPassword)) {
+      newErrors.newPassword = 'Password must contain at least one letter';
+    } else if (!/[0-9]/.test(formData.newPassword)) {
+      newErrors.newPassword = 'Password must contain at least one number';
+    } else if (!/[!@#$%^&*(),.?\":{}|<>_\-+=\[\]\\/'`~;]/.test(formData.newPassword)) {
+      newErrors.newPassword = 'Password must contain at least one special character';
     }
     
     if (!formData.confirmPassword) {
@@ -280,27 +284,27 @@ const ResetPasswordPage = () => {
               <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
                 <li className="flex items-center">
                   <span className={`w-2 h-2 rounded-full mr-2 ${
-                    formData.newPassword.length >= 6 ? 'bg-green-500' : 'bg-gray-300'
+                    formData.newPassword.length >= 8 ? 'bg-green-500' : 'bg-gray-300'
                   }`}></span>
-                  At least 6 characters long
+                  At least 8 characters long
                 </li>
                 <li className="flex items-center">
                   <span className={`w-2 h-2 rounded-full mr-2 ${
-                    /[A-Z]/.test(formData.newPassword) ? 'bg-green-500' : 'bg-gray-300'
+                    /[a-zA-Z]/.test(formData.newPassword) ? 'bg-green-500' : 'bg-gray-300'
                   }`}></span>
-                  One uppercase letter
-                </li>
-                <li className="flex items-center">
-                  <span className={`w-2 h-2 rounded-full mr-2 ${
-                    /[a-z]/.test(formData.newPassword) ? 'bg-green-500' : 'bg-gray-300'
-                  }`}></span>
-                  One lowercase letter
+                  At least one letter
                 </li>
                 <li className="flex items-center">
                   <span className={`w-2 h-2 rounded-full mr-2 ${
                     /\d/.test(formData.newPassword) ? 'bg-green-500' : 'bg-gray-300'
                   }`}></span>
-                  One number
+                  At least one number
+                </li>
+                <li className="flex items-center">
+                  <span className={`w-2 h-2 rounded-full mr-2 ${
+                    /[!@#$%^&*(),.?\":{}|<>_\-+=\[\]\\/'`~;]/.test(formData.newPassword) ? 'bg-green-500' : 'bg-gray-300'
+                  }`}></span>
+                  At least one special character
                 </li>
               </ul>
             </div>

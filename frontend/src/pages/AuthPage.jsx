@@ -1,12 +1,12 @@
-import { lazy, Suspense, useState } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
-import { Mail, Lock, Eye, EyeOff, Star } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, Droplet, Shield, Check, User } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import useApiStore from "../store/apiStore";
 import toast from 'react-hot-toast';
-const MultiStepSignup = lazy(() => import("../components/MultiStepSignup"));
-const ForgotPasswordModal = lazy(() => import("../components/ForgotPasswordModal"));
-const GoogleSignInButton = lazy(() => import("../components/GoogleSignInButton"));
+import MultiStepSignup from "../components/MultiStepSignup";
+import ForgotPasswordModal from "../components/ForgotPasswordModal";
+import GoogleSignInButton from "../components/GoogleSignInButton";
 
 const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -17,6 +17,7 @@ const AuthPage = () => {
     confirmPassword: ""
   });
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [errors, setErrors] = useState({});
   const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
@@ -97,6 +98,7 @@ const AuthPage = () => {
     });
     setErrors({});
   };
+
   const handleMultiStepSignupSuccess = (user, token) => {
     navigate("/dashboard");
   };
@@ -123,192 +125,161 @@ const AuthPage = () => {
     setIsGoogleLoading(false);
   };
 
+  const handleAppleSuccess = async (response) => {
+    toast.info('Apple Sign In coming soon!');
+  };
+
+  const handleAppleError = (error) => {
+    console.error('Apple OAuth error:', error);
+    toast.error('Failed to sign in with Apple. Please try again.');
+  };
+
+  // SIGNUP PAGE - Multi-step flow
   if (!isLogin) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="w-full max-w-4xl"
-        >
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 border border-gray-200 dark:border-gray-700">
-            {/* Header */}
-            <div className="text-center mb-8">
-              <div className="flex items-center justify-center space-x-2 mb-4">
-                <Star className="h-8 w-8 text-primary-500" />
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                  WishTrail
-                </h1>
+      <div className="min-h-screen flex">
+        {/* Left Side - Brand Section */}
+        <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-gray-800 via-gray-900 to-black relative overflow-hidden items-center justify-center p-12">
+          {/* Background Pattern */}
+          <div className="absolute inset-0 opacity-10">
+            <div className="absolute inset-0" style={{
+              backgroundImage: `radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.3), transparent 50%),
+                               radial-gradient(circle at 80% 80%, rgba(74, 144, 226, 0.3), transparent 50%)`
+            }}></div>
+          </div>
+          
+          <div className="relative z-10 max-w-md text-white space-y-8">
+            {/* Logo */}
+            <div className="flex items-center space-x-3">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-purple-500 rounded-xl flex items-center justify-center">
+                <Droplet className="h-7 w-7 text-white" />
               </div>
+              <h1 className="text-3xl font-bold">WishTrail</h1>
             </div>
 
-            {/* Google Sign-In Button - Above Signup Form */}
-            <div className="mb-6 flex justify-center">
-              <div className="w-full max-w-md">
-                <Suspense fallback={
-                  <div className="w-full h-11 bg-gray-100 dark:bg-gray-700 rounded-lg animate-pulse"></div>
-                }>
-                  <GoogleSignInButton
-                    mode="signup"
-                    onSuccess={handleGoogleSuccess}
-                    onError={handleGoogleError}
-                  />
-                </Suspense>
-              </div>
-            </div>
-
-            {/* Divider */}
-            <div className="relative mb-6">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">
-                  Or sign up with email
-                </span>
-              </div>
-            </div>
-
-            <Suspense fallback={null}><MultiStepSignup
-              onSuccess={handleMultiStepSignupSuccess}
-              onBack={toggleAuthMode}
-            /></Suspense>
-
-            {/* Toggle Auth Mode */}
-            <div className="text-center mt-6">
-              <p className="text-gray-600 dark:text-gray-400">
-                Already have an account?
-                <button
-                  onClick={toggleAuthMode}
-                  className="ml-1 text-primary-500 hover:text-primary-600 font-medium"
-                >
-                  Sign In
-                </button>
+            {/* Tagline */}
+            <div className="space-y-4">
+              <h2 className="text-4xl font-bold leading-tight">
+                Start your journey<br />
+                <span className="text-blue-400">toward precision.</span>
+              </h2>
+              <p className="text-gray-300 text-lg leading-relaxed">
+                Join thousands of high-achievers using WishTrail to document milestones and accelerate professional competency.
               </p>
             </div>
 
-            {/* Back to Home */}
-            <div className="text-center mt-8">
-              <Link
-                to="/"
-                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-sm"
-              >
-                ← Back to Home
-              </Link>
-            </div>
+            {/* Social Proof */}
+            {/* <div className="flex items-center space-x-4 pt-8">
+              <div className="flex -space-x-3">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 border-2 border-gray-800 flex items-center justify-center text-white text-sm font-semibold">
+                  J
+                </div>
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 border-2 border-gray-800 flex items-center justify-center text-white text-sm font-semibold">
+                  S
+                </div>
+              </div>
+              <p className="text-sm text-gray-400 font-medium">
+                TRUSTED BY <span className="text-white font-bold">12K+ USERS</span>
+              </p>
+            </div> */}
           </div>
-        </motion.div>
+        </div>
+
+        {/* Right Side - Signup Form */}
+        <div className="flex-1 flex items-center justify-center p-6 bg-white dark:bg-gray-900">
+          <div className="w-full max-w-md">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              <MultiStepSignup
+                onSuccess={handleMultiStepSignupSuccess}
+                onBack={toggleAuthMode}
+              />
+
+              {/* Toggle Auth Mode */}
+              <div className="text-center mt-6">
+                <p className="text-gray-600 dark:text-gray-400">
+                  Already have an account?{" "}
+                  <button
+                    onClick={toggleAuthMode}
+                    className="text-blue-500 hover:text-blue-600 font-semibold"
+                  >
+                    Sign in
+                  </button>
+                </p>
+              </div>
+            </motion.div>
+          </div>
+        </div>
       </div>
     );
   }
   
+  // LOGIN PAGE - Split design
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="w-full max-w-md"
-      >
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 border border-gray-200 dark:border-gray-700">
-          {/* Header */}
-          <div className="text-center mb-8">
-            <div className="flex items-center justify-center space-x-2 mb-4">
-              <Star className="h-8 w-8 text-primary-500" />
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                WishTrail
-              </h1>
+    <div className="min-h-screen flex">
+      {/* Left Side - Hero Image Section */}
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
+        {/* Background Image with Overlay */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center"
+          style={{
+            backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), url('https://images.unsplash.com/photo-1441974231531-c6227db76b6e?q=80&w=2071&auto=format&fit=crop')`,
+          }}
+        />
+        
+        <div className="relative z-10 flex items-center justify-center p-12 text-white w-full">
+          {/* Logo and Tagline - Centered */}
+          <div className="space-y-6 max-w-md">
+            <div className="flex items-center space-x-3">
+              <div className="w-12 h-12 bg-white/10 backdrop-blur-sm rounded-xl flex items-center justify-center border border-white/20">
+                <Droplet className="h-7 w-7 text-white" />
+              </div>
+              <h1 className="text-3xl font-bold">WishTrail</h1>
             </div>
-            <p className="text-gray-600 dark:text-gray-400">
-              {isLogin ? "Welcome back!" : "Join WishTrail today"}
-            </p>
+
+            <div className="space-y-3">
+              <h2 className="text-5xl font-bold leading-tight">
+                One step at a time.
+              </h2>
+              <p className="text-lg text-gray-200 leading-relaxed">
+                Track your journey with precision and clarity.<br />
+                Your path to progress starts here.
+              </p>
+            </div>
           </div>
+        </div>
+      </div>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Email Field */}
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Email Address
-              </label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 ${
-                    errors.email ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-                  }`}
-                  placeholder="Enter your email"
-                />
-              </div>
-              {errors.email && (
-                <p className="text-red-500 text-sm mt-1">{errors.email}</p>
-              )}
+      {/* Right Side - Login Form */}
+      <div className="flex-1 flex items-center justify-center p-6 bg-white dark:bg-gray-900">
+        <div className="w-full max-w-md">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="space-y-6"
+          >
+            {/* Header */}
+            <div className="mb-8">
+              <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                Welcome Back
+              </h2>
+              <p className="text-gray-600 dark:text-gray-400">
+                Please enter your details to access your dashboard.
+              </p>
             </div>
 
-            {/* Password Field */}
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Password
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                <input
-                  id="password"
-                  name="password"
-                  type={showPassword ? "text" : "password"}
-                  value={formData.password}
-                  onChange={handleInputChange}
-                  className={`w-full pl-10 pr-10 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 ${
-                    errors.password ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-                  }`}
-                  placeholder="Enter your password"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                >
-                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                </button>
-              </div>
-              {errors.password && (
-                <p className="text-red-500 text-sm mt-1">{errors.password}</p>
-              )}
-              {/* Forgot Password Link - only show in login mode */}
-              {isLogin && (
-                <div className="text-right mt-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowForgotPasswordModal(true)}
-                    className="text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300 text-sm font-medium"
-                  >
-                    Forgot Password?
-                  </button>
-                </div>
-              )}
+            {/* Social Sign-in Buttons */}
+            <div className="space-y-3">
+              <GoogleSignInButton
+                mode="signin"
+                onSuccess={handleGoogleSuccess}
+                onError={handleGoogleError}
+              />
             </div>
-
-            {/* Global Error */}
-            {error && (
-              <div className="text-red-500 text-sm text-center p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                {error}
-              </div>
-            )}
-
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={loading || isGoogleLoading}
-              className="w-full py-3 px-4 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl"
-            >
-              {loading ? 'Please wait...' : isLogin ? 'Sign In' : 'Sign Up'}
-            </button>
 
             {/* Divider */}
             <div className="relative">
@@ -316,53 +287,112 @@ const AuthPage = () => {
                 <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">
-                  Or continue with
+                <span className="px-2 bg-white dark:bg-gray-900 text-gray-500 dark:text-gray-400 uppercase tracking-wide text-xs font-medium">
+                  Or with email
                 </span>
               </div>
             </div>
 
-            {/* Google Sign-In Button */}
-            <Suspense fallback={
-              <div className="w-full h-11 bg-gray-100 dark:bg-gray-700 rounded-lg animate-pulse"></div>
-            }>
-              <GoogleSignInButton
-                mode={isLogin ? 'signin' : 'signup'}
-                onSuccess={handleGoogleSuccess}
-                onError={handleGoogleError}
-              />
-            </Suspense>
-          </form>
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Email Field */}
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide text-xs">
+                  Email Address
+                </label>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-400 ${
+                    errors.email ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+                  }`}
+                  placeholder="name@company.com"
+                />
+                {errors.email && (
+                  <p className="text-red-500 text-sm mt-1">{errors.email}</p>
+                )}
+              </div>
 
-          {/* Toggle Auth Mode */}
-          <div className="text-center mt-6">
-            <p className="text-gray-600 dark:text-gray-400">
-              {isLogin ? "Don't have an account?" : "Already have an account?"}
+              {/* Password Field */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wide text-xs">
+                    Password
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotPasswordModal(true)}
+                    className="text-xs text-blue-500 hover:text-blue-600 font-medium"
+                  >
+                    Forgot Password?
+                  </button>
+                </div>
+                <div className="relative">
+                  <input
+                    id="password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    className={`w-full px-4 py-3 pr-10 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-400 ${
+                      errors.password ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+                    }`}
+                    placeholder="••••••••"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  >
+                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  </button>
+                </div>
+                {errors.password && (
+                  <p className="text-red-500 text-sm mt-1">{errors.password}</p>
+                )}
+              </div>
+
+              {/* Global Error */}
+              {error && (
+                <div className="text-red-500 text-sm text-center p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                  {error}
+                </div>
+              )}
+
+              {/* Submit Button */}
               <button
-                onClick={toggleAuthMode}
-                className="ml-1 text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300 font-medium"
+                type="submit"
+                disabled={loading || isGoogleLoading}
+                className="w-full py-3 px-4 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg"
               >
-                {isLogin ? "Sign Up" : "Sign In"}
+                {loading ? 'Please wait...' : 'Login to Dashboard'}
               </button>
-            </p>
-          </div>
+            </form>
 
-          {/* Back to Home */}
-          <div className="text-center mt-4">
-            <Link
-              to="/"
-              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-sm"
-            >
-              ← Back to Home
-            </Link>
-          </div>
+            {/* Toggle Auth Mode */}
+            <div className="text-center mt-6">
+              <p className="text-gray-600 dark:text-gray-400">
+                Don't have an account?{" "}
+                <button
+                  onClick={toggleAuthMode}
+                  className="text-blue-500 hover:text-blue-600 font-semibold"
+                >
+                  Sign Up
+                </button>
+              </p>
+            </div>
+          </motion.div>
         </div>
-      </motion.div>
+      </div>
+
       {/* Forgot Password Modal */}
-      <Suspense fallback={null}><ForgotPasswordModal 
+      <ForgotPasswordModal 
         isOpen={showForgotPasswordModal}
         onClose={() => setShowForgotPasswordModal(false)}
-      /></Suspense>
+      />
     </div>
   );
 };

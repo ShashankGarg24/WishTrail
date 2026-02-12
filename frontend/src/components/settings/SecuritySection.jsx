@@ -68,10 +68,13 @@ const SecuritySection = () => {
       errors.push('Password must be at least 8 characters long');
     }
     if (!/[a-zA-Z]/.test(password)) {
-      errors.push('Password must contain letters');
+      errors.push('Password must contain at least one letter');
     }
     if (!/[0-9]/.test(password)) {
-      errors.push('Password must contain numbers');
+      errors.push('Password must contain at least one number');
+    }
+    if (!/[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\/'`~;]/.test(password)) {
+      errors.push('Password must contain at least one special character');
     }
     return errors;
   };
@@ -459,10 +462,13 @@ const SecuritySection = () => {
                       {newPassword.length >= 8 ? '✓' : '•'} At least 8 characters
                     </li>
                     <li className={/[a-zA-Z]/.test(newPassword) ? 'text-green-600 dark:text-green-400' : ''}>
-                      {/[a-zA-Z]/.test(newPassword) ? '✓' : '•'} Contains letters
+                      {/[a-zA-Z]/.test(newPassword) ? '✓' : '•'} At least one letter
                     </li>
                     <li className={/[0-9]/.test(newPassword) ? 'text-green-600 dark:text-green-400' : ''}>
-                      {/[0-9]/.test(newPassword) ? '✓' : '•'} Contains numbers
+                      {/[0-9]/.test(newPassword) ? '✓' : '•'} At least one number
+                    </li>
+                    <li className={/[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\/'`~;]/.test(newPassword) ? 'text-green-600 dark:text-green-400' : ''}>
+                      {/[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\/'`~;]/.test(newPassword) ? '✓' : '•'} At least one special character
                     </li>
                   </ul>
                 </div>

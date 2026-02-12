@@ -10,6 +10,7 @@ const Header = () => {
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false)
   const [showLogoutModal, setShowLogoutModal] = useState(false)
   const [showFeedbackModal, setShowFeedbackModal] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
   const location = useLocation()
   const menuRef = useRef(null)
   const navigate = useNavigate()
@@ -23,6 +24,8 @@ const Header = () => {
   ]
 
   useEffect(() => {
+    const compute = () => setIsMobile(typeof window !== 'undefined' && window.innerWidth < 768)
+    compute()
     const handleClickOutside = (event) => {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
         setIsProfileMenuOpen(false)
@@ -123,17 +126,14 @@ const Header = () => {
             </button>
 
             {/* Separator */}
-            <div className="h-6 w-px bg-gray-300 dark:bg-gray-600"></div>
+            {!isMobile && <div className="h-6 w-px bg-gray-300 dark:bg-gray-600"></div>}
 
             {/* User Avatar and Dropdown */}
-            <div className="relative" ref={menuRef}>
+            {!isMobile &&<div className="relative" ref={menuRef}>
               <button
                 onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
                 className="flex items-center gap-2.5 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg py-1.5 px-2 transition-colors"
               >
-                <span className="text-sm font-medium text-gray-900 dark:text-white font-manrope">
-                  {currentUser?.name || 'User'}
-                </span>
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-sm font-semibold font-manrope">
                   {currentUser?.name?.charAt(0) || 'U'}
                 </div>
@@ -181,9 +181,7 @@ const Header = () => {
                         }}
                         className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors font-manrope group"
                       >
-                        <div className="w-9 h-9 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center group-hover:bg-gray-200 dark:group-hover:bg-gray-600 transition-colors">
-                          <User className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                        </div>
+                        <User className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                         <span className="font-medium">My Profile</span>
                       </button>
 
@@ -194,9 +192,7 @@ const Header = () => {
                         }}
                         className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors font-manrope group"
                       >
-                        <div className="w-9 h-9 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center group-hover:bg-gray-200 dark:group-hover:bg-gray-600 transition-colors">
-                          <Settings className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                        </div>
+                        <Settings className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                         <span className="font-medium">Settings</span>
                       </button>
 
@@ -207,9 +203,7 @@ const Header = () => {
                         }}
                         className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors font-manrope group"
                       >
-                        <div className="w-9 h-9 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center group-hover:bg-gray-200 dark:group-hover:bg-gray-600 transition-colors">
-                          <MessageSquare className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                        </div>
+                        <MessageSquare className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                         <span className="font-medium">Feedback</span>
                       </button>
                     </div>
@@ -223,16 +217,14 @@ const Header = () => {
                         }}
                         className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors font-manrope group"
                       >
-                        <div className="w-9 h-9 rounded-lg bg-red-50 dark:bg-red-900/20 flex items-center justify-center group-hover:bg-red-100 dark:group-hover:bg-red-900/30 transition-colors">
-                          <LogOut className="w-4 h-4 text-red-600 dark:text-red-400" />
-                        </div>
+                        <LogOut className="w-5 h-5 text-red-600 dark:text-red-400" />
                         <span className="font-medium">Sign Out</span>
                       </button>
                     </div>
                   </motion.div>
                 )}
               </AnimatePresence>
-            </div>
+            </div>}
           </div>
         </div>
       </div>

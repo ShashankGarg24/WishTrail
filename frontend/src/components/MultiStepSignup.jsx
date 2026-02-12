@@ -1,25 +1,28 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
-  Mail, Lock, User, Eye, EyeOff, ArrowLeft, ArrowRight, 
-  Clock, Shield, CheckCircle, Calendar, MapPin, Heart,
-  AlertCircle, Loader
+  Mail, User, Eye, EyeOff, ArrowLeft, ArrowRight, 
+  CheckCircle, AlertCircle, Loader, Heart, Shield, Clock, Calendar,
+  Activity, Plane, Laptop, Palette
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import useApiStore from "../store/apiStore";
+import toast from 'react-hot-toast';
+import GoogleSignInButton from "./GoogleSignInButton";
 
+// Interests options matching PersonalInfoSection
 const INTERESTS_OPTIONS = [
-  { id: 'fitness', label: 'Fitness', icon: '💪' },
+  { id: 'fitness', label: 'Fitness', Icon: Activity },
+  { id: 'travel', label: 'Travel', Icon: Plane },
+  { id: 'technology', label: 'Technology', Icon: Laptop },
+  { id: 'hobbies', label: 'Hobbies', Icon: Palette },
   { id: 'health', label: 'Health', icon: '🏥' },
-  { id: 'travel', label: 'Travel', icon: '✈️' },
   { id: 'education', label: 'Education', icon: '📚' },
   { id: 'career', label: 'Career', icon: '💼' },
   { id: 'finance', label: 'Finance', icon: '💰' },
-  { id: 'hobbies', label: 'Hobbies', icon: '🎨' },
   { id: 'relationships', label: 'Relationships', icon: '❤️' },
   { id: 'personal_growth', label: 'Personal Growth', icon: '🌱' },
   { id: 'creativity', label: 'Creativity', icon: '🎭' },
-  { id: 'technology', label: 'Technology', icon: '💻' },
   { id: 'business', label: 'Business', icon: '📈' },
   { id: 'lifestyle', label: 'Lifestyle', icon: '🏡' },
   { id: 'spirituality', label: 'Spirituality', icon: '🕯️' },
@@ -36,43 +39,22 @@ const INTERESTS_OPTIONS = [
 const MultiStepSignup = ({ onSuccess, onBack }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
-    // Step 1: Basic Registration
     name: "",
     username: "",
     email: "",
     password: "",
-    confirmPassword: "",
-
-    // Step 2: OTP Verification
     otp: "",
-    
-    // Step 3: Profile Completion
     dateOfBirth: "",
-    location: "",
-    interests: []
+    interests: [],
   });
   
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [otpTimer, setOtpTimer] = useState(0);
   const [canResendOTP, setCanResendOTP] = useState(false);
   const [otpExpiresAt, setOtpExpiresAt] = useState(null);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [locationQuery, setLocationQuery] = useState('');
 
-  const { 
-    checkExistingUser, 
-    requestOTP, 
-    verifyOTP, 
-    register, 
-    resendOTP, 
-    loading, 
-    locationSuggestions, 
-    searchCitySuggestions,
-    error 
-  } = useApiStore();
-  
+  const { checkExistingUser, requestOTP, verifyOTP, register, resendOTP, loading } = useApiStore();
   const navigate = useNavigate();
 
   // OTP timer effect
@@ -88,29 +70,6 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
     return () => clearInterval(interval);
   }, [otpTimer, currentStep]);
 
-  useEffect(() => {
-    const debounce = setTimeout(() => {
-      if (locationQuery.trim().length > 1) {
-        searchCitySuggestions(locationQuery);
-      } else {
-        setShowSuggestions(false);
-      }
-    }, 400);
-    return () => clearTimeout(debounce);
-  }, [locationQuery]);
-
-  const handleLocationInputChange = (e) => {
-    const { value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      location: value,
-    }));
-    setLocationQuery(value);
-  };
-
-  const formatLocation = (place) =>
-  `${place.name || ''}${place.state ? ', ' + place.state : ''}${place.country ? ', ' + place.country : ''}`;
-
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -118,7 +77,6 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
       [name]: value
     }));
     
-    // Clear error when user starts typing
     if (errors[name]) {
       setErrors(prev => ({
         ...prev,
@@ -131,13 +89,12 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
     setFormData(prev => {
       const isSelected = prev.interests.includes(interestId);
       
-      // If selecting and already at max (5), don't allow
+      // Don't allow more than 5 interests
       if (!isSelected && prev.interests.length >= 5) {
-        setErrors({ interests: 'You can select a maximum of 5 interests' });
+        toast.error('Maximum 5 interests allowed');
         return prev;
       }
       
-      // Clear interests error when changing selection
       setErrors(prev => ({ ...prev, interests: undefined }));
       
       return {
@@ -149,13 +106,19 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
     });
   };
 
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
   const validateStep1 = () => {
     const newErrors = {};
     
     if (!formData.name.trim()) {
       newErrors.name = "Full name is required";
     }
-    
+
     if (!formData.username.trim()) {
       newErrors.username = "Username is required";
     } else if (formData.username.length < 3) {
@@ -172,14 +135,14 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
     
     if (!formData.password) {
       newErrors.password = "Password is required";
-    } else if (formData.password.length < 6) {
-      newErrors.password = "Password must be at least 6 characters";
-    }
-    
-    if (!formData.confirmPassword) {
-      newErrors.confirmPassword = "Please confirm your password";
-    } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = "Passwords do not match";
+    } else if (formData.password.length < 8) {
+      newErrors.password = "Password must be at least 8 characters";
+    } else if (!/[a-zA-Z]/.test(formData.password)) {
+      newErrors.password = "Password must contain at least one letter";
+    } else if (!/[0-9]/.test(formData.password)) {
+      newErrors.password = "Password must contain at least one number";
+    } else if (!/[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\/'`~;]/.test(formData.password)) {
+      newErrors.password = "Password must contain at least one special character";
     }
     
     setErrors(newErrors);
@@ -195,23 +158,6 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
       newErrors.otp = "OTP must be 6 digits";
     } else if (!/^\d{6}$/.test(formData.otp)) {
       newErrors.otp = "OTP must contain only numbers";
-    }
-    
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const validateStep3 = () => {
-    const newErrors = {};
-    
-    if (formData.dateOfBirth) {
-      const today = new Date();
-      const birthDate = new Date(formData.dateOfBirth);
-      const age = today.getFullYear() - birthDate.getFullYear();
-      
-      if (age < 13) {
-        newErrors.dateOfBirth = "You must be at least 13 years old";
-      }
     }
     
     setErrors(newErrors);
@@ -294,8 +240,6 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
   };
 
   const handleStep3Submit = async () => {
-    if (!validateStep3()) return;
-
     try {
       const profileData = {
         email: formData.email,
@@ -303,7 +247,6 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
         password: formData.password,
         username: formData.username,
         ...(formData.dateOfBirth && { dateOfBirth: formData.dateOfBirth }),
-        ...(formData.location && { location: formData.location }),
         ...(formData.interests.length > 0 && { interests: formData.interests })
       };
 
@@ -314,7 +257,7 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
         return;
       }
 
-      // Registration completed successfully
+      toast.success('Account created successfully!');
       if (onSuccess) {
         onSuccess(result.user, result.token);
       } else {
@@ -343,6 +286,7 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
       
       // Clear OTP input
       setFormData(prev => ({ ...prev, otp: "" }));
+      toast.success('OTP resent successfully!');
       
     } catch (error) {
       setErrors({ general: "Failed to resend OTP. Please try again." });
@@ -358,12 +302,6 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
     }
   };
 
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
   const renderStep1 = () => (
     <motion.div
       initial={{ opacity: 0, x: 20 }}
@@ -371,163 +309,155 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
       exit={{ opacity: 0, x: -20 }}
       className="space-y-6"
     >
-      <div className="text-center mb-8">
-        <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">
-          Create Your Account
+      {/* Header */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-sm font-semibold text-blue-500 tracking-wide">
+            STEP 1 OF 3
+          </p>
+          <div className="flex space-x-1">
+            <div className="w-16 h-1.5 bg-blue-500 rounded-full"></div>
+            <div className="w-16 h-1.5 bg-gray-200 dark:bg-gray-600 rounded-full"></div>
+            <div className="w-16 h-1.5 bg-gray-200 dark:bg-gray-600 rounded-full"></div>
+          </div>
+        </div>
+        <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+          Join WishTrail
         </h2>
         <p className="text-gray-600 dark:text-gray-400">
-          Let's start with your basic information
+          Create your account to start tracking milestones.
         </p>
       </div>
 
       {errors.general && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center space-x-3">
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 flex items-center space-x-3">
           <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
-          <p className="text-red-700 text-sm">{errors.general}</p>
+          <p className="text-red-700 dark:text-red-400 text-sm">{errors.general}</p>
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Social Sign-in Buttons */}
+      <div className="space-y-3">
+        <GoogleSignInButton
+          mode="signup"
+          onSuccess={(credential) => {
+            toast.info('Google Sign-Up handled by main auth flow');
+          }}
+          onError={(error) => {
+            console.error('Google signup error:', error);
+          }}
+        />
+
+      </div>
+
+      {/* Divider */}
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
+        </div>
+        <div className="relative flex justify-center text-sm">
+          <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 uppercase tracking-wide text-xs font-medium">
+            Or with email
+          </span>
+        </div>
+      </div>
+
+      {/* Form Fields */}
+      <div className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Full Name *
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide text-xs">
+            Full Name
           </label>
-          <div className="relative">
-            <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type="text"
-              name="name"
-              value={formData.name}
-              onChange={handleInputChange}
-              className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
-                errors.name ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-              } bg-white dark:bg-gray-700 text-gray-900 dark:text-white`}
-              placeholder="Enter your full name"
-            />
-          </div>
+          <input
+            type="text"
+            name="name"
+            value={formData.name}
+            onChange={handleInputChange}
+            className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
+              errors.name ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+            } bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-400`}
+            placeholder="Alex Rivers"
+          />
           {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Username *
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide text-xs">
+            Username
           </label>
-          <div className="relative">
-            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">@</span>
-            <input
-              type="text"
-              name="username"
-              value={formData.username}
-              onChange={handleInputChange}
-              className={`w-full pl-8 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
-                errors.username ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-              } bg-white dark:bg-gray-700 text-gray-900 dark:text-white`}
-              placeholder="username"
-            />
-          </div>
+          <input
+            type="text"
+            name="username"
+            value={formData.username}
+            onChange={handleInputChange}
+            className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
+              errors.username ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+            } bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-400`}
+            placeholder="alexrivers"
+          />
           {errors.username && <p className="text-red-500 text-sm mt-1">{errors.username}</p>}
         </div>
-      </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          Email Address *
-        </label>
-        <div className="relative">
-          <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide text-xs">
+            Email Address
+          </label>
           <input
             type="email"
             name="email"
             value={formData.email}
             onChange={handleInputChange}
-            className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
+            className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
               errors.email ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-            } bg-white dark:bg-gray-700 text-gray-900 dark:text-white`}
-            placeholder="Enter your email"
+            } bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-400`}
+            placeholder="alex@wishtrail.com"
           />
+          {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
         </div>
-        {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
-      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Password *
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide text-xs">
+            Password
           </label>
           <div className="relative">
-            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type={showPassword ? "text" : "password"}
               name="password"
               value={formData.password}
               onChange={handleInputChange}
-              className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
+              className={`w-full px-4 py-3 pr-10 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
                 errors.password ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-              } bg-white dark:bg-gray-700 text-gray-900 dark:text-white`}
-              placeholder="Create a password"
+              } bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-400`}
+              placeholder="••••••••"
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
             >
               {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
             </button>
           </div>
           {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
         </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Confirm Password *
-          </label>
-          <div className="relative">
-            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type={showConfirmPassword ? "text" : "password"}
-              name="confirmPassword"
-              value={formData.confirmPassword}
-              onChange={handleInputChange}
-              className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
-                errors.confirmPassword ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-              } bg-white dark:bg-gray-700 text-gray-900 dark:text-white`}
-              placeholder="Confirm your password"
-            />
-            <button
-              type="button"
-              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-            >
-              {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-            </button>
-          </div>
-          {errors.confirmPassword && <p className="text-red-500 text-sm mt-1">{errors.confirmPassword}</p>}
-        </div>
       </div>
 
-      <div className="flex space-x-4">
-        <button
-          type="button"
-          onClick={handleBack}
-          className="flex-1 flex items-center justify-center px-4 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back
-        </button>
-        <button
-          type="button"
-          onClick={handleStep1Submit}
-          disabled={loading}
-          className="flex-1 flex items-center justify-center px-4 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {loading ? (
-            <Loader className="w-4 h-4 mr-2 animate-spin" />
-          ) : (
-            <ArrowRight className="w-4 h-4 mr-2" />
-          )}
-          Continue
-        </button>
-      </div>
+      {/* Continue Button */}
+      <button
+        type="button"
+        onClick={handleStep1Submit}
+        disabled={loading}
+        className="w-full flex items-center justify-center px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+      >
+        {loading ? (
+          <Loader className="w-5 h-5 mr-2 animate-spin" />
+        ) : (
+          <>
+            Continue
+            <ArrowRight className="w-5 h-5 ml-2" />
+          </>
+        )}
+      </button>
     </motion.div>
   );
 
@@ -538,28 +468,40 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
       exit={{ opacity: 0, x: -20 }}
       className="space-y-6"
     >
-      <div className="text-center mb-8">
-        <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mx-auto mb-4">
+      {/* Header */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-sm font-semibold text-blue-500 tracking-wide">
+            STEP 2 OF 3
+          </p>
+          <div className="flex space-x-1">
+            <div className="w-16 h-1.5 bg-blue-500 rounded-full"></div>
+            <div className="w-16 h-1.5 bg-blue-500 rounded-full"></div>
+            <div className="w-16 h-1.5 bg-gray-200 dark:bg-gray-600 rounded-full"></div>
+          </div>
+        </div>
+        <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
           <Shield className="w-8 h-8 text-blue-500" />
         </div>
-        <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">
+        <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2 text-center">
           Verify Your Email
         </h2>
-        <p className="text-gray-600 dark:text-gray-400">
+        <p className="text-gray-600 dark:text-gray-400 text-center">
           We've sent a 6-digit code to <strong>{formData.email}</strong>
         </p>
       </div>
 
       {errors.general && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center space-x-3">
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 flex items-center space-x-3">
           <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
-          <p className="text-red-700 text-sm">{errors.general}</p>
+          <p className="text-red-700 dark:text-red-400 text-sm">{errors.general}</p>
         </div>
       )}
 
+      {/* OTP Input */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          Verification Code *
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide text-xs">
+          Verification Code
         </label>
         <input
           type="text"
@@ -569,12 +511,13 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
           maxLength={6}
           className={`w-full px-4 py-3 text-center text-2xl tracking-widest border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
             errors.otp ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-          } bg-white dark:bg-gray-700 text-gray-900 dark:text-white`}
+          } bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white`}
           placeholder="000000"
         />
         {errors.otp && <p className="text-red-500 text-sm mt-1">{errors.otp}</p>}
       </div>
 
+      {/* Code Expiration Timer */}
       {otpExpiresAt && (
         <div className="text-center">
           <div className="flex items-center justify-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
@@ -584,6 +527,7 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
         </div>
       )}
 
+      {/* Resend OTP */}
       <div className="text-center">
         <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
           Didn't receive the code?
@@ -603,27 +547,30 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
         </button>
       </div>
 
-      <div className="flex space-x-4">
+      {/* Navigation Buttons */}
+      <div className="flex items-center justify-between pt-4">
         <button
           type="button"
           onClick={handleBack}
-          className="flex-1 flex items-center justify-center px-4 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+          className="flex items-center px-6 py-3 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 transition-colors"
         >
-          <ArrowLeft className="w-4 h-4 mr-2" />
+          <ArrowLeft className="w-5 h-5 mr-2" />
           Back
         </button>
         <button
           type="button"
           onClick={handleStep2Submit}
           disabled={loading}
-          className="flex-1 flex items-center justify-center px-4 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex items-center px-8 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
         >
           {loading ? (
-            <Loader className="w-4 h-4 mr-2 animate-spin" />
+            <Loader className="w-5 h-5 mr-2 animate-spin" />
           ) : (
-            <CheckCircle className="w-4 h-4 mr-2" />
+            <>
+              Verify
+              <CheckCircle className="w-5 h-5 ml-2" />
+            </>
           )}
-          Verify
         </button>
       </div>
     </motion.div>
@@ -636,212 +583,129 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
       exit={{ opacity: 0, x: -20 }}
       className="space-y-6"
     >
-      <div className="text-center mb-8">
-        <div className="w-16 h-16 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mx-auto mb-4">
-          <Heart className="w-8 h-8 text-green-500" />
+      {/* Header */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-sm font-semibold text-blue-500 tracking-wide">
+            STEP 3 OF 3
+          </p>
+          <div className="flex space-x-1">
+            <div className="w-16 h-1.5 bg-blue-500 rounded-full"></div>
+            <div className="w-16 h-1.5 bg-blue-500 rounded-full"></div>
+            <div className="w-16 h-1.5 bg-blue-500 rounded-full"></div>
+          </div>
         </div>
-        <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">
+        <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
           Complete Your Profile
         </h2>
         <p className="text-gray-600 dark:text-gray-400">
-          Help us personalize your experience (optional)
+          Tell us a bit more about yourself (Optional)
         </p>
       </div>
 
       {errors.general && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center space-x-3">
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 flex items-center space-x-3">
           <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
-          <p className="text-red-700 text-sm">{errors.general}</p>
+          <p className="text-red-700 dark:text-red-400 text-sm">{errors.general}</p>
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Date of Birth
-          </label>
-          <div className="relative">
-            <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type="date"
-              name="dateOfBirth"
-              value={formData.dateOfBirth}
-              onChange={handleInputChange}
-              className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
-                errors.dateOfBirth ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-              } bg-white dark:bg-gray-700 text-gray-900 dark:text-white`}
-            />
-          </div>
-          {errors.dateOfBirth && <p className="text-red-500 text-sm mt-1">{errors.dateOfBirth}</p>}
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Location
-          </label>
-          <div className="relative">
-            <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type="text"
-              id="location"
-              name="location"
-              value={formData.location}
-              onChange={handleLocationInputChange}
-              autoComplete="off"
-              onFocus={() => setShowSuggestions(true)}
-              onBlur={() => setTimeout(() => setShowSuggestions(false), 200)} // delay for click
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
-              placeholder="Enter your city"
-            />
-          </div>
-          {/* Autocomplete dropdown */}
-              {showSuggestions && Array.isArray(locationSuggestions) && locationSuggestions.length > 0 && (
-                
-              <ul className="absolute z-10 mt-1 w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-60 overflow-y-auto text-sm text-gray-900 dark:text-white">
-                {locationSuggestions.map((place) => (
-                  <li
-                    key={place.place_id}
-                    onClick={() => {
-                      const formatted = formatLocation(place);
-                      setFormData((prev) => ({
-                        ...prev,
-                        location: formatted
-                      }));
-                      setLocationQuery(formatted);
-                      setShowSuggestions(false);
-                    }}
-                    className="px-4 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
-                  >
-                    {formatLocation(place)}
-                  </li>
-                ))}
-              </ul>
-            )}
-        </div>
+      {/* Date of Birth */}
+      <div className="space-y-2">
+        <label className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300">
+          <Calendar className="w-4 h-4 mr-2" />
+          Date of Birth
+          <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">(Optional)</span>
+        </label>
+        <input
+          type="date"
+          value={formData.dateOfBirth}
+          onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
+          className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-all"
+        />
       </div>
 
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Interests (Choose any that appeal to you)
-          </label>
-          <span className={`text-xs font-medium ${
-            formData.interests.length >= 5 
-              ? 'text-red-600 dark:text-red-400' 
-              : 'text-gray-500 dark:text-gray-400'
-          }`}>
-            {formData.interests.length} / 5 selected
-          </span>
-        </div>
-        {errors.interests && (
-          <div className="mb-3 text-sm text-red-600 dark:text-red-400 flex items-center">
-            <AlertCircle className="w-4 h-4 mr-1" />
-            {errors.interests}
+      {/* Interests */}
+      <div className="space-y-3">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+          Your Interests
+        </label>
+        <p className="text-xs text-gray-500 dark:text-gray-400">
+          Select up to 5 interests that best represent you
+        </p>
+        <div className="max-h-[280px] overflow-y-auto pr-2 custom-scrollbar">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+            {INTERESTS_OPTIONS.map((interest) => {
+              const selected = formData.interests.includes(interest.id);
+              return (
+                <button
+                  key={interest.id}
+                  type="button"
+                  onClick={() => handleInterestToggle(interest.id)}
+                  className={`p-3 rounded-lg border-2 transition-all text-left flex flex-col items-center justify-center min-h-[90px] ${
+                    selected
+                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                      : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 text-gray-700 dark:text-gray-300'
+                  }`}
+                >
+                  <div className="flex items-center justify-center w-8 h-8 mb-2">
+                    {interest.Icon ? (
+                      <interest.Icon className={`h-5 w-5 ${selected ? 'text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'}`} />
+                    ) : (
+                      <span className="text-2xl">{interest.icon}</span>
+                    )}
+                  </div>
+                  <div className="text-xs font-medium text-center">{interest.label}</div>
+                </button>
+              );
+            })}
           </div>
-        )}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-          {INTERESTS_OPTIONS.map(interest => {
-            const isSelected = formData.interests.includes(interest.id);
-            const isDisabled = !isSelected && formData.interests.length >= 5;
-            
-            return (
-            <button
-              key={interest.id}
-              type="button"
-              onClick={() => handleInterestToggle(interest.id)}
-              disabled={isDisabled}
-              className={`p-3 rounded-lg border-2 transition-all ${
-                isDisabled 
-                  ? 'opacity-50 cursor-not-allowed border-gray-200 dark:border-gray-600 text-gray-400 dark:text-gray-500'
-                  : isSelected
-                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 hover:scale-105'
-                    : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 text-gray-700 dark:text-gray-300 hover:scale-105'
-              }`}
-            >
-              <div className="text-center">
-                <div className="text-2xl mb-1">{interest.icon}</div>
-                <div className="text-xs font-medium">{interest.label}</div>
-              </div>
-            </button>
-            );
-          })}
         </div>
+        <p className={`text-xs ${formData.interests.length >= 5 ? 'text-amber-600 dark:text-amber-400 font-medium' : 'text-gray-500 dark:text-gray-400'}`}>
+          Selected: {formData.interests.length}/5 interests
+        </p>
       </div>
 
-      <div className="flex space-x-4">
+      {/* Navigation Buttons */}
+      <div className="flex items-center justify-between pt-4">
         <button
           type="button"
           onClick={handleBack}
-          className="flex-1 flex items-center justify-center px-4 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+          className="flex items-center px-6 py-3 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 transition-colors"
         >
-          <ArrowLeft className="w-4 h-4 mr-2" />
+          <ArrowLeft className="w-5 h-5 mr-2" />
           Back
         </button>
-        <button
-          type="button"
-          onClick={handleStep3Submit}
-          disabled={loading}
-          className="flex-1 flex items-center justify-center px-4 py-3 bg-gradient-to-r from-green-500 to-blue-500 text-white rounded-lg hover:from-green-600 hover:to-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {loading ? (
-            <Loader className="w-4 h-4 mr-2 animate-spin" />
-          ) : (
-            <CheckCircle className="w-4 h-4 mr-2" />
-          )}
-          Complete Registration
-        </button>
-      </div>
-
-      <div className="text-center">
-        <button
-          type="button"
-          onClick={() => handleStep3Submit()}
-          className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
-        >
-          Skip for now
-        </button>
+        <div className="flex items-center space-x-3">
+          <button
+            type="button"
+            onClick={handleStep3Submit}
+            className="px-6 py-3 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 transition-colors"
+          >
+            Skip
+          </button>
+          <button
+            type="button"
+            onClick={handleStep3Submit}
+            disabled={loading}
+            className="flex items-center px-8 py-3 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+          >
+            {loading ? (
+              <Loader className="w-5 h-5 mr-2 animate-spin" />
+            ) : (
+              <>
+                Create Account
+                <CheckCircle className="w-5 h-5 ml-2" />
+              </>
+            )}
+          </button>
+        </div>
       </div>
     </motion.div>
   );
 
   return (
-    <div className="max-w-2xl mx-auto">
-      {/* Progress indicator */}
-      <div className="mb-8">
-        <div className="flex items-center justify-center">
-          <div className="flex items-center space-x-4">
-            {[1, 2, 3].map((step) => (
-              <div key={step} className="flex items-center">
-                <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                    step < currentStep
-                      ? 'bg-green-500 text-white'
-                      : step === currentStep
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-gray-200 dark:bg-gray-600 text-gray-500 dark:text-gray-400'
-                  }`}
-                >
-                  {step < currentStep ? (
-                    <CheckCircle className="w-4 h-4" />
-                  ) : (
-                    step
-                  )}
-                </div>
-                {step < 3 && (
-                  <div
-                    className={`w-12 h-0.5 mx-2 ${
-                      step < currentStep
-                        ? 'bg-green-500'
-                        : 'bg-gray-200 dark:bg-gray-600'
-                    }`}
-                  />
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
+    <div className="w-full max-w-md mx-auto">
       {/* Step content */}
       <AnimatePresence mode="wait">
         {currentStep === 1 && renderStep1()}

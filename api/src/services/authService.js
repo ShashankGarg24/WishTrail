@@ -832,6 +832,7 @@ class AuthService {
 
       // Check if user exists
       let user = await pgUserService.getUserByEmail(email);
+      let isNewUser = false; // Track if this is a new user signup
 
       if (user) {
         // Existing user - login (DO NOT override name or avatar)
@@ -851,6 +852,7 @@ class AuthService {
         user = await pgUserService.updateUser(user.id, updates);
       } else {
         // New user - register
+        isNewUser = true; // Mark as new user
         // Generate a unique username from email
         let baseUsername = email.split('@')[0].toLowerCase().replace(/[^a-z0-9._-]/g, '');
         
@@ -982,7 +984,7 @@ class AuthService {
         user: { ...userResponse, hasPassword },
         token: accessToken,
         refreshToken,
-        isNewUser: !user.profileCompleted
+        isNewUser // Use the tracked flag instead of profileCompleted
       };
     } catch (error) {
       if (error.message === 'Google email not verified') {

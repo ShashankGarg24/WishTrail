@@ -101,10 +101,14 @@ const resetPasswordValidation = [
     .isLength({ min: 64, max: 64 })
     .withMessage('Invalid reset token format'),
   body('newPassword')
-    .isLength({ min: 6 })
-    .withMessage('New password must be at least 6 characters long')
-    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
-    .withMessage('New password must contain at least one uppercase letter, one lowercase letter, and one number')
+    .isLength({ min: 8 })
+    .withMessage('New password must be at least 8 characters long')
+    .matches(/[a-zA-Z]/)
+    .withMessage('New password must contain at least one letter')
+    .matches(/[0-9]/)
+    .withMessage('New password must contain at least one number')
+    .matches(/[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\\/\'`~;]/)
+    .withMessage('New password must contain at least one special character')
 ];
 
 // Public routes
@@ -136,7 +140,15 @@ router.put('/password', protect, authController.updatePassword);
 router.post('/password-setup/request-otp', protect, authController.requestPasswordSetupOTP);
 router.post('/password-setup/verify', protect, [
   body('otp').isLength({ min: 6, max: 6 }).isNumeric().withMessage('OTP must be a 6-digit number'),
-  body('newPassword').isLength({ min: 6 }).withMessage('Password must be at least 6 characters')
+  body('newPassword')
+    .isLength({ min: 8 })
+    .withMessage('Password must be at least 8 characters long')
+    .matches(/[a-zA-Z]/)
+    .withMessage('Password must contain at least one letter')
+    .matches(/[0-9]/)
+    .withMessage('Password must contain at least one number')
+    .matches(/[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\\/\'`~;]/)
+    .withMessage('Password must contain at least one special character')
 ], authController.setPasswordWithOTP);
 
 module.exports = router;

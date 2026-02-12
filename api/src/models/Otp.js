@@ -141,7 +141,7 @@ otpSchema.statics.canRequestNewOTP = async function(email, purpose = 'signup') {
     const blockTime = 15 * 60 * 1000; // 15 minutes block
     const timeSinceLastAttempt = Date.now() - lastOTP.lastAttempt.getTime();
     
-    if (timeSinceLastAttemit < blockTime) {
+    if (timeSinceLastAttempt < blockTime) {
       return {
         canRequest: false,
         waitTime: Math.ceil((blockTime - timeSinceLastAttempt) / 1000),

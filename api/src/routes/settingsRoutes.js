@@ -1,4 +1,5 @@
 const express = require('express');
+const { body } = require('express-validator');
 const { protect } = require('../middleware/auth');
 const settingsController = require('../controllers/settingsController');
 
@@ -25,6 +26,19 @@ router.get('/notifications', settingsController.getNotificationSettings);
 router.post('/notifications', settingsController.updateNotificationSettings);
 
 // Password
-router.post('/password', settingsController.updatePassword);
+router.post('/password', [
+  body('currentPassword')
+    .notEmpty()
+    .withMessage('Current password is required'),
+  body('newPassword')
+    .isLength({ min: 8 })
+    .withMessage('New password must be at least 8 characters long')
+    .matches(/[a-zA-Z]/)
+    .withMessage('New password must contain at least one letter')
+    .matches(/[0-9]/)
+    .withMessage('New password must contain at least one number')
+    .matches(/[!@#$%^&*(),.?\":{}|<>_\-+=\[\]\\/'`~;]/)
+    .withMessage('New password must contain at least one special character')
+], settingsController.updatePassword);
 
 module.exports = router;

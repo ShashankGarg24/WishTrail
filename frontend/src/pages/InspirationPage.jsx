@@ -120,12 +120,6 @@ const InspirationPage = () => {
                           </p>
                         </div>
                       </div>
-                      
-                      <div className="mb-3">
-                        <span className="inline-block px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-[#4c99e6] text-xs font-semibold rounded">
-                          Milestone
-                        </span>
-                      </div>
 
                       <h4 className="text-base font-bold text-gray-900 dark:text-white mb-3 leading-tight" style={{ fontFamily: 'Manrope, sans-serif' }}>
                         Completed {achiever.completedGoals || 0} Goals This Year
