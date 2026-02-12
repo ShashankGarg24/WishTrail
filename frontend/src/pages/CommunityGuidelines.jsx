@@ -289,14 +289,13 @@ const CommunityGuidelines = () => {
                       Questions or Concerns?
                     </h2>
                     <p className="text-gray-600 dark:text-gray-400 mb-4">
-                      If you have questions about these guidelines or need to report a violation, please contact our community team.
+                      If you have questions about these guidelines or need to report a violation, please contact us:
                     </p>
                     <a
                       href="mailto:support@wishtrail.in"
-                      className="inline-flex items-center gap-2 px-6 py-3 bg-[#4c99e6] hover:bg-[#3a7bc8] text-white font-medium rounded-lg transition-colors"
+                      className="text-[#4c99e6] hover:text-[#3a7bc8] font-medium transition-colors"
                     >
-                      <Mail className="w-4 h-4" />
-                      Contact Community Team
+                      support@wishtrail.in
                     </a>
                   </div>
                 </div>

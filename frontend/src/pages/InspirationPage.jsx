@@ -195,7 +195,7 @@ const InspirationPage = () => {
                                 )}
                               </div>
                               <p className="text-sm text-gray-700 dark:text-gray-300 mb-1" style={{ fontFamily: 'Manrope, sans-serif' }}>
-                                {activity.type === 'goal_completed' && `Just completed: ${activity.data?.goalTitle || 'Morning Yoga Session'}`}
+                                {activity.type === 'goal_completed' && `Completed: ${activity.data?.goalTitle || 'Morning Yoga Session'}`}
                                 {activity.type === 'goal_created' && `Created a new goal: ${activity.data?.goalTitle || 'New Goal'}`}
                                 {activity.type === 'user_followed' && `Started following ${activity.data?.targetUserName || 'someone'}`}
                                 {activity.type === 'streak_milestone' && `Reached a ${activity.data?.streakCount || 0} day streak!`}
