@@ -589,6 +589,17 @@ const createGoal = async (req, res, next) => {
     const { title, description, category, targetDate, year, subGoals, habitLinks } = req.body;
     const isPublicFlag = (req.body.isPublic === true || req.body.isPublic === 'true') ? true : false;
 
+    // Category validation
+    const { GOAL_CATEGORIES } = require('../constants/category');
+    if (!category || !GOAL_CATEGORIES.includes(category)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid category. Allowed categories: ${GOAL_CATEGORIES.join(', ')}`,
+        error: 'INVALID_CATEGORY',
+        allowed: GOAL_CATEGORIES
+      });
+    }
+
     // ✅ PREMIUM CHECK: Validate active goals limit
     const user = await pgUserService.findById(req.user.id);
     const activeGoalsCount = await pgGoalService.countActiveGoals(req.user.id);
@@ -1817,7 +1828,13 @@ module.exports = {
   // @access  Private
   async getGoalAnalytics(req, res, next) {
     try {
-      const goal = await pgGoalService.getGoalById(req.params.id);
+      // Validate incoming id
+      const goalId = parseInt(req.params.id, 10);
+      if (!goalId || isNaN(goalId)) {
+        return res.status(400).json({ success: false, message: 'Invalid goal id' });
+      }
+
+      const goal = await pgGoalService.getGoalById(goalId);
 
       if (!goal) return res.status(404).json({ success: false, message: 'Goal not found' });
 

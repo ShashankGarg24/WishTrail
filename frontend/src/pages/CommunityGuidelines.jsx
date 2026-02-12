@@ -1,386 +1,318 @@
-import { motion } from 'framer-motion'
-import { Heart, MessageCircle, Flag, Shield, Users, ThumbsUp, AlertTriangle, Ban, CheckCircle } from 'lucide-react'
+import { useState } from 'react'
+import { Users, Mail } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 const CommunityGuidelines = () => {
-  const lastUpdated = "January 1, 2026"
+  const [activeSection, setActiveSection] = useState(null)
 
-  const coreValues = [
+  const sections = [
     {
-      icon: Heart,
-      title: "Be Kind and Supportive",
-      description: "Celebrate others' achievements, offer encouragement, and provide constructive feedback. We're all here to grow together."
-    },
-    {
-      icon: Users,
-      title: "Respect Diversity",
-      description: "Welcome all backgrounds, perspectives, and experiences. Discrimination, hate speech, and intolerance have no place here."
-    },
-    {
-      icon: Shield,
-      title: "Keep It Safe",
-      description: "Protect your privacy and respect others'. Never share personal information like addresses, phone numbers, or financial details."
-    },
-    {
-      icon: CheckCircle,
-      title: "Be Authentic",
-      description: "Share genuine experiences and progress. Authenticity builds trust and creates meaningful connections."
-    }
-  ]
-
-  const guidelines = [
-    {
-      icon: ThumbsUp,
-      title: "Content Standards",
-      color: "text-green-600 dark:text-green-400",
-      rules: [
+      id: 'core-values',
+      title: 'Our Core Values',
+      content: [
         {
-          subtitle: "Appropriate Content",
-          text: "Share goals, progress updates, achievements, inspirational stories, tips, and motivational content. Keep posts relevant to personal development, goal achievement, and positive lifestyle changes."
+          subtitle: 'Be Kind and Supportive',
+          text: 'Celebrate others\' achievements, offer encouragement, and provide constructive feedback. We\'re all here to grow together.'
         },
         {
-          subtitle: "Quality Over Quantity",
-          text: "Post meaningful content that adds value to the community. Avoid spam, repetitive posts, or low-effort content that clutters feeds."
+          subtitle: 'Respect Diversity',
+          text: 'Welcome all backgrounds, perspectives, and experiences. Discrimination, hate speech, and intolerance have no place here.'
         },
         {
-          subtitle: "Original Content",
-          text: "Share your own experiences and creations. When sharing others' work, always give proper credit and ensure you have permission."
+          subtitle: 'Keep It Safe',
+          text: 'Protect your privacy and respect others\'. Never share personal information like addresses, phone numbers, or financial details.'
         },
         {
-          subtitle: "Media Guidelines",
-          text: "Images and videos should be clear, appropriate, and relevant to your goals. No graphic violence, sexually explicit content, or disturbing imagery."
+          subtitle: 'Be Authentic',
+          text: 'Share genuine experiences and progress. Authenticity builds trust and creates meaningful connections.'
         }
       ]
     },
     {
-      icon: MessageCircle,
-      title: "Interaction Guidelines",
-      color: "text-purple-600 dark:text-purple-400",
-      rules: [
+      id: 'content-standards',
+      title: 'Content Standards',
+      content: [
         {
-          subtitle: "Constructive Comments",
-          text: "Provide helpful feedback and encouragement. If offering criticism, make it constructive and kind. Avoid harsh or demeaning language."
+          subtitle: 'Appropriate Content',
+          text: 'Share goals, progress updates, achievements, inspirational stories, tips, and motivational content. Keep posts relevant to personal development, goal achievement, and positive lifestyle changes.'
         },
         {
-          subtitle: "No Harassment",
-          text: "Don't bully, stalk, threaten, or intimidate others. This includes unwanted messages, offensive comments, or targeted attacks."
+          subtitle: 'Quality Over Quantity',
+          text: 'Post meaningful content that adds value to the community. Avoid spam, repetitive posts, or low-effort content that clutters feeds.'
         },
         {
-          subtitle: "Respectful Disagreements",
-          text: "It's okay to disagree, but do so respectfully. Focus on ideas, not personal attacks. Keep discussions civil and productive."
+          subtitle: 'Original Content',
+          text: 'Share your own experiences and creations. When sharing others\' work, always give proper credit and ensure you have permission.'
         },
         {
-          subtitle: "No Trolling",
-          text: "Don't deliberately provoke, mock, or disrupt conversations. Engage in good faith and contribute positively."
+          subtitle: 'Media Guidelines',
+          text: 'Images and videos should be clear, appropriate, and relevant to your goals. No graphic violence, sexually explicit content, or disturbing imagery.'
         }
       ]
     },
     {
-      icon: Ban,
-      title: "Prohibited Content",
-      color: "text-red-600 dark:text-red-400",
-      rules: [
+      id: 'interaction-guidelines',
+      title: 'Interaction Guidelines',
+      content: [
         {
-          subtitle: "Hate Speech & Discrimination",
-          text: "No content that promotes hatred, violence, or discrimination based on race, ethnicity, religion, gender, sexual orientation, disability, or any other protected characteristic."
+          subtitle: 'Constructive Comments',
+          text: 'Provide helpful feedback and encouragement. If offering criticism, make it constructive and kind. Avoid harsh or demeaning language.'
         },
         {
-          subtitle: "Violence & Harm",
-          text: "No content depicting, promoting, or glorifying violence, self-harm, suicide, or dangerous activities. If you're struggling, please reach out to professional resources."
+          subtitle: 'No Harassment',
+          text: 'Don\'t bully, stalk, threaten, or intimidate others. This includes unwanted messages, offensive comments, or targeted attacks.'
         },
         {
-          subtitle: "Adult Content",
-          text: "No sexually explicit content, nudity, or sexual solicitation. Keep WishTrail safe for all ages (13+)."
+          subtitle: 'Respectful Disagreements',
+          text: 'It\'s okay to disagree, but do so respectfully. Focus on ideas, not personal attacks. Keep discussions civil and productive.'
         },
         {
-          subtitle: "Illegal Activities",
-          text: "No content promoting illegal activities, drug use, weapons, or anything that violates local, state, or federal laws."
-        },
-        {
-          subtitle: "Misinformation",
-          text: "Don't spread false information, especially regarding health, safety, or current events. Verify facts before sharing."
-        },
-        {
-          subtitle: "Spam & Scams",
-          text: "No unsolicited advertising, pyramid schemes, phishing attempts, or fraudulent content. Don't manipulate engagement (fake likes, followers, etc.)."
-        },
-        {
-          subtitle: "Impersonation",
-          text: "Don't pretend to be someone else, create fake accounts, or mislead others about your identity or affiliations."
-        },
-        {
-          subtitle: "Private Information",
-          text: "Don't share others' personal information (doxxing) without consent. This includes addresses, phone numbers, email addresses, or financial information."
+          subtitle: 'No Trolling',
+          text: 'Don\'t deliberately provoke, mock, or disrupt conversations. Engage in good faith and contribute positively.'
         }
       ]
     },
     {
-      icon: Flag,
-      title: "Reporting & Moderation",
-      color: "text-orange-600 dark:text-orange-400",
-      rules: [
+      id: 'prohibited-content',
+      title: 'Prohibited Content',
+      content: [
         {
-          subtitle: "How to Report",
-          text: "If you see content that violates these guidelines, use the report button on posts, comments, or profiles. Reports are reviewed promptly and kept confidential."
+          subtitle: 'Hate Speech & Discrimination',
+          text: 'No content that promotes hatred, violence, or discrimination based on race, ethnicity, religion, gender, sexual orientation, disability, or any other protected characteristic.'
         },
         {
-          subtitle: "What Happens Next",
-          text: "Our moderation team reviews all reports. Violators may receive warnings, temporary suspensions, or permanent bans depending on severity. Repeat offenders will be permanently removed."
+          subtitle: 'Violence & Harm',
+          text: 'No content depicting, promoting, or glorifying violence, self-harm, suicide, or dangerous activities. If you\'re struggling, please reach out to professional resources.'
         },
         {
-          subtitle: "False Reports",
-          text: "Don't abuse the reporting system. Repeatedly filing false reports may result in action against your account."
+          subtitle: 'Adult Content',
+          text: 'No sexually explicit content, nudity, or sexual solicitation. Keep WishTrail safe for all ages (13+).'
         },
         {
-          subtitle: "Appeals",
-          text: "If you believe your content was removed in error, you can appeal by contacting support@wishtrail.in with your username and details."
+          subtitle: 'Illegal Activities',
+          text: 'No content promoting illegal activities, drug use, weapons, or anything that violates local, state, or federal laws.'
+        },
+        {
+          subtitle: 'Misinformation',
+          text: 'Don\'t spread false information, especially regarding health, safety, or current events. Verify facts before sharing.'
+        },
+        {
+          subtitle: 'Spam & Scams',
+          text: 'No unsolicited advertising, pyramid schemes, phishing attempts, or fraudulent content. Don\'t manipulate engagement (fake likes, followers, etc.).'
+        },
+        {
+          subtitle: 'Impersonation',
+          text: 'Don\'t pretend to be someone else, create fake accounts, or mislead others about your identity or affiliations.'
+        },
+        {
+          subtitle: 'Private Information',
+          text: 'Don\'t share others\' personal information (doxxing) without consent. This includes addresses, phone numbers, email addresses, or financial information.'
+        }
+      ]
+    },
+    {
+      id: 'reporting-moderation',
+      title: 'Reporting & Moderation',
+      content: [
+        {
+          subtitle: 'How to Report',
+          text: 'If you see content that violates these guidelines, use the report button on posts, comments, or profiles. Reports are reviewed promptly and kept confidential.'
+        },
+        {
+          subtitle: 'What Happens Next',
+          text: 'Our moderation team reviews all reports. Violators may receive warnings, temporary suspensions, or permanent bans depending on severity. Repeat offenders will be permanently removed.'
+        },
+        {
+          subtitle: 'False Reports',
+          text: 'Don\'t abuse the reporting system. Repeatedly filing false reports may result in action against your account.'
+        },
+        {
+          subtitle: 'Appeals',
+          text: 'If you believe your content was removed in error, you can appeal by contacting support@wishtrail.in with your username and details.'
+        }
+      ]
+    },
+    {
+      id: 'privacy-data',
+      title: 'Privacy & Data Protection',
+      content: [
+        {
+          text: 'Be mindful of what you share publicly. Once posted, content may be seen by all WishTrail users. Use privacy settings to control who can see your goals, posts, and profile. Never share passwords, API keys, or sensitive credentials. For more details, review our Privacy Policy.'
+        }
+      ]
+    },
+    {
+      id: 'intellectual-property',
+      title: 'Intellectual Property',
+      content: [
+        {
+          text: 'Respect copyrights and trademarks. Don\'t post content you don\'t own or have permission to use. If you\'re sharing quotes, articles, or images, provide proper attribution. For copyright concerns, see our Copyright Policy.'
+        }
+      ]
+    },
+    {
+      id: 'commercial-activity',
+      title: 'Commercial Activity',
+      content: [
+        {
+          text: 'WishTrail is for personal development, not business promotion. Limited mentions of your work/projects are okay if relevant to your goals, but excessive advertising, affiliate links, or sales pitches are prohibited. Contact us for partnership opportunities.'
+        }
+      ]
+    },
+    {
+      id: 'account-responsibility',
+      title: 'Account Responsibility',
+      content: [
+        {
+          text: 'You\'re responsible for all activity on your account. Keep your password secure and don\'t share your account. If you suspect unauthorized access, change your password immediately and contact support. You may not create multiple accounts to evade bans or manipulate features.'
+        }
+      ]
+    },
+    {
+      id: 'enforcement',
+      title: 'Enforcement & Consequences',
+      content: [
+        {
+          subtitle: '1st Violation',
+          text: 'Warning - Content removed with educational notice.'
+        },
+        {
+          subtitle: '2nd Violation',
+          text: 'Temporary Ban - 1-7 day suspension depending on severity.'
+        },
+        {
+          subtitle: '3rd Violation',
+          text: 'Extended Ban - 30-90 day suspension.'
+        },
+        {
+          subtitle: 'Severe/Repeated',
+          text: 'Permanent Ban - Account permanently removed.'
         }
       ]
     }
   ]
 
-  const specialSections = [
-    {
-      title: "Privacy & Data Protection",
-      icon: Shield,
-      content: "Be mindful of what you share publicly. Once posted, content may be seen by all WishTrail users. Use privacy settings to control who can see your goals, posts, and profile. Never share passwords, API keys, or sensitive credentials. For more details, review our Privacy Policy."
-    },
-    {
-      title: "Intellectual Property",
-      icon: AlertTriangle,
-      content: "Respect copyrights and trademarks. Don't post content you don't own or have permission to use. If you're sharing quotes, articles, or images, provide proper attribution. For copyright concerns, see our Copyright Policy."
-    },
-    {
-      title: "Commercial Activity",
-      icon: Ban,
-      content: "WishTrail is for personal development, not business promotion. Limited mentions of your work/projects are okay if relevant to your goals, but excessive advertising, affiliate links, or sales pitches are prohibited. Contact us for partnership opportunities."
-    },
-    {
-      title: "Account Responsibility",
-      icon: Users,
-      content: "You're responsible for all activity on your account. Keep your password secure and don't share your account. If you suspect unauthorized access, change your password immediately and contact support. You may not create multiple accounts to evade bans or manipulate features."
+  const scrollToSection = (id) => {
+    setActiveSection(id)
+    const element = document.getElementById(id)
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }
-  ]
-
-  const consequences = [
-    {
-      level: "1st Violation",
-      action: "Warning",
-      description: "Content removed + educational notice"
-    },
-    {
-      level: "2nd Violation",
-      action: "Temporary Ban",
-      description: "1-7 day suspension depending on severity"
-    },
-    {
-      level: "3rd Violation",
-      action: "Extended Ban",
-      description: "30-90 day suspension"
-    },
-    {
-      level: "Severe/Repeated",
-      action: "Permanent Ban",
-      description: "Account permanently removed"
-    }
-  ]
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 py-12">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-12"
-        >
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary-100 dark:bg-primary-900/30 mb-4">
-            <Users className="w-8 h-8 text-primary-600 dark:text-primary-400" />
+    <div className="min-h-screen bg-white dark:bg-gray-900" style={{ fontFamily: 'Manrope, sans-serif' }}>
+      <div className="flex">
+        {/* Sidebar Navigation */}
+        <aside className="hidden lg:block w-64 fixed left-0 top-0 h-screen bg-gray-50 dark:bg-gray-800/50 border-r border-gray-200 dark:border-gray-700 overflow-y-auto">
+          <div className="p-6 sticky top-0 bg-gray-50 dark:bg-gray-800/50">
+            <Link to="/" className="text-sm text-[#4c99e6] hover:text-[#3a7bc8] transition-colors">
+              ← Back to Home
+            </Link>
           </div>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-3">
-            Community Guidelines
-          </h1>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            Last Updated: {lastUpdated}
-          </p>
-          <p className="mt-3 text-sm text-gray-700 dark:text-gray-300 max-w-2xl mx-auto">
-            WishTrail is a supportive community dedicated to helping you achieve your goals. 
-            These guidelines ensure a positive, safe, and inspiring environment for everyone.
-          </p>
-        </motion.div>
-
-        {/* Core Values */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="mb-12"
-        >
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 text-center">
-            Our Core Values
-          </h2>
-          <div className="grid md:grid-cols-2 gap-4">
-            {coreValues.map((value, index) => (
-              <motion.div
-                key={value.title}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 + index * 0.05 }}
-                className="glass-card p-4 rounded-xl"
-              >
-                <div className="flex items-start space-x-3">
-                  <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
-                    <value.icon className="w-5 h-5 text-primary-600 dark:text-primary-400" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1.5">
-                      {value.title}
-                    </h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      {value.description}
-                    </p>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
-
-        {/* Detailed Guidelines */}
-        <div className="space-y-8">
-          {guidelines.map((section, index) => (
-            <motion.div
-              key={section.title}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 + index * 0.1 }}
-              className="glass-card p-8 rounded-xl"
-            >
-              <div className="flex items-start space-x-4 mb-6">
-                <div className={`flex-shrink-0 w-12 h-12 rounded-lg bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center`}>
-                  <section.icon className={`w-6 h-6 ${section.color}`} />
-                </div>
-                <div className="flex-1">
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+          <nav className="px-4 pb-6">
+            <ul className="space-y-1">
+              {sections.map((section) => (
+                <li key={section.id}>
+                  <button
+                    onClick={() => scrollToSection(section.id)}
+                    className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
+                      activeSection === section.id
+                        ? 'bg-[#4c99e6]/10 text-[#4c99e6] font-medium'
+                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'
+                    }`}
+                  >
                     {section.title}
-                  </h2>
-                  <div className="space-y-6">
-                    {section.rules.map((rule, idx) => (
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        </aside>
+
+        {/* Main Content */}
+        <main className="flex-1 lg:ml-64">
+          <div className="max-w-4xl mx-auto px-6 py-12">
+            {/* Header */}
+            <div className="mb-12">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#4c99e6]/10 mb-6">
+                <Users className="w-8 h-8 text-[#4c99e6]" />
+              </div>
+              <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-3">
+                Community Guidelines
+              </h1>
+              <p className="text-gray-600 dark:text-gray-400">
+                Last updated: January 2026
+              </p>
+            </div>
+
+            {/* Sections */}
+            <div className="space-y-12">
+              {sections.map((section, index) => (
+                <section key={section.id} id={section.id} className="scroll-mt-6">
+                  <div className="flex items-start gap-4 mb-6">
+                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[#e3f2fd] dark:bg-[#4c99e6]/20 flex items-center justify-center">
+                      <span className="text-lg font-bold text-[#4c99e6]">{index + 1}</span>
+                    </div>
+                    <div className="flex-1">
+                      <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                        {section.title}
+                      </h2>
+                    </div>
+                  </div>
+                  
+                  <div className="ml-14 space-y-6">
+                    {section.content.map((item, idx) => (
                       <div key={idx}>
-                        <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2">
-                          {rule.subtitle}
-                        </h3>
+                        {item.subtitle && (
+                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                            {item.subtitle}
+                          </h3>
+                        )}
                         <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
-                          {rule.text}
+                          {item.text}
                         </p>
                       </div>
                     ))}
                   </div>
-                </div>
-              </div>
-            </motion.div>
-          ))}
-        </div>
+                </section>
+              ))}
 
-        {/* Special Sections */}
-        <div className="mt-8 space-y-6">
-          {specialSections.map((section, index) => (
-            <motion.div
-              key={section.title}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6 + index * 0.05 }}
-              className="glass-card p-6 rounded-xl"
-            >
-              <div className="flex items-start space-x-4">
-                <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
-                  <section.icon className="w-5 h-5 text-primary-600 dark:text-primary-400" />
+              {/* Contact Section */}
+              <section className="bg-gray-50 dark:bg-gray-800/50 rounded-2xl p-8 border border-gray-200 dark:border-gray-700">
+                <div className="flex items-start gap-4 mb-6">
+                  <div className="flex-shrink-0 w-12 h-12 rounded-full bg-[#4c99e6]/10 flex items-center justify-center">
+                    <Mail className="w-6 h-6 text-[#4c99e6]" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                      Questions or Concerns?
+                    </h2>
+                    <p className="text-gray-600 dark:text-gray-400 mb-4">
+                      If you have questions about these guidelines or need to report a violation, please contact us:
+                    </p>
+                    <a
+                      href="mailto:support@wishtrail.in"
+                      className="text-[#4c99e6] hover:text-[#3a7bc8] font-medium transition-colors"
+                    >
+                      support@wishtrail.in
+                    </a>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-                    {section.title}
-                  </h3>
-                  <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
-                    {section.content}
-                  </p>
-                </div>
-              </div>
-            </motion.div>
-          ))}
-        </div>
+              </section>
+            </div>
 
-        {/* Consequences */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8 }}
-          className="mt-8 glass-card p-8 rounded-xl"
-        >
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-            Enforcement & Consequences
-          </h2>
-          <p className="text-gray-600 dark:text-gray-400 mb-6">
-            We take violations seriously. Here's what happens when guidelines are broken:
-          </p>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {consequences.map((consequence, index) => (
-              <div
-                key={consequence.level}
-                className="bg-white/50 dark:bg-gray-800/50 p-4 rounded-lg border-2 border-gray-200 dark:border-gray-700"
+            {/* Mobile Back Link */}
+            <div className="mt-12 lg:hidden text-center">
+              <Link
+                to="/"
+                className="inline-flex items-center text-[#4c99e6] hover:text-[#3a7bc8] transition-colors"
               >
-                <div className="text-sm font-semibold text-primary-600 dark:text-primary-400 mb-1">
-                  {consequence.level}
-                </div>
-                <div className="text-lg font-bold text-gray-900 dark:text-white mb-2">
-                  {consequence.action}
-                </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">
-                  {consequence.description}
-                </div>
-              </div>
-            ))}
+                ← Back to Home
+              </Link>
+            </div>
           </div>
-          <p className="text-sm text-gray-500 dark:text-gray-500 mt-4 italic">
-            Note: Severe violations (illegal content, threats, harassment) may result in immediate permanent ban and reporting to authorities.
-          </p>
-        </motion.div>
-
-        {/* Contact */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.9 }}
-          className="mt-8 glass-card p-8 rounded-xl bg-primary-50 dark:bg-primary-900/20"
-        >
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-            Questions or Concerns?
-          </h2>
-          <p className="text-gray-600 dark:text-gray-400 leading-relaxed mb-4">
-            If you have questions about these guidelines or need to report a violation, 
-            please contact us:
-          </p>
-          <div className="space-y-2 text-gray-700 dark:text-gray-300">
-            <p><strong>Support:</strong> support@wishtrail.in</p>
-          </div>
-          <p className="mt-4 text-sm text-gray-600 dark:text-gray-400">
-            Thank you for helping us maintain a positive, supportive community where everyone can thrive!
-          </p>
-        </motion.div>
-
-        {/* Back to Home */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1 }}
-          className="mt-12 text-center"
-        >
-          <Link
-            to="/"
-            className="inline-flex items-center space-x-2 text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors"
-          >
-            <span>← Back to Home</span>
-          </Link>
-        </motion.div>
+        </main>
       </div>
     </div>
   )

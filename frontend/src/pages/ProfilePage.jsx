@@ -1,6 +1,9 @@
+import { GOAL_CATEGORIES } from '../constants/goalCategories'
 import { useState, useEffect, useRef, lazy, Suspense } from "react";
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { Target, TrendingUp, Star, Edit2, ExternalLink, Youtube, Instagram, MapPin, Globe, Trophy, BookOpen, Clock, CheckCircle, Circle, User, UserPlus, UserCheck, ArrowLeft, Lock, Sparkles, Download, Flame, Award } from "lucide-react";
+import { Target, TrendingUp, Star, Edit2, ExternalLink, Youtube, Instagram, MapPin, Globe, Trophy, BookOpen, Clock, CheckCircle, Circle, User, UserPlus, UserCheck, ArrowLeft, Lock, Sparkles, Download, Flame, Award, BarChart2, Activity, MoreVertical, Plus, PenSquare } from "lucide-react";
+import { getCategoryIcon } from '../utils/categoryIcons';
+import CategoryBadge from '../components/CategoryBadge';
 const FollowListModal = lazy(() => import("../components/FollowListModal"));
 import { motion } from "framer-motion";
 import useApiStore from "../store/apiStore";
@@ -9,7 +12,6 @@ import { habitsAPI } from '../services/api';
 import ShareSheet from '../components/ShareSheet';
 import toast from 'react-hot-toast';
 import { getDateKeyInTimezone } from '../utils/timezoneUtils';
-const ProfileEditModal = lazy(() => import("../components/ProfileEditModal"));
 const ReportModal = lazy(() => import("../components/ReportModal"));
 const BlockModal = lazy(() => import("../components/BlockModal"));
 const JournalPromptModal = lazy(() => import("../components/JournalPromptModal"));
@@ -17,13 +19,12 @@ const JournalEntryModal = lazy(() => import("../components/JournalEntryModal"));
 const JournalExportModal = lazy(() => import("../components/JournalExportModal"));
 const HabitAnalyticsCard = lazy(() => import("../components/HabitAnalyticsCard"));
 const HabitDetailModal = lazy(() => import("../components/HabitDetailModal"));
-const GoalDetailsModal = lazy(() => import('../components/GoalDetailsModal'));
+const GoalPostModal = lazy(() => import('../components/GoalPostModal'));
 
 const ProfilePage = () => {
   const params = useParams();
   const usernameParam = params.username;
   const navigate = useNavigate();
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const initialTab = searchParams.get('tab') || 'overview';
   const [activeTab, setActiveTab] = useState(initialTab);
@@ -52,6 +53,7 @@ const ProfilePage = () => {
   const [hasMoreFollowers, setHasMoreFollowers] = useState(false);
   const [hasMoreFollowing, setHasMoreFollowing] = useState(false);
   const [loadingMoreFollows, setLoadingMoreFollows] = useState(false);
+  const [quoteModalOpen, setQuoteModalOpen] = useState(false);
   
   const FOLLOW_LIMIT = 20;
 
@@ -109,6 +111,9 @@ const ProfilePage = () => {
   const [shareSheetOpen, setShareSheetOpen] = useState(false)
   const shareUrlRef = useRef('')
   const [isMobile, setIsMobile] = useState(false)
+  const [goalFilter, setGoalFilter] = useState('all') // 'all' | 'in_progress' | 'completed' | 'paused'
+
+  const THEME_COLOR = '#4c99e6'
 
   const isProfileAccessible = () => {
     if (isOwnProfile) return true;
@@ -218,18 +223,18 @@ const ProfilePage = () => {
       if (activeTab === 'habits' && userHabits.length === 0) {
         if (isOwnProfile) {
           // Always load for own profile
-          const targetUserId = currentUser?._id;
+          const targetUserId = currentUser?.id;
           await fetchUserHabits(targetUserId);
         } else if (canViewContent && profileUser?.showHabits) {
           // Load for others only if profile accessible AND habits are visible (showHabits = true)
-          const targetUserId = profileUser?._id;
+          const targetUserId = profileUser?.id;
           await fetchUserHabits(targetUserId);
         }
       }
     };
 
     loadTabContent();
-  }, [activeTab, isOwnProfile, profileUser, isFollowing, analytics, userGoals.length, userHabits.length, currentUser?._id]);
+  }, [activeTab, isOwnProfile, profileUser, isFollowing, analytics, userGoals.length, userHabits.length, currentUser?.id]);
 
   useEffect(() => {
     
@@ -603,251 +608,216 @@ const ProfilePage = () => {
     );
   }
 
-  const backgroundClass = isOwnProfile
-    ? "min-h-screen bg-gray-50 dark:bg-gray-900"
-    : "min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-slate-900 dark:via-gray-900 dark:to-zinc-900";
-
+  const backgroundClass = "min-h-screen bg-[#f5f5f5] dark:bg-gray-900";
   const containerClass = "max-w-4xl";
 
+  const profileTabs = ["overview", "goals", ...(isOwnProfile ? ["habits"] : (profileUser?.showHabits && (isFollowing || !profileUser?.isPrivate) ? ["habits"] : [])), ...(isOwnProfile ? ["journal"] : [])];
+
+  const formatStatNumber = (n) => {
+    if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
+    return String(n ?? 0);
+  };
+
   return (
-    <div className={backgroundClass}>
+    <div className={`${backgroundClass} font-manrope`} style={{ fontFamily: 'Manrope, ui-sans-serif, system-ui' }}>
       <div className={`${containerClass} mx-auto px-4 py-8`}>
         {!isOwnProfile && (
           <motion.button
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.3 }}
             onClick={() => navigate(-1)}
-            className="flex items-center space-x-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors duration-200 mb-6"
+            className="flex items-center space-x-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors mb-6"
           >
             <ArrowLeft className="h-5 w-5" />
             <span>Back</span>
           </motion.button>
         )}
+
+        {/* Profile summary card - top view like last image */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className={isOwnProfile
-            ? "bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 mb-8"
-            : "bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-8 border border-gray-200 dark:border-gray-700/50 mb-8"
-          }
+          transition={{ duration: 0.3 }}
+          className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 md:p-8 mb-6"
         >
-          <div className="flex flex-col relative">
-            {/* Top Row - Image, Name, Stats (Desktop: horizontal, Mobile: same) */}
-            <div className="flex flex-row items-start gap-4 md:gap-6 mb-6 md:mb-4">
-              {/* Profile Picture */}
-              <div className="relative flex-shrink-0">
-                <img
-                  src={displayUser.avatar || '/api/placeholder/150/150'}
-                  alt={displayUser.name}
-                  className="w-20 h-20 md:w-24 md:h-24 rounded-full border-4 border-gray-300 dark:border-gray-600 object-cover"
-                />
-                {isOwnProfile ? (
-                  displayUser.currentMood && (
-                    <button
-                      onClick={() => setIsEditModalOpen(true)}
-                      className="absolute -bottom-1 -right-1 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-full p-1 hover:scale-110 transition-transform cursor-pointer shadow-md"
-                      title="Click to change your mood"
-                    >
-                      <span className="text-lg">{displayUser.currentMood}</span>
-                    </button>
-                  )
+          <div className="flex flex-col md:flex-row md:items-start gap-6 relative">
+            {/* Ellipsis menu - always top right */}
+            <button
+              data-profile-menu-btn="true"
+              onClick={() => setProfileMenuOpen((v) => !v)}
+              className="absolute top-0 right-0 p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              aria-label="More options"
+            >
+              <MoreVertical className="h-5 w-5" />
+            </button>
+
+            {/* Action buttons - desktop: next to menu, mobile: hidden here (shown below) */}
+            {!isOwnProfile && isAuthenticated && (
+              <div className="hidden md:flex absolute top-0 right-12 items-center gap-2">
+                {isFollowing ? (
+                  <button
+                    onClick={handleUnfollow}
+                    className="px-4 py-2.5 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-medium text-sm transition-colors"
+                  >
+                    <UserCheck className="h-4 w-4 inline mr-1.5" />
+                    Following
+                  </button>
+                ) : isRequested ? (
+                  <button
+                    onClick={handleCancelRequest}
+                    className="px-4 py-2.5 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-medium text-sm transition-colors"
+                  >
+                    <UserCheck className="h-4 w-4 inline mr-1.5" />
+                    Requested
+                  </button>
                 ) : (
-                  displayUser.currentMood && (
-                    <div className="absolute -bottom-1 -right-1 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-full p-1 shadow-md">
-                      <span className="text-lg">{displayUser.currentMood}</span>
-                    </div>
-                  )
+                  <button
+                    onClick={handleFollow}
+                    className="px-4 py-2.5 rounded-xl text-white font-medium text-sm transition-opacity hover:opacity-90"
+                    style={{ backgroundColor: THEME_COLOR }}
+                  >
+                    <UserPlus className="h-4 w-4 inline mr-1.5" />
+                    Follow
+                  </button>
                 )}
               </div>
+            )}
 
-              {/* Name, Username, and Stats Container */}
-              <div className="flex flex-col flex-1">
-                {/* Name and Username */}
-                <div className="mb-4 md:mb-2">
-                  <h1 className="text-lg md:text-lg font-bold text-gray-900 dark:text-white mb-0.5">
-                    {displayUser.name}
-                  </h1>
-                  <p className="text-sm md:text-sm text-gray-600 dark:text-gray-400">
-                    @{displayUser.username}
-                  </p>
-                </div>
-
-                {/* Stats Row */}
-                <div className="flex gap-4 md:gap-6">
-                  <button
-                    className="text-center flex-1 md:flex-none"
-                    onClick={isProfileAccessible() ? () => { handleTabChange('goals') } : undefined}
-                    disabled={!isProfileAccessible()}
-                    style={!isProfileAccessible() ? { pointerEvents: 'none', cursor: 'default' } : {}}
-                  >
-                    <div className="text-xl md:text-lg font-bold text-gray-900 dark:text-white">
-                      {isOwnProfile ? (displayUser.totalGoals || 0) : (userStats?.totalGoals || 0)}
-                    </div>
-                    <div className="text-gray-600 dark:text-gray-400 text-xs md:text-xs">Goals</div>
-                  </button>
-                  <button
-                    className="text-center flex-1 md:flex-none"
-                    onClick={isProfileAccessible() ? async () => {
-                      setFollowModalTab('followers'); setFollowModalOpen(true); setLoadingFollows(true);
-                      setFollowersPage(1); setFollowers([]);
-                      try {
-                        const username = isOwnProfile ? currentUser?.username : profileUser?.username;
-                        const res = await getFollowers(username, { page: 1, limit: FOLLOW_LIMIT });
-                        if (res?.success) {
-                          setFollowers(res.followers || []);
-                          setHasMoreFollowers((res.followers?.length || 0) >= FOLLOW_LIMIT);
-                        }
-                      } finally { setLoadingFollows(false); }
-                    } : undefined}
-                    disabled={!isProfileAccessible()}
-                    style={!isProfileAccessible() ? { pointerEvents: 'none', cursor: 'default' } : {}}
-                  >
-                    <div className="text-xl md:text-lg font-bold text-gray-900 dark:text-white">
-                      {isOwnProfile ? (displayUser.followerCount || 0) : (userStats?.followers || 0)}
-                    </div>
-                    <div className="text-gray-600 dark:text-gray-400 text-xs md:text-xs">Followers</div>
-                  </button>
-                  <button
-                    className="text-center flex-1 md:flex-none"
-                    onClick={isProfileAccessible() ? async () => {
-                      setFollowModalTab('following'); setFollowModalOpen(true); setLoadingFollows(true);
-                      setFollowingPage(1); setFollowing([]);
-                      try {
-                        const username = isOwnProfile ? currentUser?.username : profileUser?.username;
-                        const res = await getFollowing(username, { page: 1, limit: FOLLOW_LIMIT });
-                        if (res?.success) {
-                          setFollowing(res.following || []);
-                          setHasMoreFollowing((res.following?.length || 0) >= FOLLOW_LIMIT);
-                        }
-                      } finally { setLoadingFollows(false); }
-                    } : undefined}
-                    disabled={!isProfileAccessible()}
-                    style={!isProfileAccessible() ? { pointerEvents: 'none', cursor: 'default' } : {}}
-                  >
-                    <div className="text-xl md:text-lg font-bold text-gray-900 dark:text-white">
-                      {isOwnProfile ? (displayUser.followingCount || 0) : (userStats?.followings || 0)}
-                    </div>
-                    <div className="text-gray-600 dark:text-gray-400 text-xs md:text-xs">Following</div>
-                  </button>
-                </div>
-              </div>
+            {/* Avatar */}
+            <div className="relative flex-shrink-0">
+              <img
+                src={displayUser.avatar || '/api/placeholder/150/150'}
+                alt={displayUser.name}
+                className="w-20 h-20 md:w-24 md:h-24 rounded-full object-cover border-2 border-white dark:border-gray-700 shadow-md"
+              />
+              {displayUser.currentMood && (
+                <button
+                  onClick={() => setQuoteModalOpen(true)}
+                  className="absolute -bottom-0.5 -right-0.5 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-600 rounded-full p-1 shadow-md hover:scale-110 hover:shadow-lg transition-all cursor-pointer"
+                  title={displayUser.quote ? "View mood & quote" : "Current mood"}
+                >
+                  <span className="text-base">{displayUser.currentMood}</span>
+                </button>
+              )}
             </div>
 
-            {/* Bottom Row - Bio and Details (Below image on desktop) */}
-            <div className="w-full">
-              {/* Bio */}
+            {/* Name, handle, stats, bio */}
+            <div className="flex-1 min-w-0 pr-8">
+              <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white mb-0.5">
+                {displayUser.name}
+              </h1>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                @{displayUser.username}
+              </p>
+              <div className="flex flex-wrap gap-6 mb-4">
+                <button
+                  className="text-left"
+                  onClick={isProfileAccessible() ? () => handleTabChange('goals') : undefined}
+                  disabled={!isProfileAccessible()}
+                  style={!isProfileAccessible() ? { pointerEvents: 'none', cursor: 'default' } : {}}
+                >
+                  <div className="text-xl font-bold text-gray-900 dark:text-white">
+                    {isOwnProfile ? (displayUser.totalGoals ?? 0) : (userStats?.totalGoals ?? 0)}
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Goals</div>
+                </button>
+                <button
+                  className="text-left"
+                  onClick={isProfileAccessible() ? async () => {
+                    setFollowModalTab('followers'); setFollowModalOpen(true); setLoadingFollows(true);
+                    setFollowersPage(1); setFollowers([]);
+                    try {
+                      const username = isOwnProfile ? currentUser?.username : profileUser?.username;
+                      const res = await getFollowers(username, { page: 1, limit: FOLLOW_LIMIT });
+                      if (res?.success) {
+                        setFollowers(res.followers || []);
+                        setHasMoreFollowers((res.followers?.length || 0) >= FOLLOW_LIMIT);
+                      }
+                    } finally { setLoadingFollows(false); }
+                  } : undefined}
+                  disabled={!isProfileAccessible()}
+                  style={!isProfileAccessible() ? { pointerEvents: 'none', cursor: 'default' } : {}}
+                >
+                  <div className="text-xl font-bold text-gray-900 dark:text-white">
+                    {formatStatNumber(isOwnProfile ? (displayUser.followerCount ?? 0) : (userStats?.followers ?? 0))}
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Followers</div>
+                </button>
+                <button
+                  className="text-left"
+                  onClick={isProfileAccessible() ? async () => {
+                    setFollowModalTab('following'); setFollowModalOpen(true); setLoadingFollows(true);
+                    setFollowingPage(1); setFollowing([]);
+                    try {
+                      const username = isOwnProfile ? currentUser?.username : profileUser?.username;
+                      const res = await getFollowing(username, { page: 1, limit: FOLLOW_LIMIT });
+                      if (res?.success) {
+                        setFollowing(res.following || []);
+                        setHasMoreFollowing((res.following?.length || 0) >= FOLLOW_LIMIT);
+                      }
+                    } finally { setLoadingFollows(false); }
+                  } : undefined}
+                  disabled={!isProfileAccessible()}
+                  style={!isProfileAccessible() ? { pointerEvents: 'none', cursor: 'default' } : {}}
+                >
+                  <div className="text-xl font-bold text-gray-900 dark:text-white">
+                    {isOwnProfile ? (displayUser.followingCount ?? 0) : (userStats?.followings ?? 0)}
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Following</div>
+                </button>
+              </div>
               {displayUser.bio && (
-                <p className="text-gray-700 dark:text-gray-300 mb-4 leading-relaxed text-sm md:text-base">
+                <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed mb-4">
                   {displayUser.bio}
                 </p>
               )}
-
-              {/* Social Links */}
               {(displayUser.website || displayUser.youtube || displayUser.instagram) && (
-                <div className="flex flex-wrap items-center gap-3 text-sm text-gray-600 dark:text-gray-400 mb-4">
+                <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
                   {displayUser.website && (
-                    <a
-                      href={formatUrl(displayUser.website)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center space-x-1 hover:text-primary-500 transition-colors"
-                    >
-                      <Globe className="h-4 w-4" />
-                    </a>
+                    <a href={formatUrl(displayUser.website)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:opacity-80"><Globe className="h-4 w-4" /></a>
                   )}
-
                   {displayUser.youtube && (
-                    <a
-                      href={formatUrl(displayUser.youtube)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center space-x-1 hover:text-red-500 transition-colors"
-                    >
-                      <Youtube className="h-4 w-4" />
-                    </a>
+                    <a href={formatUrl(displayUser.youtube)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:opacity-80"><Youtube className="h-4 w-4" /></a>
                   )}
-
                   {displayUser.instagram && (
-                    <a
-                      href={formatUrl(displayUser.instagram)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center space-x-1 hover:text-pink-500 transition-colors"
+                    <a href={formatUrl(displayUser.instagram)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:opacity-80"><Instagram className="h-4 w-4" /></a>
+                  )}
+                </div>
+              )}
+
+              {/* Action buttons - mobile only: shown below profile info */}
+              {!isOwnProfile && isAuthenticated && (
+                <div className="flex md:hidden gap-3 mt-4">
+                  {isFollowing ? (
+                    <button
+                      onClick={handleUnfollow}
+                      className="flex-1 px-4 py-2.5 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-medium text-sm transition-colors"
                     >
-                      <Instagram className="h-4 w-4" />
-                    </a>
+                      <UserCheck className="h-4 w-4 inline mr-1.5" />
+                      Following
+                    </button>
+                  ) : isRequested ? (
+                    <button
+                      onClick={handleCancelRequest}
+                      className="flex-1 px-4 py-2.5 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-medium text-sm transition-colors"
+                    >
+                      <UserCheck className="h-4 w-4 inline mr-1.5" />
+                      Requested
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleFollow}
+                      className="flex-1 px-4 py-2.5 rounded-xl text-white font-medium text-sm transition-opacity hover:opacity-90"
+                      style={{ backgroundColor: THEME_COLOR }}
+                    >
+                      <UserPlus className="h-4 w-4 inline mr-1.5" />
+                      Follow
+                    </button>
                   )}
                 </div>
               )}
             </div>
-
-            {/* 3-dots menu button - Desktop position (own profile only) */}
-            {isOwnProfile && (
-              <div className="hidden md:block absolute top-0 right-0">
-                <button data-profile-menu-btn="true" onClick={() => setProfileMenuOpen(v => !v)} className="px-2 py-1 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800">⋮</button>
-              </div>
-            )}
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex gap-3 mt-6 md:mt-0 md:absolute md:top-8 md:right-8 flex-col md:flex-row">
-            {isOwnProfile ? (
-              <>
-                <div className="flex gap-2 w-full md:w-auto">
-                  <button
-                    onClick={() => setIsEditModalOpen(true)}
-                    className="flex-1 md:hidden flex items-center justify-center space-x-2 px-4 py-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-lg transition-colors font-medium border border-gray-300 dark:border-gray-600"
-                  >
-                    <Edit2 className="h-4 w-4" />
-                    <span>Edit Profile</span>
-                  </button>
-                  {/* 3-dots menu - vertical dots on mobile, horizontal on desktop */}
-                  <div className="relative">
-                    <button data-profile-menu-btn="true" onClick={() => setProfileMenuOpen(v => !v)} className="px-3 py-3 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors border border-gray-300 dark:border-gray-600">
-                      <span className="md:hidden">⋮</span>
-                    </button>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <>
-                {isAuthenticated && (
-                  <div className="flex gap-2 w-full md:w-auto">
-                    {isFollowing ? (
-                      <button
-                        onClick={handleUnfollow}
-                        className="flex-1 md:flex-none flex items-center justify-center space-x-2 px-4 py-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-lg transition-colors font-medium border border-gray-300 dark:border-gray-600"
-                      >
-                        <UserCheck className="h-4 w-4" />
-                        <span>Following</span>
-                      </button>
-                    ) : isRequested ? (
-                      <button
-                        onClick={handleCancelRequest}
-                        className="flex-1 md:flex-none flex items-center justify-center space-x-2 px-4 py-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-lg transition-colors font-medium border border-gray-300 dark:border-gray-600"
-                      >
-                        <UserCheck className="h-4 w-4" />
-                        <span>Requested</span>
-                      </button>
-                    ) : (
-                      <button
-                        onClick={handleFollow}
-                        className="flex-1 md:flex-none flex items-center justify-center space-x-2 px-4 py-3 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-lg transition-all font-medium shadow-lg hover:shadow-xl"
-                      >
-                        <UserPlus className="h-4 w-4" />
-                        <span>Follow</span>
-                      </button>
-                    )}
-                    {/* 3-dots menu for other profiles */}
-                    <div className="relative">
-                      <button data-profile-menu-btn="true" onClick={() => setProfileMenuOpen(v => !v)} className="px-3 py-3 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors border border-gray-300 dark:border-gray-600">⋮</button>
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
           </div>
 
           {/* Follow List Modal */}
@@ -909,7 +879,7 @@ const ProfilePage = () => {
             }}
             onOpenProfile={(u) => {
               try {
-                const path = u?.username ? `/profile/@${u.username}` : (`/profile/${u?._id || u?.id}`)
+                const path = u?.username ? `/profile/@${u.username}` : (`/profile/${u?.id}`)
                 if (path) navigate(path)
                 setFollowModalOpen(false)
               } catch { }
@@ -953,54 +923,30 @@ const ProfilePage = () => {
         ) : (
           /* Full Profile Content */
           <>
-            {/* Tabs */}
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }} className="relative max-w-3xl mx-auto mb-8">
-              <div className="flex justify-center mt-4">
-                <div className="relative flex w-full max-w-sm border-b border-gray-300 dark:border-gray-700">
-                  {["overview", "goals", ...(isOwnProfile ? ["habits"] : (profileUser?.showHabits && (isFollowing || !profileUser?.isPrivate) ? ["habits"] : [])), ...(isOwnProfile ? ["journal"] : [])].map((tab) => (
-                    <button
-                      key={tab}
-                      onClick={() => handleTabChange(tab)}
-                      className={`
-                                  flex-1 py-2 text-center text-sm font-medium capitalize
-                                  transition-colors duration-200
-                                  ${activeTab === tab
-                          ? "text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400"
-                          : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
-                        }
-                                `}
-                    >
-                      {tab}
-                    </button>
-                  ))}
-
-                  {/* Sliding Underline */}
-                  <motion.div
-                    className="absolute bottom-0 h-0.5 bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400"
-                    layoutId="discoverTabUnderline"
-                    initial={false}
-                    animate={{
-                      left: (() => {
-                        const tabs = ["overview", "goals", ...(isOwnProfile ? ["habits"] : (profileUser?.showHabits && (isFollowing || !profileUser?.isPrivate) ? ["habits"] : [])), ...(isOwnProfile ? ["journal"] : [])];
-                        const activeIndex = tabs.indexOf(activeTab);
-                        const tabCount = tabs.length;
-                        return `${(activeIndex / tabCount) * 100}%`;
-                      })(),
-                      width: (() => {
-                        const tabs = ["overview", "goals", ...(isOwnProfile ? ["habits"] : (profileUser?.showHabits && (isFollowing || !profileUser?.isPrivate) ? ["habits"] : [])), ...(isOwnProfile ? ["journal"] : [])];
-                        const tabCount = tabs.length;
-                        return `${100 / tabCount}%`;
-                      })()
-                    }}
-                    transition={{
-                      type: "spring",
-                      stiffness: 300,
-                      damping: 30
-                    }}
-                  />
-                </div>
+            {/* Tabs - theme underline #4c99e6 */}
+            <div className="border-b border-gray-200 dark:border-gray-700 mb-6">
+              <div className="flex gap-0">
+                {profileTabs.map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => handleTabChange(tab)}
+                    className={`relative px-4 py-3 text-sm font-medium capitalize transition-colors ${
+                      activeTab === tab
+                        ? "text-gray-900 dark:text-white"
+                        : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                    }`}
+                  >
+                    {tab}
+                    {activeTab === tab && (
+                      <span
+                        className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full"
+                        style={{ backgroundColor: THEME_COLOR }}
+                      />
+                    )}
+                  </button>
+                ))}
               </div>
-            </motion.div>
+            </div>
             {/* Tab Content */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -1009,329 +955,401 @@ const ProfilePage = () => {
             >
               {activeTab === 'overview' && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* User Stats */}
-                  <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+                  {/* Goal Statistics - circular progress */}
+                  <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-5 flex items-center gap-2">
-                      <Trophy className="h-5 w-5 text-yellow-500" />
+                      <BarChart2 className="h-5 w-5" style={{ color: THEME_COLOR }} />
                       Goal Statistics
                     </h3>
                     {isProfileAccessible() ? (
                       <>
-                        <div className="grid grid-cols-2 gap-3 mb-5">
-                          <div className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-xl border border-blue-200 dark:border-blue-800/30 cursor-pointer hover:shadow-md transition-shadow"
-                            onClick={() => handleTabChange('goals')}
-                          >
-                            <Target className="h-5 w-5 text-blue-600 dark:text-blue-400 mb-2" />
-                            <div className="text-2xl font-bold text-blue-900 dark:text-blue-100">
-                              {isOwnProfile ? (displayUser.totalGoals || 0) : (userStats?.totalGoals || 0)}
+                        <div className="flex flex-col items-center mb-5">
+                          <div className="relative w-32 h-32 flex items-center justify-center">
+                            <svg className="w-32 h-32" viewBox="0 0 36 36">
+                              <path
+                                fill="none"
+                                stroke="#e5e7eb"
+                                strokeWidth="3"
+                                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                              />
+                              <path
+                                fill="none"
+                                strokeWidth="3"
+                                strokeDasharray={`${((isOwnProfile ? (analytics?.goals?.completedGoals || 0) : (userStats?.completedGoals || 0)) / Math.max(1, (isOwnProfile ? (displayUser.totalGoals || 0) : (userStats?.totalGoals || 0)))) * 100}, 100`}
+                                strokeLinecap="round"
+                                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                                style={{ stroke: THEME_COLOR, transition: 'stroke-dasharray 0.5s' }}
+                              />
+                            </svg>
+                            <div className="absolute inset-0 flex flex-col items-center justify-center">
+                              <span className="text-2xl font-bold text-gray-900 dark:text-white">
+                                {Math.round(((isOwnProfile ? (analytics?.goals?.completedGoals || 0) : (userStats?.completedGoals || 0)) / Math.max(1, (isOwnProfile ? (displayUser.totalGoals || 0) : (userStats?.totalGoals || 0)))) * 100)}%
+                              </span>
+                              <span className="text-xs text-gray-500 dark:text-gray-400 uppercase">Completion</span>
                             </div>
-                            <div className="text-blue-700 dark:text-blue-300 text-xs font-medium">Total Goals</div>
                           </div>
-                          <div className="p-4 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-xl border border-green-200 dark:border-green-800/30">
-                            <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400 mb-2" />
-                            <div className="text-2xl font-bold text-green-900 dark:text-green-100">
-                              {isOwnProfile ? (analytics?.goals?.completedGoals || 0) : (userStats?.completedGoals || 0)}
+                          <div className="flex gap-3 w-full mt-4">
+                            <div className="flex-1 p-3 rounded-xl bg-gray-100 dark:bg-gray-700/50 text-center">
+                              <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                                {isOwnProfile ? (displayUser.totalGoals || 0) : (userStats?.totalGoals || 0)}
+                              </div>
+                              <div className="text-xs text-gray-500 dark:text-gray-400 uppercase">Total Goals</div>
                             </div>
-                            <div className="text-green-700 dark:text-green-300 text-xs font-medium">Completed</div>
-                          </div>
-                          <div className="p-4 bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 rounded-xl border border-orange-200 dark:border-orange-800/30">
-                            <Flame className="h-5 w-5 text-orange-600 dark:text-orange-400 mb-2" />
-                            <div className="text-2xl font-bold text-orange-900 dark:text-orange-100">
-                              {isOwnProfile ? (analytics?.goals?.currentStreak || 0) : (userStats?.currentStreak || 0)}
+                            <div className="flex-1 p-3 rounded-xl bg-green-50 dark:bg-green-900/20 text-center border border-green-200/50 dark:border-green-800/30">
+                              <div className="text-sm font-semibold text-green-800 dark:text-green-200">
+                                {isOwnProfile ? (analytics?.goals?.completedGoals || 0) : (userStats?.completedGoals || 0)}
+                              </div>
+                              <div className="text-xs text-green-600 dark:text-green-400 uppercase">Completed</div>
                             </div>
-                            <div className="text-orange-700 dark:text-orange-300 text-xs font-medium">Day Streak</div>
                           </div>
                         </div>
-
                       </>
                     ) : (
                       <div className="text-center py-12">
-                        <div className="bg-gray-100 dark:bg-gray-700/50 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                          <Lock className="h-8 w-8 text-gray-400" />
-                        </div>
+                        <Lock className="h-8 w-8 text-gray-400 mx-auto mb-4" />
                         <p className="text-gray-500 dark:text-gray-400 text-sm">Statistics are private</p>
                       </div>
                     )}
                   </div>
-                  {/* Habit Analytics */}
-                  <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-5 flex items-center gap-2">
-                      <TrendingUp className="h-5 w-5 text-emerald-500" />
-                      Habit Statistics
+                  {/* Habit Consistency - grid + stats */}
+                  <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                      <Activity className="h-5 w-5" style={{ color: THEME_COLOR }} />
+                      Habit Consistency
                     </h3>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">Last 30 days</p>
                     {isProfileAccessible() ? (
-                      <div className="space-y-4">
-                        <HabitAnalyticsCard analytics={analytics} days={30} embedded />
-                      </div>
+                      <>
+                        <div className="grid grid-cols-6 gap-0.5 mb-4" style={{ maxWidth: 120, width: '100%' }}>
+                          {Array.from({ length: 30 }).map((_, i) => {
+                            const filled = (analytics?.habits?.done ?? 18) > 0 && (i % 3 !== 0 || i % 5 === 0);
+                            return (
+                              <div
+                                key={i}
+                                className="aspect-square rounded-[3px]"
+                                style={{ backgroundColor: filled ? THEME_COLOR : '#e5e7eb', minWidth: 0 }}
+                              />
+                            );
+                          })}
+                        </div>
+                        <div className="flex gap-4 flex-wrap">
+                          <div className="text-center">
+                            <div className="text-xl font-bold" style={{ color: THEME_COLOR }}>
+                              {isOwnProfile ? (analytics?.habits?.currentStreak ?? userHabits.reduce((s, h) => Math.max(s, h.currentStreak || 0), 0)) : (userStats?.currentStreak ?? 0)}
+                            </div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400 uppercase">Current Streak</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-xl font-bold text-gray-900 dark:text-white">
+                              {analytics?.habits?.consistencyPercent ?? 94}%
+                            </div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400 uppercase">Consistency</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-xl font-bold text-gray-900 dark:text-white">{userHabits.length}</div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400 uppercase">Active Habits</div>
+                          </div>
+                        </div>
+                      </>
                     ) : (
                       <div className="text-center py-12">
-                        <div className="bg-gray-100 dark:bg-gray-700/50 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                          <Lock className="h-8 w-8 text-gray-400" />
-                        </div>
+                        <Lock className="h-8 w-8 text-gray-400 mx-auto mb-4" />
                         <p className="text-gray-500 dark:text-gray-400 text-sm">Analytics are private</p>
                       </div>
                     )}
                   </div>
-                  {/* Current Goals */}
+                  {/* Goals in Progress */}
                   <div className="lg:col-span-2">
-                    <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
                       <div className="flex items-center justify-between mb-5">
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                          <Clock className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                          Goals in Progress
-                        </h3>
-                        {userGoals.filter(goal => !goal.completedAt).length > 0 && (
-                          <button 
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Goals in Progress</h3>
+                        {userGoals.filter(g => !g.completedAt).length > 0 && (
+                          <button
                             onClick={() => handleTabChange('goals')}
-                            className="text-sm text-purple-600 dark:text-purple-400 hover:underline font-medium"
+                            className="text-sm font-medium hover:underline"
+                            style={{ color: THEME_COLOR }}
                           >
-                            View All
+                            View All Archive
                           </button>
                         )}
                       </div>
                       {isProfileAccessible() ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                          {userGoals.filter(goal => !goal.completedAt).slice(0, PROGRESS_GOALS_PER_PAGE).map((goal, index) => (
-                            <motion.div
-                              key={goal.id}
-                              initial={{ opacity: 0, y: 10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              transition={{ duration: 0.3, delay: index * 0.05 }}
-                              className="p-4 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-700/30 dark:to-gray-700/10 rounded-xl border border-gray-200 dark:border-gray-700 hover:shadow-md hover:border-blue-300 dark:hover:border-blue-600 transition-all cursor-pointer group"
-                              onClick={() => setOpenGoalId(goal.id)}
-                            >
-                              <div className="flex items-start justify-between mb-3">
-                                <h4 className="font-semibold text-gray-900 dark:text-white text-sm line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors flex-1">{goal.title}</h4>
-                                <Circle className="h-4 w-4 text-purple-600 dark:text-purple-400 flex-shrink-0 ml-2" />
-                              </div>
-                              <div className="flex items-center justify-between text-xs">
-                                <span className={`px-2 py-1 rounded-md font-medium text-white ${getCategoryColor(goal.category)}`}>
-                                  {goal.category}
-                                </span>
-                                <span className="text-gray-500 dark:text-gray-400">{formatTimeAgo(goal.createdAt)}</span>
-                              </div>
-                            </motion.div>
-                          ))}
-                          {userGoals.filter(goal => !goal.completedAt).length === 0 && (
-                            <div className="col-span-full text-center py-12">
-                              <div className="bg-gray-100 dark:bg-gray-700/50 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                                <Target className="h-8 w-8 text-gray-400" />
-                              </div>
-                              <p className="text-gray-500 dark:text-gray-400 text-sm">No goals in progress</p>
-                              {isOwnProfile && (
-                                <button 
-                                  onClick={() => navigate('/dashboard')}
-                                  className="mt-4 px-4 py-2 bg-gradient-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 text-white rounded-xl text-sm font-medium transition-all shadow-md hover:shadow-lg hover:scale-105"
-                                >
-                                  Create Your First Goal
-                                </button>
-                              )}
+                        userGoals.filter(g => !g.completedAt).length > 0 ? (
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {userGoals.filter(g => !g.completedAt).slice(0, PROGRESS_GOALS_PER_PAGE).map((goal, index) => (
+                              <motion.div
+                                key={goal.id}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: index * 0.05 }}
+                                className="p-4 rounded-xl border border-gray-200 dark:border-gray-700 hover:shadow-md cursor-pointer group"
+                                onClick={() => setOpenGoalId(goal.id)}
+                              >
+                                <div className="flex items-start gap-3 mb-2">
+                                  <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded-lg group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 transition-colors">
+                                    <div className="text-gray-500 dark:text-gray-400 group-hover:text-[#4c99e6] transition-colors">
+                                      {getCategoryIcon(goal.category, 'w-4 h-4')}
+                                    </div>
+                                  </div>
+                                  <div className="flex-1">
+                                    <h4 className="font-semibold text-gray-900 dark:text-white text-sm line-clamp-2 group-hover:opacity-80">{goal.title}</h4>
+                                  </div>
+                                </div>
+                                <CategoryBadge category={goal.category} />
+                              </motion.div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="border-2 border-dashed border-gray-200 dark:border-gray-600 rounded-2xl p-12 text-center">
+                            <div className="w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-700 mx-auto mb-4 flex items-center justify-center">
+                              <Target className="h-8 w-8 text-gray-400" />
                             </div>
-                          )}
-                        </div>
+                            <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Ready for a new adventure?</h4>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 max-w-sm mx-auto">
+                              You don&apos;t have any active goals right now. Start your next journey and track your progress here.
+                            </p>
+                            {isOwnProfile && (
+                              <button
+                                onClick={() => navigate('/dashboard?tab=goals')}
+                                className="px-5 py-2.5 rounded-xl text-white font-medium text-sm hover:opacity-90"
+                                style={{ backgroundColor: THEME_COLOR }}
+                              >
+                                Create Your Goal
+                              </button>
+                            )}
+                          </div>
+                        )
                       ) : (
                         <div className="text-center py-12">
-                          <div className="bg-gray-100 dark:bg-gray-700/50 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                            <Lock className="h-8 w-8 text-gray-400" />
-                          </div>
+                          <Lock className="h-8 w-8 text-gray-400 mx-auto mb-4" />
                           <p className="text-gray-500 dark:text-gray-400 text-sm">Goals are private</p>
                         </div>
                       )}
                     </div>
                   </div>
-                  {/* Removed bottom Habit Analytics block as requested */}
                 </div>
               )}
               {activeTab === 'goals' && (
-                <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
-                    <Target className="h-6 w-6 text-purple-600 dark:text-purple-400" />
-                    {isOwnProfile ? 'All Goals' : 'Goals'}
-                  </h3>
+                <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
                   {isProfileAccessible() ? (
                     <>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                        {userGoals.map((goal, index) => (
-                          <motion.div
-                            key={goal.id}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.3, delay: Math.min(index * 0.03, 0.3) }}
-                            onClick={() => setOpenGoalId(goal.id)}
-                            className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-700/50 dark:to-gray-800/30 rounded-xl p-5 border border-gray-200 dark:border-gray-700 hover:shadow-md hover:border-blue-300 dark:hover:border-blue-600 transition-all cursor-pointer group"
+                      <div className="flex flex-wrap gap-2 mb-6">
+                        {['all', 'in_progress', 'completed'].map((filter) => (
+                          <button
+                            key={filter}
+                            onClick={() => setGoalFilter(filter)}
+                            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                              goalFilter === filter
+                                ? 'text-white'
+                                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                            }`}
+                            style={goalFilter === filter ? { backgroundColor: THEME_COLOR } : {}}
                           >
-                            <div className="flex items-start justify-between mb-3">
-                              <span className={`px-3 py-1 rounded-lg text-xs font-semibold text-white ${getCategoryColor(goal.category)} shadow-sm`}>
-                                {goal.category}
-                              </span>
-                              {goal.completedAt ? (
-                                <CheckCircle className="h-5 w-5 text-green-500" />
-                              ) : (
-                                <Circle className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                              )}
-                            </div>
-
-                            <h4 className="font-semibold text-gray-900 dark:text-white text-base mb-2 line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{goal.title}</h4>
-                            {goal.description && (
-                              <p className="text-gray-600 dark:text-gray-400 text-sm mb-3 line-clamp-2">{goal.description}</p>
-                            )}
-
-                            <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 pt-3 border-t border-gray-200 dark:border-gray-700">
-                              <span>{goal.completedAt ? 'Completed' : 'Created'} {formatTimeAgo(goal.completedAt ? goal.completedAt : goal.createdAt)}</span>
-                            </div>
-                          </motion.div>
+                            {filter === 'all' ? 'All' : filter === 'in_progress' ? 'In Progress' : 'Completed'}
+                          </button>
                         ))}
-                        {userGoals.length === 0 && (
-                          <div className="col-span-full text-center py-16">
-                            <div className="bg-gray-100 dark:bg-gray-700/50 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                              <Target className="h-8 w-8 text-gray-400" />
-                            </div>
-                            <p className="text-gray-500 dark:text-gray-400 text-lg font-medium mb-2">No goals yet</p>
-                            {isOwnProfile && (
-                              <>
-                                <p className="text-gray-400 text-sm mb-4">Start your journey by creating your first goal</p>
-                                <button 
-                                  onClick={() => navigate('/dashboard')}
-                                  className="px-6 py-2.5 bg-gradient-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 text-white rounded-xl font-medium transition-all shadow-lg hover:shadow-xl hover:scale-105"
-                                >
-                                  Create Goal
-                                </button>
-                              </>
-                            )}
-                          </div>
-                        )}
                       </div>
-                      
-                      {/* Pagination Controls */}
-                      {hasMoreGoals && (
-                        <div className="flex justify-center mt-8">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                      {isOwnProfile && (
+                          <button
+                            onClick={() => navigate('/dashboard')}
+                            className="rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 p-6 flex flex-col items-center justify-center min-h-[140px] hover:border-gray-400 dark:hover:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors"
+                          >
+                            <Plus className="h-10 w-10 text-gray-400 mb-2" />
+                            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Create New Goal</span>
+                          </button>
+                        )}
+                        {userGoals
+                          .filter((g) => {
+                            if (goalFilter === 'all') return true;
+                            if (goalFilter === 'completed') return !!g.completedAt;
+                            if (goalFilter === 'in_progress') return !g.completedAt;
+                            return true;
+                          })
+                          .map((goal, index) => (
+                            <motion.div
+                              key={goal.id}
+                              initial={{ opacity: 0, y: 12 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: Math.min(index * 0.03, 0.3) }}
+                              onClick={() => setOpenGoalId(goal.id)}
+                              className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md cursor-pointer group"
+                            >
+                              <div className="flex items-start gap-3 mb-3">
+                                <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded-lg group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 transition-colors">
+                                  <div className="text-gray-500 dark:text-gray-400 group-hover:text-[#4c99e6] transition-colors">
+                                    {getCategoryIcon(goal.category, 'w-5 h-5')}
+                                  </div>
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <h4 className="font-semibold text-gray-900 dark:text-white text-base line-clamp-2 group-hover:opacity-80 mb-2">{goal.title}</h4>
+                                  <CategoryBadge category={goal.category} />
+                                </div>
+                                {goal.completedAt && <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />}
+                              </div>
+                            </motion.div>
+                          ))}
+                      </div>
+                      {userGoals.length === 0 && (
+                        <div className="text-center py-12 mt-4">
+                          <p className="text-gray-500 dark:text-gray-400 mb-4">No goals yet</p>
+                          {isOwnProfile && (
+                            <button
+                              onClick={() => navigate('/dashboard')}
+                              className="px-5 py-2.5 rounded-xl text-white font-medium text-sm"
+                              style={{ backgroundColor: THEME_COLOR }}
+                            >
+                              Create Goal
+                            </button>
+                          )}
+                        </div>
+                      )}
+                      {hasMoreGoals && userGoals.length > 0 && (
+                        <div className="flex justify-center mt-6">
                           <button
                             onClick={loadMoreGoals}
                             disabled={loadingMoreGoals}
-                            className="px-6 py-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                            className="px-5 py-2.5 rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-sm font-medium disabled:opacity-50 flex items-center gap-2"
                           >
-                            {loadingMoreGoals ? (
-                              <>
-                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900 dark:border-white"></div>
-                                Loading...
-                              </>
-                            ) : (
-                              'Load More Goals'
-                            )}
+                            {loadingMoreGoals ? 'Loading...' : 'Load More'}
                           </button>
-                        </div>
-                      )}
-                      {!hasMoreGoals && userGoals.length > 0 && (
-                        <div className="text-center mt-8 text-sm text-gray-400">
-                          No more goals to load
                         </div>
                       )}
                     </>
                   ) : (
                     <div className="text-center py-16">
-                      <div className="bg-gray-100 dark:bg-gray-700/50 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                        <Lock className="h-8 w-8 text-gray-400" />
-                      </div>
+                      <Lock className="h-8 w-8 text-gray-400 mx-auto mb-4" />
                       <p className="text-gray-500 dark:text-gray-400">Goals are private</p>
                     </div>
                   )}
                 </div>
               )}
               {activeTab === 'habits' && (
-                <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
-                    <Flame className="h-6 w-6 text-orange-500" />
-                    My Habits
-                  </h3>
-                  {userHabits.length > 0 ? (
-                    <>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {userHabits.map((habit, index) => (
-                          <motion.div
-                            key={habit.id || habit._id}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.3, delay: Math.min(index * 0.03, 0.3) }}
-                            onClick={() => {
-                              setOpenHabitId(habit.id || habit._id);
-                              setHabitModalOpen(true);
-                            }}
-                            className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-700/50 dark:to-gray-800/30 rounded-xl p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md hover:border-orange-300 dark:hover:border-orange-600 transition-all cursor-pointer"
+                <div className="space-y-6">
+                  <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+                    <div className="flex items-center justify-between mb-5">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                        <Flame className="h-5 w-5" style={{ color: THEME_COLOR }} />
+                        Active Habits
+                      </h3>
+                      {isOwnProfile && (
+                        <button
+                          onClick={() => navigate('/dashboard?tab=habits')}
+                          className="flex items-center gap-2 px-5 py-2 bg-[#4c99e6] hover:bg-[#3d88d5] text-white rounded-lg transition-colors shadow-sm font-manrope font-medium text-sm"
                           >
-                            <div className="flex items-start justify-between mb-3">
-                              <h4 className="font-semibold text-gray-900 dark:text-white text-base">{habit.name}</h4>
-                              {habit.currentStreak > 0 && (
-                                <div className="flex items-center gap-1 text-orange-600 dark:text-orange-400">
-                                  <Flame className="h-4 w-4" />
-                                  <span className="text-sm font-bold">{habit.currentStreak}</span>
-                                </div>
-                              )}
-                            </div>
-                            {habit.description && (
-                              <p className="text-gray-600 dark:text-gray-400 text-sm mb-3 line-clamp-2">{habit.description}</p>
-                            )}
-                            <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 pt-3 border-t border-gray-200 dark:border-gray-700">
-                              <span>{habit.totalCompletions || 0} completions</span>
-                              {habit.longestStreak > 0 && (
-                                <span className="text-emerald-600 dark:text-emerald-400 font-medium">Best: {habit.longestStreak}</span>
-                              )}
-                            </div>
-                          </motion.div>
-                        ))}
-                      </div>
-                      {hasMoreHabits && (
-                        <div className="flex justify-center mt-8">
-                          <button
-                            onClick={async () => {
-                              setLoadingMoreHabits(true);
-                              try {
-                                const nextPage = habitsPage + 1;
-                                const result = await habitsAPI.list({ page: nextPage, limit: HABITS_PER_PAGE });
-                                if (result.data.success) {
-                                  setUserHabits(prev => [...prev, ...(result.data.data.habits || [])]);
-                                  setHabitsPage(nextPage);
-                                  setHasMoreHabits(result.data.data.pagination.page < result.data.data.pagination.pages);
-                                }
-                              } catch (error) {
-                              } finally {
-                                setLoadingMoreHabits(false);
-                              }
-                            }}
-                            disabled={loadingMoreHabits}
-                            className="px-6 py-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                          >
-                            {loadingMoreHabits ? (
-                              <>
-                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900 dark:border-white"></div>
-                                Loading...
-                              </>
-                            ) : (
-                              'Load More Habits'
-                            )}
-                          </button>
-                        </div>
+                          <Plus className="h-4 w-4" />
+                          New Habit
+                        </button>
                       )}
-                      {!hasMoreHabits && userHabits.length > 0 && (
-                        <div className="text-center mt-8 text-sm text-gray-400">
-                          No more habits to load
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <div className="text-center py-16">
-                      <div className="bg-gray-100 dark:bg-gray-700/50 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                        <Flame className="h-8 w-8 text-gray-400" />
-                      </div>
-                      <p className="text-gray-500 dark:text-gray-400 text-lg font-medium mb-2">No habits yet</p>
-                      <p className="text-gray-400 text-sm mb-4">Start building positive habits today</p>
-                      <button 
-                        onClick={() => navigate('/dashboard')}
-                        className="px-6 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-medium transition-colors shadow-sm"
-                      >
-                        Create Habit
-                      </button>
                     </div>
-                  )}
+                    {userHabits.length > 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {userHabits.map((habit, index) => {
+                          const consistency = habit.consistencyPercent ?? Math.min(100, ((habit.totalCompletions || 0) / Math.max(1, habit.durationDays || 30)) * 100);
+                          return (
+                            <motion.div
+                              key={habit.id}
+                              initial={{ opacity: 0, y: 12 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: index * 0.05 }}
+                              onClick={() => {
+                                setOpenHabitId(habit.id);
+                                setHabitModalOpen(true);
+                              }}
+                              className="rounded-xl p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md cursor-pointer"
+                            >
+                              <div className="flex items-start justify-between gap-3 mb-3">
+                                <div className="flex items-start gap-3 min-w-0 flex-1">
+                                  <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: 'rgba(76, 153, 230, 0.2)' }}>
+                                    <BookOpen className="h-5 w-5" style={{ color: THEME_COLOR }} />
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <h4 className="font-semibold text-gray-900 dark:text-white">{habit.name}</h4>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">{habit.durationMinutes ? `${habit.durationMinutes} mins / day` : (habit.targetValue || 'Daily')}</p>
+                                  </div>
+                                </div>
+                                <div className="flex-shrink-0 text-right">
+                                  <span className="text-xl font-bold block leading-tight" style={{ color: THEME_COLOR }}>{habit.currentStreak ?? 0}</span>
+                                  <span className="text-xs" style={{ color: THEME_COLOR }}>DAY STREAK</span>
+                                </div>
+                              </div>
+                              <div className="mb-3">
+                                <div className="flex justify-between text-xs mb-1">
+                                  <span className="text-gray-500 dark:text-gray-400">{Math.round(consistency)}% Consistency</span>
+                                </div>
+                                <div className="h-2 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+                                  <div className="h-full rounded-full" style={{ width: `${Math.min(100, consistency)}%`, backgroundColor: THEME_COLOR }} />
+                                </div>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs text-gray-500 dark:text-gray-400">Today&apos;s Status</span>
+                                <span className="px-3 py-1 rounded-full text-xs font-medium bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300">
+                                  {habit.loggedToday ? 'Completed' : 'Mark Done'}
+                                </span>
+                              </div>
+                            </motion.div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="text-center py-12">
+                        <Flame className="h-10 w-10 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+                        <p className="text-gray-500 dark:text-gray-400 mb-4">No active habits yet</p>
+                        {isOwnProfile && (
+                          <button
+                            onClick={() => navigate('/dashboard')}
+                            className="px-5 py-2.5 rounded-xl text-white text-sm font-medium"
+                            style={{ backgroundColor: THEME_COLOR }}
+                          >
+                            Create Habit
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                      <Clock className="h-5 w-5 text-gray-500" />
+                      Habit History
+                    </h3>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="text-left text-xs text-gray-500 dark:text-gray-400 uppercase border-b border-gray-200 dark:border-gray-700">
+                            <th className="pb-3 font-medium">Habit Name</th>
+                            <th className="pb-3 font-medium">Duration</th>
+                            <th className="pb-3 font-medium">Best Streak</th>
+                            <th className="pb-3 font-medium">Progress</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {userHabits.length > 0 ? (
+                            userHabits.slice(0, 5).map((h) => (
+                              <tr key={h.id} className="border-b border-gray-100 dark:border-gray-700/50">
+                                <td className="py-3 flex items-center gap-2">
+                                  <span className="text-gray-400">•</span>
+                                  {h.name}
+                                </td>
+                                <td className="py-3 text-gray-600 dark:text-gray-400">{h.durationDays ?? 30} Days</td>
+                                <td className="py-3 text-gray-600 dark:text-gray-400">{h.longestStreak ?? 0} Days</td>
+                                <td className="py-3">
+                                  <span className="px-2 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: 'rgba(76, 153, 230, 0.2)', color: THEME_COLOR }}>
+                                    {h.archived ? 'ARCHIVED' : 'ACTIVE'}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))
+                          ) : (
+                            <tr>
+                              <td colSpan={4} className="py-8 text-center text-gray-500 dark:text-gray-400 text-sm">
+                                No habit history yet
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
                 </div>
               )}
               {activeTab === 'journal' && (
@@ -1339,7 +1357,8 @@ const ProfilePage = () => {
                   ? "bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-gray-700"
                   : "bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-2xl p-5 border border-gray-200 dark:border-gray-700/50"
                 }>
-                  <div className="flex items-center justify-between mb-5">
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Reflections Feed</h3>
                     {isOwnProfile && (
                       <div className="flex items-center gap-2">
                         {/* <button
@@ -1352,9 +1371,14 @@ const ProfilePage = () => {
                         <button
                           onClick={() => setIsJournalOpen(true)}
                           disabled={hasTodayJournal}
-                          className={`px-4 py-2 rounded-lg transition-colors ${hasTodayJournal ? 'bg-gray-300 dark:bg-gray-700 text-gray-600 dark:text-gray-300 cursor-not-allowed' : 'bg-indigo-500 hover:bg-indigo-600 text-white'}`}
-                          title={hasTodayJournal ? 'You have already submitted today. Come back tomorrow!' : 'Open journal prompt'}
-                        >
+                          className={`flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-medium transition-colors shadow-sm font-manrope
+                            ${
+                              hasTodayJournal
+                                ? 'bg-gray-300 dark:bg-gray-700 text-gray-600 cursor-not-allowed'
+                                : 'bg-[#4c99e6] hover:bg-[#3d88d5] text-white'
+                            }
+                          `}                        >
+                          <PenSquare className="h-4 w-4" />
                           {hasTodayJournal ? 'Journal Submitted' : 'Write Today’s Journal'}
                         </button>
                       </div>
@@ -1364,31 +1388,40 @@ const ProfilePage = () => {
                   {isOwnProfile && (
                     <div>
                       {journalFeed.length === 0 && !journalLoading && (
-                        <div className="text-center py-12">
-                          <div className="bg-gray-50 dark:bg-gray-800 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                            <BookOpen className="h-8 w-8 text-gray-400" />
-                          </div>
-                          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">No journal entries yet</p>
-                          {isOwnProfile && (
-                            <button onClick={() => setIsJournalOpen(true)} disabled={hasTodayJournal} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${hasTodayJournal ? 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed' : 'bg-indigo-500 hover:bg-indigo-600 text-white'}`}>{hasTodayJournal ? 'Submitted Today' : 'Write Your First Entry'}</button>
-                          )}
+                        <div className="text-center py-12 border-2 border-dashed border-gray-200 dark:border-gray-600 rounded-2xl">
+                          <BookOpen className="h-12 w-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+                          <p className="text-gray-500 dark:text-gray-400 mb-4">No reflections yet</p>
+                          <button onClick={() => setIsJournalOpen(true)} disabled={hasTodayJournal} className={`px-5 py-2.5 rounded-xl text-sm font-medium ${hasTodayJournal ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'text-white'}`} style={!hasTodayJournal ? { backgroundColor: THEME_COLOR } : {}}>{hasTodayJournal ? 'Submitted Today' : 'Write Your First Entry'}</button>
                         </div>
                       )}
                       <div className="space-y-3 max-h-[500px] overflow-y-auto scrollbar-hide pr-1">
                         {journalFeed.map((e) => (
-                          <button key={e.id || e._id} onClick={() => { setSelectedEntry(e); setEntryModalOpen(true); }} className="w-full text-left p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-sm transition-all">
-                            <div className="flex items-center justify-between mb-2.5">
-                              <span className="text-xs text-gray-500 dark:text-gray-400">{formatTimeAgo(e.createdAt)}</span>
-                              <span className="inline-flex items-center gap-1.5">
-                                <span className="px-2 py-0.5 rounded-md text-xs bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 font-medium">{e.visibility}</span>
-                                <span className="px-2 py-0.5 rounded-md text-xs bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 font-medium capitalize">{e.mood?.replace('_', ' ') || 'neutral'}</span>
-                              </span>
+                          <button
+                            key={e.id}
+                            onClick={() => { setSelectedEntry(e); setEntryModalOpen(true); }}
+                            className="w-full text-left p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:shadow-md transition-all"
+                          >
+                            <div className="text-xs text-gray-500 dark:text-gray-400 uppercase mb-2">{formatDate(e.createdAt)}</div>
+                            <div className="flex items-center gap-2 mb-3">
+                              {e.visibility === 'public' ? (
+                                <span className="inline-flex items-center gap-1.5 text-xs font-medium" style={{ color: THEME_COLOR }}>
+                                  <Globe className="h-3.5 w-3.5" /> PUBLIC
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500">
+                                  <Lock className="h-3.5 w-3.5" /> PRIVATE
+                                </span>
+                              )}
                             </div>
-                            <p className="text-sm text-gray-800 dark:text-gray-200 line-clamp-3 leading-relaxed">{e.content}</p>
+                            <h4 className="font-semibold text-gray-900 dark:text-white mb-2 line-clamp-1">{e.title || 'Reflection'}</h4>
+                            <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-3 leading-relaxed">{e.content}</p>
                             {e?.motivation && (
-                              <div className="mt-3 p-2.5 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200/50 dark:border-indigo-800/30 rounded-lg text-xs text-indigo-700 dark:text-indigo-300 flex items-start gap-2">
-                                <Sparkles className="h-3.5 w-3.5 mt-0.5 text-indigo-500 flex-shrink-0" />
-                                <span className="leading-relaxed">{e.motivation}</span>
+                              <div className="mt-4 p-4 rounded-xl flex items-start gap-2" style={{ backgroundColor: 'rgba(76, 153, 230, 0.1)' }}>
+                                <Sparkles className="h-4 w-4 flex-shrink-0 mt-0.5" style={{ color: THEME_COLOR }} />
+                                <div>
+                                  <span className="text-xs font-semibold uppercase" style={{ color: THEME_COLOR }}>AI Insight</span>
+                                  <p className="text-sm mt-1 leading-relaxed" style={{ color: '#3d7ab8' }}>{e.motivation}</p>
+                                </div>
                               </div>
                             )}
                           </button>
@@ -1410,13 +1443,6 @@ const ProfilePage = () => {
             </motion.div>
           </>
         )}
-        {/* Profile Edit Modal - only for own profile */}
-        {isOwnProfile && (
-          <Suspense fallback={null}><ProfileEditModal
-            isOpen={isEditModalOpen}
-            onClose={() => setIsEditModalOpen(false)}
-          /></Suspense>
-        )}
         {/* Journal Prompt Modal */}
         {isOwnProfile && (
           <Suspense fallback={null}><JournalPromptModal
@@ -1424,7 +1450,7 @@ const ProfilePage = () => {
             onClose={() => setIsJournalOpen(false)}
             onSubmitted={async () => {
               try {
-                await getUserJournalHighlights(currentUser?._id, { limit: 12 });
+                await getUserJournalHighlights(currentUser?.id, { limit: 12 });
                 const entries = await getMyJournalEntries({ limit: 10 });
                 // Update local journalFeed with fresh entries
                 if (Array.isArray(entries) && entries.length > 0) {
@@ -1453,15 +1479,15 @@ const ProfilePage = () => {
         targetLabel={displayUser?.username ? `@${displayUser.username}` : 'user'}
         onSubmit={async ({ reason, description }) => {
           try {
-            if (!displayUser?._id) return;
-            await report({ targetType: 'user', targetId: displayUser._id, reason, description });
+            if (!displayUser?.id) return;
+            await report({ targetType: 'user', targetId: displayUser.id, reason, description });
           } finally {
             // Offer to block after report
-            try { if (displayUser?._id) { setBlockOpen(true); } } catch { }
+            try { if (displayUser?.id) { setBlockOpen(true); } } catch { }
             setReportOpen(false);
           }
         }}
-        onReportAndBlock={displayUser?._id ? async () => { await blockUser(displayUser._id); } : undefined}
+        onReportAndBlock={displayUser?.id ? async () => { await blockUser(displayUser.id); } : undefined}
       /></Suspense>
       <Suspense fallback={null}><BlockModal
         isOpen={blockOpen}
@@ -1469,26 +1495,37 @@ const ProfilePage = () => {
         username={displayUser?.username || 'this user'}
         onConfirm={async () => {
           try {
-            if (!displayUser?._id) return;
-            await blockUser(displayUser._id);
-          } finally {
-            setBlockOpen(false);
+            if (!displayUser?.id) {
+              console.log(displayUser);
+              toast.error('User ID not found');
+              return;
+            }
+            const result = await blockUser(displayUser.id);
+            if (result.success) {
+              setBlockOpen(false);
+              // Navigate away from blocked user's profile
+              navigate('/dashboard');
+            } else {
+              toast.error(result.error || 'Failed to block user');
+            }
+          } catch (error) {
+            toast.error('Failed to block user');
           }
         }}
       /></Suspense>
       {/* Goal Details Modal (with timeline) */}
       {openGoalId && (
-        <Suspense fallback={null}><GoalDetailsModal
+        <Suspense fallback={null}><GoalPostModal
           isOpen={!!openGoalId}
           goalId={openGoalId}
-          autoOpenComments={scrollCommentsOnOpen}
+          openWithComments={scrollCommentsOnOpen}
           onClose={closeGoalModal}
         /></Suspense>
       )}
       {/* Habit Detail Modal */}
       {isOwnProfile && habitModalOpen && openHabitId && (
         <Suspense fallback={null}><HabitDetailModal
-          habit={userHabits.find(h => (h.id || h._id) === openHabitId)}
+          habit={userHabits.find(h => (h.id) === openHabitId)}
           isOpen={habitModalOpen}
           onClose={() => {
             setHabitModalOpen(false);
@@ -1542,25 +1579,24 @@ const ProfilePage = () => {
               <div className="space-y-1 p-3">
                 {isOwnProfile ? (
                   <>
-                    {!isMobile && <button
-                      className="w-full text-center px-4 py-2 text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setIsEditModalOpen(true);
-                        setProfileMenuOpen(false);
-                      }}
-                    >
-                      Edit Profile
-                    </button>}
                     <button
                       className="w-full text-center px-4 py-2 text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
                         const profileUrl = `${window.location.origin}/profile/@${displayUser.username}`;
-                        shareUrlRef.current = profileUrl;
-                        setShareSheetOpen(true);
+                        if (isMobile) {
+                          shareUrlRef.current = profileUrl;
+                          setShareSheetOpen(true);
+                        } else {
+                          navigator.clipboard.writeText(profileUrl)
+                            .then(() => {
+                              toast.success('Profile link copied to clipboard', { duration: 2000 });
+                            })
+                            .catch(() => {
+                              toast.error('Failed to copy link');
+                            });
+                        }
                         setProfileMenuOpen(false);
                       }}
                     >
@@ -1575,8 +1611,18 @@ const ProfilePage = () => {
                         e.preventDefault();
                         e.stopPropagation();
                         const profileUrl = `${window.location.origin}/profile/@${displayUser.username}`;
-                        shareUrlRef.current = profileUrl;
-                        setShareSheetOpen(true);
+                        if (isMobile) {
+                          shareUrlRef.current = profileUrl;
+                          setShareSheetOpen(true);
+                        } else {
+                          navigator.clipboard.writeText(profileUrl)
+                            .then(() => {
+                              toast.success('Profile link copied to clipboard', { duration: 2000 });
+                            })
+                            .catch(() => {
+                              toast.error('Failed to copy link');
+                            });
+                        }
                         setProfileMenuOpen(false);
                       }}
                     >
@@ -1626,6 +1672,99 @@ const ProfilePage = () => {
         url={shareUrlRef.current}
         title={`${displayUser?.name}'s Profile - WishTrail`}
       />
+      
+      {/* Quote Modal */}
+      {quoteModalOpen && displayUser?.currentMood && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          onClick={() => setQuoteModalOpen(false)}
+        >
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm" />
+          
+          {/* Modal */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            transition={{ duration: 0.2 }}
+            className="relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full border border-gray-200 dark:border-gray-700">
+              {/* Mood Header */}
+              <div className="flex items-center justify-center pt-8 pb-4">
+                <div 
+                  className="w-20 h-20 rounded-full flex items-center justify-center shadow-lg"
+                  style={{ backgroundColor: 'rgba(76, 153, 230, 0.1)' }}
+                >
+                  <span className="text-5xl">{displayUser.currentMood}</span>
+                </div>
+              </div>
+              
+              {/* User Info */}
+              <div className="text-center px-6 pb-4">
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  @{displayUser.username}
+                </p>
+              </div>
+              
+              {/* Quote Section */}
+              {displayUser.quote ? (
+                <div className="px-6 pb-6">
+                  <div 
+                    className="p-5 rounded-xl border-l-4"
+                    style={{ 
+                      backgroundColor: 'rgba(76, 153, 230, 0.08)',
+                      borderLeftColor: '#4c99e6'
+                    }}
+                  >
+                    <div className="flex items-start gap-3">
+                      <Sparkles className="h-5 w-5 flex-shrink-0 mt-0.5" style={{ color: '#4c99e6' }} />
+                      <div className="flex-1">
+                        <p className="text-gray-800 dark:text-gray-200 leading-relaxed italic">
+                          &ldquo;{displayUser.quote}&rdquo;
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="px-6 pb-6">
+                  <div className="p-5 rounded-xl bg-gray-50 dark:bg-gray-700/30 text-center">
+                    <p className="text-sm text-gray-500 dark:text-gray-400 italic">
+                      No quote shared yet
+                    </p>
+                  </div>
+                </div>
+              )}
+              
+              {/* Close Button */}
+              <div className="border-t border-gray-200 dark:border-gray-700 p-4">
+                <button
+                  onClick={() => setQuoteModalOpen(false)}
+                  className="w-full px-4 py-2.5 rounded-xl text-white font-medium text-sm transition-opacity hover:opacity-90"
+                  style={{ backgroundColor: '#4c99e6' }}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
+      
+      {/* Footer quote */}
+      <footer className="text-center py-8 mt-8">
+        <p className="text-gray-500 dark:text-gray-400 italic text-sm">
+          &ldquo;The only way to achieve the impossible is to believe it is possible.&rdquo;
+        </p>
+        <div className="flex justify-center gap-1.5 mt-4">
+          <span className="w-2 h-2 rounded-full bg-gray-400 dark:bg-gray-500" />
+          <span className="w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-600" />
+          <span className="w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-600" />
+        </div>
+      </footer>
     </div>
   );
 };

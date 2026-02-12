@@ -1,1069 +1,532 @@
-import { useEffect, useState, useRef, useCallback, lazy, Suspense } from 'react'
+import { useState, useEffect, lazy, Suspense, useMemo, useRef } from 'react'
+import { GOAL_CATEGORIES } from '../constants/goalCategories'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Users, Target, RefreshCw, TrendingUp, Flame, UserPlus, UserCheck, Compass, Search, Sparkles } from 'lucide-react'
-import { communitiesAPI } from '../services/api'
+import { Plus, Target, Search, UserPlus, Rocket, TrendingUp, Globe, Lightbulb } from 'lucide-react'
 import useApiStore from '../store/apiStore'
-import SkeletonList from '../components/loader/SkeletonList'
-import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
-import { INTERESTS_LIST } from '../constants/interests'
-const GoalDetailsModal = lazy(() => import('../components/GoalDetailsModal'));
-const ReportModal = lazy(() => import('../components/ReportModal'));
-const BlockModal = lazy(() => import('../components/BlockModal'));
-import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
-import { useSwipeable } from 'react-swipeable'
+import { useSearchParams, useNavigate } from 'react-router-dom'
+import { getCategoryIcon } from '../utils/categoryIcons'
+import CategoryBadge from '../components/CategoryBadge'
 
-const DiscoverPage = () => {
+const GoalPostModal = lazy(() => import('../components/GoalPostModal'))
+
+const DiscoverPageNew = () => {
+  const navigate = useNavigate()
+  const [activeTab, setActiveTab] = useState('goals')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState('all')
+  const [users, setUsers] = useState([])
+  const [debouncedUserSearch, setDebouncedUserSearch] = useState('')
+  const userDebounceTimeout = useRef(null)
+  const [topAchievers, setTopAchievers] = useState([])
+  const [trendingGoals, setTrendingGoals] = useState([])
+  const [allTrendingGoals, setAllTrendingGoals] = useState([])
+  const [openGoalId, setOpenGoalId] = useState(null)
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+  const debounceTimeout = useRef(null)
+
   const {
     isAuthenticated,
     user,
-    searchUsers,
-    getUsers,
-    getTrendingGoals,
-    cancelFollowRequest,
     followUser,
     unfollowUser,
-    report,
-    blockUser,
+    getTrendingGoals,
+    getUsers,
+    getGlobalLeaderboard,
+    leaderboard,
+    searchPublicGoals,
+    searchUsers,
   } = useApiStore()
 
-  const DISCOVER_PAGE_SIZE = 6
-  const INITIAL_RECOMMENDATIONS_LIMIT = 6
-  const INITIAL_TRENDING_LIMIT = 9
-  const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('users')
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [loading, setLoading] = useState(false)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [selectedInterest, setSelectedInterest] = useState('')
-  const [users, setUsers] = useState([])
-  const [trending, setTrending] = useState([])
-  const [discoverPage, setDiscoverPage] = useState(1)
-  const [discoverHasMore, setDiscoverHasMore] = useState(true)
-  const [isSearching, setIsSearching] = useState(false)
-  const discoverSentinelRef = useRef(null)
-  const [searchResults, setSearchResults] = useState([]);
-  const [loadingGoals, setLoadingGoals] = useState(false);
-  const [openUserMenuId, setOpenUserMenuId] = useState(null);
-  const [loadingMoreDiscover, setLoadingMoreDiscover] = useState(false);
-  const [trendingPage, setTrendingPage] = useState(1);
-  const [trendingHasMore, setTrendingHasMore] = useState(true);
-  const [loadingMoreUserSearch, setLoadingMoreUserSearch] = useState(false);
-  const [userSearchPage, setUserSearchPage] = useState(1);
-  const [userSearchHasMore, setUserSearchHasMore] = useState(true);
-  const [goalSearchPage, setGoalSearchPage] = useState(1);
-  const [loadingMoreGoalSearch, setLoadingMoreGoalSearch] = useState(false);
-  const [goalSearchHasMore, setGoalSearchHasMore] = useState(true);
-  const [goalResults, setGoalResults] = useState([])
-  const [communities, setCommunities] = useState([])
-  const [communityResults, setCommunityResults] = useState([])
-  const [goalModalOpen, setGoalModalOpen] = useState(false)
-  const [openGoalId, setOpenGoalId] = useState(null)
-  const [scrollCommentsOnOpen, setScrollCommentsOnOpen] = useState(false)
-  const [reportOpen, setReportOpen] = useState(false)
-  const [reportTarget, setReportTarget] = useState({ type: null, id: null, label: '', username: '', userId: null })
-  const [blockOpen, setBlockOpen] = useState(false)
-  const [blockUserId, setBlockUserId] = useState(null)
-  const [blockUsername, setBlockUsername] = useState('')
-  const location = useLocation();
-  const [inNativeApp, setInNativeApp] = useState(false)
+  // Canonical categories (with 'All' option)
+  const categories = [
+    { id: 'all', label: 'All', icon: Globe, color: 'bg-gray-400' },
+    ...GOAL_CATEGORIES
+  ];
 
-  // Outside click for user menu
-  useEffect(() => {
-    const onDocMouseDown = (e) => {
-      if (!openUserMenuId) return;
-      const target = e.target;
-      const inside = target?.closest?.('[data-user-menu="true"]') || target?.closest?.('[data-user-menu-btn="true"]');
-      if (inside) return;
-      setOpenUserMenuId(null);
-    };
-    document.addEventListener('mousedown', onDocMouseDown);
-    return () => document.removeEventListener('mousedown', onDocMouseDown);
-  }, [openUserMenuId]);
 
-  useEffect(() => {
-    try { if (typeof window !== 'undefined' && window.ReactNativeWebView) setInNativeApp(true) } catch { }
-  }, [])
-
-  // Deep link: open via ?goalId=
-  useEffect(() => {
-    try {
-      const params = new URLSearchParams(location.search)
-      const gid = params.get('goalId')
-      if (gid) {
-        openGoalModal(gid)
-      }
-    } catch { }
-  }, [location.search])
-
-  // No need to fetch interests - using static list
-  useEffect(() => {
-    if (!isAuthenticated) return
-  }, [isAuthenticated])
-
-  // Tab changes now only clear state, don't fetch
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    // Clear results when switching tabs
-    setSearchResults([]);
-    setGoalResults([]);
-    setUsers([]);
-    setTrending([]);
-    setCommunities([]);
-    setCommunityResults([]);
-  }, [activeTab, isAuthenticated]);
-
-  useEffect(() => {
-    const tabFromUrl = searchParams.get('tab') || 'goals';
-    if (tabFromUrl !== activeTab) {
-      setActiveTab(tabFromUrl);
+  // Mock users data
+  const mockUsers = [
+    {
+      id: 1,
+      name: 'Jordan Smith',
+      username: '@smith_growth',
+      avatar: null,
+      stats: { goals: 12, done: 45, streak: 18 },
+      following: false
+    },
+    {
+      id: 2,
+      name: 'Elena Vance',
+      username: '@evance_design',
+      avatar: null,
+      stats: { goals: 8, done: 102, streak: 34 },
+      following: false
+    },
+    {
+      id: 3,
+      name: 'Marcus Chen',
+      username: '@chen_visua',
+      avatar: null,
+      stats: { goals: 15, done: 28, streak: 12 },
+      following: false
+    },
+    {
+      id: 4,
+      name: 'Sarah Jenkins',
+      username: '@_jenky',
+      avatar: null,
+      stats: { goals: 5, done: 14, streak: 7 },
+      following: false
     }
-  }, [searchParams]);
+  ]
+
+
+  // Sync tab with URL
+  useEffect(() => {
+    const tabFromUrl = searchParams.get('tab') || 'goals'
+    if (tabFromUrl !== activeTab) {
+      setActiveTab(tabFromUrl)
+    }
+  }, [searchParams])
 
   const handleTabChange = (tab) => {
-    setSearchParams({ tab });
-    setActiveTab(tab);
-  };
+    setSearchParams({ tab })
+    setActiveTab(tab)
+  }
 
+  // Debounce search input (goals)
   useEffect(() => {
-    // Trigger search when user types or filters
-    if (searchTerm.trim() || selectedInterest) {
-      const debounceTimer = setTimeout(() => {
-        handleSearch(searchTerm, selectedInterest);
-      }, 400);
-      return () => clearTimeout(debounceTimer);
-    } else {
-      // Clear search results when no search term or filter
-      setSearchResults([]);
-      setGoalResults([]);
-      setCommunityResults([]);
-      setIsSearching(false);
-    }
-  }, [searchTerm, selectedInterest, activeTab]);
+    if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+    debounceTimeout.current = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 400);
+    return () => clearTimeout(debounceTimeout.current);
+  }, [searchQuery]);
 
-  const fetchInitial = async () => {
-    // Only fetch when user actively searches or filters
-    // This is now only called from handleSearch
-    setLoading(true)
-    try {
-      if (activeTab === 'users') {
-        setDiscoverPage(1)
-        setDiscoverHasMore(true)
-        const usersData = await getUsers({ page: 1, limit: INITIAL_RECOMMENDATIONS_LIMIT })
-        if (usersData.success) {
-          const filteredUsers = (usersData.users || []).filter(u => u && u.id && u.id !== user?.id)
-          setUsers(filteredUsers.slice(0, INITIAL_RECOMMENDATIONS_LIMIT))
-          const totalPages = usersData.pagination?.pages || 1
-          setDiscoverHasMore(1 < totalPages)
-        } else {
-          setUsers([])
-        }
-      } 
-      else if (activeTab === 'communities') {
-        try {
-          const resp = await communitiesAPI.discover({ interests: selectedInterest ? selectedInterest : '', limit: 30 });
-          const data = resp?.data?.data || [];
-          setCommunities(data);
-          if (searchTerm.trim()) {
-            const q = searchTerm.trim().toLowerCase();
-            setCommunityResults(data.filter(c => (c.name || '').toLowerCase().includes(q)));
-          } else {
-            setCommunityResults(data);
-          }
-        } catch (_) {
-          setCommunities([]); setCommunityResults([]);
-        }
-      } else
-        // Goals subtab: either refresh search or fetch trending list
-        if (searchTerm.trim() || selectedInterest) {
-          try {
-            setLoadingGoals(true);
-            await handleSearch(searchTerm, selectedInterest);
-          } finally {
-            setLoadingGoals(false);
-          }
-        } else {
-          try {
-            setLoadingGoals(true);
-            setTrendingPage(1);
-            setTrendingHasMore(true);
-            const { goals, pagination } = await getTrendingGoals({ strategy: 'global', page: 1, limit: INITIAL_TRENDING_LIMIT });
-            setTrending(goals || []);
-            const totalPages = pagination?.pages || 1;
-            setTrendingHasMore(1 < totalPages);
-          } catch (_) {
-            setTrending([]);
-            setTrendingHasMore(false);
-          } finally {
-            setLoadingGoals(false);
-          }
-        }
-    } catch (_) {
-      setUsers([]); setTrending([])
-      setDiscoverHasMore(false)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const openGoalModal = (gid) => {
-    if (!gid) return
-    setOpenGoalId(gid)
-    setGoalModalOpen(true)
-  }
-
-  const closeGoalModal = () => {
-    setGoalModalOpen(false)
-    setOpenGoalId(null)
-    setScrollCommentsOnOpen(false)
-    try {
-      const params = new URLSearchParams(location.search)
-      if (params.get('goalId')) navigate(-1)
-    } catch { }
-  }
-
-  // Lock body scroll when modal open
+  // Debounce search input (users)
   useEffect(() => {
-    if (goalModalOpen) {
-      lockBodyScroll()
-      return () => unlockBodyScroll()
-    }
-    return undefined
-  }, [goalModalOpen])
+    if (userDebounceTimeout.current) clearTimeout(userDebounceTimeout.current);
+    userDebounceTimeout.current = setTimeout(() => {
+      setDebouncedUserSearch(searchQuery);
+    }, 400);
+    return () => clearTimeout(userDebounceTimeout.current);
+  }, [searchQuery]);
 
-
-  const mergeUniqueById = (prev, next) => {
-    const seen = new Set((prev || []).map((i) => i?.id).filter(Boolean));
-    const merged = [...(prev || [])];
-    for (const item of (next || [])) {
-      if (!item || !item.id) continue;
-      if (!seen.has(item.id)) {
-        merged.push(item);
-        seen.add(item.id);
-      }
-    }
-    return merged;
-  };
-
-  const handleFollow = async (userId) => {
-    try {
-      await followUser(userId);
-      // Update local state
-      setUsers(users.map(u =>
-        u.id === userId ? { ...u, isFollowing: true } : u
-      ));
-      setSearchResults(searchResults.map(u =>
-        u.id === userId ? { ...u, isFollowing: true } : u
-      ));
-    } catch (error) {
-      console.error('Error following user:', error);
-    }
-  };
-
-  const handleUnfollow = async (userId) => {
-    try {
-      await unfollowUser(userId);
-      // Update local state
-      setUsers(users.map(u =>
-        u.id === userId ? { ...u, isFollowing: false } : u
-      ));
-      setSearchResults(searchResults.map(u =>
-        u.id === userId ? { ...u, isFollowing: false } : u
-      ));
-    } catch (error) {
-      console.error('Error unfollowing user:', error);
-    }
-  };
-
-  const loadMoreDiscover = useCallback(async () => {
-    if (loadingMoreDiscover || !discoverHasMore) return;
-    if (searchTerm.trim().length >= 2) return; // pause during search
-    setLoadingMoreDiscover(true);
-    try {
-      const next = discoverPage + 1;
-      const resp = await getUsers({ page: next, limit: DISCOVER_PAGE_SIZE });
-      if (resp.success) {
-        const filtered = (resp.users || []).filter(u => u && u.id && u.id !== user?.id);
-        setUsers(prev => mergeUniqueById(prev, filtered));
-        setDiscoverPage(next);
-        const totalPages = resp.pagination?.pages || next;
-        setDiscoverHasMore(next < totalPages);
-      } else {
-        setDiscoverHasMore(false);
-      }
-    } catch (e) {
-      setDiscoverHasMore(false);
-    } finally {
-      setLoadingMoreDiscover(false);
-    }
-  }, [discoverPage, discoverHasMore, loadingMoreDiscover, getUsers, searchTerm]);
-
-  const loadMoreTrending = useCallback(async () => {
-    if (loadingMoreDiscover || !trendingHasMore) return;
-    if (searchTerm.trim() || selectedInterest) return; // pause if searching
-    setLoadingMoreDiscover(true);
-    try {
-      const next = trendingPage + 1;
-      const { goals, pagination } = await getTrendingGoals({ strategy: 'global', page: next, limit: 18 });
-      setTrending(prev => mergeUniqueById(prev, goals || []));
-      setTrendingPage(next);
-      const totalPages = pagination?.pages || next;
-      setTrendingHasMore(next < totalPages);
-    } catch (_) {
-      setTrendingHasMore(false);
-    } finally {
-      setLoadingMoreDiscover(false);
-    }
-  }, [trendingPage, trendingHasMore, loadingMoreDiscover, getTrendingGoals, searchTerm, selectedInterest]);
-
-  const loadMoreUserSearch = useCallback(async () => {
-    if (loadingMoreUserSearch || !userSearchHasMore) return;
-    const t = searchTerm.trim();
-    const next = userSearchPage + 1;
-    setLoadingMoreUserSearch(true);
-    try {
-      const { users: results, pagination } = await searchUsers({ search: t, interest: selectedInterest, page: next, limit: 18 });
-      const filtered = (results || []).filter(u => u && u.id && u.id !== user?.id);
-      setSearchResults(prev => mergeUniqueById(prev, filtered));
-      setUserSearchPage(next);
-      const totalPages = pagination?.pages || next;
-      setUserSearchHasMore(next < totalPages);
-    } catch (_) {
-      setUserSearchHasMore(false);
-    } finally {
-      setLoadingMoreUserSearch(false);
-    }
-  }, [userSearchPage, userSearchHasMore, loadingMoreUserSearch, searchUsers, searchTerm, selectedInterest]);
-
-  const loadMoreGoalSearch = useCallback(async () => {
-    if (loadingMoreGoalSearch || !goalSearchHasMore) return;
-    const t = searchTerm.trim();
-    const next = goalSearchPage + 1;
-    setLoadingMoreGoalSearch(true);
-    try {
-      const { goals, pagination } = await useApiStore.getState().searchGoals({ q: t, interest: selectedInterest, page: next, limit: 18 });
-      setGoalResults(prev => mergeUniqueById(prev, goals || []));
-      setGoalSearchPage(next);
-      const totalPages = pagination?.pages || next;
-      setGoalSearchHasMore(next < totalPages);
-    } catch (_) {
-      setGoalSearchHasMore(false);
-    } finally {
-      setLoadingMoreGoalSearch(false);
-    }
-  }, [goalSearchPage, goalSearchHasMore, loadingMoreGoalSearch, searchTerm, selectedInterest]);
-
-
-  // Observer (single, parity with Explore discover)
+  // Load trending goals and top achievers, and user search
   useEffect(() => {
     if (!isAuthenticated) return;
-    const observer = new IntersectionObserver((entries) => {
-      const entry = entries[0];
-      if (entry.isIntersecting) {
-        if ((searchTerm.trim() || selectedInterest) && activeTab === 'users') {
-          loadMoreUserSearch();
-        } else if ((searchTerm.trim() || selectedInterest) && activeTab === 'goals') {
-          loadMoreGoalSearch();
-        } else if (activeTab === 'users') {
-          loadMoreDiscover();
-        } else if (activeTab === 'goals') {
-          loadMoreTrending();
-        }
-      }
-    }, { root: null, rootMargin: '300px', threshold: 0.1 });
-    const target = discoverSentinelRef.current;
-    if (target) observer.observe(target);
-    return () => observer.disconnect();
-  }, [isAuthenticated, loadMoreDiscover, loadMoreTrending, loadMoreUserSearch, loadMoreGoalSearch, activeTab, searchTerm, selectedInterest]);
-
-  const handleSearch = async (term, interestValue) => {
-    const t = term.trim();
-    if (!t && !interestValue) {
-      setSearchResults([]);
-      setGoalResults([]);
-      setCommunityResults([]);
-      setIsSearching(false);
-      return;
-    }
-    if (t && t.length < 2 && !interestValue) {
-      setSearchResults([]);
-      setGoalResults([]);
-      setCommunityResults([]);
-      setIsSearching(false);
-      return;
-    }
-
-    setIsSearching(true);
-    setUserSearchPage(1);
-    setGoalSearchPage(1);
-    setUserSearchHasMore(true);
-    setGoalSearchHasMore(true);
-    try {
-      if (activeTab === 'users') {
-        const { users: results, pagination } = await searchUsers({ search: t, interest: interestValue, page: 1, limit: 18 });
-        const filteredResults = (results || []).filter(u => u && u.id !== user?.id);
-        setSearchResults(filteredResults);
-        const totalPages = pagination?.pages || 1;
-        setUserSearchHasMore(1 < totalPages);
-      } else if (activeTab === 'goals') {
-        setLoadingGoals(true);
-        // Use searchPublicGoals to ensure only public/discoverable goals are shown
-        const { goals, pagination } = await useApiStore.getState().searchPublicGoals({ q: t, interest: interestValue, page: 1, limit: 18 });
-        setGoalResults(goals || []);
-        const totalPages = pagination?.pages || 1;
-        setGoalSearchHasMore(1 < totalPages);
-      } else if (activeTab === 'communities') {
-        // Only fetch from API if we don't have data or interest changed
-        if (communities.length === 0 || interestValue) {
-          const resp = await communitiesAPI.discover({ interests: interestValue || '', limit: 50 });
-          const data = resp?.data?.data || [];
-          setCommunities(data);
-          // Apply text filter client-side
-          const q = t.toLowerCase();
-          setCommunityResults(q ? data.filter(c => (c.name || '').toLowerCase().includes(q) || (c.description || '').toLowerCase().includes(q)) : data);
+    if (activeTab === 'goals') {
+      (async () => {
+        // If searching, use searchPublicGoals API
+        if (debouncedSearch.trim() || (selectedCategory && selectedCategory !== 'all')) {
+          const params = {};
+          if (debouncedSearch.trim()) params.q = debouncedSearch.trim();
+          if (selectedCategory && selectedCategory !== 'all') params.category = selectedCategory;
+          const result = await searchPublicGoals(params);
+          setAllTrendingGoals((result && Array.isArray(result.goals)) ? result.goals : []);
         } else {
-          // Just filter existing communities client-side
-          const q = t.toLowerCase();
-          setCommunityResults(q ? communities.filter(c => (c.name || '').toLowerCase().includes(q) || (c.description || '').toLowerCase().includes(q)) : communities);
+          const data = await getTrendingGoals({ page: 1, limit: 30 });
+          setAllTrendingGoals(data.goals || []);
         }
-      }
-    } catch (error) {
-      console.error('Error searching:', error);
-      setSearchResults([]);
-      setGoalResults([]);
-      setCommunityResults([]);
-    } finally {
-      setIsSearching(false);
-      setLoadingGoals(false);
+      })();
+    } else {
+      (async () => {
+        if (debouncedUserSearch.trim()) {
+          // Use searchUsers API, which searches by name and username
+          const result = await searchUsers({ search: debouncedUserSearch.trim() });
+          const foundUsers = result?.users || [];
+          // Map API response to match UI expectations (add stats object)
+          const mappedUsers = foundUsers.map(user => ({
+            ...user,
+            stats: {
+              goals: user.totalGoals || 0,
+              done: user.completedGoals || 0,
+              streak: user.currentStreak || 0
+            },
+            following: user.isFollowing || false
+          }));
+          setUsers(mappedUsers);
+        } else {
+          // No users shown by default - only show through search
+          setUsers([]);
+        }
+        // Fetch top achievers from leaderboard
+        const top = await getGlobalLeaderboard({ page: 1, limit: 3 });
+        setTopAchievers(Array.isArray(top) ? top.slice(0, 3) : []);
+      })();
     }
-  };
+  }, [activeTab, isAuthenticated, getTrendingGoals, getGlobalLeaderboard, debouncedSearch, selectedCategory, searchPublicGoals, debouncedUserSearch, searchUsers]);
 
-  const displayUsers = (selectedInterest || (searchTerm.trim() && searchTerm.trim().length >= 2))
-    ? searchResults
-    : users;
+  // Set trending goals from allTrendingGoals (already filtered by API)
+  useEffect(() => {
+    if (activeTab !== 'goals') return;
+    setTrendingGoals(allTrendingGoals);
+  }, [allTrendingGoals, activeTab]);
 
-  const getCategoryColor = (category) => {
-    const colors = {
-      'Career': 'bg-blue-500',
-      'Health': 'bg-green-500',
-      'Personal Development': 'bg-purple-500',
-      'Education': 'bg-yellow-500',
-      'Finance': 'bg-red-500',
-      'Health & Fitness': 'bg-green-500',
-      'Education & Learning': 'bg-yellow-500',
-      'Career & Business': 'bg-blue-500',
-      'Financial Goals': 'bg-red-500',
-      'Creative Projects': 'bg-purple-500',
-      'Travel & Adventure': 'bg-orange-500',
-      'Relationships': 'bg-pink-500',
-      'Family & Friends': 'bg-indigo-500',
-      'Other': 'bg-gray-500'
-    };
-    return colors[category] || 'bg-gray-500';
-  };
+  // No need to filter users locally, as API already searches by name/username
+  const filteredUsers = users;
 
-  const handleSwipe = useSwipeable({
-    onSwipedLeft: () => {
-      if (activeTab === "users") handleTabChange("goals")
-      // else if (activeTab === "goals") handleTabChange("communities")
-    },
-    onSwipedRight: () => {
-      // if (activeTab === "communities") handleTabChange("goals")
-      if (activeTab === "goals") handleTabChange("users")
-    },
-    trackMouse: false
-  })
-
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50 dark:from-slate-900 dark:via-gray-900 dark:to-zinc-900">
-        <div className="text-center">
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ duration: 0.5 }}
-            className="bg-gradient-to-r from-blue-500 to-purple-600 p-6 rounded-full mb-6 mx-auto w-24 h-24 flex items-center justify-center"
-          >
-            <Compass className="h-12 w-12 text-white" />
-          </motion.div>
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-            Explore WishTrail
-          </h1>
-          <p className="text-gray-600 dark:text-gray-300 mb-8 max-w-md mx-auto">
-            Discover inspiring goals and connect with like-minded achievers
-          </p>
-          <a href="/auth" className="btn-primary text-lg px-8 py-3">
-            Join the Community
-          </a>
-        </div>
-      </div>
-    );
+  const handleFollow = async (userId) => {
+    const result = await followUser(userId)
+    if (result.success) {
+      setUsers(users.map(u => u.id === userId ? { ...u, following: true } : u))
+    }
   }
 
-  return (
-    <div
-      {...handleSwipe}
-      className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-slate-900 dark:via-gray-900 dark:to-zinc-900">
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        {!inNativeApp && (
-          <motion.div 
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex items-center justify-between mb-8"
-          >
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                <Compass className="h-8 w-8 text-purple-600 dark:text-purple-400" />
-                Discover
-              </h1>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                {activeTab === 'users' ? 'Find inspiring people to follow' : 
-                 activeTab === 'goals' ? 'Explore trending achievements' : 
-                 'Join amazing communities'}
-              </p>
-            </div>
-            <button
-              onClick={() => fetchInitial()}
-              aria-label="Refresh"
-              className={`h-10 w-10 inline-flex items-center justify-center rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm hover:shadow ${loading ? 'opacity-60' : ''}`}
-              disabled={loading}
-            >
-              <RefreshCw className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
-            </button>
-          </motion.div>
-        )}
+  const handleUnfollow = async (userId) => {
+    const result = await unfollowUser(userId)
+    if (result.success) {
+      setUsers(users.map(u => u.id === userId ? { ...u, following: false } : u))
+    }
+  }
 
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }} 
-          animate={{ opacity: 1, y: 0 }} 
-          transition={{ duration: 0.4, delay: 0.1 }} 
-          className="relative max-w-4xl mx-auto mb-8"
+  const quotes = [
+    "Success is a sequence of deliberate actions, executed with consistency.",
+    "Community is the engine of sustained progress."
+  ]
+  const randomQuote = quotes[activeTab === 'goals' ? 0 : 1]
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-gray-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800">
+      <div className="max-w-[1400px] mx-auto px-6 py-8">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center mb-8"
         >
-          {/* Search Bar */}
-          <div className="relative mb-6">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-            <input 
-              type="text" 
-              placeholder={activeTab === 'users' ? 'Search users by name or username...' : (activeTab === 'goals' ? 'Search goals by title...' : 'Search communities by name...')}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all shadow-sm hover:shadow-md" 
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2 font-manrope">
+            {activeTab === 'goals' ? 'Discover' : 'Find Your Tribe'}
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400 font-manrope">
+            {activeTab === 'goals' 
+              ? 'Find inspiration for your next milestone.'
+              : 'Connect with high-achievers, share milestones, and find the community support you need to reach your peak performance.'}
+          </p>
+        </motion.div>
+
+        {/* Tabs */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.1 }}
+          className="flex items-center justify-center gap-4 mb-8"
+        >
+          <button
+            onClick={() => handleTabChange('goals')}
+            className={`px-6 py-2.5 rounded-lg font-medium font-manrope transition-all ${
+              activeTab === 'goals'
+                ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm border border-gray-200 dark:border-gray-700'
+                : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+            }`}
+          >
+            Goals
+          </button>
+          <button
+            onClick={() => handleTabChange('people')}
+            className={`px-6 py-2.5 rounded-lg font-medium font-manrope transition-all ${
+              activeTab === 'people'
+                ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm border border-gray-200 dark:border-gray-700'
+                : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+            }`}
+          >
+            People
+          </button>
+        </motion.div>
+
+        {/* Search Bar */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.15 }}
+          className="mb-6"
+        >
+          <div className="relative max-w-2xl mx-auto">
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              type="text"
+              placeholder={activeTab === 'goals' 
+                ? 'Search goals by title, keyword, or category...'
+                : 'Search creators, mentors, or accountability partners...'}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-12 pr-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4c99e6] focus:border-transparent text-sm text-gray-900 dark:text-white placeholder-gray-400 font-manrope shadow-sm"
             />
-          </div>
-          {/* Tabs */}
-          <div className="flex justify-center mb-6">
-            <div className="inline-flex bg-gray-100 dark:bg-gray-800 rounded-xl p-1 gap-1">
-              {/* {["users", "goals", "communities"].map((tab) => ( */}
-              {["users", "goals"].map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => handleTabChange(tab)}
-                  className={`
-                    relative px-6 py-2.5 rounded-lg text-sm font-medium capitalize transition-all duration-200
-                    ${activeTab === tab
-                      ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm"
-                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
-                    }
-                  `}
-                >
-                  {tab}
-                </button>
-              ))}
-            </div>
-          </div>
-          {/* Interest Filter */}
-          <div className="relative">
-            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-              {(() => {
-                const items = INTERESTS_LIST.map(x => x.id).slice(0, 12);
-                
-                return items.map((i) => {
-                  const active = selectedInterest === i;
-                  return (
-                    <button
-                      key={i}
-                      onClick={() => setSelectedInterest(active ? '' : i)}
-                      className={`
-                        px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all
-                        ${active 
-                          ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-md' 
-                          : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600'
-                        }
-                      `}
-                      aria-pressed={active}
-                    >
-                      {i.replace(/_/g, ' ')}
-                    </button>
-                  );
-                });
-              })()}
-            </div>
           </div>
         </motion.div>
 
-        {/* Content Section */}
-        {(loading || isSearching || loadingGoals) ? (
-          <SkeletonList count={9} grid avatar lines={3} />
-        ) : activeTab === 'users' ? (
-          displayUsers.length > 0 ? (
-            <>
-              {/* Section Header */}
-              {!(searchTerm.trim() || selectedInterest) && (
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                    <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Suggested Users</h2>
-                  </div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Search to discover more</p>
-                </div>
-              )}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {displayUsers.filter(u => u && u.id).map((userItem, index) => (
-                  <motion.div
-                    key={`${userItem.id}-${index}`}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.4, delay: Math.min(0.05 * index, 0.3) }}
-                    className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 transition-all duration-200 shadow-sm hover:shadow-md relative group"
-                  >
-                    <div className="flex items-center space-x-4 mb-5">
-                      <div className="relative">
-                        <img
-                          src={userItem.avatar || '/api/placeholder/64/64'}
-                          alt={userItem.name}
-                          className="w-16 h-16 rounded-full border-2 border-gray-200 dark:border-gray-600 cursor-pointer hover:border-purple-500 dark:hover:border-purple-400 transition-all hover:scale-105"
-                          onClick={() => userItem.username && navigate(`/profile/@${userItem.username}?tab=overview`)}
-                        />
-                        {userItem.currentStreak > 0 && (
-                          <div className="absolute -bottom-1 -right-1 bg-orange-500 rounded-full p-1">
-                            <Flame className="h-3 w-3 text-white" />
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3
-                          className="font-semibold text-gray-900 dark:text-white text-lg cursor-pointer hover:text-purple-600 dark:hover:text-purple-400 transition-colors truncate"
-                          onClick={() => userItem.username && navigate(`/profile/@${userItem.username}?tab=overview`)}
-                        >
-                          {userItem.name}
-                        </h3>
-                        <p className="text-gray-500 dark:text-gray-400 text-sm truncate">
-                          @{userItem.username || userItem.email?.split('@')[0]}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-3 mb-5">
-                      <div className="text-center p-2 bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/10 dark:to-blue-900/10 rounded-lg">
-                        <div className="text-purple-600 dark:text-purple-400 font-semibold text-lg">{userItem.totalGoals || 0}</div>
-                        <div className="text-xs text-gray-600 dark:text-gray-400">Goals</div>
-                      </div>
-                      <div className="text-center p-2 bg-green-50 dark:bg-green-900/10 rounded-lg">
-                        <div className="text-green-600 dark:text-green-400 font-semibold text-lg">{userItem.completedGoals || 0}</div>
-                        <div className="text-xs text-gray-600 dark:text-gray-400">Done</div>
-                      </div>
-                      <div className="text-center p-2 bg-orange-50 dark:bg-orange-900/10 rounded-lg">
-                        <div className="text-orange-600 dark:text-orange-400 font-semibold text-lg">{userItem.currentStreak || 0}</div>
-                        <div className="text-xs text-gray-600 dark:text-gray-400">Streak</div>
-                      </div>
-                    </div>
-
-                    {userItem.recentGoals && userItem.recentGoals.length > 0 && (
-                      <div className="mb-5 pb-5 border-b border-gray-100 dark:border-gray-700">
-                        <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Recent Goals</p>
-                        <div className="space-y-2">
-                          {userItem.recentGoals.slice(0, 2).map((goal, idx) => (
-                            <div key={idx} className="flex items-start gap-2">
-                              <div className={`w-1.5 h-1.5 rounded-full mt-1.5 ${getCategoryColor(goal.category)}`}></div>
-                              <span className="text-sm text-gray-700 dark:text-gray-300 line-clamp-1 flex-1">{goal.title}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="flex space-x-2">
-                      {userItem.id !== user?.id && (
-                        <>
-                          {userItem.isFollowing ? (
-                            <button
-                              onClick={() => handleUnfollow(userItem.id)}
-                              className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-700 dark:text-white rounded-xl transition-colors duration-200 text-sm font-medium flex items-center justify-center space-x-1"
-                            >
-                              <UserCheck className="h-4 w-4" />
-                              <span>Following</span>
-                            </button>
-                          ) : userItem.isRequested ? (
-                            <button
-                              onClick={async () => { await cancelFollowRequest(userItem.id); setUsers(prev => prev.map(u => u.id === userItem.id ? { ...u, isRequested: false } : u)); }}
-                              className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-white rounded-xl transition-colors duration-200 text-sm font-medium flex items-center justify-center space-x-1"
-                            >
-                              <UserPlus className="h-4 w-4" />
-                              <span>Requested</span>
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => handleFollow(userItem.id)}
-                              className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-xl transition-all duration-200 text-sm font-medium flex items-center justify-center space-x-1 shadow-lg hover:shadow-xl"
-                            >
-                              <UserPlus className="h-4 w-4" />
-                              <span>Follow</span>
-                            </button>
-                          )}
-                        </>
-                      )}
-                    </div>
-                    {/* 3-dots for user card */}
-                    <div className="absolute right-2 top-2 z-30">
-                      <div className="relative">
-                        <button
-                          data-user-menu-btn="true"
-                          onClick={(e) => { e.stopPropagation(); setOpenUserMenuId(prev => prev === userItem.id ? null : userItem.id); }}
-                          className="px-2 py-1 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
-                        >⋯</button>
-                        {openUserMenuId === userItem.id && (
-                          <div
-                            data-user-menu="true"
-                            onClick={(e) => e.stopPropagation()}
-                            className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-30"
-                          >
-                            <button
-                              className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
-                              onClick={() => { setReportTarget({ type: 'user', id: userItem.id, userId: userItem.id, username: userItem.username || '', label: userItem.username ? `@${userItem.username}` : 'user' }); setReportOpen(true); setOpenUserMenuId(null); }}
-                            >Report</button>
-                            <button
-                              className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
-                              onClick={() => { setBlockUserId(userItem.id); setBlockUsername(userItem.username || ''); setBlockOpen(true); setOpenUserMenuId(null); }}
-                            >Block</button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-              <div ref={discoverSentinelRef} className="h-10"></div>
-              {loadingMoreDiscover && (
-                <div className="flex items-center justify-center py-4">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600 dark:border-purple-400"></div>
-                </div>
-              )}
-              {!discoverHasMore && users.length > 0 && (
-                <div className="text-center text-xs text-gray-400 py-4">No more users</div>
-              )}
-            </>
-          ) : (
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="text-center py-16 px-4"
-            >
-              <div className="max-w-md mx-auto">
-                <div className="w-20 h-20 rounded-full bg-purple-100 dark:bg-purple-900/20 flex items-center justify-center mx-auto mb-4">
-                  <Users className="h-10 w-10 text-purple-600 dark:text-purple-400" />
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                  {searchTerm.trim() || selectedInterest ? 'No users found' : 'Discover People'}
-                </h3>
-                <p className="text-gray-600 dark:text-gray-400 mb-6">
-                  {searchTerm.trim() || selectedInterest 
-                    ? 'Try adjusting your search or filters to find more people.' 
-                    : 'Use the search bar or select interests to discover inspiring people and follow their journey.'}
-                </p>
-                {(searchTerm.trim() || selectedInterest) && (
-                  <button
-                    onClick={() => { setSearchTerm(''); setSelectedInterest(''); }}
-                    className="px-6 py-2.5 bg-gradient-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 text-white rounded-xl transition-all shadow-lg hover:shadow-xl"
-                  >
-                    Clear Filters
-                  </button>
-                )}
-              </div>
-            </motion.div>
-          )
-        ) : activeTab === 'goals' ? (
-          (searchTerm.trim() || selectedInterest)
-            ? (goalResults && goalResults.length > 0 ? (
-              <>
-                {/* Search Results Header */}
-                <div className="flex items-center gap-2 mb-6">
-                  <Search className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Search Results</h2>
-                  <span className="text-sm text-gray-500 dark:text-gray-400">({goalResults.length})</span>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {goalResults.map((g, idx) => {
-                  const truncateTitle = (title, maxWords = 10) => {
-                    const words = title.split(' ');
-                    if (words.length <= maxWords) return title;
-                    return words.slice(0, maxWords).join(' ') + '...';
-                  };
-                  
-                  return (
-                  <motion.div
-                    key={`${g.id || idx}`}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.4, delay: Math.min(0.05 * idx, 0.3) }}
-                    onClick={() => g.id && openGoalModal(g.id)}
-                    className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-200 dark:border-gray-700 hover:border-purple-400 dark:hover:border-purple-500 transition-all duration-200 shadow-sm hover:shadow-lg cursor-pointer group"
-                  >
-                    {/* Title on top */}
-                    <h3 className="font-semibold text-base text-gray-900 dark:text-white mb-2.5 min-h-[2.5rem] group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors leading-snug line-clamp-2">
-                      {g.title}
-                    </h3>
-                    
-                    {/* Category Badge */}
-                    <div className="mb-3">
-                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium text-white bg-gradient-to-r from-purple-500 to-blue-600 shadow-sm">
-                        {g.category}
-                      </span>
-                    </div>
-                    
-                    {/* User Info and Date */}
-                    <div className="flex items-center gap-2.5 pt-3 border-t border-gray-100 dark:border-gray-700">
-                      <img
-                        src={g.user?.avatar || '/api/placeholder/40/40'}
-                        alt={g.user?.name || 'User'}
-                        className="w-8 h-8 rounded-full border border-gray-200 dark:border-gray-700 group-hover:border-purple-400 dark:group-hover:border-purple-500 transition-all flex-shrink-0" 
-                      />
-                      <div className="min-w-0 flex-1">
-                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{g.user?.name || 'User'}</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
-                          {g.completedAt && <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500"></span>}
-                          {g.completedAt ? new Date(g.completedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : (g.createdAt ? new Date(g.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '')}
-                        </div>
-                      </div>
-                    </div>
-                  </motion.div>
-                )})}
-              </div>
-              </>
-            ) : (
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="text-center py-16 px-4"
+        {/* Category Pills - Only for Goals */}
+        {activeTab === 'goals' && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="flex items-center gap-3 overflow-x-auto pb-2 mb-8 scrollbar-hide"
+          >
+            {categories.map((category) => (
+              <button
+                key={category.id}
+                onClick={() => setSelectedCategory(category.id)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium font-manrope text-sm whitespace-nowrap transition-all ${
+                  selectedCategory === category.id
+                    ? 'bg-[#4c99e6] text-white shadow-sm'
+                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+                }`}
               >
-                <div className="max-w-md mx-auto">
-                  <div className="w-20 h-20 rounded-full bg-purple-100 dark:bg-purple-900/20 flex items-center justify-center mx-auto mb-4">
-                    <Target className="h-10 w-10 text-purple-600 dark:text-purple-400" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No goals found</h3>
-                  <p className="text-gray-600 dark:text-gray-400 mb-6">
-                    Try different search terms or filters to discover amazing goals.
-                  </p>
-                  <button
-                    onClick={() => { setSearchTerm(''); setSelectedInterest(''); }}
-                    className="px-6 py-2.5 bg-gradient-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 text-white rounded-xl transition-all shadow-lg hover:shadow-xl"
-                  >
-                    Clear Filters
-                  </button>
-                </div>
-              </motion.div>
-            ))
-            : (
-              trending && trending.length > 0 ? (
-                <>
-                  {/* Trending Section Header */}
-                  <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center gap-2">
-                      <TrendingUp className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                      <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Trending Goals</h2>
-                    </div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Search to discover more</p>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {trending.map((g, idx) => {
-                    const truncateTitle = (title, maxWords = 10) => {
-                      const words = title.split(' ');
-                      if (words.length <= maxWords) return title;
-                      return words.slice(0, maxWords).join(' ') + '...';
-                    };
-                    
-                    return (
+                {category.label}
+              </button>
+            ))}
+          </motion.div>
+        )}
+
+        {/* Content */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.25 }}
+        >
+          {activeTab === 'goals' ? (
+            <>
+              {/* Trending Goals Section */}
+              <div className="mb-6">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6 font-manrope">
+                  Trending Goals
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {trendingGoals.map((goal, index) => (
                     <motion.div
-                      key={`${g.id || idx}`}
+                      key={goal.id}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.4, delay: Math.min(0.05 * idx, 0.3) }}
-                      onClick={() => g.id && openGoalModal(g.id)}
-                      className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-200 dark:border-gray-700 hover:border-purple-400 dark:hover:border-purple-500 transition-all duration-200 shadow-sm hover:shadow-lg cursor-pointer group relative"
+                      transition={{ delay: index * 0.05 }}
+                      className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-all group cursor-pointer"
+                      onClick={() => setOpenGoalId(goal.id)}
                     >
-                      {/* Trending icon */}
-                      <div className="absolute top-2.5 right-2.5">
-                        <TrendingUp className="h-4 w-4 text-purple-600 dark:text-purple-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </div>
-                      
-                      {/* Title on top */}
-                      <h3 className="font-semibold text-base text-gray-900 dark:text-white mb-2.5 min-h-[2.5rem] group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors leading-snug pr-7 line-clamp-2">
-                        {g.title}
-                      </h3>
-                      
-                      {/* Category Badge */}
-                      <div className="mb-3">
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium text-white bg-gradient-to-r from-purple-500 to-blue-600 shadow-sm">
-                          {g.category}
-                        </span>
-                      </div>
-                      
-                      {/* User Info and Date */}
-                      <div className="flex items-center gap-2.5 pt-3 border-t border-gray-100 dark:border-gray-700">
-                        <img
-                          src={g.user?.avatar || '/api/placeholder/40/40'}
-                          alt={g.user?.name || 'User'}
-                          className="w-8 h-8 rounded-full border border-gray-200 dark:border-gray-700 group-hover:border-purple-400 dark:group-hover:border-purple-500 transition-all flex-shrink-0" 
-                        />
-                        <div className="min-w-0 flex-1">
-                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{g.user?.name || 'User'}</div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
-                            {g.completedAt && <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500"></span>}
-                            {g.completedAt ? new Date(g.completedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : (g.createdAt ? new Date(g.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '')}
+                      <div className="flex items-start gap-4 mb-4">
+                        <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 transition-colors">
+                          <div className="text-gray-500 dark:text-gray-400 group-hover:text-[#4c99e6] transition-colors">
+                            {getCategoryIcon(goal.category, 'w-5 h-5')}
                           </div>
                         </div>
+                        <div className="flex-1">
+                          <CategoryBadge category={goal.category} />
+                        </div>
                       </div>
+                      <h3 className="font-semibold text-gray-900 dark:text-white font-manrope text-lg mb-3">
+                        {goal.title}
+                      </h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-6 line-clamp-2 font-manrope leading-relaxed">
+                        {goal.description}
+                      </p>
                     </motion.div>
-                  )})}
-                  <div ref={discoverSentinelRef} className="col-span-full h-10"></div>
-                  {loadingMoreDiscover && (
-                    <div className="col-span-full flex items-center justify-center py-4">
-                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600 dark:border-purple-400"></div>
+                  ))}
+
+                  {/* Suggest a Goal Card */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: trendingGoals.length * 0.05 }}
+                    onClick={() => navigate('/dashboard?tab=goals')}
+                    className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-[#4c99e6] dark:hover:border-[#4c99e6] hover:shadow-md transition-all cursor-pointer group flex flex-col items-center justify-center min-h-[280px]"
+                  >
+                    <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-full mb-4 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 transition-colors">
+                      <Lightbulb className="w-8 h-8 text-gray-400 group-hover:text-[#4c99e6] transition-colors" />
+                    </div>
+                    <h3 className="font-semibold text-gray-900 dark:text-white font-manrope text-lg mb-2">
+                      Make You Own Goal
+                    </h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 font-manrope text-center">
+                      Don't see what you're looking for? Help build the community by adding your own goal.
+                    </p>
+                  </motion.div>
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* People Section */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Left: People to Follow */}
+                <div className="lg:col-span-2">
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-white font-manrope">
+                      People to Follow
+                    </h2>
+                  </div>
+                  
+                  {filteredUsers.length === 0 ? (
+                    <div className="bg-white dark:bg-gray-800 rounded-xl p-12 shadow-sm border border-gray-100 dark:border-gray-700 text-center">
+                      <Search className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white font-manrope mb-2">
+                        Search for People
+                      </h3>
+                      <p className="text-gray-500 dark:text-gray-400 font-manrope">
+                        Use the search bar above to find creators, mentors, or accountability partners.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {filteredUsers.map((person, index) => (
+                        <motion.div
+                          key={person.id}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: index * 0.05 }}
+                          onClick={() => navigate(`/profile/@${person.username}`)}
+                          className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-all cursor-pointer"
+                        >
+                        <div className="flex items-start gap-3 mb-4">
+                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold font-manrope">
+                            {person.name.charAt(0)}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-gray-900 dark:text-white font-manrope truncate">
+                              {person.name}
+                            </h3>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 font-manrope truncate">
+                              {person.username}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => person.following ? handleUnfollow(person.id) : handleFollow(person.id)}
+                            className="px-4 py-1.5 bg-[#4c99e6] hover:bg-[#3d88d5] text-white rounded-lg transition-colors text-sm font-medium font-manrope"
+                          >
+                            {person.following ? 'Following' : 'Follow'}
+                          </button>
+                        </div>
+                        
+                        <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-gray-700">
+                          <div className="text-center">
+                            <div className="text-lg font-bold text-gray-900 dark:text-white font-manrope">
+                              {person.stats.goals}
+                            </div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400 font-manrope uppercase tracking-wide">
+                              Goals
+                            </div>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-lg font-bold text-gray-900 dark:text-white font-manrope">
+                              {person.stats.done}
+                            </div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400 font-manrope uppercase tracking-wide">
+                              Done
+                            </div>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-lg font-bold text-gray-900 dark:text-white font-manrope">
+                              {person.stats.streak}
+                            </div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400 font-manrope uppercase tracking-wide">
+                              Streak
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
                     </div>
                   )}
                 </div>
-                </>
-              ) : (
-                <motion.div 
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="text-center py-16 px-4"
-                >
-                  <div className="max-w-md mx-auto">
-                    <div className="w-20 h-20 rounded-full bg-purple-100 dark:bg-purple-900/20 flex items-center justify-center mx-auto mb-4">
-                      <TrendingUp className="h-10 w-10 text-purple-600 dark:text-purple-400" />
-                    </div>
-                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Discover Goals</h3>
-                    <p className="text-gray-600 dark:text-gray-400">
-                      Use the search bar or select interests to find inspiring goals and achievements!
-                    </p>
-                  </div>
-                </motion.div>
-              )
-            )
-        ) : (
-          communityResults && communityResults.length > 0 ? (
-            <>
-              {/* Communities Header */}
-              <div className="flex items-center gap-2 mb-6">
-                <Users className="h-5 w-5 text-purple-500" />
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                  {searchTerm.trim() || selectedInterest ? 'Search Results' : 'Discover Communities'}
-                </h2>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {communityResults.map((c, idx) => (
-                <motion.div
-                  key={`${c.id || idx}`}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: Math.min(0.05 * idx, 0.3) }}
-                  onClick={() => navigate(`/communities/${c.id}`)}
-                  className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600 transition-all duration-200 shadow-sm hover:shadow-md overflow-hidden cursor-pointer group"
-                >
-                  <div className="h-28 relative bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-pink-500/20">
-                    {c.bannerUrl && (
-                      <img src={c.bannerUrl} alt="Community banner" className="absolute inset-0 h-full w-full object-cover" />
-                    )}
-                  </div>
-                  <div className="p-5">
-                    <div className="flex items-center gap-3 mb-3">
-                      {c.avatarUrl ? (
-                        <img src={c.avatarUrl} alt="Community avatar" className="h-12 w-12 rounded-full border-2 border-white dark:border-gray-700 object-cover -mt-8 shadow-sm" />
-                      ) : (
-                        <div className="h-12 w-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 text-white flex items-center justify-center text-sm font-bold -mt-8 shadow-sm border-2 border-white dark:border-gray-800">
-                          {c.name?.slice(0, 2).toUpperCase()}
-                        </div>
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <div className="font-semibold text-gray-900 dark:text-white truncate group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">{c.name}</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400 line-clamp-1">{c.description || 'No description'}</div>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-gray-700">
-                      <div className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400">
-                        <Users className="h-4 w-4" />
-                        <span className="font-medium">{c.stats?.memberCount || 0}</span>
-                      </div>
-                      <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 capitalize">{c.visibility}</span>
+
+                {/* Right: Top Achievers & CTA */}
+                <div className="space-y-6">
+                  {/* Top Achievers */}
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 font-manrope">
+                      Top Achievers
+                    </h2>
+                    <div className="space-y-3">
+                      {topAchievers.map((achiever, index) => (
+                        <motion.div
+                          key={achiever.id || achiever.username}
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.1 + index * 0.05 }}
+                          onClick={() => navigate(`/profile/@${achiever.username}`)}
+                          className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 flex items-center gap-3 hover:shadow-md transition-all cursor-pointer"
+                        >
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center text-white font-bold font-manrope text-sm">
+                            {(achiever.name || achiever.displayName || achiever.username || '').charAt(0)}
+                          </div>
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-gray-900 dark:text-white font-manrope text-sm">
+                              {achiever.name || achiever.displayName || achiever.username}
+                            </h3>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 font-manrope">
+                              {achiever.username ? `@${achiever.username}` : ''}
+                            </p>
+                          </div>
+                          <TrendingUp className="w-4 h-4 text-[#4c99e6]" />
+                        </motion.div>
+                      ))}
                     </div>
                   </div>
-                </motion.div>
-              ))}
-            </div>
-            </>
-          ) : (
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="text-center py-16 px-4"
-            >
-              <div className="max-w-md mx-auto">
-                <div className="w-20 h-20 rounded-full bg-purple-100 dark:bg-purple-900/20 flex items-center justify-center mx-auto mb-4">
-                  <Users className="h-10 w-10 text-purple-500" />
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                  {searchTerm.trim() || selectedInterest ? 'No communities found' : 'Discover Communities'}
-                </h3>
-                <p className="text-gray-600 dark:text-gray-400 mb-6">
-                  {searchTerm.trim() || selectedInterest 
-                    ? 'Try different search terms or filters to find communities.' 
-                    : 'Use the search bar or select interests to discover amazing communities to join.'}
-                </p>
-                {(searchTerm.trim() || selectedInterest) && (
-                  <button
-                    onClick={() => { setSearchTerm(''); setSelectedInterest(''); }}
-                    className="px-6 py-2.5 bg-purple-500 hover:bg-purple-600 text-white rounded-xl transition-colors"
+
+                  {/* Be the next Leader CTA */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                    className="bg-gray-900 dark:bg-gray-950 rounded-xl p-6 text-center"
                   >
-                    Clear Filters
-                  </button>
-                )}
+                    <div className="w-12 h-12 rounded-full bg-[#4c99e6] flex items-center justify-center mx-auto mb-4">
+                      <Rocket className="w-6 h-6 text-white" />
+                    </div>
+                    <h3 className="font-bold text-white font-manrope text-lg mb-2">
+                      Be the next Leader
+                    </h3>
+                    <p className="text-gray-400 font-manrope text-sm mb-4">
+                      Complete more goals. Spark appear on the global leaderboard.
+                    </p>
+                    <button 
+                    onClick={() => navigate('/dashboard')}
+                    className="w-full px-4 py-2.5 bg-white hover:bg-gray-100 text-gray-900 rounded-lg transition-colors text-sm font-medium font-manrope">
+                      Go to Dashboard
+                    </button>
+                  </motion.div>
+                </div>
               </div>
-            </motion.div>
-          )
-        )
-        }
-        {/* Goal Details Modal (same as Feed) */}
-        {goalModalOpen && (
-          <Suspense fallback={null}><GoalDetailsModal
-            isOpen={goalModalOpen}
-            goalId={openGoalId}
-            autoOpenComments={scrollCommentsOnOpen}
-            onClose={closeGoalModal}
-          /></Suspense>
-        )}
+            </>
+          )}
+        </motion.div>
+
+        {/* Pagination Dots */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.4 }}
+          className="flex items-center justify-center gap-2 mt-12"
+        >
+          <div className="w-2 h-2 rounded-full bg-[#4c99e6]"></div>
+          <div className="w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-600"></div>
+        </motion.div>
+
+        {/* Inspirational Quote */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          className="mt-8 text-center"
+        >
+          <p className="text-gray-500 dark:text-gray-400 font-manrope italic text-sm">
+            "{randomQuote}"
+          </p>
+        </motion.div>
       </div>
 
-      {/* Report & Block Modals */}
-      <Suspense fallback={null}><ReportModal
-        isOpen={reportOpen}
-        onClose={() => setReportOpen(false)}
-        targetLabel={reportTarget.label}
-        onSubmit={async ({ reason, description }) => {
-          await report({ targetType: reportTarget.type, targetId: reportTarget.id, reason, description });
-          if (reportTarget.userId) { setBlockUserId(reportTarget.userId); setBlockUsername(reportTarget.username || ''); setBlockOpen(true); }
-          setReportOpen(false);
-        }}
-        onReportAndBlock={reportTarget.type === 'user' ? async () => { if (reportTarget.id) { await blockUser(reportTarget.id); } } : undefined}
-      /></Suspense>
-      <Suspense fallback={null}><BlockModal
-        isOpen={blockOpen}
-        onClose={() => setBlockOpen(false)}
-        username={blockUsername || ''}
-        onConfirm={async () => { if (blockUserId) { await blockUser(blockUserId); setBlockOpen(false); } }}
-      /></Suspense>
+      {/* Modals */}
+      <Suspense fallback={null}>
+        {openGoalId && (
+          <GoalPostModal
+            goalId={openGoalId}
+            isOpen={!!openGoalId}
+            onClose={() => setOpenGoalId(null)}
+            openWithComments={false}
+          />
+        )}
+      </Suspense>
     </div>
   )
 }
 
-export default DiscoverPage
-
-
+export default DiscoverPageNew

@@ -1,3 +1,4 @@
+import CategoryBadge from '../components/CategoryBadge';
 import { useState, useEffect, useMemo, lazy, Suspense } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
@@ -21,6 +22,8 @@ import useApiStore from '../store/apiStore'
 import { createPortal } from 'react-dom'
 import { API_CONFIG } from '../config/api'
 import ExpandableText from '../components/ExpandableText'
+
+const THEME_COLOR = '#4c99e6'
 
 const CompletionModal = lazy(() => import('../components/CompletionModal'));
 
@@ -297,10 +300,10 @@ const GoalAnalyticsPage = () => {
     return (
       <div className="min-h-screen pt-20 pb-24 px-4 bg-gray-50 dark:bg-gray-900">
         <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col items-center justify-center py-20">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mb-4"></div>
-            <p className="text-gray-600 dark:text-gray-400">Loading goal analytics...</p>
-          </div>
+            <div className="flex flex-col items-center justify-center py-20" style={{ fontFamily: 'Manrope, ui-sans-serif, system-ui' }}>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 mb-4" style={{ borderColor: THEME_COLOR }}></div>
+              <p className="text-gray-600 dark:text-gray-400">Loading goal analytics...</p>
+            </div>
         </div>
       </div>
     )
@@ -329,7 +332,7 @@ const GoalAnalyticsPage = () => {
   const { goal } = goalData
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4 pb-16">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 pb-16" style={{ fontFamily: 'Manrope, ui-sans-serif, system-ui' }}>
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-5">
@@ -338,10 +341,10 @@ const GoalAnalyticsPage = () => {
             className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white mb-3 transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back
+            Back to Goals
           </button>
 
-          <div className="glass-card-hover p-4 rounded-xl">
+          <div className="p-4 rounded-xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700">
             <div className="space-y-3">
               <div>
                 <h1 className="text-xl font-bold text-gray-900 dark:text-white mb-1.5">
@@ -357,9 +360,8 @@ const GoalAnalyticsPage = () => {
                   </div>
                 )}
                 <div className="flex flex-wrap gap-1.5">
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800 dark:bg-primary-900/30 dark:text-primary-300">
-                    {goal.category}
-                  </span>
+                  <CategoryBadge category={goal.category} />
+                  
                   {analytics?.isOverdue && (
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
                       <Clock className="h-3 w-3 mr-1" />
@@ -370,7 +372,7 @@ const GoalAnalyticsPage = () => {
               </div>
               
               {analytics?.isCompleted ? (
-                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-sm font-medium">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-50 text-green-700 dark:text-green-300 text-sm font-medium border border-green-100 dark:border-green-800">
                   <CheckCircle className="h-4 w-4" />
                   Completed
                 </div>
@@ -378,7 +380,7 @@ const GoalAnalyticsPage = () => {
                 <button
                   onClick={() => setIsCompletionModalOpen(true)}
                   disabled={completing}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white text-sm font-medium shadow-lg shadow-green-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-green-600 text-white text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <CheckCircle className="h-4 w-4" />
                   {completing ? 'Completing...' : 'Mark Complete'}
@@ -395,16 +397,18 @@ const GoalAnalyticsPage = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="glass-card-hover p-3 rounded-lg"
+            className="p-3 rounded-lg bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700"
           >
-            <div className="flex items-center justify-between mb-2">
-              <Target className="h-6 w-6 text-primary-500" />
+            <div className="flex items-center gap-2 mb-1.5">
+              <div className="p-1.5 rounded-lg" style={{ background: THEME_COLOR }}>
+                <Target className="w-4 h-4 text-white" />
+              </div>
+              <span className="text-xs font-medium" style={{ color: THEME_COLOR }}>Target Progress</span>
             </div>
-            <div className="text-2xl font-bold text-gray-900 dark:text-white mb-0.5">
-              {analytics?.progressPercent?.toFixed(1) || 0}%
-            </div>
-            <div className="text-xs text-gray-600 dark:text-gray-400">
-              Progress
+            <p className="text-xl font-bold text-gray-900 dark:text-white">{analytics?.progressPercent?.toFixed(1) || 0}%</p>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 mb-2">Progress</p>
+            <div className="w-full h-2 rounded-full bg-gray-200 dark:bg-gray-700">
+              <div className="h-2 rounded-full" style={{ width: `${analytics?.progressPercent || 0}%`, background: THEME_COLOR }} />
             </div>
           </motion.div>
 
@@ -412,44 +416,44 @@ const GoalAnalyticsPage = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.15 }}
-            className="glass-card-hover p-3 rounded-lg"
+            className="p-3 rounded-lg bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700"
           >
-            <div className="flex items-center justify-between mb-2">
-              <Calendar className="h-6 w-6 text-blue-500" />
+            <div className="flex items-center gap-2 mb-1.5">
+              <div className="p-1.5 rounded-lg" style={{ background: THEME_COLOR }}>
+                <Calendar className="w-4 h-4 text-white" />
+              </div>
+              <span className="text-xs font-medium" style={{ color: THEME_COLOR }}>Active Days</span>
             </div>
-            <div className="text-2xl font-bold text-gray-900 dark:text-white mb-0.5">
-              {analytics?.daysSinceCreation || 0}
-            </div>
-            <div className="text-xs text-gray-600 dark:text-gray-400">
-              Days Since Creation
-            </div>
+            <p className="text-xl font-bold text-gray-900 dark:text-white">{analytics?.daysSinceCreation || 0}</p>
+            <p className="text-xs text-gray-600 dark:text-gray-400">days this month</p>
           </motion.div>
 
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="glass-card-hover p-3 rounded-lg"
+            className="p-3 rounded-lg bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700"
           >
-            <div className="flex items-center justify-between mb-2">
-              <Clock className={`h-6 w-6 ${analytics?.isOverdue ? 'text-red-500' : 'text-yellow-500'}`} />
+            <div className="flex items-center gap-2 mb-1.5">
+              <div className="p-1.5 rounded-lg" style={{ background: THEME_COLOR }}>
+                <Clock className="w-4 h-4 text-white" />
+              </div>
+              <span className="text-xs font-medium" style={{ color: THEME_COLOR }}>Completion Rate</span>
             </div>
-            <div className="text-2xl font-bold text-gray-900 dark:text-white mb-0.5">
-              {analytics?.daysUntilDeadline !== null 
+            <p className="text-xl font-bold text-gray-900 dark:text-white">{analytics?.daysUntilDeadline !== null 
                 ? analytics.daysUntilDeadline >= 0 
                   ? analytics.daysUntilDeadline 
                   : Math.abs(analytics.daysUntilDeadline)
                 : '—'
-              }
-            </div>
-            <div className="text-xs text-gray-600 dark:text-gray-400">
+              }</p>
+            <p className="text-xs text-gray-600 dark:text-gray-400">
               {analytics?.daysUntilDeadline !== null
                 ? analytics.daysUntilDeadline >= 0
                   ? 'Days Until Deadline'
                   : 'Days Overdue'
                 : 'No Deadline Set'
               }
-            </div>
+            </p>
           </motion.div>
 
           {/* Only show completion feeling card if goal is completed */}
@@ -460,7 +464,7 @@ const GoalAnalyticsPage = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.25 }}
-                className="glass-card-hover p-3 rounded-lg bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/10 dark:to-emerald-900/10"
+                className="p-3 rounded-lg bg-green-50 border border-green-100 dark:border-green-800"
               >
                 <div className="text-3xl mb-2">
                   {feeling.emoji}
@@ -481,14 +485,14 @@ const GoalAnalyticsPage = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
-          className="glass-card-hover p-4 rounded-xl mb-5"
+          className="p-4 rounded-xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 mb-5"
         >
           <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-            <Activity className="h-5 w-5 text-primary-500" />
+            <Activity className="h-5 w-5" style={{ color: THEME_COLOR }} />
             Engagement Metrics
           </h2>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="text-center p-3 bg-gradient-to-br from-red-50 to-pink-50 dark:from-red-900/10 dark:to-pink-900/10 rounded-lg border border-red-100 dark:border-red-900/30">
+            <div className="grid grid-cols-2 gap-3">
+            <div className="text-center p-3 bg-white dark:bg-gray-900 rounded-lg border border-gray-100 dark:border-gray-700">
               <Heart className="h-6 w-6 text-red-500 mx-auto mb-2" />
               <div className="text-xl font-bold text-gray-900 dark:text-white mb-0.5">
                 {analytics?.totalLikes || 0}
@@ -497,9 +501,8 @@ const GoalAnalyticsPage = () => {
                 Likes
               </div>
             </div>
-
-            <div className="text-center p-3 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/10 dark:to-indigo-900/10 rounded-lg border border-blue-100 dark:border-blue-900/30">
-              <MessageCircle className="h-6 w-6 text-blue-500 mx-auto mb-2" />
+            <div className="text-center p-3 bg-white dark:bg-gray-900 rounded-lg border border-gray-100 dark:border-gray-700">
+              <MessageCircle className="h-6 w-6 mx-auto mb-2" style={{ color: THEME_COLOR }} />
               <div className="text-xl font-bold text-gray-900 dark:text-white mb-0.5">
                 {analytics?.totalComments || 0}
               </div>
@@ -510,37 +513,7 @@ const GoalAnalyticsPage = () => {
           </div>
         </motion.div>
 
-        {/* Progress Tracking */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.35 }}
-          className="glass-card-hover p-4 rounded-xl mb-5"
-        >
-          <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-primary-500" />
-            Progress Overview
-          </h2>
-          <div className="space-y-3">
-            {/* Progress Bar */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                  Overall Progress
-                </span>
-                <span className="text-xs font-bold text-primary-600 dark:text-primary-400">
-                  {analytics?.progressPercent?.toFixed(1) || 0}%
-                </span>
-              </div>
-              <div className="w-full h-3 rounded-full bg-gray-200 dark:bg-gray-700">
-                <div 
-                  className="h-3 rounded-full bg-gradient-to-r from-primary-500 to-primary-600 transition-all duration-500"
-                  style={{ width: `${analytics?.progressPercent || 0}%` }}
-                />
-              </div>
-            </div>
-          </div>
-        </motion.div>
+        {/* Progress Overview removed - compact progress moved to top metric card */}
 
         {/* Timeline */}
         {analytics?.timelineEvents && analytics.timelineEvents.length > 0 && (
@@ -548,10 +521,10 @@ const GoalAnalyticsPage = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.38 }}
-            className="glass-card-hover p-4 rounded-xl mb-5"
+            className="p-4 rounded-xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 mb-5"
           >
             <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-              <Activity className="h-5 w-5 text-primary-500" />
+              <Activity className="h-5 w-5" style={{ color: THEME_COLOR }} />
               Timeline
             </h2>
             <div className="relative space-y-4">
@@ -602,10 +575,10 @@ const GoalAnalyticsPage = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.4 }}
-            className="glass-card-hover p-4 rounded-xl mb-5"
+            className="p-4 rounded-xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 mb-5"
           >
             <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-              <ListChecks className="h-5 w-5 text-primary-500" />
+              <ListChecks className="h-5 w-5" style={{ color: THEME_COLOR }} />
               Sub-goals ({analytics.subGoalsCompleted}/{analytics.subGoalsTotal})
             </h2>
             <div className="space-y-2">
@@ -617,12 +590,11 @@ const GoalAnalyticsPage = () => {
                       navigate(`/goals/${subGoal.id || subGoal._id}/analytics`)
                     }
                   }}
-                  className={`p-3 rounded-lg border cursor-pointer transition-all hover:shadow-md hover:scale-[1.01] ${
+                  className={`p-3 rounded-lg border cursor-pointer ${
                     subGoal.completedAt
-                      ? 'bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800 hover:border-green-300 dark:hover:border-green-700'
-                      : 'bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 hover:border-primary-300 dark:hover:border-primary-700'
-                  }`}
-                >
+                      ? 'bg-green-50 border-green-200 dark:border-green-800'
+                      : 'bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-700'
+                  }`}>
                   <div className="flex items-start gap-2">
                     {subGoal.completedAt ? (
                       <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" />
@@ -639,7 +611,7 @@ const GoalAnalyticsPage = () => {
                           {subGoal.title}
                         </h3>
                         {(subGoal.id || subGoal._id) && (
-                          <span className="text-xs text-primary-600 dark:text-primary-400 font-medium">
+                          <span className="text-xs font-medium" style={{ color: THEME_COLOR }}>
                             View Analytics →
                           </span>
                         )}
@@ -654,7 +626,7 @@ const GoalAnalyticsPage = () => {
                         </div>
                       )}
                       {subGoal.weight && (
-                        <p className="text-xs text-primary-600 dark:text-primary-400 mt-1">
+                        <p className="text-xs mt-1" style={{ color: THEME_COLOR }}>
                           Weight: {subGoal.weight}%
                         </p>
                       )}
@@ -681,10 +653,10 @@ const GoalAnalyticsPage = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.42 }}
-            className="glass-card-hover p-4 rounded-xl mb-5"
+            className="p-4 rounded-xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 mb-5"
           >
             <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-              <Zap className="h-5 w-5 text-yellow-500" />
+              <ListChecks className="h-5 w-5" style={{ color: THEME_COLOR }} />
               Linked Habits ({analytics.habitLinksTotal})
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -697,19 +669,17 @@ const GoalAnalyticsPage = () => {
                       navigate(`/habits/${habitId}/analytics`)
                     }
                   }}
-                  className="p-3 rounded-lg bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-900/10 dark:to-orange-900/10 border border-yellow-200 dark:border-yellow-800 cursor-pointer transition-all hover:shadow-md hover:scale-[1.01] hover:border-yellow-300 dark:hover:border-yellow-700"
+                  className="p-3 rounded-lg bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 cursor-pointer"
                 >
                   <div className="flex items-center gap-2">
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
-                      <Zap className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
-                    </div>
+                    <div className="h-4 w-4 rounded-full border-2 border-gray-300 dark:border-gray-600 flex-shrink-0 mt-0.5" />
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-0.5">
                         <h3 className="text-sm font-medium text-gray-900 dark:text-white">
                           {habit.habitName || habit.name || 'Habit'}
                         </h3>
                         {(habit.habitId || habit.id || habit._id) && (
-                          <span className="text-xs text-yellow-600 dark:text-yellow-400 font-medium">
+                          <span className="text-xs font-medium" style={{ color: THEME_COLOR }}>
                             View Analytics →
                           </span>
                         )}
@@ -724,7 +694,7 @@ const GoalAnalyticsPage = () => {
                         </div>
                       )}
                       {habit.weight && (
-                        <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
+                        <p className="text-xs mt-1" style={{ color: THEME_COLOR }}>
                           Weight: {habit.weight}%
                         </p>
                       )}

@@ -3,6 +3,17 @@
 @tailwind utilities;
 
 @layer base {
+  /* Global zoom/scale configuration */
+  html {
+    font-size: 87%;
+  }
+  
+  @media (max-width: 768px) {
+    html {
+      font-size: 85%;
+    }
+  }
+  
   * {
     box-sizing: border-box;
     border-width: 0;

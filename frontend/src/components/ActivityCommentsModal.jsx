@@ -6,7 +6,7 @@ import { activitiesAPI } from '../services/api'
 import useApiStore from '../store/apiStore'
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
 
-const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embedded = false }) => {
+const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embedded = false, hideInput = false, onCommentAdded }) => {
   const [comments, setComments] = useState([])
   const [loading, setLoading] = useState(false)
   const [input, setInput] = useState('')
@@ -30,6 +30,15 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
       }
     }
     fetchComments()
+
+    // Listen for comment added events to refresh
+    const handleCommentAdded = (e) => {
+      if (e.detail?.activityId === activity?._id) {
+        fetchComments();
+      }
+    };
+    window.addEventListener('commentAdded', handleCommentAdded);
+    return () => window.removeEventListener('commentAdded', handleCommentAdded);
   }, [isOpen, inline, embedded, activity?._id])
 
   const formatTimeAgo = (iso) => {
@@ -82,6 +91,7 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
       }
       setInput('')
       setReplyTo(null)
+      if (onCommentAdded) onCommentAdded();
       try { useApiStore.getState().invalidateGoalPostByActivity?.(activity._id) } catch { }
     } catch (e) { }
   }
@@ -103,9 +113,10 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
     navigate(`/profile/@${username}?tab=overview`);
   };
 
-  const toggleCommentLike = async (commentId) => {
+  const toggleCommentLike = async (commentId, currentIsLiked) => {
     try {
-      const res = await activitiesAPI.toggleCommentLike(activity._id, commentId)
+      const nextLike = !currentIsLiked;
+      const res = await activitiesAPI.toggleCommentLike(activity._id, commentId, nextLike)
       const { likeCount, isLiked } = res.data?.data || {}
       setComments(prev => prev.map(c => c._id === commentId ? { ...c, likeCount, isLiked } : { ...c, replies: (c.replies || []).map(r => r._id === commentId ? { ...r, likeCount, isLiked } : r) }))
       try { useApiStore.getState().invalidateGoalPostByActivity?.(activity._id) } catch { }
@@ -124,10 +135,10 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
   // Embedded mode: render comments in-place without own header or scroll container
   if (embedded) {
     return (
-      <div className="w-full">
+      <div className="w-full" style={{ fontFamily: 'Manrope, sans-serif' }}>
         <div className="mb-3">
           <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-            <MessageCircle className="h-4 w-4 text-primary-500" />
+            <MessageCircle className="h-4 w-4 text-[#4c99e6]" />
             Comments
             {comments.length > 0 && (
               <span className="text-xs font-normal text-gray-500">({comments.length})</span>
@@ -148,18 +159,18 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
                     <img 
                       src={c.userId?.avatar} 
                       alt={c.userId?.name} 
-                      className="w-10 h-10 rounded-full object-cover cursor-pointer ring-2 ring-gray-200 dark:ring-gray-700 hover:ring-primary-500 transition-all" 
+                      className="w-10 h-10 rounded-full object-cover cursor-pointer ring-2 ring-gray-200 dark:ring-gray-700 hover:ring-[#4c99e6] transition-all" 
                       onClick={() => handleUserClick(c.userId?.username)} 
                     />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between mb-1">
                         <div className="flex items-center gap-2">
-                          <span className="font-bold text-sm text-gray-900 dark:text-white cursor-pointer hover:text-primary-600 dark:hover:text-primary-400 transition-colors" onClick={() => handleUserClick(c.userId?.username)}>{c.userId?.name}</span>
+                          <span className="font-bold text-sm text-gray-900 dark:text-white cursor-pointer hover:text-[#3d88d5] transition-colors" onClick={() => handleUserClick(c.userId?.username)}>{c.userId?.name}</span>
                           <span className="text-[10px] text-gray-400">•</span>
                           <span className="text-[10px] text-gray-500 dark:text-gray-400">{formatTimeAgo(c.createdAt)}</span>
                         </div>
                         <button 
-                          onClick={() => toggleCommentLike(c._id)} 
+                          onClick={() => toggleCommentLike(c._id, c.isLiked)} 
                           className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium transition-all ${c.isLiked ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
                         >
                           <Heart className={`h-3.5 w-3.5 ${c.isLiked ? 'fill-current' : ''}`} />
@@ -168,7 +179,7 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
                       </div>
                       <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{c.text}</div>
                       <div className="mt-1 flex items-center gap-3">
-                        <button onClick={() => startReply(c)} className="text-xs text-blue-600">Reply</button>
+                        <button onClick={() => startReply(c)} className="text-xs text-[#4c99e6]">Reply</button>
                         {replyCount > 0 && (
                           <button onClick={() => toggleReplies(c._id)} className="text-xs text-gray-600 dark:text-gray-400">
                             {expandedReplies[c._id] ? 'Hide replies' : `View replies (${replyCount})`}
@@ -182,9 +193,9 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
                             onChange={(e) => setInput(e.target.value)}
                             onKeyDown={handleKeyDown}
                             placeholder={`Replying to ${replyTo.userName}`}
-                            className="flex-1 px-2 py-1.5 text-xs rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                            className="flex-1 px-2 py-1.5 text-xs rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#4c99e6] focus:border-[#4c99e6]"
                           />
-                          <button onClick={handlePost} className="px-2 py-1.5 rounded-lg bg-blue-600 text-white disabled:opacity-50" disabled={!input.trim()}>
+                          <button onClick={handlePost} className="px-2 py-1.5 rounded-lg bg-[#4c99e6] text-white disabled:opacity-50" disabled={!input.trim()}>
                             <Send className="h-3.5 w-3.5" />
                           </button>
                           <button onClick={() => { setReplyTo(null); setInput(''); }} className="text-xs text-gray-500">Cancel</button>
@@ -197,16 +208,16 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
                       {(c.replies || []).map((r) => (
                         <div key={r._id}>
                           <div className="flex items-start gap-3 p-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                            <img src={r.userId?.avatar} alt={r.userId?.name} className="w-8 h-8 rounded-full object-cover cursor-pointer ring-2 ring-gray-200 dark:ring-gray-700 hover:ring-primary-500 transition-all" onClick={() => handleUserClick(r.userId?.username)} />
+                            <img src={r.userId?.avatar} alt={r.userId?.name} className="w-8 h-8 rounded-full object-cover cursor-pointer ring-2 ring-gray-200 dark:ring-gray-700 hover:ring-[#4c99e6] transition-all" onClick={() => handleUserClick(r.userId?.username)} />
                             <div className="flex-1 min-w-0">
                               <div className="flex items-start justify-between mb-1">
                                 <div className="flex items-center gap-2">
-                                  <span className="font-bold text-xs text-gray-900 dark:text-white cursor-pointer hover:text-primary-600 dark:hover:text-primary-400 transition-colors" onClick={() => handleUserClick(r.userId?.username)}>{r.userId?.name}</span>
+                                  <span className="font-bold text-xs text-gray-900 dark:text-white cursor-pointer hover:text-[#3d88d5] transition-colors" onClick={() => handleUserClick(r.userId?.username)}>{r.userId?.name}</span>
                                   <span className="text-[10px] text-gray-400">•</span>
                                   <span className="text-[10px] text-gray-500 dark:text-gray-400">{formatTimeAgo(r.createdAt)}</span>
                                 </div>
                                 <button 
-                                  onClick={() => toggleCommentLike(r._id)} 
+                                  onClick={() => toggleCommentLike(r._id, r.isLiked)} 
                                   className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-lg text-[10px] font-medium transition-all ${r.isLiked ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
                                 >
                                   <Heart className={`h-3 w-3 ${r.isLiked ? 'fill-current' : ''}`} />
@@ -218,7 +229,7 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
                                   part.startsWith('@') ? (
                                     <span 
                                       key={i} 
-                                      className="text-blue-500 font-medium cursor-pointer hover:text-blue-600 hover:underline" 
+                                      className="text-[#4c99e6] font-medium cursor-pointer hover:text-[#3d88d5] hover:underline" 
                                       onClick={() => handleTagClick(part)}
                                     >
                                       {part}
@@ -226,7 +237,7 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
                                   ) : part
                                 )}
                               </div>
-                              <button onClick={() => startReplyToReply(c, r.userId)} className="mt-0.5 text-[10px] text-blue-600">Reply</button>
+                              <button onClick={() => startReplyToReply(c, r.userId)} className="mt-0.5 text-[10px] text-[#4c99e6]">Reply</button>
                             </div>
                           </div>
                         </div>
@@ -239,18 +250,18 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
           )}
         </div>
 
-        {!replyTo && (
+        {!replyTo && !hideInput && (
           <div className="flex items-center gap-2 mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 sticky bottom-0 bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl z-10 rounded-b-xl">
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={'Write a comment...'}
-              className="flex-1 px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
+              className="flex-1 px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#4c99e6] focus:border-[#4c99e6] transition-all"
             />
             <button 
               onClick={handlePost} 
-              className="p-2.5 rounded-xl bg-gradient-to-r from-primary-500 to-blue-500 text-white disabled:opacity-50 disabled:cursor-not-allowed hover:from-primary-600 hover:to-blue-600 transition-all shadow-lg hover:shadow-xl" 
+              className="p-2.5 rounded-xl bg-gradient-to-r from-[#4c99e6] to-[#3d88d5] text-white disabled:opacity-50 disabled:cursor-not-allowed hover:from-[#3d88d5] hover:to-[#3479c3] transition-all shadow-lg hover:shadow-xl" 
               disabled={!input.trim()}
             >
               <Send className="h-5 w-5" />
@@ -261,9 +272,12 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
     )
   }
 
+  // Export input state and handlers for external use
+  ActivityCommentsModal.useCommentInput = () => ({ input, setInput, handlePost, handleKeyDown, replyTo });
+
   if (inline) {
     return (
-      <div className="flex flex-col w-full h-full bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800">
+      <div className="flex flex-col w-full h-full bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800" style={{ fontFamily: 'Manrope, sans-serif' }}>
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-800">
           <div className="font-semibold text-gray-900 dark:text-white truncate">Comments</div>
@@ -293,11 +307,11 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
                           <span className="font-semibold text-gray-900 dark:text-white mr-2 cursor-pointer" onClick={() => handleUserClick(c.userId?.username)}>{c.userId?.name}</span>
                           <span className="text-[10px] text-gray-500">{formatTimeAgo(c.createdAt)}</span>
                         </div>
-                        <button onClick={() => toggleCommentLike(c._id)} className={`text-xs hover:text-red-600 ${c.isLiked ? 'text-red-600' : 'text-gray-500'} flex items-center gap-1`}>♥ {c.likeCount || 0}</button>
+                        <button onClick={() => toggleCommentLike(c._id, c.isLiked)} className={`text-xs hover:text-red-600 ${c.isLiked ? 'text-red-600' : 'text-gray-500'} flex items-center gap-1`}>♥ {c.likeCount || 0}</button>
                       </div>
                       <div className="mt-1 text-xs text-gray-700 dark:text-gray-300">{c.text}</div>
                       <div className="mt-1 flex items-center gap-3">
-                        <button onClick={() => startReply(c)} className="text-xs text-blue-600">Reply</button>
+                        <button onClick={() => startReply(c)} className="text-xs text-[#4c99e6]">Reply</button>
                         {replyCount > 0 && (
                           <button onClick={() => toggleReplies(c._id)} className="text-xs text-gray-600 dark:text-gray-400">
                             {expandedReplies[c._id] ? 'Hide replies' : `View replies (${replyCount})`}
@@ -311,9 +325,9 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
                             onChange={(e) => setInput(e.target.value)}
                             onKeyDown={handleKeyDown}
                             placeholder={`Replying to ${replyTo.userName}`}
-                            className="flex-1 px-2 py-1.5 text-xs rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                            className="flex-1 px-2 py-1.5 text-xs rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#4c99e6] focus:border-[#4c99e6]"
                           />
-                          <button onClick={handlePost} className="px-2 py-1.5 rounded-lg bg-blue-600 text-white disabled:opacity-50" disabled={!input.trim()}>
+                          <button onClick={handlePost} className="px-2 py-1.5 rounded-lg bg-[#4c99e6] text-white disabled:opacity-50" disabled={!input.trim()}>
                             <Send className="h-3.5 w-3.5" />
                           </button>
                           <button onClick={() => { setReplyTo(null); setInput(''); }} className="text-xs text-gray-500">Cancel</button>
@@ -333,14 +347,14 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
                                   <span className="font-semibold text-gray-900 dark:text-white mr-2 cursor-pointer" onClick={() => handleUserClick(r.userId?.username)}>{r.userId?.name}</span>
                                   <span className="text-[10px] text-gray-500">{formatTimeAgo(r.createdAt)}</span>
                                 </div>
-                                <button onClick={() => toggleCommentLike(r._id)} className={`text-xs hover:text-red-600 ${r.isLiked ? 'text-red-600' : 'text-gray-500'} flex items-center gap-1`}>♥ {r.likeCount || 0}</button>
+                                <button onClick={() => toggleCommentLike(r._id, r.isLiked)} className={`text-xs hover:text-red-600 ${r.isLiked ? 'text-red-600' : 'text-gray-500'} flex items-center gap-1`}>♥ {r.likeCount || 0}</button>
                               </div>
                               <div className="mt-1 text-xs text-gray-700 dark:text-gray-300">
                                 {r.text.split(/(@\w+)/g).map((part, i) => 
                                   part.startsWith('@') ? (
                                     <span 
                                       key={i} 
-                                      className="text-blue-500 font-medium cursor-pointer hover:text-blue-600 hover:underline" 
+                                      className="text-[#4c99e6] font-medium cursor-pointer hover:text-[#3d88d5] hover:underline" 
                                       onClick={() => handleTagClick(part)}
                                     >
                                       {part}
@@ -348,7 +362,7 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
                                   ) : part
                                 )}
                               </div>
-                              <button onClick={() => startReplyToReply(c, r.userId)} className="mt-0.5 text-[10px] text-blue-600">Reply</button>
+                              <button onClick={() => startReplyToReply(c, r.userId)} className="mt-0.5 text-[10px] text-[#4c99e6]">Reply</button>
                             </div>
                           </div>
                         </div>
@@ -369,9 +383,9 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={'Add a comment'}
-              className="flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+              className="flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#4c99e6] focus:border-[#4c99e6]"
             />
-            <button onClick={handlePost} className="px-3 py-2 rounded-lg bg-blue-600 text-white disabled:opacity-50" disabled={!input.trim()}>
+            <button onClick={handlePost} className="px-3 py-2 rounded-lg bg-[#4c99e6] text-white disabled:opacity-50" disabled={!input.trim()}>
               <Send className="h-4 w-4" />
             </button>
           </div>
@@ -402,6 +416,7 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
             }
           }}
           className="bg-white dark:bg-gray-900 rounded-t-2xl md:rounded-2xl w-full md:max-w-2xl max-h-[90vh] md:max-h-[85vh] flex flex-col overflow-hidden shadow-2xl"
+          style={{ fontFamily: 'Manrope, sans-serif' }}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Mobile drag handle */}
@@ -435,11 +450,11 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
                             <span className="font-semibold text-gray-900 dark:text-white mr-2 cursor-pointer" onClick={() => handleUserClick(c.userId?.username)}>{c.userId?.name}</span>
                             <span className="text-[10px] text-gray-500">{formatTimeAgo(c.createdAt)}</span>
                           </div>
-                          <button onClick={() => toggleCommentLike(c._id)} className={`text-xs hover:text-red-600 ${c.isLiked ? 'text-red-600' : 'text-gray-500'} flex items-center gap-1`}>♥ {c.likeCount || 0}</button>
+                          <button onClick={() => toggleCommentLike(c._id, c.isLiked)} className={`text-xs hover:text-red-600 ${c.isLiked ? 'text-red-600' : 'text-gray-500'} flex items-center gap-1`}>♥ {c.likeCount || 0}</button>
                         </div>
                         <div className="mt-1 text-xs text-gray-700 dark:text-gray-300">{c.text}</div>
                         <div className="mt-1 flex items-center gap-3">
-                          <button onClick={() => startReply(c)} className="text-xs text-blue-600">Reply</button>
+                          <button onClick={() => startReply(c)} className="text-xs text-[#4c99e6]">Reply</button>
                           {replyCount > 0 && (
                             <button onClick={() => toggleReplies(c._id)} className="text-xs text-gray-600 dark:text-gray-400">
                               {expandedReplies[c._id] ? 'Hide replies' : `View replies (${replyCount})`}
@@ -453,9 +468,9 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
                               onChange={(e) => setInput(e.target.value)}
                               onKeyDown={handleKeyDown}
                               placeholder={`Replying to ${replyTo.userName}`}
-                              className="flex-1 px-2 py-1.5 text-xs rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                              className="flex-1 px-2 py-1.5 text-xs rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#4c99e6] focus:border-[#4c99e6]"
                             />
-                            <button onClick={handlePost} className="px-2 py-1.5 rounded-lg bg-blue-600 text-white disabled:opacity-50" disabled={!input.trim()}>
+                            <button onClick={handlePost} className="px-2 py-1.5 rounded-lg bg-[#4c99e6] text-white disabled:opacity-50" disabled={!input.trim()}>
                               <Send className="h-3.5 w-3.5" />
                             </button>
                             <button onClick={() => { setReplyTo(null); setInput(''); }} className="text-xs text-gray-500">Cancel</button>
@@ -475,14 +490,14 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
                                     <span className="font-semibold text-gray-900 dark:text-white mr-2 cursor-pointer" onClick={() => handleUserClick(r.userId?.username)}>{r.userId?.name}</span>
                                     <span className="text-[10px] text-gray-500">{formatTimeAgo(r.createdAt)}</span>
                                   </div>
-                                  <button onClick={() => toggleCommentLike(r._id)} className={`text-xs hover:text-red-600 ${r.isLiked ? 'text-red-600' : 'text-gray-500'} flex items-center gap-1`}>♥ {r.likeCount || 0}</button>
+                                  <button onClick={() => toggleCommentLike(r._id, r.isLiked)} className={`text-xs hover:text-red-600 ${r.isLiked ? 'text-red-600' : 'text-gray-500'} flex items-center gap-1`}>♥ {r.likeCount || 0}</button>
                                 </div>
                                 <div className="mt-1 text-xs text-gray-700 dark:text-gray-300">
                                   {r.text.split(/(@\w+)/g).map((part, i) => 
                                     part.startsWith('@') ? (
                                       <span 
                                         key={i} 
-                                        className="text-blue-500 font-medium cursor-pointer hover:text-blue-600 hover:underline" 
+                                        className="text-[#4c99e6] font-medium cursor-pointer hover:text-[#3d88d5] hover:underline" 
                                         onClick={() => handleTagClick(part)}
                                       >
                                         {part}
@@ -490,7 +505,7 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
                                     ) : part
                                   )}
                                 </div>
-                                <button onClick={() => startReplyToReply(c, r.userId)} className="mt-0.5 text-[10px] text-blue-600">Reply</button>
+                                <button onClick={() => startReplyToReply(c, r.userId)} className="mt-0.5 text-[10px] text-[#4c99e6]">Reply</button>
                               </div>
                             </div>
                           </div>
@@ -510,9 +525,9 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder={'Add a comment'}
-                className="flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                className="flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#4c99e6] focus:border-[#4c99e6]"
               />
-              <button onClick={handlePost} className="px-3 py-2 rounded-lg bg-blue-600 text-white disabled:opacity-50" disabled={!input.trim()}>
+              <button onClick={handlePost} className="px-3 py-2 rounded-lg bg-[#4c99e6] text-white disabled:opacity-50" disabled={!input.trim()}>
                 <Send className="h-4 w-4" />
               </button>
             </div>

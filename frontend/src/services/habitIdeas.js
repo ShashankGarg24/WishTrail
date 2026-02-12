@@ -115,18 +115,26 @@ export function discoverHabitIdeas(interests = [], limit = 6) {
     chosen = [...chosen, ...shuffleArray(remaining).slice(0, extraCount)]
   }
 
-  const pools = chosen.map((cat) => shuffleArray(INTEREST_TO_HABITS[cat] || []))
+  const pools = chosen.map((cat) => ({
+    category: cat,
+    items: shuffleArray([...(INTEREST_TO_HABITS[cat] || [])])
+  }))
   const picked = []
   let index = 0
-  while (picked.length < limit && pools.some((p) => p.length > 0)) {
+  while (picked.length < limit && pools.some((p) => p.items.length > 0)) {
     const pool = pools[index % pools.length]
-    if (pool.length > 0) picked.push(pool.shift())
+    if (pool.items.length > 0) {
+      const item = pool.items.shift()
+      picked.push({ ...item, category: pool.category })
+    }
     index++
   }
 
   if (picked.length < limit) {
     const remainCats = ALL_HABIT_CATEGORIES.filter((c) => !chosen.includes(c))
-    const remainPool = shuffleArray(remainCats.flatMap((c) => INTEREST_TO_HABITS[c] || []))
+    const remainPool = shuffleArray(
+      remainCats.flatMap((c) => (INTEREST_TO_HABITS[c] || []).map((it) => ({ ...it, category: c })))
+    )
     picked.push(...remainPool)
   }
 

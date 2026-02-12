@@ -85,6 +85,7 @@ const sanitizeAuthMe = (user) => {
     username: obj.username,
     timezone: obj.timezone,
     currentMood: obj.currentMood,
+    quote: obj.quote,
     instagram: obj.instagram || '',
     website: obj.website || '',
     youtube: obj.youtube || '',
@@ -174,7 +175,6 @@ const sanitizeGoalForProfile = (goal) => {
   if (!goal) return null;
   
   const obj = goal.toObject ? goal.toObject() : { ...goal };
-  
   return {
     id: obj.id || (obj._id ? obj._id.toString() : undefined),
     title: obj.title,
@@ -182,7 +182,7 @@ const sanitizeGoalForProfile = (goal) => {
     category: obj.category,
     year: obj.year,
     createdAt: obj.createdAt,
-    completedAt: obj.completedAt,
+    completedAt: obj.completed_at,
     isPublic: obj.isPublic,
     completionNote: obj.completionNote,
     completionAttachmentUrl: obj.completionAttachmentUrl,

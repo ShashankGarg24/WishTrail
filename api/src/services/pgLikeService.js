@@ -37,15 +37,13 @@ class PgLikeService {
       let action;
 
       if (existingResult.rows.length > 0) {
-        const existing = existingResult.rows[0];
-        
         // Toggle active status
         const updateSql = `
           DELETE FROM likes
-          WHERE id = $1
+          WHERE user_id = $1 AND target_type = $2 AND target_id = $3
           RETURNING *
         `;
-        const updateResult = await client.query(updateSql, [ existing.id]);
+        const updateResult = await client.query(updateSql, [userId, targetType, targetId]);
         like = updateResult.rows[0];
       } else {
         // Create new like

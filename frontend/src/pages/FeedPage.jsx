@@ -1,40 +1,182 @@
-import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react'
-import { motion } from 'framer-motion'
-import { useNavigate, useLocation } from 'react-router-dom'
-import { Activity, Heart, MessageCircle, RefreshCw, Compass, ArrowRightCircle, Send, Newspaper, Sparkles } from 'lucide-react'
-import useApiStore from '../store/apiStore'
-import SkeletonList from '../components/loader/SkeletonList'
+import { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { Heart, MessageCircle, Share2, Trophy, Zap, Target, Flame, Star, UserPlus } from 'lucide-react';
+import useApiStore from '../store/apiStore';
+import GoalPostModal from '../components/GoalPostModal';
+import toast from 'react-hot-toast';
+import CategoryBadge from '../components/CategoryBadge';
+
 const ActivityCommentsModal = lazy(() => import('../components/ActivityCommentsModal'));
 const ReportModal = lazy(() => import('../components/ReportModal'));
 const BlockModal = lazy(() => import('../components/BlockModal'));
-const GoalDetailsModal = lazy(() => import('../components/GoalDetailsModal'));
-import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
 const ShareSheet = lazy(() => import('../components/ShareSheet'));
 
 const FeedPage = () => {
-  const navigate = useNavigate()
-  const location = useLocation()
+  const navigate = useNavigate();
+  const { user, getActivityFeed, likeActivity, getTrendingGoals, report, blockUser, unfollowUser } = useApiStore();
+  const [activities, setActivities] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [selectedGoalId, setSelectedGoalId] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [openWithComments, setOpenWithComments] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [commentsOpenActivityId, setCommentsOpenActivityId] = useState(null);
+  const [isMobile, setIsMobile] = useState(false);
+  const [trendingGoals, setTrendingGoals] = useState([]);
+  const [trendingLoading, setTrendingLoading] = useState(false);
 
-  const {
-    isAuthenticated,
-    getActivityFeed,
-    user,
-    getTrendingGoals,
-    likeActivity,
-    unfollowUser,
-    report,
-    blockUser,
-  } = useApiStore()
+  // Report and Block states
+  const [openActivityMenuId, setOpenActivityMenuId] = useState(null);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportTarget, setReportTarget] = useState({ type: null, id: null, label: '', username: '', userId: null });
+  const [blockOpen, setBlockOpen] = useState(false);
+  const [blockUserId, setBlockUserId] = useState(null);
+  const [blockUsername, setBlockUsername] = useState('');
 
-  const [loading, setLoading] = useState(false)
-  const [activities, setActivities] = useState([])
-  const ACTIVITIES_PAGE_SIZE = 10
-  const [activitiesPage, setActivitiesPage] = useState(1)
-  const [activitiesHasMore, setActivitiesHasMore] = useState(true)
-  const [loadingMoreActivities, setLoadingMoreActivities] = useState(false)
+  // Share state
+  const [shareSheetOpen, setShareSheetOpen] = useState(false);
+  const shareUrlRef = useRef('');
 
-  const [likePending, setLikePending] = useState({})
-  const [openActivityMenuId, setOpenActivityMenuId] = useState(null)
+  // Format timestamp to "time ago" format
+  const formatTimeAgo = (isoDate) => {
+    const now = new Date();
+    const date = new Date(isoDate);
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    return `${diffDays}d ago`;
+  };
+
+  // Transform API activity to component format
+  const transformActivity = (apiActivity) => {
+    const {
+      _id,
+      name,
+      avatar,
+      type,
+      data,
+      createdAt,
+      likeCount = 0,
+      commentCount = 0,
+      isLiked = false
+    } = apiActivity;
+
+    const completionNote = data?.metadata?.completionNote || data?.completionNote || '';
+    const completionImage = data?.metadata?.completionAttachmentUrl || data?.completionAttachmentUrl || '';
+    const lastUpdatedType = data?.lastUpdateType;
+    const isCompleted = lastUpdatedType === 'completed' || data?.completedAt != null;
+    // Determine activity type and format
+    let activityType = 'goal_completed';
+    let action = 'Completed a goal';
+    let content = {
+      title: data?.goalTitle || 'Goal',
+      category: data?.goalCategory,
+    };
+
+    if (lastUpdatedType === 'created') {
+      action = 'Created a goal';
+    } else if (type === 'habit_target_achieved' || type === 'habit_streak_milestone') {
+      activityType = 'habit_streak';
+      action = 'Achieved a milestone';
+      content = {
+        title: data?.habitTitle || 'Habit',
+        description: data?.note || '',
+        days: data?.streakDays || 0,
+      };
+    } else if (type === 'habit_added') {
+      action = 'Started a habit';
+    }
+
+    return {
+      id: _id,
+      user: {
+        name: apiActivity.user.name || 'User',
+        avatar: apiActivity.user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${name}`,
+        username: apiActivity.user.username || ''
+      },
+      type: activityType,
+      action,
+      timestamp: formatTimeAgo(createdAt),
+      content,
+      completionNote,
+      completionImage,
+      isCompleted,
+      likes: likeCount,
+      comments: commentCount,
+      isLiked,
+      cheered: false,
+      originalId: data?.goalId,
+      originalType: type,
+    };
+  };
+
+  // Load activity feed
+  const loadActivityFeed = async (pageNum = 1) => {
+    try {
+      setLoading(pageNum === 1);
+      setError(null);
+      const response = await getActivityFeed({
+        page: pageNum,
+        limit: 10,
+      });
+
+      if (!response) {
+        setActivities([]);
+        setHasMore(false);
+        return;
+      }
+
+      const { activities: feedActivities, pagination } = response;
+
+      if (!feedActivities || !Array.isArray(feedActivities)) {
+        setActivities([]);
+        setHasMore(false);
+        return;
+      }
+
+      const transformed = feedActivities.map(transformActivity);
+
+      if (pageNum === 1) {
+        setActivities(transformed);
+      } else {
+        setActivities(prev => [...prev, ...transformed]);
+      }
+
+      setHasMore(pagination && pagination.page < pagination.pages);
+    } catch (err) {
+      setError('Failed to load feed. Please try again.');
+      if (pageNum === 1) {
+        setActivities([]);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load initial feed on mount
+  useEffect(() => {
+    if (user) {
+      loadActivityFeed(1);
+      loadTrendingGoals();
+    }
+  }, [user]);
+
+  useEffect(() => {
+    const compute = () => setIsMobile(typeof window !== 'undefined' && window.innerWidth < 768);
+    compute();
+    window.addEventListener('resize', compute);
+    return () => window.removeEventListener('resize', compute);
+  }, []);
+
+  // Close activity menu on outside click
   useEffect(() => {
     const onDocMouseDown = (e) => {
       if (!openActivityMenuId) return;
@@ -42,226 +184,29 @@ const FeedPage = () => {
       const inside = target?.closest?.('[data-activity-menu="true"]') || target?.closest?.('[data-activity-menu-btn="true"]');
       if (inside) return;
       setOpenActivityMenuId(null);
-    }
-    document.addEventListener('mousedown', onDocMouseDown)
-    return () => document.removeEventListener('mousedown', onDocMouseDown)
-  }, [openActivityMenuId])
-  const [reportOpen, setReportOpen] = useState(false)
-  const [reportTarget, setReportTarget] = useState({ type: null, id: null, label: '', username: '', userId: null })
-  const [blockOpen, setBlockOpen] = useState(false)
-  const [blockUserId, setBlockUserId] = useState(null)
-  const [blockUsername, setBlockUsername] = useState('')
-
-
-  const [goalModalOpen, setGoalModalOpen] = useState(false)
-  const [openGoalId, setOpenGoalId] = useState(null)
-  const [scrollCommentsOnOpen, setScrollCommentsOnOpen] = useState(false);
-  const activitiesSentinelRef = useRef(null)
-  const [isMobile, setIsMobile] = useState(false);
-  const [commentsOpenActivityId, setCommentsOpenActivityId] = useState(null);
-  const [inNativeApp, setInNativeApp] = useState(false)
-  const [shareSheetOpen, setShareSheetOpen] = useState(false)
-  const shareUrlRef = useRef('')
-
-  // Stories (trending/inspiring goals) state
-  const [stories, setStories] = useState([])
-  const [storiesLoading, setStoriesLoading] = useState(false)
-  const STORIES_LIMIT = 20
-
-
-  useEffect(() => {
-    if (!isAuthenticated) return
-    fetchInitial()
-  }, [isAuthenticated])
-
-  useEffect(() => {
-    try {
-      const params = new URLSearchParams(location.search)
-      const gid = params.get('goalId')
-      if (gid) {
-        openGoalModal(gid)
-      }
-    } catch { }
-  }, [location.search])
-
-  // Track viewport for mobile/desktop behaviors
-  useEffect(() => {
-    const compute = () => setIsMobile(window.innerWidth < 768);
-    compute();
-    window.addEventListener('resize', compute);
-    return () => window.removeEventListener('resize', compute);
-  }, []);
-
-  useEffect(() => {
-    try { if (typeof window !== 'undefined' && window.ReactNativeWebView) setInNativeApp(true) } catch { }
-  }, [])
-
-  useEffect(() => {
-    if (goalModalOpen) {
-      lockBodyScroll()
-      return () => unlockBodyScroll()
-    }
-    return undefined
-  }, [goalModalOpen])
-
-  const fetchInitial = async (forceRefresh = false) => {
-    setLoading(true)
-    try {
-      // Load stories bar first for quick UI feel
-      try {
-        setStoriesLoading(true)
-        const interests = Array.isArray(user?.interests) ? user.interests : []
-        // Personalized if user has interests, else global
-        const params = interests.length > 0
-          ? { strategy: 'personalized', page: 1, limit: STORIES_LIMIT }
-          : { strategy: 'global', page: 1, limit: STORIES_LIMIT }
-        const { goals } = await getTrendingGoals(params, { force: forceRefresh })
-        setStories((goals || []).slice(0, STORIES_LIMIT))
-      } catch (_) {
-        setStories([])
-      } finally {
-        setStoriesLoading(false)
-      }
-
-      setActivitiesPage(1)
-      setActivitiesHasMore(true)
-      const activitiesData = await getActivityFeed({ page: 1, limit: ACTIVITIES_PAGE_SIZE }, { force: forceRefresh })
-      setActivities(activitiesData.activities || [])
-      const totalPages = activitiesData.pagination?.pages || 1
-      setActivitiesHasMore(1 < totalPages)
-    } catch (e) {
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const loadMoreActivities = useCallback(async () => {
-    if (loadingMoreActivities || !activitiesHasMore) return
-    setLoadingMoreActivities(true)
-    try {
-      const next = activitiesPage + 1
-      const resp = await getActivityFeed({ page: next, limit: ACTIVITIES_PAGE_SIZE })
-      const mergeUniqueById = (prev, nextItems) => {
-        const seen = new Set((prev || []).map((i) => i?._id).filter(Boolean))
-        const merged = [...(prev || [])]
-        for (const item of (nextItems || [])) {
-          if (!item || !item._id) continue
-          if (!seen.has(item._id)) {
-            merged.push(item)
-            seen.add(item._id)
-          }
-        }
-        return merged
-      }
-      setActivities(prev => mergeUniqueById(prev, resp.activities || []))
-      setActivitiesPage(next)
-      const totalPages = resp.pagination?.pages || next
-      setActivitiesHasMore(next < totalPages)
-    } catch (e) {
-      setActivitiesHasMore(false)
-    } finally {
-      setLoadingMoreActivities(false)
-    }
-  }, [activitiesPage, activitiesHasMore, loadingMoreActivities, getActivityFeed])
-
-  useEffect(() => {
-    if (!isAuthenticated) return
-    const observer = new IntersectionObserver((entries) => {
-      const entry = entries[0]
-      if (entry.isIntersecting) {
-        loadMoreActivities()
-      }
-    }, { root: null, rootMargin: '300px', threshold: 0.1 })
-    const target = activitiesSentinelRef.current
-    if (target) observer.observe(target)
-    return () => observer.disconnect()
-  }, [isAuthenticated, loadMoreActivities, activities.length, activitiesHasMore])
-
-  const toggleActivityLikeOptimistic = async (activityId) => {
-    if (likePending[activityId]) return;
-    setLikePending((p) => ({ ...p, [activityId]: true }));
-    // Determine intended action from current state before optimistic flip
-    const current = activities.find(a => a._id === activityId);
-    const intendLike = !(current?.isLiked);
-    // Optimistic update
-    setActivities((prev) => prev.map((a) => {
-      if (a._id !== activityId) return a;
-      const currentCount = a.likeCount || 0;
-      return intendLike
-        ? { ...a, isLiked: true, likeCount: currentCount + 1 }
-        : { ...a, isLiked: false, likeCount: Math.max(currentCount - 1, 0) };
-    }));
-    try {
-      const resp = await likeActivity(activityId, intendLike);
-      const { likeCount, isLiked } = resp?.data?.data || {};
-      if (typeof likeCount === 'number') {
-        setActivities((prev) => prev.map((a) => a._id === activityId ? { ...a, likeCount, isLiked: !!isLiked } : a));
-      }
-    } catch (err) {
-      // Revert on failure
-      setActivities((prev) => prev.map((a) => {
-        if (a._id !== activityId) return a;
-        const currentCount = a.likeCount || 0;
-        return intendLike
-          ? { ...a, isLiked: false, likeCount: Math.max(currentCount - 1, 0) }
-          : { ...a, isLiked: true, likeCount: currentCount + 1 };
-      }));
-      console.error('Activity like toggle failed', err);
-    } finally {
-      setLikePending((p) => ({ ...p, [activityId]: false }));
-    }
-  };
-
-  const getActivityText = (activity) => {
-    switch (activity.type) {
-      case 'goal_activity':
-        if (activity.data?.isCompleted) {
-          return 'completed a goal';
-        } else if (activity.data?.lastUpdateType === 'subgoal_completed') {
-          return 'completed a subgoal';
-        } else if (activity.data?.lastUpdateType === 'subgoal_added') {
-          return 'added subgoals';
-        } else {
-          return 'created a goal';
-        }
-      case 'goal_completed':
-        return 'completed a goal'
-      case 'goal_created':
-        return 'created a goal'
-      case 'subgoal_added':
-        return 'added a sub-goal'
-      case 'subgoal_completed':
-        return 'completed a sub-goal'
-      case 'habit_added':
-        return 'linked a habit'
-      case 'habit_target_achieved':
-        return 'achieved a habit target'
-      default:
-        return 'had some activity'
-    }
-  }
-
-
-  const getCategoryColor = (category) => {
-    const colors = {
-      'Career': 'bg-gradient-to-r from-blue-500 to-purple-600',
-      'Health': 'bg-green-500',
-      'Personal Development': 'bg-purple-500',
-      'Education': 'bg-yellow-500',
-      'Finance': 'bg-red-500',
-      'Health & Fitness': 'bg-green-500',
-      'Education & Learning': 'bg-yellow-500',
-      'Career & Business': 'bg-gradient-to-r from-blue-500 to-purple-600',
-      'Financial Goals': 'bg-red-500',
-      'Creative Projects': 'bg-purple-500',
-      'Travel & Adventure': 'bg-orange-500',
-      'Relationships': 'bg-pink-500',
-      'Family & Friends': 'bg-indigo-500',
-      'Other': 'bg-gray-500'
     };
-    return colors[category] || 'bg-gray-500';
+    document.addEventListener('mousedown', onDocMouseDown);
+    return () => document.removeEventListener('mousedown', onDocMouseDown);
+  }, [openActivityMenuId]);
+
+  // Load trending goals
+  const loadTrendingGoals = async () => {
+    try {
+      setTrendingLoading(true);
+      const interests = Array.isArray(user?.interests) ? user.interests : [];
+      const params = interests.length > 0
+        ? { strategy: 'personalized', page: 1, limit: 10 }
+        : { strategy: 'global', page: 1, limit: 10 };
+      const { goals } = await getTrendingGoals(params);
+      setTrendingGoals((goals || []).slice(0, 6));
+    } catch (err) {
+      setTrendingGoals([]);
+    } finally {
+      setTrendingLoading(false);
+    }
   };
 
+  // Get category gradient for trending goals
   const getCategoryGradient = (category) => {
     switch (category) {
       case 'Health & Fitness':
@@ -287,463 +232,492 @@ const FeedPage = () => {
     }
   };
 
-  const formatTimeAgo = (dateString) => {
-    const now = new Date();
-    const date = new Date(dateString);
-    const diffInHours = Math.floor((now - date) / (1000 * 60 * 60));
-    if (diffInHours < 1) return 'Just now';
-    if (diffInHours < 24) return `${diffInHours}h ago`;
-    const diffInDays = Math.floor(diffInHours / 24);
-    if (diffInDays === 1) return 'Yesterday';
-    if (diffInDays < 7) return `${diffInDays}d ago`;
-    return `${Math.floor(diffInDays / 7)}w ago`;
-  }
-
-  const openGoalModal = (gid) => {
-    if (!gid) return
-    setOpenGoalId(gid)
-    setGoalModalOpen(true)
-  }
-
-  const closeGoalModal = () => {
-    setGoalModalOpen(false)
-    setOpenGoalId(null)
-    setScrollCommentsOnOpen(false)
-    // If opened via /feed?goalId=..., go back
+  const handleLike = async (activityId) => {
     try {
-      const params = new URLSearchParams(location.search)
-      if (params.get('goalId')) navigate(-1)
-    } catch { }
-  }
+      const activity = activities.find(a => a.id === activityId);
+      if (!activity) return;
+
+      // Optimistic update
+      setActivities(prev =>
+        prev.map(a =>
+          a.id === activityId
+            ? {
+              ...a,
+              isLiked: !a.isLiked,
+              likes: a.isLiked ? a.likes - 1 : a.likes + 1,
+            }
+            : a
+        )
+      );
+
+      // Make API call
+      await likeActivity(activityId, !activity.isLiked);
+    } catch (err) {
+      // Revert optimistic update on error
+      setActivities(prev =>
+        prev.map(a =>
+          a.id === activityId
+            ? {
+              ...a,
+              isLiked: !a.isLiked,
+              likes: a.isLiked ? a.likes - 1 : a.likes + 1,
+            }
+            : a
+        )
+      );
+    }
+  };
 
 
-  if (!isAuthenticated) {
+
+  // const suggestedFriends = [
+  //   {
+  //     id: 1,
+  //     name: 'Jordan Smith',
+  //     subtitle: '12 goals tracked',
+  //     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Jordan',
+  //     isFollowing: false,
+  //   },
+  //   {
+  //     id: 2,
+  //     name: 'Leo Vance',
+  //     subtitle: '8 habits active',
+  //     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Leo',
+  //     isFollowing: false,
+  //   },
+  // ];
+
+  // const [friends, setFriends] = useState(suggestedFriends);
+
+  // const handleFollow = (friendId) => {
+  //   setFriends(prev =>
+  //     prev.map(friend =>
+  //       friend.id === friendId
+  //         ? { ...friend, isFollowing: !friend.isFollowing }
+  //         : friend
+  //     )
+  //   );
+  // };
+
+  const handleOpenGoal = (goalId) => {
+    setSelectedGoalId(goalId);
+    setIsModalOpen(true);
+    setOpenWithComments(false);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedGoalId(null);
+    setOpenWithComments(false);
+  };
+
+  const handleOpenComments = (activityId, goalId) => {
+    if (!activityId) return;
+    if (isMobile) {
+      setCommentsOpenActivityId(activityId);
+      return;
+    }
+
+    // Desktop behavior: if modal is already open for this goal, toggle comments
+    if (isModalOpen && selectedGoalId === goalId) {
+      setOpenWithComments(prev => !prev);
+    } else {
+      // Open modal with comments
+      setSelectedGoalId(goalId);
+      setIsModalOpen(true);
+      setOpenWithComments(true);
+    }
+  };
+
+  if (loading && activities.length === 0) {
     return (
-      <div className="min-h-screen flex items-center justify_center bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-slate-900 dark:via-gray-900 dark:to-zinc-900">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="bg-gradient-to-r from-blue-500 to-indigo-600 p-6 rounded-full mb-6 mx-auto w-24 h-24 flex items-center justify-center"
-          >
-            <Compass className="h-12 w-12 text-white" />
-          </motion.div>
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-            Explore WishTrail
-          </h1>
-          <p className="text-gray-600 dark:text-gray-300 mb-8 max-w-md mx-auto">
-            Discover inspiring goals and connect with like-minded achievers
-          </p>
-          <a href="/auth" className="btn-primary text-lg px-8 py-3">
-            Join the Community
-          </a>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4c99e6] mx-auto mb-4"></div>
+          <p className="text-gray-500">Loading your growth feed...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-900">
-      <div className="max-w-4xl mx-auto px-4 py-6">
-        {!inNativeApp && (
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center shadow-lg">
-                <Newspaper className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Social Feed</h1>
-              </div>
+    <div className="min-h-screen bg-gray-50" style={{ fontFamily: 'Manrope, sans-serif' }}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Main Feed - Left Side (2 columns width) */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Page Header */}
+            <div className="mb-6">
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">Growth Feed</h1>
+              <p className="text-gray-600">Celebrate your community's progress.</p>
             </div>
 
-            <button
-              onClick={() => fetchInitial(true)}
-              disabled={loading}
-              className="p-2.5 rounded-xl hover:bg-white dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 transition-all shadow-sm"
-            >
-              <RefreshCw className={`h-5 w-5 text-gray-700 dark:text-gray-300 ${loading ? 'animate-spin' : ''}`} />
-            </button>
-          </div>
-        )}
-
-        {/* Stories bar: inspiring + trending goals */}
-        { stories.length > 0 && 
-        <div className="mb-6">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              Trending Goals
-            </h2>
-            {!storiesLoading && stories.length > 0 && (
-              <button
-                onClick={() => navigate('/discover?tab=goals')}
-                className="text-sm font-medium bg-gradient-to-r from-purple-600 to-blue-600 dark:from-purple-400 dark:to-blue-400 bg-clip-text text-transparent hover:from-purple-700 hover:to-blue-700 dark:hover:from-purple-300 dark:hover:to-blue-300 transition-all flex items-center gap-1.5 font-semibold"
-              >
-                Explore All
-                <ArrowRightCircle className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-              </button>
+            {/* Error Message */}
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700 text-sm">
+                {error}
+              </div>
             )}
-          </div>
-          
-          <div className="relative bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-3 shadow-sm overflow-hidden">
-            <div className="flex gap-4 overflow-x-auto no-scrollbar pr-12 py-1 items-start">
-              {storiesLoading && (
-                <div className="flex items-center gap-4">
-                  {[...Array(6)].map((_, i) => (
-                    <div key={i} className="flex flex-col items-center gap-1.5 shrink-0">
-                      <div className="h-14 w-14 rounded-full bg-gray-200 dark:bg-gray-700 animate-pulse" />
-                      <div className="h-2.5 w-12 rounded bg-gray-200 dark:bg-gray-700 animate-pulse" />
-                    </div>
-                  ))}
-                </div>
-              )}
-              {!storiesLoading && stories && stories.length > 0 && stories.slice(0, STORIES_LIMIT).map((g, idx) => (
-                <button
-                  key={g.id || idx}
-                  onClick={() => g.id && openGoalModal(g.id)}
-                  className="group relative shrink-0 w-16 focus:outline-none focus:ring-2 focus:ring-primary-500 rounded-xl p-1 -m-1 transition-all duration-200"
-                  title={g.title}
-                  aria-label={`Open goal ${g.title}`}
-                >
-                  <div className="flex flex-col items-center justify-start gap-1.5">
-                    <div className={`relative h-14 w-14 rounded-full p-[2px] bg-gradient-to-br ${getCategoryGradient(g.category)} transition-all duration-300 group-hover:scale-105 group-hover:shadow-lg`}>
-                      <div className="h-full w-full rounded-full bg-white dark:bg-gray-800 p-[2px]">
+
+            {/* Activity Feed Cards */}
+            {activities.length === 0 && !loading && !error ? (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
+                <Trophy className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">No activity yet</h3>
+                <p className="text-gray-600">Start following people to see their progress and achievements!</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {activities.map((activity) => (
+                  <motion.div
+                    key={activity.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-white rounded-xl shadow-sm border border-gray-100 p-6"
+                  >
+                    {/* User Info Header */}
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-center gap-3">
                         <img
-                          src={g.user?.avatar || '/api/placeholder/48/48'}
-                          alt={g.user?.name || 'User'}
-                          className="h-full w-full rounded-full object-cover" 
+                          src={activity.user.avatar}
+                          alt={activity.user.name}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (activity.user?.username) {
+                              navigate(`/profile/@${activity.user.username}`);
+                            }
+                          }}
+                          className="w-10 h-10 rounded-full cursor-pointer hover:opacity-80 transition-opacity"
                         />
+                        <div>
+                          <h3
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (activity.user?.username) {
+                                navigate(`/profile/@${activity.user.username}`);
+                              }
+                            }}
+                            className="font-semibold text-gray-900 cursor-pointer hover:text-[#4c99e6] transition-colors"
+                          >
+                            {activity.user.name}
+                          </h3>
+                          <p className="text-sm text-gray-500">
+                            {activity.action} • {activity.timestamp}
+                          </p>
+                        </div>
                       </div>
-                      {/* Hover overlay with user name */}
-                      <div className="absolute inset-0 rounded-full bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-end justify-center pb-1">
-                        <span className="text-[9px] font-medium text-white truncate px-1.5 max-w-full drop-shadow">
-                          {g.user?.name || 'User'}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="w-full text-center px-0.5">
-                      <div className="text-[11px] font-medium text-gray-700 dark:text-gray-300 leading-tight line-clamp-2 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
-                        {g.title}
-                      </div>
-                    </div>
-                  </div>
-                </button>
-              ))}
-              {/* Explore shortcut - always visible */}
-              {!storiesLoading && (
-                <button
-                  onClick={() => navigate('/discover?tab=goals')}
-                  className="group shrink-0 w-16 focus:outline-none focus:ring-2 focus:ring-primary-500 rounded-xl p-1 -m-1 transition-all duration-200"
-                  title="Explore more goals"
-                  aria-label="Explore more goals"
-                >
-                  <div className="flex flex-col items-center justify-start gap-1.5">
-                    <div className="relative h-14 w-14 rounded-full p-[2px] bg-gradient-to-br from-primary-500 via-blue-500 to-cyan-400 transition-all duration-300 group-hover:scale-105 group-hover:shadow-lg">
-                      <div className="h-full w-full rounded-full bg-white dark:bg-gray-800 flex items-center justify-center">
-                        <Compass className="h-6 w-6 text-primary-600 dark:text-primary-400 group-hover:scale-110 transition-transform" />
-                      </div>
-                    </div>
-                    <div className="text-[11px] font-bold text-primary-600 dark:text-primary-400 group-hover:text-primary-700 dark:group-hover:text-primary-300 transition-colors">
-                      Explore
-                    </div>
-                  </div>
-                </button>
-              )}
-            </div>
-            {/* Fade gradient on right edge */}
-            <div className="pointer-events-none absolute right-0 top-0 h-full w-16 bg-gradient-to-l from-white dark:from-gray-800 via-white/80 dark:via-gray-800/80 to-transparent rounded-r-2xl" />
-          </div>
-        </div>}
-
-        {loading ? (
-          <SkeletonList count={6} grid={false} avatar lines={4} />
-        ) : activities.length > 0 ? (
-          <>
-            <div className="space-y-4">
-              {activities.map((activity, index) => (
-                <motion.div
-                  key={activity._id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: 0.05 * index }}
-                  className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow relative overflow-visible"
-                >
-                  {/* Header with user info */}
-                  <div className="flex items-start gap-3 p-4 pb-3">
-                    <img
-                      src={activity?.user?.avatar || activity?.avatar || '/api/placeholder/48/48'}
-                      alt={activity?.user?.name || activity?.name || 'User'}
-                      className="w-12 h-12 rounded-full object-cover cursor-pointer ring-2 ring-gray-100 dark:ring-gray-700 hover:ring-primary-500 transition-all"
-                      onClick={() => activity.user?.username && navigate(`/profile/@${activity.user.username}?tab=overview`)}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="relative">
                         <button
-                          className="font-semibold text-gray-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 transition-colors truncate"
-                          onClick={() => activity.user?.username && navigate(`/profile/@${activity.user.username}?tab=overview`)}
+                          data-activity-menu-btn="true"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOpenActivityMenuId(prev => prev === activity.id ? null : activity.id);
+                          }}
+                          className="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
                         >
-                          {activity?.user?.name || activity?.name || 'Unknown User'}
+                          <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                            <circle cx="10" cy="4" r="1.5" />
+                            <circle cx="10" cy="10" r="1.5" />
+                            <circle cx="10" cy="16" r="1.5" />
+                          </svg>
                         </button>
-                        <span className="text-xs text-gray-400">•</span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">{formatTimeAgo(activity.createdAt)}</span>
-                      </div>
-                      <div className="text-sm text-gray-600 dark:text-gray-400">
-                        {getActivityText(activity)}
+                        {openActivityMenuId === activity.id && (
+                          <div
+                            data-activity-menu="true"
+                            onClick={(e) => e.stopPropagation()}
+                            className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-xl z-30 overflow-hidden"
+                          >
+                            <button
+                              className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                              onClick={() => {
+                                setReportTarget({
+                                  type: 'activity',
+                                  id: activity.id,
+                                  label: 'activity',
+                                  username: activity.user?.username || '',
+                                  userId: activity.user?._id || activity.user?.id || null
+                                });
+                                setReportOpen(true);
+                                setOpenActivityMenuId(null);
+                              }}
+                            >
+                              Report Activity
+                            </button>
+                            {activity.user?._id && (
+                              <button
+                                className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                                onClick={async () => {
+                                  try {
+                                    await unfollowUser(activity.user._id);
+                                  } catch (err) {
+                                    console.error('Failed to unfollow:', err);
+                                  }
+                                  setOpenActivityMenuId(null);
+                                }}
+                              >
+                                Unfollow User
+                              </button>
+                            )}
+                            {activity.user?._id && (
+                              <button
+                                className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                                onClick={() => {
+                                  setBlockUserId(activity.user._id);
+                                  setBlockUsername(activity.user?.username || activity.user?.name || '');
+                                  setBlockOpen(true);
+                                  setOpenActivityMenuId(null);
+                                }}
+                              >
+                                Block User
+                              </button>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
 
-                    {/* Three dot menu */}
-                    <div className="relative">
-                      <button
-                        data-activity-menu-btn="true"
-                        onClick={(e) => { e.stopPropagation(); setOpenActivityMenuId(prev => prev === activity._id ? null : activity._id); }}
-                        className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                      >
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                        </svg>
-                      </button>
-                      {openActivityMenuId === activity._id && (
-                        <div
-                          data-activity-menu="true"
-                          onClick={(e) => e.stopPropagation()}
-                          className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-30 overflow-hidden"
-                        >
-                          <button
-                            className="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                            onClick={() => { setReportTarget({ type: 'activity', id: activity._id, label: 'activity', username: activity?.user?.username || '', userId: activity?.user?._id || null }); setReportOpen(true); setOpenActivityMenuId(null); }}
-                          >Report Activity</button>
-                          {activity.user?._id && (
-                            <button
-                              className="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                              onClick={async () => { try { await unfollowUser(activity.user._id); } catch { }; setOpenActivityMenuId(null); }}
-                            >Unfollow User</button>
-                          )}
-                          {activity.user?._id && (
-                            <button
-                              className="w-full text-left px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                              onClick={() => { setBlockUserId(activity.user._id); setBlockUsername(activity?.user?.username || ''); setBlockOpen(true); setOpenActivityMenuId(null); }}
-                            >Block User</button>
+                    {/* Activity Content - Clickable */}
+                    <div
+                      onClick={() => handleOpenGoal(activity.originalId)}
+                      className="cursor-pointer"
+                    >
+                      {activity.type === 'habit_streak' ? (
+                        <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-lg p-6 mb-4">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <div className="flex items-center gap-2 mb-2">
+                                <Flame className="w-5 h-5 text-orange-400" />
+                                <h4 className="text-white font-semibold text-lg">
+                                  {activity.content.title}
+                                </h4>
+                              </div>
+                              <p className="text-gray-300 text-sm">
+                                {activity.content.description}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-4xl font-bold text-white">
+                                {activity.content.days}
+                              </div>
+                              <div className="text-xs text-gray-400 uppercase">Days</div>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="mb-4">
+                          <h4 className="text-xl font-semibold text-gray-900 mb-3">
+                            {activity.content.title}
+                          </h4>
+                          <CategoryBadge category={activity.content.category} />
+                          {(activity.completionNote || activity.completionImage) && (
+                            <div className="mt-4 space-y-3">
+                              {activity.completionImage && (
+                                <div className="overflow-hidden rounded-lg border border-gray-100 shadow-sm">
+                                  <img
+                                    src={activity.completionImage}
+                                    alt="Activity image"
+                                    className="w-full max-h-96 object-cover hover:scale-105 transition-transform duration-300"
+                                  />
+                                </div>
+                              )}
+                              {activity.completionNote && (
+                                <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
+                                  <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                                    {activity.completionNote}
+                                  </p>
+                                </div>
+                              )}
+                            </div>
                           )}
                         </div>
                       )}
                     </div>
-                  </div>
 
-                  {/* Content Card */}
-                  <div className="px-4 pb-4">
-                    <div 
-                      className="bg-gradient-to-br from-gray-50 to-gray-100/50 dark:from-gray-700/30 dark:to-gray-800/30 rounded-xl p-4 border border-gray-200 dark:border-gray-700/50 cursor-pointer hover:border-primary-300 dark:hover:border-primary-600/50 transition-all group" 
-                      onClick={() => openGoalModal(activity?.data?.goalId)}
-                    >
-                      {(activity.type === 'goal_completed' || activity.type === 'goal_created' || activity.type === 'goal_activity' || 
-                        activity.type === 'subgoal_added' || activity.type === 'subgoal_completed' ||
-                        activity.type === 'habit_added' || activity.type === 'habit_target_achieved') ? (
-                        <>
-                          <div className="flex items-start justify-between gap-3 mb-3">
-                            <div className="flex-1">
-                              <h4 className="font-semibold text-gray-900 dark:text-white text-base group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
-                                {activity.data?.goal?.title || 'Goal Achievement'}
-                              </h4>
-                              {/* Show sub-goal name for specific events */}
-                              {(activity.type === 'subgoal_added' || activity.type === 'subgoal_completed') && 
-                                activity.data?.subGoalTitle && (
-                                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                                  <span className="font-medium">Sub-goal:</span> {activity.data.subGoalTitle}
-                                </p>
-                              )}
-                              {/* Show habit name for specific events */}
-                              {(activity.type === 'habit_added' || activity.type === 'habit_target_achieved') && 
-                                activity.data?.habitName && (
-                                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                                  <span className="font-medium">Habit:</span> {activity.data.habitName}
-                                </p>
-                              )}
-                            </div>
-                            {(activity.type === 'goal_completed' || (activity.type === 'goal_activity' && activity.data?.isCompleted)) && (
-                              <div className="shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center shadow-sm">
-                                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                                </svg>
-                              </div>
-                            )}
-                            {activity.type === 'subgoal_completed' && (
-                              <div className="shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-sm">
-                                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                                </svg>
-                              </div>
-                            )}
-                            {activity.type === 'habit_target_achieved' && (
-                              <div className="shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-purple-400 to-fuchsia-500 flex items-center justify-center shadow-sm">
-                                <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
-                                  <path d="M13 10V3L4 14h7v7l9-11h-7z" />
-                                </svg>
-                              </div>
-                            )}
-                          </div>
-                          {activity.data?.goalCategory && (
-                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold text-white ${getCategoryColor(activity.data.goalCategory)} shadow-sm`}>
-                              {activity.data.goalCategory}
-                            </span>
-                          )}
-                          {/* Shared note/image when public */}
-                          {activity.isPublic && (() => {
-                            const sharedNote = activity?.data?.metadata?.completionNote || activity?.data?.completionNote || ''
-                            const sharedImage = activity?.data?.metadata?.completionAttachmentUrl || activity?.data?.completionAttachmentUrl || ''
-                            if (!sharedNote && !sharedImage) return null
-                            return (
-                              <div className="mt-3 space-y-3">
-                                {sharedImage && (
-                                  <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-600 shadow-sm">
-                                    <img
-                                      src={sharedImage}
-                                      alt="Completion attachment"
-                                      className="w-full max-h-96 object-cover hover:scale-105 transition-transform duration-300"
-                                    />
-                                  </div>
-                                )}
-                                {sharedNote && (
-                                  <div className="bg-white/90 dark:bg-gray-800/80 rounded-xl p-4 border border-gray-200 dark:border-gray-600 backdrop-blur-sm">
-                                    <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line leading-relaxed">
-                                      {sharedNote}
-                                    </p>
-                                  </div>
-                                )}
-                              </div>
-                            )
-                          })()}
+                    {/* Engagement Bar */}
+                    <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                      <div className="flex items-center gap-6">
+                        {/* Like Button */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleLike(activity.id);
+                          }}
+                          className="flex items-center gap-2 text-gray-600 hover:text-red-500 transition-colors"
+                        >
+                          <Heart
+                            className={`w-5 h-5 ${activity.isLiked ? 'fill-red-500 text-red-500' : ''
+                              }`}
+                          />
+                          <span className="text-sm font-medium">{activity.likes}</span>
+                        </button>
 
-                          {/* Show subgoal progress for goal_activity type */}
-                          {activity.type === 'goal_activity' && activity.data?.subGoalsCount > 0 && (
-                            <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                              <div className="flex items-center justify-between text-sm mb-2">
-                                <span className="text-gray-600 dark:text-gray-400">Subgoals</span>
-                                <span className="font-semibold text-primary-600 dark:text-primary-400">
-                                  {activity.data.completedSubGoalsCount || 0} / {activity.data.subGoalsCount}
-                                </span>
-                              </div>
-                              <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                                <div 
-                                  className="h-full bg-gradient-to-r from-primary-500 to-purple-500 transition-all duration-500"
-                                  style={{ 
-                                    width: `${activity.data.subGoalsCount > 0 ? (activity.data.completedSubGoalsCount / activity.data.subGoalsCount * 100) : 0}%` 
-                                  }}
-                                />
-                              </div>
-                            </div>
-                          )}
-                        </>
-                      )
-                        : activity.type === 'streak_milestone' ? (
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center shadow-sm">
-                                <span className="text-xl">🔥</span>
-                              </div>
-                              <span className="text-gray-900 dark:text-white font-semibold">
-                                Achieved a {activity.data?.streakCount || 0} day streak!
-                              </span>
-                            </div>
-                          </div>
-                        ) : activity.type === 'achievement_earned' ? (
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-400 to-amber-500 flex items-center justify-center shadow-sm">
-                                <span className="text-xl">🏆</span>
-                              </div>
-                              <span className="text-gray-900 dark:text-white font-semibold">
-                                Earned "{activity.data?.achievementName || 'achievement'}" badge
-                              </span>
-                            </div>
-                          </div>
-                        ) : (
-                          <h4 className="font-medium text-gray-900 dark:text-white">
-                            Activity Update
-                          </h4>
-                        )}
+                        {/* Comment Button */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenComments(activity.id, activity.originalId);
+                          }}
+                          className="flex items-center gap-2 text-gray-600 hover:text-[#4c99e6] transition-colors"
+                        >
+                          <MessageCircle className="w-5 h-5" />
+                          <span className="text-sm font-medium">{activity.comments}</span>
+                        </button>
+
+                        {/* Share Button */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            try {
+                              const gid = activity.originalId;
+                              const url = gid ? `${window.location.origin}/feed?goalId=${gid}` : window.location.href;
+                              if (isMobile) {
+                                shareUrlRef.current = url;
+                                setShareSheetOpen(true);
+                              } else {
+                                navigator.clipboard.writeText(url)
+                                  .then(() => {
+                                    toast.success('Link copied to clipboard', { duration: 2000 });
+                                  })
+                                  .catch(() => {
+                                    toast.error('Failed to copy link');
+                                  });
+                              }
+                            } catch { }
+                          }}
+                          className="flex items-center gap-2 text-gray-600 hover:text-[#4c99e6] transition-colors"
+                        >
+                          <Share2 className="w-5 h-5" />
+                        </button>
+                      </div>
                     </div>
-
-                    {/* Action bar */}
-                    <div className="flex items-center gap-2 mt-3">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); toggleActivityLikeOptimistic(activity._id); }}
-                        className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${activity.isLiked ? 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400 ring-1 ring-red-200 dark:ring-red-800' : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'}`}
-                        disabled={!!likePending[activity._id]}
-                      >
-                        <Heart className={`h-4 w-4 ${activity.isLiked ? 'fill-current' : ''}`} />
-                        <span>{activity.likeCount || 0}</span>
-                      </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); if (isMobile) { setCommentsOpenActivityId(activity._id); } else { setScrollCommentsOnOpen(true); openGoalModal(activity?.data?.goalId); } }}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all"
-                      >
-                        <MessageCircle className="h-4 w-4" />
-                        <span>{(activity.commentCount || 0)}</span>
-                      </button>
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          try {
-                            const gid = activity?.data?.goalId?._id || activity?.data?.goalId;
-                            const url = gid ? `${window.location.origin}/feed?goalId=${gid}` : window.location.href;
-                            if (isMobile) {
-                              shareUrlRef.current = url
-                              setShareSheetOpen(true)
-                            } else {
-                              Promise.resolve(navigator.clipboard.writeText(url))
-                                .then(() => { try { window.dispatchEvent(new CustomEvent('wt_toast', { detail: { message: 'Link copied to clipboard', type: 'success', duration: 2000 } })); } catch { } })
-                                .catch(() => { })
-                            }
-                          } catch { }
-                        }} 
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all"
-                        title="Share"
-                      >
-                        <Send className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-            <div ref={activitiesSentinelRef} className="h-10" />
-            {loadingMoreActivities && (
-              <div className="flex items-center justify-center py-6">
-                <div className="animate-spin rounded-full h-8 w-8 border-3 border-primary-500 border-t-transparent" />
+                  </motion.div>
+                ))}
               </div>
             )}
-            {!activitiesHasMore && activities.length > 0 && (
-              <div className="text-center py-6">
-                <div className="inline-flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 rounded-full border border-gray-200 dark:border-gray-700 text-sm text-gray-500 dark:text-gray-400">
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
-                  You're all caught up!
-                </div>
-              </div>
-            )}
-          </>
-        ) : (
-          <div className="text-center py-16">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 mb-4">
-              <Activity className="h-10 w-10 text-gray-400" />
-            </div>
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">No activities yet</h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-sm mx-auto">
-              Follow some users to see their goal completions and achievements here!
-            </p>
-            <button
-              onClick={() => navigate('/discover?tab=users')}
-              className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-primary-500 to-purple-500 text-white rounded-xl font-medium hover:from-primary-600 hover:to-purple-600 transition-all shadow-lg hover:shadow-xl"
-            >
-              <Compass className="h-5 w-5" />
-              Discover Users
-            </button>
           </div>
-        )}
 
-        <Suspense fallback={null}><ReportModal
+          {/* Right Sidebar */}
+          <div className="hidden lg:block space-y-6 lg:sticky lg:top-24 lg:self-start">
+            {/* Trending Goals */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Zap className="w-5 h-5 text-[#4c99e6]" />
+                <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wide">
+                  Trending Goals
+                </h3>
+              </div>
+
+              {trendingLoading ? (
+                <div className="space-y-3">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-full bg-gray-200 animate-pulse" />
+                      <div className="flex-1">
+                        <div className="h-4 bg-gray-200 rounded animate-pulse mb-2" />
+                        <div className="h-3 bg-gray-200 rounded w-2/3 animate-pulse" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : trendingGoals.length > 0 ? (
+                <div className="space-y-3">
+                  {trendingGoals.map((goal) => (
+                    <button
+                      key={goal.id}
+                      onClick={() => handleOpenGoal(goal.id)}
+                      className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 transition-colors text-left group"
+                    >
+                      <div className={`relative h-12 w-12 rounded-full p-[2px] bg-gradient-to-br ${getCategoryGradient(goal.category)} flex-shrink-0 group-hover:scale-105 transition-transform`}>
+                        <div className="h-full w-full rounded-full bg-white p-[2px]">
+                          <img
+                            src={goal?.user_avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${goal?.user_name}`}
+                            alt={goal?.user_name || 'User'}
+                            className="h-full w-full rounded-full object-cover"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-semibold text-gray-900 text-sm line-clamp-1 group-hover:text-[#4c99e6] transition-colors">
+                          {goal.title}
+                        </h4>
+                        <p className="text-xs text-gray-500">
+                          by {goal?.user_name || 'User'}
+                        </p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-6">
+                  <Target className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                  <p className="text-sm text-gray-500">No trending goals yet</p>
+                </div>
+              )}
+            </div>
+
+            {/* Suggested Friends */}
+            {/* <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+              <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-4">
+                Suggested Friends
+              </h3>
+
+              <div className="space-y-4">
+                {friends.map((friend) => (
+                  <div key={friend.id} className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={friend.avatar}
+                        alt={friend.name}
+                        className="w-10 h-10 rounded-full"
+                      />
+                      <div>
+                        <h4 className="font-semibold text-gray-900 text-sm">
+                          {friend.name}
+                        </h4>
+                        <p className="text-xs text-gray-500">{friend.subtitle}</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleFollow(friend.id)}
+                      className={`p-2 rounded-lg transition-all ${
+                        friend.isFollowing
+                          ? 'bg-gray-100 text-gray-600'
+                          : 'bg-blue-50 text-[#4c99e6] hover:bg-blue-100'
+                      }`}
+                    >
+                      <UserPlus className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              <button className="w-full mt-4 text-[#4c99e6] hover:text-blue-600 font-medium text-sm transition-colors">
+                Find People
+              </button>
+            </div> */}
+          </div>
+        </div>
+      </div>
+
+      {/* Goal Details Modal */}
+      <GoalPostModal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        goalId={selectedGoalId}
+        openWithComments={openWithComments}
+        onToggleComments={() => setOpenWithComments(prev => !prev)}
+      />
+
+      <Suspense fallback={null}>
+        <ActivityCommentsModal
+          isOpen={!!commentsOpenActivityId}
+          onClose={() => setCommentsOpenActivityId(null)}
+          activity={{ _id: commentsOpenActivityId }}
+        />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <ReportModal
           isOpen={reportOpen}
           onClose={() => setReportOpen(false)}
           targetLabel={reportTarget.label}
@@ -751,45 +725,47 @@ const FeedPage = () => {
             await report({ targetType: reportTarget.type, targetId: reportTarget.id, reason, description });
             // After reporting, offer to block the user
             const uid = reportTarget.userId || null;
-            if (uid) { setBlockUserId(uid); setBlockUsername(reportTarget.username || ''); setBlockOpen(true); }
+            if (uid) {
+              setBlockUserId(uid);
+              setBlockUsername(reportTarget.username || '');
+              setBlockOpen(true);
+            }
             setReportOpen(false);
           }}
-          onReportAndBlock={reportTarget.type === 'user' ? async () => { if (reportTarget.id) { await blockUser(reportTarget.id); } } : undefined}
-        /></Suspense>
-        <Suspense fallback={null}><BlockModal
+          onReportAndBlock={reportTarget.type === 'user' ? async () => {
+            if (reportTarget.id) {
+              await blockUser(reportTarget.id);
+            }
+          } : undefined}
+        />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <BlockModal
           isOpen={blockOpen}
           onClose={() => setBlockOpen(false)}
           username={blockUsername || ''}
-          onConfirm={async () => { if (blockUserId) { await blockUser(blockUserId); setBlockOpen(false); } }}
-        /></Suspense>
+          onConfirm={async () => {
+            if (blockUserId) {
+              await blockUser(blockUserId);
+              // Remove activities from this user
+              setActivities(prev => prev.filter(a => a.user?._id !== blockUserId));
+              setBlockOpen(false);
+            }
+          }}
+        />
+      </Suspense>
 
-        {/* Activity Comments Bottom Sheet */}
-        <Suspense fallback={null}><ActivityCommentsModal
-          isOpen={!!commentsOpenActivityId}
-          onClose={() => setCommentsOpenActivityId(null)}
-          activity={{ _id: commentsOpenActivityId }}
-        /></Suspense>
-        {/* Share Sheet (mobile) */}
-        <Suspense fallback={null}><ShareSheet
+      <Suspense fallback={null}>
+        <ShareSheet
           isOpen={shareSheetOpen}
           onClose={() => setShareSheetOpen(false)}
           url={shareUrlRef.current}
           title="WishTrail Goal"
-        /></Suspense>
-      </div>
-      {/* Goal Details Modal (with timeline) */}
-      {goalModalOpen && (
-        <Suspense fallback={null}><GoalDetailsModal
-          isOpen={goalModalOpen}
-          goalId={openGoalId}
-          autoOpenComments={scrollCommentsOnOpen}
-          onClose={closeGoalModal}
-        /></Suspense>
-      )}
+        />
+      </Suspense>
     </div>
-  )
-}
+  );
+};
 
-export default FeedPage
-
-
+export default FeedPage;

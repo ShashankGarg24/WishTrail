@@ -164,6 +164,7 @@ class UserService {
     if (prefs) {
       userResponse.interests = prefs.interests || [];
       userResponse.currentMood = prefs.preferences?.currentMood || '';
+      userResponse.quote = prefs.preferences?.quote || '';
       userResponse.youtube = prefs.socialLinks?.youtube || '';
       userResponse.instagram = prefs.socialLinks?.instagram || '';
     }
@@ -222,6 +223,7 @@ class UserService {
       showHabits: prefs?.privacy?.showHabits ?? false,
       interests: prefs?.interests || [],
       currentMood: prefs?.preferences?.currentMood || '',
+      quote: prefs?.preferences?.quote || '',
       website: prefs?.socialLinks?.website || '',
       youtube: prefs?.socialLinks?.youtube || '',
       instagram: prefs?.socialLinks?.instagram || '',
@@ -335,6 +337,7 @@ class UserService {
     if (prefs) {
       userResponse.interests = prefs.interests || [];
       userResponse.currentMood = prefs.preferences?.currentMood || '';
+      userResponse.quote = prefs.preferences?.quote || '';
       userResponse.youtube = prefs.socialLinks?.youtube || '';
       userResponse.instagram = prefs.socialLinks?.instagram || '';
     }

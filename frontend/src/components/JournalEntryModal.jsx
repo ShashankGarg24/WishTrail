@@ -1,13 +1,9 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect } from 'react';
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock';
-import { X, Heart } from 'lucide-react';
+import { X, Sparkles, Lock, Globe } from 'lucide-react';
 
-const Chip = ({ children }) => (
-  <span className="px-2 py-1 rounded-md text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700">{children}</span>
-);
-
-
+const THEME_COLOR = '#4c99e6';
 
 const JournalEntryModal = ({ isOpen, onClose, entry }) => {
   useEffect(() => {
@@ -18,35 +14,58 @@ const JournalEntryModal = ({ isOpen, onClose, entry }) => {
     return undefined;
   }, [isOpen]);
   if (!isOpen || !entry) return null;
-  const motivation = entry?.motivation || '';
-  const s = entry?.aiSignals || {};
+
+  const formatDate = (dateString) =>
+    new Date(dateString).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
   return (
     <AnimatePresence>
       <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" style={{ zIndex: 1000 }}>
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/50" onClick={onClose} />
-        <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto scrollbar-hide bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-xl border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2"><Heart className="h-5 w-5 text-rose-500" /> Journal Entry</h3>
-            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"><X className="h-5 w-5 text-gray-500" /></button>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 20 }}
+          className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto scrollbar-hide bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-xl border border-gray-200 dark:border-gray-700"
+          style={{ fontFamily: 'Manrope, ui-sans-serif, system-ui' }}
+        >
+          <div className="flex items-center justify-between mb-5">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Journal Entry</h3>
+            <button type="button" onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 transition-colors" aria-label="Close">
+              <X className="h-5 w-5" />
+            </button>
           </div>
 
           <div className="space-y-4">
-            <div>
-              <div className="flex items-center flex-wrap gap-2 mb-3">
-                <Chip>{new Date(entry.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</Chip>
-                <Chip className="capitalize">{entry.visibility}</Chip>
-                <Chip className="capitalize">{String(entry.mood || '').replace('_',' ') || 'neutral'}</Chip>
-              </div>
-              <div className="bg-gray-50 dark:bg-gray-900/50 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-                <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">Your Reflection</div>
-                <div className="whitespace-pre-wrap text-sm text-gray-900 dark:text-gray-100 leading-relaxed">{entry.content}</div>
-              </div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+              {formatDate(entry.createdAt)}
+            </div>
+            <div className="flex items-center gap-2 mb-3">
+              {entry.visibility === 'public' ? (
+                <span className="inline-flex items-center gap-1.5 text-xs font-medium" style={{ color: THEME_COLOR }}>
+                  <Globe className="h-3.5 w-3.5" /> PUBLIC
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
+                  <Lock className="h-3.5 w-3.5" /> PRIVATE
+                </span>
+              )}
+              <span className="text-xs text-gray-500 dark:text-gray-400 capitalize">
+                {String(entry.mood || '').replace('_', ' ') || 'neutral'}
+              </span>
+            </div>
+            <h4 className="font-semibold text-gray-900 dark:text-white text-base">{entry.title || 'Reflection'}</h4>
+            <div className="rounded-xl p-4 border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/30">
+              <div className="whitespace-pre-wrap text-sm text-gray-900 dark:text-gray-100 leading-relaxed">{entry.content}</div>
             </div>
 
             {entry?.motivation && (
-              <div className="p-4 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200/50 dark:border-indigo-800/30 rounded-xl">
-                <div className="text-xs font-semibold text-indigo-700 dark:text-indigo-300 mb-2 uppercase tracking-wide">AI Motivation</div>
-                <div className="text-sm text-gray-800 dark:text-gray-100 leading-relaxed">{entry?.motivation}</div>
+              <div className="p-4 rounded-xl flex items-start gap-2" style={{ backgroundColor: 'rgba(76, 153, 230, 0.1)', border: '1px solid rgba(76, 153, 230, 0.2)' }}>
+                <Sparkles className="h-4 w-4 flex-shrink-0 mt-0.5" style={{ color: THEME_COLOR }} />
+                <div>
+                  <span className="text-xs font-semibold uppercase block mb-1" style={{ color: THEME_COLOR }}>AI Insight</span>
+                  <div className="text-sm text-gray-800 dark:text-gray-100 leading-relaxed" style={{ color: '#3d7ab8' }}>{entry.motivation}</div>
+                </div>
               </div>
             )}
           </div>

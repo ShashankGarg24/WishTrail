@@ -1,737 +1,401 @@
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import {
-  Trophy,
-  Target,
-  Users,
-  Crown,
-  Clock,
-  TrendingUp,
-  Award,
-  Medal,
-  Sparkles,
-  Filter,
-  ChevronDown,
-  X,
-  Calendar,
-  Tag,
-  Menu,
-  Globe
-} from 'lucide-react';
-import useApiStore from '../store/apiStore';
+import { useState, useEffect } from 'react'
+import { motion } from 'framer-motion'
+import { Trophy, TrendingUp, Award, ChevronDown, Target } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import useApiStore from '../store/apiStore'
 
-const LeaderboardPage = () => {
-  const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const initialTab = searchParams.get('tab') || 'global';
-  const [activeTab, setActiveTab] = useState(initialTab);
-  const [leaderboardType, setLeaderboardType] = useState('goals');
-  const [timeframe, setTimeframe] = useState('all');
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [openDropdown, setOpenDropdown] = useState(null);
-  const [filtersExpanded, setFiltersExpanded] = useState(false);
+const LeaderboardPageNew = () => {
+  const [currentPage, setCurrentPage] = useState(1)
+  const [leaderboardData, setLeaderboardData] = useState([])
+  const [totalPages, setTotalPages] = useState(1)
+  const [loading, setLoading] = useState(false)
+  const navigate = useNavigate()
 
-  const {
-    isAuthenticated,
-    loading,
-    leaderboard,
-    getGlobalLeaderboard,
-    getFriendsLeaderboard,
-    user: currentUser
-  } = useApiStore();
+  const { getGlobalLeaderboard, user, isAuthenticated } = useApiStore()
 
-  // Close dropdown when clicking outside
+  const ITEMS_PER_PAGE = 20
+
+  // Fetch leaderboard data
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (openDropdown && !event.target.closest('.filter-dropdown')) {
-        setOpenDropdown(null);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [openDropdown]);
+    (async () => {
+      setLoading(true)
+      const data = await getGlobalLeaderboard({ page: currentPage, limit: ITEMS_PER_PAGE })
+      setLeaderboardData(Array.isArray(data) ? data : [])
+      // Estimate total pages (you may need to adjust based on API response)
+      setTotalPages(data.length < ITEMS_PER_PAGE ? currentPage : currentPage + 1)
+      setLoading(false)
+    })()
+  }, [getGlobalLeaderboard, currentPage])
 
-  // Navigate to user profile
-  const handleUserClick = (userId) => {
-    navigate(`/profile/@${userId}?tab=overview`);
-  };
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      loadLeaderboard();
+  const handleUserClick = (username) => {
+    if (username) {
+      navigate(`/profile/@${username}`)
     }
-  }, [isAuthenticated, activeTab, leaderboardType, timeframe, selectedCategory]);
+  }
 
-  useEffect(() => {
-    const tabFromUrl = searchParams.get('tab') || 'global';
-    if (tabFromUrl !== activeTab) {
-      setActiveTab(tabFromUrl);
-    }
-  }, [searchParams]);
+  // Get top 3 from leaderboard
+  const topThree = leaderboardData.slice(0, 3).map((item, index) => ({
+    rank: index + 1,
+    name: item.name || item.displayName || item.username || 'Anonymous',
+    badge: index === 0 ? 'CHAMPION' : index === 1 ? 'SILVER ACHIEVER' : 'BRONZE EXPLORER',
+    goalsCompleted: item.completedGoals || 0,
+    avatar: item.avatar || null,
+    username: item.username
+  }))
 
-  const handleTabChange = (tab) => {
-    setSearchParams({ tab });
-    setActiveTab(tab);
-  };
+  // Reorder for podium display (2nd, 1st, 3rd)
+  const podiumOrder = topThree.length >= 3 ? [topThree[1], topThree[0], topThree[2]] : topThree
 
-  const loadLeaderboard = async () => {
-    const category = selectedCategory && selectedCategory !== '' ? selectedCategory : undefined;
-    if (activeTab === 'friends') {
-      await getFriendsLeaderboard({ type: leaderboardType, timeframe, category });
-    } else {
-      await getGlobalLeaderboard({ type: leaderboardType, timeframe, category });
-    }
-  };
+  // Get remaining rankings (4+)
+  const allRankings = leaderboardData.slice(3).map((item, index) => ({
+    rank: (currentPage - 1) * ITEMS_PER_PAGE + index + 4,
+    name: item.name || item.displayName || item.username || 'Anonymous',
+    isYou: isAuthenticated && user && (item.username === user.username),
+    goalsCompleted: item.completedGoals || 0, 
+    avatar: item.avatar || null,
+    username: item.username
+  }))
 
-  const getTypeLabel = (type) => {
-    switch (type) {
-      case 'goals':
-        return 'Goals Completed';
-      case 'streak':
-        return 'Current Streak';
-      default:
-        return 'Goals Completed';
-    }
-  };
-
-  const getTypeValue = (user, type) => {
-    switch (type) {
-      case 'goals':
-        return user.completedGoals || user.recentGoalsCount || 0;
-      case 'streak':
-        return user.currentStreak || 0;
-      default:
-        return user.completedGoals || user.recentGoalsCount || 0;
-    }
-  };
-
-  const getRankColor = (rank) => {
-    if (rank === 1) return 'from-yellow-400 to-yellow-600';
-    if (rank === 2) return 'from-gray-300 to-gray-500';
-    if (rank === 3) return 'from-orange-400 to-orange-600';
-    return 'from-blue-500 to-purple-600';
-  };
-
-  const topThree = leaderboard ? leaderboard.slice(0, 3) : [];
-  const remainingUsers = leaderboard ? leaderboard.slice(3) : [];
-
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-purple-50 dark:from-gray-900 dark:to-gray-800">
-        <div className="text-center">
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ duration: 0.5 }}
-            className="bg-gradient-to-r from-yellow-400 to-orange-500 p-6 rounded-full mb-6 mx-auto w-24 h-24 flex items-center justify-center"
-          >
-            <Trophy className="h-12 w-12 text-white" />
-          </motion.div>
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-            Join the Competition
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 mb-8 max-w-md mx-auto">
-            See where you rank among other goal achievers and compete for the top spot
-          </p>
-          <a href="/auth" className="btn-primary text-lg px-8 py-3">
-            Get Started
-          </a>
-        </div>
-      </div>
-    );
+  const getAvatarColor = (rank) => {
+    const colors = [
+      'from-yellow-400 to-orange-500',
+      'from-gray-300 to-gray-400',
+      'from-orange-400 to-amber-600',
+      'from-orange-300 to-orange-500',
+      'from-gray-400 to-gray-500',
+      'from-yellow-300 to-yellow-500',
+      'from-orange-400 to-yellow-500'
+    ]
+    return colors[rank % colors.length]
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        
-        {/* Hero Header */}
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-gray-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800">
+      <div className="max-w-[1400px] mx-auto px-6 py-8">
+        {/* Header with Trophy Icon */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="text-center mb-6"
+          className="text-center mb-12"
         >
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-yellow-100 to-orange-100 dark:from-yellow-900/30 dark:to-orange-900/30 border border-yellow-200 dark:border-yellow-800 rounded-full mb-3">
-            <Sparkles className="h-3.5 w-3.5 text-yellow-600 dark:text-yellow-400" />
-            <span className="text-xs font-medium text-yellow-800 dark:text-yellow-200">Compete & Achieve</span>
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full mb-4">
+            <Trophy className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-2">
-            🏆 Leaderboard
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2 font-manrope">
+            Leaderboard
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 text-sm max-w-2xl mx-auto">
-            See where you rank among achievers worldwide
+          <p className="text-gray-600 dark:text-gray-400 font-manrope">
+            Celebrate the journey of achievers worldwide.
           </p>
         </motion.div>
 
-        {/* Filter Pills */}
+        {/* Top 3 Podium */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          className="mb-6"
+          transition={{ delay: 0.1 }}
+          className="flex items-end justify-center gap-8 mb-16 max-w-4xl mx-auto"
         >
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
-            {/* Filter Header - Clickable */}
-            <button
-              onClick={() => setFiltersExpanded(!filtersExpanded)}
-              className="w-full flex items-center gap-2 p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-            >
-              <Filter className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-              <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Filters</span>
-              <motion.div
-                animate={{ rotate: filtersExpanded ? 180 : 0 }}
-                transition={{ duration: 0.3 }}
-              >
-                <ChevronDown className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-              </motion.div>
-            </button>
-            
-            {/* Filter Pills - Collapsible */}
-            <AnimatePresence>
-              {filtersExpanded && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <div className="px-4 pb-4 pt-0 border-t border-gray-200 dark:border-gray-700">
-                    <div className="flex flex-wrap items-center gap-2 mt-3">
-                {/* View Type Pill */}
-                <div className="relative filter-dropdown">
-                  <button
-                    onClick={() => setOpenDropdown(openDropdown === 'view' ? null : 'view')}
-                    className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-full text-sm font-semibold hover:shadow-lg transition-all"
-                  >
-                    <Globe className="h-3.5 w-3.5" />
-                    <span>{activeTab === 'global' ? 'Global' : 'Friends'}</span>
-                    <ChevronDown className="h-3.5 w-3.5" />
-                  </button>
-                  {openDropdown === 'view' && (
-                    <div className="absolute top-full mt-1 left-0 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 py-1 z-50 min-w-[120px]">
-                      <button onClick={() => { handleTabChange('global'); setOpenDropdown(null); }} className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 text-gray-700 dark:text-gray-300">
-                        🌍 Global
-                      </button>
-                      <button onClick={() => { handleTabChange('friends'); setOpenDropdown(null); }} className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 text-gray-700 dark:text-gray-300">
-                        👥 Friends
-                      </button>
+          {/* 2nd Place */}
+          {podiumOrder[0] && (
+            <div className="flex-1 max-w-[240px]">
+              <div 
+                onClick={() => handleUserClick(podiumOrder[0].username)}
+                className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-100 dark:border-gray-700 text-center relative cursor-pointer hover:shadow-xl transition-all">
+                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center text-gray-700 font-bold font-manrope text-sm">
+                  2
+                </div>
+                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-gray-300 to-gray-400 mx-auto mb-4 flex items-center justify-center">
+                  {podiumOrder[0].avatar ? (
+                    <img src={podiumOrder[0].avatar} alt={podiumOrder[0].name} className="w-full h-full rounded-full object-cover" />
+                  ) : (
+                    <div className="w-16 h-16 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-400 font-bold text-xl">
+                      {podiumOrder[0].name.charAt(0)}
                     </div>
                   )}
                 </div>
-
-                {/* Metric Pill */}
-                <div className="relative filter-dropdown">
-                  <button
-                    onClick={() => setOpenDropdown(openDropdown === 'metric' ? null : 'metric')}
-                    className="flex items-center gap-2 px-3 py-1.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-full text-sm font-semibold hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-all"
-                  >
-                    <TrendingUp className="h-3.5 w-3.5" />
-                    <span>{leaderboardType === 'goals' ? 'Goals' : 'Streak'}</span>
-                    <ChevronDown className="h-3.5 w-3.5" />
-                  </button>
-                  {openDropdown === 'metric' && (
-                    <div className="absolute top-full mt-1 left-0 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 py-1 z-50 min-w-[140px]">
-                      <button onClick={() => { setLeaderboardType('goals'); setOpenDropdown(null); }} className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 text-gray-700 dark:text-gray-300">
-                        🎯 Goals
-                      </button>
-                      <button onClick={() => { setLeaderboardType('streak'); setOpenDropdown(null); }} className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 text-gray-700 dark:text-gray-300">
-                        🔥 Streak
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                {/* Period Pill */}
-                <div className="relative filter-dropdown">
-                  <button
-                    onClick={() => setOpenDropdown(openDropdown === 'period' ? null : 'period')}
-                    className="flex items-center gap-2 px-3 py-1.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-full text-sm font-semibold hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-all"
-                  >
-                    <Calendar className="h-3.5 w-3.5" />
-                    <span>{timeframe === 'all' ? 'All Time' : timeframe === 'year' ? 'Year' : timeframe === 'month' ? 'Month' : 'Week'}</span>
-                    <ChevronDown className="h-3.5 w-3.5" />
-                  </button>
-                  {openDropdown === 'period' && (
-                    <div className="absolute top-full mt-1 left-0 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 py-1 z-50 min-w-[130px]">
-                      <button onClick={() => { setTimeframe('all'); setOpenDropdown(null); }} className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 text-gray-700 dark:text-gray-300">
-                        ⏰ All Time
-                      </button>
-                      <button onClick={() => { setTimeframe('year'); setOpenDropdown(null); }} className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 text-gray-700 dark:text-gray-300">
-                        📅 Year
-                      </button>
-                      <button onClick={() => { setTimeframe('month'); setOpenDropdown(null); }} className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 text-gray-700 dark:text-gray-300">
-                        📆 Month
-                      </button>
-                      <button onClick={() => { setTimeframe('week'); setOpenDropdown(null); }} className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 text-gray-700 dark:text-gray-300">
-                        📌 Week
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                {/* Category Pill */}
-                {selectedCategory && (
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full text-sm font-semibold">
-                    <Tag className="h-3.5 w-3.5" />
-                    <span>{selectedCategory}</span>
-                    <button onClick={() => setSelectedCategory('')} className="hover:bg-green-200 dark:hover:bg-green-900/50 rounded-full p-0.5">
-                      <X className="h-3 w-3" />
-                    </button>
-                  </div>
-                )}
-                
-                <div className="relative filter-dropdown">
-                  <button
-                    onClick={() => setOpenDropdown(openDropdown === 'category' ? null : 'category')}
-                    className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full text-sm font-semibold hover:bg-gray-200 dark:hover:bg-gray-600 transition-all"
-                  >
-                    <Tag className="h-3.5 w-3.5" />
-                    Category
-                    <ChevronDown className="h-3.5 w-3.5" />
-                  </button>
-                  {openDropdown === 'category' && (
-                    <div className="absolute top-full mt-1 left-0 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 py-1 z-50 max-h-60 overflow-y-auto min-w-[200px]">
-                      <button onClick={() => { setSelectedCategory(''); setOpenDropdown(null); }} className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300">All Categories</button>
-                      <button onClick={() => { setSelectedCategory('Health & Fitness'); setOpenDropdown(null); }} className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300">💪 Health & Fitness</button>
-                      <button onClick={() => { setSelectedCategory('Education & Learning'); setOpenDropdown(null); }} className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300">📚 Education & Learning</button>
-                      <button onClick={() => { setSelectedCategory('Career & Business'); setOpenDropdown(null); }} className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300">💼 Career & Business</button>
-                      <button onClick={() => { setSelectedCategory('Personal Development'); setOpenDropdown(null); }} className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300">🌱 Personal Development</button>
-                      <button onClick={() => { setSelectedCategory('Financial Goals'); setOpenDropdown(null); }} className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300">💰 Financial Goals</button>
-                      <button onClick={() => { setSelectedCategory('Creative Projects'); setOpenDropdown(null); }} className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300">🎨 Creative Projects</button>
-                      <button onClick={() => { setSelectedCategory('Travel & Adventure'); setOpenDropdown(null); }} className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300">✈️ Travel & Adventure</button>
-                      <button onClick={() => { setSelectedCategory('Relationships'); setOpenDropdown(null); }} className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300">❤️ Relationships</button>
-                      <button onClick={() => { setSelectedCategory('Family & Friends'); setOpenDropdown(null); }} className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300">👨‍👩‍👧‍👦 Family & Friends</button>
-                      <button onClick={() => { setSelectedCategory('Other'); setOpenDropdown(null); }} className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300">📌 Other</button>
-                    </div>
-                  )}
-                </div>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-          </div>
-        </motion.div>
-
-        {/* Loading State */}
-        {loading && (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div>
-          </div>
-        )}
-
-        {/* Top 3 Podium - Desktop */}
-        {topThree.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.3 }}
-            className="mb-6 hidden md:block"
-          >
-            <div className="flex justify-center items-end gap-4 max-w-4xl mx-auto">
-              {/* Second Place */}
-              {topThree[1] && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.5, delay: 0.5 }}
-                  onClick={() => handleUserClick(topThree[1].username)}
-                  className="flex-1 cursor-pointer group"
-                >
-                  <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 rounded-2xl p-4 border-2 border-gray-300 dark:border-gray-600 shadow-lg hover:shadow-xl transition-all duration-300 group-hover:scale-105 relative overflow-hidden">
-                    {/* Animated Background */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-gray-200/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                    
-                    <div className="relative z-10 flex flex-col items-center space-y-3">
-                      <div className="text-center">
-                        <div className="text-4xl mb-2">🥈</div>
-                        <div className="relative inline-block mb-2">
-                          <img
-                            src={topThree[1].avatar || '/api/placeholder/64/64'}
-                            alt={topThree[1].name}
-                            className="w-16 h-16 rounded-full border-2 border-gray-300 dark:border-gray-600 shadow-md"
-                          />
-                          <div className="absolute -bottom-1 -right-1 bg-gray-500 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center border-2 border-white dark:border-gray-900">
-                            2
-                          </div>
-                        </div>
-                        <h3 className="font-bold text-gray-900 dark:text-white text-sm mb-0.5 truncate max-w-[120px]">
-                          {topThree[1].name}
-                        </h3>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">Silver</p>
-                      </div>
-                      <div className="text-center w-full">
-                        <div className="bg-gray-200 dark:bg-gray-700 rounded-lg p-2">
-                          <p className="text-2xl font-black text-gray-700 dark:text-gray-300">
-                            {getTypeValue(topThree[1], leaderboardType)}
-                          </p>
-                          <p className="text-xs font-medium text-gray-600 dark:text-gray-400">{getTypeLabel(leaderboardType)}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-
-              {/* First Place */}
-              {topThree[0] && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.5, delay: 0.4 }}
-                  onClick={() => handleUserClick(topThree[0].username)}
-                  className="flex-1 cursor-pointer group"
-                >
-                  <div className="bg-gradient-to-br from-yellow-50 via-amber-50 to-orange-50 dark:from-yellow-900/30 dark:via-amber-900/30 dark:to-orange-900/30 rounded-2xl p-5 border-2 border-yellow-400 dark:border-yellow-600 shadow-xl hover:shadow-2xl transition-all duration-300 group-hover:scale-105 relative overflow-hidden">
-                    {/* Animated Background */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-yellow-200/30 to-orange-200/30 opacity-0 group-hover:opacity-100 transition-opacity" />
-                    <div className="absolute -top-6 -right-6 w-24 h-24 bg-yellow-400/20 rounded-full blur-2xl" />
-                    <div className="absolute -bottom-6 -left-6 w-24 h-24 bg-orange-400/20 rounded-full blur-2xl" />
-                    
-                    {/* Crown */}
-                    <div className="absolute top-2 right-2">
-                      <Crown className="h-5 w-5 text-yellow-500 animate-pulse" />
-                    </div>
-                    
-                    <div className="relative z-10 flex flex-col items-center space-y-3">
-                      <div className="text-center">
-                        <div className="text-5xl mb-2">🏆</div>
-                        <div className="relative inline-block mb-2">
-                          <img
-                            src={topThree[0].avatar || '/api/placeholder/80/80'}
-                            alt={topThree[0].name}
-                            className="w-20 h-20 rounded-full border-2 border-yellow-400 dark:border-yellow-600 shadow-lg ring-2 ring-yellow-200 dark:ring-yellow-800"
-                          />
-                          <div className="absolute -bottom-1 -right-1 bg-gradient-to-br from-yellow-400 to-orange-500 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center border-2 border-white dark:border-gray-900 shadow-md">
-                            1
-                          </div>
-                        </div>
-                        <h3 className="font-bold text-gray-900 dark:text-white text-base mb-0.5 truncate max-w-[140px]">
-                          {topThree[0].name}
-                        </h3>
-                        <p className="text-xs text-yellow-700 dark:text-yellow-300 font-semibold">👑 Champion</p>
-                      </div>
-                      <div className="text-center w-full">
-                        <div className="bg-gradient-to-br from-yellow-400 to-orange-500 rounded-lg p-2.5 shadow-md">
-                          <p className="text-3xl font-black text-white drop-shadow-md">
-                            {getTypeValue(topThree[0], leaderboardType)}
-                          </p>
-                          <p className="text-xs font-bold text-yellow-100">{getTypeLabel(leaderboardType)}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-
-              {/* Third Place */}
-              {topThree[2] && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.5, delay: 0.6 }}
-                  onClick={() => handleUserClick(topThree[2].username)}
-                  className="flex-1 cursor-pointer group"
-                >
-                  <div className="bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 rounded-2xl p-4 border-2 border-orange-400 dark:border-orange-600 shadow-lg hover:shadow-xl transition-all duration-300 group-hover:scale-105 relative overflow-hidden">
-                    {/* Animated Background */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-orange-200/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                    
-                    <div className="relative z-10 flex flex-col items-center space-y-3">
-                      <div className="text-center">
-                        <div className="text-4xl mb-2">🥉</div>
-                        <div className="relative inline-block mb-2">
-                          <img
-                            src={topThree[2].avatar || '/api/placeholder/64/64'}
-                            alt={topThree[2].name}
-                            className="w-16 h-16 rounded-full border-2 border-orange-400 dark:border-orange-600 shadow-md"
-                          />
-                          <div className="absolute -bottom-1 -right-1 bg-orange-500 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center border-2 border-white dark:border-gray-900">
-                            3
-                          </div>
-                        </div>
-                        <h3 className="font-bold text-gray-900 dark:text-white text-sm mb-0.5 truncate max-w-[120px]">
-                          {topThree[2].name}
-                        </h3>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">Bronze</p>
-                      </div>
-                      <div className="text-center w-full">
-                        <div className="bg-orange-200 dark:bg-orange-900/40 rounded-lg p-2">
-                          <p className="text-2xl font-black text-orange-700 dark:text-orange-300">
-                            {getTypeValue(topThree[2], leaderboardType)}
-                          </p>
-                          <p className="text-xs font-medium text-orange-600 dark:text-orange-400">{getTypeLabel(leaderboardType)}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </div>
-          </motion.div>
-        )}
-
-        {/* Mobile: show full list including top 3 with medals */}
-        {leaderboard && leaderboard.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.4 }}
-            className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700 md:hidden"
-          >
-            <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-4">
-              <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                <Medal className="h-5 w-5" />
-                Rankings
-              </h2>
-            </div>
-            <div className="divide-y divide-gray-100 dark:divide-gray-700">
-              {leaderboard.map((user, index) => {
-                const rank = index + 1;
-                const isCurrentUser = !!(currentUser && user && user.username && currentUser.username && String(user.username).toLowerCase() === String(currentUser.username).toLowerCase());
-                const isTop3 = rank <= 3;
-                const getMedalEmoji = (r) => {
-                  if (r === 1) return '🏆';
-                  if (r === 2) return '🥈';
-                  if (r === 3) return '🥉';
-                  return r;
-                };
-                
-                return (
-                  <motion.div
-                    key={user._id || user.username || `${index}`}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.3, delay: 0.02 * index }}
-                    className={`p-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all cursor-pointer ${
-                      isCurrentUser ? 'bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 border-l-4 border-purple-500' : ''
-                    } ${isTop3 ? 'bg-gradient-to-r from-yellow-50/30 to-orange-50/30 dark:from-yellow-900/10 dark:to-orange-900/10' : ''}`}
-                    onClick={() => !isCurrentUser && handleUserClick(user.username)}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2.5 flex-1 min-w-0">
-                        {/* Rank Badge */}
-                        <div className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center font-black text-base shadow-md ${
-                          rank === 1 ? 'bg-gradient-to-br from-yellow-400 to-orange-500 text-white' :
-                          rank === 2 ? 'bg-gradient-to-br from-gray-300 to-gray-500 text-white' :
-                          rank === 3 ? 'bg-gradient-to-br from-orange-400 to-amber-500 text-white' :
-                          'bg-gradient-to-br from-blue-500 to-purple-600 text-white'
-                        }`}>
-                          {getMedalEmoji(rank)}
-                        </div>
-                        
-                        {/* Avatar */}
-                        <img
-                          src={user.avatar || '/api/placeholder/40/40'}
-                          alt={user.name}
-                          className="w-10 h-10 rounded-lg border-2 border-gray-200 dark:border-gray-600 shadow-sm flex-shrink-0"
-                        />
-                        
-                        {/* User Info */}
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-1.5">
-                            <h3 className="font-bold text-gray-900 dark:text-white truncate text-sm">
-                              {user.name}
-                            </h3>
-                            {isCurrentUser && (
-                              <span className="flex-shrink-0 text-xs bg-gradient-to-r from-purple-500 to-blue-500 text-white px-1.5 py-0.5 rounded-full font-semibold">
-                                You
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      
-                      {/* Score */}
-                      <div className="text-right flex-shrink-0 ml-2">
-                        <p className={`text-xl font-black ${
-                          rank === 1 ? 'text-yellow-600 dark:text-yellow-400' :
-                          rank === 2 ? 'text-gray-600 dark:text-gray-400' :
-                          rank === 3 ? 'text-orange-600 dark:text-orange-400' :
-                          'text-gray-900 dark:text-white'
-                        }`}>
-                          {getTypeValue(user, leaderboardType)}
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-500 font-medium">
-                          {getTypeLabel(leaderboardType)}
-                        </p>
-                      </div>
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </div>
-          </motion.div>
-        )}
-
-        {/* Desktop: remaining users list (ranks 4+) */}
-        {remainingUsers.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.5 }}
-            className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700 hidden md:block"
-          >
-            <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-4">
-              <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                <Award className="h-5 w-5" />
-                All Rankings
-              </h2>
-            </div>
-            <div className="divide-y divide-gray-100 dark:divide-gray-700">
-              {remainingUsers.map((user, index) => {
-                const rank = index + 4;
-                const isCurrentUser = !!(currentUser && user && user.username && currentUser.username && String(user.username).toLowerCase() === String(currentUser.username).toLowerCase());
-
-                return (
-                  <motion.div
-                    key={user._id || user.username || `${index}`}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.3, delay: 0.02 * index }}
-                    className={`p-3.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all cursor-pointer group ${
-                      isCurrentUser ? 'bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 border-l-4 border-purple-500' : ''
-                    }`}
-                    onClick={() => !isCurrentUser && handleUserClick(user.username)}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3 flex-1">
-                        {/* Rank Badge */}
-                        <div className="w-11 h-11 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-black text-base shadow-md group-hover:scale-110 transition-transform">
-                          {rank}
-                        </div>
-                        
-                        {/* Avatar */}
-                        <img
-                          src={user.avatar || '/api/placeholder/44/44'}
-                          alt={user.name}
-                          className="w-11 h-11 rounded-lg border-2 border-gray-200 dark:border-gray-600 shadow-sm group-hover:scale-105 transition-transform"
-                        />
-                        
-                        {/* User Info */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-0.5">
-                            <h3 className="font-bold text-gray-900 dark:text-white text-base truncate">
-                              {user.name}
-                            </h3>
-                            {isCurrentUser && (
-                              <span className="flex-shrink-0 text-xs bg-gradient-to-r from-purple-500 to-blue-500 text-white px-2 py-0.5 rounded-full font-semibold">
-                                You
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      
-                      {/* Score */}
-                      <div className="text-right flex-shrink-0 ml-4">
-                        <div className="bg-gray-100 dark:bg-gray-700 rounded-lg px-4 py-2 group-hover:bg-primary-50 dark:group-hover:bg-primary-900/20 transition-colors">
-                          <p className="text-2xl font-black text-gray-900 dark:text-white">
-                            {getTypeValue(user, leaderboardType)}
-                          </p>
-                          <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold">
-                            {getTypeLabel(leaderboardType)}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </div>
-          </motion.div>
-        )}
-
-        {/* Empty State */}
-        {!loading && (!leaderboard || leaderboard.length === 0) && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5 }}
-            className="bg-white dark:bg-gray-800 rounded-2xl p-8 text-center shadow-lg border border-gray-200 dark:border-gray-700"
-          >
-            <div className="w-16 h-16 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Trophy className="h-8 w-8 text-gray-400 dark:text-gray-500" />
-            </div>
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-              No rankings available yet
-            </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6 max-w-md mx-auto">
-              {activeTab === 'friends'
-                ? "Follow some users to see their rankings here and compete with your friends!"
-                : "Start completing goals to appear on the leaderboard and compete with others!"
-              }
-            </p>
-            <a
-              href={activeTab === 'friends' ? '/discover' : '/dashboard'}
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-lg hover:shadow-lg transition-all font-semibold text-sm"
-            >
-              {activeTab === 'friends' ? (
-                <>
-                  <Users className="h-4 w-4" />
-                  Discover Users
-                </>
-              ) : (
-                <>
-                  <Target className="h-4 w-4" />
-                  Start Your Journey
-                </>
-              )}
-            </a>
-          </motion.div>
-        )}
-
-        {/* Call to Action */}
-        {!loading && leaderboard && leaderboard.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.6 }}
-            className="mt-8"
-          >
-            <div className="relative overflow-hidden bg-gradient-to-r from-primary-500 via-purple-600 to-blue-600 rounded-2xl p-8 text-white shadow-xl">
-              {/* Animated Background Elements */}
-              <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-3xl -mr-24 -mt-24" />
-              <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full blur-3xl -ml-24 -mb-24" />
-              
-              <div className="relative z-10 text-center">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/20 rounded-full mb-4">
-                  <Sparkles className="h-3.5 w-3.5" />
-                  <span className="text-xs font-semibold">Achieve More</span>
-                </div>
-                
-                <h3 className="text-2xl md:text-3xl font-black mb-3">
-                  Ready to Climb Higher? 🚀
+                <h3 className="font-bold text-gray-900 dark:text-white font-manrope text-lg mb-1">
+                  {podiumOrder[0].name}
                 </h3>
-                <p className="text-white/90 mb-6 text-sm max-w-2xl mx-auto">
-                  Complete more goals and compete with achievers worldwide to reach the top!
+                <p className="text-xs text-gray-500 dark:text-gray-400 font-manrope uppercase tracking-wide mb-4">
+                  {podiumOrder[0].badge}
                 </p>
-                
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-                  <a
-                    href="/dashboard"
-                    className="inline-flex items-center gap-2 px-6 py-2.5 bg-white text-primary-600 rounded-lg hover:bg-gray-100 transition-all font-bold text-sm shadow-lg hover:scale-105 transform"
-                  >
-                    <Target className="h-4 w-4" />
-                    Go to Dashboard
-                  </a>
-                  <a
-                    href="/discover?tab=goals"
-                    className="inline-flex items-center gap-2 px-6 py-2.5 bg-white/10 backdrop-blur-sm border-2 border-white/30 text-white rounded-lg hover:bg-white/20 transition-all font-bold text-sm hover:scale-105 transform"
-                  >
-                    <Users className="h-4 w-4" />
-                    Discover Goals
-                  </a>
+                <div className="pt-4 border-t border-gray-100 dark:border-gray-700">
+                  <div className="text-3xl font-bold text-gray-900 dark:text-white font-manrope mb-1">
+                    {podiumOrder[0].goalsCompleted}
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 font-manrope uppercase tracking-wide">
+                    Goals Completed
+                  </div>
                 </div>
               </div>
             </div>
-          </motion.div>
-        )}
+          )}
+
+          {/* 1st Place - Larger */}
+          {podiumOrder[1] && (
+            <div className="flex-1 max-w-[280px]">
+              <div 
+                onClick={() => handleUserClick(podiumOrder[1].username)}
+                className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-xl border-2 border-[#4c99e6] text-center relative transform scale-105 cursor-pointer hover:shadow-2xl transition-all">
+                <div className="absolute -top-5 left-1/2 transform -translate-x-1/2 w-10 h-10 bg-[#4c99e6] rounded-full flex items-center justify-center">
+                  <Award className="w-5 h-5 text-white" />
+                </div>
+                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 mx-auto mb-4 flex items-center justify-center">
+                  {podiumOrder[1].avatar ? (
+                    <img src={podiumOrder[1].avatar} alt={podiumOrder[1].name} className="w-full h-full rounded-full object-cover" />
+                  ) : (
+                    <div className="w-20 h-20 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-400 font-bold text-2xl">
+                      {podiumOrder[1].name.charAt(0)}
+                    </div>
+                  )}
+                </div>
+                <h3 className="font-bold text-gray-900 dark:text-white font-manrope text-xl mb-1">
+                  {podiumOrder[1].name}
+                </h3>
+                <p className="text-xs text-[#4c99e6] font-manrope uppercase tracking-wide font-semibold mb-6 flex items-center justify-center gap-1">
+                  <Award className="w-3 h-3" />
+                  {podiumOrder[1].badge}
+                </p>
+                <div className="pt-4 border-t border-gray-100 dark:border-gray-700">
+                  <div className="text-4xl font-bold text-gray-900 dark:text-white font-manrope mb-1">
+                    {podiumOrder[1].goalsCompleted}
+                  </div>
+                  <div className="text-xs text-[#4c99e6] font-manrope uppercase tracking-wide font-semibold">
+                    Goals Completed
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 3rd Place */}
+          {podiumOrder[2] && (
+            <div className="flex-1 max-w-[240px]">
+              <div 
+                onClick={() => handleUserClick(podiumOrder[2].username)}
+                className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-100 dark:border-gray-700 text-center relative cursor-pointer hover:shadow-xl transition-all">
+                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 w-8 h-8 bg-orange-400 rounded-full flex items-center justify-center text-white font-bold font-manrope text-sm">
+                  3
+                </div>
+                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-orange-400 to-amber-600 mx-auto mb-4 flex items-center justify-center">
+                  {podiumOrder[2].avatar ? (
+                    <img src={podiumOrder[2].avatar} alt={podiumOrder[2].name} className="w-full h-full rounded-full object-cover" />
+                  ) : (
+                    <div className="w-16 h-16 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-400 font-bold text-xl">
+                      {podiumOrder[2].name.charAt(0)}
+                    </div>
+                  )}
+                </div>
+                <h3 className="font-bold text-gray-900 dark:text-white font-manrope text-lg mb-1">
+                  {podiumOrder[2].name}
+                </h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400 font-manrope uppercase tracking-wide mb-4">
+                  {podiumOrder[2].badge}
+                </p>
+                <div className="pt-4 border-t border-gray-100 dark:border-gray-700">
+                  <div className="text-3xl font-bold text-gray-900 dark:text-white font-manrope mb-1">
+                    {podiumOrder[2].goalsCompleted}
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 font-manrope uppercase tracking-wide">
+                    Goals Completed
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </motion.div>
+
+        {/* All Rankings Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-6 mb-8"
+        >
+          {/* Section Header */}
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-[#4c99e6]" />
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white font-manrope">
+                All Time Rankings
+              </h2>
+            </div>
+          </div>
+
+          {/* Table Header */}
+          <div className="grid grid-cols-12 gap-4 px-4 py-3 border-b border-gray-100 dark:border-gray-700 mb-2">
+            <div className="col-span-1 text-xs text-gray-500 dark:text-gray-400 font-manrope uppercase tracking-wide">
+              Rank
+            </div>
+            <div className="col-span-8 text-xs text-gray-500 dark:text-gray-400 font-manrope uppercase tracking-wide">
+              User
+            </div>
+            <div className="col-span-3 text-xs text-gray-500 dark:text-gray-400 font-manrope uppercase tracking-wide text-right">
+              Goals Completed
+            </div>
+          </div>
+
+          {/* Rankings List */}
+          <div className="space-y-2">
+            {allRankings.map((user, index) => (
+              <motion.div
+                key={user.rank}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 + index * 0.05 }}
+                onClick={() => handleUserClick(user.username)}
+                className="grid grid-cols-12 gap-4 px-4 py-4 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors items-center cursor-pointer"
+              >
+                {/* Rank */}
+                <div className="col-span-1">
+                  <span className="font-semibold text-gray-900 dark:text-white font-manrope">
+                    {user.rank}
+                  </span>
+                </div>
+
+                {/* User */}
+                <div className="col-span-8 flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${getAvatarColor(user.rank)} flex items-center justify-center text-white font-bold font-manrope text-sm`}>
+                    {user.avatar ? (
+                      <img src={user.avatar} alt={user.name} className="w-full h-full rounded-full object-cover" />
+                    ) : (
+                      user.name.charAt(0)
+                    )}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-gray-900 dark:text-white font-manrope">
+                        {user.name}
+                      </span>
+                      {user.isYou && (
+                        <span className="px-2 py-0.5 bg-[#4c99e6] text-white text-xs font-medium rounded font-manrope">
+                          YOU
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Goals Completed */}
+                <div className="col-span-3 text-right">
+                  <span className="text-lg font-bold text-gray-900 dark:text-white font-manrope">
+                    {user.goalsCompleted}
+                  </span>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="mt-8 flex items-center justify-center gap-2">
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1 || loading}
+                className="px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed font-manrope font-medium text-sm transition-colors"
+              >
+                Previous
+              </button>
+              <div className="flex items-center gap-1">
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => setCurrentPage(pageNum)}
+                      disabled={loading}
+                      className={`w-10 h-10 rounded-lg font-manrope font-medium text-sm transition-colors ${
+                        currentPage === pageNum
+                          ? 'bg-[#4c99e6] text-white'
+                          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                      } disabled:opacity-50`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+              </div>
+              <button
+                onClick={() => setCurrentPage(p => p + 1)}
+                disabled={currentPage >= totalPages || loading}
+                className="px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed font-manrope font-medium text-sm transition-colors"
+              >
+                Next
+              </button>
+            </div>
+          )}
+        </motion.div>
+
+        {/* CTA Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="bg-blue-100 dark:bg-gray-800 rounded-3xl p-12 text-center mb-8"
+        >
+          <div className="inline-flex items-center gap-2 text-[#4c99e6] text-sm font-medium font-manrope mb-4">
+            <TrendingUp className="w-4 h-4" />
+            ACHIEVE MORE
+          </div>
+          <h2 className="text-3xl font-bold text-gray-900 dark:text-white font-manrope mb-4">
+            Ready to Climb Higher?
+          </h2>
+          <p className="text-gray-600 dark:text-gray-400 font-manrope mb-8 max-w-2xl mx-auto">
+            Complete more goals and compete with achievers worldwide to reach the top!
+          </p>
+          <div className="flex items-center justify-center gap-4">
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="inline-flex items-center gap-2 px-6 py-3 bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-gray-900 rounded-lg transition-colors font-manrope font-medium"
+            >
+              <Target className="w-4 h-4" />
+              Go to Dashboard
+            </button>
+            <button
+              onClick={() => navigate('/discover')}
+              className="inline-flex items-center gap-2 px-6 py-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-white rounded-lg transition-colors font-manrope font-medium border border-gray-200 dark:border-gray-700"
+            >
+              <Target className="w-4 h-4" />
+              Discover Goals
+            </button>
+          </div>
+        </motion.div>
+
+        {/* Pagination Dots */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          className="flex items-center justify-center gap-2 mb-8"
+        >
+          <div className="w-2 h-2 rounded-full bg-[#4c99e6]"></div>
+          <div className="w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-600"></div>
+        </motion.div>
+
+        {/* Inspirational Quote */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.6 }}
+          className="text-center"
+        >
+          <p className="text-gray-500 dark:text-gray-400 font-manrope italic text-sm">
+            "Success is a journey, not a destination."
+          </p>
+        </motion.div>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default LeaderboardPage; 
+export default LeaderboardPageNew

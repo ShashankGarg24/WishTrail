@@ -44,6 +44,21 @@ async function enrichActivities(activities) {
   const enriched = activityArray.map(activity => {
     const enrichedActivity = { ...activity };
     
+    // Enrich main user data (the person who created the activity)
+    if (activity.userId) {
+      const user = userMap.get(activity.userId);
+      if (user) {
+        enrichedActivity.name = user.name;
+        enrichedActivity.username = user.username;
+        enrichedActivity.avatar = user.avatar_url;
+        // Add isPremium flag
+        enrichedActivity.data = {
+          ...enrichedActivity.data,
+          isPremium: user.is_premium || false
+        };
+      }
+    }
+    
     if (activity.data?.goalId) {
       const goal = goalMap.get(activity.data.goalId);
       if (goal) {
@@ -173,7 +188,6 @@ const getRecentActivities = async (req, res, next) => {
       } else {
         // Global activities
         const filter = {
-        isActive: true,
         isPublic: true,
         type: { $in: [
           'goal_activity', 
@@ -200,6 +214,7 @@ const getRecentActivities = async (req, res, next) => {
           .lean()
       ]);
 
+      console.log(`Fetched ${activityList.length} activities from DB for global feed (total: ${totalActivities})`);
       // Enrich with PostgreSQL data
       const enrichedActivities = await enrichActivities(activityList);
 
@@ -333,7 +348,7 @@ const getActivity = async (req, res, next) => {
     }
     
     const [likeCount, isLiked, commentCount] = await Promise.all([
-      pgLikeService.getLikeCount('activity', id),
+      pgLikeService.getLikeCount(String(id), 'activity'),
       pgLikeService.hasUserLiked(req.user.id, 'activity', id),
       ActivityComment.countDocuments({ activityId: id, isActive: true })
     ]);
@@ -526,7 +541,7 @@ const getActivityComments = async (req, res, next) => {
     const limit = parseInt(req.query.limit || '20');
 
     const [roots, count] = await Promise.all([
-      ActivityComment.find({ activityId: id, parentCommentId: nulle })
+      ActivityComment.find({ activityId: id, parentCommentId: null })
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
         .limit(limit)
@@ -551,7 +566,7 @@ const getActivityComments = async (req, res, next) => {
     const enrichedMap = new Map();
     await Promise.all(allComments.map(async (c) => {
       const [likeCount, isLiked] = await Promise.all([
-        pgLikeService.getLikeCount('activity_comment', String(c._id)),
+        pgLikeService.getLikeCount(String(c._id), 'activity_comment'),
         pgLikeService.hasUserLiked(req.user.id, 'activity_comment', String(c._id))
       ]);
       const user = userMap.get(String(c.userId));
@@ -646,7 +661,7 @@ const replyToActivityComment = async (req, res, next) => {
       ActivityComment.findById(commentId)
     ]);
     if (!activity || !activity.isPublic) return res.status(404).json({ success: false, message: 'Activity not found' });
-    if (!parent || !parent.isActive || String(parent.activityId) !== String(id)) {
+    if (!parent || String(parent.activityId) !== String(id)) {
       return res.status(404).json({ success: false, message: 'Parent comment not found' });
     }
     const reply = await ActivityComment.create({ activityId: id, userId: String(req.user.id), text: text.trim(), parentCommentId: commentId, mentionUserId: mentionUserId ? String(mentionUserId) : null });
@@ -689,24 +704,23 @@ const replyToActivityComment = async (req, res, next) => {
 const toggleCommentLike = async (req, res, next) => {
   try {
     const { commentId } = req.params;
+    const targetId = String(commentId);
     const comment = await ActivityComment.findById(commentId);
-    if (!comment || !comment.isActive) return res.status(404).json({ success: false, message: 'Comment not found' });
+    if (!comment) return res.status(404).json({ success: false, message: 'Comment not found' });
 
     const likeFlag = typeof req.body?.like === 'boolean' ? req.body.like : null;
-    try {
-      if (likeFlag === true) {
-        await pgLikeService.like(req.user.id, 'activity_comment', commentId);
-      } else if (likeFlag === false) {
-        await pgLikeService.unlike(req.user.id, 'activity_comment', commentId);
-      } else {
-        // Toggle behaviour
-        await pgLikeService.toggleLike(req.user.id, 'activity_comment', commentId);
-      }
-    } catch (_) {}
+    if (likeFlag === true) {
+      await pgLikeService.like(req.user.id, 'activity_comment', targetId);
+    } else if (likeFlag === false) {
+      await pgLikeService.unlike(req.user.id, 'activity_comment', targetId);
+    } else {
+      // Toggle behaviour
+      await pgLikeService.toggleLike({ userId: req.user.id, targetType: 'activity_comment', targetId });
+    }
 
     const [likeCount, isLiked] = await Promise.all([
-      pgLikeService.getLikeCount('activity_comment', commentId),
-      pgLikeService.hasUserLiked(req.user.id, 'activity_comment', commentId)
+      pgLikeService.getLikeCount(targetId, 'activity_comment'),
+      pgLikeService.hasUserLiked(req.user.id, 'activity_comment', targetId)
     ]);
     if (isLiked) {
       await Notification.createCommentLikeNotification(req.user.id, comment);

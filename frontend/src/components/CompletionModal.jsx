@@ -1,9 +1,11 @@
 import { useState, useEffect, lazy, Suspense } from 'react'
 import { motion } from 'framer-motion'
-import { X, CheckCircle, AlertCircle, FileText, Share2, Lock, Globe, Image as ImageIcon } from 'lucide-react'
+import { X, CheckCircle, AlertCircle, FileText, Share2, Lock, Globe, Image as ImageIcon, Smile, Meh, Frown } from 'lucide-react'
 import useApiStore from '../store/apiStore'
 const CelebrationModal = lazy(() => import('./CelebrationModal'));
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
+
+const THEME_COLOR = '#4c99e6'
 
 const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal, isEditMode = false, existingData = null }) => {
   const MAX_NOTE_CHARS = 1000
@@ -192,80 +194,74 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal, isEditM
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       className="fixed inset-0 bg-black/50 flex items-center justify-center p-4"
-      style={{ zIndex: 9999 }}
+      style={{ zIndex: 9999, fontFamily: 'Manrope' }}
       onClick={handleClose}
     >
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
-        className="bg-white dark:bg-gray-800 p-6 rounded-2xl max-w-md w-full max-h-[85vh] overflow-y-auto scrollbar-hide relative shadow-2xl border border-gray-200 dark:border-gray-700"
+        className="bg-white dark:bg-gray-900 p-6 rounded-2xl max-w-md w-full max-h-[85vh] overflow-y-auto scrollbar-hide relative shadow-2xl border border-gray-200 dark:border-gray-800"
         onClick={(e) => e.stopPropagation()}
-        style={{ zIndex: 10000 }}
+        style={{ zIndex: 10000, fontFamily: 'Manrope' }}
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-2">
-            <CheckCircle className="h-6 w-6 text-green-500" />
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-              {isEditMode ? 'Edit Completion' : 'Complete Goal'}
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg" style={{ backgroundColor: `${THEME_COLOR}20` }}>
+              <CheckCircle className="h-6 w-6" style={{ color: THEME_COLOR }} />
+            </div>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white" style={{ fontFamily: 'Manrope' }}>
+              {isEditMode ? 'Edit Completion' : 'Goal Progress'}
             </h2>
           </div>
           <button
             onClick={handleClose}
-            className="p-2 rounded-full hover:bg-white/10 transition-colors"
+            className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-gray-600 dark:text-gray-400"
           >
-            <X className="h-5 w-5 text-gray-500" />
+            <X className="h-5 w-5" />
           </button>
         </div>
 
-        {/* Goal Title */}
-        <div className="mb-6">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 break-anywhere line-clamp-2">
+        {/* Goal Title - Current Goal Section */}
+        <div className="mb-6 p-4 rounded-xl" style={{ backgroundColor: `${THEME_COLOR}10`, border: `1px solid ${THEME_COLOR}30` }}>
+          <div className="text-xs text-gray-600 dark:text-gray-400 mb-2 font-semibold" style={{ fontFamily: 'Manrope' }}>CURRENT GOAL</div>
+          <h3 className="text-base font-bold text-gray-900 dark:text-white break-anywhere line-clamp-2" style={{ fontFamily: 'Manrope' }}>
             "{goalTitle}"
           </h3>
-          <p className="text-gray-600 dark:text-gray-400 text-sm">
-            Congratulations! Tell us what you did to achieve this goal.
-          </p>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Completion Note */}
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {/* What did you achieve */}
           <div>
-            <label htmlFor="completionNote" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              What did you do?
+            <label htmlFor="completionNote" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" style={{ fontFamily: 'Manrope' }}>
+              What did you achieve today?
             </label>
             <textarea
               id="completionNote"
               value={completionNote}
               onChange={(e) => setCompletionNote(e.target.value)}
-              placeholder="Describe what you did to achieve this goal..."
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white resize-none"
+              placeholder="Describe your progress..."
+              className="w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-primary-500/20 bg-white dark:bg-gray-800 dark:text-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400 resize-none transition-colors border-gray-300 dark:border-gray-700"
+              style={{ fontFamily: 'Manrope', borderColor: THEME_COLOR + '4d' }}
               rows={4}
               maxLength={MAX_NOTE_CHARS}
             />
-            <div className="flex items-center justify-end mt-2 text-xs">
+            <div className="flex items-center justify-end mt-2 text-xs" style={{ fontFamily: 'Manrope' }}>
               <span className="text-gray-500 dark:text-gray-400">
                 {charCount}/{MAX_NOTE_CHARS} chars
               </span>
             </div>
           </div>
 
-          {/* Completion Feeling */}
+          {/* How did it feel */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              How did you feel completing this?
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3" style={{ fontFamily: 'Manrope' }}>
+              How did it feel?
             </label>
-            <div className="space-y-2">
+            <div className="space-y-3">
               <div className="relative px-1">
-                {/* Dividers */}
-                <div className="absolute top-1 left-0 right-0 flex justify-between px-1">
-                  {Array.from({ length: 8 }).map((_, idx) => (
-                    <div key={idx} className="w-px h-3 bg-gray-300 dark:bg-gray-600"></div>
-                  ))}
-                </div>
-                
                 {/* Slider */}
                 <input
                   type="range"
@@ -286,38 +282,41 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal, isEditM
                     const feelings = ['neutral', 'relieved', 'satisfied', 'happy', 'proud', 'accomplished', 'grateful', 'excited'];
                     setCompletionFeeling(feelings[parseInt(e.target.value)]);
                   }}
-                  className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-primary-500"
+                  className="w-full h-2 rounded-lg appearance-none cursor-pointer"
+                  style={{ accentColor: THEME_COLOR }}
                 />
               </div>
               
               <div className="text-center">
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300 capitalize">
-                  {completionFeeling}
-                </span>
+                <div className="flex items-center justify-center gap-2 mb-1">
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300 capitalize" style={{ fontFamily: 'Manrope' }}>
+                    {completionFeeling}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Attachment */}
+          {/* Visual progress */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Attach an image (optional)
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" style={{ fontFamily: 'Manrope' }}>
+              Visual progress <span className="text-gray-500 text-xs">(optional)</span>
             </label>
-            <label className="flex items-center gap-2 px-3 py-2 border rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 border-gray-300 dark:border-gray-600">
-              <ImageIcon className="h-4 w-4" />
-              <span className="text-sm">{attachmentFile ? attachmentFile.name : 'Choose JPG/PNG (max 1 MB)'}</span>
+            <label className="flex items-center gap-3 px-4 py-3 border-2 border-dashed rounded-xl cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors border-gray-300 dark:border-gray-700" style={{ fontFamily: 'Manrope' }}>
+              <ImageIcon className="h-5 w-5 text-gray-400" />
+              <span className="text-sm text-gray-700 dark:text-gray-300">{attachmentFile ? attachmentFile.name : 'Choose JPG/PNG (max 1 MB)'}</span>
               <input type="file" accept="image/png, image/jpeg, image/jpg" onChange={handleFileChange} className="hidden" />
             </label>
             {attachmentPreview && (
               <div className="relative inline-block mt-3">
-                <img src={attachmentPreview} alt="Attachment preview" className="w-24 h-24 object-cover rounded border border-gray-200 dark:border-gray-700" />
+                <img src={attachmentPreview} alt="Attachment preview" className="w-24 h-24 object-cover rounded-lg border border-gray-200 dark:border-gray-700" />
                 <button type="button" onClick={removeAttachment} className="absolute -top-2 -right-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-full p-1 shadow hover:bg-gray-50">
                   <X className="h-3 w-3 text-gray-600" />
                 </button>
               </div>
             )}
             {attachmentError && (
-              <div className="text-xs text-red-500 mt-1 flex items-center gap-1">
+              <div className="text-xs text-red-600 dark:text-red-400 mt-2 flex items-center gap-1" style={{ fontFamily: 'Manrope' }}>
                 <AlertCircle className="h-3 w-3" />
                 <span>{attachmentError}</span>
               </div>
@@ -325,33 +324,25 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal, isEditM
           </div>
 
           {/* Sharing Toggle */}
-          <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
+          <div className="p-4 rounded-xl" style={{ backgroundColor: '#f0f9ff', border: `1px solid ${THEME_COLOR}30` }}>
             <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="flex items-center space-x-2">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
                   {isPublic ? (
-                    <Globe className="h-5 w-5 text-green-500" />
+                    <Globe className="h-4 w-4" style={{ color: THEME_COLOR }} />
                   ) : (
-                    <Lock className="h-5 w-5 text-gray-500" />
+                    <Lock className="h-4 w-4 text-gray-400" />
                   )}
-                  <div>
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Share completion with followers
-                    </label>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {isPublic
-                        ? 'Your followers will see your completion note and image in their feed'
-                        : 'Keep it private; nothing will be posted to your followers'}
-                    </p>
-                  </div>
+                  <label className="text-sm font-medium text-gray-900 dark:text-white" style={{ fontFamily: 'Manrope' }}>
+                    Share with followers
+                  </label>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setIsPublic(!isPublic)}
-                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 ${
-                  isPublic ? 'bg-green-500' : 'bg-gray-200 dark:bg-gray-600'
-                }`}
+                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2`}
+                style={{ backgroundColor: isPublic ? THEME_COLOR : '#d1d5db' }}
               >
                 <span className="sr-only">
                   {isPublic ? 'Make private' : 'Make public'}
@@ -367,21 +358,23 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal, isEditM
           </div>
 
           {/* Action Buttons */}
-          <div className="flex space-x-3 pt-4">
+          <div className="flex gap-3 pt-2">
             <button
               type="button"
               onClick={handleClose}
-              className="flex-1 py-2 px-4 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              className="flex-1 py-3 px-4 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors font-medium"
+              style={{ fontFamily: 'Manrope' }}
               disabled={loading}
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="flex-1 py-2 px-4 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="flex-1 py-3 px-4 text-white rounded-xl hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium"
+              style={{ backgroundColor: THEME_COLOR, fontFamily: 'Manrope' }}
               disabled={charCount > MAX_NOTE_CHARS || loading}
             >
-              {loading ? (isEditMode ? 'Updating...' : 'Completing...') : (isEditMode ? 'Update' : 'Complete Goal')}
+              {loading ? (isEditMode ? 'Updating...' : 'Updating...') : (isEditMode ? 'Update' : 'Update')}
             </button>
           </div>
         </form>

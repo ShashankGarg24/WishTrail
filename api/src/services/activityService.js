@@ -27,22 +27,26 @@ class ActivityService {
     
     // Fetch data in parallel
     const Achievement = require('../models/Achievement');
-    const [goals, users, achievements] = await Promise.all([
+    const GoalDetails = require('../models/extended/GoalDetails');
+    const [goals, users, achievements, goalDetails] = await Promise.all([
       goalIds.size > 0 ? pgGoalService.getGoalsByIds(Array.from(goalIds)) : [],
       userIds.size > 0 ? pgUserService.getUsersByIds(Array.from(userIds)) : [],
-      achievementIds.size > 0 ? Achievement.find({ _id: { $in: Array.from(achievementIds) } }).select('name description icon').lean() : []
+      achievementIds.size > 0 ? Achievement.find({ _id: { $in: Array.from(achievementIds) } }).select('name description icon').lean() : [],
+      goalIds.size > 0 ? GoalDetails.find({ goalId: { $in: Array.from(goalIds) } }).select('goalId completionNote completionAttachmentUrl').lean() : []
     ]);
     
     // Create lookup maps
     const goalMap = new Map(goals.map(g => [g.id, g]));
     const userMap = new Map(users.map(u => [u.id, u]));
     const achievementMap = new Map(achievements.map(a => [a._id.toString(), a]));
+    const goalDetailsMap = new Map(goalDetails.map(gd => [gd.goalId?.toString(), gd]));
     
     // Enrich activities
     const enriched = activityArray.map(activity => {
       const enrichedActivity = { ...activity };
       if (activity.data?.goalId) {
         const goal = goalMap.get(activity.data.goalId.toString());
+        const details = goalDetailsMap.get(activity.data.goalId.toString());
         if (goal) {
           // Create nested goal object for backward compatibility
           enrichedActivity.data = {
@@ -51,7 +55,9 @@ class ActivityService {
             goalCategory: goal.category,
             isCompleted: goal.completed,
             completedAt: goal.completed_at,
-            goalIsPublic: goal.is_public // Store goal privacy for filtering
+            goalIsPublic: goal.is_public, // Store goal privacy for filtering
+            // Fetch completion data from GoalDetails or preserve from activity data
+            completionAttachmentUrl: details?.completionAttachmentUrl || enrichedActivity.data.completionAttachmentUrl || ''
           };
         }
       }

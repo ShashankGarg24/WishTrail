@@ -7,8 +7,7 @@ const activityCommentSchema = new mongoose.Schema({
     required: true
   },
   userId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    type: Number,
     required: true
   },
   text: {
@@ -23,8 +22,7 @@ const activityCommentSchema = new mongoose.Schema({
     default: null
   },
   mentionUserId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    type: Number,
     default: null
   }
 }, {

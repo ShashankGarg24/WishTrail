@@ -1,55 +1,40 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Menu, X, Star, User, BarChart3, LogOut, Settings, Bell, CheckCircle, Search, MessageSquarePlus } from 'lucide-react'
-import { useState, useEffect, useRef, lazy, Suspense } from 'react'
+import { Search, Bell, User, LogOut, Settings, Star, MessageSquare } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
 import useApiStore from '../store/apiStore'
-const SettingsModal = lazy(() => import('./SettingsModal'));
-const FeedbackButton = lazy(() => import('./FeedbackButton'));
-const RatingModal = lazy(() => import('./RatingModal'));
-const MotivationModal = lazy(() => import('./MotivationModal'));
+import FeedbackButton from './FeedbackButton'
 
 const Header = () => {
   const { isAuthenticated, logout, unreadNotifications, getNotifications, user: currentUser } = useApiStore()
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
-  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false)
-  const [isRatingOpen, setIsRatingOpen] = useState(false)
-  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false)
-  const [isMotivationOpen, setIsMotivationOpen] = useState(false)
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false)
+  const [showLogoutModal, setShowLogoutModal] = useState(false)
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false)
   const location = useLocation()
   const menuRef = useRef(null)
-  const navigate = useNavigate();
-  const [toast, setToast] = useState(null)
-  const toastTimerRef = useRef(null)
+  const navigate = useNavigate()
 
-  // Main navigation tabs in specified order
-  // Replace single Explore with standalone Feed and Discover pages
+  // Main navigation links
   const mainNavigation = [
-    ...(isAuthenticated
-      ? [
-        { name: 'Feed', href: '/feed' },
-        // { name: 'Communities', href: '/communities' },
-        { name: 'Dashboard', href: '/dashboard' },
-        { name: 'Leaderboard', href: '/leaderboard?tab=global' },
-      ]
-      : []),
+    { name: 'Feed', href: '/feed' },
+    { name: 'Inspiration', href: '/inspiration' },
+    { name: 'Dashboard', href: '/dashboard' },
+    { name: 'Leaderboard', href: '/leaderboard' },
   ]
 
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
-        setTimeout(() => {
-          setIsMenuOpen(false);
-        }, 200);
+        setIsProfileMenuOpen(false)
       }
     }
-    if (isMenuOpen) {
+    if (isProfileMenuOpen) {
       document.addEventListener('mousedown', handleClickOutside)
     }
     return () => {
       document.removeEventListener('mousedown', handleClickOutside)
     }
-  }, [isMenuOpen])
+  }, [isProfileMenuOpen])
 
   const isActive = (href) => {
     try {
@@ -63,382 +48,254 @@ const Header = () => {
     }
   }
 
-  const handleLogout = () => {
-    setIsMenuOpen(false)
-    // Small delay to ensure menu closes before modal opens
-    setTimeout(() => {
-      setIsLogoutModalOpen(true)
-    }, 100)
-  }
-
-  const confirmLogout = async () => {
-    setIsLogoutModalOpen(false)
+  const handleLogout = async () => {
+    setShowLogoutModal(false)
+    setIsProfileMenuOpen(false)
     await logout()
     navigate('/')
   }
 
-  // Global toast listener (use window.dispatchEvent(new CustomEvent('wt_toast', { detail: { message, type } })))
   useEffect(() => {
-    const handler = (evt) => {
-      try {
-        const d = evt?.detail || {};
-        const message = d.message || 'Link copied to clipboard';
-        const type = d.type || 'success';
-        setToast({ message, type });
-        if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-        toastTimerRef.current = setTimeout(() => setToast(null), Math.max(1500, Math.min(5000, d.duration || 2600)));
-      } catch { }
-    };
-    window.addEventListener('wt_toast', handler);
-    return () => {
-      window.removeEventListener('wt_toast', handler);
-      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-    };
-  }, [])
+    if (isAuthenticated) {
+      getNotifications()
+    }
+  }, [isAuthenticated])
 
-  // Listen for native push forwarded from the app WebView (wt_push) to refresh unread badge
-  useEffect(() => {
-    const handler = (evt) => {
-      // evt.detail may contain { url, type, id }
-      try {
-        const d = evt?.detail || {};
-        // Refresh unread count
-        getNotifications({ page: 1, limit: 1 }, { force: true });
-        // If a deep link URL is provided, navigate to it (in-app routing)
-        if (d.url && typeof d.url === 'string') {
-          const u = new URL(d.url, window.location.origin);
-          if (u.origin === window.location.origin) {
-            navigate(u.pathname + u.search);
-          }
-        }
-      } catch { }
-    };
-    window.addEventListener('wt_push', handler);
-    return () => window.removeEventListener('wt_push', handler);
-  }, [getNotifications]);
-
-  // Global event to open settings from anywhere
-  useEffect(() => {
-    const handler = () => setIsSettingsOpen(true)
-    window.addEventListener('wt_open_settings', handler)
-    return () => window.removeEventListener('wt_open_settings', handler)
-  }, [])
-
-  // Global event to open settings from anywhere
-  useEffect(() => {
-    const handler = () => setIsFeedbackOpen(true)
-    window.addEventListener('wt_open_feedback', handler)
-    return () => window.removeEventListener('wt_open_feedback', handler)
-  }, [])
-
-  // Global event to open rating modal from anywhere
-  useEffect(() => {
-    const handler = () => setIsRatingOpen(true)
-    window.addEventListener('wt_open_rating', handler)
-    return () => window.removeEventListener('wt_open_rating', handler)
-  }, [])
-
-  // Global event to open motivation modal from anywhere
-  useEffect(() => {
-    const handler = () => setIsMotivationOpen(true)
-    window.addEventListener('wt_open_motivation', handler)
-    return () => window.removeEventListener('wt_open_motivation', handler)
-  }, [])
+  if (!isAuthenticated) return null
 
   return (
-    <>
-      <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-200 dark:border-gray-800 theme-transition">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            {/* Logo */}
-            <div className="flex items-center space-x-2 group">
-              <motion.button
-                whileHover={{ rotate: 360 }}
-                whileTap={{ rotate: 360 }}
-                transition={{ duration: 0.6 }}
-                onClick={(e) => {
-                  e.preventDefault()
-                  setIsMotivationOpen(true)
-                }}
-                className="flex items-center cursor-pointer"
+    <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-50">
+      <div className="max-w-[1400px] mx-auto px-6">
+        <div className="flex items-center justify-between h-16">
+          {/* Logo */}
+          <Link to="/dashboard" className="flex items-center gap-2">
+            <Star className="w-6 h-6 text-[#4c99e6] fill-[#4c99e6]" />
+            <span className="text-xl font-bold text-gray-900 dark:text-white font-manrope">
+              WishTrail
+            </span>
+          </Link>
+
+          {/* Navigation Links */}
+          <nav className="hidden md:flex items-center gap-8">
+            {mainNavigation.map((item) => (
+              <Link
+                key={item.name}
+                to={item.href}
+                className={`relative font-medium font-manrope transition-colors ${
+                  isActive(item.href)
+                    ? 'text-gray-900 dark:text-white'
+                    : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
+                }`}
               >
-                <Star className="h-7 w-7 text-purple-600 dark:text-purple-400 fill-purple-600 dark:fill-purple-400" />
-              </motion.button>
-              <Link to="/#" className="text-xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 dark:from-purple-400 dark:to-blue-400 bg-clip-text text-transparent">
-                WishTrail
+                {item.name}
+                {isActive(item.href) && (
+                  <motion.div
+                    layoutId="activeNav"
+                    className="absolute -bottom-5 left-0 right-0 h-0.5 bg-[#4c99e6]"
+                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                  />
+                )}
               </Link>
-            </div>
-            
-            {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center space-x-1">
-              {mainNavigation.map((item) => (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  className={`relative px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
-                    isActive(item.href)
-                      ? 'text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20'
-                      : 'text-gray-700 hover:text-purple-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:text-purple-400 dark:hover:bg-gray-800'
-                  }`}
-                >
-                  {item.name}
-                </Link>
-              ))}
-            </nav>
-            
-            {/* Right Actions */}
-            <div className="flex items-center space-x-2">
-              {/* Search */}
-              {isAuthenticated && (
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => navigate('/discover')}
-                  className={`p-2.5 rounded-lg transition-all duration-200 ${
-                    isActive('/discover')
-                      ? 'text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20'
-                      : 'text-gray-700 hover:text-purple-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:text-purple-400 dark:hover:bg-gray-800'
-                  }`}
-                  aria-label="Discover"
-                >
-                  <Search className="h-5 w-5" />
-                </motion.button>
+            ))}
+          </nav>
+
+          {/* Right Actions */}
+          <div className="flex items-center gap-4">
+            {/* Search Icon */}
+            <button
+              onClick={() => navigate('/discover')}
+              className="p-2 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors"
+              aria-label="Search"
+            >
+              <Search className="w-5 h-5" />
+            </button>
+
+            {/* Notifications */}
+            <button
+              onClick={() => navigate('/notifications')}
+              className="relative p-2 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors"
+              aria-label="Notifications"
+            >
+              <Bell className="w-5 h-5" />
+              {unreadNotifications > 0 && (
+                <span className="absolute top-1 right-1 w-2 h-2 bg-[#4c99e6] rounded-full"></span>
               )}
-              
-              {/* Notifications */}
-              {isAuthenticated && (
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => navigate('/notifications')}
-                  className={`relative p-2.5 rounded-lg transition-all duration-200 ${
-                    isActive('/notifications')
-                      ? 'text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20'
-                      : 'text-gray-700 hover:text-purple-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:text-purple-400 dark:hover:bg-gray-800'
-                  }`}
-                  aria-label="Notifications"
-                >
-                  <Bell className="h-5 w-5" />
-                  {unreadNotifications > 0 && (
-                    <span className="absolute top-1 right-1 inline-flex items-center justify-center min-w-[1rem] h-4 px-1 text-[10px] font-bold rounded-full bg-red-500 text-white">
-                      {unreadNotifications > 99 ? '99+' : unreadNotifications}
-                    </span>
-                  )}
-                </motion.button>
-              )}
-              
-              {/* Get Started Button */}
-              {!isAuthenticated && (
-                <Link
-                  to="/auth"
-                  className="inline-flex items-center px-5 py-2.5 rounded-lg text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 transition-all duration-200 shadow-sm hover:shadow-md"
-                >
-                  Get Started
-                </Link>
-              )}
-              
-              {/* User Menu - Desktop Only */}
-              {isAuthenticated && (
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setIsMenuOpen(!isMenuOpen)}
-                  className="hidden md:flex p-2.5 rounded-lg text-gray-700 hover:text-purple-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:text-purple-400 dark:hover:bg-gray-800 transition-all duration-200"
-                >
-                  <Menu className="h-5 w-5" />
-                </motion.button>
-              )}
+            </button>
+
+            {/* Separator */}
+            <div className="h-6 w-px bg-gray-300 dark:bg-gray-600"></div>
+
+            {/* User Avatar and Dropdown */}
+            <div className="relative" ref={menuRef}>
+              <button
+                onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+                className="flex items-center gap-2.5 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg py-1.5 px-2 transition-colors"
+              >
+                <span className="text-sm font-medium text-gray-900 dark:text-white font-manrope">
+                  {currentUser?.name || 'User'}
+                </span>
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-sm font-semibold font-manrope">
+                  {currentUser?.name?.charAt(0) || 'U'}
+                </div>
+              </button>
+
+              {/* Dropdown Menu */}
+              <AnimatePresence>
+                {isProfileMenuOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute right-0 mt-3 w-72 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden"
+                  >
+                    {/* User Info Header */}
+                    <div className="p-4 bg-gradient-to-br from-gray-50 to-white dark:from-gray-800 dark:to-gray-800 border-b border-gray-100 dark:border-gray-700">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-lg font-bold font-manrope shadow-md">
+                          {currentUser?.name?.charAt(0) || 'U'}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-base font-semibold text-gray-900 dark:text-white font-manrope truncate">
+                            {currentUser?.name || 'User'}
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400 font-manrope truncate">
+                            @{currentUser?.username || 'username'}
+                          </div>
+                          {currentUser?.premium && (
+                            <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-amber-400 to-orange-400 rounded-full text-[10px] font-bold text-white uppercase tracking-wider mt-0.5">
+                              <Star className="w-2.5 h-2.5 fill-white" />
+                              Pro Explorer
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Menu Items */}
+                    <div className="py-2">
+                      <button
+                        onClick={() => {
+                          setIsProfileMenuOpen(false)
+                          navigate(`/profile/@${currentUser?.username}`)
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors font-manrope group"
+                      >
+                        <div className="w-9 h-9 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center group-hover:bg-gray-200 dark:group-hover:bg-gray-600 transition-colors">
+                          <User className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                        </div>
+                        <span className="font-medium">My Profile</span>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setIsProfileMenuOpen(false)
+                          navigate('/settings')
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors font-manrope group"
+                      >
+                        <div className="w-9 h-9 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center group-hover:bg-gray-200 dark:group-hover:bg-gray-600 transition-colors">
+                          <Settings className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                        </div>
+                        <span className="font-medium">Settings</span>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setIsProfileMenuOpen(false)
+                          setShowFeedbackModal(true)
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors font-manrope group"
+                      >
+                        <div className="w-9 h-9 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center group-hover:bg-gray-200 dark:group-hover:bg-gray-600 transition-colors">
+                          <MessageSquare className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                        </div>
+                        <span className="font-medium">Feedback</span>
+                      </button>
+                    </div>
+
+                    {/* Sign Out */}
+                    <div className="py-2 border-t border-gray-100 dark:border-gray-700">
+                      <button
+                        onClick={() => {
+                          setIsProfileMenuOpen(false)
+                          setShowLogoutModal(true)
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors font-manrope group"
+                      >
+                        <div className="w-9 h-9 rounded-lg bg-red-50 dark:bg-red-900/20 flex items-center justify-center group-hover:bg-red-100 dark:group-hover:bg-red-900/30 transition-colors">
+                          <LogOut className="w-4 h-4 text-red-600 dark:text-red-400" />
+                        </div>
+                        <span className="font-medium">Sign Out</span>
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
-          
-          {/* User Dropdown Menu */}
-          <AnimatePresence>
-            {isMenuOpen && (
-              <motion.div
-                ref={menuRef}
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.2 }}
-                className="absolute top-full right-4 mt-2 w-72 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden"
-              >
-                {/* Mobile Navigation */}
-                <div className="md:hidden p-2 border-b border-gray-200 dark:border-gray-700">
-                  {mainNavigation.map((item) => (
-                    <Link
-                      key={item.name}
-                      to={item.href}
-                      onClick={() => setIsMenuOpen(false)}
-                      className={`flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all ${
-                        isActive(item.href)
-                          ? 'text-purple-600 bg-purple-50 dark:text-purple-400 dark:bg-purple-900/20'
-                          : 'text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700'
-                      }`}
-                    >
-                      {item.name}
-                    </Link>
-                  ))}
-                </div>
-                
-                {/* User Menu Items */}
-                {isAuthenticated ? (
-                  <div className="p-2">
-                    <Link
-                      to={`/profile/@${currentUser?.username}?tab=overview`}
-                      onClick={() => setIsMenuOpen(false)}
-                      className="flex items-center space-x-3 px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700 rounded-lg transition-all"
-                    >
-                      <User className="h-4 w-4" />
-                      <span>Profile</span>
-                    </Link>
-                    <Link
-                      to="/dashboard"
-                      onClick={() => setIsMenuOpen(false)}
-                      className="flex items-center space-x-3 px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700 rounded-lg transition-all"
-                    >
-                      <BarChart3 className="h-4 w-4" />
-                      <span>Dashboard</span>
-                    </Link>
-                    <button
-                      onClick={() => {
-                        setIsMenuOpen(false);
-                        setIsSettingsOpen(true);
-                      }}
-                      className="flex items-center space-x-3 px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700 rounded-lg transition-all w-full text-left"
-                    >
-                      <Settings className="h-4 w-4" />
-                      <span>Settings</span>
-                    </button>
-                    <button
-                      onClick={() => {
-                        setIsMenuOpen(false);
-                        setIsFeedbackOpen(true);
-                      }}
-                      className="flex items-center space-x-3 px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700 rounded-lg transition-all w-full text-left"
-                    >
-                      <MessageSquarePlus className="h-4 w-4" />
-                      <span>Feedback</span>
-                    </button>
-                    <button
-                      onClick={() => {
-                        setIsMenuOpen(false);
-                        setIsRatingOpen(true);
-                      }}
-                      className="flex items-center space-x-3 px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700 rounded-lg transition-all w-full text-left"
-                    >
-                      <Star className="h-4 w-4" />
-                      <span>Rate Us</span>
-                    </button>
-                    <div className="my-2 border-t border-gray-200 dark:border-gray-700"></div>
-                    <button
-                      onClick={handleLogout}
-                      className="flex items-center space-x-3 px-3 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 rounded-lg transition-all w-full text-left"
-                    >
-                      <LogOut className="h-4 w-4" />
-                      <span>Logout</span>
-                    </button>
-                  </div>
-                ) : (
-                  <div className="p-2">
-                    <Link
-                      to="/auth"
-                      onClick={() => setIsMenuOpen(false)}
-                      className="flex items-center justify-center px-4 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 rounded-lg transition-all"
-                    >
-                      Get Started
-                    </Link>
-                  </div>
-                )}
-              </motion.div>
-            )}
-          </AnimatePresence>
         </div>
-      </header>
-
-      {/* Settings Modal */}
-      <Suspense fallback={null}><SettingsModal
-        isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
-      /></Suspense>
-      <Suspense fallback={null}><FeedbackButton
-        isOpen={isFeedbackOpen}
-        onClose={() => setIsFeedbackOpen(false)}
-      /></Suspense>
-      <Suspense fallback={null}><RatingModal
-        isOpen={isRatingOpen}
-        onClose={() => setIsRatingOpen(false)}
-      /></Suspense>
-      <Suspense fallback={null}><MotivationModal
-        isOpen={isMotivationOpen}
-        onClose={() => setIsMotivationOpen(false)}
-      /></Suspense>
+      </div>
 
       {/* Logout Confirmation Modal */}
       <AnimatePresence>
-        {isLogoutModalOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm"
-            onClick={() => setIsLogoutModalOpen(false)}
-          >
+        {showLogoutModal && (
+          <>
+            {/* Backdrop */}
             <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              onClick={(e) => e.stopPropagation()}
-              className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-md w-full mx-4 p-6"
-            >
-              <div className="flex items-center space-x-3 mb-4">
-                <div className="p-3 bg-red-100 dark:bg-red-900/20 rounded-full">
-                  <LogOut className="h-6 w-6 text-red-600 dark:text-red-400" />
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 z-50"
+              onClick={() => setShowLogoutModal(false)}
+            />
+
+            {/* Modal */}
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6"
+              >
+                <div className="text-center">
+                  <div className="mx-auto w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mb-4">
+                    <LogOut className="w-6 h-6 text-red-600 dark:text-red-400" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white font-manrope mb-2">
+                    Sign Out
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 font-manrope mb-6">
+                    Are you sure you want to sign out of your account?
+                  </p>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setShowLogoutModal(false)}
+                      className="flex-1 px-4 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors font-manrope"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleLogout}
+                      className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors font-manrope"
+                    >
+                      Sign Out
+                    </button>
+                  </div>
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
-                  Confirm Logout
-                </h3>
-              </div>
-              <p className="text-gray-600 dark:text-gray-400 mb-6">
-                Are you sure you want to logout? You'll need to sign in again to access your goals and progress.
-              </p>
-              <div className="flex space-x-3">
-                <button
-                  onClick={() => setIsLogoutModalOpen(false)}
-                  className="flex-1 px-4 py-2.5 rounded-lg text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 dark:text-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 transition-colors duration-200"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={confirmLogout}
-                  className="flex-1 px-4 py-2.5 rounded-lg text-sm font-medium text-white bg-red-600 hover:bg-red-700 transition-colors duration-200 shadow-sm"
-                >
-                  Logout
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
+              </motion.div>
+            </div>
+          </>
         )}
       </AnimatePresence>
 
-      <AnimatePresence>
-        {toast && (
-          <motion.div
-            initial={{ x: 40, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: 40, opacity: 0 }}
-            transition={{ type: 'spring', stiffness: 500, damping: 35, mass: 0.6 }}
-            className="fixed top-6 right-6 z-[11000]"
-          >
-            <div className={`px-4 py-3 rounded-lg shadow-lg border flex items-center gap-2 ${toast.type === 'success' ? 'bg-white text-gray-800 border-green-200 dark:bg-gray-800 dark:text-gray-100 dark:border-green-700' : 'bg-white text-gray-800 border-gray-200 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-700'}`}>
-              <CheckCircle className={`h-4 w-4 ${toast.type === 'success' ? 'text-green-600' : 'text-gray-500'}`} />
-              <span className="text-sm font-medium">{toast.message}</span>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </>
+      {/* Feedback Modal */}
+      <FeedbackButton 
+        isOpen={showFeedbackModal} 
+        onClose={() => setShowFeedbackModal(false)} 
+      />
+    </header>
   )
 }
 
-export default Header 
+export default Header

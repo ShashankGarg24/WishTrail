@@ -1,6 +1,7 @@
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom'
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { GoogleOAuthProvider } from '@react-oauth/google'
+import { Toaster } from 'react-hot-toast'
 import useApiStore from './store/apiStore'
 import Header from './components/Header'
 import ScrollMemory from './components/ScrollMemory'
@@ -11,13 +12,12 @@ import { initializeWebPush } from './services/webPush'
 import { notificationsAPI } from './services/api'
 const HomePage = lazy(() => import('./pages/HomePage'))
 const AuthPage = lazy(() => import('./pages/AuthPage'))
-const DashboardPage = lazy(() => import('./pages/DashboardPage'))
+const DashboardPageNew = lazy(() => import('./pages/DashboardPage'))
 const ProfilePage = lazy(() => import('./pages/ProfilePage'))
 const InspirationPage = lazy(() => import('./pages/InspirationPage'))
 const FeedPage = lazy(() => import('./pages/FeedPage'))
-const DiscoverPage = lazy(() => import('./pages/DiscoverPage'))
-const NotificationsPage = lazy(() => import('./pages/NotificationsPage'))
-const LeaderboardPage = lazy(() => import('./pages/LeaderboardPage'))
+const DiscoverPageNew = lazy(() => import('./pages/DiscoverPage'))
+const NotificationsPageNew = lazy(() => import('./pages/NotificationsPage'))
 const CommunitiesPage = lazy(() => import('./pages/CommunitiesPage'))
 const CommunityDetailPage = lazy(() => import('./pages/CommunityDetailPage'))
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'))
@@ -31,14 +31,14 @@ const PermissionErrorPage = lazy(() => import('./pages/PermissionErrorPage'))
 const AuthExpiredPage = lazy(() => import('./pages/AuthExpiredPage'))
 import { SpeedInsights } from '@vercel/speed-insights/react';
 const FeedbackButton = lazy(() => import('./components/FeedbackButton'))
-const SettingsPage = lazy(() => import('./pages/SettingsPage'))
-const HabitAnalyticsPage = lazy(() => import('./pages/HabitAnalyticsPage'))
+const SettingsPageNew = lazy(() => import('./pages/SettingsPage'))
+const HabitAnalyticsPageNew = lazy(() => import('./pages/HabitAnalyticsPage'))
 const GoalAnalyticsPage = lazy(() => import('./pages/GoalAnalyticsPage'))
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'))
 const TermsOfService = lazy(() => import('./pages/TermsOfService'))
 const CommunityGuidelines = lazy(() => import('./pages/CommunityGuidelines'))
 const CopyrightPolicy = lazy(() => import('./pages/CopyrightPolicy'))
-
+const LeaderboardPageNew = lazy(() => import('./pages/LeaderboardPage'))
 function App() {
   const { isDarkMode, initializeAuth, isAuthenticated} = useApiStore()
   const location = useLocation()
@@ -181,6 +181,7 @@ function App() {
 
   return (
     <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
+      <Toaster position="top-right" />
       <div className="flex flex-col min-h-screen bg-white dark:bg-gray-900 transition-colors duration-300">
         {/* Background Elements */}
         <div className="fixed inset-0 pointer-events-none z-0">
@@ -197,17 +198,17 @@ function App() {
               <Route path="/" element={<Suspense fallback={null}><HomePage /></Suspense>} />
               <Route path="/auth" element={<Suspense fallback={null}><AuthPage /></Suspense>} />
               <Route path="/reset-password" element={<Suspense fallback={null}><ResetPasswordPage /></Suspense>} />
-              <Route path="/dashboard" element={<Suspense fallback={null}><DashboardPage /></Suspense>} />
+              <Route path="/dashboard" element={<Suspense fallback={null}><DashboardPageNew /></Suspense>} />
               <Route path="/feed" element={<Suspense fallback={null}><FeedPage /></Suspense>} />
-              <Route path="/discover" element={<Suspense fallback={null}><DiscoverPage /></Suspense>} />
-              <Route path="/notifications" element={<Suspense fallback={null}><NotificationsPage /></Suspense>} />
+              <Route path="/discover" element={<Suspense fallback={null}><DiscoverPageNew /></Suspense>} />
+              <Route path="/notifications" element={<Suspense fallback={null}><NotificationsPageNew /></Suspense>} />
               <Route path="/profile/:username" element={<Suspense fallback={null}><ProfilePage /></Suspense>} />
               <Route path="/inspiration" element={<Suspense fallback={null}><InspirationPage /></Suspense>} />
-              <Route path="/settings" element={<Suspense fallback={null}><SettingsPage /></Suspense>} />
-              <Route path="/leaderboard" element={<Suspense fallback={null}><LeaderboardPage /></Suspense>} />
+              <Route path="/settings" element={<Suspense fallback={null}><SettingsPageNew /></Suspense>} />
+              <Route path="/leaderboard" element={<Suspense fallback={null}><LeaderboardPageNew /></Suspense>} />
               {/* <Route path="/communities" element={<Suspense fallback={null}><CommunitiesPage /></Suspense>} />
               <Route path="/communities/:id" element={<Suspense fallback={null}><CommunityDetailPage /></Suspense>} /> */}
-              <Route path="/habits/:id/analytics" element={<Suspense fallback={null}><HabitAnalyticsPage /></Suspense>} />
+              <Route path="/habits/:id/analytics" element={<Suspense fallback={null}><HabitAnalyticsPageNew /></Suspense>} />
               <Route path="/goals/:goalId/analytics" element={<Suspense fallback={null}><GoalAnalyticsPage /></Suspense>} />
               {/* Legal pages */}
               <Route path="/privacy-policy" element={<Suspense fallback={null}><PrivacyPolicy /></Suspense>} />

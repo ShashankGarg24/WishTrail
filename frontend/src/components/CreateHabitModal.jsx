@@ -1,6 +1,8 @@
 import { useEffect, useState, useMemo } from 'react';
-import { X, Calendar, Bell, Plus, Minus, Info } from 'lucide-react';
+import { X, Calendar, Info } from 'lucide-react';
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock';
+
+const THEME_COLOR = '#4c99e6';
 import { habitsAPI } from '../services/api';
 import useApiStore from '../store/apiStore';
 import { useHabitLimits } from '../hooks/usePremium';
@@ -111,36 +113,35 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-2xl border border-gray-200 dark:border-gray-800 h-[85vh] overflow-hidden flex flex-col">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" style={{ fontFamily: 'Manrope, ui-sans-serif, system-ui' }}>
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-xl border border-gray-200 dark:border-gray-700 max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 px-8 py-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+        <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-primary-100 dark:bg-primary-900/30 rounded-xl">
-              <Calendar className="h-6 w-6 text-primary-600 dark:text-primary-400" />
+            <div className="p-2 rounded-lg text-white" style={{ backgroundColor: THEME_COLOR }}>
+              <Calendar className="h-5 w-5" />
             </div>
             <div>
               <h3 className="text-xl font-bold text-gray-900 dark:text-white">Create New Habit</h3>
-              <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">Build a positive routine</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Build a positive routine</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors" aria-label="Close">
-            <X className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+          <button type="button" onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 transition-colors" aria-label="Close">
+            <X className="h-5 w-5" />
           </button>
         </div>
 
         {/* Content */}
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto">
-          <div className="px-8 py-6 space-y-6">
+          <div className="px-6 py-5 space-y-5">
             {error && (
-              <div className="flex items-start gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-700 dark:text-red-300">
+              <div className="flex items-start gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-700 dark:text-red-300 text-sm">
                 <Info className="h-5 w-5 flex-shrink-0 mt-0.5" />
-                <span className="text-sm">{error}</span>
+                <span>{error}</span>
               </div>
             )}
 
-            {/* Premium Limit Indicator - only show when limit reached */}
             {!habitLimits.canCreate && (
               <PremiumLimitIndicator
                 current={activeHabitsCount}
@@ -150,50 +151,46 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
               />
             )}
 
-            {/* Basic Info Section */}
+            {/* Basic Information */}
             <div className="space-y-4">
-              <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Basic Information</h4>
-              
+              <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide flex items-center gap-2">
+                <span className="w-6 h-6 rounded flex items-center justify-center text-white text-xs" style={{ backgroundColor: THEME_COLOR }}>i</span>
+                Basic Information
+              </h4>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Habit Name <span className="text-red-500">*</span>
-                </label>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">Habit Name *</label>
                 <input 
                   value={name} 
                   onChange={(e) => setName(e.target.value)} 
-                  placeholder="e.g., Morning meditation, Exercise, Read before bed"
+                  placeholder="e.g., Morning meditation"
                   required 
-                  className="w-full px-4 py-3 rounded-xl border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-primary-500 dark:focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-colors" 
+                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4c99e6] transition-colors" 
                 />
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Description</label>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">Description</label>
                 <textarea 
                   value={description} 
                   onChange={(e) => setDescription(e.target.value)} 
                   placeholder="Add any notes or motivation for this habit"
                   rows={3} 
-                  className="w-full px-4 py-3 rounded-xl border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-primary-500 dark:focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-colors resize-none" 
+                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4c99e6] transition-colors resize-none" 
                 />
               </div>
             </div>
 
-            {/* Schedule Section */}
+            {/* Schedule */}
             <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-primary-600 dark:text-primary-400" />
-                <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Schedule</h4>
-              </div>
-
+              <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide flex items-center gap-2">
+                <Calendar className="h-4 w-4" style={{ color: THEME_COLOR }} />
+                Schedule
+              </h4>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Frequency <span className="text-red-500">*</span>
-                </label>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">Frequency *</label>
                 <select 
                   value={frequency} 
                   onChange={(e) => setFrequency(e.target.value)} 
-                  className="w-full px-4 py-3 rounded-xl border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-primary-500 dark:focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-colors"
+                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#4c99e6]"
                 >
                   <option value="daily">Daily</option>
                   <option value="custom">Custom</option>
@@ -202,18 +199,19 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
 
               {(frequency === 'custom') && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Select Days</label>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Select Days</label>
                   <div className="flex flex-wrap gap-2">
                     {dayOptions.map(d => (
                       <button 
                         type="button" 
                         key={d.value} 
                         onClick={() => toggleDay(d.value)} 
-                        className={`px-4 py-2.5 rounded-xl text-sm font-medium border-2 transition-all ${
+                        className={`px-3 py-2 rounded-lg text-sm font-medium border transition-all ${
                           daysOfWeek.includes(d.value) 
-                            ? 'bg-primary-500 text-white border-primary-500 shadow-lg shadow-primary-500/30' 
-                            : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-primary-300 dark:hover:border-primary-600'
+                            ? 'text-white border-transparent' 
+                            : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
                         }`}
+                        style={daysOfWeek.includes(d.value) ? { backgroundColor: THEME_COLOR } : {}}
                       >
                         {d.label}
                       </button>
@@ -223,59 +221,18 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
               )}
             </div>
 
-            {/* Reminders Section */}
-            {/* <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <Bell className="h-4 w-4 text-primary-600 dark:text-primary-400" />
-                <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Reminders (optional)</h4>
-              </div>
-
-              <div className="space-y-3">
-                {reminders.map((t, idx) => (
-                  <div key={idx} className="flex items-center gap-3">
-                    <input 
-                      type="time" 
-                      value={t} 
-                      onChange={(e) => setReminders(prev => prev.map((v,i) => i===idx ? e.target.value : v))} 
-                      className="flex-1 px-4 py-3 rounded-xl border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-primary-500 dark:focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-colors" 
-                    />
-                    {reminders.length > 1 && (
-                      <button 
-                        type="button" 
-                        onClick={() => setReminders(prev => prev.filter((_,i) => i!==idx))} 
-                        className="p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border-2 border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
-                        title="Remove reminder"
-                      >
-                        <Minus className="h-4 w-4" />
-                      </button>
-                    )}
-                  </div>
-                ))}
-                <button 
-                  type="button" 
-                  onClick={() => setReminders(prev => [...prev, ''])} 
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gray-100 dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors font-medium"
-                >
-                  <Plus className="h-4 w-4" /> Add Reminder
-                </button>
-              </div>
-            </div> */}
-
-            {/* Goals Section */}
+            {/* Goals */}
             <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <Info className="h-4 w-4 text-primary-600 dark:text-primary-400" />
-                <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Goals</h4>
+              <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide flex items-center gap-2">
+                <Info className="h-4 w-4" style={{ color: THEME_COLOR }} />
+                Goals
+              </h4>
+              <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200 text-xs">
+                Choose either count-based OR days-based target (not both).
               </div>
-              <p className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-3 py-2 rounded-lg">
-                ⚠️ Choose either count-based OR days-based target (not both)
-              </p>
-
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Target Total Count
-                  </label>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Target Total Count</label>
                   <input 
                     type="number" 
                     min="0"
@@ -286,15 +243,12 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
                     }} 
                     placeholder="e.g., 100"
                     disabled={targetDays && parseInt(targetDays) > 0}
-                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-primary-500 dark:focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
+                    className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#4c99e6] disabled:opacity-50 disabled:cursor-not-allowed" 
                   />
-                  <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">Total times to complete this habit</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Total times to complete this habit</p>
                 </div>
-
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Target Days
-                  </label>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Target Days</label>
                   <input 
                     type="number" 
                     min="0"
@@ -305,27 +259,28 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
                     }} 
                     placeholder="e.g., 30"
                     disabled={targetCompletions && parseInt(targetCompletions) > 0}
-                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-primary-500 dark:focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
+                    className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#4c99e6] disabled:opacity-50 disabled:cursor-not-allowed" 
                   />
-                  <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">Number of unique days to do this habit</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Number of unique days</p>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Footer */}
-          <div className="bg-gray-50 dark:bg-gray-800/50 px-8 py-5 border-t border-gray-200 dark:border-gray-700 flex items-center gap-3">
+          <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-end gap-3 flex-shrink-0">
             <button 
               type="button" 
               onClick={onClose} 
-              className="flex-1 py-3 px-5 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 font-medium transition-all"
+              className="px-5 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 font-medium transition-colors"
             >
               Cancel
             </button>
             <button 
               type="submit" 
               disabled={submitting || !habitLimits.canCreate} 
-              className="flex-1 py-3 px-5 bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-lg shadow-primary-500/20 transition-all"
+              className="px-5 py-2.5 rounded-lg text-white font-medium transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ backgroundColor: THEME_COLOR }}
             >
               {submitting ? 'Creating…' : !habitLimits.canCreate ? 'Limit Reached' : 'Create Habit'}
             </button>

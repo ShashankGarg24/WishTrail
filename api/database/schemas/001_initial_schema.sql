@@ -108,9 +108,19 @@ CREATE TABLE IF NOT EXISTS goals (
   
   -- Constraints
   CONSTRAINT valid_category CHECK (category IN (
-    'Health & Fitness', 'Education & Learning', 'Career & Business',
-    'Personal Development', 'Financial Goals', 'Creative Projects',
-    'Travel & Adventure', 'Relationships', 'Family & Friends', 'Other'
+    'HEALTH_FITNESS',
+    'MENTAL_HEALTH',
+    'EDUCATION_LEARNING',
+    'CAREER_WORK',
+    'PERSONAL_GROWTH',
+    'FINANCE',
+    'CREATIVE',
+    'SIDE_PROJECTS',
+    'TRAVEL_EXPERIENCES',
+    'RELATIONSHIPS',
+    'FAMILY',
+    'LIFESTYLE',
+    'OTHER'
   )),
   CONSTRAINT valid_year CHECK (year BETWEEN 2020 AND 2100),
   CONSTRAINT completed_requires_date CHECK (
