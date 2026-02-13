@@ -4,6 +4,7 @@ const goalController = require('../controllers/goalController');
 const { protect } = require('../middleware/auth');
 const multer = require('multer');
 const cloudinaryService = require('../services/cloudinaryService');
+const { GOAL_CATEGORIES } = require('../constants/category');
 
 const router = express.Router();
 
@@ -19,7 +20,7 @@ const goalValidation = [
     .isLength({ max: 1000 })
     .withMessage('Description must be less than 1000 characters'),
   body('category')
-    .isIn(['Health & Fitness', 'Education & Learning', 'Career & Business', 'Personal Development', 'Financial Goals', 'Creative Projects', 'Travel & Adventure', 'Relationships', 'Family & Friends', 'Other'])
+    .isIn(GOAL_CATEGORIES)
     .withMessage('Invalid category'),
   body('targetDate')
     .optional({ checkFalsy: true , nullable: true})
@@ -103,11 +104,51 @@ router.patch('/:id/toggle', upload.single('attachment'), async (req, res, next) 
 router.patch('/:id/completion', upload.single('attachment'), async (req, res, next) => {
   try {
     let attachmentUrl = req.body.attachmentUrl || ''; // Default to existing or empty
+    let oldImageUrl = '';
+    
+    // Get existing attachment URL before updating
+    const goalDetails = await require('../models/extended/GoalDetails').findOne({ goalId: req.params.id }).lean();
+    oldImageUrl = goalDetails?.completionAttachmentUrl || '';
     
     // If new file uploaded, upload to cloudinary
     if (req.file && req.file.buffer && cloudinaryService.isConfigured()) {
+      // Upload new image
       const { url } = await cloudinaryService.uploadBuffer(req.file.buffer, { folder: 'wishtrail/user/goals' })
       attachmentUrl = url || ''
+    }
+    
+    // Delete old image from Cloudinary if:
+    // 1. User uploaded a new image (different from old), OR
+    // 2. User explicitly removed the image (attachmentUrl is empty and there was an old image)
+    const shouldDeleteOld = oldImageUrl && 
+                           oldImageUrl.includes('cloudinary.com') && 
+                           (oldImageUrl !== attachmentUrl || attachmentUrl === '');
+    
+    if (shouldDeleteOld) {
+      try {
+        // Extract public_id from Cloudinary URL
+        // URL format: https://res.cloudinary.com/cloud/image/upload/q_auto,f_auto/v123456/folder/image.jpg
+        const urlParts = oldImageUrl.split('/upload/');
+        if (urlParts.length > 1) {
+          let pathAfterUpload = urlParts[1];
+          
+          // Remove transformations (q_auto,f_auto/ or similar)
+          pathAfterUpload = pathAfterUpload.replace(/^q_auto,f_auto\//, '');
+          
+          // Remove version (v1234567/)
+          pathAfterUpload = pathAfterUpload.replace(/^v\d+\//, '');
+          
+          // Remove file extension
+          const publicId = pathAfterUpload.replace(/\.[^.]+$/, '');
+          
+          console.log('[updateGoalCompletion] Attempting to delete old image:', publicId);
+          const result = await cloudinaryService.destroy(publicId);
+          console.log('[updateGoalCompletion] Cloudinary deletion result:', result);
+        }
+      } catch (deleteError) {
+        console.error('[updateGoalCompletion] Failed to delete old image:', deleteError);
+        // Don't fail the request if deletion fails
+      }
     }
 
     // Pass through to controller

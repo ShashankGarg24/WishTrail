@@ -24,12 +24,45 @@ router.post('/avatar', protect, upload.single('avatar'), async (req, res, next) 
       return res.status(500).json({ success: false, message: 'Image service is not configured' });
     }
 
+    // Get current user's avatar URL before uploading new one
+    const currentUser = await pgUserService.getUserById(req.user.id);
+    const oldAvatarUrl = currentUser?.avatar_url || '';
+
+    // Upload new avatar
     const { url } = await cloudinaryService.uploadBuffer(req.file.buffer, { folder: CLOUDINARY_PROFILE_UPLOAD_FOLDER });
     if (!url) {
       return res.status(500).json({ success: false, message: 'Failed to upload image' });
     }
 
+    // Update user with new avatar
     const user = await pgUserService.updateUser(req.user.id, { avatar_url: url });
+
+    // Delete old avatar from Cloudinary if it exists and is different
+    if (oldAvatarUrl && oldAvatarUrl !== url && oldAvatarUrl.includes('cloudinary.com')) {
+      try {
+        // Extract public_id from Cloudinary URL
+        const urlParts = oldAvatarUrl.split('/upload/');
+        if (urlParts.length > 1) {
+          let pathAfterUpload = urlParts[1];
+          
+          // Remove transformations (q_auto,f_auto/ or similar)
+          pathAfterUpload = pathAfterUpload.replace(/^q_auto,f_auto\//, '');
+          
+          // Remove version (v1234567/)
+          pathAfterUpload = pathAfterUpload.replace(/^v\d+\//, '');
+          
+          // Remove file extension
+          const publicId = pathAfterUpload.replace(/\.[^.]+$/, '');
+          
+          console.log('[uploadAvatar] Attempting to delete old avatar:', publicId);
+          const result = await cloudinaryService.destroy(publicId);
+          console.log('[uploadAvatar] Cloudinary deletion result:', result);
+        }
+      } catch (deleteError) {
+        console.error('[uploadAvatar] Failed to delete old avatar:', deleteError);
+        // Don't fail the request if deletion fails
+      }
+    }
 
     return res.status(200).json({ success: true, message: 'Avatar updated', data: { url, user } });
   } catch (err) {

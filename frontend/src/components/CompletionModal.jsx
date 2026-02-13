@@ -374,7 +374,7 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal, isEditM
               style={{ backgroundColor: THEME_COLOR, fontFamily: 'Manrope' }}
               disabled={charCount > MAX_NOTE_CHARS || loading}
             >
-              {loading ? (isEditMode ? 'Updating...' : 'Updating...') : (isEditMode ? 'Update' : 'Update')}
+              {loading ? (isEditMode ? 'Updating...' : 'Completing...') : (isEditMode ? 'Update' : 'Complete')}
             </button>
           </div>
         </form>

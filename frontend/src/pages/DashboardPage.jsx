@@ -7,6 +7,7 @@ import useApiStore from '../store/apiStore'
 import { useSearchParams } from 'react-router-dom'
 
 const CreateGoalWizard = lazy(() => import('../components/CreateGoalWizard'))
+const CompletionModal = lazy(() => import('../components/CompletionModal'))
 const GoalPostModal = lazy(() => import('../components/GoalPostModal'))
 const GoalDetailsModal = lazy(() => import('../components/GoalDetailsModal'))
 const HabitDetailModal = lazy(() => import('../components/HabitDetailModal'))
@@ -39,6 +40,9 @@ const DashboardPageNew = () => {
   const [initialGoalData, setInitialGoalData] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [isYearDropdownOpen, setIsYearDropdownOpen] = useState(false)
+  const [isEditGoalWizardOpen, setIsEditGoalWizardOpen] = useState(false)
+  const [isEditCompletionModalOpen, setIsEditCompletionModalOpen] = useState(false)
+  const [goalToEdit, setGoalToEdit] = useState(null)
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false)
   const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false)
   const [goalFilter, setGoalFilter] = useState('all') // all, completed, in-progress
@@ -662,19 +666,17 @@ const DashboardPageNew = () => {
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
-                        setSelectedGoal(goal)
+                        setGoalToEdit(goal)
+                        if (goal.completedAt) {
+                          setIsEditCompletionModalOpen(true)
+                        } else {
+                          setIsEditGoalWizardOpen(true)
+                        }
                       }}
                       className="p-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
-                      title="Analytics"
+                      title="Edit"
                     >
                       <Edit className="w-4 h-4 text-gray-600 dark:text-gray-300" />
-                    </button>
-                    <button
-                      onClick={(e) => handleShare(goal, e)}
-                      className="p-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
-                      title="Share"
-                    >
-                      <Share2 className="w-4 h-4 text-gray-600 dark:text-gray-300" />
                     </button>
                   </div>
 
@@ -989,6 +991,61 @@ const DashboardPageNew = () => {
             onCreate={() => { setIsGoalIdeasOpen(false); setInitialGoalData(null); setIsCreateModalOpen(true); }}
             limit={6}
             title="Goal Suggestions"
+          />
+        )}
+
+        {/* Edit Goal Wizard Modal */}
+        {isEditGoalWizardOpen && goalToEdit && (
+          <CreateGoalWizard
+            isOpen={isEditGoalWizardOpen}
+            onClose={() => {
+              setIsEditGoalWizardOpen(false)
+              setGoalToEdit(null)
+            }}
+            year={goalToEdit.year}
+            editMode={true}
+            goalId={goalToEdit.id}
+            initialData={{
+              title: goalToEdit.title,
+              description: goalToEdit.description,
+              category: goalToEdit.category,
+              targetDate: goalToEdit.targetDate || '',
+              isPublic: goalToEdit.isPublic,
+              subGoals: goalToEdit.subGoals || [],
+              habitLinks: goalToEdit.habitLinks || []
+            }}
+          />
+        )}
+
+        {/* Edit Completion Modal */}
+        {isEditCompletionModalOpen && goalToEdit && (
+          <CompletionModal
+            isOpen={isEditCompletionModalOpen}
+            onClose={() => {
+              setIsEditCompletionModalOpen(false)
+              setGoalToEdit(null)
+            }}
+            onComplete={async (formData) => {
+              try {
+                const result = await useApiStore.getState().updateGoalCompletion(goalToEdit.id, formData)
+                if (result?.success) {
+                  await getGoals({ year: selectedYear, page: currentPage })
+                  setIsEditCompletionModalOpen(false)
+                  setGoalToEdit(null)
+                }
+                return result
+              } catch (err) {
+                return { success: false }
+              }
+            }}
+            goalTitle={goalToEdit.title}
+            goal={goalToEdit}
+            isEditMode={true}
+            existingData={{
+              completionNote: goalToEdit.completionNote || '',
+              completionAttachmentUrl: goalToEdit.completionAttachmentUrl || '',
+              completionFeeling: goalToEdit.completionFeeling || 'neutral'
+            }}
           />
         )}
       </Suspense>

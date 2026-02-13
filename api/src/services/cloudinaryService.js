@@ -32,7 +32,14 @@ async function upload(localFilePath, options = {}) {
     ...options,
   };
   const result = await cloudinary.uploader.upload(localFilePath, uploadOptions);
-  return { url: result.secure_url || result.url || '', id: result.public_id || '' };
+  
+  // Inject q_auto,f_auto transformations into the URL
+  let url = result.secure_url || result.url || '';
+  if (url) {
+    url = url.replace('/upload/', '/upload/q_auto,f_auto/');
+  }
+  
+  return { url, id: result.public_id || '' };
 }
 
 function uploadBuffer(buffer, options = {}) {
@@ -49,7 +56,14 @@ function uploadBuffer(buffer, options = {}) {
     };
     const stream = cloudinary.uploader.upload_stream(uploadOptions, (err, result) => {
       if (err) return reject(err);
-      return resolve({ url: result.secure_url || result.url || '', id: result.public_id || '' });
+      
+      // Inject q_auto,f_auto transformations into the URL
+      let url = result.secure_url || result.url || '';
+      if (url) {
+        url = url.replace('/upload/', '/upload/q_auto,f_auto/');
+      }
+      
+      return resolve({ url, id: result.public_id || '' });
     });
     stream.end(buffer);
   });

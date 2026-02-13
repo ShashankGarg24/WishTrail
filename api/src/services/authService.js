@@ -304,6 +304,10 @@ class AuthService {
       }
     }
 
+    // Get current user data to check for old avatar before updating
+    const currentUser = await pgUserService.getUserById(userId);
+    const oldAvatarUrl = currentUser?.avatar_url || '';
+
     // Separate PostgreSQL and MongoDB updates
     Object.keys(updateData).forEach(key => {
       if (pgAllowedUpdates.includes(key) && updateData[key] !== undefined) {
@@ -332,6 +336,35 @@ class AuthService {
       user = await pgUserService.updateUser(userId, pgUpdates);
       if (!user) {
         throw new Error('User not found');
+      }
+      
+      // Delete old avatar from Cloudinary if avatar was updated or removed
+      const newAvatarUrl = pgUpdates['avatar_url'];
+      if (newAvatarUrl !== undefined && oldAvatarUrl && oldAvatarUrl !== newAvatarUrl && oldAvatarUrl.includes('cloudinary.com')) {
+        try {
+          const cloudinaryService = require('./cloudinaryService');
+          // Extract public_id from Cloudinary URL
+          const urlParts = oldAvatarUrl.split('/upload/');
+          if (urlParts.length > 1) {
+            let pathAfterUpload = urlParts[1];
+            
+            // Remove transformations (q_auto,f_auto/ or similar)
+            pathAfterUpload = pathAfterUpload.replace(/^q_auto,f_auto\//, '');
+            
+            // Remove version (v1234567/)
+            pathAfterUpload = pathAfterUpload.replace(/^v\d+\//, '');
+            
+            // Remove file extension
+            const publicId = pathAfterUpload.replace(/\.[^.]+$/, '');
+            
+            console.log('[updateProfile] Attempting to delete old avatar:', publicId);
+            const result = await cloudinaryService.destroy(publicId);
+            console.log('[updateProfile] Cloudinary deletion result:', result);
+          }
+        } catch (deleteError) {
+          console.error('[updateProfile] Failed to delete old avatar:', deleteError);
+          // Don't fail the request if deletion fails
+        }
       }
     } else {
       user = await pgUserService.getUserById(userId);
@@ -892,36 +925,31 @@ class AuthService {
         console.log(picture)
         let avatarUrl = picture;
         try {
-          const cloudinary = require('../utility/cloudinary');
+          const cloudinaryService = require('./cloudinaryService');
           const axios = require('axios');
           
-          // Download image with 5 second timeout
-          const response = await axios.get(picture, { 
-            responseType: 'arraybuffer',
-            timeout: 5000
-          });
-          
-          // Upload to Cloudinary with timeout
-          await Promise.race([
-            new Promise((resolve, reject) => {
-              const stream = cloudinary.uploader.upload_stream({
-                folder: 'avatars',
-                resource_type: 'image',
-                overwrite: true,
+          if (cloudinaryService.isConfigured()) {
+            // Download image with 5 second timeout
+            const response = await axios.get(picture, { 
+              responseType: 'arraybuffer',
+              timeout: 5000
+            });
+            
+            // Upload to Cloudinary using cloudinaryService (with q_auto,f_auto)
+            const { url } = await Promise.race([
+              cloudinaryService.uploadBuffer(Buffer.from(response.data), {
+                folder: 'wishtrail/user/avatars',
                 public_id: `google_${username}_${Date.now()}`
-              }, (error, result) => {
-                if (error) reject(error);
-                else {
-                  avatarUrl = result.secure_url;
-                  resolve(result);
-                }
-              });
-              stream.end(Buffer.from(response.data, 'binary'));
-            }),
-            new Promise((_, reject) => 
-              setTimeout(() => reject(new Error('Cloudinary upload timeout')), 8000)
-            )
-          ]);
+              }),
+              new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Cloudinary upload timeout')), 8000)
+              )
+            ]);
+            
+            if (url) {
+              avatarUrl = url;
+            }
+          }
         } catch (err) {
           // Fallback to Google picture if Cloudinary fails or times out
           console.log('Cloudinary upload failed, using Google avatar:', err.message);

@@ -182,7 +182,7 @@ const sanitizeGoalForProfile = (goal) => {
     category: obj.category,
     year: obj.year,
     createdAt: obj.createdAt,
-    completedAt: obj.completed_at,
+    completedAt: obj.completedAt || obj.completed_at,
     isPublic: obj.isPublic,
     completionNote: obj.completionNote,
     completionAttachmentUrl: obj.completionAttachmentUrl,
