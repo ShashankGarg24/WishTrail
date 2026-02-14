@@ -154,7 +154,7 @@ const InspirationPage = () => {
                 </h2>
               </div>
 
-              <div className="space-y-6 max-h-[600px] overflow-y-auto">
+              <div className="space-y-6 max-h-[600px] overflow-y-auto scrollbar-hide">
                 {displayActivities && displayActivities.length > 0 ? (
                   displayActivities.map((activity, index) => {
                     // Calculate random progress for demo (in real app, would come from activity data)
@@ -204,17 +204,6 @@ const InspirationPage = () => {
                               </p>
                               <span className="text-xs text-gray-500 dark:text-gray-400">{formatTimeAgo(activity.createdAt)}</span>
                             </div>
-                          </div>
-
-                          {/* Actions */}
-                          <div className="flex items-center gap-4 text-sm">
-                            <button className="flex items-center gap-1.5 text-[#4c99e6] hover:text-[#3d88d5] transition-colors font-medium">
-                              <Heart className="h-4 w-4" />
-                              <span>Cheers ({activity.data?.likesCount || Math.floor(Math.random() * 50 + 10)})</span>
-                            </button>
-                            <button className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400 hover:text-[#4c99e6] transition-colors">
-                              <Share2 className="h-4 w-4" />
-                            </button>
                           </div>
                         </div>
                       </div>

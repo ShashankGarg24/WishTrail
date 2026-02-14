@@ -5,7 +5,7 @@ import {
   Target, TrendingUp, Users, Play, ArrowRight, 
   Activity, BarChart3, MessageCircle, Sparkles,
   CheckCircle2, Calendar, Award, Heart, ThumbsUp,
-  Plus, Edit3, Zap
+  Plus, Edit3, Zap, LayoutDashboard
 } from 'lucide-react'
 import useApiStore from '../store/apiStore'
 import { HomePageSEO } from '../components/SEO'
@@ -202,7 +202,7 @@ const HomePageV2 = () => {
                   onClick={handleGetStarted}
                   className="group px-8 py-4 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-semibold text-base shadow-xl shadow-blue-500/30 hover:shadow-2xl hover:shadow-blue-500/40 transition-all duration-300 flex items-center gap-2"
                 >
-                  Get Started for Free
+                  Get Started
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </button>
                 
@@ -269,35 +269,27 @@ const HomePageV2 = () => {
                       transition={{ duration: 0.5, delay: 0.6 }}
                       className="w-7 h-7 rounded-lg bg-[#4c99e6] flex items-center justify-center shadow-md"
                     >
-                      <div className="grid grid-cols-2 gap-0.5">
-                        <div className="w-1.5 h-1.5 bg-white rounded-[2px]" />
-                        <div className="w-1.5 h-1.5 bg-white rounded-[2px]" />
-                        <div className="w-1.5 h-1.5 bg-white rounded-[2px]" />
-                        <div className="w-1.5 h-1.5 bg-white rounded-[2px]" />
-                      </div>
+                      <LayoutDashboard className="w-4 h-4 text-white" />
                     </motion.div>
                     
-                    {/* Inactive Icons */}
+                    {/* Analytics Icon */}
                     <motion.div
                       initial={{ opacity: 0, scale: 0.5 }}
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ duration: 0.5, delay: 0.7 }}
                       className="w-7 h-7 rounded-lg bg-gray-200/80 dark:bg-gray-700/60 flex items-center justify-center"
                     >
-                      <div className="w-3 h-3 rounded-full bg-gray-400 dark:bg-gray-500" />
+                      <BarChart3 className="w-4 h-4 text-gray-500 dark:text-gray-400" />
                     </motion.div>
                     
+                    {/* Feed Icon */}
                     <motion.div
                       initial={{ opacity: 0, scale: 0.5 }}
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ duration: 0.5, delay: 0.8 }}
                       className="w-7 h-7 rounded-lg bg-gray-200/80 dark:bg-gray-700/60 flex items-center justify-center"
                     >
-                      <div className="w-2.5 h-2.5">
-                        <svg viewBox="0 0 10 10" fill="none" className="w-full h-full">
-                          <path d="M1 9L5 2L9 9" stroke="currentColor" strokeWidth="1.5" className="text-gray-400 dark:text-gray-500" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                      </div>
+                      <Activity className="w-4 h-4 text-gray-500 dark:text-gray-400" />
                     </motion.div>
                   </div>
 
@@ -1303,7 +1295,7 @@ const HomePageV2 = () => {
                 <div className="pt-4">
                   <Link
                     to="/feed"
-                    className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl font-semibold text-sm shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all hover:scale-105"
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-[#4c99e6] hover:bg-[#3d88d5] text-white rounded-xl font-semibold text-sm shadow-sm transition-all hover:scale-105"
                   >
                     Explore Feed
                     <ArrowRight className="w-4 h-4" />

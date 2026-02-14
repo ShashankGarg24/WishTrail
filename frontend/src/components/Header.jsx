@@ -71,7 +71,7 @@ const Header = () => {
       <div className="max-w-[1400px] mx-auto px-6">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link to="/dashboard" className="flex items-center gap-2">
+          <Link to="/" className="flex items-center gap-2">
             <Star className="w-6 h-6 text-[#4c99e6] fill-[#4c99e6]" />
             <span className="text-xl font-bold text-gray-900 dark:text-white font-manrope">
               WishTrail

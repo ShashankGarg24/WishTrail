@@ -451,7 +451,7 @@ const DashboardPageNew = () => {
                   </div>
                 </div>
                 <div className="text-3xl font-bold text-gray-900 dark:text-white mb-1 font-manrope">
-                  {dashboardStats?.todayCompletions || 0}/3
+                  {dashboardStats?.todayCompletions || 0}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 font-manrope uppercase tracking-wide">
                   Daily Tasks
