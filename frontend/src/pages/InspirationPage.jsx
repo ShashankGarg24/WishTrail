@@ -97,7 +97,7 @@ const InspirationPage = () => {
                 <div className="flex gap-6 overflow-x-auto pb-4 scrollbar-hide">
                   {displayLeaderboard.map((achiever, idx) => (
                     <div
-                      key={achiever.username}
+                      key={achiever._id}
                       className="bg-gray-50 dark:bg-gray-900/50 rounded-xl p-5 cursor-pointer hover:shadow-md transition-shadow border border-gray-200 dark:border-gray-700 flex-shrink-0 w-80"
                       onClick={() => {
                         if (achiever?.username) navigate(`/profile/@${achiever.username}?tab=overview`);
@@ -119,6 +119,12 @@ const InspirationPage = () => {
                             Champion Status
                           </p>
                         </div>
+                      </div>
+                      
+                      <div className="mb-3">
+                        <span className="inline-block px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-[#4c99e6] text-xs font-semibold rounded">
+                          Milestone
+                        </span>
                       </div>
 
                       <h4 className="text-base font-bold text-gray-900 dark:text-white mb-3 leading-tight" style={{ fontFamily: 'Manrope, sans-serif' }}>
@@ -189,15 +195,26 @@ const InspirationPage = () => {
                                 )}
                               </div>
                               <p className="text-sm text-gray-700 dark:text-gray-300 mb-1" style={{ fontFamily: 'Manrope, sans-serif' }}>
-                                {activity.type === 'goal_completed' ? `Completed: ${activity.data?.goalTitle || 'Morning Yoga Session'}` :
-                                 activity.type === 'goal_created' ? `Created a new goal: ${activity.data?.goalTitle || 'New Goal'}` :
-                                 activity.type === 'user_followed' ? `Started following ${activity.data?.targetUserName || 'someone'}` :
-                                 activity.type === 'streak_milestone' ? `Reached a ${activity.data?.streakCount || 0} day streak!` :
-                                 activity.type === 'achievement_earned' ? `Earned "${activity.data?.achievementName || 'achievement'}" badge` :
-                                 'Just completed: Morning Yoga Session'}
+                                {activity.type === 'goal_completed' && `Just completed: ${activity.data?.goalTitle || 'Morning Yoga Session'}`}
+                                {activity.type === 'goal_created' && `Created a new goal: ${activity.data?.goalTitle || 'New Goal'}`}
+                                {activity.type === 'user_followed' && `Started following ${activity.data?.targetUserName || 'someone'}`}
+                                {activity.type === 'streak_milestone' && `Reached a ${activity.data?.streakCount || 0} day streak!`}
+                                {activity.type === 'achievement_earned' && `Earned "${activity.data?.achievementName || 'achievement'}" badge`}
+                                {!['goal_completed', 'goal_created', 'user_followed', 'streak_milestone', 'achievement_earned'].includes(activity.type) && 'Just completed: Morning Yoga Session'}
                               </p>
                               <span className="text-xs text-gray-500 dark:text-gray-400">{formatTimeAgo(activity.createdAt)}</span>
                             </div>
+                          </div>
+
+                          {/* Actions */}
+                          <div className="flex items-center gap-4 text-sm">
+                            <button className="flex items-center gap-1.5 text-[#4c99e6] hover:text-[#3d88d5] transition-colors font-medium">
+                              <Heart className="h-4 w-4" />
+                              <span>Cheers ({activity.data?.likesCount || Math.floor(Math.random() * 50 + 10)})</span>
+                            </button>
+                            <button className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400 hover:text-[#4c99e6] transition-colors">
+                              <Share2 className="h-4 w-4" />
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -224,7 +241,7 @@ const InspirationPage = () => {
           </div>
 
           {/* Right Column - Your Influence & Trending Goals */}
-          <div className="space-y-6 lg:sticky lg:top-24 lg:self-start">
+          <div className="space-y-6">
             {/* Your Influence */}
             <div className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 dark:from-gray-800 dark:via-gray-700 dark:to-gray-800 rounded-xl shadow-lg p-6 text-white">
               <h2 className="text-lg font-bold mb-2" style={{ fontFamily: 'Manrope, sans-serif' }}>

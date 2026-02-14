@@ -1,15 +1,18 @@
 import CategoryBadge from './CategoryBadge';
-import { useEffect, useState } from 'react'
+import { useEffect, useState, lazy, Suspense } from 'react'
 import { Eye, BarChart3, Share2, CheckCircle, X } from 'lucide-react'
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
 import { useNavigate } from 'react-router-dom'
 import useApiStore from '../store/apiStore'
+const ShareModal = lazy(() => import('./ShareModal'));
 
 const THEME_COLOR = '#4c99e6'
 
 export default function GoalDetailsModal({ goal, isOpen, onClose, onViewPost }) {
   const navigate = useNavigate()
   const [isCompleting, setIsCompleting] = useState(false)
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false)
+  const { user } = useApiStore()
 
   useEffect(() => {
     if (isOpen) {
@@ -43,17 +46,7 @@ export default function GoalDetailsModal({ goal, isOpen, onClose, onViewPost }) 
 
   const handleShare = (e) => {
     e?.stopPropagation()
-    try {
-      if (navigator.share) {
-        navigator.share({ 
-          title: goal?.title || 'Goal', 
-          text: goal?.description || '', 
-          url: window.location.href 
-        })
-      }
-    } catch (err) {
-      // ignore
-    }
+    setIsShareModalOpen(true)
   }
 
   const handleMarkComplete = async () => {
@@ -155,6 +148,18 @@ export default function GoalDetailsModal({ goal, isOpen, onClose, onViewPost }) 
           </div>
         </div>
       </div>
+
+      {/* Share Modal */}
+      {isShareModalOpen && (
+        <Suspense fallback={null}>
+          <ShareModal
+            isOpen={isShareModalOpen}
+            onClose={() => setIsShareModalOpen(false)}
+            goal={goal}
+            user={user}
+          />
+        </Suspense>
+      )}
     </div>
   )
 }

@@ -212,101 +212,40 @@ const ShareModal = ({ isOpen, onClose, goal, user }) => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/50 flex items-center justify-center p-4"
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 md:p-8"
       style={{ zIndex: 10002 }}
       onClick={onClose}
     >
       <motion.div
-        initial={{ scale: 0.9, opacity: 0 }}
+        initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.9, opacity: 0 }}
-        className="bg-white dark:bg-gray-800 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl"
+        exit={{ scale: 0.95, opacity: 0 }}
+        transition={{ duration: 0.2 }}
+        className="bg-gray-50 dark:bg-gray-900 rounded-2xl max-w-7xl w-full max-h-[95vh] overflow-y-auto shadow-2xl relative"
         onClick={(e) => e.stopPropagation()}
         style={{ zIndex: 10003 }}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-            Share Your Achievement
-          </h2>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-          >
-            <X className="h-5 w-5 text-gray-500" />
-          </button>
-        </div>
+        {/* Close Button */}
+        <button
+          onClick={onClose}
+          className="absolute top-6 right-6 z-50 p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors"
+        >
+          <X className="h-6 w-6 text-gray-500 dark:text-gray-400" />
+        </button>
 
-        <div className="p-6">
-          {/* Shareable Card */}
-          <div className="mb-6 flex justify-center">
-            <Suspense fallback={null}><ShareableGoalCard
+        {/* Content */}
+        <div className="p-8">
+          <Suspense fallback={
+            <div className="flex items-center justify-center h-96">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+            </div>
+          }>
+            <ShareableGoalCard
               ref={cardRef}
               goal={goal}
               user={user}
-            /></Suspense>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="space-y-4">
-            {/* Primary Actions */}
-            <div className="grid grid-cols-2 gap-4">
-              <button
-                onClick={handleNativeShare}
-                disabled={isGenerating}
-                className="flex items-center justify-center space-x-2 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-4 py-3 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
-              >
-                <Share2 className="h-5 w-5" />
-                <span>{isGenerating ? 'Generating...' : 'Share'}</span>
-              </button>
-              
-              <button
-                onClick={downloadImage}
-                disabled={isGenerating}
-                className="flex items-center justify-center space-x-2 bg-green-500 hover:bg-green-600 text-white px-4 py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Download className="h-5 w-5" />
-                <span>{isGenerating ? 'Generating...' : 'Download'}</span>
-              </button>
-            </div>
-
-            {/* Copy Text */}
-            <button
-              onClick={copyToClipboard}
-              className="w-full flex items-center justify-center space-x-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 px-4 py-3 rounded-lg transition-colors"
-            >
-              {copied ? (
-                <>
-                  <Check className="h-5 w-5 text-green-500" />
-                  <span>Copied!</span>
-                </>
-              ) : (
-                <>
-                  <Copy className="h-5 w-5" />
-                  <span>Copy Text</span>
-                </>
-              )}
-            </button>
-
-            {/* Social Media Options */}
-            <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                Share to social media:
-              </h3>
-              <div className="grid grid-cols-5 gap-3">
-                {sharingOptions.map((option) => (
-                  <button
-                    key={option.name}
-                    onClick={option.action}
-                    disabled={isGenerating}
-                    className={`flex flex-col items-center justify-center space-y-2 p-3 rounded-lg text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${option.color}`}
-                  >
-                    <option.icon className="h-6 w-6" />
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
+            />
+          </Suspense>
         </div>
       </motion.div>
     </motion.div>,

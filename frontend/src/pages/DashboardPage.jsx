@@ -244,31 +244,31 @@ const DashboardPageNew = () => {
                     : 'Strong momentum this week'}
                 </div>
               </div>
-              <div className="relative w-24 h-24">
-                <svg className="transform -rotate-90 w-24 h-24">
+              <div className="relative w-24 h-24 flex items-center justify-center">
+                <svg className="transform -rotate-90" width="96" height="96" viewBox="0 0 96 96">
                   <circle
                     cx="48"
                     cy="48"
-                    r="42"
+                    r="38"
                     stroke="currentColor"
-                    strokeWidth="8"
+                    strokeWidth="6"
                     fill="transparent"
                     className="text-gray-100 dark:text-gray-700"
                   />
                   <circle
                     cx="48"
                     cy="48"
-                    r="42"
+                    r="38"
                     stroke="#4c99e6"
-                    strokeWidth="8"
+                    strokeWidth="6"
                     fill="transparent"
-                    strokeDasharray={`${2 * Math.PI * 42}`}
-                    strokeDashoffset={`${2 * Math.PI * 42 * (1 - (activeTab === 'goals' ? yearlyProgress : 85) / 100)}`}
+                    strokeDasharray={`${2 * Math.PI * 38}`}
+                    strokeDashoffset={`${2 * Math.PI * 38 * (1 - (activeTab === 'goals' ? yearlyProgress : 85) / 100)}`}
                     className="transition-all duration-1000 ease-out"
                     strokeLinecap="round"
                   />
                 </svg>
-                <div className="absolute inset-0 flex items-center justify-center">
+                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
                   <span className="text-2xl font-bold text-gray-900 dark:text-white font-manrope">
                     {activeTab === 'goals' ? yearlyProgress : 85}%
                   </span>
