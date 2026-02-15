@@ -201,28 +201,28 @@ const AccountSection = () => {
   };
 
   return (
-    <div className="p-6">
+    <div className="p-3 sm:p-4 md:p-6">
       {/* Header */}
-      <div className="mb-6">
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white">Account Settings</h2>
-        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+      <div className="mb-4 sm:mb-6">
+        <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">Account Settings</h2>
+        <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1">
           Manage your privacy, blocked users, and account preferences.
         </p>
       </div>
 
       {/* Error Message */}
       {error && (
-        <div className="mb-4 flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-800 dark:text-red-200">
-          <AlertCircle className="h-5 w-5 flex-shrink-0" />
-          <p className="text-sm">{error}</p>
+        <div className="mb-3 sm:mb-4 flex items-center gap-1.5 sm:gap-2 p-2.5 sm:p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-800 dark:text-red-200">
+          <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+          <p className="text-xs sm:text-sm">{error}</p>
         </div>
       )}
 
       {/* Success Message */}
       {success && (
-        <div className="mb-4 flex items-center gap-2 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg text-green-800 dark:text-green-200">
-          <CheckCircle className="h-5 w-5 flex-shrink-0" />
-          <p className="text-sm">{success}</p>
+        <div className="mb-3 sm:mb-4 flex items-center gap-1.5 sm:gap-2 p-2.5 sm:p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg text-green-800 dark:text-green-200">
+          <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+          <p className="text-xs sm:text-sm">{success}</p>
         </div>
       )}
 
@@ -284,18 +284,18 @@ const AccountSection = () => {
               </div>
             </div>
 
-            <div className="ml-11 space-y-4">
+            <div className="ml-0 sm:ml-11 space-y-4">
               {/* Private Account */}
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium text-gray-900 dark:text-white">Private Account</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+              <div className="flex items-start sm:items-center justify-between gap-3">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">Private Account</p>
+                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-0.5">
                     {privateAccount
-                      ? "Your profile is private. Only followers can see your activities and goals."
-                      : "Your profile is public. Anyone can see your activities and goals."}
+                      ? "Your profile is private."
+                      : "Your profile is public."}
                   </p>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer ml-4">
+                <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
                   <input
                     type="checkbox"
                     className="sr-only peer"
@@ -303,21 +303,21 @@ const AccountSection = () => {
                     disabled={loading}
                     onChange={handlePrivacyToggle}
                   />
-                  <div className={`w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}></div>
+                  <div className={`w-10 h-5 sm:w-11 sm:h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 sm:after:h-5 sm:after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}></div>
                 </label>
               </div>
 
               {/* Habits Privacy */}
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium text-gray-900 dark:text-white">Show Habits on Profile</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+              <div className="flex items-start sm:items-center justify-between gap-3">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">Show Habits on Profile</p>
+                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-0.5">
                     {showHabits
-                      ? "Your habits are visible. They follow your profile privacy settings."
-                      : "Your habits are private. Only you can see them on your profile."}
+                      ? "Your habits are visible."
+                      : "Your habits are private."}
                   </p>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer ml-4">
+                <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
                   <input
                     type="checkbox"
                     className="sr-only peer"
@@ -325,14 +325,14 @@ const AccountSection = () => {
                     disabled={habitsLoading}
                     onChange={handleHabitsPrivacyToggle}
                   />
-                  <div className={`w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600 ${habitsLoading ? 'opacity-50 cursor-not-allowed' : ''}`}></div>
+                  <div className={`w-10 h-5 sm:w-11 sm:h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 sm:after:h-5 sm:after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600 ${habitsLoading ? 'opacity-50 cursor-not-allowed' : ''}`}></div>
                 </label>
               </div>
 
               {/* Privacy Summary */}
-              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
-                <h4 className="font-medium text-gray-900 dark:text-white mb-2 text-sm">Current Privacy Settings</h4>
-                <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 sm:p-4">
+                <h4 className="font-medium text-gray-900 dark:text-white mb-1.5 sm:mb-2 text-xs sm:text-sm">Current Privacy Settings</h4>
+                <ul className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 space-y-0.5 sm:space-y-1">
                   <li>• {privateAccount ? "Private" : "Public"} profile visibility</li>
                   <li>• {privateAccount ? "Only followers" : "Everyone"} can see your activities</li>
                   <li>• {privateAccount ? "Only followers" : "Everyone"} can see your goals</li>
@@ -358,23 +358,23 @@ const AccountSection = () => {
           </div>
 
           {/* Appearance */}
-          <div className="border-b border-gray-200 dark:border-gray-700 pb-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800">
-                <Sun className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+          <div className="border-b border-gray-200 dark:border-gray-700 pb-4 sm:pb-6">
+            <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+              <div className="p-1.5 sm:p-2 rounded-lg bg-gray-100 dark:bg-gray-800">
+                <Sun className="h-4 w-4 sm:h-5 sm:w-5 text-gray-600 dark:text-gray-400" />
               </div>
               <div>
-                <h3 className="text-base font-semibold text-gray-900 dark:text-white">Appearance</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Customize how WishTrail looks for you.</p>
+                <h3 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white">Appearance</h3>
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Customize how WishTrail looks for you.</p>
               </div>
             </div>
 
-            <div className="ml-11">
+            <div className="ml-0 sm:ml-11">
               {/* Theme Toggle */}
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium text-gray-900 dark:text-white">Theme</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+              <div className="flex items-start sm:items-center justify-between gap-3">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">Theme</p>
+                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-0.5">
                     You are currently using the {isDarkMode ? 'dark' : 'light'} theme.
                   </p>
                 </div>
@@ -382,13 +382,13 @@ const AccountSection = () => {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={toggleTheme}
-                  className="relative p-3 rounded-xl bg-white/10 hover:bg-white/20 dark:hover:bg-white/10 border border-gray-300 dark:border-gray-600 transition-all duration-300 group"
+                  className="relative p-2 sm:p-3 rounded-xl bg-white/10 hover:bg-white/20 dark:hover:bg-white/10 border border-gray-300 dark:border-gray-600 transition-all duration-300 group flex-shrink-0"
                 >
-                  <div className="relative w-5 h-5">
-                    <Sun className={`absolute inset-0 h-5 w-5 text-yellow-500 transition-all duration-300 ${
+                  <div className="relative w-4 h-4 sm:w-5 sm:h-5">
+                    <Sun className={`absolute inset-0 h-4 w-4 sm:h-5 sm:w-5 text-yellow-500 transition-all duration-300 ${
                       isDarkMode ? 'opacity-0 rotate-90 scale-0' : 'opacity-100 rotate-0 scale-100'
                     }`} />
-                    <Moon className={`absolute inset-0 h-5 w-5 text-purple-400 transition-all duration-300 ${
+                    <Moon className={`absolute inset-0 h-4 w-4 sm:h-5 sm:w-5 text-purple-400 transition-all duration-300 ${
                       isDarkMode ? 'opacity-100 rotate-0 scale-100' : 'opacity-0 -rotate-90 scale-0'
                     }`} />
                   </div>
@@ -400,47 +400,46 @@ const AccountSection = () => {
           </div>
 
           {/* Blocked Users */}
-          <div className="border-b border-gray-200 dark:border-gray-700 pb-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800">
-                <UserX className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+          <div className="border-b border-gray-200 dark:border-gray-700 pb-4 sm:pb-6">
+            <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+              <div className="p-1.5 sm:p-2 rounded-lg bg-gray-100 dark:bg-gray-800">
+                <UserX className="h-4 w-4 sm:h-5 sm:w-5 text-gray-600 dark:text-gray-400" />
               </div>
               <div>
-                <h3 className="text-base font-semibold text-gray-900 dark:text-white">Blocked Users</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Manage users you have blocked.</p>
+                <h3 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white">Blocked Users</h3>
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Manage users you have blocked.</p>
               </div>
             </div>
 
-            <div className="ml-11">
+            <div className="ml-0 sm:ml-11">
               {blockedLoading ? (
-                <div className="text-sm text-gray-500 dark:text-gray-400">Loading blocked users...</div>
+                <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Loading blocked users...</div>
               ) : blocked.length === 0 ? (
-                <p className="text-sm text-gray-500 dark:text-gray-400">No blocked users.</p>
+                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">No blocked users.</p>
               ) : (
                 <div 
                   ref={blockedListRef}
-                  className="max-h-96 overflow-y-auto pr-2 space-y-2"
-                  style={{ scrollbarWidth: 'thin' }}
+                  className="max-h-80 sm:max-h-96 overflow-y-auto pr-1 sm:pr-2 space-y-1.5 sm:space-y-2 scrollbar-thin"
                 >
                   {blocked.map((user) => (
                     <div
                       key={user.id}
-                      className="flex justify-between items-center bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg"
+                      className="flex justify-between items-center bg-gray-50 dark:bg-gray-700/50 p-2 sm:p-3 rounded-lg gap-2"
                     >
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
                         <img 
                           src={user.avatar || '/api/placeholder/40/40'} 
                           alt={user.name} 
-                          className="w-10 h-10 rounded-full object-cover" 
+                          className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover flex-shrink-0" 
                         />
-                        <div>
-                          <div className="font-medium text-gray-900 dark:text-white">{user.name}</div>
-                          <div className="text-sm text-gray-500 dark:text-gray-400">@{user.username}</div>
+                        <div className="min-w-0 flex-1">
+                          <div className="text-sm font-medium text-gray-900 dark:text-white truncate">{user.name}</div>
+                          <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">@{user.username}</div>
                         </div>
                       </div>
                       <button
                         onClick={() => unblockUser(user.username)}
-                        className="text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-medium"
+                        className="text-xs sm:text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-medium flex-shrink-0 px-2 py-1"
                       >
                         Unblock
                       </button>
@@ -449,10 +448,10 @@ const AccountSection = () => {
                   
                   {/* Intersection Observer Target */}
                   {hasMoreBlocked && (
-                    <div ref={observerTarget} className="py-4 text-center">
+                    <div ref={observerTarget} className="py-3 sm:py-4 text-center">
                       {loadingMoreBlocked && (
-                        <div className="flex items-center justify-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-                          <Loader2 className="h-4 w-4 animate-spin" />
+                        <div className="flex items-center justify-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                          <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" />
                           <span>Loading more...</span>
                         </div>
                       )}
@@ -465,30 +464,30 @@ const AccountSection = () => {
 
           {/* Danger Zone */}
           <div>
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900/20">
-                <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
+            <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+              <div className="p-1.5 sm:p-2 rounded-lg bg-red-100 dark:bg-red-900/20">
+                <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-red-600 dark:text-red-400" />
               </div>
               <div>
-                <h3 className="text-base font-semibold text-red-600 dark:text-red-400">Danger Zone</h3>
+                <h3 className="text-sm sm:text-base font-semibold text-red-600 dark:text-red-400">Danger Zone</h3>
               </div>
             </div>
 
-            <div className="ml-11 space-y-3">
-              <div className="p-4 border-2 border-red-200 dark:border-red-900/30 rounded-lg">
-                <div className="mb-3">
-                  <p className="font-semibold text-gray-900 dark:text-white mb-1">ACCOUNT TERMINATION</p>
+            <div className="ml-0 sm:ml-11 space-y-2 sm:space-y-3">
+              <div className="p-3 sm:p-4 border-2 border-red-200 dark:border-red-900/30 rounded-lg">
+                <div className="mb-2 sm:mb-3">
+                  <p className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white mb-0.5 sm:mb-1">ACCOUNT TERMINATION</p>
                 </div>
                 
                 {/* Deactivate Account */}
-                <div className="mb-4 pb-4 border-b border-red-200 dark:border-red-900/30">
+                <div className="mb-3 sm:mb-4 pb-3 sm:pb-4 border-b border-red-200 dark:border-red-900/30">
                   <button
                     onClick={handleDeactivateAccount}
-                    className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-medium text-sm"
+                    className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-medium text-xs sm:text-sm"
                   >
                     Deactivate Account
                   </button>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                  <p className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400 mt-0.5 sm:mt-1">
                     Temporarily disable your account. You can reactivate anytime.
                   </p>
                 </div>
@@ -497,11 +496,11 @@ const AccountSection = () => {
                 <div>
                   <button
                     onClick={handleDeleteAccount}
-                    className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-medium text-sm"
+                    className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-medium text-xs sm:text-sm"
                   >
                     Delete Account
                   </button>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                  <p className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400 mt-0.5 sm:mt-1">
                     Permanently remove your account and all associated data. This action cannot be undone.
                   </p>
                 </div>

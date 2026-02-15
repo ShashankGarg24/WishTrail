@@ -44,6 +44,17 @@ const FeedbackButton = ({ isOpen: controlledOpen, onClose }) => {
     return undefined;
   }, [open]);
 
+  // Listen for custom event to open feedback modal
+  useEffect(() => {
+    const handleOpenFeedback = () => {
+      if (!isControlled) {
+        openModal()
+      }
+    }
+    window.addEventListener('wt_open_feedback', handleOpenFeedback)
+    return () => window.removeEventListener('wt_open_feedback', handleOpenFeedback)
+  }, [isControlled])
+
   if (!isAuthenticated) return null
 
   const openModal = () => {

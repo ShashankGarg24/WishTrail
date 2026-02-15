@@ -230,34 +230,34 @@ const SecuritySection = () => {
 
   // Warning Dialog Component
   const WarningDialog = () => (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6 space-y-4">
-        <div className="flex items-start gap-3">
-          <div className="w-12 h-12 bg-yellow-100 dark:bg-yellow-900/20 rounded-full flex items-center justify-center flex-shrink-0">
-            <LogOut className="w-6 h-6 text-yellow-600 dark:text-yellow-400" />
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 sm:p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-4 sm:p-6 space-y-3 sm:space-y-4">
+        <div className="flex items-start gap-2 sm:gap-3">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-yellow-100 dark:bg-yellow-900/20 rounded-full flex items-center justify-center flex-shrink-0">
+            <LogOut className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-600 dark:text-yellow-400" />
           </div>
           <div className="flex-1">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-1 sm:mb-2">
               You'll be logged out
             </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
               For security reasons, you'll be logged out after {hasPassword ? 'changing' : 'setting'} your password. You'll need to log in again with your new password.
             </p>
           </div>
         </div>
         
-        <div className="flex gap-3">
+        <div className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-3">
           <button
             type="button"
             onClick={() => setShowWarning(false)}
-            className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 font-medium transition-colors"
+            className="w-full sm:flex-1 px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 font-medium transition-colors"
           >
             Cancel
           </button>
           <button
             type="button"
             onClick={hasPassword ? confirmPasswordChange : confirmSetPassword}
-            className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+            className="w-full sm:flex-1 px-3 sm:px-4 py-2 text-sm sm:text-base bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
           >
             Continue
           </button>
@@ -267,29 +267,29 @@ const SecuritySection = () => {
   );
 
   return (
-    <div className="p-6">
+    <div className="p-3 sm:p-4 md:p-6">
       {showWarning && <WarningDialog />}
       
       {/* Header */}
-      <div className="mb-6">
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white">Security</h2>
-        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+      <div className="mb-4 sm:mb-6">
+        <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">Security</h2>
+        <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1">
           Manage your account protection and sign-in preferences.
         </p>
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         {/* Password Section - Different UI based on hasPassword */}
-        <div className="border-b border-gray-200 dark:border-gray-700 pb-6">
-          <div className="flex items-start gap-3 mb-4">
-            <div className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800">
-              <Lock className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+        <div className="border-b border-gray-200 dark:border-gray-700 pb-4 sm:pb-6">
+          <div className="flex items-start gap-2 sm:gap-3 mb-3 sm:mb-4">
+            <div className="p-1.5 sm:p-2 rounded-lg bg-gray-100 dark:bg-gray-800">
+              <Lock className="h-4 w-4 sm:h-5 sm:w-5 text-gray-600 dark:text-gray-400" />
             </div>
             <div className="flex-1">
-              <h3 className="text-base font-semibold text-gray-900 dark:text-white">
+              <h3 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white">
                 {hasPassword ? 'Change Password' : 'Set a Password'}
               </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-0.5 sm:mt-1">
                 {hasPassword 
                   ? 'Update your login credentials regularly for better safety.'
                   : 'You signed up using social login. Set a password to enable traditional login as an alternative.'
@@ -299,12 +299,12 @@ const SecuritySection = () => {
           </div>
 
           {!hasPassword && otpStep === 1 && (
-            <div className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800 mb-4">
-              <div className="flex items-start gap-3">
-                <Shield className="h-5 w-5 text-purple-600 dark:text-purple-400 mt-0.5 flex-shrink-0" />
+            <div className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 rounded-lg p-3 sm:p-4 border border-purple-200 dark:border-purple-800 mb-3 sm:mb-4">
+              <div className="flex items-start gap-2 sm:gap-3">
+                <Shield className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600 dark:text-purple-400 mt-0.5 flex-shrink-0" />
                 <div>
-                  <h4 className="font-medium text-purple-900 dark:text-purple-100 mb-1">Why Set a Password?</h4>
-                  <p className="text-sm text-purple-700 dark:text-purple-200">
+                  <h4 className="text-sm font-medium text-purple-900 dark:text-purple-100 mb-0.5 sm:mb-1">Why Set a Password?</h4>
+                  <p className="text-xs sm:text-sm text-purple-700 dark:text-purple-200">
                     Add password login as a backup method. You can continue using social login or sign in with your password.
                   </p>
                 </div>
@@ -313,30 +313,30 @@ const SecuritySection = () => {
           )}
 
           {error && (
-            <div className="mb-4 flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-800 dark:text-red-200">
-              <AlertCircle className="h-5 w-5 flex-shrink-0" />
-              <p className="text-sm">{error}</p>
+            <div className="mb-3 sm:mb-4 flex items-center gap-1.5 sm:gap-2 p-2.5 sm:p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-800 dark:text-red-200">
+              <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+              <p className="text-xs sm:text-sm">{error}</p>
             </div>
           )}
 
           {success && (
-            <div className="mb-4 flex items-center gap-2 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg text-green-800 dark:text-green-200">
-              <CheckCircle className="h-5 w-5 flex-shrink-0" />
-              <p className="text-sm">{success}</p>
+            <div className="mb-3 sm:mb-4 flex items-center gap-1.5 sm:gap-2 p-2.5 sm:p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg text-green-800 dark:text-green-200">
+              <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+              <p className="text-xs sm:text-sm">{success}</p>
             </div>
           )}
 
           {/* Password Setup Flow for Google SSO Users */}
           {!hasPassword && otpStep === 1 && (
-            <form onSubmit={handleRequestOTP} className="space-y-4">
-              <p className="text-sm text-gray-600 dark:text-gray-400">
+            <form onSubmit={handleRequestOTP} className="space-y-3 sm:space-y-4">
+              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                 Click the button below to receive a verification code via email. You'll use this code to set your new password.
               </p>
 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg font-medium transition-colors disabled:cursor-not-allowed"
+                className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg font-medium transition-colors disabled:cursor-not-allowed"
               >
                 {loading ? 'Sending OTP...' : 'Send Verification Code'}
               </button>
@@ -344,22 +344,22 @@ const SecuritySection = () => {
           )}
 
           {!hasPassword && otpStep === 2 && (
-            <div className="space-y-4">
-              <div className="text-center mb-4">
-                <div className="w-16 h-16 bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900 dark:to-blue-900 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <Shield className="w-8 h-8 text-purple-600 dark:text-purple-400" />
+            <div className="space-y-3 sm:space-y-4">
+              <div className="text-center mb-3 sm:mb-4">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900 dark:to-blue-900 rounded-full flex items-center justify-center mx-auto mb-2 sm:mb-3">
+                  <Shield className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600 dark:text-purple-400" />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-2">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-800 dark:text-white mb-1 sm:mb-2">
                   Verify Your Email
                 </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                   We've sent a 6-digit code to your email
                 </p>
               </div>
 
-              <form onSubmit={handleSetPasswordWithOTP} className="space-y-4">
+              <form onSubmit={handleSetPasswordWithOTP} className="space-y-3 sm:space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2">
                     VERIFICATION CODE
                   </label>
                   <input
@@ -367,7 +367,7 @@ const SecuritySection = () => {
                     value={otp}
                     onChange={(e) => setOtp(e.target.value)}
                     maxLength={6}
-                    className="w-full px-4 py-3 text-center text-2xl tracking-widest border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors"
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 text-center text-xl sm:text-2xl tracking-widest border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors"
                     placeholder="000000"
                     required
                   />
@@ -375,22 +375,22 @@ const SecuritySection = () => {
 
                 {otpExpiresAt && (
                   <div className="text-center">
-                    <div className="flex items-center justify-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
-                      <Clock className="w-4 h-4" />
+                    <div className="flex items-center justify-center space-x-1.5 sm:space-x-2 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                      <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                       <span>Code expires in {formatTime(Math.max(0, Math.floor((new Date(otpExpiresAt) - new Date()) / 1000)))}</span>
                     </div>
                   </div>
                 )}
 
                 <div className="text-center">
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-1.5 sm:mb-2">
                     Didn't receive the code?
                   </p>
                   <button
                     type="button"
                     onClick={handleResendOTP}
                     disabled={!canResendOTP || loading}
-                    className={`text-sm font-medium ${
+                    className={`text-xs sm:text-sm font-medium ${
                       canResendOTP ? 'text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300' : 'text-gray-400 cursor-not-allowed'
                     } transition-colors`}
                   >
@@ -402,12 +402,12 @@ const SecuritySection = () => {
                 </div>
 
                 <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
                       NEW PASSWORD
                     </label>
                     {newPassword && (
-                      <span className={`text-xs font-medium ${getPasswordStrength().color}`}>
+                      <span className={`text-[10px] sm:text-xs font-medium ${getPasswordStrength().color}`}>
                         {getPasswordStrength().text}
                       </span>
                     )}
@@ -417,7 +417,7 @@ const SecuritySection = () => {
                       type={showNewPassword ? 'text' : 'password'}
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
-                      className="w-full px-4 py-2.5 pr-12 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-3 sm:px-4 py-2 sm:py-2.5 pr-10 sm:pr-12 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       placeholder="Min. 8 characters"
                       required
                       minLength={8}
@@ -425,15 +425,15 @@ const SecuritySection = () => {
                     <button
                       type="button"
                       onClick={() => setShowNewPassword(!showNewPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                      className="absolute right-2.5 sm:right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                     >
-                      {showNewPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                      {showNewPassword ? <EyeOff className="h-4 w-4 sm:h-5 sm:w-5" /> : <Eye className="h-4 w-4 sm:h-5 sm:w-5" />}
                     </button>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2">
                     CONFIRM NEW PASSWORD
                   </label>
                   <div className="relative">
@@ -441,23 +441,23 @@ const SecuritySection = () => {
                       type={showConfirmPassword ? 'text' : 'password'}
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="w-full px-4 py-2.5 pr-12 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-3 sm:px-4 py-2 sm:py-2.5 pr-10 sm:pr-12 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       placeholder="Re-enter password"
                       required
                     />
                     <button
                       type="button"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                      className="absolute right-2.5 sm:right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                     >
-                      {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                      {showConfirmPassword ? <EyeOff className="h-4 w-4 sm:h-5 sm:w-5" /> : <Eye className="h-4 w-4 sm:h-5 sm:w-5" />}
                     </button>
                   </div>
                 </div>
 
-                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 border border-blue-200 dark:border-blue-800">
-                  <p className="text-xs font-medium text-blue-900 dark:text-blue-100 mb-2">Password Requirements:</p>
-                  <ul className="text-xs text-blue-700 dark:text-blue-200 space-y-1">
+                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-2.5 sm:p-3 border border-blue-200 dark:border-blue-800">
+                  <p className="text-[10px] sm:text-xs font-medium text-blue-900 dark:text-blue-100 mb-1.5 sm:mb-2">Password Requirements:</p>
+                  <ul className="text-[10px] sm:text-xs text-blue-700 dark:text-blue-200 space-y-0.5 sm:space-y-1">
                     <li className={newPassword.length >= 8 ? 'text-green-600 dark:text-green-400' : ''}>
                       {newPassword.length >= 8 ? '✓' : '•'} At least 8 characters
                     </li>
@@ -473,7 +473,7 @@ const SecuritySection = () => {
                   </ul>
                 </div>
 
-                <div className="flex space-x-3">
+                <div className="flex flex-col-reverse sm:flex-row gap-2 sm:space-x-3 sm:gap-0">
                   <button
                     type="button"
                     onClick={() => {
@@ -484,14 +484,14 @@ const SecuritySection = () => {
                       setError('');
                       setSuccess('');
                     }}
-                    className="flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 font-medium transition-colors"
+                    className="w-full sm:flex-1 px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 font-medium transition-colors"
                   >
                     Back
                   </button>
                   <button
                     type="submit"
                     disabled={loading}
-                    className="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg font-medium transition-colors disabled:cursor-not-allowed"
+                    className="w-full sm:flex-1 px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg font-medium transition-colors disabled:cursor-not-allowed"
                   >
                     {loading ? 'Setting Password...' : 'Set Password'}
                   </button>
@@ -502,10 +502,10 @@ const SecuritySection = () => {
 
           {/* Regular Password Change Form */}
           {hasPassword && (
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
               {/* Current Password */}
               <div>
-                <label htmlFor="current-password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label htmlFor="current-password" className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2">
                   CURRENT PASSWORD
                 </label>
                 <div className="relative">
@@ -515,26 +515,26 @@ const SecuritySection = () => {
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
                     placeholder="••••••••••••"
-                    className="w-full px-4 py-2.5 pr-12 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 sm:px-4 py-2 sm:py-2.5 pr-10 sm:pr-12 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                   <button
                     type="button"
                     onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                    className="absolute right-2.5 sm:right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                   >
-                    {showCurrentPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    {showCurrentPassword ? <EyeOff className="h-4 w-4 sm:h-5 sm:w-5" /> : <Eye className="h-4 w-4 sm:h-5 sm:w-5" />}
                   </button>
                 </div>
               </div>
 
               {/* New Password */}
               <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label htmlFor="new-password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+                  <label htmlFor="new-password" className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
                     NEW PASSWORD
                   </label>
                   {newPassword && (
-                    <span className={`text-xs font-medium ${getPasswordStrength().color}`}>
+                    <span className={`text-[10px] sm:text-xs font-medium ${getPasswordStrength().color}`}>
                       {getPasswordStrength().text}
                     </span>
                   )}
@@ -546,21 +546,21 @@ const SecuritySection = () => {
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="Min. 8 characters"
-                    className="w-full px-4 py-2.5 pr-12 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 sm:px-4 py-2 sm:py-2.5 pr-10 sm:pr-12 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                   <button
                     type="button"
                     onClick={() => setShowNewPassword(!showNewPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                    className="absolute right-2.5 sm:right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                   >
-                    {showNewPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    {showNewPassword ? <EyeOff className="h-4 w-4 sm:h-5 sm:w-5" /> : <Eye className="h-4 w-4 sm:h-5 sm:w-5" />}
                   </button>
                 </div>
               </div>
 
               {/* Confirm Password */}
               <div>
-                <label htmlFor="confirm-password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label htmlFor="confirm-password" className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2">
                   CONFIRM NEW PASSWORD
                 </label>
                 <div className="relative">
@@ -570,14 +570,14 @@ const SecuritySection = () => {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Re-enter password"
-                    className="w-full px-4 py-2.5 pr-12 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 sm:px-4 py-2 sm:py-2.5 pr-10 sm:pr-12 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                    className="absolute right-2.5 sm:right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                   >
-                    {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    {showConfirmPassword ? <EyeOff className="h-4 w-4 sm:h-5 sm:w-5" /> : <Eye className="h-4 w-4 sm:h-5 sm:w-5" />}
                   </button>
                 </div>
               </div>
@@ -585,7 +585,7 @@ const SecuritySection = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full px-4 py-2.5 bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed text-white dark:text-gray-900 rounded-lg font-medium transition-colors"
+                className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed text-white dark:text-gray-900 rounded-lg font-medium transition-colors"
               >
                 {loading ? 'Updating Password...' : 'Update Password'}
               </button>

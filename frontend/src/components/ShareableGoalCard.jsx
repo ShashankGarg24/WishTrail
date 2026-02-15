@@ -212,27 +212,27 @@ const ShareableGoalCard = forwardRef(({ goal, user, onClose }, ref) => {
   }
 
   return (
-    <div className="w-full max-w-6xl mx-auto bg-gray-50 dark:bg-gray-900 p-8 rounded-xl">
+    <div className="w-full max-w-6xl mx-auto bg-gray-50 dark:bg-gray-900 p-3 sm:p-4 md:p-6 lg:p-8 rounded-xl">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
+      <div className="mb-4 sm:mb-6 md:mb-8">
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-2">
           Highlight Your Success
         </h1>
-        <p className="text-gray-600 dark:text-gray-400">
+        <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
           Choose how you want to showcase your completed milestone to the world.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 md:gap-8">
         {/* Left Panel - Visual Settings */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg sm:rounded-xl p-4 sm:p-5 md:p-6 shadow-sm">
+          <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-4 sm:mb-5 md:mb-6">
             Visual Settings
           </h2>
 
           {/* Achievement Image */}
-          <div className="mb-6">
-            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
+          <div className="mb-4 sm:mb-5 md:mb-6">
+            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 sm:mb-3">
               Achievement Image
             </label>
             <div className="relative">
@@ -247,10 +247,10 @@ const ShareableGoalCard = forwardRef(({ goal, user, onClose }, ref) => {
                   />
                   <label
                     htmlFor="achievement-image"
-                    className="flex flex-col items-center justify-center h-32 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:border-blue-400 transition-colors"
+                    className="flex flex-col items-center justify-center h-28 sm:h-32 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:border-blue-400 transition-colors"
                   >
-                    <Camera className="h-8 w-8 text-gray-400 mb-2" />
-                    <span className="text-sm text-gray-500 dark:text-gray-400">
+                    <Camera className="h-6 w-6 sm:h-8 sm:w-8 text-gray-400 mb-2" />
+                    <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                       Click to add photo
                     </span>
                   </label>
@@ -258,10 +258,10 @@ const ShareableGoalCard = forwardRef(({ goal, user, onClose }, ref) => {
               ) : (
                 <button
                   onClick={handleRemoveImage}
-                  className="w-full flex flex-col items-center justify-center h-32 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:border-red-400 transition-colors"
+                  className="w-full flex flex-col items-center justify-center h-28 sm:h-32 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:border-red-400 transition-colors"
                 >
-                  <Camera className="h-8 w-8 text-gray-400 mb-2" />
-                  <span className="text-sm text-gray-500 dark:text-gray-400">
+                  <Camera className="h-6 w-6 sm:h-8 sm:w-8 text-gray-400 mb-2" />
+                  <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                     Click to remove
                   </span>
                 </button>
@@ -271,8 +271,8 @@ const ShareableGoalCard = forwardRef(({ goal, user, onClose }, ref) => {
 
           {/* Image Instructions */}
           {selectedImage && (
-            <div className="mb-6 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-100 dark:border-blue-800">
-              <p className="text-xs text-blue-800 dark:text-blue-300 leading-relaxed">
+            <div className="mb-4 sm:mb-5 md:mb-6 p-2.5 sm:p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-100 dark:border-blue-800">
+              <p className="text-[10px] sm:text-xs text-blue-800 dark:text-blue-300 leading-relaxed">
                 <span className="font-semibold">Adjust image in preview:</span><br />
                 • Click & drag to reposition<br />
                 • Double-click to reset
@@ -281,8 +281,8 @@ const ShareableGoalCard = forwardRef(({ goal, user, onClose }, ref) => {
           )}
 
           {/* Text Overlay */}
-          <div className="mb-6">
-            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
+          <div className="mb-4 sm:mb-5 md:mb-6">
+            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 sm:mb-3">
               Text Overlay
             </label>
             <input
@@ -290,42 +290,42 @@ const ShareableGoalCard = forwardRef(({ goal, user, onClose }, ref) => {
               value={textOverlay}
               onChange={(e) => setTextOverlay(e.target.value)}
               placeholder="Document your recipes"
-              className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
         </div>
 
         {/* Right Panel - Live Preview */}
         <div>
-          <div className="mb-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider text-center">
+          <div className="mb-2 sm:mb-3 text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider text-center">
             Live Preview
           </div>
           
           {/* Preview Card */}
-          <div className="relative flex items-start gap-4">
-            <div className="relative w-full max-w-md">
-              <div ref={cardRef} className="bg-[#B5C4A0] rounded-3xl overflow-hidden shadow-xl">
+          <div className="relative flex flex-col sm:flex-row items-start gap-3 sm:gap-4">
+            <div className="relative w-full sm:max-w-md mx-auto sm:mx-0">
+              <div ref={cardRef} className="bg-[#B5C4A0] rounded-2xl sm:rounded-3xl overflow-hidden shadow-xl">
               {/* Badge */}
-              <div className="export-badge absolute top-4 left-4 z-10">
-                <div className="bg-white rounded-full px-3 py-1.5 flex items-center gap-1.5 shadow-sm">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  <span className="export-achieved-text text-xs font-semibold text-gray-900 uppercase tracking-wide">
+              <div className="export-badge absolute top-2 left-2 sm:top-3 sm:left-3 md:top-4 md:left-4 z-10">
+                <div className="bg-white rounded-full px-2 py-1 sm:px-2.5 sm:py-1.5 md:px-3 flex items-center gap-1 sm:gap-1.5 shadow-sm">
+                  <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-blue-500 rounded-full"></div>
+                  <span className="export-achieved-text text-[9px] sm:text-[10px] md:text-xs font-semibold text-gray-900 uppercase tracking-wide">
                     Achieved
                   </span>
                 </div>
               </div>
 
               {/* Logo */}
-              <div className="export-badge absolute top-4 right-4 z-10">
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center shadow-sm">
-                  <div className="w-4 h-4 bg-white rounded-sm"></div>
+              <div className="export-badge absolute top-2 right-2 sm:top-3 sm:right-3 md:top-4 md:right-4 z-10">
+                <div className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-md sm:rounded-lg flex items-center justify-center shadow-sm">
+                  <div className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 bg-white rounded-sm"></div>
                 </div>
               </div>
 
               {/* Image Section */}
               <div 
                 ref={imageContainerRef}
-                className="export-image-section relative h-64 bg-[#B5C4A0] flex items-center justify-center overflow-hidden touch-none"
+                className="export-image-section relative h-48 sm:h-56 md:h-64 bg-[#B5C4A0] flex items-center justify-center overflow-hidden touch-none"
                 onMouseDown={handleMouseDown}
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUp}
@@ -358,10 +358,10 @@ const ShareableGoalCard = forwardRef(({ goal, user, onClose }, ref) => {
                     <div className="text-center">
                       {/* WishTrail Logo/Brand */}
                       {/* WishTrail Text */}
-                      <div className="font-bold text-2xl tracking-wider mb-1" style={{ color: 'rgba(255, 255, 255, 0.4)' }}>
+                      <div className="font-bold text-xl sm:text-2xl tracking-wider mb-1" style={{ color: 'rgba(255, 255, 255, 0.4)' }}>
                         WishTrail
                       </div>
-                      <div className="text-sm font-medium" style={{ color: 'rgba(255, 255, 255, 0.2)' }}>
+                      <div className="text-xs sm:text-sm font-medium" style={{ color: 'rgba(255, 255, 255, 0.2)' }}>
                         Your Journey to Success
                       </div>
                     </div>
@@ -370,13 +370,13 @@ const ShareableGoalCard = forwardRef(({ goal, user, onClose }, ref) => {
               </div>
 
               {/* Info Section */}
-              <div className="export-text-section bg-[#6B9BD1] p-6 pb-8">
-                <h3 className="text-white text-xl font-semibold mb-2" style={{ lineHeight: '1.3' }}>
+              <div className="export-text-section bg-[#6B9BD1] p-4 pb-6 sm:p-5 sm:pb-7 md:p-6 md:pb-8">
+                <h3 className="text-white text-base sm:text-lg md:text-xl font-semibold mb-1.5 sm:mb-2" style={{ lineHeight: '1.3' }}>
                   {textOverlay || goal.title}
                 </h3>
-                <div className="flex items-center justify-between text-white/90 text-sm" style={{ lineHeight: '1.4' }}>
+                <div className="flex items-center justify-between text-white/90 text-xs sm:text-sm" style={{ lineHeight: '1.4' }}>
                   <span>by {user.name}</span>
-                  <span className="text-xs text-white/70">
+                  <span className="text-[10px] sm:text-xs text-white/70">
                     {formatDate(goal.completedAt)}
                   </span>
                 </div>
@@ -384,31 +384,31 @@ const ShareableGoalCard = forwardRef(({ goal, user, onClose }, ref) => {
               </div>
 
             {/* Social Share Icons */}
-            <div className="flex items-center justify-center gap-3 mt-6">
+            <div className="flex items-center justify-center gap-2 sm:gap-3 mt-4 sm:mt-6">
               <button 
               onClick={handleCopyLink}
-              className="w-10 h-10 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm">
-                <Copy className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+              className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm">
+                <Copy className="h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4 text-gray-600 dark:text-gray-400" />
               </button>
               <button 
               onClick={handleDownload}
-              className="w-10 h-10 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm">
-                <Download className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+              className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm">
+                <Download className="h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4 text-gray-600 dark:text-gray-400" />
               </button>
-              <button className="w-10 h-10 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm">
-                <Twitter className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+              <button className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm">
+                <Twitter className="h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4 text-gray-600 dark:text-gray-400" />
               </button>
-              <button className="w-10 h-10 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm">
-                <Instagram className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+              <button className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm">
+                <Instagram className="h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4 text-gray-600 dark:text-gray-400" />
               </button>
             </div>
           </div>
 
             {/* Vertical Zoom Slider */}
             {selectedImage && (
-              <div className="flex flex-col items-center gap-3 pt-12">
+              <div className="flex flex-col items-center gap-2 sm:gap-3 pt-8 sm:pt-10 md:pt-12">
                 <div className="relative flex flex-col items-center">
-                  <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
+                  <div className="text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
                     {imageZoom}%
                   </div>
                   <input
@@ -417,7 +417,7 @@ const ShareableGoalCard = forwardRef(({ goal, user, onClose }, ref) => {
                     max="300"
                     value={imageZoom}
                     onChange={(e) => setImageZoom(parseInt(e.target.value))}
-                    className="h-48 w-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500 slider-vertical"
+                    className="h-40 sm:h-44 md:h-48 w-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500 slider-vertical"
                     orient="vertical"
                     style={{
                       writingMode: 'bt-lr',
@@ -431,7 +431,7 @@ const ShareableGoalCard = forwardRef(({ goal, user, onClose }, ref) => {
           </div>
 
           {/* Footer Quote */}
-          <p className="text-center text-gray-500 dark:text-gray-400 text-sm mt-8 italic">
+          <p className="text-center text-gray-500 dark:text-gray-400 text-xs sm:text-sm mt-6 sm:mt-8 italic">
             "Success is personal. Your trail, your milestones."
           </p>
         </div>

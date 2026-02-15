@@ -105,13 +105,13 @@ const Header = () => {
           {/* Right Actions */}
           <div className="flex items-center gap-4">
             {/* Search Icon */}
-            <button
+            {!isMobile && <button
               onClick={() => navigate('/discover')}
               className="p-2 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors"
               aria-label="Search"
             >
               <Search className="w-5 h-5" />
-            </button>
+            </button>}
 
             {/* Notifications */}
             <button
@@ -134,8 +134,18 @@ const Header = () => {
                 onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
                 className="flex items-center gap-2.5 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg py-1.5 px-2 transition-colors"
               >
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-sm font-semibold font-manrope">
-                  {currentUser?.name?.charAt(0) || 'U'}
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center overflow-hidden">
+                  {currentUser?.avatar ? (
+                    <img 
+                      src={currentUser.avatar} 
+                      alt={currentUser.name} 
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-white text-sm font-semibold font-manrope">
+                      {currentUser?.name?.charAt(0) || 'U'}
+                    </span>
+                  )}
                 </div>
               </button>
 
@@ -152,8 +162,18 @@ const Header = () => {
                     {/* User Info Header */}
                     <div className="p-4 bg-gradient-to-br from-gray-50 to-white dark:from-gray-800 dark:to-gray-800 border-b border-gray-100 dark:border-gray-700">
                       <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-lg font-bold font-manrope shadow-md">
-                          {currentUser?.name?.charAt(0) || 'U'}
+                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center shadow-md overflow-hidden">
+                          {currentUser?.avatar ? (
+                            <img 
+                              src={currentUser.avatar} 
+                              alt={currentUser.name} 
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <span className="text-white text-lg font-bold font-manrope">
+                              {currentUser?.name?.charAt(0) || 'U'}
+                            </span>
+                          )}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="text-base font-semibold text-gray-900 dark:text-white font-manrope truncate">

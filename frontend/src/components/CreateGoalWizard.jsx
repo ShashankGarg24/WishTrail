@@ -294,24 +294,36 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
   if (!isOpen) return null
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[9999]"
-      style={{ fontFamily: 'Manrope, ui-sans-serif, system-ui' }}
-      onClick={onClose}
-    >
+    <>
+      <style>{`
+        /* Ensure date picker calendar doesn't overflow bottom of screen */
+        input[type="date"]::-webkit-calendar-picker-indicator {
+          cursor: pointer;
+        }
+        
+        /* Force date picker to open upward when near bottom */
+        .date-picker-container {
+          position: relative;
+        }
+      `}</style>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[9999]"
+        style={{ fontFamily: 'Manrope, ui-sans-serif, system-ui' }}
+        onClick={onClose}
+      >
       <motion.div
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
-        className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-3xl h-[85vh] relative shadow-2xl border border-gray-200 dark:border-gray-800 overflow-hidden flex flex-col"
+        className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-3xl max-h-[90vh] sm:h-[85vh] relative shadow-2xl border border-gray-200 dark:border-gray-800 overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
         style={{ fontFamily: 'Manrope, ui-sans-serif, system-ui' }}
       >
         {/* Header */}
-        <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 px-8 py-6 border-b border-gray-200 dark:border-gray-700 relative">
+        <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 px-4 sm:px-6 lg:px-8 py-4 sm:py-6 border-b border-gray-200 dark:border-gray-700 relative">
           <button 
             onClick={onClose} 
             className="absolute top-4 right-4 p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-gray-600 dark:text-gray-400"
@@ -324,21 +336,21 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
               <Target className="h-6 w-6" style={{ color: THEME_COLOR }} />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white" style={{ fontFamily: 'Manrope' }}>
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white" style={{ fontFamily: 'Manrope' }}>
                 {editMode ? 'Edit Goal' : 'Create New Goal'}
               </h2>
-              <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5" style={{ fontFamily: 'Manrope' }}>
+              <p className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400 mt-0.5" style={{ fontFamily: 'Manrope' }}>
                 {editMode ? 'Update your goal details' : 'Define what you want to achieve'}
               </p>
             </div>
           </div>
 
           {/* Stepper: 1 Details | 2 Division */}
-          <div className="flex items-center justify-center gap-3">
+          <div className="flex items-center justify-center gap-2 sm:gap-3">
             <button
               type="button"
               onClick={() => setStep(1)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+              className={`flex items-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all ${
                 step === 1 
                   ? 'border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white' 
                   : 'border-2 border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400'
@@ -346,18 +358,18 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
               style={step === 1 ? { borderColor: THEME_COLOR, backgroundColor: `${THEME_COLOR}10` } : {}}
             >
               <span
-                className="flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold text-white"
+                className="flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full text-[10px] sm:text-xs font-bold text-white flex-shrink-0"
                 style={{ backgroundColor: step === 1 ? THEME_COLOR : '#d1d5db' }}
               >
                 1
               </span>
-              <span>Details</span>
+              <span className="hidden sm:inline">Details</span>
             </button>
-            <div className="w-8 h-0.5 rounded" style={{ backgroundColor: step === 1 ? '#e5e7eb' : THEME_COLOR }} />
+            <div className="w-4 sm:w-8 h-0.5 rounded" style={{ backgroundColor: step === 1 ? '#e5e7eb' : THEME_COLOR }} />
             <button
               type="button"
               onClick={() => { if (validateStep1()) setStep(2) }}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+              className={`flex items-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all ${
                 step === 2 
                   ? 'border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white' 
                   : 'border-2 border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400'
@@ -365,19 +377,19 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
               style={step === 2 ? { borderColor: THEME_COLOR, backgroundColor: `${THEME_COLOR}10` } : {}}
             >
               <span
-                className="flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold text-white"
+                className="flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full text-[10px] sm:text-xs font-bold text-white flex-shrink-0"
                 style={{ backgroundColor: step === 2 ? THEME_COLOR : '#d1d5db' }}
               >
                 2
               </span>
-              <span>Division</span>
+              <span className="hidden sm:inline">Division</span>
             </button>
           </div>
         </div>
 
         {step === 1 && (
-          <form onSubmit={(e) => { e.preventDefault(); goNext(); }} className="flex-1 overflow-y-auto">
-            <div className="px-8 py-6 space-y-6">
+          <form onSubmit={(e) => { e.preventDefault(); goNext(); }} className="flex-1 overflow-y-auto scrollbar-hide">
+            <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6">
               {/* Premium Limit Indicator (only show when limit reached and for new goals) */}
               {!editMode && !goalLimits.canCreate && (
                 <PremiumLimitIndicator
@@ -472,7 +484,7 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
               </div>
 
               {/* Target Date */}
-              <div>
+              <div className="relative">
                 <label htmlFor="targetDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" style={{ fontFamily: 'Manrope' }}>
                   <Calendar className="h-3.5 w-3.5 inline mr-1" />
                   Target Date <span className="text-gray-500">(Optional)</span>
@@ -486,7 +498,7 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
                   onChange={handleInputChange} 
                   min={getMinDate()} 
                   className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-colors ${errors.targetDate ? 'border-red-500' : 'border-gray-300 dark:border-gray-700'}`}
-                  style={{ fontFamily: 'Manrope', borderColor: errors.targetDate ? '#ef4444' : (formData.targetDate ? THEME_COLOR : undefined) }}
+                  style={{ fontFamily: 'Manrope', borderColor: errors.targetDate ? '#ef4444' : (formData.targetDate ? THEME_COLOR : undefined), position: 'relative' }}
                 />
                 {errors.targetDate && (
                   <div className="flex items-center gap-2 mt-2 text-red-600 dark:text-red-400 text-xs" style={{ fontFamily: 'Manrope' }}>
@@ -516,11 +528,11 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
             </div>
 
             {/* Actions Footer */}
-            <div className="bg-gray-50 dark:bg-gray-800/50 px-8 py-5 border-t border-gray-200 dark:border-gray-700 flex items-center gap-3">
+            <div className="bg-gray-50 dark:bg-gray-800/50 px-4 sm:px-6 lg:px-8 py-4 sm:py-5 border-t border-gray-200 dark:border-gray-700 flex items-center gap-2 sm:gap-3">
               <button 
                 type="button" 
-                onClick={onClose} 
-                className="flex-1 py-3 px-5 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 font-medium transition-all"
+                onClick={onClose}
+                className="flex-1 py-2.5 sm:py-3 px-3 sm:px-5 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 font-medium transition-all text-sm sm:text-base"
                 style={{ fontFamily: 'Manrope' }}
               >
                 Cancel
@@ -537,7 +549,7 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
           </form>
         )}
         {step === 2 && (
-          <div className="flex-1 overflow-y-auto flex flex-col">
+          <div className="flex-1 overflow-y-auto scrollbar-hide flex flex-col">
             <div className="flex-1 px-8 py-6">
               <Suspense fallback={null}>
                 <GoalDivisionEditor
@@ -554,11 +566,11 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
             </div>
 
             {/* Actions Footer */}
-            <div className="bg-gray-50 dark:bg-gray-800/50 px-8 py-5 border-t border-gray-200 dark:border-gray-700 flex items-center gap-3">
+            <div className="bg-gray-50 dark:bg-gray-800/50 px-4 sm:px-6 lg:px-8 py-4 sm:py-5 border-t border-gray-200 dark:border-gray-700 flex items-center gap-2 sm:gap-3">
               <button 
                 type="button" 
-                onClick={() => setStep(1)} 
-                className="flex-1 py-3 px-5 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 font-medium transition-all inline-flex items-center justify-center gap-2"
+                onClick={() => setStep(1)}
+                className="flex-1 py-2.5 sm:py-3 px-3 sm:px-5 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 font-medium transition-all inline-flex items-center justify-center gap-2 text-sm sm:text-base"
                 style={{ fontFamily: 'Manrope' }}
               >
                 <ChevronLeft className="h-4 w-4" /> Back
@@ -576,7 +588,8 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
           </div>
         )}
       </motion.div>
-    </motion.div>
+      </motion.div>
+    </>
   )
 }
 

@@ -640,17 +640,17 @@ export default function HabitAnalyticsPageNew() {
         {/* Header */}
         <div className="mb-5">
           <button
-            onClick={() => navigate('/dashboard')}
-            className="inline-flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors mb-3"
+            onClick={() => navigate(-1)}
+            className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors mb-3"
           >
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4" />
             Back to Habits
           </button>
           
-          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-4 rounded-xl shadow-sm">
+          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-3 sm:p-4 md:p-5 rounded-xl shadow-sm">
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
               <div>
-                <h1 className="text-xl font-bold text-gray-900 dark:text-white mb-1">
+                <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white mb-1">
                   {habit.name}
                 </h1>
                 {habit.description && (
@@ -665,7 +665,7 @@ export default function HabitAnalyticsPageNew() {
                   <select
                     value={days}
                     onChange={(e) => setDays(Math.min(Number(e.target.value), maxDays))}
-                    className="mt-0.5 px-3 py-2 text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#4c99e6]"
+                    className="mt-0.5 px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#4c99e6]"
                   >
                     <option value={30}>Last 30 days</option>
                     <option value={60}>Last 60 days</option>
@@ -685,114 +685,114 @@ export default function HabitAnalyticsPageNew() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-200 dark:border-gray-700"
+              className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 shadow-sm border border-gray-200 dark:border-gray-700"
             >
               <div className="flex items-center gap-2 mb-2">
-                <div className="p-1.5 rounded-lg text-white" style={{ backgroundColor: THEME_COLOR }}>
-                  <Target className="w-4 h-4" />
+                <div className="p-1 sm:p-1.5 rounded-lg text-white" style={{ backgroundColor: THEME_COLOR }}>
+                  <Target className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </div>
-                <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Target Progress</span>
+                <span className="text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Target Progress</span>
               </div>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
+              <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
                 {stats?.totalCompletions || 0}/{habit.targetCompletions}
               </p>
-              <div className="mt-2 h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+              <div className="mt-2 h-1 sm:h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
                 <div className="h-full rounded-full" style={{ width: `${Math.min(100, ((stats?.totalCompletions || 0) / habit.targetCompletions) * 100)}%`, backgroundColor: THEME_COLOR }} />
               </div>
-              <p className="text-xs mt-1" style={{ color: THEME_COLOR }}>{Math.round(((stats?.totalCompletions || 0) / habit.targetCompletions) * 100)}%</p>
+              <p className="text-[10px] sm:text-xs mt-1" style={{ color: THEME_COLOR }}>{Math.round(((stats?.totalCompletions || 0) / habit.targetCompletions) * 100)}%</p>
             </motion.div>
           )}
           {habit.targetDays && !habit.targetCompletions && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-200 dark:border-gray-700"
+              className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 shadow-sm border border-gray-200 dark:border-gray-700"
             >
               <div className="flex items-center gap-2 mb-2">
-                <div className="p-1.5 rounded-lg text-white" style={{ backgroundColor: THEME_COLOR }}>
-                  <Target className="w-4 h-4" />
+                <div className="p-1 sm:p-1.5 rounded-lg text-white" style={{ backgroundColor: THEME_COLOR }}>
+                  <Target className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </div>
-                <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Target Progress</span>
+                <span className="text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Target Progress</span>
               </div>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
+              <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
                 {stats?.totalDays || 0}/{habit.targetDays}
               </p>
-              <p className="text-xs mt-1" style={{ color: THEME_COLOR }}>{Math.round(((stats?.totalDays || 0) / habit.targetDays) * 100)}%</p>
+              <p className="text-[10px] sm:text-xs mt-1" style={{ color: THEME_COLOR }}>{Math.round(((stats?.totalDays || 0) / habit.targetDays) * 100)}%</p>
             </motion.div>
           )}
 
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-200 dark:border-gray-700"
+            className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 shadow-sm border border-gray-200 dark:border-gray-700"
           >
             <div className="flex items-center gap-2 mb-2">
-              <div className="p-1.5 rounded-lg text-white" style={{ backgroundColor: THEME_COLOR }}>
-                <Calendar className="w-4 h-4" />
+              <div className="p-1 sm:p-1.5 rounded-lg text-white" style={{ backgroundColor: THEME_COLOR }}>
+                <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </div>
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Active Days</span>
+              <span className="text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Active Days</span>
             </div>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">{activeDays}</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">days this month</p>
+            <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{activeDays}</p>
+            <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-1">days this month</p>
           </motion.div>
 
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-200 dark:border-gray-700"
+            className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 shadow-sm border border-gray-200 dark:border-gray-700"
           >
             <div className="flex items-center gap-2 mb-2">
-              <div className="p-1.5 rounded-lg text-white" style={{ backgroundColor: THEME_COLOR }}>
-                <TrendingUp className="w-4 h-4" />
+              <div className="p-1 sm:p-1.5 rounded-lg text-white" style={{ backgroundColor: THEME_COLOR }}>
+                <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </div>
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Completion Rate</span>
+              <span className="text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Completion Rate</span>
             </div>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">{completionRate}%</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">avg. consistency · Targeting 95% overall</p>
+            <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{completionRate}%</p>
+            <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-1">avg. consistency · Targeting 95% overall</p>
           </motion.div>
 
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-200 dark:border-gray-700"
+            className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 shadow-sm border border-gray-200 dark:border-gray-700"
           >
             <div className="flex items-center gap-2 mb-2">
-              <div className="p-1.5 rounded-lg text-orange-500">
-                <Flame className="w-4 h-4" />
+              <div className="p-1 sm:p-1.5 rounded-lg text-orange-500">
+                <Flame className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </div>
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Current Streak</span>
+              <span className="text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Current Streak</span>
             </div>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">{currentStreak}</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">days in a row</p>
+            <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{currentStreak}</p>
+            <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-1">days in a row</p>
             {longestStreak > 0 && (
               <span className="inline-flex items-center gap-1 mt-2 text-xs px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200">
-                <Trophy className="w-3.5 h-3.5" /> Personal best: {longestStreak} days
+                <Trophy className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> Personal best: {longestStreak} days
               </span>
             )}
           </motion.div>
         </div>
 
         {/* Charts Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-5">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 mb-5">
           {/* Activity Trends */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
-            className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm"
+            className="bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm"
           >
-            <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-              <TrendingUp className="w-4 h-4" style={{ color: THEME_COLOR }} />
+            <h3 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+              <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4" style={{ color: THEME_COLOR }} />
               Activity Trends
             </h3>
-            <div className="flex items-center gap-2 mb-2 text-xs text-gray-500 dark:text-gray-400">
-              <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: THEME_COLOR }} />
+            <div className="flex items-center gap-2 mb-2 text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">
+              <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full" style={{ backgroundColor: THEME_COLOR }} />
               <span>Completions</span>
             </div>
             <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
-              <div className="h-48 sm:h-56" style={{ minWidth: weekLabels.length > 6 ? `${Math.max(weekLabels.length * 50, 300)}px` : '100%' }}>
+              <div className="h-40 sm:h-48 md:h-56" style={{ minWidth: weekLabels.length > 6 ? `${Math.max(weekLabels.length * 50, 300)}px` : '100%' }}>
                 <Line data={weeklyTrendData} options={weeklyTrendOptions} />
               </div>
             </div>
@@ -806,47 +806,47 @@ export default function HabitAnalyticsPageNew() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
-            className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm"
+            className="bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm"
           >
-            <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-              <RefreshCw className="w-4 h-4" style={{ color: THEME_COLOR }} />
+            <h3 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+              <RefreshCw className="w-3.5 h-3.5 sm:w-4 sm:h-4" style={{ color: THEME_COLOR }} />
               Status Distribution
             </h3>
-            <div className="h-56">
+            <div className="h-48 sm:h-56">
               <Doughnut data={statusChartData} options={statusChartOptions} />
             </div>
           </motion.div>
         </div>
 
         {/* Activity Breakdown + Heatmap side by side */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-5">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 mb-5">
           {/* Activity Breakdown */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6 }}
-            className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm"
+            className="bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm"
           >
-            <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-              <BarChart3 className="w-4 h-4" style={{ color: THEME_COLOR }} />
+            <h3 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+              <BarChart3 className="w-3.5 h-3.5 sm:w-4 sm:h-4" style={{ color: THEME_COLOR }} />
               Activity Breakdown
             </h3>
-            <div className="flex flex-wrap items-center gap-3 mb-3 text-xs">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-3 text-xs">
               <div className="flex items-center gap-1.5">
-                <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: THEME_COLOR }} />
+                <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-sm" style={{ backgroundColor: THEME_COLOR }} />
                 <span className="text-gray-600 dark:text-gray-400">Completions</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <div className="w-3 h-3 rounded-sm bg-gray-400" />
+                <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-sm bg-gray-400" />
                 <span className="text-gray-600 dark:text-gray-400">Skips</span>
               </div>
             </div>
             <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
-              <div className="h-48 sm:h-56" style={{ minWidth: weekLabels.length > 6 ? `${Math.max(weekLabels.length * 60, 300)}px` : '100%' }}>
+              <div className="h-40 sm:h-48 md:h-56" style={{ minWidth: weekLabels.length > 6 ? `${Math.max(weekLabels.length * 60, 300)}px` : '100%' }}>
                 <Bar data={weeklyChartData} options={weeklyChartOptions} />
               </div>
             </div>
-            <div className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
+            <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
               {weekLabels[0]} to {weekLabels[weekLabels.length - 1]}
             </div>
           </motion.div>
@@ -856,14 +856,14 @@ export default function HabitAnalyticsPageNew() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.65 }}
-            className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm relative"
+            className="bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm relative"
             ref={heatmapRef}
           >
-            <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-              <LayoutGrid className="w-4 h-4" style={{ color: THEME_COLOR }} />
+            <h3 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+              <LayoutGrid className="w-3.5 h-3.5 sm:w-4 sm:h-4" style={{ color: THEME_COLOR }} />
               Activity Heatmap
             </h3>
-            <div className="flex items-center gap-2 mb-2 text-xs text-gray-500 dark:text-gray-400">
+            <div className="flex items-center gap-2 mb-2 text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">
               <span>Less</span>
               <div className="flex-1 h-2 rounded-full overflow-hidden flex">
                 <div className="flex-1" style={{ backgroundColor: 'rgba(76, 153, 230, 0.25)' }} />
@@ -890,14 +890,14 @@ export default function HabitAnalyticsPageNew() {
                         {/* Pad the first week with empty cells if needed */}
                         {weekIdx === 0 && week[0]?.dayOfWeek > 0 && 
                           Array.from({ length: week[0].dayOfWeek }).map((_, i) => (
-                            <div key={`empty-${i}`} className="w-3 h-3" />
+                            <div key={`empty-${i}`} className="w-4 h-4 sm:w-3 sm:h-3" />
                           ))
                         }
                         {week.map((day, dayIdx) => (
                           <div
                             key={dayIdx}
                             onClick={(e) => handleDayClick(day, e)}
-                            className={`w-3 h-3 rounded-sm ${getHeatmapColor(day)} cursor-pointer hover:ring-2 hover:ring-offset-1 transition-all`}
+                            className={`w-4 h-4 sm:w-3 sm:h-3 rounded-sm ${getHeatmapColor(day)} cursor-pointer hover:ring-2 hover:ring-offset-1 transition-all`}
                             style={getHeatmapStyle(day)}
                             title={`${day.date} - ${day.completionCount} completion${day.completionCount !== 1 ? 's' : ''}`}
                           />
@@ -921,31 +921,31 @@ export default function HabitAnalyticsPageNew() {
                 onClick={() => setSelectedDay(null)}
               >
                 <div 
-                  className="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 p-3"
+                  className="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 p-4 sm:p-3"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <button
                     onClick={() => setSelectedDay(null)}
-                    className="absolute -top-2 -right-2 p-1 bg-gray-100 dark:bg-gray-700 rounded-full text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 shadow-sm"
+                    className="absolute -top-2 -right-2 p-2 sm:p-1 bg-gray-100 dark:bg-gray-700 rounded-full text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 shadow-sm"
                   >
                     <X className="w-3 h-3" />
                   </button>
                   
-                  <div className="text-sm font-semibold text-gray-900 dark:text-white mb-2 pr-4">
+                  <div className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white mb-2 pr-4">
                     {formatDate(selectedDay.date)}
                   </div>
                   
                   {/* Status */}
                   <div className="flex items-center gap-2 mb-1">
-                    <div className={`w-3 h-3 rounded-sm ${getHeatmapColor(selectedDay)}`} style={getHeatmapStyle(selectedDay)} />
-                    <span className="text-sm text-gray-600 dark:text-gray-400 capitalize">
+                    <div className={`w-4 h-4 sm:w-3 sm:h-3 rounded-sm ${getHeatmapColor(selectedDay)}`} style={getHeatmapStyle(selectedDay)} />
+                    <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 capitalize">
                       {selectedDay.status === 'none' ? 'No Activity' : selectedDay.status}
                     </span>
                   </div>
                   
                   {/* Completion count - only show if done */}
                   {selectedDay.status === 'done' && selectedDay.completionCount > 0 && (
-                    <div className="text-sm text-gray-700 dark:text-gray-300">
+                    <div className="text-xs sm:text-sm text-gray-700 dark:text-gray-300">
                       Completions: <span className="font-medium text-green-600 dark:text-green-400">{selectedDay.completionCount}</span>
                     </div>
                   )}
@@ -981,21 +981,21 @@ export default function HabitAnalyticsPageNew() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.5 }}
-          className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm"
+          className="bg-white dark:bg-gray-800 rounded-2xl p-3 sm:p-4 md:p-6 border border-gray-200 dark:border-gray-700 shadow-sm"
         >
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <Calendar className="h-6 w-6" style={{ color: THEME_COLOR }} />
+            <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+              <Calendar className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: THEME_COLOR }} />
               Daily Logs
             </h3>
             {logsPagination && (
-              <span className="text-sm text-gray-500 dark:text-gray-400">
+              <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                 {logsPagination.total} total logs
               </span>
             )}
           </div>
 
-          <div className="space-y-2 max-h-[600px] overflow-y-auto">
+          <div className="space-y-2 max-h-[400px] sm:max-h-[500px] md:max-h-[600px] overflow-y-auto">
             {logs && logs.length > 0 ? (
               <>
                 {logs.map((log, idx) => {
@@ -1007,17 +1007,17 @@ export default function HabitAnalyticsPageNew() {
                 };
 
                 const statusIcons = {
-                  done: <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />,
-                  skipped: <SkipForward className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />,
-                  missed: <XCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+                  done: <CheckCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-600 dark:text-green-400" />,
+                  skipped: <SkipForward className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-yellow-600 dark:text-yellow-400" />,
+                  missed: <XCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-red-600 dark:text-red-400" />
                 };
 
                 const moodIcons = {
-                  great: { icon: <Heart className="h-4 w-4 text-pink-600 dark:text-pink-400" />, label: 'Great', color: 'text-pink-600 dark:text-pink-400' },
-                  good: { icon: <Smile className="h-4 w-4 text-green-600 dark:text-green-400" />, label: 'Good', color: 'text-green-600 dark:text-green-400' },
-                  okay: { icon: <Meh className="h-4 w-4 text-blue-600 dark:text-blue-400" />, label: 'Okay', color: 'text-blue-600 dark:text-blue-400' },
-                  neutral: { icon: <Meh className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />, label: 'Neutral', color: 'text-yellow-600 dark:text-yellow-400' },
-                  challenging: { icon: <Frown className="h-4 w-4 text-orange-600 dark:text-orange-400" />, label: 'Challenging', color: 'text-orange-600 dark:text-orange-400' }
+                  great: { icon: <Heart className="h-3 w-3 sm:h-3.5 sm:w-3.5" />, label: 'Great', color: 'text-pink-600 dark:text-pink-400' },
+                  good: { icon: <Smile className="h-3 w-3 sm:h-3.5 sm:w-3.5" />, label: 'Good', color: 'text-green-600 dark:text-green-400' },
+                  okay: { icon: <Meh className="h-3 w-3 sm:h-3.5 sm:w-3.5" />, label: 'Okay', color: 'text-blue-600 dark:text-blue-400' },
+                  neutral: { icon: <Meh className="h-3 w-3 sm:h-3.5 sm:w-3.5" />, label: 'Neutral', color: 'text-yellow-600 dark:text-yellow-400' },
+                  challenging: { icon: <Frown className="h-3 w-3 sm:h-3.5 sm:w-3.5" />, label: 'Challenging', color: 'text-orange-600 dark:text-orange-400' }
                 };
 
                 const formatDate = (dateStr) => {
@@ -1048,7 +1048,7 @@ export default function HabitAnalyticsPageNew() {
                   return (
                     <div
                       key={log.id || idx}
-                      className={`p-4 rounded-xl border transition-all hover:shadow-md ${statusColors[log.status] || statusColors.none}`}
+                      className={`p-3 sm:p-4 rounded-xl border transition-all hover:shadow-md ${statusColors[log.status] || statusColors.none}`}
                     >
                       <div className="flex items-start justify-between gap-4">
                         {/* Left: Date and Status */}
@@ -1058,17 +1058,17 @@ export default function HabitAnalyticsPageNew() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1 flex-wrap">
-                              <span className="font-semibold text-gray-900 dark:text-white">
+                              <span className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white">
                                 {formatDate(log.dateKey)}
                               </span>
-                              <span className="text-xs px-2 py-0.5 rounded-full bg-white dark:bg-gray-900/50 text-gray-600 dark:text-gray-400 capitalize font-medium">
+                              <span className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full bg-white dark:bg-gray-900/50 text-gray-600 dark:text-gray-400 capitalize font-medium">
                                 {log.status}
                               </span>
                               {/* Average Mood Badge */}
                               {averageMoodData && log.completionCount > 0 && (
-                                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700">
+                                <div className="flex items-center gap-1.5 px-1.5 sm:px-2 py-0.5 rounded-full bg-white dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700">
                                   {averageMoodData.icon}
-                                  <span className={`text-xs font-medium ${averageMoodData.color}`}>
+                                  <span className={`text-[10px] sm:text-xs font-medium ${averageMoodData.color}`}>
                                     Avg: {averageMoodData.label}
                                   </span>
                                 </div>
@@ -1082,22 +1082,22 @@ export default function HabitAnalyticsPageNew() {
                                 {log.completionCount > 0 && (
                                   <button
                                     onClick={() => toggleLogExpanded(log.id)}
-                                    className="flex items-center gap-2 text-sm hover:bg-white/50 dark:hover:bg-gray-900/50 rounded-lg p-1 -ml-1 transition-colors group w-full text-left"
+                                    className="flex items-center gap-2 text-xs sm:text-sm hover:bg-white/50 dark:hover:bg-gray-900/50 rounded-lg p-1 -ml-1 transition-colors group w-full text-left"
                                   >
-                                    <CheckCircle className="h-3.5 w-3.5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                                    <CheckCircle className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-green-600 dark:text-green-400 flex-shrink-0" />
                                     <span className="text-gray-700 dark:text-gray-300 flex-1">
                                       <span className="font-semibold">{log.completionCount}</span> completion{log.completionCount !== 1 ? 's' : ''}
                                     </span>
                                     {log.completionTimesMood && log.completionTimesMood.length > 0 && (
-                                      <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
-                                        <Clock className="h-3 w-3" />
+                                      <div className="flex items-center gap-1 text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">
+                                        <Clock className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
                                         <span className="group-hover:text-primary-600 dark:group-hover:text-primary-400">
                                           {isExpanded ? 'Hide' : 'Show'} times
                                         </span>
                                         {isExpanded ? (
-                                          <ChevronUp className="h-3.5 w-3.5" />
+                                          <ChevronUp className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                                         ) : (
-                                          <ChevronDown className="h-3.5 w-3.5" />
+                                          <ChevronDown className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                                         )}
                                       </div>
                                     )}
@@ -1121,14 +1121,14 @@ export default function HabitAnalyticsPageNew() {
                                         
                                         return (
                                           <div key={timeIdx} className="flex items-center gap-3 p-2 rounded-lg bg-white/50 dark:bg-gray-900/30 ml-6">
-                                            <Clock className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
-                                            <span className="px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs font-medium">
+                                            <Clock className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                                            <span className="px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-[10px] sm:text-xs font-medium">
                                               {formatTime(timestamp)}
                                             </span>
                                             {moodData && (
                                               <div className="flex items-center gap-1.5">
                                                 {moodData.icon}
-                                                <span className={`text-xs font-medium ${moodData.color}`}>
+                                                <span className={`text-[10px] sm:text-xs font-medium ${moodData.color}`}>
                                                   {moodData.label}
                                                 </span>
                                               </div>
@@ -1141,8 +1141,8 @@ export default function HabitAnalyticsPageNew() {
                                 </AnimatePresence>
                               {/* Note */}
                               {log.note && (
-                                <div className="mt-2 p-2 rounded-lg bg-white/50 dark:bg-gray-900/30">
-                                  <p className="text-sm text-gray-600 dark:text-gray-400 italic">
+                                <div className="mt-2 p-1.5 sm:p-2 rounded-lg bg-white/50 dark:bg-gray-900/30">
+                                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 italic">
                                     "{log.note}"
                                   </p>
                                 </div>
@@ -1161,11 +1161,11 @@ export default function HabitAnalyticsPageNew() {
                 <button
                   onClick={loadMoreLogs}
                   disabled={logsLoading}
-                  className="w-full py-3 mt-4 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-[#4c99e6] hover:text-[#4c99e6] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full py-2 sm:py-3 mt-4 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-[#4c99e6] hover:text-[#4c99e6] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {logsLoading ? (
                     <div className="flex items-center justify-center gap-2">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-500" />
+                      <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-primary-500" />
                       Loading...
                     </div>
                   ) : (

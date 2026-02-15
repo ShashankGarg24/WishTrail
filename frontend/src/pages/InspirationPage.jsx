@@ -166,7 +166,7 @@ const InspirationPage = () => {
                         className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow"
                       >
                         <div className="p-4">
-                          <div className="flex items-start gap-3 mb-4">
+                          <div className="flex items-start gap-3">
                             <img
                               src={activity?.avatar || '/api/placeholder/48/48'}
                               alt={activity?.name || 'User'}

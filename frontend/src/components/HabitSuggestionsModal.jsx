@@ -87,36 +87,36 @@ const HabitSuggestionsModal = ({ isOpen, onClose, interests = [], onSelect, onCr
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between flex-shrink-0">
+          <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between flex-shrink-0">
             <div>
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">{title}</h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">{title}</h2>
+              <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
                 Pick a habit idea and customize the details. You can always edit later.
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2">
               <button
                 type="button"
                 onClick={handleShuffle}
-                className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                className="inline-flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors"
                 style={{ color: THEME_COLOR }}
               >
-                <RefreshCw className="h-4 w-4" /> Shuffle
+                <RefreshCw className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Shuffle</span>
               </button>
               <button
                 type="button"
                 onClick={onClose}
-                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 transition-colors"
+                className="p-1.5 sm:p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 transition-colors"
                 aria-label="Close"
               >
-                <X className="h-5 w-5" />
+                <X className="h-4 w-4 sm:h-5 sm:w-5" />
               </button>
             </div>
           </div>
 
           {/* Cards grid */}
-          <div className="flex-1 overflow-y-auto px-6 py-5">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="flex-1 overflow-y-auto scrollbar-hide px-4 sm:px-6 py-4 sm:py-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
               {suggestions.map((h, idx) => {
                 const Icon = getCategoryIcon(h.category)
                 const categoryLabel = getCategoryLabel(h.category)
@@ -126,23 +126,23 @@ const HabitSuggestionsModal = ({ isOpen, onClose, interests = [], onSelect, onCr
                     initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.2, delay: idx * 0.03 }}
-                    className="bg-white dark:bg-gray-700/30 rounded-xl border border-gray-200 dark:border-gray-600 p-4 flex flex-col"
+                    className="bg-white dark:bg-gray-700/30 rounded-xl border border-gray-200 dark:border-gray-600 p-3 sm:p-4 flex flex-col"
                   >
-                    <div className="flex items-start gap-3 mb-3">
+                    <div className="flex items-start gap-2 sm:gap-3 mb-2 sm:mb-3">
                       <div
-                        className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                        className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center flex-shrink-0"
                         style={{ backgroundColor: 'rgba(76, 153, 230, 0.15)' }}
                       >
-                        <Icon className="h-5 w-5" style={{ color: THEME_COLOR }} />
+                        <Icon className="h-4 w-4 sm:h-5 sm:w-5" style={{ color: THEME_COLOR }} />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                        <p className="text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
                           {categoryLabel}
                         </p>
-                        <h3 className="font-bold text-gray-900 dark:text-white mt-0.5">{h.name}</h3>
+                        <h3 className="font-bold text-sm sm:text-base text-gray-900 dark:text-white mt-0.5">{h.name}</h3>
                       </div>
                     </div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 flex-1 mb-4">
+                    <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 line-clamp-2 flex-1 mb-3 sm:mb-4">
                       {h.description}
                     </p>
                     <button
@@ -151,7 +151,7 @@ const HabitSuggestionsModal = ({ isOpen, onClose, interests = [], onSelect, onCr
                         onSelect?.(h)
                         onClose?.()
                       }}
-                      className="w-full py-2.5 rounded-lg text-white text-sm font-medium transition-opacity hover:opacity-90"
+                      className="w-full py-2 sm:py-2.5 rounded-lg text-white text-xs sm:text-sm font-medium transition-opacity hover:opacity-90"
                       style={{ backgroundColor: THEME_COLOR }}
                     >
                       Use this habit
@@ -163,9 +163,9 @@ const HabitSuggestionsModal = ({ isOpen, onClose, interests = [], onSelect, onCr
           </div>
 
           {/* Footer */}
-          <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-700 flex-shrink-0">
+          <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-gray-100 dark:border-gray-700 flex-shrink-0">
             <div className="max-w-full mx-auto text-center">
-              <p className="text-sm text-gray-500 dark:text-gray-400" style={{ fontFamily: 'Manrope' }}>
+              <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400" style={{ fontFamily: 'Manrope' }}>
                 Can't find what you're looking for?{' '}
                 <button onClick={() => onCreate?.()} className="font-semibold transition-opacity hover:opacity-80" style={{ color: THEME_COLOR, fontFamily: 'Manrope' }}>
                   Create from scratch

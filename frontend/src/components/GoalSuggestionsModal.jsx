@@ -37,23 +37,23 @@ const GoalSuggestionsModal = ({ isOpen, onClose, interests = [], onSelect, onCre
           initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.95, opacity: 0 }}
-          className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-5xl max-h-[85vh] overflow-hidden flex flex-col border border-gray-200 dark:border-gray-800 shadow-2xl"
+          className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-5xl max-h-[90vh] sm:max-h-[85vh] overflow-hidden flex flex-col border border-gray-200 dark:border-gray-800 shadow-2xl"
           onClick={(e) => e.stopPropagation()}
           style={{ fontFamily: 'Manrope' }}
         >
-          <div className="overflow-y-auto p-6 flex-1 scrollbar-hide">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white" style={{ fontFamily: 'Manrope' }}>{title}</h2>
-              <div className="flex items-center gap-3">
-                <button onClick={handleShuffle} className="text-sm text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 inline-flex items-center gap-1" style={{ fontFamily: 'Manrope' }}>
-                  <RefreshCw className="h-4 w-4" /> Shuffle
+          <div className="overflow-y-auto p-4 sm:p-6 flex-1 scrollbar-hide">
+            <div className="flex items-center justify-between mb-4 sm:mb-6">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white" style={{ fontFamily: 'Manrope' }}>{title}</h2>
+              <div className="flex items-center gap-2 sm:gap-3">
+                <button onClick={handleShuffle} className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 inline-flex items-center gap-1" style={{ fontFamily: 'Manrope', color: THEME_COLOR }}>
+                  <RefreshCw className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Shuffle</span>
                 </button>
-                <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                  <X className="h-5 w-5 text-gray-500" />
+                <button onClick={onClose} className="p-1.5 sm:p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                  <X className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500" />
                 </button>
               </div>
             </div>
-            <div className="mt-2 text-sm text-gray-600 dark:text-gray-400 mb-6" style={{ fontFamily: 'Manrope' }}>
+            <div className="mt-2 text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-4 sm:mb-6" style={{ fontFamily: 'Manrope' }}>
               Not sure where to start? Pick any idea and customize it. You can always edit or add more goals later.
             </div>
             <Suspense fallback={null}><GoalSuggestions
@@ -71,9 +71,9 @@ const GoalSuggestionsModal = ({ isOpen, onClose, interests = [], onSelect, onCre
           </div>
 
           {/* Footer */}
-          <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-800 flex-shrink-0 text-center">
+          <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-gray-200 dark:border-gray-800 flex-shrink-0 text-center">
             <div className="max-w-full mx-auto">
-              <p className="text-sm text-gray-500 dark:text-gray-400" style={{ fontFamily: 'Manrope' }}>
+              <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400" style={{ fontFamily: 'Manrope' }}>
                 Can't find what you're looking for?{' '}
                 <button onClick={() => onCreate?.()} className="font-semibold transition-opacity hover:opacity-80" style={{ color: THEME_COLOR, fontFamily: 'Manrope' }}>
                   Create from scratch

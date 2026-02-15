@@ -192,7 +192,7 @@ function App() {
         {/* <div className="relative min-h-screen pb-16 sm:pb-16"> */}
         <div className="relative min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-slate-900 dark:via-gray-900 dark:to-zinc-900 flex flex-col">
           <Header />
-          <main className="flex-grow pt-16 pb-24 sm:pb-28">
+          <main className="flex-grow">
             <ScrollMemory />
             <Routes>
               <Route path="/" element={<Suspense fallback={null}><HomePage /></Suspense>} />
