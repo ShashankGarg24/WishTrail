@@ -1719,7 +1719,6 @@ const ProfilePage = () => {
                     }}
                   >
                     <div className="flex items-start gap-3">
-                      <Sparkles className="h-5 w-5 flex-shrink-0 mt-0.5" style={{ color: '#4c99e6' }} />
                       <div className="flex-1">
                         <p className="text-gray-800 dark:text-gray-200 leading-relaxed italic">
                           &ldquo;{displayUser.quote}&rdquo;
