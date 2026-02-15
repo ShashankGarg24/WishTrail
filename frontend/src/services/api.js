@@ -121,6 +121,12 @@ api.interceptors.response.use(
 
     const originalRequest = config;
 
+    // 🚫 If user is not authenticated (no token), don't attempt refresh or redirect
+    const token = localStorage.getItem('token');
+    if (!token) {
+      return Promise.reject(error);
+    }
+
     // 🚫 If already on /auth page, don't attempt refresh
     if (window.location.pathname.startsWith('/auth')) {
       return Promise.reject(error);

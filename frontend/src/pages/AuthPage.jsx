@@ -137,7 +137,7 @@ const AuthPage = () => {
   // SIGNUP PAGE - Multi-step flow
   if (!isLogin) {
     return (
-      <div className="min-h-screen flex">
+      <div className="min-h-screen flex flex-col lg:flex-row">
         {/* Left Side - Brand Section */}
         <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-gray-800 via-gray-900 to-black relative overflow-hidden items-center justify-center p-12">
           {/* Background Pattern */}
@@ -186,7 +186,7 @@ const AuthPage = () => {
         </div>
 
         {/* Right Side - Signup Form */}
-        <div className="flex-1 flex items-center justify-center p-6 bg-white dark:bg-gray-900">
+        <div className="flex-1 flex items-center justify-center p-4 sm:p-6 bg-white dark:bg-gray-900">
           <div className="w-full max-w-md">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -199,8 +199,8 @@ const AuthPage = () => {
               />
 
               {/* Toggle Auth Mode */}
-              <div className="text-center mt-6">
-                <p className="text-gray-600 dark:text-gray-400">
+              <div className="text-center mt-4 sm:mt-6">
+                <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
                   Already have an account?{" "}
                   <button
                     onClick={toggleAuthMode}
@@ -219,7 +219,7 @@ const AuthPage = () => {
   
   // LOGIN PAGE - Split design
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex flex-col lg:flex-row">
       {/* Left Side - Hero Image Section */}
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
         {/* Background Image with Overlay */}
@@ -254,7 +254,7 @@ const AuthPage = () => {
       </div>
 
       {/* Right Side - Login Form */}
-      <div className="flex-1 flex items-center justify-center p-6 bg-white dark:bg-gray-900">
+      <div className="flex-1 flex items-center justify-center p-4 sm:p-6 bg-white dark:bg-gray-900">
         <div className="w-full max-w-md">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -263,17 +263,17 @@ const AuthPage = () => {
             className="space-y-6"
           >
             {/* Header */}
-            <div className="mb-8">
-              <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+            <div className="mb-6 sm:mb-8">
+              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">
                 Welcome Back
               </h2>
-              <p className="text-gray-600 dark:text-gray-400">
+              <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
                 Please enter your details to access your dashboard.
               </p>
             </div>
 
             {/* Social Sign-in Buttons */}
-            <div className="space-y-3">
+            <div className="space-y-2 sm:space-y-3">
               <GoogleSignInButton
                 mode="signin"
                 onSuccess={handleGoogleSuccess}
@@ -287,17 +287,17 @@ const AuthPage = () => {
                 <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white dark:bg-gray-900 text-gray-500 dark:text-gray-400 uppercase tracking-wide text-xs font-medium">
+                <span className="px-2 bg-white dark:bg-gray-900 text-gray-500 dark:text-gray-400 uppercase tracking-wide text-[10px] sm:text-xs font-medium">
                   Or with email
                 </span>
               </div>
             </div>
 
             {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-5">
+            <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
               {/* Email Field */}
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide text-xs">
+                <label htmlFor="email" className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2 uppercase tracking-wide">
                   Email Address
                 </label>
                 <input
@@ -306,7 +306,7 @@ const AuthPage = () => {
                   type="email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-400 ${
+                  className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-400 ${
                     errors.email ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                   }`}
                   placeholder="name@company.com"
@@ -318,14 +318,14 @@ const AuthPage = () => {
 
               {/* Password Field */}
               <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wide text-xs">
+                <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+                  <label htmlFor="password" className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wide">
                     Password
                   </label>
                   <button
                     type="button"
                     onClick={() => setShowForgotPasswordModal(true)}
-                    className="text-xs text-blue-500 hover:text-blue-600 font-medium"
+                    className="text-[10px] sm:text-xs text-blue-500 hover:text-blue-600 font-medium"
                   >
                     Forgot Password?
                   </button>
@@ -337,7 +337,7 @@ const AuthPage = () => {
                     type={showPassword ? "text" : "password"}
                     value={formData.password}
                     onChange={handleInputChange}
-                    className={`w-full px-4 py-3 pr-10 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-400 ${
+                    className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 pr-10 text-sm sm:text-base border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-400 ${
                       errors.password ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                     }`}
                     placeholder="••••••••"
@@ -345,9 +345,9 @@ const AuthPage = () => {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                    className="absolute right-2.5 sm:right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                   >
-                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    {showPassword ? <EyeOff className="h-4 w-4 sm:h-5 sm:w-5" /> : <Eye className="h-4 w-4 sm:h-5 sm:w-5" />}
                   </button>
                 </div>
                 {errors.password && (
@@ -366,15 +366,15 @@ const AuthPage = () => {
               <button
                 type="submit"
                 disabled={loading || isGoogleLoading}
-                className="w-full py-3 px-4 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg"
+                className="w-full py-2.5 sm:py-3 px-4 text-sm sm:text-base bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg"
               >
                 {loading ? 'Please wait...' : 'Login to Dashboard'}
               </button>
             </form>
 
             {/* Toggle Auth Mode */}
-            <div className="text-center mt-6">
-              <p className="text-gray-600 dark:text-gray-400">
+            <div className="text-center mt-4 sm:mt-6">
+              <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
                 Don't have an account?{" "}
                 <button
                   onClick={toggleAuthMode}

@@ -5,13 +5,20 @@ import useApiStore from '../store/apiStore'
 const Footer = () => {
   const { isAuthenticated } = useApiStore()
 
-  const quickLinks = [
+  const allQuickLinks = [
     { name: 'Home', href: '/' },
     { name: 'Inspiration', href: '/inspiration' },
     { name: 'Discover', href: '/discover' },
     { name: 'Dashboard', href: '/dashboard' },
     { name: 'Leaderboard', href: '/leaderboard' },
   ]
+
+  const publicQuickLinks = [
+    { name: 'Home', href: '/' },
+    { name: 'Inspiration', href: '/inspiration' },
+  ]
+
+  const quickLinks = isAuthenticated ? allQuickLinks : publicQuickLinks
 
   const legalLinks = [
     { name: 'Privacy Policy', href: '/privacy-policy' },
@@ -20,7 +27,7 @@ const Footer = () => {
   ]
 
   return (
-    <footer className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 mt-auto">
+    <footer className={`bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 mt-auto ${isAuthenticated ? 'pb-20 md:pb-0' : ''}`}>
       <div className="max-w-[1400px] mx-auto px-6 py-12">
         {/* Main Footer Content */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-8">

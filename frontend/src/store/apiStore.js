@@ -1036,6 +1036,8 @@ const useApiStore = create(
           set({ cacheTrendingGoals: nextBucket });
           return data;
         } catch (error) {
+          // Return empty array on error (including 401 for unauthenticated users)
+          console.error('Error fetching trending goals:', error);
           return { goals: [], pagination: null };
         }
       },

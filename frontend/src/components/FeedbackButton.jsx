@@ -301,8 +301,7 @@ const FeedbackButton = ({ isOpen: controlledOpen, onClose }) => {
                     >
                       {submitting ? 'Submitting...' : (
                         <>
-                          Submit Feedback
-                          <ArrowRight className="h-4 w-4" />
+                          Submit
                         </>
                       )}
                     </button>

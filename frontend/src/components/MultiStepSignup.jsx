@@ -310,21 +310,21 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
       className="space-y-6"
     >
       {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <p className="text-sm font-semibold text-blue-500 tracking-wide">
+      <div className="mb-6 sm:mb-8">
+        <div className="flex items-center justify-between mb-3 sm:mb-4">
+          <p className="text-xs sm:text-sm font-semibold text-blue-500 tracking-wide">
             STEP 1 OF 3
           </p>
           <div className="flex space-x-1">
-            <div className="w-16 h-1.5 bg-blue-500 rounded-full"></div>
-            <div className="w-16 h-1.5 bg-gray-200 dark:bg-gray-600 rounded-full"></div>
-            <div className="w-16 h-1.5 bg-gray-200 dark:bg-gray-600 rounded-full"></div>
+            <div className="w-12 sm:w-16 h-1 sm:h-1.5 bg-blue-500 rounded-full"></div>
+            <div className="w-12 sm:w-16 h-1 sm:h-1.5 bg-gray-200 dark:bg-gray-600 rounded-full"></div>
+            <div className="w-12 sm:w-16 h-1 sm:h-1.5 bg-gray-200 dark:bg-gray-600 rounded-full"></div>
           </div>
         </div>
-        <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+        <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">
           Join WishTrail
         </h2>
-        <p className="text-gray-600 dark:text-gray-400">
+        <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
           Create your account to start tracking milestones.
         </p>
       </div>
@@ -356,16 +356,16 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
           <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
         </div>
         <div className="relative flex justify-center text-sm">
-          <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 uppercase tracking-wide text-xs font-medium">
+          <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 uppercase tracking-wide text-xs sm:text-sm font-medium">
             Or with email
           </span>
         </div>
       </div>
 
       {/* Form Fields */}
-      <div className="space-y-4">
+      <div className="space-y-3 sm:space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide text-xs">
+          <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2 uppercase tracking-wide">
             Full Name
           </label>
           <input
@@ -373,16 +373,16 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
             name="name"
             value={formData.name}
             onChange={handleInputChange}
-            className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
+            className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
               errors.name ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
             } bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-400`}
             placeholder="Alex Rivers"
           />
-          {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
+          {errors.name && <p className="text-red-500 text-xs sm:text-sm mt-1">{errors.name}</p>}
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide text-xs">
+          <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2 uppercase tracking-wide">
             Username
           </label>
           <input
@@ -390,16 +390,16 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
             name="username"
             value={formData.username}
             onChange={handleInputChange}
-            className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
+            className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
               errors.username ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
             } bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-400`}
             placeholder="alexrivers"
           />
-          {errors.username && <p className="text-red-500 text-sm mt-1">{errors.username}</p>}
+          {errors.username && <p className="text-red-500 text-xs sm:text-sm mt-1">{errors.username}</p>}
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide text-xs">
+          <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2 uppercase tracking-wide">
             Email Address
           </label>
           <input
@@ -407,16 +407,16 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
             name="email"
             value={formData.email}
             onChange={handleInputChange}
-            className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
+            className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
               errors.email ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
             } bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-400`}
             placeholder="alex@wishtrail.com"
           />
-          {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
+          {errors.email && <p className="text-red-500 text-xs sm:text-sm mt-1">{errors.email}</p>}
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide text-xs">
+          <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2 uppercase tracking-wide">
             Password
           </label>
           <div className="relative">
@@ -425,7 +425,7 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
               name="password"
               value={formData.password}
               onChange={handleInputChange}
-              className={`w-full px-4 py-3 pr-10 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
+              className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 pr-10 sm:pr-12 text-sm sm:text-base border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
                 errors.password ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
               } bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-400`}
               placeholder="••••••••"
@@ -433,12 +433,12 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              className="absolute right-2.5 sm:right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
             >
-              {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              {showPassword ? <EyeOff className="w-4 h-4 sm:w-5 sm:h-5" /> : <Eye className="w-4 h-4 sm:w-5 sm:h-5" />}
             </button>
           </div>
-          {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
+          {errors.password && <p className="text-red-500 text-xs sm:text-sm mt-1">{errors.password}</p>}
         </div>
       </div>
 
@@ -447,14 +447,14 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
         type="button"
         onClick={handleStep1Submit}
         disabled={loading}
-        className="w-full flex items-center justify-center px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+        className="w-full flex items-center justify-center px-4 py-2.5 sm:py-3 text-sm sm:text-base bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
       >
         {loading ? (
-          <Loader className="w-5 h-5 mr-2 animate-spin" />
+          <Loader className="w-4 h-4 sm:w-5 sm:h-5 mr-2 animate-spin" />
         ) : (
           <>
             Continue
-            <ArrowRight className="w-5 h-5 ml-2" />
+            <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 ml-2" />
           </>
         )}
       </button>
@@ -469,25 +469,25 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
       className="space-y-6"
     >
       {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <p className="text-sm font-semibold text-blue-500 tracking-wide">
+      <div className="mb-6 sm:mb-8">
+        <div className="flex items-center justify-between mb-3 sm:mb-4">
+          <p className="text-xs sm:text-sm font-semibold text-blue-500 tracking-wide">
             STEP 2 OF 3
           </p>
           <div className="flex space-x-1">
-            <div className="w-16 h-1.5 bg-blue-500 rounded-full"></div>
-            <div className="w-16 h-1.5 bg-blue-500 rounded-full"></div>
-            <div className="w-16 h-1.5 bg-gray-200 dark:bg-gray-600 rounded-full"></div>
+            <div className="w-12 sm:w-16 h-1 sm:h-1.5 bg-blue-500 rounded-full"></div>
+            <div className="w-12 sm:w-16 h-1 sm:h-1.5 bg-blue-500 rounded-full"></div>
+            <div className="w-12 sm:w-16 h-1 sm:h-1.5 bg-gray-200 dark:bg-gray-600 rounded-full"></div>
           </div>
         </div>
-        <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-          <Shield className="w-8 h-8 text-blue-500" />
+        <div className="w-14 h-14 sm:w-16 sm:h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
+          <Shield className="w-7 h-7 sm:w-8 sm:h-8 text-blue-500" />
         </div>
-        <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2 text-center">
+        <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2 text-center">
           Verify Your Email
         </h2>
-        <p className="text-gray-600 dark:text-gray-400 text-center">
-          We've sent a 6-digit code to <strong>{formData.email}</strong>
+        <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 text-center px-4">
+          We've sent a 6-digit code to <strong className="break-all">{formData.email}</strong>
         </p>
       </div>
 
@@ -500,7 +500,7 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
 
       {/* OTP Input */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide text-xs">
+        <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2 uppercase tracking-wide">
           Verification Code
         </label>
         <input
@@ -509,19 +509,19 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
           value={formData.otp}
           onChange={handleInputChange}
           maxLength={6}
-          className={`w-full px-4 py-3 text-center text-2xl tracking-widest border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
+          className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 text-center text-xl sm:text-2xl tracking-widest border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
             errors.otp ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
           } bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white`}
           placeholder="000000"
         />
-        {errors.otp && <p className="text-red-500 text-sm mt-1">{errors.otp}</p>}
+        {errors.otp && <p className="text-red-500 text-xs sm:text-sm mt-1">{errors.otp}</p>}
       </div>
 
       {/* Code Expiration Timer */}
       {otpExpiresAt && (
         <div className="text-center">
-          <div className="flex items-center justify-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
-            <Clock className="w-4 h-4" />
+          <div className="flex items-center justify-center space-x-2 text-sm sm:text-base text-gray-600 dark:text-gray-400">
+            <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
             <span>Code expires in {formatTime(Math.max(0, Math.floor((new Date(otpExpiresAt) - new Date()) / 1000)))}</span>
           </div>
         </div>
@@ -529,14 +529,14 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
 
       {/* Resend OTP */}
       <div className="text-center">
-        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+        <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mb-2">
           Didn't receive the code?
         </p>
         <button
           type="button"
           onClick={handleResendOTP}
           disabled={!canResendOTP || loading}
-          className={`text-sm font-medium ${
+          className={`text-sm sm:text-base font-medium ${
             canResendOTP ? 'text-blue-500 hover:text-blue-600' : 'text-gray-400 cursor-not-allowed'
           } transition-colors`}
         >
@@ -548,27 +548,27 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
       </div>
 
       {/* Navigation Buttons */}
-      <div className="flex items-center justify-between pt-4">
+      <div className="flex items-center justify-between pt-3 sm:pt-4">
         <button
           type="button"
           onClick={handleBack}
-          className="flex items-center px-6 py-3 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 transition-colors"
+          className="flex items-center px-3 sm:px-6 py-2 sm:py-3 text-sm sm:text-base text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 transition-colors"
         >
-          <ArrowLeft className="w-5 h-5 mr-2" />
+          <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" />
           Back
         </button>
         <button
           type="button"
           onClick={handleStep2Submit}
           disabled={loading}
-          className="flex items-center px-8 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+          className="flex items-center px-4 sm:px-8 py-2 sm:py-3 text-sm sm:text-base bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
         >
           {loading ? (
-            <Loader className="w-5 h-5 mr-2 animate-spin" />
+            <Loader className="w-4 h-4 sm:w-5 sm:h-5 mr-2 animate-spin" />
           ) : (
             <>
               Verify
-              <CheckCircle className="w-5 h-5 ml-2" />
+              <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 ml-1.5 sm:ml-2" />
             </>
           )}
         </button>
@@ -584,21 +584,21 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
       className="space-y-6"
     >
       {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <p className="text-sm font-semibold text-blue-500 tracking-wide">
+      <div className="mb-6 sm:mb-8">
+        <div className="flex items-center justify-between mb-3 sm:mb-4">
+          <p className="text-xs sm:text-sm font-semibold text-blue-500 tracking-wide">
             STEP 3 OF 3
           </p>
           <div className="flex space-x-1">
-            <div className="w-16 h-1.5 bg-blue-500 rounded-full"></div>
-            <div className="w-16 h-1.5 bg-blue-500 rounded-full"></div>
-            <div className="w-16 h-1.5 bg-blue-500 rounded-full"></div>
+            <div className="w-12 sm:w-16 h-1 sm:h-1.5 bg-blue-500 rounded-full"></div>
+            <div className="w-12 sm:w-16 h-1 sm:h-1.5 bg-blue-500 rounded-full"></div>
+            <div className="w-12 sm:w-16 h-1 sm:h-1.5 bg-blue-500 rounded-full"></div>
           </div>
         </div>
-        <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+        <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">
           Complete Your Profile
         </h2>
-        <p className="text-gray-600 dark:text-gray-400">
+        <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
           Tell us a bit more about yourself (Optional)
         </p>
       </div>
@@ -611,30 +611,30 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
       )}
 
       {/* Date of Birth */}
-      <div className="space-y-2">
-        <label className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300">
-          <Calendar className="w-4 h-4 mr-2" />
+      <div className="space-y-1.5 sm:space-y-2">
+        <label className="flex items-center text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
+          <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
           Date of Birth
-          <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">(Optional)</span>
+          <span className="ml-2 text-xs sm:text-sm text-gray-500 dark:text-gray-400">(Optional)</span>
         </label>
         <input
           type="date"
           value={formData.dateOfBirth}
           onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
-          className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-all"
+          className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-all"
         />
       </div>
 
       {/* Interests */}
-      <div className="space-y-3">
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+      <div className="space-y-2 sm:space-y-3">
+        <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
           Your Interests
         </label>
-        <p className="text-xs text-gray-500 dark:text-gray-400">
+        <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
           Select up to 5 interests that best represent you
         </p>
-        <div className="max-h-[280px] overflow-y-auto pr-2 custom-scrollbar">
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+        <div className="max-h-[240px] sm:max-h-[280px] overflow-y-auto pr-1 sm:pr-2 custom-scrollbar">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-3">
             {INTERESTS_OPTIONS.map((interest) => {
               const selected = formData.interests.includes(interest.id);
               return (
@@ -642,45 +642,45 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
                   key={interest.id}
                   type="button"
                   onClick={() => handleInterestToggle(interest.id)}
-                  className={`p-3 rounded-lg border-2 transition-all text-left flex flex-col items-center justify-center min-h-[90px] ${
+                  className={`p-2 sm:p-3 rounded-lg border-2 transition-all text-left flex flex-col items-center justify-center min-h-[70px] sm:min-h-[90px] ${
                     selected
                       ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
                       : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 text-gray-700 dark:text-gray-300'
                   }`}
                 >
-                  <div className="flex items-center justify-center w-8 h-8 mb-2">
+                  <div className="flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 mb-1.5 sm:mb-2">
                     {interest.Icon ? (
-                      <interest.Icon className={`h-5 w-5 ${selected ? 'text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'}`} />
+                      <interest.Icon className={`h-4 w-4 sm:h-5 sm:w-5 ${selected ? 'text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'}`} />
                     ) : (
-                      <span className="text-2xl">{interest.icon}</span>
+                      <span className="text-lg sm:text-2xl">{interest.icon}</span>
                     )}
                   </div>
-                  <div className="text-xs font-medium text-center">{interest.label}</div>
+                  <div className="text-xs sm:text-sm font-medium text-center">{interest.label}</div>
                 </button>
               );
             })}
           </div>
         </div>
-        <p className={`text-xs ${formData.interests.length >= 5 ? 'text-amber-600 dark:text-amber-400 font-medium' : 'text-gray-500 dark:text-gray-400'}`}>
+        <p className={`text-xs sm:text-sm ${formData.interests.length >= 5 ? 'text-amber-600 dark:text-amber-400 font-medium' : 'text-gray-500 dark:text-gray-400'}`}>
           Selected: {formData.interests.length}/5 interests
         </p>
       </div>
 
       {/* Navigation Buttons */}
-      <div className="flex items-center justify-between pt-4">
+      <div className="flex items-center justify-between pt-3 sm:pt-4">
         <button
           type="button"
           onClick={handleBack}
-          className="flex items-center px-6 py-3 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 transition-colors"
+          className="flex items-center px-3 sm:px-6 py-2 sm:py-3 text-sm sm:text-base text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 transition-colors"
         >
-          <ArrowLeft className="w-5 h-5 mr-2" />
+          <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" />
           Back
         </button>
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-2 sm:space-x-3">
           <button
             type="button"
             onClick={handleStep3Submit}
-            className="px-6 py-3 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 transition-colors"
+            className="px-3 sm:px-6 py-2 sm:py-3 text-sm sm:text-base text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 transition-colors"
           >
             Skip
           </button>
@@ -688,14 +688,15 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
             type="button"
             onClick={handleStep3Submit}
             disabled={loading}
-            className="flex items-center px-8 py-3 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+            className="flex items-center px-4 sm:px-8 py-2 sm:py-3 text-sm sm:text-base bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
           >
             {loading ? (
-              <Loader className="w-5 h-5 mr-2 animate-spin" />
+              <Loader className="w-4 h-4 sm:w-5 sm:h-5 mr-2 animate-spin" />
             ) : (
               <>
-                Create Account
-                <CheckCircle className="w-5 h-5 ml-2" />
+                <span className="hidden xs:inline">Create Account</span>
+                <span className="xs:hidden">Create</span>
+                <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 ml-1.5 sm:ml-2" />
               </>
             )}
           </button>

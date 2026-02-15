@@ -36,15 +36,20 @@ const InspirationPage = () => {
     // Fetch top achievers for leaderboard
     getGlobalLeaderboard({ type: 'goals', limit: 10 });
     // Fetch trending goals
-    loadTrendingGoals();
+    if(isAuthenticated) {
+      loadTrendingGoals();
+    }    
   }, []);
 
   const loadTrendingGoals = async () => {
     try {
       const params = { page: 1, limit: 6 };
-      const { goals } = await getTrendingGoals(params);
-      setTrendingGoals(goals || []);
+      const result = await getTrendingGoals(params);
+      // Handle both success object format and direct data format
+      const goalsData = result?.goals || result?.data?.goals || [];
+      setTrendingGoals(goalsData);
     } catch (error) {
+      console.error('Failed to load trending goals:', error);
       setTrendingGoals([]);
     }
   };
@@ -281,52 +286,54 @@ const InspirationPage = () => {
               )}
             </div>
 
-            {/* Trending Goals */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold text-gray-900 dark:text-white" style={{ fontFamily: 'Manrope, sans-serif' }}>
-                  Trending Goals
-                </h2>
-              </div>
+            {/* Trending Goals - Only show for authenticated users */}
+            {isAuthenticated && (
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-bold text-gray-900 dark:text-white" style={{ fontFamily: 'Manrope, sans-serif' }}>
+                    Trending Goals
+                  </h2>
+                </div>
 
-              <div className="space-y-3">
-                {trendingGoals && trendingGoals.length > 0 ? (
-                  trendingGoals.map((goal, index) => (
-                    <div
-                      key={goal.id || index}
-                      className="flex items-start gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-[#4c99e6] dark:hover:border-[#4c99e6] transition-all cursor-pointer"
-                      onClick={() => navigate(isAuthenticated ? `/goals/${goal.id}` : '/auth')}
-                    >
-                      <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 flex items-center justify-center">
-                        <Code className="h-5 w-5 text-[#4c99e6]" />
+                <div className="space-y-3">
+                  {trendingGoals && trendingGoals.length > 0 ? (
+                    trendingGoals.map((goal, index) => (
+                      <div
+                        key={goal.id || index}
+                        className="flex items-start gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-[#4c99e6] dark:hover:border-[#4c99e6] transition-all cursor-pointer"
+                        onClick={() => navigate(`/goals/${goal.id}`)}
+                      >
+                        <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 flex items-center justify-center">
+                          <Code className="h-5 w-5 text-[#4c99e6]" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-sm text-gray-900 dark:text-white line-clamp-1 mb-1" style={{ fontFamily: 'Manrope, sans-serif' }}>
+                            {goal.title}
+                          </h3>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide" style={{ fontFamily: 'Manrope, sans-serif' }}>
+                            {getCategoryLabel(goal.category)}
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-sm text-gray-900 dark:text-white line-clamp-1 mb-1" style={{ fontFamily: 'Manrope, sans-serif' }}>
-                          {goal.title}
-                        </h3>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide" style={{ fontFamily: 'Manrope, sans-serif' }}>
-                          {getCategoryLabel(goal.category)}
-                        </p>
-                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-6 text-sm text-gray-500 dark:text-gray-400">
+                      No trending goals yet
                     </div>
-                  ))
-                ) : (
-                  <div className="text-center py-6 text-sm text-gray-500 dark:text-gray-400">
-                    No trending goals yet
-                  </div>
+                  )}
+                </div>
+
+                {trendingGoals.length > 0 && (
+                  <button
+                    onClick={() => navigate('/discover')}
+                    className="w-full mt-4 text-sm text-[#4c99e6] hover:text-[#3d88d5] font-semibold transition-colors"
+                    style={{ fontFamily: 'Manrope, sans-serif' }}
+                  >
+                    Explore All Categories
+                  </button>
                 )}
               </div>
-
-              {trendingGoals.length > 0 && (
-                <button
-                  onClick={() => navigate(isAuthenticated ? '/discover' : '/auth')}
-                  className="w-full mt-4 text-sm text-[#4c99e6] hover:text-[#3d88d5] font-semibold transition-colors"
-                  style={{ fontFamily: 'Manrope, sans-serif' }}
-                >
-                  Explore All Categories
-                </button>
-              )}
-            </div>
+            )}
           </div>
         </div>
       </div>

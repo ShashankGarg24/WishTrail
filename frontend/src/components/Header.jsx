@@ -64,72 +64,86 @@ const Header = () => {
     }
   }, [isAuthenticated])
 
-  if (!isAuthenticated) return null
-
   return (
     <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-50">
-      <div className="max-w-[1400px] mx-auto px-6">
-        <div className="flex items-center justify-between h-16">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6">
+        <div className="flex items-center justify-between h-14 sm:h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2">
-            <Star className="w-6 h-6 text-[#4c99e6] fill-[#4c99e6]" />
-            <span className="text-xl font-bold text-gray-900 dark:text-white font-manrope">
+            <Star className="w-5 h-5 sm:w-6 sm:h-6 text-[#4c99e6] fill-[#4c99e6]" />
+            <span className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white font-manrope">
               WishTrail
             </span>
           </Link>
 
-          {/* Navigation Links */}
-          <nav className="hidden md:flex items-center gap-8">
-            {mainNavigation.map((item) => (
+          {/* Navigation Links - Only for authenticated users */}
+          {isAuthenticated && (
+            <nav className="hidden md:flex items-center gap-8">
+              {mainNavigation.map((item) => (
+                <Link
+                  key={item.name}
+                  to={item.href}
+                  className={`relative font-medium font-manrope transition-colors ${
+                    isActive(item.href)
+                      ? 'text-gray-900 dark:text-white'
+                      : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
+                  }`}
+                >
+                  {item.name}
+                  {isActive(item.href) && (
+                    <motion.div
+                      layoutId="activeNav"
+                      className="absolute -bottom-5 left-0 right-0 h-0.5 bg-[#4c99e6]"
+                      transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                    />
+                  )}
+                </Link>
+              ))}
+            </nav>
+          )}
+
+          {/* Public Navigation - Only for unauthenticated users */}
+          {!isAuthenticated && (
+            <nav className="hidden md:flex items-center gap-6 sm:gap-8">
               <Link
-                key={item.name}
-                to={item.href}
-                className={`relative font-medium font-manrope transition-colors ${
-                  isActive(item.href)
-                    ? 'text-gray-900 dark:text-white'
-                    : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
-                }`}
+                to="/inspiration"
+                className="font-medium font-manrope text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors text-sm sm:text-base"
               >
-                {item.name}
-                {isActive(item.href) && (
-                  <motion.div
-                    layoutId="activeNav"
-                    className="absolute -bottom-5 left-0 right-0 h-0.5 bg-[#4c99e6]"
-                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                  />
-                )}
+                Inspiration
               </Link>
-            ))}
-          </nav>
+            </nav>
+          )}
 
           {/* Right Actions */}
-          <div className="flex items-center gap-4">
-            {/* Search Icon */}
-            {!isMobile && <button
-              onClick={() => navigate('/discover')}
-              className="p-2 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors"
-              aria-label="Search"
-            >
-              <Search className="w-5 h-5" />
-            </button>}
+          <div className="flex items-center gap-2 sm:gap-4">
+            {isAuthenticated ? (
+              <>
+                {/* Search Icon */}
+                {!isMobile && <button
+                  onClick={() => navigate('/discover')}
+                  className="p-2 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors"
+                  aria-label="Search"
+                >
+                  <Search className="w-5 h-5" />
+                </button>}
 
-            {/* Notifications */}
-            <button
-              onClick={() => navigate('/notifications')}
-              className="relative p-2 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors"
-              aria-label="Notifications"
-            >
-              <Bell className="w-5 h-5" />
-              {unreadNotifications > 0 && (
-                <span className="absolute top-1 right-1 w-2 h-2 bg-[#4c99e6] rounded-full"></span>
-              )}
-            </button>
+                {/* Notifications */}
+                <button
+                  onClick={() => navigate('/notifications')}
+                  className="relative p-2 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors"
+                  aria-label="Notifications"
+                >
+                  <Bell className="w-5 h-5" />
+                  {unreadNotifications > 0 && (
+                    <span className="absolute top-1 right-1 w-2 h-2 bg-[#4c99e6] rounded-full"></span>
+                  )}
+                </button>
 
-            {/* Separator */}
-            {!isMobile && <div className="h-6 w-px bg-gray-300 dark:bg-gray-600"></div>}
+                {/* Separator */}
+                {!isMobile && <div className="h-6 w-px bg-gray-300 dark:bg-gray-600"></div>}
 
-            {/* User Avatar and Dropdown */}
-            {!isMobile &&<div className="relative" ref={menuRef}>
+                {/* User Avatar and Dropdown */}
+                {!isMobile &&<div className="relative" ref={menuRef}>
               <button
                 onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
                 className="flex items-center gap-2.5 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg py-1.5 px-2 transition-colors"
@@ -245,6 +259,11 @@ const Header = () => {
                 )}
               </AnimatePresence>
             </div>}
+              </>
+            ) : (
+              <>
+              </>
+            )}
           </div>
         </div>
       </div>
