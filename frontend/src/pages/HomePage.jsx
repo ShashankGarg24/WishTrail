@@ -66,7 +66,7 @@ const AnimatedSection = ({ children, className = "", variants = fadeInUp }) => {
   )
 }
 
-const HomePageV2 = () => {
+const HomePage = () => {
   const { isAuthenticated } = useApiStore()
   const navigate = useNavigate()
   const heroRef = useRef(null)
@@ -1484,4 +1484,4 @@ const HomePageV2 = () => {
   )
 }
 
-export default HomePageV2
+export default HomePage
