@@ -118,7 +118,7 @@ async function buildGoalTimeline(goal, goalDetails) {
             title: 'Sub-goal Added',
             description: subGoalTitle,
             icon: 'plus-circle',
-            color: 'purple'
+            color: 'blue'
           });
         }
         
@@ -146,7 +146,7 @@ async function buildGoalTimeline(goal, goalDetails) {
             title: 'Habit Added',
             description: habitName,
             icon: 'plus-circle',
-            color: 'purple'
+            color: 'blue'
           });
         }
         
