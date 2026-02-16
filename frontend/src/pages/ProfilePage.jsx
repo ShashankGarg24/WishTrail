@@ -549,7 +549,7 @@ const ProfilePage = () => {
       'Health & Fitness': 'bg-green-500',
       'Education & Learning': 'bg-yellow-500',
       'Career & Business': 'bg-blue-500',
-      'Personal Development': 'bg-purple-500',
+      'Personal Development': 'bg-blue-500',
       'Financial Goals': 'bg-red-500',
       'Creative Projects': 'bg-pink-500',
       'Travel & Adventure': 'bg-orange-500',
@@ -575,21 +575,21 @@ const ProfilePage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-slate-900 dark:via-gray-900 dark:to-zinc-900 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+      <div className="min-h-screen bg-[#f5f5f5] dark:bg-gray-900 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4c99e6]"></div>
       </div>
     );
   }
 
   if (!isOwnProfile && !profileUser) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-slate-900 dark:via-gray-900 dark:to-zinc-900 flex items-center justify-center">
+      <div className="min-h-screen bg-[#f5f5f5] dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">User Not Found</h1>
           <p className="text-gray-600 dark:text-gray-400 mb-8">The user you are looking for does not exist.</p>
           <button
             onClick={() => navigate('/discover')}
-            className="px-6 py-3 bg-gradient-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 text-white rounded-xl transition-all duration-200 font-medium shadow-lg hover:shadow-xl hover:scale-105"
+            className="px-6 py-3 bg-[#4c99e6] hover:bg-[#3d88d5] text-white rounded-xl transition-all duration-200 font-medium shadow-lg hover:shadow-xl hover:scale-105"
           >
             Back to Discover
           </button>
@@ -913,7 +913,7 @@ const ProfilePage = () => {
               {!isAuthenticated && (
                 <button
                   onClick={() => navigate('/auth')}
-                  className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-xl transition-all duration-200 font-medium shadow-lg hover:shadow-xl"
+                  className="px-6 py-3 bg-[#4c99e6] hover:bg-[#3d88d5] text-white rounded-xl transition-all duration-200 font-medium shadow-lg hover:shadow-xl"
                 >
                   Sign In to Follow
                 </button>

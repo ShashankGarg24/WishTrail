@@ -97,7 +97,7 @@ const ResetPasswordPage = () => {
   // Invalid token or no token
   if (!tokenValid) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-[#f5f5f5] dark:bg-gray-900 flex items-center justify-center p-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -161,8 +161,8 @@ const ResetPasswordPage = () => {
               Your password has been successfully updated. You will be redirected to the login page shortly.
             </p>
             
-            <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 mb-6">
-              <p className="text-purple-700 dark:text-purple-400 text-sm">
+            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 mb-6">
+              <p className="text-blue-700 dark:text-blue-400 text-sm">
                 For security, all existing sessions have been logged out. You'll need to log in again with your new password.
               </p>
             </div>
@@ -181,7 +181,7 @@ const ResetPasswordPage = () => {
 
   // Reset password form
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[#f5f5f5] dark:bg-gray-900 flex items-center justify-center p-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

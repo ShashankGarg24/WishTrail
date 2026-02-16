@@ -110,7 +110,7 @@ const HomePage = () => {
       label: 'CONSISTENCY',
       title: 'Habit Building',
       description: 'Consistency is key. Track daily routines with minimalist design and feedback and streaks that motivate without the overwhelm.',
-      color: 'text-purple-500',
+      color: 'text-blue-500',
       bgColor: 'bg-purple-50 dark:bg-purple-950/30',
       iconBg: 'bg-purple-100 dark:bg-purple-900/50'
     },
@@ -157,7 +157,7 @@ const HomePage = () => {
         {/* Hero Section */}
         <section 
           ref={heroRef}
-          className="relative pt-20 pb-12 sm:pt-24 sm:pb-16 md:pt-32 md:pb-24 lg:pt-40 lg:pb-32 px-4 sm:px-6 overflow-hidden bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-900"
+          className="relative pt-20 pb-12 sm:pt-24 sm:pb-16 md:pt-32 md:pb-24 lg:pt-40 lg:pb-32 px-4 sm:px-6 overflow-hidden bg-white dark:bg-gray-900"
         >
           {/* Background decoration */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -183,7 +183,7 @@ const HomePage = () => {
                   initial={{ opacity: 0, rotateY: -15, rotateX: 8, rotateZ: -3, scale: 0.96 }}
                   animate={{ opacity: 1, rotateY: -20, rotateX: 10, rotateZ: -3, scale: 1 }}
                   transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
-                  className="relative bg-gradient-to-br from-gray-50 via-white to-gray-50/50 dark:from-gray-800 dark:via-gray-900 dark:to-gray-800/50 rounded-[16px] shadow-[0_20px_70px_rgba(0,0,0,0.25)] dark:shadow-[0_20px_70px_rgba(0,0,0,0.7)] border border-gray-200/60 dark:border-gray-700/60 overflow-hidden"
+                  className="relative bg-white dark:bg-gray-800 rounded-[16px] shadow-[0_20px_70px_rgba(0,0,0,0.25)] dark:shadow-[0_20px_70px_rgba(0,0,0,0.7)] border border-gray-200/60 dark:border-gray-700/60 overflow-hidden"
                   style={{ transformStyle: 'preserve-3d' }}
                 >
                   <div className="relative p-10">
@@ -306,7 +306,7 @@ const HomePage = () => {
               >
                 <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white leading-tight font-manrope">
                   Transform Your{' '}
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-blue-600">
+                  <span className="text-[#4c99e6]">
                     Wishes
                   </span>
                   {' '}into Trails of Success
@@ -352,7 +352,7 @@ const HomePage = () => {
                   {[1, 2, 3].map((i) => (
                     <div
                       key={i}
-                      className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 border-2 border-white dark:border-gray-900 flex items-center justify-center text-white font-semibold text-sm"
+                      className="w-10 h-10 rounded-full bg-[#4c99e6] border-2 border-white dark:border-gray-900 flex items-center justify-center text-white font-semibold text-sm"
                     >
                       {String.fromCharCode(64 + i)}
                     </div>
@@ -380,7 +380,7 @@ const HomePage = () => {
                 initial={{ opacity: 0, rotateY: -18, rotateX: 6, rotateZ: -2, scale: 0.96 }}
                 animate={{ opacity: 1, rotateY: -28, rotateX: 12, rotateZ: -4, scale: 1 }}
                 transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
-                className="relative bg-gradient-to-br from-gray-50 via-white to-gray-50/50 dark:from-gray-800 dark:via-gray-900 dark:to-gray-800/50 rounded-[20px] shadow-[0_25px_90px_rgba(0,0,0,0.2)] dark:shadow-[0_25px_90px_rgba(0,0,0,0.6)] border border-gray-200/60 dark:border-gray-700/60 overflow-hidden"
+                className="relative bg-white dark:bg-gray-800 rounded-[20px] shadow-[0_25px_90px_rgba(0,0,0,0.2)] dark:shadow-[0_25px_90px_rgba(0,0,0,0.6)] border border-gray-200/60 dark:border-gray-700/60 overflow-hidden"
                 style={{
                   transformStyle: 'preserve-3d',
                 }}
@@ -500,7 +500,7 @@ const HomePage = () => {
         </section>
 
         {/* Explore Our Features Section */}
-        <section className="py-12 sm:py-16 md:py-20 lg:py-32 px-4 sm:px-6 bg-gradient-to-b from-gray-50 to-white dark:from-gray-800 dark:to-gray-900">
+        <section className="py-12 sm:py-16 md:py-20 lg:py-32 px-4 sm:px-6 bg-white dark:bg-gray-900">
           <div className="max-w-7xl mx-auto">
             <AnimatedSection className="text-center mb-8 sm:mb-12 md:mb-16">
               <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4 sm:mb-6 font-manrope">
@@ -557,8 +557,8 @@ const HomePage = () => {
                 >
                   <div className="bg-white dark:bg-gray-800 rounded-2xl sm:rounded-3xl p-6 sm:p-8 h-full shadow-lg border border-gray-100 dark:border-gray-700 hover:shadow-xl transition-all duration-300 group">
                     <div className="mb-4 sm:mb-6">
-                      <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-purple-50 dark:bg-purple-950/50 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                        <Zap className="w-6 h-6 sm:w-7 sm:h-7 text-purple-600 dark:text-purple-400" />
+                      <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-blue-50 dark:bg-blue-950/50 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                        <Zap className="w-6 h-6 sm:w-7 sm:h-7 text-blue-600 dark:text-blue-400" />
                       </div>
                     </div>
                     
@@ -571,7 +571,7 @@ const HomePage = () => {
                     </p>
                     
                     <div className="mt-auto pt-4 border-t border-gray-100 dark:border-gray-700">
-                      <div className="flex items-center gap-2 text-sm font-semibold text-purple-600 dark:text-purple-400">
+                      <div className="flex items-center gap-2 text-sm font-semibold text-blue-600 dark:text-blue-400">
                         <span className="uppercase tracking-wider">CONSISTENCY</span>
                         <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                       </div>
@@ -951,8 +951,8 @@ const HomePage = () => {
                   </div>
 
                   <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 rounded-full bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <CheckCircle2 className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                    <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <CheckCircle2 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                     </div>
                     <div>
                       <h4 className="font-semibold text-gray-900 dark:text-white mb-1">Habit Tracking</h4>
@@ -976,13 +976,13 @@ const HomePage = () => {
         </section>
 
         {/* Analytics Section - Visualize Your Progress */}
-        <section className="py-12 sm:py-16 md:py-20 lg:py-32 px-4 sm:px-6 bg-gradient-to-b from-white to-gray-50 dark:from-gray-900 dark:to-gray-900">
+        <section className="py-12 sm:py-16 md:py-20 lg:py-32 px-4 sm:px-6 bg-gray-50 dark:bg-gray-900">
           <div className="max-w-7xl mx-auto">
             <div className="grid md:grid-cols-2 gap-8 sm:gap-10 md:gap-12 lg:gap-16 items-center">
               {/* Left Content */}
               <AnimatedSection className="space-y-4 sm:space-y-6">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-purple-50 dark:bg-purple-950/50 border border-purple-200 dark:border-purple-800 rounded-full">
-                  <span className="text-xs font-semibold text-purple-700 dark:text-purple-400 tracking-wide uppercase">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 rounded-full">
+                  <span className="text-xs font-semibold text-blue-700 dark:text-blue-400 tracking-wide uppercase">
                     Analytics & Insights
                   </span>
                 </div>
@@ -1409,7 +1409,7 @@ const HomePage = () => {
 
                   <div className="flex items-start gap-2 sm:gap-3">
                     <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <Users className="w-3 h-3 sm:w-4 sm:h-4 text-purple-600 dark:text-purple-400" />
+                      <Users className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600 dark:text-blue-400" />
                     </div>
                     <div>
                       <h4 className="font-semibold text-gray-900 dark:text-white mb-1 text-sm sm:text-base">Find Your Tribe</h4>
@@ -1450,7 +1450,7 @@ const HomePage = () => {
             </div>
 
             {/* Badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 border border-gray-200 dark:border-gray-700 rounded-full">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-950/30 border border-gray-200 dark:border-gray-700 rounded-full">
               <Users className="w-4 h-4 text-blue-600 dark:text-blue-400" />
               <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
                 Join our fellow Explorers

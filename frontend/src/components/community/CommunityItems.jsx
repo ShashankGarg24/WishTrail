@@ -70,7 +70,7 @@ export function AddItemModal({ open, onClose, communityId }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
       <div className="absolute inset-0 bg-black/60" onClick={() => onClose(false)} />
-      <div className="relative z-10 w-full max-w-lg rounded-3xl bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-900/90 p-6 sm:p-8 shadow-2xl border-2 border-gray-200 dark:border-gray-700 max-h-[90vh] overflow-y-auto scrollbar-hide">
+      <div className="relative z-10 w-full max-w-lg rounded-3xl bg-white dark:bg-gray-900 p-6 sm:p-8 shadow-2xl border-2 border-gray-200 dark:border-gray-700 max-h-[90vh] overflow-y-auto scrollbar-hide">
         <div className="flex items-center justify-between mb-6 pb-4 border-b-2 border-gray-200 dark:border-gray-700">
           <div className="text-2xl font-bold text-gray-900 dark:text-white">Add Goal/Habit</div>
           <button onClick={() => onClose(false)} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-2xl leading-none">&times;</button>
@@ -79,11 +79,11 @@ export function AddItemModal({ open, onClose, communityId }) {
           <div>
             <div className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Select Type</div>
             <div className="flex items-center gap-3">
-              <button type="button" onClick={() => setType('goal')} className={`flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-300 ${type === 'goal' ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-2 border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600'}`}>
+              <button type="button" onClick={() => setType('goal')} className={`flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-300 ${type === 'goal' ? 'bg-[#4c99e6] hover:bg-[#3d88d5] text-white shadow-lg' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-2 border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600'}`}>
                 <Target className="h-4 w-4" />
                 Goal
               </button>
-              <button type="button" onClick={() => setType('habit')} className={`flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-300 ${type === 'habit' ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-lg' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-2 border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600'}`}>
+              <button type="button" onClick={() => setType('habit')} className={`flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-300 ${type === 'habit' ? 'bg-[#4c99e6] hover:bg-[#3d88d5] text-white shadow-lg' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-2 border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600'}`}>
                 <Zap className="h-4 w-4" />
                 Habit
               </button>
@@ -101,11 +101,11 @@ export function AddItemModal({ open, onClose, communityId }) {
           <div>
             <div className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Choose Mode</div>
             <div className="flex items-center gap-3">
-              <button type="button" onClick={() => setMode('link')} className={`flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-300 ${mode === 'link' ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-2 border-gray-200 dark:border-gray-700'}`}>
+              <button type="button" onClick={() => setMode('link')} className={`flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-300 ${mode === 'link' ? 'bg-[#4c99e6] hover:bg-[#3d88d5] text-white shadow-lg' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-2 border-gray-200 dark:border-gray-700'}`}>
                 <Link className="h-4 w-4" />
                 Link Existing
               </button>
-              <button type="button" onClick={() => { setMode('create'); if (type === 'goal') setShowCreateGoalModal(true); else setShowCreateHabitModal(true); }} className={`flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-300 ${mode === 'create' ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-2 border-gray-200 dark:border-gray-700'}`}>
+              <button type="button" onClick={() => { setMode('create'); if (type === 'goal') setShowCreateGoalModal(true); else setShowCreateHabitModal(true); }} className={`flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-300 ${mode === 'create' ? 'bg-[#4c99e6] hover:bg-[#3d88d5] text-white shadow-lg' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-2 border-gray-200 dark:border-gray-700'}`}
                 <Plus className="h-4 w-4" />
                 Create New
               </button>
@@ -126,7 +126,7 @@ export function AddItemModal({ open, onClose, communityId }) {
                     return t.toLowerCase().includes(q)
                   })
                   .map(item => (
-                    <button key={item._id} onClick={() => setSourceId(item._id)} className={`w-full text-left px-4 py-3 text-sm font-medium border-b border-gray-200 dark:border-gray-700 transition-all duration-200 ${sourceId === item._id ? 'bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/30 dark:to-purple-900/30 text-blue-700 dark:text-blue-300' : 'hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-white'}`}>
+                    <button key={item._id} onClick={() => setSourceId(item._id)} className={`w-full text-left px-4 py-3 text-sm font-medium border-b border-gray-200 dark:border-gray-700 transition-all duration-200 ${sourceId === item._id ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' : 'hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-white'}`}>
                       {(type === 'goal' ? item.title : item.name) || 'Untitled'}
                     </button>
                   ))}
@@ -138,7 +138,7 @@ export function AddItemModal({ open, onClose, communityId }) {
           )}
           <div className="flex items-center justify-end gap-3 pt-2">
             <button type="button" onClick={() => onClose(false)} className="px-5 py-2.5 rounded-xl text-sm font-semibold border-2 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300">Cancel</button>
-            <button type="button" onClick={submit} disabled={mode === 'link' && !sourceId} className="px-5 py-2.5 rounded-xl text-sm font-semibold bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 transition-all duration-300 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">Submit</button>
+            <button type="button" onClick={submit} disabled={mode === 'link' && !sourceId} className="px-5 py-2.5 rounded-xl text-sm font-semibold bg-[#4c99e6] hover:bg-[#3d88d5] text-white transition-all duration-300 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">Submit</button>
           </div>
         </div>
       </div>
@@ -187,7 +187,7 @@ function ItemAnalyticsModal({ open, onClose, analytics }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-4xl max-h-[90vh] flex flex-col rounded-3xl bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-900/90 shadow-2xl border-2 border-gray-200 dark:border-gray-700">
+      <div className="relative z-10 w-full max-w-4xl max-h-[90vh] flex flex-col rounded-3xl bg-white dark:bg-gray-900 shadow-2xl border-2 border-gray-200 dark:border-gray-700">
         {/* Close Button - Top Right */}
         <button onClick={onClose} className="absolute top-4 right-4 sm:top-6 sm:right-6 z-20 h-8 w-8 rounded-full flex items-center justify-center bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-all duration-300 text-2xl font-normal leading-none" aria-label="Close">&times;</button>
         
@@ -200,7 +200,7 @@ function ItemAnalyticsModal({ open, onClose, analytics }) {
                 <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                   analytics?.item?.type === 'goal'
                     ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
-                    : 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
+                    : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
                 }`}>{analytics?.item?.type}</span>
                 {analytics?.item?.participationType && (
                   <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">{analytics.item.participationType}</span>
@@ -215,17 +215,17 @@ function ItemAnalyticsModal({ open, onClose, analytics }) {
           {/* Stats Summary Cards */}
           {analytics && (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-              <div className="rounded-xl border-2 border-gray-200 dark:border-gray-700 p-4 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20">
+              <div className="rounded-xl border-2 border-gray-200 dark:border-gray-700 p-4 bg-blue-50 dark:bg-blue-900/20">
                 <div className="text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wide mb-1">Participants</div>
                 <div className="text-3xl font-bold text-blue-900 dark:text-blue-100">{analytics.totals?.participants || 0}</div>
               </div>
-              <div className="rounded-xl border-2 border-gray-200 dark:border-gray-700 p-4 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20">
+              <div className="rounded-xl border-2 border-gray-200 dark:border-gray-700 p-4 bg-green-50 dark:bg-green-900/20">
                 <div className="text-xs font-semibold text-green-700 dark:text-green-300 uppercase tracking-wide mb-1">Avg Progress</div>
                 <div className="text-3xl font-bold text-green-900 dark:text-green-100">{Math.round(analytics.totals?.averagePercent || 0)}%</div>
               </div>
-              <div className="rounded-xl border-2 border-gray-200 dark:border-gray-700 p-4 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20">
-                <div className="text-xs font-semibold text-purple-700 dark:text-purple-300 uppercase tracking-wide mb-1">Completed</div>
-                <div className="text-3xl font-bold text-purple-900 dark:text-purple-100">{analytics.totals?.completedCount || 0}</div>
+              <div className="rounded-xl border-2 border-gray-200 dark:border-gray-700 p-4 bg-blue-50 dark:bg-blue-900/20">
+                <div className="text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wide mb-1">Completed</div>
+                <div className="text-3xl font-bold text-blue-900 dark:text-blue-100">{analytics.totals?.completedCount || 0}</div>
               </div>
             </div>
           )}
@@ -234,7 +234,7 @@ function ItemAnalyticsModal({ open, onClose, analytics }) {
           <div className="overflow-x-auto">
             <table className="w-full text-sm min-w-[600px]">
               <thead className="sticky top-0 z-10">
-                <tr className="bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-800 dark:to-gray-900 text-gray-700 dark:text-gray-200 font-semibold">
+                <tr className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-semibold">
                   <th className="text-left px-3 sm:px-4 py-3 border-b-2 border-gray-200 dark:border-gray-700 whitespace-nowrap">User</th>
                   <th className="text-left px-3 sm:px-4 py-3 border-b-2 border-gray-200 dark:border-gray-700 whitespace-nowrap">Status</th>
                   <th className="text-left px-3 sm:px-4 py-3 border-b-2 border-gray-200 dark:border-gray-700 whitespace-nowrap">Progress</th>
@@ -266,9 +266,9 @@ function ItemAnalyticsModal({ open, onClose, analytics }) {
                         <div 
                           className={`h-full rounded-full transition-all duration-500 ${
                             (r.progressPercent || 0) >= 100 
-                              ? 'bg-gradient-to-r from-green-500 to-emerald-600' 
+                              ? 'bg-green-500' 
                               : (r.progressPercent || 0) > 0
-                                ? 'bg-gradient-to-r from-blue-500 to-purple-600'
+                                ? 'bg-[#4c99e6]'
                                 : 'bg-gray-400'
                           }`}
                           style={{ width: `${Math.min(r.progressPercent || 0, 100)}%` }} 
@@ -308,7 +308,7 @@ function ItemAnalyticsModal({ open, onClose, analytics }) {
                         {analytics?.item?.participationType === 'collaborative' && typeof r?.contributionPercent === 'number' && (
                           <div className="text-gray-600 dark:text-gray-300">
                             <span className="text-gray-500 dark:text-gray-400">Contribution:</span>
-                            <span className="ml-2 px-2 py-0.5 rounded-md bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 font-semibold">{Math.round(r.contributionPercent)}%</span>
+                            <span className="ml-2 px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-semibold">{Math.round(r.contributionPercent)}%</span>
                           </div>
                         )}
                       </div>
@@ -391,7 +391,7 @@ export default function CommunityItems({ id, role, settings, items, itemProgress
           </div>
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             {['admin','moderator'].includes(role) ? (
-              <button className="px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 text-white text-sm font-semibold hover:from-blue-600 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl whitespace-nowrap" onClick={() => setShowAddModal(true)}>Add</button>
+              <button className="px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl bg-[#4c99e6] hover:bg-[#3d88d5] text-white text-sm font-semibold transition-all duration-300 shadow-lg hover:shadow-xl whitespace-nowrap" onClick={() => setShowAddModal(true)}>Add</button>
             ) : (
               <button className="px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors whitespace-nowrap" onClick={() => setShowSuggestModal(true)}>Suggest</button>
             )}
@@ -408,7 +408,7 @@ export default function CommunityItems({ id, role, settings, items, itemProgress
             <div className="text-sm font-semibold text-gray-800 dark:text-gray-200">Add goals/habits to the community</div>
           </div>
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-            <button className="px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 text-white text-sm font-semibold hover:from-blue-600 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl whitespace-nowrap" onClick={() => setShowAddModal(true)}>Add</button>
+            <button className="px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl bg-[#4c99e6] hover:bg-[#3d88d5] text-white text-sm font-semibold transition-all duration-300 shadow-lg hover:shadow-xl whitespace-nowrap" onClick={() => setShowAddModal(true)}>Add</button>
             <a href="/dashboard" title="Go to your dashboard to update progress for your goals and habits" aria-label="Go to your dashboard to update progress for your goals and habits" className="inline-flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-pink-600 text-white text-sm font-semibold hover:from-orange-600 hover:to-pink-700 transition-all duration-300 shadow-lg hover:shadow-xl whitespace-nowrap">
               <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5" />
               <span className="hidden xs:inline">Update Progress</span>
@@ -420,12 +420,12 @@ export default function CommunityItems({ id, role, settings, items, itemProgress
 
       {/* Filter toggles for Goals/Habits */}
       {items.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 border-2 border-gray-200 dark:border-gray-700">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 p-4 sm:p-5 rounded-2xl bg-gray-50 dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700">
           <button
             onClick={() => setFilterType('all')}
             className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 ${
               filterType === 'all'
-                ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg'
+                ? 'bg-[#4c99e6] hover:bg-[#3d88d5] text-white shadow-lg'
                 : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-2 border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600'
             }`}
           >
@@ -435,7 +435,7 @@ export default function CommunityItems({ id, role, settings, items, itemProgress
             onClick={() => setFilterType('goal')}
             className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 ${
               filterType === 'goal'
-                ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
+                ? 'bg-[#4c99e6] hover:bg-[#3d88d5] text-white shadow-lg'
                 : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-2 border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600'
             }`}
           >
@@ -445,8 +445,8 @@ export default function CommunityItems({ id, role, settings, items, itemProgress
             onClick={() => setFilterType('habit')}
             className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 ${
               filterType === 'habit'
-                ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-lg'
-                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-2 border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600'
+                ? 'bg-[#4c99e6] hover:bg-[#3d88d5] text-white shadow-lg'
+                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-2 border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600'
             }`}
           >
             Habits ({items.filter(i => i.type === 'habit').length})
@@ -456,7 +456,7 @@ export default function CommunityItems({ id, role, settings, items, itemProgress
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
         {filteredAndSortedItems.map(it => (
-          <div key={it._id} className="rounded-2xl border-2 border-gray-200 dark:border-gray-800 p-4 sm:p-5 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-900/80 hover:shadow-xl hover:border-blue-300 dark:hover:border-blue-600 transition-all duration-300 group relative">
+          <div key={it._id} className="rounded-2xl border-2 border-gray-200 dark:border-gray-800 p-4 sm:p-5 bg-white dark:bg-gray-900 hover:shadow-xl hover:border-blue-300 dark:hover:border-blue-600 transition-all duration-300 group relative">
             <div className="space-y-4">
               {/* Header with icon, title, and menu */}
               <div className="flex items-start gap-3">
@@ -466,7 +466,7 @@ export default function CommunityItems({ id, role, settings, items, itemProgress
                     <span className={`px-2 py-0.5 rounded-full font-medium text-xs ${
                       it.type === 'goal' 
                         ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' 
-                        : 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
+                        : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
                     }`}>{it.type}</span>
                     <span className="text-xs text-gray-500 dark:text-gray-400">{it.stats?.participantCount || 0} joined</span>
                     {(() => {
@@ -591,7 +591,7 @@ export default function CommunityItems({ id, role, settings, items, itemProgress
                         } catch {}
                       }
                     }} 
-                    className="w-full px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 text-white text-sm font-semibold hover:from-blue-600 hover:to-purple-700 transition-all duration-300 shadow-lg"
+                    className="w-full px-4 py-2.5 rounded-xl bg-[#4c99e6] hover:bg-[#3d88d5] text-white text-sm font-semibold transition-all duration-300 shadow-lg"
                   >
                     Join
                   </button>
@@ -624,7 +624,7 @@ export default function CommunityItems({ id, role, settings, items, itemProgress
       {leaveModalOpen && leaveItemData && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
           <div className="absolute inset-0 bg-black/60" onClick={() => setLeaveModalOpen(false)} />
-          <div className="relative z-10 w-full max-w-md rounded-3xl bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-900/90 p-6 sm:p-8 shadow-2xl border-2 border-gray-200 dark:border-gray-700">
+          <div className="relative z-10 w-full max-w-md rounded-3xl bg-white dark:bg-gray-900 p-6 sm:p-8 shadow-2xl border-2 border-gray-200 dark:border-gray-700">
             <button onClick={() => setLeaveModalOpen(false)} className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-2xl leading-none">&times;</button>
             
             <div className="mb-6">
@@ -664,7 +664,7 @@ export default function CommunityItems({ id, role, settings, items, itemProgress
                   }
                   setLeaveModalOpen(false)
                 }}
-                className="w-full px-5 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 text-white text-sm font-semibold hover:from-blue-600 hover:to-blue-700 transition-all duration-300 shadow-lg flex items-center justify-center gap-2"
+                className="w-full px-5 py-3 rounded-xl bg-[#4c99e6] hover:bg-[#3d88d5] text-white text-sm font-semibold transition-all duration-300 shadow-lg flex items-center justify-center gap-2"
               >
                 <span>Keep as Personal {leaveItemData.type === 'goal' ? 'Goal' : 'Habit'}</span>
               </button>
@@ -691,7 +691,7 @@ export default function CommunityItems({ id, role, settings, items, itemProgress
                   }
                   setLeaveModalOpen(false)
                 }}
-                className="w-full px-5 py-3 rounded-xl bg-gradient-to-r from-red-500 to-red-600 text-white text-sm font-semibold hover:from-red-600 hover:to-red-700 transition-all duration-300 shadow-lg flex items-center justify-center gap-2"
+                className="w-full px-5 py-3 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-semibold transition-all duration-300 shadow-lg flex items-center justify-center gap-2"
               >
                 <span>Delete Everything</span>
               </button>
@@ -711,12 +711,12 @@ export default function CommunityItems({ id, role, settings, items, itemProgress
       {removeModalOpen && removeItemData && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
           <div className="absolute inset-0 bg-black/60" onClick={() => setRemoveModalOpen(false)} />
-          <div className="relative z-10 w-full max-w-md rounded-3xl bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-900/90 p-6 sm:p-8 shadow-2xl border-2 border-gray-200 dark:border-gray-700">
+          <div className="relative z-10 w-full max-w-md rounded-3xl bg-white dark:bg-gray-900 p-6 sm:p-8 shadow-2xl border-2 border-gray-200 dark:border-gray-700">
             <button onClick={() => setRemoveModalOpen(false)} className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-2xl leading-none">&times;</button>
             
             <div className="mb-6">
               <div className="flex items-center gap-3 mb-4">
-                <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center text-2xl">
+                <div className="h-12 w-12 rounded-xl bg-red-500 flex items-center justify-center text-2xl">
                   <Trash2 className="h-6 w-6 text-white" />
                 </div>
                 <div>
@@ -758,7 +758,7 @@ export default function CommunityItems({ id, role, settings, items, itemProgress
                   setRemoveModalOpen(false)
                   window.location.reload()
                 }}
-                className="w-full px-5 py-3 rounded-xl bg-gradient-to-r from-red-500 to-red-600 text-white text-sm font-semibold hover:from-red-600 hover:to-red-700 transition-all duration-300 shadow-lg flex items-center justify-center gap-2"
+                className="w-full px-5 py-3 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-semibold transition-all duration-300 shadow-lg flex items-center justify-center gap-2"
               >
                 <Trash2 className="h-4 w-4" />
                 <span>Yes, Remove {removeItemData.type === 'goal' ? 'Goal' : 'Habit'} from Community</span>

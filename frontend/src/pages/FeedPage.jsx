@@ -214,11 +214,11 @@ const FeedPage = () => {
       case 'Education & Learning':
         return 'from-amber-400 via-yellow-400 to-orange-400';
       case 'Career & Business':
-        return 'from-blue-400 via-purple-500 to-pink-400';
+        return 'from-blue-400 via-blue-500 to-cyan-400';
       case 'Financial Goals':
         return 'from-rose-400 via-pink-400 to-fuchsia-400';
       case 'Creative Projects':
-        return 'from-purple-400 via-violet-400 to-fuchsia-400';
+        return 'from-blue-400 via-indigo-400 to-cyan-400';
       case 'Travel & Adventure':
         return 'from-orange-400 via-amber-400 to-yellow-400';
       case 'Relationships':
@@ -228,7 +228,7 @@ const FeedPage = () => {
       case 'Personal Development':
         return 'from-green-400 via-lime-400 to-emerald-400';
       default:
-        return 'from-indigo-400 via-purple-400 to-pink-400';
+        return 'from-blue-400 via-indigo-400 to-cyan-400';
     }
   };
 
@@ -482,7 +482,7 @@ const FeedPage = () => {
                       className="cursor-pointer"
                     >
                       {activity.type === 'habit_streak' ? (
-                        <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-lg p-6 mb-4">
+                        <div className="bg-gray-900 dark:bg-gray-800 rounded-lg p-6 mb-4">
                           <div className="flex items-start justify-between">
                             <div>
                               <div className="flex items-center gap-2 mb-2">

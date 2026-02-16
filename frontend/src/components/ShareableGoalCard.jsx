@@ -317,7 +317,7 @@ const ShareableGoalCard = forwardRef(({ goal, user, onClose }, ref) => {
 
               {/* Logo */}
               <div className="export-badge absolute top-2 right-2 sm:top-3 sm:right-3 md:top-4 md:right-4 z-10">
-                <div className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-md sm:rounded-lg flex items-center justify-center shadow-sm">
+                <div className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 bg-[#4c99e6] rounded-md sm:rounded-lg flex items-center justify-center shadow-sm">
                   <div className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 bg-white rounded-sm"></div>
                 </div>
               </div>

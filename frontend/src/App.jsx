@@ -24,7 +24,6 @@ const CommunityDetailPage = lazy(() => import('./pages/CommunityDetailPage'))
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'))
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
 const MaintenancePage = lazy(() => import('./pages/MaintenancePage'))
-const ComingSoonPage = lazy(() => import('./pages/ComingSoonPage'))
 const GenericErrorPage = lazy(() => import('./pages/GenericErrorPage'))
 const NetworkErrorPage = lazy(() => import('./pages/NetworkErrorPage'))
 const ServerErrorPage = lazy(() => import('./pages/ServerErrorPage'))
@@ -47,8 +46,6 @@ function App() {
   const [inNativeApp, setInNativeApp] = useState(false)
   const [maintenanceMode, setMaintenanceMode] = useState(null)
   const [maintenanceMessage, setMaintenanceMessage] = useState('')
-  const [comingSoonMode, setComingSoonMode] = useState(null)
-  const [comingSoonMessage, setComingSoonMessage] = useState('')
 
   // Check maintenance and coming-soon mode on app load
   useEffect(() => {
@@ -56,16 +53,12 @@ function App() {
       try {
         const [mRes, cRes] = await Promise.all([
           configService.checkMaintenanceMode(),
-          configService.checkComingSoon()
         ]);
         setMaintenanceMode(mRes.isMaintenanceMode);
         setMaintenanceMessage(mRes.message || '');
-        setComingSoonMode(cRes.isComingSoon);
-        setComingSoonMessage(cRes.message || '');
       } catch (error) {
         console.error('Failed to check site modes:', error);
         setMaintenanceMode(false);
-        setComingSoonMode(false);
       }
     };
     checkModes();
@@ -159,18 +152,11 @@ function App() {
   }, [isAuthenticated, inNativeApp])
 
   // Show coming soon / maintenance pages if enabled
-  if (comingSoonMode === null || maintenanceMode === null) {
+  if (maintenanceMode === null) {
     // Still checking status
     return null
   }
 
-  if (comingSoonMode) {
-    return (
-      <Suspense fallback={null}>
-        <ComingSoonPage message={comingSoonMessage} />
-      </Suspense>
-    )
-  }
 
   if (maintenanceMode) {
     return (
@@ -191,7 +177,7 @@ function App() {
 
         {/* Main content */}
         {/* <div className="relative min-h-screen pb-16 sm:pb-16"> */}
-        <div className="relative min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-slate-900 dark:via-gray-900 dark:to-zinc-900 flex flex-col">
+        <div className="relative min-h-screen bg-[#f5f5f5] dark:bg-gray-900 flex flex-col">
           <Header />
           <main className="flex-grow">
             <ScrollMemory />

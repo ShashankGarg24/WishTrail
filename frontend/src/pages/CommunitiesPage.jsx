@@ -14,13 +14,13 @@ const CommunityCard = ({ community, onClick }) => (
           className="w-full h-full object-cover"
           onError={(e) => {
             e.target.style.display = 'none';
-            e.target.parentElement.classList.add('bg-gradient-to-br', 'from-blue-500/30', 'via-purple-500/25', 'to-pink-500/20');
+            e.target.parentElement.classList.add('bg-blue-500/30');
           }}
         />
       ) : (
-        <div className="w-full h-full bg-gradient-to-br from-blue-500/30 via-purple-500/25 to-pink-500/20" />
+        <div className="w-full h-full bg-blue-500/30" />
       )}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+      <div className="absolute inset-0 bg-black/40" />
     </div>
     <div className="p-3 sm:p-5 text-left">
       <div className="flex items-start gap-3 mb-3">
@@ -31,11 +31,11 @@ const CommunityCard = ({ community, onClick }) => (
             alt={`${community.name} avatar`}
             className="h-12 w-12 sm:h-14 sm:w-14 rounded-xl object-cover shadow-lg ring-2 ring-gray-200 dark:ring-gray-700 group-hover:scale-110 transition-transform duration-300"
             onError={(e) => {
-              e.target.outerHTML = `<div class="h-12 w-12 sm:h-14 sm:w-14 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 text-white flex items-center justify-center text-base font-bold shadow-lg ring-4 ring-white dark:ring-gray-900 group-hover:scale-110 transition-transform duration-300">${community.name?.slice(0,2).toUpperCase()}</div>`;
+              e.target.outerHTML = `<div class="h-12 w-12 sm:h-14 sm:w-14 rounded-xl bg-[#4c99e6] text-white flex items-center justify-center text-base font-bold shadow-lg ring-4 ring-white dark:ring-gray-900 group-hover:scale-110 transition-transform duration-300">${community.name?.slice(0,2).toUpperCase()}</div>`;
             }}
           />
         ) : (
-          <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 text-white flex items-center justify-center text-base font-bold shadow-lg ring-2 ring-gray-200 dark:ring-gray-700 group-hover:scale-110 transition-transform duration-300">
+          <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-xl bg-[#4c99e6] text-white flex items-center justify-center text-base font-bold shadow-lg ring-2 ring-gray-200 dark:ring-gray-700 group-hover:scale-110 transition-transform duration-300">
             {community.name?.slice(0,2).toUpperCase()}
           </div>
         )}
@@ -51,7 +51,7 @@ const CommunityCard = ({ community, onClick }) => (
             <span className="font-semibold">{community.stats?.memberCount || 0}/{community.settings?.memberLimit || 100}</span>
           </span>
           {community.visibility && (
-            <span className="px-2.5 py-1 rounded-full bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 font-medium border border-purple-200 dark:border-purple-800 capitalize">
+            <span className="px-2.5 py-1 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium border border-blue-200 dark:border-blue-800 capitalize">
               {community.visibility.replace('-', ' ')}
             </span>
           )}
@@ -60,7 +60,7 @@ const CommunityCard = ({ community, onClick }) => (
         {community.interests && community.interests.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
             {community.interests.slice(0, 3).map((interest, idx) => (
-              <span key={idx} className="px-2 py-0.5 rounded-full bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 text-xs font-medium border border-purple-200 dark:border-purple-800">
+              <span key={idx} className="px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 text-xs font-medium border border-blue-200 dark:border-blue-800">
                 {interest.replace(/_/g, ' ')}
               </span>
             ))}
@@ -144,14 +144,14 @@ export default function CommunitiesPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-3 mb-6 sm:mb-8">
         <div>
           <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-            <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+            <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-[#4c99e6] flex items-center justify-center">
               <Users2 className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
             </div>
             Communities
           </h2>
           <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-2 ml-0 sm:ml-13">Connect, collaborate, and achieve together</p>
         </div>
-        <button onClick={() => setShowCreate(true)} className="inline-flex items-center justify-center gap-2 px-5 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold hover:from-blue-600 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 whitespace-nowrap">
+        <button onClick={() => setShowCreate(true)} className="inline-flex items-center justify-center gap-2 px-5 py-2.5 sm:py-3 rounded-xl bg-[#4c99e6] hover:bg-[#3d88d5] text-white font-semibold transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 whitespace-nowrap">
           <Plus className="h-5 w-5" /> <span>Create Community</span>
         </button>
       </div>
@@ -170,14 +170,14 @@ export default function CommunitiesPage() {
           </div>
         ) : mine.length === 0 ? (
           <div className="glass-card-hover rounded-2xl p-10 text-center">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 rounded-full bg-[#4c99e6] flex items-center justify-center mx-auto mb-4">
               <Users2 className="h-8 w-8 text-white" />
             </div>
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No communities yet</h3>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">Join communities to connect with others and share goals</p>
             <a
               href="/discover?tab=communities"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold hover:from-blue-600 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#4c99e6] hover:bg-[#3d88d5] text-white font-semibold transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105"
             >
               <Compass className="h-5 w-5" />
               Explore Communities
@@ -199,7 +199,7 @@ export default function CommunitiesPage() {
           <div className="absolute inset-0 bg-black/60" onClick={() => setShowCreate(false)} />
           <div className="relative z-10 w-full max-w-md rounded-3xl bg-white dark:bg-gray-900 p-6 sm:p-8 shadow-2xl border-2 border-gray-200 dark:border-gray-800 my-8">
             <div className="flex items-center gap-3 mb-6">
-              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+              <div className="h-10 w-10 rounded-xl bg-[#4c99e6] flex items-center justify-center">
                 <Plus className="h-6 w-6 text-white" />
               </div>
               <h3 className="text-xl font-bold text-gray-900 dark:text-white">Create Community</h3>
@@ -228,7 +228,7 @@ export default function CommunitiesPage() {
               </div>
               <div className="flex justify-end gap-3 pt-4">
                 <button onClick={() => setShowCreate(false)} className="px-5 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">Cancel</button>
-                <button onClick={handleCreate} className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold hover:from-blue-600 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl">Create</button>
+                <button onClick={handleCreate} className="px-6 py-2.5 rounded-xl bg-[#4c99e6] hover:bg-[#3d88d5] text-white font-semibold transition-all duration-300 shadow-lg hover:shadow-xl">Create</button>
               </div>
             </div>
           </div>

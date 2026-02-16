@@ -237,7 +237,7 @@ const InspirationPage = () => {
           {/* Right Column - Your Influence & Trending Goals */}
           <div className="space-y-6">
             {/* Your Influence */}
-            <div className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 dark:from-gray-800 dark:via-gray-700 dark:to-gray-800 rounded-xl shadow-lg p-6 text-white">
+            <div className="bg-gray-900 dark:bg-gray-800 rounded-xl shadow-lg p-6 text-white">
               <h2 className="text-lg font-bold mb-2" style={{ fontFamily: 'Manrope, sans-serif' }}>
                 Your Influence
               </h2>
@@ -303,7 +303,7 @@ const InspirationPage = () => {
                         className="flex items-start gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-[#4c99e6] dark:hover:border-[#4c99e6] transition-all cursor-pointer"
                         onClick={() => navigate(`/goals/${goal.id}`)}
                       >
-                        <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 flex items-center justify-center">
+                        <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
                           <Code className="h-5 w-5 text-[#4c99e6]" />
                         </div>
                         <div className="flex-1 min-w-0">

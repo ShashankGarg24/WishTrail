@@ -188,7 +188,7 @@ const DiscoverPageNew = () => {
   const randomQuote = quotes[activeTab === 'goals' ? 0 : 1]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-gray-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="max-w-[1400px] mx-auto px-6 py-8">
         {/* Header */}
         <motion.div
@@ -377,7 +377,7 @@ const DiscoverPageNew = () => {
                           className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-all cursor-pointer"
                         >
                         <div className="flex items-start gap-3 mb-4">
-                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold font-manrope">
+                          <div className="w-12 h-12 rounded-full bg-[#4c99e6] flex items-center justify-center text-white font-bold font-manrope">
                             {person.name.charAt(0)}
                           </div>
                           <div className="flex-1 min-w-0">

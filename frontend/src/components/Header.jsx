@@ -101,19 +101,6 @@ const Header = () => {
               ))}
             </nav>
           )}
-
-          {/* Public Navigation - Only for unauthenticated users */}
-          {!isAuthenticated && (
-            <nav className="hidden md:flex items-center gap-6 sm:gap-8">
-              <Link
-                to="/inspiration"
-                className="font-medium font-manrope text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors text-sm sm:text-base"
-              >
-                Inspiration
-              </Link>
-            </nav>
-          )}
-
           {/* Right Actions */}
           <div className="flex items-center gap-2 sm:gap-4">
             {isAuthenticated ? (
@@ -148,7 +135,7 @@ const Header = () => {
                 onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
                 className="flex items-center gap-2.5 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg py-1.5 px-2 transition-colors"
               >
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center overflow-hidden">
+                <div className="w-8 h-8 rounded-full bg-[#4c99e6] flex items-center justify-center overflow-hidden">
                   {currentUser?.avatar ? (
                     <img 
                       src={currentUser.avatar} 
@@ -174,9 +161,9 @@ const Header = () => {
                     className="absolute right-0 mt-3 w-72 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden"
                   >
                     {/* User Info Header */}
-                    <div className="p-4 bg-gradient-to-br from-gray-50 to-white dark:from-gray-800 dark:to-gray-800 border-b border-gray-100 dark:border-gray-700">
+                    <div className="p-4 bg-gray-50 dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
                       <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center shadow-md overflow-hidden">
+                        <div className="w-12 h-12 rounded-full bg-[#4c99e6] flex items-center justify-center shadow-md overflow-hidden">
                           {currentUser?.avatar ? (
                             <img 
                               src={currentUser.avatar} 

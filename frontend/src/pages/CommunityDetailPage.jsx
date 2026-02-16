@@ -10,7 +10,7 @@ const DeleteCommunityModal = lazy(() => import('../components/community/DeleteCo
 import io from 'socket.io-client'
 
 const Tab = ({ active, label, Icon, onClick }) => (
-  <button onClick={onClick} className={`px-5 py-2.5 rounded-xl text-sm font-semibold inline-flex items-center gap-2 transition-all duration-300 ${active ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg shadow-blue-500/30' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
+  <button onClick={onClick} className={`px-5 py-2.5 rounded-xl text-sm font-semibold inline-flex items-center gap-2 transition-all duration-300 ${active ? 'bg-[#4c99e6] hover:bg-[#3d88d5] text-white shadow-lg shadow-blue-500/30' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
     <Icon className="h-4 w-4" /> {label}
   </button>
 )
@@ -314,7 +314,7 @@ export default function CommunityDetailPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
       <div className="relative overflow-hidden rounded-3xl border-2 border-gray-200 dark:border-gray-800 mb-8 shadow-xl">
-        <div className="h-32 sm:h-48 bg-gradient-to-br from-blue-500/30 via-purple-500/25 to-pink-500/20 relative">
+        <div className="h-32 sm:h-48 bg-blue-500/30 relative">
           {headerImages.bannerUrl ? (
             <img src={headerImages.bannerUrl} alt="Community banner" className="absolute inset-0 h-full w-full object-cover" />
           ) : null}
@@ -325,7 +325,7 @@ export default function CommunityDetailPage() {
             {headerImages.avatarUrl ? (
               <img src={headerImages.avatarUrl} alt="Community avatar" className="h-20 w-20 sm:h-24 sm:w-24 rounded-2xl border-4 border-white dark:border-gray-900 object-cover shadow-lg flex-shrink-0" />
             ) : (
-              <div className="h-20 w-20 sm:h-24 sm:w-24 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 text-white flex items-center justify-center text-2xl font-bold shadow-lg border-4 border-white dark:border-gray-900 flex-shrink-0">
+              <div className="h-20 w-20 sm:h-24 sm:w-24 rounded-2xl bg-[#4c99e6] text-white flex items-center justify-center text-2xl font-bold shadow-lg border-4 border-white dark:border-gray-900 flex-shrink-0">
                 {community.name?.slice(0,2).toUpperCase()}
               </div>
             )}
@@ -357,7 +357,7 @@ export default function CommunityDetailPage() {
             </div>
             <div className="flex-shrink-0 w-full sm:w-auto">
               {!isMember ? (
-                <button onClick={async () => { await communitiesAPI.join(community._id); window.location.reload(); }} className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold hover:from-blue-600 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105">Join Community</button>
+                <button onClick={async () => { await communitiesAPI.join(community._id); window.location.reload(); }} className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-[#4c99e6] hover:bg-[#3d88d5] text-white font-semibold transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105">Join Community</button>
               ) : (
                 <button onClick={async () => { await communitiesAPI.leave(community._id); navigate('/communities'); }} className="w-full sm:w-auto px-5 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">Leave</button>
               )}
@@ -393,8 +393,8 @@ export default function CommunityDetailPage() {
               {a.kind==='chat' ? (
                 <div className="flex items-end gap-3 mb-3 group">
                   <img src={a.avatar || a.userId?.avatar} alt="User" className="h-9 w-9 rounded-full ring-2 ring-white dark:ring-gray-900 shadow-sm" />
-                  <div className="max-w-[75%] rounded-2xl px-4 py-3 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-800/80 text-sm shadow-sm border border-gray-200/50 dark:border-gray-700/50">
-                  <div className="text-xs font-semibold text-purple-600 dark:text-purple-400 mb-1">{a.name || a.userId?.name} <span className="font-normal text-gray-500 dark:text-gray-400" title={new Date(a.createdAt).toLocaleString()}>• {formatRelativeTime(a.createdAt)}</span></div>
+                  <div className="max-w-[75%] rounded-2xl px-4 py-3 bg-gray-50 dark:bg-gray-800 text-sm shadow-sm border border-gray-200/50 dark:border-gray-700/50">
+                  <div className="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-1">{a.name || a.userId?.name} <span className="font-normal text-gray-500 dark:text-gray-400" title={new Date(a.createdAt).toLocaleString()}>• {formatRelativeTime(a.createdAt)}</span></div>
                     <div className="whitespace-pre-wrap text-gray-900 dark:text-gray-100">{a.text}</div>
                     {(['admin','moderator'].includes(role)) && (
                       <div className="mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -406,8 +406,8 @@ export default function CommunityDetailPage() {
               ) : (
                 <div className="flex justify-center my-4">
                   <div className="inline-flex flex-col items-start gap-2 max-w-2xl">
-                    <div className="text-sm text-gray-700 dark:text-gray-300 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 px-5 py-2.5 rounded-2xl border border-blue-100 dark:border-blue-800/30 shadow-sm">
-                      <span className="font-bold mr-1.5 text-purple-600 dark:text-purple-400">{a.name || a.userId?.name}</span>
+                    <div className="text-sm text-gray-700 dark:text-gray-300 bg-blue-50 dark:bg-blue-900/20 px-5 py-2.5 rounded-2xl border border-blue-100 dark:border-blue-800/30 shadow-sm">
+                      <span className="font-bold mr-1.5 text-blue-600 dark:text-blue-400">{a.name || a.userId?.name}</span>
                       <span className="opacity-80">{(() => {
                         const t = a?.type;
                         if (t === 'goal_created') return `created a goal: "${a?.data?.goalTitle || ''}"`;

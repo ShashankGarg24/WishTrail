@@ -210,7 +210,7 @@ const DashboardPageNew = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-gray-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800">
+    <div className="min-h-screen bg-[#f5f5f5] dark:bg-gray-900">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-6 sm:py-8">
         {/* Header Section */}
         <motion.div

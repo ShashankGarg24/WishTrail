@@ -70,7 +70,7 @@ const LeaderboardPageNew = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-gray-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-6 sm:py-8">
         {/* Header with Trophy Icon */}
         <motion.div
@@ -78,7 +78,7 @@ const LeaderboardPageNew = () => {
           animate={{ opacity: 1, y: 0 }}
           className="text-center mb-8 sm:mb-12"
         >
-          <div className="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full mb-3 sm:mb-4">
+          <div className="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 bg-[#4c99e6] rounded-full mb-3 sm:mb-4">
             <Trophy className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
           </div>
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-2 font-manrope">
@@ -105,7 +105,7 @@ const LeaderboardPageNew = () => {
                 <div className="absolute -top-3 sm:-top-4 left-1/2 transform -translate-x-1/2 w-6 h-6 sm:w-8 sm:h-8 bg-gray-300 rounded-full flex items-center justify-center text-gray-700 font-bold font-manrope text-xs sm:text-sm">
                   2
                 </div>
-                <div className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full bg-gradient-to-br from-gray-300 to-gray-400 mx-auto mb-2 sm:mb-3 md:mb-4 flex items-center justify-center">
+                <div className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full bg-gray-300 mx-auto mb-2 sm:mb-3 md:mb-4 flex items-center justify-center">
                   {podiumOrder[0].avatar ? (
                     <img src={podiumOrder[0].avatar} alt={podiumOrder[0].name} className="w-full h-full rounded-full object-cover" />
                   ) : (
@@ -141,7 +141,7 @@ const LeaderboardPageNew = () => {
                 <div className="absolute -top-4 sm:-top-5 left-1/2 transform -translate-x-1/2 w-8 h-8 sm:w-10 sm:h-10 bg-[#4c99e6] rounded-full flex items-center justify-center">
                   <Award className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </div>
-                <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 mx-auto mb-2 sm:mb-3 md:mb-4 flex items-center justify-center">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-full bg-[#4c99e6] mx-auto mb-2 sm:mb-3 md:mb-4 flex items-center justify-center">
                   {podiumOrder[1].avatar ? (
                     <img src={podiumOrder[1].avatar} alt={podiumOrder[1].name} className="w-full h-full rounded-full object-cover" />
                   ) : (
@@ -178,7 +178,7 @@ const LeaderboardPageNew = () => {
                 <div className="absolute -top-3 sm:-top-4 left-1/2 transform -translate-x-1/2 w-6 h-6 sm:w-8 sm:h-8 bg-orange-400 rounded-full flex items-center justify-center text-white font-bold font-manrope text-xs sm:text-sm">
                   3
                 </div>
-                <div className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full bg-gradient-to-br from-orange-400 to-amber-600 mx-auto mb-2 sm:mb-3 md:mb-4 flex items-center justify-center">
+                <div className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full bg-orange-400 mx-auto mb-2 sm:mb-3 md:mb-4 flex items-center justify-center">
                   {podiumOrder[2].avatar ? (
                     <img src={podiumOrder[2].avatar} alt={podiumOrder[2].name} className="w-full h-full rounded-full object-cover" />
                   ) : (

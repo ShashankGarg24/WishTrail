@@ -186,7 +186,7 @@ const ShareModal = ({ isOpen, onClose, goal, user }) => {
     {
       name: 'Twitter',
       icon: Twitter,
-      color: 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700',
+      color: 'bg-[#4c99e6] hover:bg-[#3d88d5]',
       action: shareToTwitter
     },
     {

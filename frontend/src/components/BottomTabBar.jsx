@@ -74,7 +74,7 @@ const BottomTabBar = () => {
                   onClick={() => setAccountOpen(true)}
                   className="flex-1 flex flex-col items-center justify-center py-2.5"
                 >
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center overflow-hidden border-2 border-gray-200 dark:border-gray-700">
+                  <div className="w-8 h-8 rounded-full bg-[#4c99e6] flex items-center justify-center overflow-hidden border-2 border-gray-200 dark:border-gray-700">
                     {currentUser?.avatar ? (
                       <img 
                         src={currentUser.avatar} 
