@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Mail, Lock, Eye, EyeOff, Droplet, Shield, Check, User } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import useApiStore from "../store/apiStore";
 import toast from 'react-hot-toast';
 import MultiStepSignup from "../components/MultiStepSignup";
@@ -22,8 +22,19 @@ const AuthPage = () => {
   const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
-  const { login, googleLogin, loading, error } = useApiStore();
+  const { login, googleLogin, loading, error, isAuthenticated } = useApiStore();
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Get the page user was trying to access, or default to dashboard
+  const from = location.state?.from?.pathname || "/dashboard";
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate(from, { replace: true });
+    }
+  }, [isAuthenticated, navigate, from]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -82,7 +93,7 @@ const AuthPage = () => {
       if (isLogin) {
         await login(formData.email, formData.password);
       }
-      navigate("/dashboard");
+      navigate(from, { replace: true });
     } catch (err) {
       console.error('Auth error:', err);
     }
@@ -100,7 +111,7 @@ const AuthPage = () => {
   };
 
   const handleMultiStepSignupSuccess = (user, token) => {
-    navigate("/dashboard");
+    navigate(from, { replace: true });
   };
 
   const handleGoogleSuccess = async (credential) => {
@@ -109,7 +120,7 @@ const AuthPage = () => {
       const result = await googleLogin(credential);
       if (result.success) {
         toast.success(result.isNewUser ? 'Account created successfully!' : 'Welcome back!');
-        navigate("/dashboard");
+        navigate(from, { replace: true });
       }
     } catch (error) {
       console.error('Google auth error:', error);
