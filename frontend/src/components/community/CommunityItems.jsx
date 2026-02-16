@@ -105,7 +105,7 @@ export function AddItemModal({ open, onClose, communityId }) {
                 <Link className="h-4 w-4" />
                 Link Existing
               </button>
-              <button type="button" onClick={() => { setMode('create'); if (type === 'goal') setShowCreateGoalModal(true); else setShowCreateHabitModal(true); }} className={`flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-300 ${mode === 'create' ? 'bg-[#4c99e6] hover:bg-[#3d88d5] text-white shadow-lg' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-2 border-gray-200 dark:border-gray-700'}`}
+              <button type="button" onClick={() => { setMode('create'); if (type === 'goal') setShowCreateGoalModal(true); else setShowCreateHabitModal(true); }} className={`flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-300 ${mode === 'create' ? 'bg-[#4c99e6] hover:bg-[#3d88d5] text-white shadow-lg' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-2 border-gray-200 dark:border-gray-700'}`}>
                 <Plus className="h-4 w-4" />
                 Create New
               </button>
