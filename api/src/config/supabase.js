@@ -14,6 +14,7 @@ const supabaseConfig = {
   ssl: {
     rejectUnauthorized: false, // Supabase uses SSL
   },
+  family: 4, // Force IPv4 to avoid potential issues in some environments
   // Connection pool settings
   max: 20, // Maximum number of clients in the pool
   idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
