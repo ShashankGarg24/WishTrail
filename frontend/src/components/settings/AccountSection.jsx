@@ -388,7 +388,7 @@ const AccountSection = () => {
                     <Sun className={`absolute inset-0 h-4 w-4 sm:h-5 sm:w-5 text-yellow-500 transition-all duration-300 ${
                       isDarkMode ? 'opacity-0 rotate-90 scale-0' : 'opacity-100 rotate-0 scale-100'
                     }`} />
-                    <Moon className={`absolute inset-0 h-4 w-4 sm:h-5 sm:w-5 text-purple-400 transition-all duration-300 ${
+                    <Moon className={`absolute inset-0 h-4 w-4 sm:h-5 sm:w-5 text-blue-400 transition-all duration-300 ${
                       isDarkMode ? 'opacity-100 rotate-0 scale-100' : 'opacity-0 -rotate-90 scale-0'
                     }`} />
                   </div>

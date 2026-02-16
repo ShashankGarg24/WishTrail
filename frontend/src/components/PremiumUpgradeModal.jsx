@@ -74,9 +74,9 @@ const PremiumUpgradeModal = ({ isOpen, onClose, feature, currentLimit, premiumLi
         />
         
         {/* Modal */}
-        <div className="relative bg-gradient-to-br from-white to-purple-50 rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="relative bg-gradient-to-br from-white to-blue-50 rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
           {/* Header */}
-          <div className="relative bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 p-8 text-white">
+          <div className="relative bg-[#4c99e6] p-8 text-white">
             <button
               onClick={onClose}
               className="absolute top-4 right-4 p-2 hover:bg-white/20 rounded-full transition-colors"
@@ -88,7 +88,7 @@ const PremiumUpgradeModal = ({ isOpen, onClose, feature, currentLimit, premiumLi
               <Crown className="w-10 h-10" />
               <h2 className="text-3xl font-bold">Upgrade to Premium</h2>
             </div>
-            <p className="text-purple-100 text-lg">
+            <p className="text-blue-100 text-lg">
               Unlock unlimited potential and reach your goals faster
             </p>
           </div>
@@ -104,7 +104,7 @@ const PremiumUpgradeModal = ({ isOpen, onClose, feature, currentLimit, premiumLi
 
           {/* Limit Reached Notice */}
           {context && (
-            <div className="mx-8 mt-6 p-4 bg-gradient-to-r from-orange-50 to-pink-50 border-2 border-orange-200 rounded-xl">
+            <div className="mx-8 mt-6 p-4 bg-blue-50 border-2 border-blue-200 rounded-xl">
               <p className="text-orange-900 font-medium">
                 {context}
               </p>
@@ -116,8 +116,8 @@ const PremiumUpgradeModal = ({ isOpen, onClose, feature, currentLimit, premiumLi
                   </div>
                   <div className="text-2xl text-gray-400">→</div>
                   <div className="text-center">
-                    <p className="text-xs text-purple-600 uppercase font-semibold">Premium Plan</p>
-                    <p className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                    <p className="text-xs text-[#4c99e6] uppercase font-semibold">Premium Plan</p>
+                    <p className="text-2xl font-bold text-[#4c99e6]">
                       {premiumLimit === -1 ? '∞' : premiumLimit}
                     </p>
                   </div>
@@ -136,13 +136,13 @@ const PremiumUpgradeModal = ({ isOpen, onClose, feature, currentLimit, premiumLi
                   onClick={() => setSelectedPlan(plan.id)}
                   className={`relative p-6 rounded-2xl border-2 transition-all transform hover:scale-105 ${
                     selectedPlan === plan.id
-                      ? 'border-purple-500 bg-gradient-to-br from-purple-50 to-pink-50 shadow-xl'
-                      : 'border-gray-200 bg-white hover:border-purple-300'
+                      ? 'border-[#4c99e6] bg-blue-50 shadow-xl'
+                      : 'border-gray-200 bg-white hover:border-[#4c99e6]'
                   }`}
                 >
                   {plan.popular && (
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                      <span className="bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs font-bold px-4 py-1 rounded-full shadow-lg">
+                      <span className="bg-[#4c99e6] text-white text-xs font-bold px-4 py-1 rounded-full shadow-lg">
                         MOST POPULAR
                       </span>
                     </div>
@@ -162,7 +162,7 @@ const PremiumUpgradeModal = ({ isOpen, onClose, feature, currentLimit, premiumLi
                   </div>
                   
                   {selectedPlan === plan.id && (
-                    <div className="absolute inset-0 rounded-2xl border-2 border-purple-500 pointer-events-none animate-pulse" />
+                    <div className="absolute inset-0 rounded-2xl border-2 border-[#4c99e6] pointer-events-none animate-pulse" />
                   )}
                 </button>
               ))}
@@ -176,10 +176,10 @@ const PremiumUpgradeModal = ({ isOpen, onClose, feature, currentLimit, premiumLi
                   <div
                     key={idx}
                     className={`flex items-start gap-3 p-3 rounded-lg transition-colors ${
-                      item.highlight ? 'bg-gradient-to-r from-purple-100 to-pink-100' : ''
+                      item.highlight ? 'bg-blue-100' : ''
                     }`}
                   >
-                    <div className={`flex-shrink-0 ${item.highlight ? 'text-purple-600' : 'text-green-600'}`}>
+                    <div className={`flex-shrink-0 ${item.highlight ? 'text-[#4c99e6]' : 'text-green-600'}`}>
                       {item.highlight ? <Crown className="w-5 h-5" /> : <Check className="w-5 h-5" />}
                     </div>
                     <span className={`text-sm ${item.highlight ? 'font-semibold text-gray-900' : 'text-gray-700'}`}>
@@ -201,7 +201,7 @@ const PremiumUpgradeModal = ({ isOpen, onClose, feature, currentLimit, premiumLi
               <button
                 onClick={handleUpgrade}
                 disabled={isLoading}
-                className="flex-1 px-6 py-4 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 text-white rounded-xl font-bold hover:shadow-2xl transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2"
+                className="flex-1 px-6 py-4 bg-[#4c99e6] hover:bg-[#3d88d5] text-white rounded-xl font-bold hover:shadow-2xl transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2">
               >
                 {isLoading ? (
                   <>

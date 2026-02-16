@@ -76,7 +76,7 @@ export default function CommunityDashboard({ dashboard, members, analytics, item
       </div>
       <div className="rounded-2xl border-2 border-gray-200 dark:border-gray-800 p-6 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-900/80 shadow-lg">
         <div className="flex items-center gap-2 mb-4">
-          <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-sm font-bold">📊</div>
+          <div className="h-8 w-8 rounded-lg bg-[#4c99e6] flex items-center justify-center text-white text-sm font-bold">📊</div>
           <div className="text-lg font-bold text-gray-900 dark:text-white">Weekly Activity</div>
         </div>
         <div className="h-32 grid grid-cols-12 gap-2.5">

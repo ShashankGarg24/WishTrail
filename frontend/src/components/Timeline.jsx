@@ -38,9 +38,9 @@ const Timeline = ({ events = [] }) => {
         }
       case 'purple':
         return {
-          bg: 'bg-purple-100 dark:bg-purple-900/30',
-          text: 'text-purple-600 dark:text-purple-400',
-          line: 'bg-purple-200 dark:bg-purple-800'
+          bg: 'bg-blue-100 dark:bg-blue-900/30',
+          text: 'text-blue-600 dark:text-blue-400',
+          line: 'bg-blue-200 dark:bg-blue-800'
         }
       default:
         return {

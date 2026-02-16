@@ -3,7 +3,7 @@
 
 export const GOAL_CATEGORIES = [
   { id: 'HEALTH_FITNESS', label: 'Health & Fitness', icon: '💪', color: 'bg-blue-500' },
-  { id: 'MENTAL_HEALTH', label: 'Mental Health', icon: '🧠', color: 'bg-purple-500' },
+  { id: 'MENTAL_HEALTH', label: 'Mental Health', icon: '🧠', color: 'bg-blue-500' },
   { id: 'EDUCATION_LEARNING', label: 'Education & Learning', icon: '📚', color: 'bg-orange-500' },
   { id: 'CAREER_WORK', label: 'Career & Work', icon: '💼', color: 'bg-green-600' },
   { id: 'PERSONAL_GROWTH', label: 'Personal Growth', icon: '🌱', color: 'bg-teal-500' },

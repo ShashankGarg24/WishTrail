@@ -315,7 +315,7 @@ export default function CommunitySettings({ community, role, setShowDeleteModal,
                 disabled={!profileDirty || profileSaving}
                 className={`px-6 py-3 rounded-xl text-sm font-semibold transition-all duration-300 ${!profileDirty || profileSaving
                     ? 'bg-gray-200 dark:bg-gray-800 text-gray-500 cursor-not-allowed'
-                    : 'bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 shadow-lg hover:shadow-xl'
+                    : 'bg-[#4c99e6] hover:bg-[#3d88d5] text-white shadow-lg hover:shadow-xl'
                   }`}
               >
                 {profileSaving ? 'Saving…' : 'Save Changes'}
@@ -332,7 +332,7 @@ export default function CommunitySettings({ community, role, setShowDeleteModal,
         return (
           <div className="p-6 sm:p-8">
             <div className="space-y-3">
-              <label className="flex items-start gap-4 p-5 rounded-xl border-2 border-gray-200 dark:border-gray-800 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-purple-50/50 dark:hover:from-blue-900/10 dark:hover:to-purple-900/10 cursor-pointer transition-all duration-300 group">
+              <label className="flex items-start gap-4 p-5 rounded-xl border-2 border-gray-200 dark:border-gray-800 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50/50 dark:hover:bg-blue-900/10 cursor-pointer transition-all duration-300 group">
                 <input
                   type="checkbox"
                   checked={permissionsForm.onlyAdminsCanAddGoals}
@@ -344,7 +344,7 @@ export default function CommunitySettings({ community, role, setShowDeleteModal,
                   <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Others can suggest goals</div>
                 </div>
               </label>
-              <label className="flex items-start gap-4 p-5 rounded-xl border-2 border-gray-200 dark:border-gray-800 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-purple-50/50 dark:hover:from-blue-900/10 dark:hover:to-purple-900/10 cursor-pointer transition-all duration-300 group">
+              <label className="flex items-start gap-4 p-5 rounded-xl border-2 border-gray-200 dark:border-gray-800 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50/50 dark:hover:bg-blue-900/10 cursor-pointer transition-all duration-300 group">
                 <input
                   type="checkbox"
                   checked={permissionsForm.onlyAdminsCanAddHabits}
@@ -356,7 +356,7 @@ export default function CommunitySettings({ community, role, setShowDeleteModal,
                   <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Others can suggest habits</div>
                 </div>
               </label>
-              <label className="flex items-start gap-4 p-5 rounded-xl border-2 border-gray-200 dark:border-gray-800 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-purple-50/50 dark:hover:from-blue-900/10 dark:hover:to-purple-900/10 cursor-pointer transition-all duration-300 group">
+              <label className="flex items-start gap-4 p-5 rounded-xl border-2 border-gray-200 dark:border-gray-800 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50/50 dark:hover:bg-blue-900/10 cursor-pointer transition-all duration-300 group">
                 <input
                   type="checkbox"
                   checked={permissionsForm.onlyAdminsCanChangeImages}
@@ -368,7 +368,7 @@ export default function CommunitySettings({ community, role, setShowDeleteModal,
                   <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Profile and background images</div>
                 </div>
               </label>
-              <label className="flex items-start gap-4 p-5 rounded-xl border-2 border-gray-200 dark:border-gray-800 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-purple-50/50 dark:hover:from-blue-900/10 dark:hover:to-purple-900/10 cursor-pointer transition-all duration-300 group">
+              <label className="flex items-start gap-4 p-5 rounded-xl border-2 border-gray-200 dark:border-gray-800 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50/50 dark:hover:bg-blue-900/10 cursor-pointer transition-all duration-300 group">
                 <input
                   type="checkbox"
                   checked={permissionsForm.onlyAdminsCanAddMembers}
@@ -380,7 +380,7 @@ export default function CommunitySettings({ community, role, setShowDeleteModal,
                   <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Others can invite members</div>
                 </div>
               </label>
-              <label className="flex items-start gap-4 p-5 rounded-xl border-2 border-gray-200 dark:border-gray-800 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-purple-50/50 dark:hover:from-blue-900/10 dark:hover:to-purple-900/10 cursor-pointer transition-all duration-300 group">
+              <label className="flex items-start gap-4 p-5 rounded-xl border-2 border-gray-200 dark:border-gray-800 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50/50 dark:hover:bg-blue-900/10 cursor-pointer transition-all duration-300 group">
                 <input
                   type="checkbox"
                   checked={permissionsForm.onlyAdminsCanRemoveMembers}
@@ -392,7 +392,7 @@ export default function CommunitySettings({ community, role, setShowDeleteModal,
                   <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Members cannot remove other members</div>
                 </div>
               </label>
-              <label className="flex items-start gap-4 p-5 rounded-xl border-2 border-gray-200 dark:border-gray-800 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-purple-50/50 dark:hover:from-blue-900/10 dark:hover:to-purple-900/10 cursor-pointer transition-all duration-300 group">
+              <label className="flex items-start gap-4 p-5 rounded-xl border-2 border-gray-200 dark:border-gray-800 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50/50 dark:hover:bg-blue-900/10 cursor-pointer transition-all duration-300 group">
                 <input
                   type="checkbox"
                   checked={permissionsForm.allowContributions}
@@ -411,7 +411,7 @@ export default function CommunitySettings({ community, role, setShowDeleteModal,
                 disabled={!permissionsDirty || permissionsSaving}
                 className={`px-6 py-3 rounded-xl text-sm font-semibold transition-all duration-300 ${!permissionsDirty || permissionsSaving
                     ? 'bg-gray-200 dark:bg-gray-800 text-gray-500 cursor-not-allowed'
-                    : 'bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 shadow-lg hover:shadow-xl'
+                    : 'bg-[#4c99e6] hover:bg-[#3d88d5] text-white shadow-lg hover:shadow-xl'
                   }`}
               >
                 {permissionsSaving ? 'Saving…' : 'Save Changes'}
@@ -464,7 +464,7 @@ export default function CommunitySettings({ community, role, setShowDeleteModal,
                   key={item.id}
                   onClick={() => setActiveSection(item.id)}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-300 ${isActive
-                      ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg scale-105'
+                      ? 'bg-[#4c99e6] text-white shadow-lg scale-105'
                       : 'text-gray-700 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-800 hover:shadow-md'
                     }`}
                 >
@@ -491,11 +491,11 @@ export default function CommunitySettings({ community, role, setShowDeleteModal,
             <div key={item.id} className="border-b-2 border-gray-200 dark:border-gray-800 last:border-0">
               <button
                 onClick={() => setActiveSection(isActive ? '' : item.id)}
-                className={`w-full flex items-center justify-between p-4 text-left transition-all duration-300 ${isActive ? 'bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20' : 'hover:bg-gray-50 dark:hover:bg-gray-800/30'
+                className={`w-full flex items-center justify-between p-4 text-left transition-all duration-300 ${isActive ? 'bg-blue-50 dark:bg-blue-900/20' : 'hover:bg-gray-50 dark:hover:bg-gray-800/30'
                   }`}
               >
                 <div className="flex items-center gap-3">
-                  <div className={`h-10 w-10 rounded-lg flex items-center justify-center transition-all ${isActive ? 'bg-gradient-to-br from-blue-500 to-purple-600 text-white' : 'bg-gray-100 dark:bg-gray-800'}`}>
+                  <div className={`h-10 w-10 rounded-lg flex items-center justify-center transition-all ${isActive ? 'bg-[#4c99e6] text-white' : 'bg-gray-100 dark:bg-gray-800'}`}>
                     <Icon className={`h-5 w-5 ${isActive ? '' : 'text-gray-500'}`} />
                   </div>
                   <span className={`font-semibold ${isActive ? 'text-blue-600 dark:text-blue-400' : 'text-gray-900 dark:text-gray-100'}`}>

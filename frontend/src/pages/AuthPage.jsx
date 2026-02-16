@@ -162,7 +162,7 @@ const AuthPage = () => {
           <div className="relative z-10 max-w-md text-white space-y-8">
             {/* Logo */}
             <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-purple-500 rounded-xl flex items-center justify-center">
+              <div className="w-12 h-12 bg-[#4c99e6] rounded-xl flex items-center justify-center">
                 <Droplet className="h-7 w-7 text-white" />
               </div>
               <h1 className="text-3xl font-bold">WishTrail</h1>
@@ -185,7 +185,7 @@ const AuthPage = () => {
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 border-2 border-gray-800 flex items-center justify-center text-white text-sm font-semibold">
                   J
                 </div>
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 border-2 border-gray-800 flex items-center justify-center text-white text-sm font-semibold">
+                <div className="w-10 h-10 rounded-full bg-[#4c99e6] border-2 border-gray-800 flex items-center justify-center text-white text-sm font-semibold">
                   S
                 </div>
               </div>

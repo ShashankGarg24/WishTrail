@@ -129,14 +129,14 @@ function MemberAnalyticsModal({ open, onClose, analytics, userName }) {
               </div>
 
               {/* Habits Stats */}
-              <div className="rounded-xl border-2 border-gray-200 dark:border-gray-700 p-6 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20">
+              <div className="rounded-xl border-2 border-gray-200 dark:border-gray-700 p-6 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20">
                 <div className="flex items-center gap-3 mb-4">
-                  <Zap className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+                  <Zap className="h-6 w-6 text-blue-600 dark:text-blue-400" />
                   <h3 className="text-lg font-bold text-gray-900 dark:text-white">Habits</h3>
                 </div>
                 <div className="grid grid-cols-3 gap-4">
                   <div className="text-center">
-                    <div className="text-3xl font-bold text-purple-900 dark:text-purple-100">{analytics.habits?.created || 0}</div>
+                    <div className="text-3xl font-bold text-blue-900 dark:text-blue-100">{analytics.habits?.created || 0}</div>
                     <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">Created</div>
                   </div>
                   <div className="text-center">

@@ -63,7 +63,7 @@ export default function TestNotification() {
     <button
       onClick={testNotification}
       disabled={testing}
-      className="fixed bottom-20 right-4 z-50 flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-full shadow-lg transition-all disabled:opacity-50"
+      className="fixed bottom-20 right-4 z-50 flex items-center gap-2 px-4 py-2 bg-[#4c99e6] hover:bg-[#3d88d5] text-white rounded-full shadow-lg transition-all disabled:opacity-50"
       title="Test Browser Notification (Dev Only)"
     >
       <Bell className={`w-4 h-4 ${testing ? 'animate-bounce' : ''}`} />

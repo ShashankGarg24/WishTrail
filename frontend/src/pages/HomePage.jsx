@@ -111,8 +111,8 @@ const HomePage = () => {
       title: 'Habit Building',
       description: 'Consistency is key. Track daily routines with minimalist design and feedback and streaks that motivate without the overwhelm.',
       color: 'text-blue-500',
-      bgColor: 'bg-purple-50 dark:bg-purple-950/30',
-      iconBg: 'bg-purple-100 dark:bg-purple-900/50'
+      bgColor: 'bg-blue-50 dark:bg-blue-950/30',
+      iconBg: 'bg-blue-100 dark:bg-blue-900/50'
     },
     {
       icon: Users,
@@ -162,7 +162,7 @@ const HomePage = () => {
           {/* Background decoration */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
             <div className="absolute top-20 right-0 w-[300px] sm:w-[500px] h-[300px] sm:h-[500px] bg-blue-400/10 dark:bg-blue-500/5 rounded-full blur-3xl" />
-            <div className="absolute bottom-0 left-0 w-[250px] sm:w-[400px] h-[250px] sm:h-[400px] bg-purple-400/10 dark:bg-purple-500/5 rounded-full blur-3xl" />
+            <div className="absolute bottom-0 left-0 w-[250px] sm:w-[400px] h-[250px] sm:h-[400px] bg-blue-400/10 dark:bg-blue-500/5 rounded-full blur-3xl" />
           </div>
 
           <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-8 sm:gap-12 items-center relative z-10">
@@ -1408,7 +1408,7 @@ const HomePage = () => {
                   </div>
 
                   <div className="flex items-start gap-2 sm:gap-3">
-                    <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center flex-shrink-0 mt-0.5">
                       <Users className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600 dark:text-blue-400" />
                     </div>
                     <div>

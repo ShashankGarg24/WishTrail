@@ -61,7 +61,7 @@ const MotivationModal = ({ isOpen, onClose }) => {
               damping: 25
             }}
             onClick={(e) => e.stopPropagation()}
-            className="relative bg-gradient-to-br from-purple-50 via-white to-blue-50 dark:from-gray-800 dark:via-gray-800 dark:to-purple-900/30 rounded-3xl shadow-2xl max-w-md w-full p-8 overflow-hidden"
+            className="relative bg-white dark:bg-gray-800 rounded-3xl shadow-2xl max-w-md w-full p-8 overflow-hidden"
           >
             {/* Animated background stars */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -87,7 +87,7 @@ const MotivationModal = ({ isOpen, onClose }) => {
                     top: `${Math.random() * 100}%`,
                   }}
                 >
-                  <Sparkles className="h-3 w-3 text-purple-400 dark:text-purple-300" />
+                  <Sparkles className="h-3 w-3 text-blue-400 dark:text-blue-300" />
                 </motion.div>
               ))}
             </div>
@@ -115,7 +115,7 @@ const MotivationModal = ({ isOpen, onClose }) => {
                     repeat: Infinity,
                     repeatType: "reverse"
                   }}
-                  className="p-6 bg-gradient-to-br from-purple-400 to-blue-500 rounded-full shadow-lg"
+                  className="p-6 bg-[#4c99e6] rounded-full shadow-lg"
                 >
                   <IconComponent className="h-12 w-12 text-white" />
                 </motion.div>
@@ -129,7 +129,7 @@ const MotivationModal = ({ isOpen, onClose }) => {
                 className="space-y-2"
               >
                 <motion.h3 
-                  className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-purple-600 via-blue-600 to-purple-600 dark:from-purple-400 dark:via-blue-400 dark:to-purple-400 bg-clip-text text-transparent"
+                  className="text-2xl md:text-3xl font-bold text-[#4c99e6] dark:text-blue-400"
                   animate={{ 
                     backgroundPosition: ['0% 50%', '100% 50%', '0% 50%']
                   }}
@@ -178,14 +178,14 @@ const MotivationModal = ({ isOpen, onClose }) => {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={onClose}
-                className="px-8 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold rounded-full shadow-lg hover:shadow-xl transition-all duration-200"
+                className="px-8 py-3 bg-[#4c99e6] hover:bg-[#3d88d5] text-white font-semibold rounded-full shadow-lg hover:shadow-xl transition-all duration-200"
               >
                 Let's Go!
               </motion.button>
             </div>
 
             {/* Decorative gradient orbs */}
-            <div className="absolute -top-10 -left-10 w-40 h-40 bg-purple-300 dark:bg-purple-500 rounded-full blur-3xl opacity-20 pointer-events-none" />
+            <div className="absolute -top-10 -left-10 w-40 h-40 bg-blue-300 dark:bg-blue-500 rounded-full blur-3xl opacity-20 pointer-events-none" />
             <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-blue-300 dark:bg-blue-500 rounded-full blur-3xl opacity-20 pointer-events-none" />
           </motion.div>
         </motion.div>

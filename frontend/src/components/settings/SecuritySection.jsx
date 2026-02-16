@@ -57,7 +57,7 @@ const SecuritySection = () => {
     const strength = [hasLength, hasLetter, hasNumber].filter(Boolean).length;
     
     if (strength === 3 && hasSpecial) return { text: 'Strong', color: 'text-green-600 dark:text-green-400' };
-    if (strength === 3) return { text: 'Good', color: 'text-purple-600 dark:text-purple-400' };
+    if (strength === 3) return { text: 'Good', color: 'text-blue-600 dark:text-blue-400' };
     if (strength === 2) return { text: 'Fair', color: 'text-yellow-600 dark:text-yellow-400' };
     return { text: 'Weak', color: 'text-red-600 dark:text-red-400' };
   };
@@ -299,12 +299,12 @@ const SecuritySection = () => {
           </div>
 
           {!hasPassword && otpStep === 1 && (
-            <div className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 rounded-lg p-3 sm:p-4 border border-purple-200 dark:border-purple-800 mb-3 sm:mb-4">
+            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 sm:p-4 border border-blue-200 dark:border-blue-800 mb-3 sm:mb-4">
               <div className="flex items-start gap-2 sm:gap-3">
-                <Shield className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600 dark:text-purple-400 mt-0.5 flex-shrink-0" />
+                <Shield className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
                 <div>
-                  <h4 className="text-sm font-medium text-purple-900 dark:text-purple-100 mb-0.5 sm:mb-1">Why Set a Password?</h4>
-                  <p className="text-xs sm:text-sm text-purple-700 dark:text-purple-200">
+                  <h4 className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-0.5 sm:mb-1">Why Set a Password?</h4>
+                  <p className="text-xs sm:text-sm text-blue-700 dark:text-blue-200">
                     Add password login as a backup method. You can continue using social login or sign in with your password.
                   </p>
                 </div>
@@ -346,8 +346,8 @@ const SecuritySection = () => {
           {!hasPassword && otpStep === 2 && (
             <div className="space-y-3 sm:space-y-4">
               <div className="text-center mb-3 sm:mb-4">
-                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900 dark:to-blue-900 rounded-full flex items-center justify-center mx-auto mb-2 sm:mb-3">
-                  <Shield className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600 dark:text-purple-400" />
+                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mx-auto mb-2 sm:mb-3">
+                  <Shield className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600 dark:text-blue-400" />
                 </div>
                 <h3 className="text-base sm:text-lg font-semibold text-gray-800 dark:text-white mb-1 sm:mb-2">
                   Verify Your Email
