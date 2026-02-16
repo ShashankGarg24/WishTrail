@@ -5,7 +5,20 @@ pg.types.setTypeParser(1082, val => val);
 const { Pool } = pg;
 // Supabase PostgreSQL connection configuration
 
-const supabaseConfig = {
+// If DATABASE_URL is provided (common in production), use it but force IPv4
+const connectionString = process.env.DATABASE_URL || process.env.SUPABASE_DB_URL;
+
+const supabaseConfig = connectionString ? {
+  connectionString,
+  ssl: {
+    rejectUnauthorized: false, // Supabase uses SSL
+  },
+  family: 4, // Force IPv4 to avoid IPv6 network unreachable errors
+  // Connection pool settings
+  max: 20,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 10000,
+} : {
   host: process.env.SUPABASE_DB_HOST,
   port: process.env.SUPABASE_DB_PORT || 5432,
   database: process.env.SUPABASE_DB_NAME || 'postgres',
