@@ -79,7 +79,10 @@ const getGlobalLeaderboard = async (req, res, next) => {
       }));
       return res.status(200).json({
         success: true,
-        data: { leaderboard: minimal },
+        data: { 
+          leaderboard: minimal,
+          pagination: cachedData.pagination
+        },
         fromCache
       });
     }
@@ -264,7 +267,10 @@ const getGlobalLeaderboard = async (req, res, next) => {
     }));
     res.status(200).json({
       success: true,
-      data: { leaderboard: minimal },
+      data: { 
+        leaderboard: minimal,
+        pagination
+      },
       fromCache
     });
   } catch (error) {

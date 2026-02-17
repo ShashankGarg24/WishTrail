@@ -80,6 +80,7 @@ const sanitizeAuthMe = (user) => {
     followingCount: obj.following_count,
     followerCount: obj.followers_count,
     totalGoals: obj.total_goals,
+    completedGoals: obj.completed_goals,
     interests: obj.interests,
     isPrivate: obj.is_private,
     username: obj.username,

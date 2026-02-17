@@ -19,10 +19,15 @@ const LeaderboardPageNew = () => {
   useEffect(() => {
     (async () => {
       setLoading(true)
-      const data = await getGlobalLeaderboard({ page: currentPage, limit: ITEMS_PER_PAGE })
+      const response = await getGlobalLeaderboard({ page: currentPage, limit: ITEMS_PER_PAGE })
+      const data = response?.leaderboard || response || []
       setLeaderboardData(Array.isArray(data) ? data : [])
-      // Estimate total pages (you may need to adjust based on API response)
-      setTotalPages(data.length < ITEMS_PER_PAGE ? currentPage : currentPage + 1)
+      // Set total pages from pagination data if available
+      if (response?.pagination) {
+        setTotalPages(response.pagination.pages || 1)
+      } else {
+        setTotalPages(data.length < ITEMS_PER_PAGE ? currentPage : currentPage + 1)
+      }
       setLoading(false)
     })()
   }, [getGlobalLeaderboard, currentPage])
@@ -348,10 +353,13 @@ const LeaderboardPageNew = () => {
             ACHIEVE MORE
           </div>
           <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-white font-manrope mb-3 sm:mb-4">
-            Ready to Climb Higher?
+            {user && user.completedGoals < 5 ? "Almost There!" : "Ready to Climb Higher?"}
           </h2>
           <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 font-manrope mb-6 sm:mb-8 max-w-2xl mx-auto">
-            Complete more goals and compete with achievers worldwide to reach the top!
+            {user && user.completedGoals < 5 
+              ? `Complete at least 5 goals to join the leaderboard! You currently have ${user.completedGoals || 0} completed goal${user.completedGoals === 1 ? '' : 's'}. Keep going!`
+              : "Complete more goals and compete with achievers worldwide to reach the top!"
+            }
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
             <button

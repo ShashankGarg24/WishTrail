@@ -1723,13 +1723,13 @@ const useApiStore = create(
         try {
           set({ loading: true, error: null });
           const response = await leaderboardAPI.getGlobalLeaderboard(params);
-          const { leaderboard } = response.data.data;
+          const { leaderboard, pagination } = response.data.data;
           set({ leaderboard, loading: false });
-          return leaderboard;
+          return { leaderboard, pagination };
         } catch (error) {
           const errorMessage = handleApiError(error);
           set({ loading: false, error: errorMessage });
-          return [];
+          return { leaderboard: [], pagination: null };
         }
       },
 

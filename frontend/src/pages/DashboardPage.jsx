@@ -724,6 +724,46 @@ const DashboardPageNew = () => {
                       </p>
                     )}
 
+                    <div className="space-y-2 mb-3">
+                      {/* Created Date */}
+                      <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                        <Calendar className="w-3.5 h-3.5" />
+                        <span className="font-manrope">
+                          Created {new Date(goal.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </span>
+                      </div>
+                      
+                      {/* Completed Date */}
+                      {goal.completedAt && (
+                        <div className="flex items-center gap-2 text-xs text-green-600 dark:text-green-400">
+                          <CheckCircle className="w-3.5 h-3.5" />
+                          <span className="font-manrope">
+                            Completed {new Date(goal.completedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                          </span>
+                        </div>
+                      )}
+                      
+                      {/* Overdue Status */}
+                      {!goal.completedAt && goal.targetDate && new Date(goal.targetDate) < new Date() && (
+                        <div className="flex items-center gap-2 text-xs text-red-600 dark:text-red-400">
+                          <Flag className="w-3.5 h-3.5" />
+                          <span className="font-manrope font-medium">
+                            Overdue since {new Date(goal.targetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                          </span>
+                        </div>
+                      )}
+                      
+                      {/* Target Date (if not overdue) */}
+                      {!goal.completedAt && goal.targetDate && new Date(goal.targetDate) >= new Date() && (
+                        <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                          <Flag className="w-3.5 h-3.5" />
+                          <span className="font-manrope">
+                            Target: {new Date(goal.targetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
                     <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-gray-700">
                       <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
                         {goal.priority && (
@@ -738,9 +778,6 @@ const DashboardPageNew = () => {
                           </span>
                         )}
                       </div>
-                      {goal.completedAt && (
-                        <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
-                      )}
                     </div>
                   </motion.div>
                 ))}
@@ -789,16 +826,9 @@ const DashboardPageNew = () => {
                         </button>
                       </div>
 
-                      <div className="flex items-start gap-4 mb-4">
-                        <div className="p-2.5 bg-gray-50 dark:bg-gray-700 rounded-lg group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 transition-colors flex-shrink-0">
-                          <Target className="w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-[#4c99e6] transition-colors" />
-                        </div>
-                        <div className="flex-1 min-w-0 pr-16">
-                          <h3 className="font-semibold text-gray-900 dark:text-white font-manrope text-base mb-3">
-                            {habit.title}
-                          </h3>
-                        </div>
-                      </div>
+                      <h3 className="font-semibold text-gray-900 dark:text-white font-manrope text-base mb-3 pr-16">
+                        {habit.title}
+                      </h3>
 
                       {habit.description && (
                         <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 line-clamp-2 font-manrope leading-relaxed">

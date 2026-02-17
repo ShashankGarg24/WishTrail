@@ -547,7 +547,7 @@ class UserService {
         current_streak as "currentStreak",
         created_at as "createdAt"
       FROM users
-      WHERE is_active = true
+      WHERE is_active = true AND completed_goals >= 5
       ORDER BY ${sortField} DESC, id ASC
       LIMIT $1 OFFSET $2
     `;
@@ -564,7 +564,7 @@ class UserService {
     const queryText = `
       SELECT COUNT(*) as count
       FROM users
-      WHERE is_active = true
+      WHERE is_active = true AND completed_goals >= 5
     `;
     const result = await query(queryText);
     return parseInt(result.rows[0].count);
