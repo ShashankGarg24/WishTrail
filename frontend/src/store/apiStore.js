@@ -947,9 +947,9 @@ const useApiStore = create(
         }
       },
 
-      toggleGoalCompletion: async (id, completionNote) => {
+      toggleGoalCompletion: async (id, completionData) => {
         try {
-          const response = await goalsAPI.toggleGoalCompletion(id, completionNote);
+          const response = await goalsAPI.toggleGoalCompletion(id, completionData);
           const { goal } = response.data.data;
 
           // Update in current goals list

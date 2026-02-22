@@ -1,11 +1,11 @@
 import { useEffect, useState, useMemo } from 'react';
-import { X, Calendar, Info } from 'lucide-react';
+import { X, Calendar, Info, Clock, Crown } from 'lucide-react';
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock';
 
 const THEME_COLOR = '#4c99e6';
 import { habitsAPI } from '../services/api';
 import useApiStore from '../store/apiStore';
-import { useHabitLimits } from '../hooks/usePremium';
+import { useHabitLimits, useFeatureLimits } from '../hooks/usePremium';
 import PremiumLimitIndicator from './PremiumLimitIndicator';
 
 const dayOptions = [
@@ -35,6 +35,7 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
     return habits?.filter(h => h.isActive !== false)?.length || 0
   }, [habits])
   const habitLimits = useHabitLimits(activeHabitsCount)
+  const habitFeatureLimits = useFeatureLimits('habits')
 
   useEffect(() => {
     if (!isOpen) return;
@@ -64,7 +65,7 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
     if (!habitLimits.canCreate) {
       window.dispatchEvent(new CustomEvent('wt_toast', { 
         detail: { 
-          message: `Habit limit reached (${activeHabitsCount}/${habitLimits.maxHabits}). You cannot create more habits at this time.`, 
+          message: 'You have reached the limit for habit creation.', 
           type: 'error' 
         } 
       }))
@@ -149,6 +150,22 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
                 label="Active Habits"
                 showUpgradeButton={false}
               />
+            )}
+
+            {/* Log retention info for free tier */}
+            {!habitLimits.isPremium && habitLimits.canCreate && (
+              <div className="flex items-start gap-3 p-3 rounded-xl" style={{ backgroundColor: 'rgba(76, 153, 230, 0.08)', border: '1px solid rgba(76, 153, 230, 0.2)' }}>
+                <Clock className="h-4 w-4 flex-shrink-0 mt-0.5" style={{ color: THEME_COLOR }} />
+                <div>
+                  <p className="text-xs font-medium" style={{ color: THEME_COLOR }}>
+                    Log history limited to {habitFeatureLimits?.historyRetentionDays ?? 60} days
+                  </p>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 flex items-center gap-1">
+                    <Crown className="h-3 w-3" style={{ color: '#f59e0b' }} />
+                    Upgrade to Premium for unlimited history
+                  </p>
+                </div>
+              </div>
             )}
 
             {/* Basic Information */}

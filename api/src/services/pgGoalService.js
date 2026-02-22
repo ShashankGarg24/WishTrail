@@ -178,7 +178,18 @@ class GoalService {
     `;
     
     const result = await query(queryText, [id, userId]);
-    return result.rows[0] || null;
+    if (!result.rows[0]) return null;
+
+    // Keep users.completed_goals in sync
+    await query(
+      `UPDATE users
+       SET completed_goals = completed_goals + 1,
+           updated_at      = CURRENT_TIMESTAMP
+       WHERE id = $1`,
+      [userId]
+    );
+
+    return result.rows[0];
   }
   
   /**
@@ -364,6 +375,25 @@ class GoalService {
     `;
     
     const result = await query(queryText, [userId, today]);
+    const count = parseInt(result.rows[0].count);
+    
+    return {
+      count,
+      limit,
+      canCreate: count < limit,
+      remaining: Math.max(0, limit - count)
+    };
+  }
+
+  async checkActiveGoalsLimit(userId, limit = 5) {
+    
+    const queryText = `
+      SELECT COUNT(*) as count
+      FROM goals
+      WHERE user_id = $1 AND completed_at IS NULL
+    `;
+    
+    const result = await query(queryText, [userId]);
     const count = parseInt(result.rows[0].count);
     
     return {

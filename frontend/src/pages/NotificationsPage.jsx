@@ -515,10 +515,6 @@ const NotificationsPageNew = () => {
           <p className="text-sm text-gray-400 italic">
             "Success is a sequence of deliberate actions, executed with consistency."
           </p>
-          <div className="flex items-center justify-center gap-2 mt-4">
-            <div className="w-2 h-2 rounded-full bg-gray-300"></div>
-            <div className="w-2 h-2 rounded-full bg-gray-200"></div>
-          </div>
         </div>
       </div>
 

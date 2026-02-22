@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, useCallback, useRef, lazy, Suspense } from 'react'
 import { GOAL_CATEGORIES } from '../constants/goalCategories'
 import { motion } from 'framer-motion'
-import { X, Target, Calendar, Tag, AlertCircle, ChevronLeft, Globe } from 'lucide-react'
+import { X, Target, Calendar, Tag, AlertCircle, ChevronLeft, Globe, Clock, Crown } from 'lucide-react'
 import useApiStore from '../store/apiStore'
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
 const GoalDivisionEditor = lazy(() => import('./GoalDivisionEditor'));
@@ -219,8 +219,19 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
     if (!editMode && !goalLimits.canCreate) {
       window.dispatchEvent(new CustomEvent('wt_toast', { 
         detail: { 
-          message: `Goal limit reached (${activeGoalsCount}/${goalLimits.maxGoals}). You cannot create more goals at this time.`, 
+          message: 'You have reached the limit for goal creation.', 
           type: 'error' 
+        } 
+      }))
+      return
+    }
+
+    // Check subgoal limit for free users
+    if (!goalLimits.isPremium && localSubGoals.length > goalLimits.maxSubgoals) {
+      window.dispatchEvent(new CustomEvent('wt_toast', { 
+        detail: { 
+          message: `Free users can only add ${goalLimits.maxSubgoals} sub-goal per goal. Upgrade to Premium for more.`, 
+          type: 'warning' 
         } 
       }))
       return
@@ -398,6 +409,32 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
                   label="Active Goals"
                   showUpgradeButton={false}
                 />
+              )}
+
+              {/* Near-limit indicator for canCreate but close to limit */}
+              {!editMode && goalLimits.canCreate && goalLimits.percentUsed >= 60 && (
+                <PremiumLimitIndicator
+                  current={activeGoalsCount}
+                  max={goalLimits.maxGoals}
+                  label="Active Goals"
+                  showUpgradeButton={false}
+                />
+              )}
+
+              {/* Analytics retention notice for free tier - goals */}
+              {!editMode && goalLimits.canCreate && !goalLimits.isPremium && goalLimits.percentUsed < 60 && (
+                <div className="flex items-start gap-3 p-3 rounded-xl" style={{ backgroundColor: 'rgba(76, 153, 230, 0.08)', border: '1px solid rgba(76, 153, 230, 0.2)' }}>
+                  <Clock className="h-4 w-4 flex-shrink-0 mt-0.5" style={{ color: THEME_COLOR }} />
+                  <div>
+                    <p className="text-xs font-medium" style={{ color: THEME_COLOR, fontFamily: 'Manrope' }}>
+                      Free plan: up to {goalLimits.maxGoals} active goals, analytics limited to 60 days
+                    </p>
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 flex items-center gap-1" style={{ fontFamily: 'Manrope' }}>
+                      <Crown className="h-3 w-3" style={{ color: '#f59e0b' }} />
+                      Upgrade to Premium for more goals and full analytics history
+                    </p>
+                  </div>
+                </div>
               )}
 
               {/* Title */}

@@ -535,13 +535,18 @@ exports.getStats = async (req, res, next) => {
 
 exports.getAnalytics = async (req, res, next) => {
   try {
-    const days = Math.min(parseInt(req.query.days) || 30, 90);
     const userId = req.user.id;
     const { query } = require('../config/supabase');
 
-    // Get user timezone
+    // Get user timezone + premium status
     const pgUser = await pgUserService.getUserById(userId);
     const userTimezone = pgUser?.timezone || 'UTC';
+
+    // ✅ PREMIUM CHECK: Enforce analytics history limit based on premium status
+    const { getFeatureLimits } = require('../config/premiumFeatures');
+    const analyticsLimits = getFeatureLimits('analytics', pgUser?.premium_expires_at);
+    const maxHistoryDays = analyticsLimits.maxHistoryDays || 60;
+    const days = Math.min(parseInt(req.query.days) || 30, maxHistoryDays);
 
     // Get analytics for the specified period - calculate date range in user's timezone
     const { startDate: startDateKey } = getDateRangeInTimezone(days, userTimezone);
@@ -589,18 +594,23 @@ exports.getHabitAnalytics = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Invalid habit ID' });
     }
 
-    const days = Math.min(parseInt(req.query.days) || 90, 365);
     const userId = req.user.id;
+
+    // Get user timezone + premium status
+    const pgUser = await pgUserService.getUserById(userId);
+    const userTimezone = pgUser?.timezone || 'UTC';
+
+    // ✅ PREMIUM CHECK: Enforce analytics history limit based on premium status
+    const { getFeatureLimits } = require('../config/premiumFeatures');
+    const analyticsLimits = getFeatureLimits('analytics', pgUser?.premium_expires_at);
+    const maxHistoryDays = analyticsLimits.maxHistoryDays || 60;
+    const days = Math.min(parseInt(req.query.days) || 60, maxHistoryDays);
 
     // Verify habit exists and belongs to user
     const habit = await pgHabitService.getHabitById(habitId, userId);
     if (!habit) {
       return res.status(404).json({ success: false, message: 'Habit not found' });
     }
-
-    // Get user timezone
-    const pgUser = await pgUserService.getUserById(userId);
-    const userTimezone = pgUser?.timezone || 'UTC';
 
     // Calculate date range in user's timezone
     const { startDate: startDateKey, endDate: endDateKey } = getDateRangeInTimezone(days - 1, userTimezone);

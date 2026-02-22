@@ -634,11 +634,11 @@ const createGoal = async (req, res, next) => {
     }
 
     // Check daily goal creation limit (max 5 per day)
-    const dailyCheck = await pgGoalService.checkDailyLimit(req.user.id, 5);
+    const dailyCheck = await pgGoalService.checkActiveGoalsLimit(req.user.id, 5);
     if (!dailyCheck.canCreate) {
       return res.status(400).json({
         success: false,
-        message: 'Daily goal creation limit reached (5 goals per day)'
+        message: 'Active goal limit reached (5 active goals per user)'
       });
     }
 
@@ -813,6 +813,22 @@ const updateGoal = async (req, res, next) => {
 
     const { title, description, category, targetDate, subGoals, habitLinks } = req.body;
     const isPublicFlag = (req.body.isPublic === true || req.body.isPublic === 'true') ? true : false;
+
+    // ✅ PREMIUM CHECK: Validate subgoals limit on update
+    if (Array.isArray(subGoals) && subGoals.length > 0) {
+      const user = await pgUserService.findById(req.user.id);
+      const { getFeatureLimits: getGoalFeatureLimits } = require('../config/premiumFeatures');
+      const goalLimits = getGoalFeatureLimits('goals', user.premium_expires_at);
+      if (goalLimits.maxSubgoalsPerGoal !== -1 && subGoals.length > goalLimits.maxSubgoalsPerGoal) {
+        return res.status(403).json({
+          success: false,
+          message: `Subgoal limit reached. ${user.premium_expires_at ? 'Premium' : 'Free'} users can have ${goalLimits.maxSubgoalsPerGoal} subgoal per goal.`,
+          error: 'SUBGOAL_LIMIT_REACHED',
+          limit: goalLimits.maxSubgoalsPerGoal,
+          current: subGoals.length
+        });
+      }
+    }
 
     // Update PostgreSQL fields
     const pgUpdates = {};

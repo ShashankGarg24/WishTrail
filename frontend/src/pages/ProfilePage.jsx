@@ -1,4 +1,4 @@
-import { GOAL_CATEGORIES } from '../constants/goalCategories'
+﻿import { GOAL_CATEGORIES } from '../constants/goalCategories'
 import { useState, useEffect, useRef, lazy, Suspense } from "react";
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Target, TrendingUp, Star, Edit2, ExternalLink, Youtube, Instagram, MapPin, Globe, Trophy, BookOpen, Clock, CheckCircle, Circle, User, UserPlus, UserCheck, ArrowLeft, Lock, Sparkles, Download, Flame, Award, BarChart2, Activity, MoreVertical, Plus, PenSquare } from "lucide-react";
@@ -1451,6 +1451,7 @@ const ProfilePage = () => {
           <Suspense fallback={null}><JournalPromptModal
             isOpen={isJournalOpen}
             onClose={() => setIsJournalOpen(false)}
+            hasTodayJournal={hasTodayJournal}
             onSubmitted={async () => {
               try {
                 await getUserJournalHighlights(currentUser?.id, { limit: 12 });
@@ -1761,11 +1762,6 @@ const ProfilePage = () => {
         <p className="text-gray-500 dark:text-gray-400 italic text-sm">
           &ldquo;The only way to achieve the impossible is to believe it is possible.&rdquo;
         </p>
-        <div className="flex justify-center gap-1.5 mt-4">
-          <span className="w-2 h-2 rounded-full bg-gray-400 dark:bg-gray-500" />
-          <span className="w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-600" />
-          <span className="w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-600" />
-        </div>
       </footer>
     </div>
   );

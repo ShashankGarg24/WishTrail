@@ -1,23 +1,23 @@
 import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
 import {
   Trophy,
   TrendingUp,
   ArrowRight,
-  Heart,
-  MessageCircle,
-  Share2,
   LogIn,
   Code,
   Target
 } from 'lucide-react';
 import useApiStore from '../store/apiStore';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { GOAL_CATEGORIES } from '../constants/goalCategories';
+import GoalPostModal from '../components/GoalPostModal';
 
 const InspirationPage = () => {
   const navigate = useNavigate();
   const [trendingGoals, setTrendingGoals] = useState([]);
+  const [selectedGoalId, setSelectedGoalId] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [openWithComments, setOpenWithComments] = useState(false);
 
   const {
     isAuthenticated,
@@ -40,6 +40,12 @@ const InspirationPage = () => {
       loadTrendingGoals();
     }    
   }, []);
+
+  const [searchParams] = useSearchParams();
+  useEffect(() => {
+    const goalId = searchParams.get('goalId');
+    if (goalId) handleOpenGoal(goalId);
+  }, [searchParams]);
 
   const loadTrendingGoals = async () => {
     try {
@@ -68,6 +74,24 @@ const InspirationPage = () => {
   const getCategoryLabel = (categoryId) => {
     const category = GOAL_CATEGORIES.find(c => c.id === categoryId);
     return category?.label || categoryId;
+  };
+  
+  const handleOpenGoal = (goalId) => {
+    setSelectedGoalId(goalId);
+    setIsModalOpen(true);
+    setOpenWithComments(false);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedGoalId(null);
+    setOpenWithComments(false);
+    // Remove goalId param from URL without pushing a new history entry
+    if (searchParams.has('goalId')) {
+      const next = new URLSearchParams(searchParams);
+      next.delete('goalId');
+      navigate({ search: next.toString() }, { replace: true });
+    }
   };
 
   const displayActivities = (recentActivities?.activities || []);
@@ -301,7 +325,7 @@ const InspirationPage = () => {
                       <div
                         key={goal.id || index}
                         className="flex items-start gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-[#4c99e6] dark:hover:border-[#4c99e6] transition-all cursor-pointer"
-                        onClick={() => navigate(`/goals/${goal.id}`)}
+                        onClick={() => handleOpenGoal(goal.id)}
                       >
                         <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
                           <Code className="h-5 w-5 text-[#4c99e6]" />
@@ -337,6 +361,15 @@ const InspirationPage = () => {
           </div>
         </div>
       </div>
+      
+        {/* Goal Details Modal */}
+        <GoalPostModal
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+          goalId={selectedGoalId}
+          openWithComments={openWithComments}
+          onToggleComments={() => setOpenWithComments(prev => !prev)}
+        />
     </div>
   );
 };

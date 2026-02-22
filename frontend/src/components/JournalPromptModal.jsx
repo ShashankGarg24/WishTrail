@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Sparkles, Lock, Users, Globe } from 'lucide-react';
+import { X, Sparkles, Lock, Users, Globe, CheckCircle } from 'lucide-react';
 import useApiStore from '../store/apiStore';
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock';
 
@@ -13,7 +13,7 @@ const visibilityOptions = [
   { value: 'public', label: 'Public', icon: Globe },
 ];
 
-const JournalPromptModal = ({ isOpen, onClose, onSubmitted }) => {
+const JournalPromptModal = ({ isOpen, onClose, onSubmitted, hasTodayJournal = false }) => {
   const { getJournalPrompt, journalPrompt, createJournalEntry, updateJournalEntry } = useApiStore();
   const [content, setContent] = useState('');
   const [visibility, setVisibility] = useState('private');
@@ -50,6 +50,8 @@ const JournalPromptModal = ({ isOpen, onClose, onSubmitted }) => {
         onClose();
       }
     } catch (error) {
+      const msg = error?.response?.data?.message || error?.message || 'Failed to save journal entry';
+      window.dispatchEvent(new CustomEvent('wt_toast', { detail: { message: msg, type: 'error' } }));
     } finally {
       setSubmitting(false);
     }
@@ -86,7 +88,18 @@ const JournalPromptModal = ({ isOpen, onClose, onSubmitted }) => {
               <X className="h-5 w-5" />
             </button>
           </div>
-          {!llmResult ? (
+          {hasTodayJournal ? (
+            <div className="flex flex-col items-center justify-center py-8 text-center gap-4">
+              <div className="p-4 rounded-full" style={{ backgroundColor: 'rgba(76, 153, 230, 0.12)' }}>
+                <CheckCircle className="h-10 w-10" style={{ color: THEME_COLOR }} />
+              </div>
+              <div>
+                <p className="text-base font-semibold text-gray-900 dark:text-white mb-1">Journal submitted for today</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">You have already submitted your journal entry for today. Come back tomorrow!</p>
+              </div>
+              <button type="button" onClick={onClose} className="mt-2 px-5 py-2.5 text-white rounded-xl text-sm font-medium hover:opacity-90" style={{ backgroundColor: THEME_COLOR }}>Close</button>
+            </div>
+          ) : !llmResult ? (
             <>
               {journalPrompt?.text && (
                 <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-900/50 rounded-xl text-sm text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700">
