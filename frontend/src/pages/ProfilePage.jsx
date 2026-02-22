@@ -1011,47 +1011,57 @@ const ProfilePage = () => {
                       </div>
                     )}
                   </div>
-                  {/* Habit Consistency - grid + stats */}
+                  {/* Habit Stats - Last 7 Days */}
                   <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 shadow-sm border border-gray-100 dark:border-gray-700">
                     <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white mb-1.5 sm:mb-2 flex items-center gap-2">
                       <Activity className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: THEME_COLOR }} />
-                      Habit Consistency
+                      Habit Statistics
                     </h3>
-                    <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-3 sm:mb-4">Last 30 days</p>
-                    {isProfileAccessible() ? (
-                      <>
-                        <div className="grid grid-cols-6 gap-0.5 mb-3 sm:mb-4" style={{ maxWidth: 120, width: '100%' }}>
-                          {Array.from({ length: 30 }).map((_, i) => {
-                            const filled = (analytics?.habits?.done ?? 18) > 0 && (i % 3 !== 0 || i % 5 === 0);
-                            return (
-                              <div
-                                key={i}
-                                className="aspect-square rounded-[3px]"
-                                style={{ backgroundColor: filled ? THEME_COLOR : '#e5e7eb', minWidth: 0 }}
-                              />
-                            );
-                          })}
-                        </div>
-                        <div className="flex gap-3 sm:gap-4 flex-wrap">
-                          <div className="text-center">
-                            <div className="text-xl sm:text-2xl font-bold" style={{ color: THEME_COLOR }}>
-                              {isOwnProfile ? (analytics?.habits?.currentStreak ?? userHabits.reduce((s, h) => Math.max(s, h.currentStreak || 0), 0)) : (userStats?.currentStreak ?? 0)}
+                    <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-3 sm:mb-4">Last 7 days</p>
+                    {isProfileAccessible() ? (() => {
+                      const l7 = analytics?.habits ?? { done: 0, skipped: 0 };
+                      const total7 = l7.done + l7.skipped;
+                      // pct = logged out of (logged + skipped)
+                      const pct = total7 > 0 ? Math.round((l7.done / total7) * 100) : 0;
+                      return (
+                        <>
+                          <div className="flex flex-col items-center mb-4 sm:mb-5">
+                            <div className="relative w-28 h-28 sm:w-32 sm:h-32 flex items-center justify-center">
+                              <svg className="w-28 h-28 sm:w-32 sm:h-32" viewBox="0 0 36 36">
+                                <path
+                                  fill="none"
+                                  stroke="#e5e7eb"
+                                  strokeWidth="3"
+                                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                                />
+                                <path
+                                  fill="none"
+                                  strokeWidth="3"
+                                  strokeDasharray={`${pct}, 100`}
+                                  strokeLinecap="round"
+                                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                                  style={{ stroke: THEME_COLOR, transition: 'stroke-dasharray 0.5s' }}
+                                />
+                              </svg>
+                              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                <span className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{pct}%</span>
+                                <span className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 uppercase">Logged</span>
+                              </div>
                             </div>
-                            <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 uppercase">Current Streak</div>
                           </div>
-                          <div className="text-center">
-                            <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-                              {analytics?.habits?.consistencyPercent ?? 94}%
+                          <div className="flex gap-2 sm:gap-3 w-full">
+                            <div className="flex-1 p-2 sm:p-3 rounded-lg sm:rounded-xl bg-green-50 dark:bg-green-900/20 text-center border border-green-200/50 dark:border-green-800/30">
+                              <div className="text-xs sm:text-sm font-semibold text-green-800 dark:text-green-200">{l7.done}</div>
+                              <div className="text-[10px] sm:text-xs text-green-600 dark:text-green-400 uppercase">Logged</div>
                             </div>
-                            <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 uppercase">Consistency</div>
+                            <div className="flex-1 p-2 sm:p-3 rounded-lg sm:rounded-xl bg-yellow-50 dark:bg-yellow-900/20 text-center border border-yellow-200/50 dark:border-yellow-800/30">
+                              <div className="text-xs sm:text-sm font-semibold text-yellow-800 dark:text-yellow-200">{l7.skipped}</div>
+                              <div className="text-[10px] sm:text-xs text-yellow-600 dark:text-yellow-400 uppercase">Skipped</div>
+                            </div>
                           </div>
-                          <div className="text-center">
-                            <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{userHabits.length}</div>
-                            <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 uppercase">Active Habits</div>
-                          </div>
-                        </div>
-                      </>
-                    ) : (
+                        </>
+                      );
+                    })() : (
                       <div className="text-center py-12">
                         <Lock className="h-8 w-8 text-gray-400 mx-auto mb-4" />
                         <p className="text-gray-500 dark:text-gray-400 text-sm">Analytics are private</p>
@@ -1279,12 +1289,6 @@ const ProfilePage = () => {
                                 <div className="h-2 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
                                   <div className="h-full rounded-full" style={{ width: `${Math.min(100, consistency)}%`, backgroundColor: THEME_COLOR }} />
                                 </div>
-                              </div>
-                              <div className="flex items-center justify-between">
-                                <span className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">Today&apos;s Status</span>
-                                <span className="px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300">
-                                  {habit.loggedToday ? 'Completed' : 'Mark Done'}
-                                </span>
                               </div>
                             </motion.div>
                           );

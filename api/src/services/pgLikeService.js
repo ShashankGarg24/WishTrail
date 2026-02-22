@@ -411,7 +411,6 @@ class PgLikeService {
     const sql = `
       DELETE FROM likes
       WHERE target_type = $1 AND target_id = $2
-      RETURNING id
     `;
 
     const result = await query(sql, [targetType, String(targetId)]);

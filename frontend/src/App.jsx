@@ -32,7 +32,7 @@ const AuthExpiredPage = lazy(() => import('./pages/AuthExpiredPage'))
 import { SpeedInsights } from '@vercel/speed-insights/react';
 const FeedbackButton = lazy(() => import('./components/FeedbackButton'))
 const SettingsPageNew = lazy(() => import('./pages/SettingsPage'))
-const HabitAnalyticsPageNew = lazy(() => import('./pages/HabitAnalyticsPage'))
+const HabitAnalyticsPage = lazy(() => import('./pages/HabitAnalyticsPage'))
 const GoalAnalyticsPage = lazy(() => import('./pages/GoalAnalyticsPage'))
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'))
 const TermsOfService = lazy(() => import('./pages/TermsOfService'))
@@ -211,7 +211,7 @@ function App() {
               <Route path="/leaderboard" element={<PrivateRoute><Suspense fallback={null}><LeaderboardPageNew /></Suspense></PrivateRoute>} />
               {/* <Route path="/communities" element={<PrivateRoute><Suspense fallback={null}><CommunitiesPage /></Suspense></PrivateRoute>} />
               <Route path="/communities/:id" element={<PrivateRoute><Suspense fallback={null}><CommunityDetailPage /></Suspense></PrivateRoute>} /> */}
-              <Route path="/habits/:id/analytics" element={<PrivateRoute><Suspense fallback={null}><HabitAnalyticsPageNew /></Suspense></PrivateRoute>} />
+              <Route path="/habits/:id/analytics" element={<PrivateRoute><Suspense fallback={null}><HabitAnalyticsPage /></Suspense></PrivateRoute>} />
               <Route path="/goals/:goalId/analytics" element={<PrivateRoute><Suspense fallback={null}><GoalAnalyticsPage /></Suspense></PrivateRoute>} />
               
               {/* Goal deeplink opens modal within feed/discover - Protected */}

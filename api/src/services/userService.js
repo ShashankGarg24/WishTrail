@@ -3,6 +3,7 @@ const pgFollowService = require('./pgFollowService');
 const pgBlockService = require('./pgBlockService');
 const pgGoalService = require('./pgGoalService');
 const pgHabitService = require('./pgHabitService');
+const { query: pgQuery } = require('../config/supabase');
 const UserPreferences = require('../models/extended/UserPreferences');
 const Activity = require('../models/Activity');
 const Notification = require('../models/Notification');
@@ -243,35 +244,126 @@ class UserService {
   /**
    * Get dashboard statistics for user
    */
-  async getDashboardStats(userId) {
+  async getDashboardStats(userId, todayParam) {
     const user = await pgUserService.findById(userId);
     if (!user) {
       throw new Error('User not found');
     }
-    
-    // Get today's completion count from PostgreSQL
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayGoals = await pgGoalService.getUserGoals({
-      userId,
-      completed: true,
-      page: 1,
-      limit: 100
-    });
-    
-    const todayCompletions = todayGoals.goals.filter(g => {
-      const completedDate = new Date(g.completed_at);
-      return completedDate >= today;
-    }).length;
-    
-    // Return only essential stats
+
+    // Use client-supplied local date (matches what the log stored) or fall back to UTC
+    const todayUTC  = todayParam && /^\d{4}-\d{2}-\d{2}$/.test(todayParam)
+      ? todayParam
+      : new Date().toISOString().split('T')[0];
+    const todayDOW  = new Date(todayUTC + 'T12:00:00Z').getUTCDay(); // 0=Sun … 6=Sat
+
+    // Run all queries in parallel for a single round-trip budget
+    const [
+      todayGoalRows,
+      habitStatsRow,
+      todayLogsRow,
+      activeTodayRow,
+      last7DaysRows,
+    ] = await Promise.all([
+
+      // Goal completions made today (for the Goals tab)
+      pgGoalService.getUserGoals({ userId, completed: true, page: 1, limit: 100 }),
+
+      // Total active habits + best (longest) streak across all habits
+      pgQuery(
+        `SELECT
+           COUNT(*) AS total_habits,
+           COALESCE(MAX(longest_streak), 0) AS best_streak
+         FROM habits
+         WHERE user_id = $1`,
+        [userId]
+      ),
+
+      // Habit logs recorded today with status = 'done'
+      pgQuery(
+        `SELECT COUNT(*) AS today_habit_logs
+         FROM habit_logs
+         WHERE user_id = $1 AND status = 'done' AND date_key = $2::date`,
+        [userId, todayUTC]
+      ),
+
+      // Habits that are scheduled for today (daily = always; weekly/custom = DOW match)
+      pgQuery(
+        `SELECT COUNT(*) AS active_today
+         FROM habits
+         WHERE user_id = $1
+           AND (
+             frequency = 'daily'
+             OR (frequency IN ('weekly', 'custom') AND days_of_week @> ARRAY[$2::int])
+           )`,
+        [userId, todayDOW]
+      ),
+
+      // Per-day 'done' log counts for the last 7 days (today inclusive)
+      pgQuery(
+        `SELECT date_key::text, COUNT(*) AS done_count
+         FROM habit_logs
+         WHERE user_id = $1
+           AND status   = 'done'
+           AND date_key >= CURRENT_DATE - INTERVAL '6 days'
+           AND date_key <= CURRENT_DATE
+         GROUP BY date_key
+         ORDER BY date_key`,
+        [userId]
+      ),
+    ]);
+
+    // ── Goal today-completions ────────────────────────────────────────────────
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayCompletions = todayGoalRows.goals.filter(
+      g => new Date(g.completed_at) >= todayStart
+    ).length;
+
+    // ── Habit scalar stats ────────────────────────────────────────────────────
+    const hs           = habitStatsRow.rows[0];
+    const totalHabits  = parseInt(hs.total_habits)   || 0;
+    const bestStreak   = parseInt(hs.best_streak)    || 0;
+    console.log(todayLogsRow);
+    const todayHabitLogs = parseInt(todayLogsRow.rows[0].today_habit_logs) || 0;
+    const activeToday  = parseInt(activeTodayRow.rows[0].active_today)     || 0;
+
+    // ── 7-day weighted momentum ───────────────────────────────────────────────
+    // Weight: today = 7, yesterday = 6, … 6 days ago = 1  (more recent = heavier)
+    // Daily performance = min(done / activeToday, 1) * 100  (capped at 100 %)
+    const logsMap = {};
+    for (const row of last7DaysRows.rows) {
+      logsMap[row.date_key] = parseInt(row.done_count) || 0;
+    }
+
+    let weightedSum  = 0;
+    let totalWeight  = 0;
+    for (let i = 0; i < 7; i++) {
+      const d = new Date();
+      d.setUTCDate(d.getUTCDate() - i);
+      const dateKey    = d.toISOString().split('T')[0];
+      const weight     = 7 - i;                          // today=7 … 6 days ago=1
+      const done       = logsMap[dateKey] || 0;
+      const perf       = activeToday > 0
+        ? Math.min(100, Math.round((done / activeToday) * 100))
+        : 0;
+      weightedSum  += perf * weight;
+      totalWeight  += weight;
+    }
+    const weekMomentum = totalWeight > 0 ? Math.round(weightedSum / totalWeight) : 0;
+
     return {
-      totalGoals: user.total_goals || 0,
+      // Goals
+      totalGoals:     user.total_goals     || 0,
       completedGoals: user.completed_goals || 0,
-      todayCompletions: todayCompletions || 0,
-      dailyLimit: 3,
-      currentStreak: user.current_streak || 0,
-      longestStreak: user.longest_streak || 0,
+      todayCompletions,
+      currentStreak:  user.current_streak  || 0,
+      longestStreak:  user.longest_streak  || 0,
+      // Habits
+      totalHabits,
+      bestStreak,
+      todayHabitLogs,
+      activeToday,
+      weekMomentum,
     };
   }
   

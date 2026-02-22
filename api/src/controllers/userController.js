@@ -83,7 +83,8 @@ const getUser = async (req, res, next) => {
 // @access  Private
 const getDashboardStats = async (req, res, next) => {
   try {
-    const stats = await userService.getDashboardStats(req.user.id);
+    const today = req.query.today; // YYYY-MM-DD in user's local timezone (optional)
+    const stats = await userService.getDashboardStats(req.user.id, today);
 
     res.status(200).json({
       success: true,
@@ -606,13 +607,13 @@ const getAnalytics = async (req, res, next) => {
     });
     const completedGoals = completedGoalsResult.pagination.total;
     
-    // Get habits analytics (30 days by default)
-    const habitAnalytics = await habitService.analytics(targetUserId, { days: 30 });
+    // Get habits analytics (7 days by default)
+    const habitAnalytics = await habitService.analytics(targetUserId, { days: 7 });
     
     const analytics = {
+      // Only logged (done) and skipped are tracked — missed is not surfaced
       habits: {
         done: habitAnalytics.totals?.done || 0,
-        missed: habitAnalytics.totals?.missed || 0,
         skipped: habitAnalytics.totals?.skipped || 0
       },
       goals: {
@@ -681,13 +682,13 @@ const getUserAnalytics = async (req, res, next) => {
     });
     const completedGoals = completedGoalsResult.pagination.total;
     
-    // Get habits analytics (30 days by default)
-    const habitAnalytics = await habitService.analytics(targetUserId, { days: 30 });
+    // Get habits analytics — last 7 days
+    const habitAnalytics = await habitService.analytics(targetUserId, { days: 7 });
     
     const analytics = {
+      // Only logged (done) and skipped are tracked — missed is not surfaced
       habits: {
         done: habitAnalytics.totals?.done || 0,
-        missed: habitAnalytics.totals?.missed || 0,
         skipped: habitAnalytics.totals?.skipped || 0
       },
       goals: {

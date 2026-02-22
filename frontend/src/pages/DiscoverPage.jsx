@@ -153,7 +153,8 @@ const DiscoverPageNew = () => {
         }
         // Fetch top achievers from leaderboard
         const top = await getGlobalLeaderboard({ page: 1, limit: 3 });
-        setTopAchievers(Array.isArray(top) ? top.slice(0, 3) : []);
+        console.log('Top achievers from API:', top);
+        setTopAchievers(Array.isArray(top?.leaderboard) ? top?.leaderboard.slice(0, 3) : []);
       })();
     }
   }, [activeTab, isAuthenticated, getTrendingGoals, getGlobalLeaderboard, debouncedSearch, selectedCategory, searchPublicGoals, debouncedUserSearch, searchUsers]);

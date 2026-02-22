@@ -130,6 +130,9 @@ class GoalService {
       targetDate,
       isPublic,
     });
+
+    // Keep user goal counters in sync (trigger removed — maintained in code)
+    await pgUserService.incrementStats(userId, { total_goals: 1 });
     
     // Create GoalDetails in MongoDB for extended data
     if (description || tags.length > 0) {
@@ -230,6 +233,13 @@ class GoalService {
     // Note: Full cascading delete is handled in goalController with transaction
     // This method is kept for service-level calls if needed
     await pgGoalService.deleteGoal(goalId, userId);
+
+    // Keep user goal counters in sync (trigger removed — maintained in code)
+    const statsDecrement = { total_goals: -1 };
+    if (goal.completed_at) {
+      statsDecrement.completed_goals = -1;
+    }
+    await pgUserService.incrementStats(goal.user_id, statsDecrement);
     
     // Also soft-delete GoalDetails
     await GoalDetails.findOneAndUpdate(

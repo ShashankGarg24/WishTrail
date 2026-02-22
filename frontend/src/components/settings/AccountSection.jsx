@@ -463,7 +463,7 @@ const AccountSection = () => {
           </div>
 
           {/* Danger Zone */}
-          <div>
+          {/* <div>
             <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
               <div className="p-1.5 sm:p-2 rounded-lg bg-red-100 dark:bg-red-900/20">
                 <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-red-600 dark:text-red-400" />
@@ -479,7 +479,6 @@ const AccountSection = () => {
                   <p className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white mb-0.5 sm:mb-1">ACCOUNT TERMINATION</p>
                 </div>
                 
-                {/* Deactivate Account */}
                 <div className="mb-3 sm:mb-4 pb-3 sm:pb-4 border-b border-red-200 dark:border-red-900/30">
                   <button
                     onClick={handleDeactivateAccount}
@@ -492,7 +491,6 @@ const AccountSection = () => {
                   </p>
                 </div>
 
-                {/* Delete Account */}
                 <div>
                   <button
                     onClick={handleDeleteAccount}
@@ -506,7 +504,7 @@ const AccountSection = () => {
                 </div>
               </div>
             </div>
-          </div>
+          </div> */}
         </div>
       )}
     </div>
