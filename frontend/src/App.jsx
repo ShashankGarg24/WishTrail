@@ -1,7 +1,7 @@
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom'
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { GoogleOAuthProvider } from '@react-oauth/google'
-import { Toaster } from 'react-hot-toast'
+import { Toaster, toast } from 'react-hot-toast'
 import useApiStore from './store/apiStore'
 import Header from './components/Header'
 import ScrollMemory from './components/ScrollMemory'
@@ -89,6 +89,20 @@ function App() {
     } catch { }
   }, [location.search, navigate])
 
+  // Bridge wt_toast custom events to react-hot-toast
+  useEffect(() => {
+    const handler = (e) => {
+      const { message, type } = e.detail || {}
+      if (!message) return
+      if (type === 'success') toast.success(message)
+      else if (type === 'error') toast.error(message)
+      else if (type === 'warning') toast(message, { icon: '⚠️' })
+      else toast(message)
+    }
+    window.addEventListener('wt_toast', handler)
+    return () => window.removeEventListener('wt_toast', handler)
+  }, [])
+
   // Detect if running inside the mobile app WebView
   useEffect(() => {
     try {
@@ -168,7 +182,7 @@ function App() {
 
   return (
     <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
-      <Toaster position="top-right" />
+      <Toaster position="top-right" containerStyle={{ zIndex: 99999 }} />
       <div className="flex flex-col min-h-screen bg-white dark:bg-gray-900 transition-colors duration-300">
         {/* Background Elements */}
         <div className="fixed inset-0 pointer-events-none z-0">

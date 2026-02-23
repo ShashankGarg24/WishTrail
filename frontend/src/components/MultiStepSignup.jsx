@@ -599,7 +599,7 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
           Complete Your Profile
         </h2>
         <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
-          Tell us a bit more about yourself (Optional)
+          Tell us a bit more about yourself
         </p>
       </div>
 
@@ -615,7 +615,6 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
         <label className="flex items-center text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
           <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
           Date of Birth
-          <span className="ml-2 text-xs sm:text-sm text-gray-500 dark:text-gray-400">(Optional)</span>
         </label>
         <input
           type="date"

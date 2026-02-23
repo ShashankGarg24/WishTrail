@@ -90,6 +90,7 @@ const ProfilePage = () => {
 
   const [isRequested, setIsRequested] = useState(false);
   const [isJournalOpen, setIsJournalOpen] = useState(false);
+  const [submittedJournalToday, setSubmittedJournalToday] = useState(false);
   const [entryModalOpen, setEntryModalOpen] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState(null);
   const [journalFeed, setJournalFeed] = useState([]);
@@ -291,15 +292,20 @@ const ProfilePage = () => {
 
   const hasTodayJournal = (() => {
     if (!isOwnProfile) return false;
-    
+    if (submittedJournalToday) return true;
     // Get today's date in user's timezone (YYYY-MM-DD format)
     const todayKey = getDateKeyInTimezone(new Date());
-    
-    // Check if any journal entry has a dayKey matching today
-    if (Array.isArray(journalEntries) && journalEntries.length > 0) {
-      return journalEntries.some(e => e.dayKey === todayKey);
+    // Check journalFeed (lazy-loaded tab data) first — it's what's visible on screen
+    if (Array.isArray(journalFeed) && journalFeed.length > 0) {
+      if (journalFeed.some(e => e.dayKey === todayKey)) return true;
+      // Fallback: compare createdAt date portion in case dayKey format differs
+      if (journalFeed.some(e => e.createdAt && getDateKeyInTimezone(new Date(e.createdAt)) === todayKey)) return true;
     }
-    
+    // Also check store journalEntries
+    if (Array.isArray(journalEntries) && journalEntries.length > 0) {
+      if (journalEntries.some(e => e.dayKey === todayKey)) return true;
+      if (journalEntries.some(e => e.createdAt && getDateKeyInTimezone(new Date(e.createdAt)) === todayKey)) return true;
+    }
     return false;
   })();
 
@@ -1453,6 +1459,7 @@ const ProfilePage = () => {
             onClose={() => setIsJournalOpen(false)}
             hasTodayJournal={hasTodayJournal}
             onSubmitted={async () => {
+              setSubmittedJournalToday(true);
               try {
                 await getUserJournalHighlights(currentUser?.id, { limit: 12 });
                 const entries = await getMyJournalEntries({ limit: 10 });

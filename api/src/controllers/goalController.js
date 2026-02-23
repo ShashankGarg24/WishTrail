@@ -633,6 +633,18 @@ const createGoal = async (req, res, next) => {
       });
     }
 
+    // ✅ PREMIUM CHECK: Validate habit links limit
+    const habitLinksArray = Array.isArray(habitLinks) ? habitLinks : [];
+    if (goalLimits.maxSubHabitsPerGoal !== undefined && goalLimits.maxSubHabitsPerGoal !== -1 && habitLinksArray.length > goalLimits.maxSubHabitsPerGoal) {
+      return res.status(403).json({
+        success: false,
+        message: `Habit link limit reached. ${req.isPremium ? 'Premium' : 'Free'} users can have ${goalLimits.maxSubHabitsPerGoal} habit links per goal.`,
+        error: 'HABIT_LINK_LIMIT_REACHED',
+        limit: goalLimits.maxSubHabitsPerGoal,
+        current: habitLinksArray.length
+      });
+    }
+
     // Check daily goal creation limit (max 5 per day)
     const dailyCheck = await pgGoalService.checkActiveGoalsLimit(req.user.id, 5);
     if (!dailyCheck.canCreate) {
@@ -814,18 +826,28 @@ const updateGoal = async (req, res, next) => {
     const { title, description, category, targetDate, subGoals, habitLinks } = req.body;
     const isPublicFlag = (req.body.isPublic === true || req.body.isPublic === 'true') ? true : false;
 
-    // ✅ PREMIUM CHECK: Validate subgoals limit on update
-    if (Array.isArray(subGoals) && subGoals.length > 0) {
+    // ✅ PREMIUM CHECK: Validate subgoals and habit links limits on update
+    if ((Array.isArray(subGoals) && subGoals.length > 0) || (Array.isArray(habitLinks) && habitLinks.length > 0)) {
       const user = await pgUserService.findById(req.user.id);
       const { getFeatureLimits: getGoalFeatureLimits } = require('../config/premiumFeatures');
       const goalLimits = getGoalFeatureLimits('goals', user.premium_expires_at);
-      if (goalLimits.maxSubgoalsPerGoal !== -1 && subGoals.length > goalLimits.maxSubgoalsPerGoal) {
+      if (Array.isArray(subGoals) && subGoals.length > 0 && goalLimits.maxSubgoalsPerGoal !== -1 && subGoals.length > goalLimits.maxSubgoalsPerGoal) {
         return res.status(403).json({
           success: false,
           message: `Subgoal limit reached. ${user.premium_expires_at ? 'Premium' : 'Free'} users can have ${goalLimits.maxSubgoalsPerGoal} subgoal per goal.`,
           error: 'SUBGOAL_LIMIT_REACHED',
           limit: goalLimits.maxSubgoalsPerGoal,
           current: subGoals.length
+        });
+      }
+      // ✅ PREMIUM CHECK: Validate habit links limit on update
+      if (Array.isArray(habitLinks) && goalLimits.maxSubHabitsPerGoal !== undefined && goalLimits.maxSubHabitsPerGoal !== -1 && habitLinks.length > goalLimits.maxSubHabitsPerGoal) {
+        return res.status(403).json({
+          success: false,
+          message: `Habit link limit reached. ${user.premium_expires_at ? 'Premium' : 'Free'} users can have ${goalLimits.maxSubHabitsPerGoal} habit links per goal.`,
+          error: 'HABIT_LINK_LIMIT_REACHED',
+          limit: goalLimits.maxSubHabitsPerGoal,
+          current: habitLinks.length
         });
       }
     }

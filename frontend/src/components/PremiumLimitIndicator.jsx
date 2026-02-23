@@ -1,4 +1,4 @@
-import { AlertCircle, TrendingUp, Crown } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 
 const PremiumLimitIndicator = ({ 
   current, 
@@ -10,7 +10,6 @@ const PremiumLimitIndicator = ({
 }) => {
   const isInfinite = max === '∞' || max === -1;
   const percentage = isInfinite ? 0 : Math.min(100, (current / max) * 100);
-  const remaining = isInfinite ? '∞' : Math.max(0, max - current);
   const isNearLimit = percentage >= 80 && !isInfinite;
   const isAtLimit = percentage >= 100 && !isInfinite;
   
@@ -38,7 +37,7 @@ const PremiumLimitIndicator = ({
           <div className="flex items-start gap-2">
             <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
             <p className="text-sm text-red-700 font-medium">
-              You've reached your limit. You cannot create more at this time.
+              You've reached your {label} limit. You cannot create more at this time.
             </p>
           </div>
         </div>

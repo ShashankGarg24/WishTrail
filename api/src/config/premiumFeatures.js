@@ -18,11 +18,13 @@ const PREMIUM_FEATURES = {
   goals: {
     free: {
       maxActiveGoals: 5,
-      maxSubgoalsPerGoal: 1
+      maxSubgoalsPerGoal: 1,
+      maxSubHabitsPerGoal: 1
     },
     premium: {
       maxActiveGoals: 10,
-      maxSubgoalsPerGoal: 10
+      maxSubgoalsPerGoal: 5,
+      maxSubHabitsPerGoal: 5
     }
   },
 

@@ -3,9 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Sparkles, Lock, Users, Globe, CheckCircle } from 'lucide-react';
 import useApiStore from '../store/apiStore';
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock';
+import { useFeatureLimits } from '../hooks/usePremium';
 
 const THEME_COLOR = '#4c99e6';
-const MAX_WORDS = 500;
 
 const visibilityOptions = [
   { value: 'private', label: 'Private', icon: Lock },
@@ -15,11 +15,14 @@ const visibilityOptions = [
 
 const JournalPromptModal = ({ isOpen, onClose, onSubmitted, hasTodayJournal = false }) => {
   const { getJournalPrompt, journalPrompt, createJournalEntry, updateJournalEntry } = useApiStore();
+  const journalFeatureLimits = useFeatureLimits('journal');
+  const maxChars = journalFeatureLimits?.maxEntryLength ?? 1000;
   const [content, setContent] = useState('');
   const [visibility, setVisibility] = useState('private');
   const [mood, setMood] = useState('neutral');
   const [submitting, setSubmitting] = useState(false);
-  const words = content.trim() ? content.trim().split(/\s+/).filter(Boolean).length : 0;
+  const chars = content.length;
+  const overLimit = chars > maxChars;
   const [llmResult, setLlmResult] = useState(null);
 
   useEffect(() => {
@@ -30,7 +33,7 @@ const JournalPromptModal = ({ isOpen, onClose, onSubmitted, hasTodayJournal = fa
 
   const handleSubmit = async (e) => {
     e?.preventDefault?.();
-    if (!content.trim() || words > MAX_WORDS) return;
+    if (!content.trim() || overLimit) return;
     setSubmitting(true);
     try {
       const res = await createJournalEntry({ content, promptKey: journalPrompt?.key, visibility, mood: undefined, tags: [] });
@@ -112,8 +115,13 @@ const JournalPromptModal = ({ isOpen, onClose, onSubmitted, hasTodayJournal = fa
                   onChange={(e) => setContent(e.target.value)}
                   placeholder="What's on your mind today?"
                   rows={6}
-                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-wt focus:border-transparent bg-white dark:bg-gray-900/50 text-sm text-gray-900 dark:text-white placeholder-gray-400 resize-none"
+                  className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:border-transparent bg-white dark:bg-gray-900/50 text-sm text-gray-900 dark:text-white placeholder-gray-400 resize-none ${overLimit ? 'border-red-400 focus:ring-red-300' : 'border-gray-300 dark:border-gray-600 focus:ring-wt'}`}
                 />
+                <div className="flex justify-between items-center -mt-3">
+                  <span className={`text-xs ${overLimit ? 'text-red-500 font-medium' : 'text-gray-400 dark:text-gray-500'}`}>
+                    {chars.toLocaleString()} / {maxChars.toLocaleString()} characters
+                  </span>
+                </div>
                 <div>
                   <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 block uppercase tracking-wide">Visibility</label>
                   <div className="flex flex-wrap gap-2">
@@ -140,8 +148,8 @@ const JournalPromptModal = ({ isOpen, onClose, onSubmitted, hasTodayJournal = fa
                   </div>
                 </div>
                 <div className="flex items-center justify-between pt-2">
-                  <span className={`text-xs ${words > MAX_WORDS ? 'text-red-600' : 'text-gray-500 dark:text-gray-400'}`}>
-                    {words}/{MAX_WORDS} words
+                  <span className={`text-xs ${overLimit ? 'text-red-600 font-medium' : 'text-gray-500 dark:text-gray-400'}`}>
+                    {overLimit ? `Over limit by ${chars - maxChars} chars` : ''}
                   </span>
                   <div className="flex items-center gap-3">
                     <button type="button" onClick={onClose} className="px-4 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 text-sm font-medium transition-colors">
@@ -149,11 +157,11 @@ const JournalPromptModal = ({ isOpen, onClose, onSubmitted, hasTodayJournal = fa
                     </button>
                     <button
                       type="submit"
-                      disabled={submitting || !content.trim() || words > MAX_WORDS}
+                      disabled={submitting || !content.trim() || overLimit}
                       className="px-4 py-2.5 text-white rounded-xl hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-opacity"
                       style={{ backgroundColor: THEME_COLOR }}
                     >
-                      {submitting ? 'Saving...' : 'Save Entry'}
+                      {submitting ? 'Saving...' : overLimit ? 'Too Long' : 'Save Entry'}
                     </button>
                   </div>
                 </div>

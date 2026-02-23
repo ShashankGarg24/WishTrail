@@ -98,7 +98,7 @@ export default function JournalExportModal({ isOpen, onClose }) {
 
             {/* Date range */}
             <div>
-              <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2 flex items-center gap-1.5 uppercase tracking-wide"><CalendarIcon className="h-3.5 w-3.5"/> Date Range (Optional)</label>
+              <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2 flex items-center gap-1.5 uppercase tracking-wide"><CalendarIcon className="h-3.5 w-3.5"/> Date Range </label>
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">From</label>

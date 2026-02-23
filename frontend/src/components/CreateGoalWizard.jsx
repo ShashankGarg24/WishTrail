@@ -379,8 +379,9 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
             <div className="w-4 sm:w-8 h-0.5 rounded" style={{ backgroundColor: step === 1 ? '#e5e7eb' : THEME_COLOR }} />
             <button
               type="button"
-              onClick={() => { if (validateStep1()) setStep(2) }}
-              className={`flex items-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all ${
+              onClick={() => { if (!editMode && !goalLimits.canCreate) return; if (validateStep1()) setStep(2) }}
+              disabled={!editMode && !goalLimits.canCreate}
+              className={`flex items-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
                 step === 2 
                   ? 'border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white' 
                   : 'border-2 border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400'
@@ -406,17 +407,7 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
                 <PremiumLimitIndicator
                   current={activeGoalsCount}
                   max={goalLimits.maxGoals}
-                  label="Active Goals"
-                  showUpgradeButton={false}
-                />
-              )}
-
-              {/* Near-limit indicator for canCreate but close to limit */}
-              {!editMode && goalLimits.canCreate && goalLimits.percentUsed >= 60 && (
-                <PremiumLimitIndicator
-                  current={activeGoalsCount}
-                  max={goalLimits.maxGoals}
-                  label="Active Goals"
+                  label="active goals"
                   showUpgradeButton={false}
                 />
               )}
@@ -524,7 +515,7 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
               <div className="relative">
                 <label htmlFor="targetDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" style={{ fontFamily: 'Manrope' }}>
                   <Calendar className="h-3.5 w-3.5 inline mr-1" />
-                  Target Date <span className="text-gray-500">(Optional)</span>
+                  Target Date 
                 </label>
                 <input 
                   type="date" 
@@ -576,11 +567,11 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
               </button>
               <button 
                 type="submit" 
-                disabled={saving} 
+                disabled={saving || (!editMode && !goalLimits.canCreate)} 
                 className="flex-1 py-3 px-5 text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-lg transition-all"
                 style={{ backgroundColor: THEME_COLOR, fontFamily: 'Manrope' }}
               >
-                {saving ? (editMode ? 'Updating…' : 'Creating…') : 'Next →'}
+                {saving ? (editMode ? 'Updating…' : 'Creating…') : (!editMode && !goalLimits.canCreate ? 'Limit Reached' : 'Next →')}
               </button>
             </div>
           </form>
