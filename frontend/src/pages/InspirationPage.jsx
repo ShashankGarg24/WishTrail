@@ -224,12 +224,23 @@ const InspirationPage = () => {
                                 )}
                               </div>
                               <p className="text-sm text-gray-700 dark:text-gray-300 mb-1" style={{ fontFamily: 'Manrope, sans-serif' }}>
-                                {activity.type === 'goal_completed' && `Just completed: ${activity.data?.goalTitle || 'Morning Yoga Session'}`}
-                                {activity.type === 'goal_created' && `Created a new goal: ${activity.data?.goalTitle || 'New Goal'}`}
+                                {activity.type === 'goal_completed' && `Completed: ${activity.data?.goalTitle || activity.data?.goal?.title || 'a goal'}`}
+                                {activity.type === 'goal_created' && `Created a new goal: ${activity.data?.goalTitle || activity.data?.goal?.title || 'a goal'}`}
+                                {activity.type === 'goal_activity' && (() => {
+                                  const title = activity.data?.goalTitle || activity.data?.goal?.title;
+                                  const lastUpdate = activity.data?.lastUpdateType;
+                                  if (lastUpdate === 'completed') return `Completed: ${title || 'a goal'}`;
+                                  if (lastUpdate === 'created') return `Created a new goal: ${title || 'a goal'}`;
+                                  return `Updated goal: ${title || 'a goal'}`;
+                                })()}
+                                {activity.type === 'subgoal_completed' && `Completed a sub-goal for: ${activity.data?.goalTitle || activity.data?.goal?.title || 'a goal'}`}
+                                {activity.type === 'subgoal_added' && `Added a sub-goal to: ${activity.data?.goalTitle || activity.data?.goal?.title || 'a goal'}`}
+                                {activity.type === 'habit_added' && `Linked a habit to: ${activity.data?.goalTitle || activity.data?.goal?.title || 'a goal'}`}
+                                {activity.type === 'habit_target_achieved' && `Hit habit target for: ${activity.data?.goalTitle || activity.data?.goal?.title || 'a goal'}`}
                                 {activity.type === 'user_followed' && `Started following ${activity.data?.targetUserName || 'someone'}`}
                                 {activity.type === 'streak_milestone' && `Reached a ${activity.data?.streakCount || 0} day streak!`}
                                 {activity.type === 'achievement_earned' && `Earned "${activity.data?.achievementName || 'achievement'}" badge`}
-                                {!['goal_completed', 'goal_created', 'user_followed', 'streak_milestone', 'achievement_earned'].includes(activity.type) && 'Just completed: Morning Yoga Session'}
+                                {!['goal_completed', 'goal_created', 'goal_activity', 'subgoal_completed', 'subgoal_added', 'subgoal_removed', 'subgoal_uncompleted', 'habit_added', 'habit_removed', 'habit_target_achieved', 'user_followed', 'streak_milestone', 'achievement_earned'].includes(activity.type) && (activity.data?.goalTitle || activity.data?.goal?.title || activity.type)}
                               </p>
                               <span className="text-xs text-gray-500 dark:text-gray-400">{formatTimeAgo(activity.createdAt)}</span>
                             </div>
