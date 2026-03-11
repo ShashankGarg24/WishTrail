@@ -33,10 +33,10 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-8">
           {/* Brand Section */}
           <div className="space-y-4">
-            <Link to="/" className="flex items-center gap-0">
-              <img src="/logo-wo-bg.png" alt="WishTrail" width="40" height="40" className="w-16 h-16 object-contain" />
+            <Link to="/" className="flex items-center gap-1">
+              <img src="/logo-wo-bg.png" alt="WishTrail" width="40" height="40" className="w-10 h-10 object-contain" />
               <span className="-ml-2 text-xl font-bold text-gray-900 dark:text-white font-manrope">
-                WishTrail
+                ishTrail
               </span>
             </Link>
             <p className="text-gray-600 dark:text-gray-400 text-sm font-manrope leading-relaxed">

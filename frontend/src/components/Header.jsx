@@ -69,10 +69,10 @@ const Header = () => {
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between h-14 sm:h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-0">
-            <img src="/logo-wo-bg.png" alt="WishTrail" width="40" height="40" className="w-16 h-16 sm:w-17 sm:h-17 object-contain" />
+          <Link to="/" className="flex items-center gap-1">
+            <img src="/logo-wo-bg.png" alt="WishTrail" width="40" height="40" className="w-10 h-10 sm:w-11 sm:h-11 object-contain" />
             <span className="-ml-2 text-lg sm:text-xl font-bold text-gray-900 dark:text-white font-manrope">
-              WishTrail
+              ishTrail
             </span>
           </Link>
 
