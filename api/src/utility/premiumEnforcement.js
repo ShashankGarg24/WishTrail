@@ -107,9 +107,9 @@ async function validateJournalEntry(req) {
     return {
       allowed: false,
       error: 'JOURNAL_LIMIT_REACHED',
-      // message: `Daily journal limit reached. ${user.premium_expires_at ? 'Premium' : 'Free'} users can create ${limits.maxEntriesPerDay} ${limits.maxEntriesPerDay === 1 ? 'entry' : 'entries'} per day.`,
-      // limit: limits.maxEntriesPerDay,
-      // current: todayCount
+      message: `You have already submitted your journal entry for today. Come back tomorrow!`,
+      limit: limits.maxEntriesPerDay,
+      current: todayCount
     };
   }
   

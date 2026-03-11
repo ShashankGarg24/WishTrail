@@ -153,7 +153,7 @@ const DiscoverPageNew = () => {
         }
         // Fetch top achievers from leaderboard
         const top = await getGlobalLeaderboard({ page: 1, limit: 3 });
-        setTopAchievers(Array.isArray(top) ? top.slice(0, 3) : []);
+        setTopAchievers(Array.isArray(top?.leaderboard) ? top?.leaderboard.slice(0, 3) : []);
       })();
     }
   }, [activeTab, isAuthenticated, getTrendingGoals, getGlobalLeaderboard, debouncedSearch, selectedCategory, searchPublicGoals, debouncedUserSearch, searchUsers]);
@@ -488,17 +488,6 @@ const DiscoverPageNew = () => {
               </div>
             </>
           )}
-        </motion.div>
-
-        {/* Pagination Dots */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.4 }}
-          className="flex items-center justify-center gap-2 mt-12"
-        >
-          <div className="w-2 h-2 rounded-full bg-[#4c99e6]"></div>
-          <div className="w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-600"></div>
         </motion.div>
 
         {/* Inspirational Quote */}

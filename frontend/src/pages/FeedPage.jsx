@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, lazy, Suspense } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Heart, MessageCircle, Share2, Trophy, Zap, Target, Flame, Star, UserPlus } from 'lucide-react';
 import useApiStore from '../store/apiStore';
@@ -309,7 +309,18 @@ const FeedPage = () => {
     setIsModalOpen(false);
     setSelectedGoalId(null);
     setOpenWithComments(false);
+    // Remove goalId param from URL without pushing a new history entry
+    if (searchParams.has('goalId')) {
+      const next = new URLSearchParams(searchParams);
+      next.delete('goalId');
+      navigate({ search: next.toString() }, { replace: true });
+    }
   };
+  const [searchParams] = useSearchParams();
+  useEffect(() => {
+    const goalId = searchParams.get('goalId');
+    if (goalId) handleOpenGoal(goalId);
+  }, [searchParams]);
 
   const handleOpenComments = (activityId, goalId) => {
     if (!activityId) return;

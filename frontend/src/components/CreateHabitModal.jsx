@@ -1,11 +1,11 @@
 import { useEffect, useState, useMemo } from 'react';
-import { X, Calendar, Info } from 'lucide-react';
+import { X, Calendar, Info, Clock, Crown } from 'lucide-react';
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock';
 
 const THEME_COLOR = '#4c99e6';
 import { habitsAPI } from '../services/api';
 import useApiStore from '../store/apiStore';
-import { useHabitLimits } from '../hooks/usePremium';
+import { useHabitLimits, useFeatureLimits } from '../hooks/usePremium';
 import PremiumLimitIndicator from './PremiumLimitIndicator';
 
 const dayOptions = [
@@ -35,6 +35,7 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
     return habits?.filter(h => h.isActive !== false)?.length || 0
   }, [habits])
   const habitLimits = useHabitLimits(activeHabitsCount)
+  const habitFeatureLimits = useFeatureLimits('habits')
 
   useEffect(() => {
     if (!isOpen) return;
@@ -64,7 +65,7 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
     if (!habitLimits.canCreate) {
       window.dispatchEvent(new CustomEvent('wt_toast', { 
         detail: { 
-          message: `Habit limit reached (${activeHabitsCount}/${habitLimits.maxHabits}). You cannot create more habits at this time.`, 
+          message: 'You have reached the limit for habit creation.', 
           type: 'error' 
         } 
       }))
@@ -134,6 +135,7 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
 
         {/* Content */}
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto scrollbar-hide scrollbar-hide">
+          <fieldset disabled={!habitLimits.canCreate} className="border-0 p-0 m-0 min-w-0">
           <div className="px-4 sm:px-6 py-4 sm:py-5 space-y-4 sm:space-y-5">
             {error && (
               <div className="flex items-start gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-700 dark:text-red-300 text-sm">
@@ -146,9 +148,25 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
               <PremiumLimitIndicator
                 current={activeHabitsCount}
                 max={habitLimits.maxHabits}
-                label="Active Habits"
+                label="active habits"
                 showUpgradeButton={false}
               />
+            )}
+
+            {/* Log retention info for free tier */}
+            {!habitLimits.isPremium && habitLimits.canCreate && (
+              <div className="flex items-start gap-3 p-3 rounded-xl" style={{ backgroundColor: 'rgba(76, 153, 230, 0.08)', border: '1px solid rgba(76, 153, 230, 0.2)' }}>
+                <Clock className="h-4 w-4 flex-shrink-0 mt-0.5" style={{ color: THEME_COLOR }} />
+                <div>
+                  <p className="text-xs font-medium" style={{ color: THEME_COLOR }}>
+                    Log history limited to {habitFeatureLimits?.historyRetentionDays ?? 60} days
+                  </p>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 flex items-center gap-1">
+                    <Crown className="h-3 w-3" style={{ color: '#f59e0b' }} />
+                    Upgrade to Premium for unlimited history
+                  </p>
+                </div>
+              </div>
             )}
 
             {/* Basic Information */}
@@ -164,7 +182,7 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
                   onChange={(e) => setName(e.target.value)} 
                   placeholder="e.g., Morning meditation"
                   required 
-                  className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4c99e6] transition-colors" 
+                  className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4c99e6] transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
                 />
               </div>
               <div>
@@ -174,7 +192,7 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
                   onChange={(e) => setDescription(e.target.value)} 
                   placeholder="Add any notes or motivation for this habit"
                   rows={3} 
-                  className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4c99e6] transition-colors resize-none" 
+                  className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4c99e6] transition-colors resize-none disabled:opacity-50 disabled:cursor-not-allowed" 
                 />
               </div>
             </div>
@@ -190,7 +208,7 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
                 <select 
                   value={frequency} 
                   onChange={(e) => setFrequency(e.target.value)} 
-                  className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#4c99e6]"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#4c99e6] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <option value="daily">Daily</option>
                   <option value="custom">Custom</option>
@@ -206,7 +224,7 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
                         type="button" 
                         key={d.value} 
                         onClick={() => toggleDay(d.value)} 
-                        className={`px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium border transition-all ${
+                        className={`px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium border transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
                           daysOfWeek.includes(d.value) 
                             ? 'text-white border-transparent' 
                             : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
@@ -266,6 +284,7 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
               </div>
             </div>
           </div>
+          </fieldset>
 
           {/* Footer */}
           <div className="bg-gray-50 dark:bg-gray-800/50 px-4 sm:px-6 lg:px-8 py-4 sm:py-5 border-t border-gray-200 dark:border-gray-700 flex items-center gap-2 sm:gap-3">

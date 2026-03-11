@@ -331,7 +331,7 @@ class PgHabitLogService {
       // If status is being changed to 'skipped' or 'missed', clear completion data
       if (updates.status === 'skipped' || updates.status === 'missed') {
         setClause.push(`completion_count = 0`);
-        setClause.push(`completion_times_mood = ARRAY[]::timestamp[]`);
+        setClause.push(`completion_times_mood = ARRAY[]::jsonb[]`);
         
         console.log('[updateHabitLog] Clearing completions, adjusting habit stats');
         

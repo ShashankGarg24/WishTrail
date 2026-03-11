@@ -212,7 +212,7 @@ const LeaderboardPageNew = () => {
         </motion.div>
 
         {/* All Rankings Section */}
-        <motion.div
+        { allRankings && allRankings.length > 0 && <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
@@ -339,7 +339,7 @@ const LeaderboardPageNew = () => {
               </button>
             </div>
           )}
-        </motion.div>
+        </motion.div>}
 
         {/* CTA Section */}
         <motion.div
@@ -377,17 +377,6 @@ const LeaderboardPageNew = () => {
               Discover Goals
             </button>
           </div>
-        </motion.div>
-
-        {/* Pagination Dots */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          className="flex items-center justify-center gap-2 mb-8"
-        >
-          <div className="w-2 h-2 rounded-full bg-[#4c99e6]"></div>
-          <div className="w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-600"></div>
         </motion.div>
 
         {/* Inspirational Quote */}

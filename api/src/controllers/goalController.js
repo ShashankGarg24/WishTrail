@@ -4,6 +4,7 @@ const pgGoalService = require('../services/pgGoalService');
 const pgUserService = require('../services/pgUserService');
 const pgLikeService = require('../services/pgLikeService');
 const pgHabitService = require('../services/pgHabitService');
+const { transaction: pgTransaction, query: pgQuery } = require('../config/supabase');
 const mongoose = require('mongoose');
 const { sanitizeGoalsForProfile } = require('../utility/sanitizer');
 const GoalDetails = require('../models/extended/GoalDetails');
@@ -47,6 +48,7 @@ const Activity = require('../models/Activity');
 const ActivityComment = require('../models/ActivityComment');
 const { createCanvas } = require('canvas');
 const goalDivisionService = require('../services/goalDivisionService');
+const Notification = require('../models/Notification');
 
 /**
  * Build timeline events from existing goal data
@@ -631,12 +633,24 @@ const createGoal = async (req, res, next) => {
       });
     }
 
+    // ✅ PREMIUM CHECK: Validate habit links limit
+    const habitLinksArray = Array.isArray(habitLinks) ? habitLinks : [];
+    if (goalLimits.maxSubHabitsPerGoal !== undefined && goalLimits.maxSubHabitsPerGoal !== -1 && habitLinksArray.length > goalLimits.maxSubHabitsPerGoal) {
+      return res.status(403).json({
+        success: false,
+        message: `Habit link limit reached. ${req.isPremium ? 'Premium' : 'Free'} users can have ${goalLimits.maxSubHabitsPerGoal} habit links per goal.`,
+        error: 'HABIT_LINK_LIMIT_REACHED',
+        limit: goalLimits.maxSubHabitsPerGoal,
+        current: habitLinksArray.length
+      });
+    }
+
     // Check daily goal creation limit (max 5 per day)
-    const dailyCheck = await pgGoalService.checkDailyLimit(req.user.id, 5);
+    const dailyCheck = await pgGoalService.checkActiveGoalsLimit(req.user.id, 5);
     if (!dailyCheck.canCreate) {
       return res.status(400).json({
         success: false,
-        message: 'Daily goal creation limit reached (5 goals per day)'
+        message: 'Active goal limit reached (5 active goals per user)'
       });
     }
 
@@ -811,6 +825,32 @@ const updateGoal = async (req, res, next) => {
 
     const { title, description, category, targetDate, subGoals, habitLinks } = req.body;
     const isPublicFlag = (req.body.isPublic === true || req.body.isPublic === 'true') ? true : false;
+
+    // ✅ PREMIUM CHECK: Validate subgoals and habit links limits on update
+    if ((Array.isArray(subGoals) && subGoals.length > 0) || (Array.isArray(habitLinks) && habitLinks.length > 0)) {
+      const user = await pgUserService.findById(req.user.id);
+      const { getFeatureLimits: getGoalFeatureLimits } = require('../config/premiumFeatures');
+      const goalLimits = getGoalFeatureLimits('goals', user.premium_expires_at);
+      if (Array.isArray(subGoals) && subGoals.length > 0 && goalLimits.maxSubgoalsPerGoal !== -1 && subGoals.length > goalLimits.maxSubgoalsPerGoal) {
+        return res.status(403).json({
+          success: false,
+          message: `Subgoal limit reached. ${user.premium_expires_at ? 'Premium' : 'Free'} users can have ${goalLimits.maxSubgoalsPerGoal} subgoal per goal.`,
+          error: 'SUBGOAL_LIMIT_REACHED',
+          limit: goalLimits.maxSubgoalsPerGoal,
+          current: subGoals.length
+        });
+      }
+      // ✅ PREMIUM CHECK: Validate habit links limit on update
+      if (Array.isArray(habitLinks) && goalLimits.maxSubHabitsPerGoal !== undefined && goalLimits.maxSubHabitsPerGoal !== -1 && habitLinks.length > goalLimits.maxSubHabitsPerGoal) {
+        return res.status(403).json({
+          success: false,
+          message: `Habit link limit reached. ${user.premium_expires_at ? 'Premium' : 'Free'} users can have ${goalLimits.maxSubHabitsPerGoal} habit links per goal.`,
+          error: 'HABIT_LINK_LIMIT_REACHED',
+          limit: goalLimits.maxSubHabitsPerGoal,
+          current: habitLinks.length
+        });
+      }
+    }
 
     // Update PostgreSQL fields
     const pgUpdates = {};
@@ -1014,153 +1054,129 @@ const checkGoalDependencies = async (req, res, next) => {
 // @access  Private
 const deleteGoal = async (req, res, next) => {
   try {
-    // 1. Find and validate goal
+    // ── 1. Validate & authorise (read-only, no side-effects) ─────────────────
     const goal = await pgGoalService.getGoalById(req.params.id);
     if (!goal) {
-      return res.status(404).json({
-        success: false,
-        message: 'Goal not found'
-      });
+      // Half-deleted state: goal already gone from PG but counts may be stale.
+      // Re-derive counts from ground truth so they stay accurate.
+      try {
+        await pgQuery(
+          `UPDATE users
+           SET total_goals     = (SELECT COUNT(*)                                       FROM goals WHERE user_id = users.id),
+               completed_goals = (SELECT COUNT(*) FILTER (WHERE completed_at IS NOT NULL) FROM goals WHERE user_id = users.id),
+               updated_at      = CURRENT_TIMESTAMP
+           WHERE id = $1`,
+          [req.user.id]
+        );
+      } catch (_) { /* non-critical — best-effort repair */ }
+      return res.status(404).json({ success: false, message: 'Goal not found' });
     }
-    
-    // Check ownership
+
     if (goal.user_id.toString() !== req.user.id.toString()) {
-      return res.status(403).json({
-        success: false,
-        message: 'Access denied'
-      });
+      return res.status(403).json({ success: false, message: 'Access denied' });
     }
 
-    const goalId = goal.id;
-    const userId = goal.user_id;
-    const wasCompleted = goal.completed_at;
+    const goalId     = goal.id;
+    const userId     = goal.user_id;
+    const wasCompleted = !!goal.completed_at;
 
-    // 2. Delete the goal itself from PostgreSQL FIRST
-    // This ensures activities are only deleted if goal deletion succeeds
-    await pgGoalService.deleteGoal(goalId, userId);
+    // ── 2. MongoDB session — clean up all Mongo documents first ──────────────
+    //    Every operation here is idempotent (deleteMany / findOneAndDelete).
+    //    If this phase fails the goal is still in PG → retry is completely safe.
+    let activityIds = [];
+    const mongoSession = await mongoose.startSession();
+    try {
+      await mongoSession.withTransaction(async () => {
+        // Collect activity ObjectIds (needed for PG likes cleanup in phase 3)
+        const activities = await Activity.find({ 'data.goalId': goalId })
+          .select('_id')
+          .lean()
+          .session(mongoSession);
+        activityIds = activities.map(a => a._id);
 
-    // 3. Delete extended data from MongoDB (soft delete)
-    await GoalDetails.findOneAndDelete({ goalId });
+        // Delete extended goal data
+        await GoalDetails.findOneAndDelete({ goalId }, { session: mongoSession });
 
-    // 4. Now delete all activities related to this goal (only after goal deletion succeeds)
-    const deletedActivities = await Activity.find({ 'data.goalId': goalId })
-      .select('_id')
-      .lean();
-    const activityIds = deletedActivities.map(a => a._id);
-
-    if (activityIds.length > 0) {
-      // Delete activities
-      await Activity.deleteMany({ _id: { $in: activityIds } });
-      
-      // Delete comments on these activities
-      await ActivityComment.deleteMany({ activityId: { $in: activityIds } });
-      
-      // Delete likes on these activities (MongoDB ObjectIds)
-      for (const activityId of activityIds) {
-        await pgLikeService.deleteLikesByTarget('activity', String(activityId));
-      }
-    }
-
-    // 5. Delete likes on the goal itself (PostgreSQL goal ID)
-    await pgLikeService.deleteLikesByTarget('goal', goalId);
-
-    // 6. Delete notifications related to this goal (MongoDB)
-    await Notification.deleteMany({ 
-      'data.goalId': goalId 
-    });
-
-    // 7. Unlink habits from this goal (PostgreSQL)
-    await pgHabitService.unlinkHabitsFromGoal(goalId);
-
-    // 8. Remove this goal from other goals' subGoals and normalize weights
-    const parentGoalDetails = await GoalDetails.find({ 'subGoals.linkedGoalId': goalId });
-    for (const parentDetail of parentGoalDetails) {
-      // Remove the subgoal
-      parentDetail.subGoals = parentDetail.subGoals.filter(
-        sg => sg.linkedGoalId !== goalId
-      );
-      
-      // Normalize weights if there are remaining subgoals or habitLinks
-      const totalItems = parentDetail.subGoals.length + (parentDetail.habitLinks?.length || 0);
-      if (totalItems > 0) {
-        const currentSubGoalWeight = parentDetail.subGoals.reduce((sum, sg) => sum + (sg.weight || 0), 0);
-        const currentHabitWeight = (parentDetail.habitLinks || []).reduce((sum, hl) => sum + (hl.weight || 0), 0);
-        const currentTotal = currentSubGoalWeight + currentHabitWeight;
-        
-        if (currentTotal > 0) {
-          // Normalize all weights proportionally to sum to 100
-          const scale = 100 / currentTotal;
-          parentDetail.subGoals.forEach(sg => {
-            sg.weight = Math.round((sg.weight || 0) * scale);
-          });
-          if (parentDetail.habitLinks) {
-            parentDetail.habitLinks.forEach(hl => {
-              hl.weight = Math.round((hl.weight || 0) * scale);
-            });
-          }
+        // Delete activities and their comments
+        if (activityIds.length > 0) {
+          await Activity.deleteMany({ _id: { $in: activityIds } }, { session: mongoSession });
+          await ActivityComment.deleteMany({ activityId: { $in: activityIds } }, { session: mongoSession });
         }
+
+        // Delete goal-linked notifications
+        await Notification.deleteMany({ 'data.goalId': goalId }, { session: mongoSession });
+
+        // Remove this goal from any parent goals' subGoal lists and re-normalise weights
+        const parentGoalDocs = await GoalDetails
+          .find({ 'subGoals.linkedGoalId': goalId })
+          .session(mongoSession);
+        for (const parentDetail of parentGoalDocs) {
+          parentDetail.subGoals = parentDetail.subGoals.filter(sg => sg.linkedGoalId !== goalId);
+          const totalItems = parentDetail.subGoals.length + (parentDetail.habitLinks?.length || 0);
+          if (totalItems > 0) {
+            const currentTotal =
+              parentDetail.subGoals.reduce((s, sg) => s + (sg.weight || 0), 0) +
+              (parentDetail.habitLinks || []).reduce((s, hl) => s + (hl.weight || 0), 0);
+            if (currentTotal > 0) {
+              const scale = 100 / currentTotal;
+              parentDetail.subGoals.forEach(sg => { sg.weight = Math.round((sg.weight || 0) * scale); });
+              (parentDetail.habitLinks || []).forEach(hl => { hl.weight = Math.round((hl.weight || 0) * scale); });
+            }
+          }
+          await parentDetail.save({ session: mongoSession });
+        }
+      });
+    } finally {
+      mongoSession.endSession();
+    }
+
+    // ── 3. PostgreSQL transaction — single atomic unit ───────────────────────
+    //    Deletes the goal, cleans up likes, unlinks habits, and updates the
+    //    user's goal counts — all in one COMMIT so they can never diverge.
+    //    If this fails, MongoDB is already clean (idempotent) so a retry will
+    //    just skip phase 2 and attempt the PG transaction again.
+    await pgTransaction(async (client) => {
+      // a. Delete the goal row — this is the true "point of no return"
+      await client.query(
+        'DELETE FROM goals WHERE id = $1 AND user_id = $2',
+        [goalId, userId]
+      );
+
+      // b. Delete likes on the goal itself
+      await client.query(
+        `DELETE FROM likes WHERE target_type = 'goal' AND target_id = $1`,
+        [String(goalId)]
+      );
+
+      // c. Delete likes on all activities that belonged to this goal
+      if (activityIds.length > 0) {
+        const actIdStrings = activityIds.map(id => String(id));
+        await client.query(
+          `DELETE FROM likes WHERE target_type = 'activity' AND target_id = ANY($1::text[])`,
+          [actIdStrings]
+        );
       }
-      
-      await parentDetail.save();
-    }
 
-    // 9. Handle community-related cleanup
-    const goalDetails = await GoalDetails.findOne({ goalId });
-    // if (goal.is_community_source) {
-    //   // This is a source goal - deactivate all mirrors in MongoDB
-    //   await GoalDetails.updateMany(
-    //     { 'communityInfo.sourceId': goalId },
-    //     { $set: { isActive: false } }
-    //   );
-      
-    //   // Deactivate community items that reference this goal
-    //   await CommunityItem.updateMany(
-    //     { type: 'goal', sourceId: goalId },
-    //     { $set: { isActive: false } }
-    //   );
-    // }
-
-    // // 10. Delete community activities related to this goal
-    // await CommunityActivity.deleteMany({ 
-    //   'data.goalId': goalId 
-    // });
-
-    // 11. Update user statistics in PostgreSQL AFTER successful deletion
-    // This ensures count only decrements if goal deletion succeeds
-    const decrements = { 
-      total_goals: -1
-    };
-    
-    if (wasCompleted) {
-      decrements.completed_goals = -1;
-    }
-    
-    try {
-      await pgUserService.incrementStats(userId, decrements);
-    } catch (statsError) {
-      console.error('Failed to update user stats after goal deletion:', statsError);
-      // Goal was deleted successfully, but stats update failed
-      // Consider implementing a reconciliation job to fix such cases
-    }
-
-    // dailyCompletions tracking is deprecated (was in MongoDB User model)
-
-    // 12. Invalidate caches
-    try {
-      const cacheService = require('../services/cacheService');
-      // await cacheService.invalidateTrendingGoals();
-      // await cacheService.invalidatePattern('goals:*');
-      // await cacheService.invalidatePattern('user:*');
-    } catch (cacheError) {
-      console.error('Cache invalidation error:', cacheError);
-    }
-
-    res.status(200).json({
-      success: true,
-      message: 'Goal deleted successfully'
+      // d. Update user stats atomically with the deletion
+      //    Note: habit-to-goal links are stored in GoalDetails (MongoDB) and
+      //    were already removed in the Mongo phase above — no PG habits column to update.
+      const statsSQL = wasCompleted
+        ? `UPDATE users
+           SET total_goals     = GREATEST(0, total_goals - 1),
+               completed_goals = GREATEST(0, completed_goals - 1),
+               updated_at      = CURRENT_TIMESTAMP
+           WHERE id = $1`
+        : `UPDATE users
+           SET total_goals = GREATEST(0, total_goals - 1),
+               updated_at  = CURRENT_TIMESTAMP
+           WHERE id = $1`;
+      await client.query(statsSQL, [userId]);
     });
+
+    // ── 4. Respond ───────────────────────────────────────────────────────────
+    res.status(200).json({ success: true, message: 'Goal deleted successfully' });
   } catch (error) {
-    console.error('Error deleting goal:', error);
+    console.error('[deleteGoal] Error:', error);
     next(error);
   }
 };

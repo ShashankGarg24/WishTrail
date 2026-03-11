@@ -543,24 +543,42 @@ async function sendReminderNotifications({ windowMinutes = 10 } = {}) {
   return { ok: true, count: jobs.length };
 }
 
-async function analytics(userId, { days = 30 } = {}) {
+async function analytics(userId, { days = 7 } = {}) {
+  const { query: pgQuery } = require('../config/supabase');
   const from = new Date();
   from.setUTCDate(from.getUTCDate() - Math.max(1, days));
   const fromKey = toDateKeyUTC(from);
-  
-  const logs = await pgHabitLogService.getUserHabitLogs({
-    userId,
-    startDate: fromKey,
-    endDate: toDateKeyUTC(new Date()),
-    limit: 10000
-  });
-  
-  const totals = { done: 0, missed: 0, skipped: 0 };
+  const toKey   = toDateKeyUTC(new Date());
+
+  // Counts: done (logged) and skipped only — missed is not tracked
+  // No upper date_key bound so client-timezone date keys ahead of server UTC aren't excluded
+  const countResult = await pgQuery(
+    `SELECT status, COUNT(*)::int AS cnt
+     FROM habit_logs
+     WHERE user_id = $1 AND date_key >= $2
+       AND status IN ('done', 'skipped')
+     GROUP BY status`,
+    [userId, fromKey]
+  );
+
+  const totals = { done: 0, skipped: 0 };
+  for (const row of countResult.rows) {
+    if (row.status === 'done')         totals.done    = row.cnt;
+    else if (row.status === 'skipped') totals.skipped = row.cnt;
+  }
+
+  // Per-habit breakdown (still useful for future)
+  const byHabitResult = await pgQuery(
+    `SELECT habit_id, status, COUNT(*)::int AS cnt
+     FROM habit_logs
+     WHERE user_id = $1 AND date_key >= $2
+     GROUP BY habit_id, status`,
+    [userId, fromKey]
+  );
   const byHabit = {};
-  for (const l of logs) {
-    if (l.status === 'done') totals.done++; else if (l.status === 'missed') totals.missed++; else totals.skipped++;
-    if (!byHabit[l.habitId]) byHabit[l.habitId] = { done: 0, missed: 0, skipped: 0 };
-    byHabit[l.habitId][l.status] = (byHabit[l.habitId][l.status] || 0) + 1;
+  for (const row of byHabitResult.rows) {
+    if (!byHabit[row.habit_id]) byHabit[row.habit_id] = { done: 0, missed: 0, skipped: 0 };
+    byHabit[row.habit_id][row.status] = row.cnt;
   }
   // top streaks snapshot from PostgreSQL
   const habitsResult = await pgHabitService.getUserHabits({ 

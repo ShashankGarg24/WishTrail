@@ -11,6 +11,7 @@ const goalDivisionService = require('./goalDivisionService');
 const pgGoalService = require('./pgGoalService');
 const pgHabitService = require('./pgHabitService');
 const pgHabitLogService = require('./pgHabitLogService');
+const pgUserService = require('./pgUserService');
 const GoalDetails = require('../models/extended/GoalDetails');
 
 async function createCommunity(ownerId, payload) {
@@ -383,6 +384,8 @@ async function createCommunityOwnedItem(communityId, creatorId, payload) {
       isPublic: true,
       isCommunitySource: true, // Flag to identify this as a community source goal
     });
+    // Keep user goal counters in sync (trigger removed — maintained in code)
+    await pgUserService.incrementStats(creatorId, { total_goals: 1 });
     
     // Store description and original category in GoalDetails (MongoDB)
     await GoalDetails.create({
@@ -419,6 +422,8 @@ async function createCommunityOwnedItem(communityId, creatorId, payload) {
         year: new Date().getFullYear(),
         isPublic: false, // Personal copy should be private by default
       });
+      // Keep user goal counters in sync (trigger removed — maintained in code)
+      await pgUserService.incrementStats(creatorId, { total_goals: 1 });
       
       // Store community info and description in GoalDetails
       await GoalDetails.create({

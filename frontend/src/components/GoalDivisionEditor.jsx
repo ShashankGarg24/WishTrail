@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useMemo, useState, useRef } from 'react'
 import useApiStore from '../store/apiStore'
 import { goalsAPI } from '../services/api'
 import { motion } from 'framer-motion'
-import { usePremiumStatus } from '../hooks/usePremium'
+import { usePremiumStatus, useFeatureLimits } from '../hooks/usePremium'
 const CreateHabitModal = lazy(() => import('./CreateHabitModal'));
 const CreateWishModal = lazy(() => import('./CreateWishModal'));
 import { ChevronDown, ChevronRight, Trash2, Plus, Link} from 'lucide-react'
@@ -12,7 +12,9 @@ const THEME_COLOR = '#4c99e6'
 export default function GoalDivisionEditor({ goal, goalId, habits, onClose, draftMode = false, renderInline = false, value, onChange }) {
   const { updateGoal, getGoalProgress } = useApiStore()
   const { isPremium } = usePremiumStatus()
-  const maxSubgoals = isPremium ? 10 : 1
+  const goalFeatureLimits = useFeatureLimits('goals')
+  const maxSubgoals = goalFeatureLimits?.maxSubgoalsPerGoal ?? (isPremium ? 10 : 1)
+  const maxSubHabits = goalFeatureLimits?.maxSubHabitsPerGoal ?? (isPremium ? 5 : 1)
   const [localSubGoals, setLocalSubGoals] = useState([])
   const [localHabitLinks, setLocalHabitLinks] = useState([])
   const [saving, setSaving] = useState(false)
@@ -125,7 +127,7 @@ export default function GoalDivisionEditor({ goal, goalId, habits, onClose, draf
     if (localSubGoals.length >= maxSubgoals) {
       window.dispatchEvent(new CustomEvent('wt_toast', { 
         detail: { 
-          message: `Subgoal limit reached (${maxSubgoals} max). You cannot add more subgoals at this time.`, 
+          message: `You cannot add more subgoals at this time.`, 
           type: 'warning' 
         } 
       }))
@@ -133,8 +135,32 @@ export default function GoalDivisionEditor({ goal, goalId, habits, onClose, draf
     }
     setLocalSubGoals(prev => [...prev, { title: '', linkedGoalId: '', weight: 0, completed: false, note: '' }])
   }
-  const addHabitLink = () => setLocalHabitLinks(prev => [...prev, { habitId: '', weight: 0, endDate: '' }])
-  const addHabitInline = () => { if (!draftMode) setIsCreateHabitOpen(true) }
+  const addHabitLink = () => {
+    if (localHabitLinks.length >= maxSubHabits) {
+      window.dispatchEvent(new CustomEvent('wt_toast', {
+        detail: {
+          message: `You cannot add more habit links to this goal.`,
+          type: 'warning'
+        }
+      }))
+      return
+    }
+    setLocalHabitLinks(prev => [...prev, { habitId: '', weight: 0, endDate: '' }])
+  }
+  const addHabitInline = () => {
+    if (!draftMode) {
+      if (localHabitLinks.length >= maxSubHabits) {
+        window.dispatchEvent(new CustomEvent('wt_toast', {
+          detail: {
+            message: `You cannot add more habit links to this goal.`,
+            type: 'warning'
+          }
+        }))
+        return
+      }
+      setIsCreateHabitOpen(true)
+    }
+  }
   const createGoal = () => {
     if (draftMode) return
     const idx = localSubGoals.length
@@ -257,7 +283,7 @@ export default function GoalDivisionEditor({ goal, goalId, habits, onClose, draf
           <div className="space-y-2 max-h-80 overflow-auto pr-1">
             <div className="mb-3 p-3 rounded-lg" style={{ backgroundColor: `${THEME_COLOR}10`, border: `1px solid ${THEME_COLOR}30` }}>
               <p className="text-xs" style={{ color: THEME_COLOR, fontFamily: 'Manrope' }}>
-                <strong>Note:</strong> Only goals without existing sub-goals or habit links can be selected as sub-goals to prevent nested hierarchies.
+                <strong>Note:</strong> Only goals without existing sub-goals or habit links can be selected.
               </p>
             </div>
             {(() => {
@@ -354,7 +380,7 @@ export default function GoalDivisionEditor({ goal, goalId, habits, onClose, draf
           <div className="space-y-2 max-h-80 overflow-auto pr-1">
             <div className="mb-3 p-3 rounded-lg" style={{ backgroundColor: '#fef3c7', border: '1px solid #fcd34d' }}>
               <p className="text-xs text-red-700 dark:text-red-400" style={{ fontFamily: 'Manrope' }}>
-                <strong>Note:</strong> Only habits with target days or target completions can be linked to goals for progress tracking.
+                <strong>Note:</strong> Only habits with target days or target completions can be linked to goals.
               </p>
             </div>
             {localHabitLinks.map((hl, idx) => {

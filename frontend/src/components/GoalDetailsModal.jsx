@@ -5,6 +5,7 @@ import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
 import { useNavigate } from 'react-router-dom'
 import useApiStore from '../store/apiStore'
 const ShareModal = lazy(() => import('./ShareModal'));
+const CompletionModal = lazy(() => import('./CompletionModal'));
 
 const THEME_COLOR = '#4c99e6'
 
@@ -12,6 +13,7 @@ export default function GoalDetailsModal({ goal, isOpen, onClose, onViewPost }) 
   const navigate = useNavigate()
   const [isCompleting, setIsCompleting] = useState(false)
   const [isShareModalOpen, setIsShareModalOpen] = useState(false)
+  const [isCompletionModalOpen, setIsCompletionModalOpen] = useState(false)
   const { user } = useApiStore()
 
   useEffect(() => {
@@ -49,18 +51,22 @@ export default function GoalDetailsModal({ goal, isOpen, onClose, onViewPost }) 
     setIsShareModalOpen(true)
   }
 
-  const handleMarkComplete = async () => {
+  const handleMarkComplete = () => {
     if (!goalId) return
+    setIsCompletionModalOpen(true)
+  }
+
+  const handleCompletionSubmit = async (formData) => {
     setIsCompleting(true)
     try {
-      const res = await useApiStore.getState().toggleGoalCompletion(goalId, '')
+      const res = await useApiStore.getState().toggleGoalCompletion(goalId, formData)
       if (res?.success) {
-        window.dispatchEvent(new CustomEvent('wt_toast', { detail: { message: 'Goal updated', type: 'success' } }))
-        // close modal and let store update reflect
+        setIsCompletionModalOpen(false)
         onClose?.()
       }
+      return res
     } catch (e) {
-      window.dispatchEvent(new CustomEvent('wt_toast', { detail: { message: 'Failed to update', type: 'error' } }))
+      return { success: false }
     } finally {
       setIsCompleting(false)
     }
@@ -158,6 +164,20 @@ export default function GoalDetailsModal({ goal, isOpen, onClose, onViewPost }) 
             onClose={() => setIsShareModalOpen(false)}
             goal={goal}
             user={user}
+          />
+        </Suspense>
+      )}
+
+      {/* Completion Modal */}
+      {isCompletionModalOpen && (
+        <Suspense fallback={null}>
+          <CompletionModal
+            isOpen={isCompletionModalOpen}
+            onClose={() => setIsCompletionModalOpen(false)}
+            onComplete={handleCompletionSubmit}
+            goalTitle={goal.title}
+            goal={goal}
+            isEditMode={false}
           />
         </Suspense>
       )}

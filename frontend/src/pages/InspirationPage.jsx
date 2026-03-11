@@ -1,23 +1,23 @@
 import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
 import {
   Trophy,
   TrendingUp,
   ArrowRight,
-  Heart,
-  MessageCircle,
-  Share2,
   LogIn,
   Code,
   Target
 } from 'lucide-react';
 import useApiStore from '../store/apiStore';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { GOAL_CATEGORIES } from '../constants/goalCategories';
+import GoalPostModal from '../components/GoalPostModal';
 
 const InspirationPage = () => {
   const navigate = useNavigate();
   const [trendingGoals, setTrendingGoals] = useState([]);
+  const [selectedGoalId, setSelectedGoalId] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [openWithComments, setOpenWithComments] = useState(false);
 
   const {
     isAuthenticated,
@@ -40,6 +40,12 @@ const InspirationPage = () => {
       loadTrendingGoals();
     }    
   }, []);
+
+  const [searchParams] = useSearchParams();
+  useEffect(() => {
+    const goalId = searchParams.get('goalId');
+    if (goalId) handleOpenGoal(goalId);
+  }, [searchParams]);
 
   const loadTrendingGoals = async () => {
     try {
@@ -68,6 +74,24 @@ const InspirationPage = () => {
   const getCategoryLabel = (categoryId) => {
     const category = GOAL_CATEGORIES.find(c => c.id === categoryId);
     return category?.label || categoryId;
+  };
+  
+  const handleOpenGoal = (goalId) => {
+    setSelectedGoalId(goalId);
+    setIsModalOpen(true);
+    setOpenWithComments(false);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedGoalId(null);
+    setOpenWithComments(false);
+    // Remove goalId param from URL without pushing a new history entry
+    if (searchParams.has('goalId')) {
+      const next = new URLSearchParams(searchParams);
+      next.delete('goalId');
+      navigate({ search: next.toString() }, { replace: true });
+    }
   };
 
   const displayActivities = (recentActivities?.activities || []);
@@ -200,12 +224,23 @@ const InspirationPage = () => {
                                 )}
                               </div>
                               <p className="text-sm text-gray-700 dark:text-gray-300 mb-1" style={{ fontFamily: 'Manrope, sans-serif' }}>
-                                {activity.type === 'goal_completed' && `Just completed: ${activity.data?.goalTitle || 'Morning Yoga Session'}`}
-                                {activity.type === 'goal_created' && `Created a new goal: ${activity.data?.goalTitle || 'New Goal'}`}
+                                {activity.type === 'goal_completed' && `Completed: ${activity.data?.goalTitle || activity.data?.goal?.title || 'a goal'}`}
+                                {activity.type === 'goal_created' && `Created a new goal: ${activity.data?.goalTitle || activity.data?.goal?.title || 'a goal'}`}
+                                {activity.type === 'goal_activity' && (() => {
+                                  const title = activity.data?.goalTitle || activity.data?.goal?.title;
+                                  const lastUpdate = activity.data?.lastUpdateType;
+                                  if (lastUpdate === 'completed') return `Completed: ${title || 'a goal'}`;
+                                  if (lastUpdate === 'created') return `Created a new goal: ${title || 'a goal'}`;
+                                  return `Updated goal: ${title || 'a goal'}`;
+                                })()}
+                                {activity.type === 'subgoal_completed' && `Completed a sub-goal for: ${activity.data?.goalTitle || activity.data?.goal?.title || 'a goal'}`}
+                                {activity.type === 'subgoal_added' && `Added a sub-goal to: ${activity.data?.goalTitle || activity.data?.goal?.title || 'a goal'}`}
+                                {activity.type === 'habit_added' && `Linked a habit to: ${activity.data?.goalTitle || activity.data?.goal?.title || 'a goal'}`}
+                                {activity.type === 'habit_target_achieved' && `Hit habit target for: ${activity.data?.goalTitle || activity.data?.goal?.title || 'a goal'}`}
                                 {activity.type === 'user_followed' && `Started following ${activity.data?.targetUserName || 'someone'}`}
                                 {activity.type === 'streak_milestone' && `Reached a ${activity.data?.streakCount || 0} day streak!`}
                                 {activity.type === 'achievement_earned' && `Earned "${activity.data?.achievementName || 'achievement'}" badge`}
-                                {!['goal_completed', 'goal_created', 'user_followed', 'streak_milestone', 'achievement_earned'].includes(activity.type) && 'Just completed: Morning Yoga Session'}
+                                {!['goal_completed', 'goal_created', 'goal_activity', 'subgoal_completed', 'subgoal_added', 'subgoal_removed', 'subgoal_uncompleted', 'habit_added', 'habit_removed', 'habit_target_achieved', 'user_followed', 'streak_milestone', 'achievement_earned'].includes(activity.type) && (activity.data?.goalTitle || activity.data?.goal?.title || activity.type)}
                               </p>
                               <span className="text-xs text-gray-500 dark:text-gray-400">{formatTimeAgo(activity.createdAt)}</span>
                             </div>
@@ -250,7 +285,7 @@ const InspirationPage = () => {
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-gray-300" style={{ fontFamily: 'Manrope, sans-serif' }}>Total Goals</span>
                       <span className="text-lg font-bold text-[#4c99e6]" style={{ fontFamily: 'Manrope, sans-serif' }}>
-                        {user?.totalGoals || "-"}
+                        {user?.totalGoals || 0}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
@@ -301,7 +336,7 @@ const InspirationPage = () => {
                       <div
                         key={goal.id || index}
                         className="flex items-start gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-[#4c99e6] dark:hover:border-[#4c99e6] transition-all cursor-pointer"
-                        onClick={() => navigate(`/goals/${goal.id}`)}
+                        onClick={() => handleOpenGoal(goal.id)}
                       >
                         <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
                           <Code className="h-5 w-5 text-[#4c99e6]" />
@@ -337,6 +372,15 @@ const InspirationPage = () => {
           </div>
         </div>
       </div>
+      
+        {/* Goal Details Modal */}
+        <GoalPostModal
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+          goalId={selectedGoalId}
+          openWithComments={openWithComments}
+          onToggleComments={() => setOpenWithComments(prev => !prev)}
+        />
     </div>
   );
 };

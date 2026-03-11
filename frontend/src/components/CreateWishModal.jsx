@@ -282,7 +282,7 @@ const CreateWishModal = ({ isOpen, onClose, onSave, year, initialData }) => {
           {/* Target Date */}
           <div>
             <label htmlFor="targetDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Target Date (Optional)
+              Target Date
             </label>
             <input
               type="date"

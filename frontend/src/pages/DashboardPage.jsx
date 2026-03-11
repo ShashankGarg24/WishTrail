@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, lazy, Suspense } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import CategoryBadge from '../components/CategoryBadge'
 import { getCategoryIcon } from '../utils/categoryIcons'
-import { Plus, Target, CheckCircle, TrendingUp, Calendar, ChevronDown, Search, Flag, Clock, Eye, Edit, Share2, Filter, ArrowUpDown } from 'lucide-react'
+import { Plus, Target, CheckCircle, TrendingUp, Calendar, ChevronDown, Search, Flag, Clock, Eye, Edit, Trash2, Share2, Filter, ArrowUpDown, MinusCircle } from 'lucide-react'
 import useApiStore from '../store/apiStore'
 import { useSearchParams } from 'react-router-dom'
 
@@ -43,6 +43,9 @@ const DashboardPageNew = () => {
   const [isEditGoalWizardOpen, setIsEditGoalWizardOpen] = useState(false)
   const [isEditCompletionModalOpen, setIsEditCompletionModalOpen] = useState(false)
   const [goalToEdit, setGoalToEdit] = useState(null)
+  const [isGoalDeleteModalOpen, setIsGoalDeleteModalOpen] = useState(false)
+  const [goalToDelete, setGoalToDelete] = useState(null)
+  const [isDeletingGoal, setIsDeletingGoal] = useState(false)
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false)
   const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false)
   const [goalFilter, setGoalFilter] = useState('all') // all, completed, in-progress
@@ -83,6 +86,7 @@ const DashboardPageNew = () => {
       useApiStore.getState().appendHabit?.(habit)
     }
     loadHabits({ page: 1 })
+    getDashboardStats({ force: true })
   }
 
   const handleHabitLog = async (status, mood = 'neutral') => {
@@ -99,6 +103,8 @@ const DashboardPageNew = () => {
               }
             : prev
         )
+        // Refresh dashboard stats so todayHabitLogs updates immediately
+        getDashboardStats({ force: true })
         window.dispatchEvent(new CustomEvent('wt_toast', { detail: { message: status === 'done' ? 'Habit completed!' : 'Habit updated', type: 'success' } }))
       }
     } catch (e) {
@@ -236,12 +242,18 @@ const DashboardPageNew = () => {
             <div className="flex items-center gap-3 sm:gap-4 lg:gap-5 bg-white dark:bg-gray-800 rounded-xl px-4 sm:px-6 lg:px-8 py-4 sm:py-5 shadow-sm border border-gray-100 dark:border-gray-700 w-full lg:w-auto">
               <div className="text-left flex-1">
                 <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 font-manrope uppercase tracking-wide mb-2">
-                  {activeTab === 'goals' ? 'Yearly Pulse' : 'Habit Consistency'}
+                  {activeTab === 'goals' ? 'Yearly Pulse' : '7 Week Momentum'}
                 </div>
-                <div className="text-sm sm:text-base text-gray-600 dark:text-gray-300 font-manrope">
+                <div className="text-sm sm:text-base font-manrope font-medium">
                   {activeTab === 'goals' 
-                    ? `${dashboardStats?.completedGoals || 2} of ${dashboardStats?.totalGoals || 4} targets hit`
-                    : 'Strong momentum this week'}
+                    ? <span className="text-gray-600 dark:text-gray-300">{`${dashboardStats?.completedGoals} of ${dashboardStats?.totalGoals} targets hit`}</span>
+                    : (() => {
+                        const m = dashboardStats?.weekMomentum ?? 0
+                        if (m >= 70) return <span className="text-green-500 dark:text-green-400">Strong</span>
+                        if (m >= 40) return <span className="text-yellow-500 dark:text-yellow-400">Moderate</span>
+                        return <span className="text-red-500 dark:text-red-400">Dropping</span>
+                      })()
+                  }
                 </div>
               </div>
               <div className="relative w-20 h-20 sm:w-24 sm:h-24 flex items-center justify-center flex-shrink-0">
@@ -263,7 +275,7 @@ const DashboardPageNew = () => {
                     strokeWidth="6"
                     fill="transparent"
                     strokeDasharray={`${2 * Math.PI * 38}`}
-                    strokeDashoffset={`${2 * Math.PI * 38 * (1 - (activeTab === 'goals' ? yearlyProgress : 85) / 100)}`}
+                    strokeDashoffset={`${2 * Math.PI * 38 * (1 - (activeTab === 'goals' ? yearlyProgress : (dashboardStats?.weekMomentum ?? 0)) / 100)}`}
                     className="transition-all duration-1000 ease-out"
                     strokeLinecap="round"
                     transform="rotate(-90 48 48)"
@@ -271,7 +283,7 @@ const DashboardPageNew = () => {
                 </svg>
                 <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
                   <span className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white font-manrope">
-                    {activeTab === 'goals' ? yearlyProgress : 85}%
+                    {activeTab === 'goals' ? yearlyProgress : (dashboardStats?.weekMomentum ?? 0)}%
                   </span>
                 </div>
               </div>
@@ -418,7 +430,7 @@ const DashboardPageNew = () => {
                   </div>
                 </div>
                 <div className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1 font-manrope">
-                  {dashboardStats?.totalGoals || 4}
+                  {dashboardStats?.totalGoals}
                 </div>
                 <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 font-manrope uppercase tracking-wide">
                   Total Goals
@@ -433,7 +445,7 @@ const DashboardPageNew = () => {
                   </div>
                 </div>
                 <div className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1 font-manrope">
-                  {dashboardStats?.completedGoals || 2}
+                  {dashboardStats?.completedGoals}
                 </div>
                 <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 font-manrope uppercase tracking-wide">
                   Completed
@@ -448,7 +460,9 @@ const DashboardPageNew = () => {
                   </div>
                 </div>
                 <div className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1 font-manrope">
-                  {dashboardStats?.inProgressGoals || 2}
+                  {dashboardStats?.totalGoals && dashboardStats?.completedGoals 
+                  ? dashboardStats?.totalGoals - dashboardStats?.completedGoals
+                  : 0}
                 </div>
                 <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 font-manrope uppercase tracking-wide">
                   In Progress
@@ -480,25 +494,10 @@ const DashboardPageNew = () => {
                   </div>
                 </div>
                 <div className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1 font-manrope">
-                  {habits?.length || 12}
+                  {dashboardStats?.totalHabits ?? habits?.length ?? 0}
                 </div>
                 <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 font-manrope uppercase tracking-wide">
                   Total Habits
-                </div>
-              </div>
-
-              {/* Total Streak */}
-              <div className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-5 shadow-sm border border-gray-100 dark:border-gray-700">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                    <Flag className="w-5 h-5 text-[#4c99e6]" />
-                  </div>
-                </div>
-                <div className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1 font-manrope">
-                  8
-                </div>
-                <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 font-manrope uppercase tracking-wide">
-                  Total Streak
                 </div>
               </div>
 
@@ -506,18 +505,33 @@ const DashboardPageNew = () => {
               <div className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-5 shadow-sm border border-gray-100 dark:border-gray-700">
                 <div className="flex items-center justify-between mb-3">
                   <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                    <TrendingUp className="w-5 h-5 text-[#4c99e6]" />
+                    <Flag className="w-5 h-5 text-[#4c99e6]" />
                   </div>
                 </div>
                 <div className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1 font-manrope">
-                  24
+                  {dashboardStats?.bestStreak ?? 0}
                 </div>
                 <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 font-manrope uppercase tracking-wide">
                   Best Streak
                 </div>
               </div>
 
-              {/* Consistency % */}
+              {/* Today's Habit Logs */}
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-5 shadow-sm border border-gray-100 dark:border-gray-700">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <TrendingUp className="w-5 h-5 text-[#4c99e6]" />
+                  </div>
+                </div>
+                <div className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1 font-manrope">
+                  {dashboardStats?.todayHabitLogs ?? 0}
+                </div>
+                <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 font-manrope uppercase tracking-wide">
+                  Habits Logged Today
+                </div>
+              </div>
+
+              {/* Active Today */}
               <div className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-5 shadow-sm border border-gray-100 dark:border-gray-700">
                 <div className="flex items-center justify-between mb-3">
                   <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
@@ -525,10 +539,10 @@ const DashboardPageNew = () => {
                   </div>
                 </div>
                 <div className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1 font-manrope">
-                  92%
+                  {dashboardStats?.activeToday ?? 0}
                 </div>
                 <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 font-manrope uppercase tracking-wide">
-                  Consistency %
+                  Active Today
                 </div>
               </div>
             </>
@@ -702,6 +716,17 @@ const DashboardPageNew = () => {
                     >
                       <Edit className="w-4 h-4 text-gray-600 dark:text-gray-300" />
                     </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setGoalToDelete(goal)
+                        setIsGoalDeleteModalOpen(true)
+                      }}
+                      className="p-2 bg-gray-100 dark:bg-gray-700 hover:bg-red-100 dark:hover:bg-red-900/40 rounded-lg transition-colors"
+                      title="Delete"
+                    >
+                      <Trash2 className="w-4 h-4 text-gray-600 dark:text-gray-300 hover:text-red-500" />
+                    </button>
                   </div>
 
                   <div className="flex items-start gap-4 mb-4">
@@ -824,6 +849,25 @@ const DashboardPageNew = () => {
                         >
                           <Edit className="w-4 h-4 text-gray-600 dark:text-gray-300" />
                         </button>
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation()
+                            const checkHabitDependencies = useApiStore.getState().checkHabitDependencies
+                            const depResult = await checkHabitDependencies?.(habit.id)
+                            if (depResult?.success && depResult?.data?.data?.linkedGoals?.length > 0) {
+                              setHabitDependencies(depResult.data.data.linkedGoals)
+                              setHabitToDelete(habit)
+                              setIsHabitWarningModalOpen(true)
+                            } else {
+                              setHabitToDelete(habit)
+                              setIsHabitDeleteModalOpen(true)
+                            }
+                          }}
+                          className="p-2 bg-gray-100 dark:bg-gray-700 hover:bg-red-100 dark:hover:bg-red-900/40 rounded-lg transition-colors"
+                          title="Delete"
+                        >
+                          <Trash2 className="w-4 h-4 text-gray-600 dark:text-gray-300 hover:text-red-500" />
+                        </button>
                       </div>
 
                       <h3 className="font-semibold text-gray-900 dark:text-white font-manrope text-base mb-3 pr-16">
@@ -838,10 +882,22 @@ const DashboardPageNew = () => {
 
                       {/* Badges */}
                       <div className="flex items-center gap-2 mb-4">
-                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 dark:bg-blue-900/30 text-[#4c99e6] text-xs font-medium rounded-md font-manrope uppercase tracking-wide">
-                          <Clock className="w-3 h-3" />
-                          Today
-                        </span>
+                        {habit.todayStatus === 'done' ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 text-xs font-semibold rounded-md font-manrope uppercase tracking-wide">
+                            <CheckCircle className="w-3 h-3" />
+                            Done
+                          </span>
+                        ) : habit.todayStatus === 'skipped' ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 bg-yellow-50 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-500 text-xs font-semibold rounded-md font-manrope uppercase tracking-wide">
+                            <MinusCircle className="w-3 h-3" />
+                            Skipped
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 dark:bg-blue-900/30 text-[#4c99e6] text-xs font-medium rounded-md font-manrope uppercase tracking-wide">
+                            <Clock className="w-3 h-3" />
+                            Pending
+                          </span>
+                        )}
                         <span className="inline-block px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs font-medium rounded-md font-manrope uppercase tracking-wide">
                           {habit.frequency || 'Daily'}
                         </span>
@@ -851,13 +907,13 @@ const DashboardPageNew = () => {
                         <div className="flex items-center gap-3 text-xs">
                           <span className="flex items-center gap-1 text-[#4c99e6] font-manrope font-medium">
                             <CheckCircle className="w-3.5 h-3.5" />
-                            {habit.currentStreak || 3}/{habit.goal || 10} Completions
+                            {habit.totalCompletions || 0} Completions
                           </span>
                         </div>
                         <div className="text-xs text-[#4c99e6] font-manrope font-medium">
                           <span className="flex items-center gap-1">
                             <TrendingUp className="w-3.5 h-3.5" />
-                            {habit.longestStreak || 14} Days Active
+                            {habit.totalDays || 0} Days Active
                           </span>
                         </div>
                       </div>
@@ -1007,6 +1063,7 @@ const DashboardPageNew = () => {
                   setHabitDependencies([])
                   if (selectedHabit?.id === habitToDelete.id) setSelectedHabit(null)
                   loadHabits({ page: 1 })
+                  getDashboardStats({ force: true })
                 }
               } finally {
                 setIsDeletingHabit(false)
@@ -1037,6 +1094,31 @@ const DashboardPageNew = () => {
             onCreate={() => { setIsGoalIdeasOpen(false); setInitialGoalData(null); setIsCreateModalOpen(true); }}
             limit={6}
             title="Goal Suggestions"
+          />
+        )}
+
+        {/* Delete Goal Confirm Modal */}
+        {isGoalDeleteModalOpen && goalToDelete && (
+          <DeleteConfirmModal
+            isOpen={isGoalDeleteModalOpen}
+            onClose={() => { setIsGoalDeleteModalOpen(false); setGoalToDelete(null) }}
+            onConfirm={async () => {
+              setIsDeletingGoal(true)
+              try {
+                const res = await useApiStore.getState().deleteGoal(goalToDelete.id)
+                if (res?.success) {
+                  setIsGoalDeleteModalOpen(false)
+                  setGoalToDelete(null)
+                  if (selectedGoal?.id === goalToDelete.id) setSelectedGoal(null)
+                  getGoals({ year: selectedYear, page: currentPage })
+                }
+              } finally {
+                setIsDeletingGoal(false)
+              }
+            }}
+            goalTitle={goalToDelete.title}
+            isDeleting={isDeletingGoal}
+            itemType="goal"
           />
         )}
 

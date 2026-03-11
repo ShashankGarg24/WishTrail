@@ -568,7 +568,7 @@ const useApiStore = create(
             return { success: true, stats };
           }
           set({ loading: true, error: null });
-          const response = await usersAPI.getDashboardStats();
+          const response = await usersAPI.getDashboardStats({ today: getCurrentDateKey() });
           const stats = response.data.data; // Stats is now directly in data, not nested
           set({ dashboardStats: stats, loading: false });
           set({ cacheDashboardStats: { data: stats, ts: Date.now() } });
@@ -599,7 +599,7 @@ const useApiStore = create(
             return { success: true, habits: get().habits, pagination: get().habitsPagination };
           }
           
-          const params = { page, limit, includeArchived };
+          const params = { page, limit, includeArchived, today: getCurrentDateKey() };
           if (sort) params.sort = sort;
           const res = await habitsAPI.list(params);
           const habits = res?.data?.data?.habits || [];
@@ -634,7 +634,11 @@ const useApiStore = create(
 
       appendHabit: (habit) => {
         if (!habit) return;
-        set(state => ({ habits: [habit, ...(state.habits || [])], cacheHabitsTs: Date.now() }));
+        set(state => ({
+          habits: [habit, ...(state.habits || [])],
+          cacheHabitsTs: Date.now(),
+          cacheDashboardStats: null, // invalidate so totalHabits refreshes
+        }));
       },
 
       logHabit: async (id, status, mood = 'neutral') => {
@@ -654,20 +658,22 @@ const useApiStore = create(
           
           set(state => ({
             habits: (state.habits || []).map(h => {
-              if (h._id !== id) return h;
+              const match = h.id === id || h._id === id || String(h.id) === String(id);
+              if (!match) return h;
               // Use the updated habit data from the server if available
               if (updatedHabit) {
                 return { 
                   ...h, 
+                  todayStatus: status, // optimistically update today's status
                   totalCompletions: updatedHabit.totalCompletions ?? h.totalCompletions,
                   totalDays: updatedHabit.totalDays ?? h.totalDays,
                   currentStreak: updatedHabit.currentStreak ?? h.currentStreak,
                   longestStreak: updatedHabit.longestStreak ?? h.longestStreak
                 };
               }
-              // No optimistic updates - wait for server response on refresh
-              return h;
-            })
+              return { ...h, todayStatus: status }; // at minimum patch todayStatus
+            }),
+            cacheDashboardStats: null, // invalidate so todayHabitLogs refreshes
           }));
           return { success: true, log: data?.log };
         } catch (error) {
@@ -680,7 +686,10 @@ const useApiStore = create(
           const res = await habitsAPI.update(id, payload);
           const updated = res?.data?.data || res?.data;
           if (updated) {
-            set(state => ({ habits: (state.habits || []).map(h => h._id === id ? { ...h, ...updated } : h) }));
+            set(state => ({
+              habits: (state.habits || []).map(h => h._id === id ? { ...h, ...updated } : h),
+              cacheDashboardStats: null, // invalidate so totalHabits/activeToday refreshes
+            }));
           }
           return { success: true, habit: updated };
         } catch (error) {
@@ -701,7 +710,10 @@ const useApiStore = create(
       deleteHabit: async (id) => {
         try {
           await habitsAPI.remove(id);
-          set(state => ({ habits: (state.habits || []).filter(h => h._id !== id) }));
+          set(state => ({
+            habits: (state.habits || []).filter(h => h.id !== id && h._id !== id),
+            cacheDashboardStats: null, // invalidate so totalHabits refreshes
+          }));
           return { success: true };
         } catch (error) {
           return { success: false, error: handleApiError(error) };
@@ -918,7 +930,7 @@ const useApiStore = create(
 
           // Remove from current goals list
           set(state => ({
-            goals: state.goals.filter(g => g._id !== id),
+            goals: state.goals.filter(g => g._id !== id && g.id !== id),
             loading: false
           }));
 
@@ -935,9 +947,9 @@ const useApiStore = create(
         }
       },
 
-      toggleGoalCompletion: async (id, completionNote) => {
+      toggleGoalCompletion: async (id, completionData) => {
         try {
-          const response = await goalsAPI.toggleGoalCompletion(id, completionNote);
+          const response = await goalsAPI.toggleGoalCompletion(id, completionData);
           const { goal } = response.data.data;
 
           // Update in current goals list

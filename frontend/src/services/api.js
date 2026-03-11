@@ -255,8 +255,15 @@ export const goalsAPI = {
   updateGoal: (id, goalData) => api.put(`/goals/${id}`, goalData),
   checkDependencies: (id) => api.get(`/goals/${id}/dependencies`),
   deleteGoal: (id) => api.delete(`/goals/${id}`),
-  toggleGoalCompletion: (id, completionNote) =>
-    api.patch(`/goals/${id}/toggle`, { completionNote }),
+  toggleGoalCompletion: (id, completionData) => {
+    // If FormData (from CompletionModal), send as multipart; otherwise plain JSON
+    if (completionData instanceof FormData) {
+      return api.patch(`/goals/${id}/toggle`, completionData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+    }
+    return api.patch(`/goals/${id}/toggle`, { completionNote: completionData || '' });
+  },
   updateGoalCompletion: (id, completionData) =>
     api.patch(`/goals/${id}/completion`, completionData),
   likeGoal: (id) => api.patch(`/goals/${id}/like`),
@@ -280,7 +287,7 @@ export const goalsAPI = {
 export const usersAPI = {
   getUsers: (params) => api.get('/users', { params }),
   getUser: (id) => api.get(`/users/${id}`),
-  getDashboardStats: () => api.get('/users/dashboard'),
+  getDashboardStats: (params) => api.get('/users/dashboard', { params }),
   getProfileSummary: () => api.get('/users/profile'),
   getUserAnalytics: (username) => api.get('/users/analytics', { params: username ? { username } : {} }),
   getSuggestedUsers: (params) => api.get('/users/suggestions', { params }),

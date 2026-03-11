@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Sparkles, Lock, Users, Globe } from 'lucide-react';
+import { X, Sparkles, Lock, Users, Globe, CheckCircle } from 'lucide-react';
 import useApiStore from '../store/apiStore';
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock';
+import { useFeatureLimits } from '../hooks/usePremium';
 
 const THEME_COLOR = '#4c99e6';
-const MAX_WORDS = 500;
 
 const visibilityOptions = [
   { value: 'private', label: 'Private', icon: Lock },
@@ -13,13 +13,16 @@ const visibilityOptions = [
   { value: 'public', label: 'Public', icon: Globe },
 ];
 
-const JournalPromptModal = ({ isOpen, onClose, onSubmitted }) => {
+const JournalPromptModal = ({ isOpen, onClose, onSubmitted, hasTodayJournal = false }) => {
   const { getJournalPrompt, journalPrompt, createJournalEntry, updateJournalEntry } = useApiStore();
+  const journalFeatureLimits = useFeatureLimits('journal');
+  const maxChars = journalFeatureLimits?.maxEntryLength ?? 1000;
   const [content, setContent] = useState('');
   const [visibility, setVisibility] = useState('private');
   const [mood, setMood] = useState('neutral');
   const [submitting, setSubmitting] = useState(false);
-  const words = content.trim() ? content.trim().split(/\s+/).filter(Boolean).length : 0;
+  const chars = content.length;
+  const overLimit = chars > maxChars;
   const [llmResult, setLlmResult] = useState(null);
 
   useEffect(() => {
@@ -30,7 +33,7 @@ const JournalPromptModal = ({ isOpen, onClose, onSubmitted }) => {
 
   const handleSubmit = async (e) => {
     e?.preventDefault?.();
-    if (!content.trim() || words > MAX_WORDS) return;
+    if (!content.trim() || overLimit) return;
     setSubmitting(true);
     try {
       const res = await createJournalEntry({ content, promptKey: journalPrompt?.key, visibility, mood: undefined, tags: [] });
@@ -50,6 +53,8 @@ const JournalPromptModal = ({ isOpen, onClose, onSubmitted }) => {
         onClose();
       }
     } catch (error) {
+      const msg = error?.response?.data?.message || error?.message || 'Failed to save journal entry';
+      window.dispatchEvent(new CustomEvent('wt_toast', { detail: { message: msg, type: 'error' } }));
     } finally {
       setSubmitting(false);
     }
@@ -86,7 +91,18 @@ const JournalPromptModal = ({ isOpen, onClose, onSubmitted }) => {
               <X className="h-5 w-5" />
             </button>
           </div>
-          {!llmResult ? (
+          {hasTodayJournal ? (
+            <div className="flex flex-col items-center justify-center py-8 text-center gap-4">
+              <div className="p-4 rounded-full" style={{ backgroundColor: 'rgba(76, 153, 230, 0.12)' }}>
+                <CheckCircle className="h-10 w-10" style={{ color: THEME_COLOR }} />
+              </div>
+              <div>
+                <p className="text-base font-semibold text-gray-900 dark:text-white mb-1">Journal submitted for today</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">You have already submitted your journal entry for today. Come back tomorrow!</p>
+              </div>
+              <button type="button" onClick={onClose} className="mt-2 px-5 py-2.5 text-white rounded-xl text-sm font-medium hover:opacity-90" style={{ backgroundColor: THEME_COLOR }}>Close</button>
+            </div>
+          ) : !llmResult ? (
             <>
               {journalPrompt?.text && (
                 <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-900/50 rounded-xl text-sm text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700">
@@ -99,8 +115,13 @@ const JournalPromptModal = ({ isOpen, onClose, onSubmitted }) => {
                   onChange={(e) => setContent(e.target.value)}
                   placeholder="What's on your mind today?"
                   rows={6}
-                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-wt focus:border-transparent bg-white dark:bg-gray-900/50 text-sm text-gray-900 dark:text-white placeholder-gray-400 resize-none"
+                  className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:border-transparent bg-white dark:bg-gray-900/50 text-sm text-gray-900 dark:text-white placeholder-gray-400 resize-none ${overLimit ? 'border-red-400 focus:ring-red-300' : 'border-gray-300 dark:border-gray-600 focus:ring-wt'}`}
                 />
+                <div className="flex justify-between items-center -mt-3">
+                  <span className={`text-xs ${overLimit ? 'text-red-500 font-medium' : 'text-gray-400 dark:text-gray-500'}`}>
+                    {chars.toLocaleString()} / {maxChars.toLocaleString()} characters
+                  </span>
+                </div>
                 <div>
                   <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 block uppercase tracking-wide">Visibility</label>
                   <div className="flex flex-wrap gap-2">
@@ -127,8 +148,8 @@ const JournalPromptModal = ({ isOpen, onClose, onSubmitted }) => {
                   </div>
                 </div>
                 <div className="flex items-center justify-between pt-2">
-                  <span className={`text-xs ${words > MAX_WORDS ? 'text-red-600' : 'text-gray-500 dark:text-gray-400'}`}>
-                    {words}/{MAX_WORDS} words
+                  <span className={`text-xs ${overLimit ? 'text-red-600 font-medium' : 'text-gray-500 dark:text-gray-400'}`}>
+                    {overLimit ? `Over limit by ${chars - maxChars} chars` : ''}
                   </span>
                   <div className="flex items-center gap-3">
                     <button type="button" onClick={onClose} className="px-4 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 text-sm font-medium transition-colors">
@@ -136,11 +157,11 @@ const JournalPromptModal = ({ isOpen, onClose, onSubmitted }) => {
                     </button>
                     <button
                       type="submit"
-                      disabled={submitting || !content.trim() || words > MAX_WORDS}
+                      disabled={submitting || !content.trim() || overLimit}
                       className="px-4 py-2.5 text-white rounded-xl hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-opacity"
                       style={{ backgroundColor: THEME_COLOR }}
                     >
-                      {submitting ? 'Saving...' : 'Save Entry'}
+                      {submitting ? 'Saving...' : overLimit ? 'Too Long' : 'Save Entry'}
                     </button>
                   </div>
                 </div>

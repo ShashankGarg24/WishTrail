@@ -1,7 +1,7 @@
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom'
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { GoogleOAuthProvider } from '@react-oauth/google'
-import { Toaster } from 'react-hot-toast'
+import { Toaster, toast } from 'react-hot-toast'
 import useApiStore from './store/apiStore'
 import Header from './components/Header'
 import ScrollMemory from './components/ScrollMemory'
@@ -32,7 +32,7 @@ const AuthExpiredPage = lazy(() => import('./pages/AuthExpiredPage'))
 import { SpeedInsights } from '@vercel/speed-insights/react';
 const FeedbackButton = lazy(() => import('./components/FeedbackButton'))
 const SettingsPageNew = lazy(() => import('./pages/SettingsPage'))
-const HabitAnalyticsPageNew = lazy(() => import('./pages/HabitAnalyticsPage'))
+const HabitAnalyticsPage = lazy(() => import('./pages/HabitAnalyticsPage'))
 const GoalAnalyticsPage = lazy(() => import('./pages/GoalAnalyticsPage'))
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'))
 const TermsOfService = lazy(() => import('./pages/TermsOfService'))
@@ -88,6 +88,20 @@ function App() {
       }
     } catch { }
   }, [location.search, navigate])
+
+  // Bridge wt_toast custom events to react-hot-toast
+  useEffect(() => {
+    const handler = (e) => {
+      const { message, type } = e.detail || {}
+      if (!message) return
+      if (type === 'success') toast.success(message)
+      else if (type === 'error') toast.error(message)
+      else if (type === 'warning') toast(message, { icon: '⚠️' })
+      else toast(message)
+    }
+    window.addEventListener('wt_toast', handler)
+    return () => window.removeEventListener('wt_toast', handler)
+  }, [])
 
   // Detect if running inside the mobile app WebView
   useEffect(() => {
@@ -168,7 +182,7 @@ function App() {
 
   return (
     <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
-      <Toaster position="top-right" />
+      <Toaster position="top-right" containerStyle={{ zIndex: 99999 }} />
       <div className="flex flex-col min-h-screen bg-white dark:bg-gray-900 transition-colors duration-300">
         {/* Background Elements */}
         <div className="fixed inset-0 pointer-events-none z-0">
@@ -211,7 +225,7 @@ function App() {
               <Route path="/leaderboard" element={<PrivateRoute><Suspense fallback={null}><LeaderboardPageNew /></Suspense></PrivateRoute>} />
               {/* <Route path="/communities" element={<PrivateRoute><Suspense fallback={null}><CommunitiesPage /></Suspense></PrivateRoute>} />
               <Route path="/communities/:id" element={<PrivateRoute><Suspense fallback={null}><CommunityDetailPage /></Suspense></PrivateRoute>} /> */}
-              <Route path="/habits/:id/analytics" element={<PrivateRoute><Suspense fallback={null}><HabitAnalyticsPageNew /></Suspense></PrivateRoute>} />
+              <Route path="/habits/:id/analytics" element={<PrivateRoute><Suspense fallback={null}><HabitAnalyticsPage /></Suspense></PrivateRoute>} />
               <Route path="/goals/:goalId/analytics" element={<PrivateRoute><Suspense fallback={null}><GoalAnalyticsPage /></Suspense></PrivateRoute>} />
               
               {/* Goal deeplink opens modal within feed/discover - Protected */}

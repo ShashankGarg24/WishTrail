@@ -37,7 +37,7 @@ ChartJS.register(
   Filler
 );
 
-export default function HabitAnalyticsPageNew() {
+export default function HabitAnalyticsPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { isPremium } = usePremiumStatus();
@@ -515,11 +515,16 @@ export default function HabitAnalyticsPageNew() {
     // If no timeline data, use current date
     let latestDate;
     if (timelineArr.length > 0) {
-      const latestDateStr = timelineArr.reduce((max, entry) => 
-        entry.date > max ? entry.date : max, 
-        timelineArr[0].date
-      );
-      latestDate = new Date(latestDateStr + 'T12:00:00Z'); // Use noon UTC to avoid timezone issues
+      const validDates = timelineArr
+        .map(entry => entry.date)
+        .filter(d => typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d));
+      if (validDates.length > 0) {
+        const latestDateStr = validDates.reduce((max, d) => (d > max ? d : max), validDates[0]);
+        const candidate = new Date(latestDateStr + 'T12:00:00Z');
+        latestDate = isNaN(candidate.getTime()) ? new Date() : candidate;
+      } else {
+        latestDate = new Date();
+      }
     } else {
       latestDate = new Date();
     }
@@ -529,6 +534,7 @@ export default function HabitAnalyticsPageNew() {
     
     for (let i = totalDaysToShow - 1; i >= 0; i--) {
       const date = new Date(latestDate);
+      if (isNaN(date.getTime())) continue;
       date.setUTCDate(date.getUTCDate() - i);
       const dateKey = date.toISOString().split('T')[0];
       const dayData = map[dateKey] || { status: 'none', completionCount: 0 };

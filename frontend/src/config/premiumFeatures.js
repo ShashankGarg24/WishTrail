@@ -15,7 +15,7 @@ export const PREMIUM_FEATURES = {
     },
     premium: {
       maxActiveGoals: 10,
-      maxSubgoalsPerGoal: 10
+      maxSubgoalsPerGoal: 5
     }
   },
 
@@ -40,7 +40,7 @@ export const PREMIUM_FEATURES = {
     free: {
       maxEntriesPerDay: 1,
       maxEntryLength: 1000,
-      retentionDays: 90,
+      retentionDays: 60,
       canExportEntries: false
     },
     premium: {

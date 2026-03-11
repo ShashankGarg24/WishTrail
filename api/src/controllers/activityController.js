@@ -39,7 +39,6 @@ async function enrichActivities(activities) {
   const goalMap = new Map(goals.map(g => [g.id, g]));
   const userMap = new Map(users.map(u => [u.id, u]));
   const achievementMap = new Map(achievements.map(a => [a._id.toString(), a]));
-  
   // Enrich activities
   const enriched = activityArray.map(activity => {
     const enrichedActivity = { ...activity };
@@ -58,9 +57,9 @@ async function enrichActivities(activities) {
         };
       }
     }
-    
     if (activity.data?.goalId) {
-      const goal = goalMap.get(activity.data.goalId);
+      const goal = goalMap.get(String(activity.data.goalId));
+
       if (goal) {
         // Create nested goal object for backward compatibility
         enrichedActivity.data = {
