@@ -11,6 +11,8 @@ const CommunityCard = ({ community, onClick }) => (
         <img 
           src={community.bannerUrl} 
           alt={`${community.name} banner`}
+          width="400"
+          height="128"
           className="w-full h-full object-cover"
           onError={(e) => {
             e.target.style.display = 'none';
@@ -29,6 +31,8 @@ const CommunityCard = ({ community, onClick }) => (
           <img 
             src={community.avatarUrl} 
             alt={`${community.name} avatar`}
+            width="56"
+            height="56"
             className="h-12 w-12 sm:h-14 sm:w-14 rounded-xl object-cover shadow-lg ring-2 ring-gray-200 dark:ring-gray-700 group-hover:scale-110 transition-transform duration-300"
             onError={(e) => {
               e.target.outerHTML = `<div class="h-12 w-12 sm:h-14 sm:w-14 rounded-xl bg-[#4c99e6] text-white flex items-center justify-center text-base font-bold shadow-lg ring-4 ring-white dark:ring-gray-900 group-hover:scale-110 transition-transform duration-300">${community.name?.slice(0,2).toUpperCase()}</div>`;

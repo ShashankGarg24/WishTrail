@@ -112,7 +112,7 @@ const LeaderboardPageNew = () => {
                 </div>
                 <div className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full bg-gray-300 mx-auto mb-2 sm:mb-3 md:mb-4 flex items-center justify-center">
                   {podiumOrder[0].avatar ? (
-                    <img src={podiumOrder[0].avatar} alt={podiumOrder[0].name} className="w-full h-full rounded-full object-cover" />
+                    <img src={podiumOrder[0].avatar} alt={podiumOrder[0].name} width="56" height="56" className="w-full h-full rounded-full object-cover" />
                   ) : (
                     <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-400 font-bold text-base sm:text-lg md:text-xl">
                       {podiumOrder[0].name.charAt(0)}
@@ -148,7 +148,7 @@ const LeaderboardPageNew = () => {
                 </div>
                 <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-full bg-[#4c99e6] mx-auto mb-2 sm:mb-3 md:mb-4 flex items-center justify-center">
                   {podiumOrder[1].avatar ? (
-                    <img src={podiumOrder[1].avatar} alt={podiumOrder[1].name} className="w-full h-full rounded-full object-cover" />
+                    <img src={podiumOrder[1].avatar} alt={podiumOrder[1].name} width="64" height="64" className="w-full h-full rounded-full object-cover" />
                   ) : (
                     <div className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-400 font-bold text-lg sm:text-xl md:text-2xl">
                       {podiumOrder[1].name.charAt(0)}
@@ -185,7 +185,7 @@ const LeaderboardPageNew = () => {
                 </div>
                 <div className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full bg-orange-400 mx-auto mb-2 sm:mb-3 md:mb-4 flex items-center justify-center">
                   {podiumOrder[2].avatar ? (
-                    <img src={podiumOrder[2].avatar} alt={podiumOrder[2].name} className="w-full h-full rounded-full object-cover" />
+                    <img src={podiumOrder[2].avatar} alt={podiumOrder[2].name} width="56" height="56" className="w-full h-full rounded-full object-cover" />
                   ) : (
                     <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-400 font-bold text-base sm:text-lg md:text-xl">
                       {podiumOrder[2].name.charAt(0)}
@@ -263,7 +263,7 @@ const LeaderboardPageNew = () => {
                 <div className="col-span-7 sm:col-span-8 flex items-center gap-2 sm:gap-3">
                   <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br ${getAvatarColor(user.rank)} flex items-center justify-center text-white font-bold font-manrope text-xs sm:text-sm flex-shrink-0`}>
                     {user.avatar ? (
-                      <img src={user.avatar} alt={user.name} className="w-full h-full rounded-full object-cover" />
+                      <img src={user.avatar} alt={user.name} width="32" height="32" className="w-full h-full rounded-full object-cover" />
                     ) : (
                       user.name.charAt(0)
                     )}

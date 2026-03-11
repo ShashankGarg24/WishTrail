@@ -309,7 +309,7 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal, isEditM
             </label>
             {attachmentPreview && (
               <div className="relative inline-block mt-3">
-                <img src={attachmentPreview} alt="Attachment preview" className="w-24 h-24 object-cover rounded-lg border border-gray-200 dark:border-gray-700" />
+                <img src={attachmentPreview} alt="Attachment preview" width="96" height="96" className="w-24 h-24 object-cover rounded-lg border border-gray-200 dark:border-gray-700" />
                 <button type="button" onClick={removeAttachment} className="absolute -top-2 -right-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-full p-1 shadow hover:bg-gray-50">
                   <X className="h-3 w-3 text-gray-600" />
                 </button>

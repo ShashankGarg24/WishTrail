@@ -392,6 +392,8 @@ const FeedPage = () => {
                         <img
                           src={activity.user.avatar}
                           alt={activity.user.name}
+                          width="40"
+                          height="40"
                           onClick={(e) => {
                             e.stopPropagation();
                             if (activity.user?.username) {
@@ -523,11 +525,11 @@ const FeedPage = () => {
                           {(activity.completionNote || activity.completionImage) && (
                             <div className="mt-4 space-y-3">
                               {activity.completionImage && (
-                                <div className="overflow-hidden rounded-lg border border-gray-100 shadow-sm">
+                                <div className="overflow-hidden rounded-lg border border-gray-100 shadow-sm aspect-video bg-gray-100">
                                   <img
                                     src={activity.completionImage}
                                     alt="Activity image"
-                                    className="w-full max-h-96 object-cover hover:scale-105 transition-transform duration-300"
+                                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                                   />
                                 </div>
                               )}
@@ -643,6 +645,8 @@ const FeedPage = () => {
                           <img
                             src={goal?.user_avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${goal?.user_name}`}
                             alt={goal?.user_name || 'User'}
+                            width="40"
+                            height="40"
                             className="h-full w-full rounded-full object-cover"
                           />
                         </div>

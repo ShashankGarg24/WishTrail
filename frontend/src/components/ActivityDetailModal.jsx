@@ -100,7 +100,7 @@ const ActivityDetailModal = ({ isOpen, onClose, activity, onOpenComments, onRepo
           <div className="flex-1 overflow-auto">
             {hasImage && (
               <div className="bg-black/5 dark:bg-black flex items-center justify-center p-2">
-                <img src={sharedImage} alt="Attachment" className="max-h-[60vh] w-full object-contain rounded-lg" />
+                <img src={sharedImage} alt="Attachment" width="800" height="450" className="max-h-[60vh] w-full object-contain rounded-lg" />
               </div>
             )}
             {hasNote && (

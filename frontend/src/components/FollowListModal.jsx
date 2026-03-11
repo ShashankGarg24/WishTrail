@@ -19,7 +19,7 @@ const ListItem = ({ user, onOpenProfile, actionType, onFollowBack, onRemove }) =
         className="flex items-center gap-3 flex-1 min-w-0 text-left rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors p-1 -m-1"
       >
         {avatar ? (
-          <img src={avatar} alt={name} className="w-10 h-10 rounded-full object-cover bg-gray-200 dark:bg-gray-700 flex-shrink-0" />
+          <img src={avatar} alt={name} width="40" height="40" className="w-10 h-10 rounded-full object-cover bg-gray-200 dark:bg-gray-700 flex-shrink-0" />
         ) : (
           <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold text-white flex-shrink-0" style={{ backgroundColor: THEME_COLOR }}>
             {initials}

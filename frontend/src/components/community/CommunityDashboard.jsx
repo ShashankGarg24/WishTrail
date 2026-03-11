@@ -108,7 +108,7 @@ export default function CommunityDashboard({ dashboard, members, analytics, item
           {(analytics?.leaderboard?.topContributors || []).slice(0,6).map((m, idx) => (
             <div key={m.userId || idx} className="p-4 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-md transition-all duration-300 flex items-center gap-3 group">
               <div className={`text-xs w-7 h-7 rounded-full flex items-center justify-center font-bold ${idx === 0 ? 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-white' : idx === 1 ? 'bg-gradient-to-br from-gray-300 to-gray-400 text-gray-700' : idx === 2 ? 'bg-gradient-to-br from-orange-400 to-orange-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}`}>{idx+1}</div>
-              <img src={m.user?.avatar} alt="User" className="h-10 w-10 rounded-full ring-2 ring-white dark:ring-gray-900 shadow-sm group-hover:scale-110 transition-transform" />
+              <img src={m.user?.avatar} alt="User" width="40" height="40" className="h-10 w-10 rounded-full ring-2 ring-white dark:ring-gray-900 shadow-sm group-hover:scale-110 transition-transform" />
               <div className="text-sm font-semibold truncate flex-1 text-gray-900 dark:text-white">{m.user?.name || 'User'}</div>
               <div className="text-xs font-bold text-blue-600 dark:text-blue-400">{m.completedGoals || 0} goals</div>
             </div>
@@ -116,7 +116,7 @@ export default function CommunityDashboard({ dashboard, members, analytics, item
           {(!analytics?.leaderboard?.topContributors || analytics.leaderboard.topContributors.length === 0) && members.slice(0,6).map((m, idx) => (
             <div key={m._id} className="p-4 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-md transition-all duration-300 flex items-center gap-3 group">
               <div className={`text-xs w-7 h-7 rounded-full flex items-center justify-center font-bold ${idx === 0 ? 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-white' : idx === 1 ? 'bg-gradient-to-br from-gray-300 to-gray-400 text-gray-700' : idx === 2 ? 'bg-gradient-to-br from-orange-400 to-orange-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}`}>{idx+1}</div>
-              <img src={m.user?.avatar} alt="User" className="h-10 w-10 rounded-full ring-2 ring-white dark:ring-gray-900 shadow-sm group-hover:scale-110 transition-transform" />
+              <img src={m.user?.avatar} alt="User" width="40" height="40" className="h-10 w-10 rounded-full ring-2 ring-white dark:ring-gray-900 shadow-sm group-hover:scale-110 transition-transform" />
               <div className="text-sm font-semibold truncate flex-1 text-gray-900 dark:text-white">{m.user?.name}</div>
               <div className="text-xs font-bold text-blue-600 dark:text-blue-400">{m.user?.completedGoals || 0} goals</div>
             </div>

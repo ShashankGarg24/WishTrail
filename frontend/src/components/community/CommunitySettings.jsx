@@ -194,9 +194,9 @@ export default function CommunitySettings({ community, role, setShowDeleteModal,
                 <div className="flex items-center gap-4">
                   <div className="relative">
                     {avatarPreview ? (
-                      <img src={avatarPreview} alt="Avatar preview" className="h-16 w-16 rounded-full border-4 border-blue-200 dark:border-blue-800 object-cover shadow-lg" />
+                      <img src={avatarPreview} alt="Avatar preview" width="64" height="64" className="h-16 w-16 rounded-full border-4 border-blue-200 dark:border-blue-800 object-cover shadow-lg" />
                     ) : (
-                      <img src={community.avatarUrl || '/api/placeholder/64/64'} alt="Avatar" className="h-16 w-16 rounded-full border-4 border-gray-200 dark:border-gray-800 object-cover shadow-lg" />
+                      <img src={community.avatarUrl || '/api/placeholder/64/64'} alt="Avatar" width="64" height="64" className="h-16 w-16 rounded-full border-4 border-gray-200 dark:border-gray-800 object-cover shadow-lg" />
                     )}
                     {avatarUploading && (
                       <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">

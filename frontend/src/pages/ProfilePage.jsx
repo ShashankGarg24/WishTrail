@@ -695,6 +695,8 @@ const ProfilePage = () => {
               <img
                 src={displayUser.avatar || '/api/placeholder/150/150'}
                 alt={displayUser.name}
+                width="96"
+                height="96"
                 className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-full object-cover border-2 border-white dark:border-gray-700 shadow-md"
               />
               {displayUser.currentMood && (

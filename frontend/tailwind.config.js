@@ -55,8 +55,8 @@ export default {
         }
       },
       fontFamily: {
-        sans: ['Manrope', 'Inter', 'ui-sans-serif', 'system-ui'],
-        manrope: ['Manrope', 'ui-sans-serif', 'system-ui'],
+        sans: ['Manrope', 'Manrope Fallback', 'ui-sans-serif', 'system-ui'],
+        manrope: ['Manrope', 'Manrope Fallback', 'ui-sans-serif', 'system-ui'],
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',

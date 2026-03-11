@@ -246,7 +246,7 @@ function ItemAnalyticsModal({ open, onClose, analytics }) {
                   <tr key={idx} className="border-t border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
                     <td className="px-3 sm:px-4 py-3">
                       <div className="flex items-center gap-2 sm:gap-3">
-                        <img src={r.user?.avatar || '/api/placeholder/32/32'} alt={r.user?.name || 'User'} className="h-8 w-8 sm:h-10 sm:w-10 rounded-full border-2 border-gray-200 dark:border-gray-700 flex-shrink-0" />
+                        <img src={r.user?.avatar || '/api/placeholder/32/32'} alt={r.user?.name || 'User'} width="32" height="32" className="h-8 w-8 sm:h-10 sm:w-10 rounded-full border-2 border-gray-200 dark:border-gray-700 flex-shrink-0" />
                         <div className="min-w-0">
                           <div className="font-semibold text-gray-900 dark:text-white truncate text-xs sm:text-sm">{r.user?.name || 'User'}</div>
                           <div className="text-xs text-gray-500 dark:text-gray-400 truncate">@{r.user?.username || r.userId?.slice(-6)}</div>

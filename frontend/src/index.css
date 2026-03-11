@@ -2,11 +2,27 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * CLS Fix: Override fallback font metrics to closely match Manrope.
+ * This prevents layout shifts when the web font loads/swaps.
+ * Values tuned to minimize glyph size difference between Arial and Manrope.
+ */
+@font-face {
+  font-family: 'Manrope Fallback';
+  src: local('Arial');
+  size-adjust: 103%;
+  ascent-override: 96%;
+  descent-override: 24%;
+  line-gap-override: 0%;
+}
+
 @layer base {
 
   /* Global zoom/scale configuration */
   html {
     font-size: 87%;
+    /* CLS Fix: reserve space for scrollbar so it never shifts layout */
+    scrollbar-gutter: stable;
   }
 
   @media (max-width: 768px) {
@@ -26,6 +42,11 @@
     margin: 0;
     line-height: inherit;
     font-feature-settings: "rlig" 1, "calt" 1;
+    /* CLS Fix: prevent faux bold/italic causing text reflow */
+    font-synthesis: none;
+    /* CLS Fix: reserve scrollbar gutter to prevent layout shift
+       when navigating between pages with/without scrollbars */
+    overflow-y: scroll;
   }
 }
 

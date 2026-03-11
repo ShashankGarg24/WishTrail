@@ -208,7 +208,7 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
                       {(c.replies || []).map((r) => (
                         <div key={r._id}>
                           <div className="flex items-start gap-3 p-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                            <img src={r.userId?.avatar} alt={r.userId?.name} className="w-8 h-8 rounded-full object-cover cursor-pointer ring-2 ring-gray-200 dark:ring-gray-700 hover:ring-[#4c99e6] transition-all" onClick={() => handleUserClick(r.userId?.username)} />
+                            <img src={r.userId?.avatar} alt={r.userId?.name} width="32" height="32" className="w-8 h-8 rounded-full object-cover cursor-pointer ring-2 ring-gray-200 dark:ring-gray-700 hover:ring-[#4c99e6] transition-all" onClick={() => handleUserClick(r.userId?.username)} />
                             <div className="flex-1 min-w-0">
                               <div className="flex items-start justify-between mb-1">
                                 <div className="flex items-center gap-2">
@@ -300,7 +300,7 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
               return (
                 <div key={c._id}>
                   <div className="flex items-start gap-3 ">
-                    <img src={c.userId?.avatar} alt={c.userId?.name} className="w-8 h-8 rounded-full object-cover cursor-pointer" onClick={() => handleUserClick(c.userId?.username)} />
+                    <img src={c.userId?.avatar} alt={c.userId?.name} width="32" height="32" className="w-8 h-8 rounded-full object-cover cursor-pointer" onClick={() => handleUserClick(c.userId?.username)} />
                     <div className="flex-1">
                       <div className="flex items-start justify-between">
                         <div className="text-xs text-gray-500">
@@ -340,7 +340,7 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
                       {(c.replies || []).map((r) => (
                         <div key={r._id}>
                           <div className="flex items-start gap-3">
-                            <img src={r.userId?.avatar} alt={r.userId?.name} className="w-8 h-8 rounded-full object-cover cursor-pointer" onClick={() => handleUserClick(r.userId?.username)} />
+                            <img src={r.userId?.avatar} alt={r.userId?.name} width="32" height="32" className="w-8 h-8 rounded-full object-cover cursor-pointer" onClick={() => handleUserClick(r.userId?.username)} />
                             <div className="flex-1">
                               <div className="flex items-start justify-between">
                                 <div className="text-xs text-gray-500">
@@ -443,7 +443,7 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
                 return (
                   <div key={c._id}>
                     <div className="flex items-start gap-3">
-                      <img src={c.userId?.avatar} alt={c.userId?.name} className="w-8 h-8 rounded-full object-cover cursor-pointer" onClick={() => handleUserClick(c.userId?.username)} />
+                      <img src={c.userId?.avatar} alt={c.userId?.name} width="32" height="32" className="w-8 h-8 rounded-full object-cover cursor-pointer" onClick={() => handleUserClick(c.userId?.username)} />
                       <div className="flex-1">
                         <div className="flex items-start justify-between">
                           <div className="text-xs text-gray-500">
@@ -483,7 +483,7 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
                         {(c.replies || []).map((r) => (
                           <div key={r._id}>
                             <div className="flex items-start gap-3">
-                              <img src={r.userId?.avatar} alt={r.userId?.name} className="w-8 h-8 rounded-full object-cover cursor-pointer" onClick={() => handleUserClick(r.userId?.username)} />
+                              <img src={r.userId?.avatar} alt={r.userId?.name} width="32" height="32" className="w-8 h-8 rounded-full object-cover cursor-pointer" onClick={() => handleUserClick(r.userId?.username)} />
                               <div className="flex-1">
                                 <div className="flex items-start justify-between">
                                   <div className="text-xs text-gray-500">

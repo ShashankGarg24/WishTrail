@@ -316,14 +316,14 @@ export default function CommunityDetailPage() {
       <div className="relative overflow-hidden rounded-3xl border-2 border-gray-200 dark:border-gray-800 mb-8 shadow-xl">
         <div className="h-32 sm:h-48 bg-blue-500/30 relative">
           {headerImages.bannerUrl ? (
-            <img src={headerImages.bannerUrl} alt="Community banner" className="absolute inset-0 h-full w-full object-cover" />
+            <img src={headerImages.bannerUrl} alt="Community banner" width="1200" height="192" className="absolute inset-0 h-full w-full object-cover" />
           ) : null}
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/10 to-transparent" />
         </div>
         <div className="p-6 sm:p-8 pt-16 sm:pt-20">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 -mt-16 sm:-mt-20">
             {headerImages.avatarUrl ? (
-              <img src={headerImages.avatarUrl} alt="Community avatar" className="h-20 w-20 sm:h-24 sm:w-24 rounded-2xl border-4 border-white dark:border-gray-900 object-cover shadow-lg flex-shrink-0" />
+              <img src={headerImages.avatarUrl} alt="Community avatar" width="80" height="80" className="h-20 w-20 sm:h-24 sm:w-24 rounded-2xl border-4 border-white dark:border-gray-900 object-cover shadow-lg flex-shrink-0" />
             ) : (
               <div className="h-20 w-20 sm:h-24 sm:w-24 rounded-2xl bg-[#4c99e6] text-white flex items-center justify-center text-2xl font-bold shadow-lg border-4 border-white dark:border-gray-900 flex-shrink-0">
                 {community.name?.slice(0,2).toUpperCase()}
@@ -392,7 +392,7 @@ export default function CommunityDetailPage() {
             <div key={a._id} className="px-2">
               {a.kind==='chat' ? (
                 <div className="flex items-end gap-3 mb-3 group">
-                  <img src={a.avatar || a.userId?.avatar} alt="User" className="h-9 w-9 rounded-full ring-2 ring-white dark:ring-gray-900 shadow-sm" />
+                  <img src={a.avatar || a.userId?.avatar} alt="User" width="36" height="36" className="h-9 w-9 rounded-full ring-2 ring-white dark:ring-gray-900 shadow-sm" />
                   <div className="max-w-[75%] rounded-2xl px-4 py-3 bg-gray-50 dark:bg-gray-800 text-sm shadow-sm border border-gray-200/50 dark:border-gray-700/50">
                   <div className="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-1">{a.name || a.userId?.name} <span className="font-normal text-gray-500 dark:text-gray-400" title={new Date(a.createdAt).toLocaleString()}>• {formatRelativeTime(a.createdAt)}</span></div>
                     <div className="whitespace-pre-wrap text-gray-900 dark:text-gray-100">{a.text}</div>
