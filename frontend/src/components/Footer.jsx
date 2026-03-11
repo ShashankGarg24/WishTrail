@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Star, Youtube, Instagram } from 'lucide-react'
+import { Youtube, Instagram } from 'lucide-react'
 import useApiStore from '../store/apiStore'
 
 const Footer = () => {
@@ -8,7 +8,7 @@ const Footer = () => {
   const allQuickLinks = [
     { name: 'Home', href: '/' },
     { name: 'Inspiration', href: '/inspiration' },
-    { name: 'Discover', href: '/discover' },
+    { name: 'Discover', href: '/diFscover' },
     { name: 'Dashboard', href: '/dashboard' },
     { name: 'Leaderboard', href: '/leaderboard' },
   ]
@@ -33,9 +33,9 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-8">
           {/* Brand Section */}
           <div className="space-y-4">
-            <Link to="/" className="flex items-center gap-2">
-              <Star className="w-6 h-6 text-[#4c99e6] fill-[#4c99e6]" />
-              <span className="text-xl font-bold text-gray-900 dark:text-white font-manrope">
+            <Link to="/" className="flex items-center gap-0">
+              <img src="/logo-wo-bg.png" alt="WishTrail" width="40" height="40" className="w-16 h-16 object-contain" />
+              <span className="-ml-2 text-xl font-bold text-gray-900 dark:text-white font-manrope">
                 WishTrail
               </span>
             </Link>

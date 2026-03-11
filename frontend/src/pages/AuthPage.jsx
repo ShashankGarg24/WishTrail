@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Mail, Lock, Eye, EyeOff, Droplet, Shield, Check, User } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, Shield, Check, User } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import useApiStore from "../store/apiStore";
 import toast from 'react-hot-toast';
@@ -162,9 +162,6 @@ const AuthPage = () => {
           <div className="relative z-10 max-w-md text-white space-y-8">
             {/* Logo */}
             <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-[#4c99e6] rounded-xl flex items-center justify-center">
-                <Droplet className="h-7 w-7 text-white" />
-              </div>
               <h1 className="text-3xl font-bold">WishTrail</h1>
             </div>
 
@@ -245,9 +242,6 @@ const AuthPage = () => {
           {/* Logo and Tagline - Centered */}
           <div className="space-y-6 max-w-md">
             <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-white/10 backdrop-blur-sm rounded-xl flex items-center justify-center border border-white/20">
-                <Droplet className="h-7 w-7 text-white" />
-              </div>
               <h1 className="text-3xl font-bold">WishTrail</h1>
             </div>
 
