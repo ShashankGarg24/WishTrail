@@ -70,7 +70,7 @@ const Footer = () => {
             </h3>
             <div className="flex items-center gap-3">
               <a
-                href="https://youtube.com/thewishtrail"
+                href="https://youtube.com/@TheWishTrail"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="p-2 rounded-lg bg-gray-100 hover:bg-[#FF6B6B] dark:bg-gray-800 dark:hover:bg-[#FF6B6B] text-gray-600 hover:text-white dark:text-gray-400 dark:hover:text-white transition-all"
