@@ -86,15 +86,6 @@ const ErrorScreen = ({
     }
   };
 
-    const handleHomeCtaClick = () => {
-    if (onRetry) {
-      navigate('/');
-      onRetry();
-    } else {
-      window.location.reload();
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
 
@@ -158,7 +149,7 @@ const ErrorScreen = ({
               {showHomeButton && (
                 navigate ? (
                   <Link
-                    onClick={handleHomeCtaClick}
+                    to="/"
                     className={`inline-flex items-center justify-center gap-2 px-6 py-3 font-medium rounded-lg transition-colors shadow-sm ${
                       showRetryButton 
                         ? 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700' 
