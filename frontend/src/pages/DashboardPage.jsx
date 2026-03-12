@@ -682,7 +682,7 @@ const DashboardPageNew = () => {
                   <Plus className="w-8 h-8 text-[#4c99e6]" />
                 </div>
                 <h3 className="font-semibold text-gray-900 dark:text-white font-manrope text-base sm:text-lg mb-2">
-                  New Milestone
+                  New Goal
                 </h3>
                 <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 font-manrope text-center">
                   Expand your roadmap. Define a new goal.

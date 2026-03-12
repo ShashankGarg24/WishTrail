@@ -291,7 +291,7 @@ const InspirationPage = () => {
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-gray-300" style={{ fontFamily: 'Manrope, sans-serif' }}>Connections</span>
                       <span className="text-lg font-bold text-[#4c99e6]" style={{ fontFamily: 'Manrope, sans-serif' }}>
-                        {user?.followingCount || "-"}
+                        {user?.followingCount || 0}
                       </span>
                     </div>
                   </div>

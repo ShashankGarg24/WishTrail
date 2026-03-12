@@ -2,19 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/*
- * CLS Fix: Override fallback font metrics to closely match Manrope.
- * This prevents layout shifts when the web font loads/swaps.
- * Values tuned to minimize glyph size difference between Arial and Manrope.
- */
-@font-face {
-  font-family: 'Manrope Fallback';
-  src: local('Arial');
-  size-adjust: 103%;
-  ascent-override: 96%;
-  descent-override: 24%;
-  line-gap-override: 0%;
-}
 
 @layer base {
 
