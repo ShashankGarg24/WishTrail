@@ -2,13 +2,16 @@ import { useState, useEffect, lazy, Suspense, useRef } from 'react';
 import CategoryBadge from './CategoryBadge';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Heart, MessageCircle, Share2, TrendingUp, Send } from 'lucide-react';
+import { X, Heart, MessageCircle, Share2, TrendingUp, Send, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import useApiStore from '../store/apiStore';
 import { activitiesAPI } from '../services/api';
 import toast from 'react-hot-toast';
 
 const ActivityCommentsModal = lazy(() => import('./ActivityCommentsModal'));
 const ShareSheet = lazy(() => import('./ShareSheet'));
+const MIN_DESKTOP_IMAGE_ZOOM = 1;
+const MAX_DESKTOP_IMAGE_ZOOM = 3;
+const DESKTOP_IMAGE_ZOOM_STEP = 0.25;
 
 // Separate comment input component
 const CommentInput = ({ activityId }) => {
@@ -72,6 +75,8 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
   const [liking, setLiking] = useState(false);
   const [shareSheetOpen, setShareSheetOpen] = useState(false);
   const shareUrlRef = useRef('');
+  const desktopImageContainerRef = useRef(null);
+  const [desktopImageZoom, setDesktopImageZoom] = useState(MIN_DESKTOP_IMAGE_ZOOM);
 
   useEffect(() => {
     if (isOpen && goalId) {
@@ -103,6 +108,12 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
     window.addEventListener('resize', compute);
     return () => window.removeEventListener('resize', compute);
   }, []);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setDesktopImageZoom(MIN_DESKTOP_IMAGE_ZOOM);
+    }
+  }, [isOpen, goalId]);
 
   const loadGoalData = async () => {
     setLoading(true);
@@ -253,6 +264,44 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
   const completionImageUrl = goalData?.completion?.attachmentUrl || goalData?.share?.attachmentUrl || goalData?.share?.image || '';
   const hasCompletionImage = Boolean(completionImageUrl);
 
+  const updateDesktopImageZoom = (nextZoom) => {
+    const container = desktopImageContainerRef.current;
+    const clampedZoom = Math.min(MAX_DESKTOP_IMAGE_ZOOM, Math.max(MIN_DESKTOP_IMAGE_ZOOM, nextZoom));
+
+    if (!container || clampedZoom === desktopImageZoom) {
+      setDesktopImageZoom(clampedZoom);
+      return;
+    }
+
+    const centerXRatio = container.scrollWidth > 0
+      ? (container.scrollLeft + container.clientWidth / 2) / container.scrollWidth
+      : 0.5;
+    const centerYRatio = container.scrollHeight > 0
+      ? (container.scrollTop + container.clientHeight / 2) / container.scrollHeight
+      : 0.5;
+
+    setDesktopImageZoom(clampedZoom);
+
+    requestAnimationFrame(() => {
+      const nextContainer = desktopImageContainerRef.current;
+      if (!nextContainer) return;
+
+      nextContainer.scrollTo({
+        left: Math.max(0, centerXRatio * nextContainer.scrollWidth - nextContainer.clientWidth / 2),
+        top: Math.max(0, centerYRatio * nextContainer.scrollHeight - nextContainer.clientHeight / 2),
+        behavior: 'smooth'
+      });
+    });
+  };
+
+  const handleDesktopImageWheel = (e) => {
+    if (!e.ctrlKey && !e.metaKey) return;
+
+    e.preventDefault();
+    const direction = e.deltaY < 0 ? DESKTOP_IMAGE_ZOOM_STEP : -DESKTOP_IMAGE_ZOOM_STEP;
+    updateDesktopImageZoom(desktopImageZoom + direction);
+  };
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -280,12 +329,53 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
           ) : goalData ? (
             <div className={`flex ${hasCompletionImage ? 'flex-row' : 'flex-col'} h-full overflow-hidden`}>
               {hasCompletionImage && (
-                <div className="hidden md:flex w-1/2 items-center justify-center bg-gray-100 p-4 overflow-auto">
-                  <img
-                    src={completionImageUrl}
-                    alt="Completion"
-                    className="w-full h-auto max-h-full rounded-xl object-contain"
-                  />
+                <div className="hidden md:flex w-1/2 bg-gray-100 p-4 overflow-hidden relative">
+                  <div className="absolute top-6 right-6 z-10 flex items-center gap-2 rounded-full border border-white/70 bg-white/90 px-2 py-1.5 shadow-lg backdrop-blur-sm">
+                    <button
+                      type="button"
+                      onClick={() => updateDesktopImageZoom(desktopImageZoom - DESKTOP_IMAGE_ZOOM_STEP)}
+                      disabled={desktopImageZoom <= MIN_DESKTOP_IMAGE_ZOOM}
+                      className="rounded-full p-2 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 disabled:cursor-not-allowed disabled:opacity-40"
+                      aria-label="Zoom out image"
+                    >
+                      <ZoomOut className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => updateDesktopImageZoom(MIN_DESKTOP_IMAGE_ZOOM)}
+                      disabled={desktopImageZoom === MIN_DESKTOP_IMAGE_ZOOM}
+                      className="rounded-full p-2 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 disabled:cursor-not-allowed disabled:opacity-40"
+                      aria-label="Reset image zoom"
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => updateDesktopImageZoom(desktopImageZoom + DESKTOP_IMAGE_ZOOM_STEP)}
+                      disabled={desktopImageZoom >= MAX_DESKTOP_IMAGE_ZOOM}
+                      className="rounded-full p-2 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 disabled:cursor-not-allowed disabled:opacity-40"
+                      aria-label="Zoom in image"
+                    >
+                      <ZoomIn className="h-4 w-4" />
+                    </button>
+                  </div>
+
+                  <div
+                    ref={desktopImageContainerRef}
+                    onWheel={handleDesktopImageWheel}
+                    className="flex-1 overflow-auto scroll-smooth rounded-2xl"
+                  >
+                    <div
+                      className="mx-auto flex min-h-full min-w-full items-center justify-center transition-all duration-300 ease-out"
+                      style={{ width: `${desktopImageZoom * 100}%` }}
+                    >
+                      <img
+                        src={completionImageUrl}
+                        alt="Completion"
+                        className="w-full h-auto rounded-xl object-contain shadow-sm"
+                      />
+                    </div>
+                  </div>
                 </div>
               )}
 
