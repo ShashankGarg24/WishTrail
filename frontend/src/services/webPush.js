@@ -31,7 +31,7 @@ export const initializeFirebaseMessaging = async () => {
     
     // Validate config
     if (!config.apiKey || !config.projectId || !config.messagingSenderId || !config.appId) {
-      console.warn('[WebPush] Firebase config is incomplete. Please set VITE_FIREBASE_* environment variables.');
+      // console.warn('[WebPush] Firebase config is incomplete. Please set VITE_FIREBASE_* environment variables.');
       return null;
     }
 
@@ -56,7 +56,7 @@ export const initializeFirebaseMessaging = async () => {
 export const requestNotificationPermission = async () => {
   try {
     if (!('Notification' in window)) {
-      console.warn('[WebPush] This browser does not support notifications');
+      // console.warn('[WebPush] This browser does not support notifications');
       return null;
     }
 
@@ -65,7 +65,7 @@ export const requestNotificationPermission = async () => {
     }
 
     if (Notification.permission === 'denied') {
-      console.warn('[WebPush] Notification permission was previously denied');
+      // console.warn('[WebPush] Notification permission was previously denied');
       return 'denied';
     }
 
@@ -86,13 +86,13 @@ export const getFCMToken = async () => {
     }
 
     if (!messaging) {
-      console.warn('[WebPush] Messaging not initialized');
+      // console.warn('[WebPush] Messaging not initialized');
       return null;
     }
 
     const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY;
     if (!vapidKey) {
-      console.warn('[WebPush] VAPID key not configured. Set VITE_FIREBASE_VAPID_KEY in your environment variables.');
+      // console.warn('[WebPush] VAPID key not configured. Set VITE_FIREBASE_VAPID_KEY in your environment variables.');
       return null;
     }
 
@@ -106,7 +106,7 @@ export const getFCMToken = async () => {
         const configParam = encodeURIComponent(JSON.stringify(config));
         registration = await navigator.serviceWorker.register(`/firebase-messaging-sw.js?firebaseConfig=${configParam}`);
       } catch (error) {
-        console.warn('[WebPush] Failed to register firebase-messaging-sw.js, trying sw.js:', error);
+        // console.warn('[WebPush] Failed to register firebase-messaging-sw.js, trying sw.js:', error);
         registration = await navigator.serviceWorker.register('/sw.js');
       }
       
@@ -187,7 +187,7 @@ export const setupForegroundMessageListener = (callback) => {
 export const registerDeviceWithBackend = async (token, apiFunction) => {
   try {
     if (!token) {
-      console.warn('[WebPush] No token provided for device registration');
+      // console.warn('[WebPush] No token provided for device registration');
       return null;
     }
 

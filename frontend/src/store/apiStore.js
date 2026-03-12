@@ -652,8 +652,6 @@ const useApiStore = create(
             date: dateKey  // Send date_key calculated in user's timezone
           });
           const data = response?.data?.data || response?.data;
-          console.log(response)
-          console.log(data)
           const updatedHabit = data?.habit;
           
           set(state => ({

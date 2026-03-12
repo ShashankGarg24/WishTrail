@@ -1509,7 +1509,6 @@ const ProfilePage = () => {
         onConfirm={async () => {
           try {
             if (!displayUser?.id) {
-              console.log(displayUser);
               toast.error('User ID not found');
               return;
             }

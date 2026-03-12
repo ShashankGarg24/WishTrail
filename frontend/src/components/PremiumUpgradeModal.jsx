@@ -50,7 +50,6 @@ const PremiumUpgradeModal = ({ isOpen, onClose, feature, currentLimit, premiumLi
     setIsLoading(true);
     try {
       // TODO: Implement actual payment flow
-      console.log('Upgrading to:', selectedPlan);
       // For now, just close modal
       setTimeout(() => {
         setIsLoading(false);

@@ -173,25 +173,25 @@ const AccountSection = () => {
     }
   };
 
-  const handleManageBilling = () => {
-    // TODO: Implement billing portal redirect
-    console.log('Navigate to billing portal');
-  };
+  // const handleManageBilling = () => {
+  //   // TODO: Implement billing portal redirect
+  //   console.log('Navigate to billing portal');
+  // };
 
-  const handleRequestExport = () => {
-    // TODO: Implement data export
-    console.log('Request data export');
-  };
+  // const handleRequestExport = () => {
+  //   // TODO: Implement data export
+  //   console.log('Request data export');
+  // };
 
-  const handleDeactivateAccount = () => {
-    // TODO: Implement account deactivation
-    console.log('Deactivate account');
-  };
+  // const handleDeactivateAccount = () => {
+  //   // TODO: Implement account deactivation
+  //   console.log('Deactivate account');
+  // };
 
-  const handleDeleteAccount = () => {
-    // TODO: Implement account deletion
-    console.log('Delete account');
-  };
+  // const handleDeleteAccount = () => {
+  //   // TODO: Implement account deletion
+  //   console.log('Delete account');
+  // };
 
   // Mock subscription data - replace with actual data from API
   const subscriptionPlan = {
