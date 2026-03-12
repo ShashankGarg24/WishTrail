@@ -280,11 +280,11 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
           ) : goalData ? (
             <div className={`flex ${hasCompletionImage ? 'flex-row' : 'flex-col'} h-full overflow-hidden`}>
               {hasCompletionImage && (
-                <div className="hidden md:block w-1/2 relative bg-gray-100">
+                <div className="hidden md:flex w-1/2 items-center justify-center bg-gray-100 p-4 overflow-auto">
                   <img
                     src={completionImageUrl}
                     alt="Completion"
-                    className="w-full h-full object-cover p-2"
+                    className="w-full h-auto max-h-full rounded-xl object-contain"
                   />
                 </div>
               )}
