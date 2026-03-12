@@ -154,7 +154,7 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
             )}
 
             {/* Log retention info for free tier */}
-            {!habitLimits.isPremium && habitLimits.canCreate && (
+            {/* {!habitLimits.isPremium && habitLimits.canCreate && (
               <div className="flex items-start gap-3 p-3 rounded-xl" style={{ backgroundColor: 'rgba(76, 153, 230, 0.08)', border: '1px solid rgba(76, 153, 230, 0.2)' }}>
                 <Clock className="h-4 w-4 flex-shrink-0 mt-0.5" style={{ color: THEME_COLOR }} />
                 <div>
@@ -167,7 +167,7 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
                   </p>
                 </div>
               </div>
-            )}
+            )} */}
 
             {/* Basic Information */}
             <div className="space-y-3 sm:space-y-4">

@@ -413,7 +413,7 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
               )}
 
               {/* Analytics retention notice for free tier - goals */}
-              {!editMode && goalLimits.canCreate && !goalLimits.isPremium && goalLimits.percentUsed < 60 && (
+              {/* {!editMode && goalLimits.canCreate && !goalLimits.isPremium && goalLimits.percentUsed < 60 && (
                 <div className="flex items-start gap-3 p-3 rounded-xl" style={{ backgroundColor: 'rgba(76, 153, 230, 0.08)', border: '1px solid rgba(76, 153, 230, 0.2)' }}>
                   <Clock className="h-4 w-4 flex-shrink-0 mt-0.5" style={{ color: THEME_COLOR }} />
                   <div>
@@ -426,7 +426,7 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
                     </p>
                   </div>
                 </div>
-              )}
+              )} */}
 
               {/* Title */}
               <div>
