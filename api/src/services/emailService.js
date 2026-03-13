@@ -74,18 +74,17 @@ class EmailService {
         // Connection timeout and pool settings for faster email sending
         connectionTimeout: 30000, // 10 seconds max to establish connection
         greetingTimeout: 20000,    // 5 seconds max for greeting
-        socketTimeout: 30000,      // 15 seconds max for socket inactivity
-        family: 4,
-        pool: false,                // Use connection pooling
-        maxConnections: 5,         // Max 5 concurrent connections
-        maxMessages: 100,          // Max messages per connection
-        rateLimit: 10,             // Max 10 messages per second
-        tls: {
-          rejectUnauthorized: false
-        }
+        socketTimeout: 30000,      // 10 seconds max for sending email
     };
 
     this.transporter = nodemailer.createTransport(config);
+    this.transporter.verify((error, success) => {
+    if (error) {
+      console.error("SMTP connection error:", error);
+    } else {
+      console.log("Brevo SMTP ready");
+    }
+  });
   }
 
   /**
@@ -219,7 +218,7 @@ class EmailService {
       </div>
       
       <div class="footer">
-        <p>© 2024 WishTrail. All rights reserved.</p>
+        <p>© 2026 WishTrail. All rights reserved.</p>
         <p>Dreams. Goals. Progress.</p>
       </div>
     </body>
@@ -305,7 +304,7 @@ class EmailService {
       </div>
       
       <div class="footer">
-        <p>© 2024 WishTrail. All rights reserved.</p>
+        <p>© 2026 WishTrail. All rights reserved.</p>
         <p>Dreams. Goals. Progress.</p>
       </div>
     </body>
@@ -391,7 +390,7 @@ class EmailService {
       </div>
       
       <div class="footer">
-        <p>© 2024 WishTrail. All rights reserved.</p>
+        <p>© 2026 WishTrail. All rights reserved.</p>
         <p>Dreams. Goals. Progress.</p>
       </div>
     </body>
@@ -518,7 +517,7 @@ class EmailService {
       </div>
       
       <div class="footer">
-        <p>© 2024 WishTrail. All rights reserved.</p>
+        <p>© 2026 WishTrail. All rights reserved.</p>
         <p>Dreams. Goals. Progress.</p>
       </div>
     </body>
@@ -687,7 +686,7 @@ class EmailService {
       </div>
       
       <div class="footer">
-        <p>© 2024 WishTrail. All rights reserved.</p>
+        <p>© 2026 WishTrail. All rights reserved.</p>
         <p>Dreams. Goals. Progress.</p>
       </div>
     </body>
@@ -781,7 +780,7 @@ class EmailService {
       </div>
       
       <div class="footer">
-        <p>© 2024 WishTrail. All rights reserved.</p>
+        <p>© 2026 WishTrail. All rights reserved.</p>
         <p>Dreams. Goals. Progress.</p>
       </div>
     </body>
