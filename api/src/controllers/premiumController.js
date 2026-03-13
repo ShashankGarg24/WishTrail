@@ -1,3 +1,4 @@
+const { logger } = require('./../config/observability');
 /**
  * Premium Controller
  * 
@@ -36,7 +37,7 @@ const getPremiumStatus = async (req, res, next) => {
     const response = getPremiumStatusResponse(user);
     res.json(response);
   } catch (error) {
-    console.error('Get premium status error:', error);
+    logger.error('Get premium status error:', error);
     next(error);
   }
 };
@@ -64,7 +65,7 @@ const getFeatureLimits = async (req, res, next) => {
       data: limits
     });
   } catch (error) {
-    console.error('Get feature limits error:', error);
+    logger.error('Get feature limits error:', error);
     next(error);
   }
 };
@@ -103,7 +104,7 @@ const getPremiumStats = async (req, res, next) => {
       }
     });
   } catch (error) {
-    console.error('Get premium stats error:', error);
+    logger.error('Get premium stats error:', error);
     next(error);
   }
 };
@@ -153,7 +154,7 @@ const grantPremiumToUser = async (req, res, next) => {
       }
     });
   } catch (error) {
-    console.error('Grant premium error:', error);
+    logger.error('Grant premium error:', error);
     next(error);
   }
 };
@@ -196,7 +197,7 @@ const revokePremiumFromUser = async (req, res, next) => {
       }
     });
   } catch (error) {
-    console.error('Revoke premium error:', error);
+    logger.error('Revoke premium error:', error);
     next(error);
   }
 };
@@ -228,7 +229,7 @@ const subscribeToPremium = async (req, res, next) => {
     const updatedUser = await userService.grantPremium(req.user.id, duration);
     
     // Log subscription for analytics
-    console.log({
+    logger.info({
       type: 'premium_subscription',
       userId: req.user.id,
       plan: planType,
@@ -250,7 +251,7 @@ const subscribeToPremium = async (req, res, next) => {
       }
     });
   } catch (error) {
-    console.error('Subscribe to premium error:', error);
+    logger.error('Subscribe to premium error:', error);
     next(error);
   }
 };
@@ -284,7 +285,7 @@ const cancelSubscription = async (req, res, next) => {
       }
     });
   } catch (error) {
-    console.error('Cancel subscription error:', error);
+    logger.error('Cancel subscription error:', error);
     next(error);
   }
 };
@@ -315,7 +316,7 @@ const getExpiringUsers = async (req, res, next) => {
       }
     });
   } catch (error) {
-    console.error('Get expiring users error:', error);
+    logger.error('Get expiring users error:', error);
     next(error);
   }
 };
@@ -346,7 +347,7 @@ const getExpiredUsers = async (req, res, next) => {
       }
     });
   } catch (error) {
-    console.error('Get expired users error:', error);
+    logger.error('Get expired users error:', error);
     next(error);
   }
 };

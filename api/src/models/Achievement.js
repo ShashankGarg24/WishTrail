@@ -1,3 +1,4 @@
+const { logger } = require('./../config/observability');
 const mongoose = require('mongoose');
 
 const achievementSchema = new mongoose.Schema({
@@ -429,7 +430,7 @@ achievementSchema.statics.createDefaultAchievements = async function() {
       );
     }
   } catch (error) {
-    console.error('Error creating default achievements:', error);
+    logger.error('Error creating default achievements:', error);
   }
 };
 
@@ -512,7 +513,7 @@ achievementSchema.statics.checkUserAchievements = async function(userId) {
     
     return newAchievements;
   } catch (error) {
-    console.error('Error checking user achievements:', error);
+    logger.error('Error checking user achievements:', error);
     return [];
   }
 };

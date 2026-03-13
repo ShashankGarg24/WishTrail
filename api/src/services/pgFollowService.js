@@ -1,3 +1,4 @@
+const { logger } = require('./../config/observability');
 /**
  * PostgreSQL Follow Service
  * Handles all follow/following relationship operations for PostgreSQL
@@ -475,7 +476,7 @@ class PgFollowService {
    * @returns {Promise<boolean>} Success status
    */
   async rejectFollowRequest(followerId, followingId) {
-    console.log('Rejecting follow request:', followerId, followingId);
+    logger.info('Rejecting follow request:', followerId, followingId);
     const sql = `
       DELETE FROM follows
       WHERE follower_id = $1 AND following_id = $2 AND status = 'pending';

@@ -1,3 +1,4 @@
+const { logger } = require('./../config/observability');
 /**
  * PostgreSQL Habit Log Service
  * Handles all habit log-related database operations for PostgreSQL
@@ -321,19 +322,19 @@ class PgHabitLogService {
       const previousCompletionCount = currentLog.completion_count || 0;
       const previousStatus = currentLog.status;
 
-      console.log('[updateHabitLog] Current log:', { 
+      logger.info('[updateHabitLog] Current log:', { 
         id: currentLog.id, 
         status: previousStatus, 
         completionCount: previousCompletionCount 
       });
-      console.log('[updateHabitLog] Update to:', updates);
+      logger.info('[updateHabitLog] Update to:', updates);
 
       // If status is being changed to 'skipped' or 'missed', clear completion data
       if (updates.status === 'skipped' || updates.status === 'missed') {
         setClause.push(`completion_count = 0`);
         setClause.push(`completion_times_mood = ARRAY[]::jsonb[]`);
         
-        console.log('[updateHabitLog] Clearing completions, adjusting habit stats');
+        logger.info('[updateHabitLog] Clearing completions, adjusting habit stats');
         
         // Adjust habit stats if previous status was 'done'
         if (previousStatus === 'done' && previousCompletionCount > 0) {
@@ -421,7 +422,7 @@ class PgHabitLogService {
             finalLongestStreak = Math.max(longestStreak, existingLongestStreak);
           }
           
-          console.log('[updateHabitLog] Streak recalculation:', {
+          logger.info('[updateHabitLog] Streak recalculation:', {
             logsRemaining: logs.length,
             currentStreak,
             longestStreak,
@@ -436,7 +437,7 @@ class PgHabitLogService {
             WHERE id = $3
           `, [currentStreak, finalLongestStreak, currentLog.habit_id]);
           
-          console.log('[updateHabitLog] Habit updated with new streaks');
+          logger.info('[updateHabitLog] Habit updated with new streaks');
         }
       }
 
@@ -451,7 +452,7 @@ class PgHabitLogService {
 
       const result = await client.query(sql, values);
       
-      console.log('[updateHabitLog] Log updated, returning');
+      logger.info('[updateHabitLog] Log updated, returning');
       
       return result.rows[0] ? this._formatHabitLog(result.rows[0]) : null;
     });

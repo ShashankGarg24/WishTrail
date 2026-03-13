@@ -1,3 +1,4 @@
+const { logger } = require('./../config/observability');
 const express = require('express');
 const router = express.Router();
 
@@ -21,7 +22,7 @@ router.post('/habit-reminders', verifyCronKey, async (req, res) => {
     const startedAt = Date.now();
     const result = await sendReminderNotifications({ windowMinutes });
     const durationMs = Date.now() - startedAt;
-    try { console.log('[cron] habit-reminders', { windowMinutes, durationMs, count: result?.count }); } catch {}
+    try { logger.info('[cron] habit-reminders', { windowMinutes, durationMs, count: result?.count }); } catch {}
     res.json({ success: true, data: result, durationMs });
   } catch (e) {
     res.status(500).json({ success: false, error: e?.message || 'failed' });
@@ -33,7 +34,7 @@ router.post('/journal-prompts', verifyCronKey, async (req, res) => {
     const startedAt = Date.now();
     await notifyDailyPrompt();
     const durationMs = Date.now() - startedAt;
-    try { console.log('[cron] journal-prompts', { durationMs }); } catch {}
+    try { logger.info('[cron] journal-prompts', { durationMs }); } catch {}
     res.json({ success: true, durationMs });
   } catch (e) {
     res.status(500).json({ success: false, error: e?.message || 'failed' });
@@ -45,7 +46,7 @@ router.post('/morning-quotes', verifyCronKey, async (req, res) => {
     const startedAt = Date.now();
     const r = await sendMorningQuotes();
     const durationMs = Date.now() - startedAt;
-    try { console.log('[cron] morning-quotes', { durationMs, count: r?.count }); } catch {}
+    try { logger.info('[cron] morning-quotes', { durationMs, count: r?.count }); } catch {}
     res.json({ success: true, data: r, durationMs });
   } catch (e) {
     res.status(500).json({ success: false, error: e?.message || 'failed' });
@@ -57,7 +58,7 @@ router.post('/nightly-quotes', verifyCronKey, async (req, res) => {
     const startedAt = Date.now();
     const r = await generateNightlyQuotes();
     const durationMs = Date.now() - startedAt;
-    try { console.log('[cron] nightly-quotes', { durationMs }); } catch {}
+    try { logger.info('[cron] nightly-quotes', { durationMs }); } catch {}
     res.json({ success: true, data: r, durationMs });
   } catch (e) {
     res.status(500).json({ success: false, error: e?.message || 'failed' });
@@ -69,7 +70,7 @@ router.post('/inactivity-reminders', verifyCronKey, async (req, res) => {
     const startedAt = Date.now();
     const r = await sendDueInactivityReminders({ batchLimit: 2000 });
     const durationMs = Date.now() - startedAt;
-    try { console.log('[cron] inactivity-reminders', { durationMs }); } catch {}
+    try { logger.info('[cron] inactivity-reminders', { durationMs }); } catch {}
     res.json({ success: true, data: r, durationMs });
   } catch (e) {
     res.status(500).json({ success: false, error: e?.message || 'failed' });
@@ -82,7 +83,7 @@ router.post('/delete-old-notifications', verifyCronKey, async (req, res) => {
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const result = await Notification.deleteMany({ createdAt: { $lt: thirtyDaysAgo } });
     const durationMs = Date.now() - startedAt;
-    try { console.log('[cron] delete-old-notifications', { durationMs, deletedCount: result.deletedCount }); } catch {}
+    try { logger.info('[cron] delete-old-notifications', { durationMs, deletedCount: result.deletedCount }); } catch {}
     res.json({ success: true, deletedCount: result.deletedCount, durationMs });
   } catch (e) {
     res.status(500).json({ success: false, error: e?.message || 'failed' });

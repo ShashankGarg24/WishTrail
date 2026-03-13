@@ -1,3 +1,4 @@
+const { logger } = require('./../config/observability');
 const Report = require('../models/Report');
 const pgBlockService = require('../services/pgBlockService');
 const { sanitizeBlockedUsers } = require('../utility/sanitizer');
@@ -80,7 +81,7 @@ const listBlocked = async (req, res, next) => {
     }));
     
     const sanitized = sanitizeBlockedUsers(users);
-    console.log('Sanitized blocked users:', sanitized);
+    logger.info('Sanitized blocked users:', sanitized);
     res.json({ success: true, data: { users: sanitized } });
   } catch (err) { next(err); }
 };

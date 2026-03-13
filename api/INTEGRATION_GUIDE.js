@@ -1,3 +1,4 @@
+const { logger } = require('./src/config/observability');
 /**
  * Integration Instructions for Main App
  * 
@@ -192,21 +193,21 @@ const handleStripeWebhook = async (req, res, next) => {
         // Send confirmation email
         await sendPremiumConfirmationEmail(userId, planType);
         
-        console.log(`Premium granted to user ${userId} for ${duration} months`);
+        logger.info(`Premium granted to user ${userId} for ${duration} months`);
         break;
       
       case 'customer.subscription.deleted':
         // Don't revoke immediately - let it expire naturally
-        console.log('Subscription cancelled:', event.data.object.id);
+        logger.info('Subscription cancelled:', event.data.object.id);
         break;
         
       default:
-        console.log('Unhandled event type:', event.type);
+        logger.info('Unhandled event type:', event.type);
     }
     
     res.json({ received: true });
   } catch (error) {
-    console.error('Stripe webhook error:', error);
+    logger.error('Stripe webhook error:', error);
     res.status(400).send(`Webhook Error: ${error.message}`);
   }
 };
@@ -223,7 +224,7 @@ const emailService = require('../services/emailService');
 // Run daily at 9 AM
 cron.schedule('0 9 * * *', async () => {
   try {
-    console.log('Running premium expiration check...');
+    logger.info('Running premium expiration check...');
     
     // Get users expiring in 7 days
     const expiringUsers = await userService.getUsersWithExpiringPremium(7);
@@ -234,7 +235,7 @@ cron.schedule('0 9 * * *', async () => {
         user.name,
         user.days_remaining
       );
-      console.log(`Sent expiration warning to ${user.email}`);
+      logger.info(`Sent expiration warning to ${user.email}`);
     }
     
     // Get users who expired yesterday (for win-back)
@@ -242,12 +243,12 @@ cron.schedule('0 9 * * *', async () => {
     
     for (const user of recentlyExpired) {
       await emailService.sendWinBackEmail(user.email, user.name);
-      console.log(`Sent win-back email to ${user.email}`);
+      logger.info(`Sent win-back email to ${user.email}`);
     }
     
-    console.log(`Premium check complete. Expiring: ${expiringUsers.length}, Expired: ${recentlyExpired.length}`);
+    logger.info(`Premium check complete. Expiring: ${expiringUsers.length}, Expired: ${recentlyExpired.length}`);
   } catch (error) {
-    console.error('Premium reminder job error:', error);
+    logger.error('Premium reminder job error:', error);
   }
 });
 
@@ -285,12 +286,12 @@ PREMIUM_PLANS_URL=https://yourapp.com/premium
 /*
 // Fetch user with premium status
 const { data } = await api.get('/api/v1/auth/me');
-console.log(data.premium.isPremium); // true/false
-console.log(data.premium.daysRemaining); // 365
+logger.info(data.premium.isPremium); // true/false
+logger.info(data.premium.daysRemaining); // 365
 
 // Check feature limits
 const { data: limits } = await api.get('/api/v1/premium/features');
-console.log(limits.features.goals.maxActiveGoals); // 10 or -1 (unlimited)
+logger.info(limits.features.goals.maxActiveGoals); // 10 or -1 (unlimited)
 
 // Show premium badge
 {user.premium.isPremium && <PremiumBadge />}
@@ -404,8 +405,8 @@ app.use(errorHandler);
 // Start server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log('Premium system: ACTIVE ✓');
+  logger.info(`Server running on port ${PORT}`);
+  logger.info('Premium system: ACTIVE ✓');
 });
 */
 

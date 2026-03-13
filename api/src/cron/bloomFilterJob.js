@@ -1,3 +1,4 @@
+const { logger } = require('./../config/observability');
 const cron = require('node-cron');
 const BloomFilterService = require('../utility/BloomFilterService');
 const pgUserService = require('../services/pgUserService');
@@ -8,10 +9,10 @@ const pgUserService = require('../services/pgUserService');
  */
 cron.schedule('0 0 * * *', async () => {
   try {
-    console.log('[Cron] Starting daily Bloom filter rebuild from PostgreSQL...');
+    logger.info('[Cron] Starting daily Bloom filter rebuild from PostgreSQL...');
     await BloomFilterService.rebuildFromDatabase(pgUserService);
-    console.log('[Cron] Bloom filter rebuild completed successfully.');
+    logger.info('[Cron] Bloom filter rebuild completed successfully.');
   } catch (err) {
-    console.error('[Cron] Bloom filter rebuild failed:', err);
+    logger.error('[Cron] Bloom filter rebuild failed:', err);
   }
 });

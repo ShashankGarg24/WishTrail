@@ -1,3 +1,4 @@
+const { logger } = require('./../config/observability');
 const cron = require('node-cron');
 const { sendReminderNotifications } = require('../services/habitService');
 
@@ -6,7 +7,7 @@ cron.schedule('* * * * *', async () => {
   try {
     // await sendReminderNotifications();
   } catch (e) {
-    console.error('[Cron] Habit reminders failed:', e);
+    logger.error('[Cron] Habit reminders failed:', e);
   }
 });
 

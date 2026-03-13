@@ -1,3 +1,4 @@
+const { logger } = require('./../config/observability');
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
@@ -43,7 +44,7 @@ router.post('/', protect, upload.single('screenshot'), async (req, res, next) =>
         const { url } = await cloudinaryService.uploadBuffer(req.file.buffer, { folder: process.env.CLOUDINARY_UPLOAD_FOLDER || 'wishtrail/feedback' });
         if (url) screenshotUrl = url;
       } catch (e) {
-        console.error('Cloudinary upload failed:', e.message);
+        logger.error('Cloudinary upload failed:', e.message);
       }
     }
 
@@ -62,11 +63,11 @@ router.post('/', protect, upload.single('screenshot'), async (req, res, next) =>
       try {
         const resp = await axios.post(webhookUrl, feedbackPayload, { timeout: 10000 });
       } catch (err) {
-        console.error('Failed to post feedback to sheet webhook:', err?.response?.status || err.message);
+        logger.error('Failed to post feedback to sheet webhook:', err?.response?.status || err.message);
         // Continue; still acknowledge receipt
       }
     } else {
-      console.warn('FEEDBACK_SHEET_WEBHOOK_URL not set. Skipping Google Sheet append.');
+      logger.warn('FEEDBACK_SHEET_WEBHOOK_URL not set. Skipping Google Sheet append.');
     }
 
     return res.status(201).json({ success: true, message: 'Feedback submitted'});

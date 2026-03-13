@@ -1,3 +1,4 @@
+const { logger } = require('./../config/observability');
 const { getCitySuggestions } = require('../services/locationService');
 
 const fetchCitySuggestions = async (req, res) => {
@@ -11,7 +12,7 @@ const fetchCitySuggestions = async (req, res) => {
     const suggestions = await getCitySuggestions(query);
     res.json(suggestions);
   } catch (err) {
-    console.error('Location API error:', err.message);
+    logger.error('Location API error:', err.message);
     res.status(500).json({ error: 'Failed to fetch city suggestions' });
   }
 };

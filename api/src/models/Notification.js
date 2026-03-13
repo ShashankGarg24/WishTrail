@@ -1,3 +1,4 @@
+const { logger } = require('./../config/observability');
 const mongoose = require('mongoose');
 
 const notificationSchema = new mongoose.Schema({
@@ -235,7 +236,7 @@ notificationSchema.statics.createNotification = async function(notificationData)
     }
     return saved;
   } catch (error) {
-    console.error('Error creating notification:', error);
+    logger.error('Error creating notification:', error);
     throw error;
   }
 };
@@ -671,7 +672,7 @@ notificationSchema.statics.cleanupExpiredNotifications = async function() {
       expiresAt: { $lt: new Date() }
     }).select('data.followerId userId').lean();
     
-    console.log(`Found ${expiredFollowRequests.length} expired follow_request notifications`);
+    logger.info(`Found ${expiredFollowRequests.length} expired follow_request notifications`);
     
     // Delete the corresponding pending Follow records
     if (expiredFollowRequests.length > 0) {
@@ -692,7 +693,7 @@ notificationSchema.statics.cleanupExpiredNotifications = async function() {
       
       const followResults = await Promise.all(deletePromises);
       const deletedFollows = followResults.filter(r => r && r.deletedCount > 0).length;
-      console.log(`Deleted ${deletedFollows} pending Follow records`);
+      logger.info(`Deleted ${deletedFollows} pending Follow records`);
     }
     
     // Now delete all expired notifications
@@ -700,10 +701,10 @@ notificationSchema.statics.cleanupExpiredNotifications = async function() {
       expiresAt: { $lt: new Date() }
     });
     
-    console.log(`Cleaned up ${result.deletedCount} expired notifications`);
+    logger.info(`Cleaned up ${result.deletedCount} expired notifications`);
     return result;
   } catch (error) {
-    console.error('Error cleaning up expired notifications:', error);
+    logger.error('Error cleaning up expired notifications:', error);
     throw error;
   }
 };

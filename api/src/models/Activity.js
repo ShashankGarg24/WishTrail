@@ -1,3 +1,4 @@
+const { logger } = require('./../config/observability');
 const mongoose = require('mongoose');
 
 const activitySchema = new mongoose.Schema({
@@ -180,7 +181,7 @@ activitySchema.statics.createActivity = async function(userId, name, username, a
     
     return await activity.save();
   } catch (error) {
-    console.error('Error creating activity:', error);
+    logger.error('Error creating activity:', error);
     throw error;
   }
 };
@@ -301,7 +302,7 @@ activitySchema.statics.createOrUpdateGoalActivity = async function(userId, name,
       return saved;
     }
   } catch (error) {
-    console.error('Error creating/updating goal activity:', error);
+    logger.error('Error creating/updating goal activity:', error);
     throw error;
   }
 };

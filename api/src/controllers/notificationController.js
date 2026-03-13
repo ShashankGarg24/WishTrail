@@ -1,3 +1,4 @@
+const { logger } = require('./../config/observability');
 const DeviceToken = require('../models/DeviceToken');
 const Notification = require('../models/Notification');
 const { sendFcmToUser } = require('../services/pushService');
@@ -6,12 +7,12 @@ const pgFollowService = require('../services/pgFollowService');
 
 exports.registerDevice = async (req, res, next) => {
   try {
-    console.log('registerDevice hit', req.body);
+    logger.info('registerDevice hit', req.body);
     const { token, platform = 'unknown', provider = 'expo', timezone = '', timezoneOffsetMinutes = null } = req.body || {};
     if (!token) return res.status(400).json({ success: false, message: 'token is required' });
     try {
       const masked = token.slice(0, 12) + '...';
-      console.log('[notifications] registerDevice hit', {
+      logger.info('[notifications] registerDevice hit', {
         headerAuth: !!(req.headers && req.headers.authorization),
         userIdHeader: (req.user && (req.user.id || req.user._id)) || null,
         userIdBody: req.body && req.body.userId ? req.body.userId : null,
@@ -29,7 +30,7 @@ exports.registerDevice = async (req, res, next) => {
       // First, check for and remove any duplicate tokens for this user
       const existing = await DeviceToken.find({ userId, token }).lean();
       if (existing.length > 1) {
-        console.log('[notifications] Found duplicate tokens, cleaning up:', existing.length);
+        logger.info('[notifications] Found duplicate tokens, cleaning up:', existing.length);
         // Keep the first one, delete the rest
         const keepId = existing[0]._id;
         await DeviceToken.deleteMany({ userId, token, _id: { $ne: keepId } });
@@ -47,7 +48,7 @@ exports.registerDevice = async (req, res, next) => {
         { $set: { isActive: false } }
       );
     } catch (e) {
-      console.error('[notifications] registerDevice DB error', e?.message);
+      logger.error('[notifications] registerDevice DB error', e?.message);
       throw e;
     }
     // Optionally update user's canonical timezone if provided and changed (debounced by device hits naturally)
@@ -73,7 +74,7 @@ exports.unregisterDevice = async (req, res) => {
 
     res.json({ success: true });
   } catch (err) {
-    console.error('[unregisterDevice]', err);
+    logger.error('[unregisterDevice]', err);
     res.status(500).json({ error: 'Failed to unregister device' });
   }
 };
@@ -117,8 +118,8 @@ const getNotifications = async (req, res, next) => {
       Notification.countDocuments({ userId: req.user.id, isRead: false, ...(type ? { type } : (scopeValue === 'social' ? { type: { $in: socialTypes } } : {})) })
     ]);
 
-    console.log('[getNotifications] Query:', JSON.stringify(baseQuery));
-    console.log('[getNotifications] Found items:', items.length, 'Types:', items.map(i => i.type));
+    logger.info('[getNotifications] Query:', JSON.stringify(baseQuery));
+    logger.info('[getNotifications] Found items:', items.length, 'Types:', items.map(i => i.type));
 
     // Enrich notifications with actor user data
     const enrichedNotifications = await enrichNotificationsWithUserData(items);
@@ -126,7 +127,7 @@ const getNotifications = async (req, res, next) => {
     // Sanitize notifications
     const sanitizedNotifications = enrichedNotifications.map(notification => sanitizeNotification(notification));
     
-    console.log('[getNotifications] Sanitized count:', sanitizedNotifications.length);
+    logger.info('[getNotifications] Sanitized count:', sanitizedNotifications.length);
 
     return res.status(200).json({ success: true, data: { notifications: sanitizedNotifications, pagination: { page: parsedPage, limit: parsedLimit, total, pages: Math.ceil(total / parsedLimit) }, unread } });
   } catch (err) {
@@ -193,7 +194,7 @@ async function enrichNotificationsWithUserData(notifications) {
       return enriched;
     });
   } catch (error) {
-    console.error('[enrichNotifications] Error enriching notifications:', error);
+    logger.error('[enrichNotifications] Error enriching notifications:', error);
     // Return original notifications if enrichment fails
     return notifications;
   }
@@ -249,7 +250,7 @@ exports.listDevices = async (req, res) => {
     const devices = await DeviceToken.find({ userId }).lean();
     res.json({ devices });
   } catch (err) {
-    console.error('[listDevices]', err);
+    logger.error('[listDevices]', err);
     res.status(500).json({ error: 'Failed to list devices' });
   }
 };
@@ -313,7 +314,7 @@ const getFollowRequests = async (req, res, next) => {
       } 
     });
   } catch (err) {
-    console.error('[getFollowRequests] Error:', err);
+    logger.error('[getFollowRequests] Error:', err);
     next(err);
   }
 };

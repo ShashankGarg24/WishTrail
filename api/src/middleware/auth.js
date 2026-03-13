@@ -1,3 +1,4 @@
+const { logger } = require('./../config/observability');
 const jwt = require('jsonwebtoken');
 const pgUserService = require('../services/pgUserService');
 
@@ -50,7 +51,7 @@ const protect = async (req, res, next) => {
       next();
       
     } catch (err) {
-      console.error('JWT verification error:', err.message);
+      logger.error('JWT verification error:', err.message);
       return res.status(401).json({
         success: false,
         message: 'Not authorized to access this route'
@@ -94,7 +95,7 @@ const optionalAuth = async (req, res, next) => {
       
     } catch (err) {
       // Token invalid, but continue without user
-      console.log('Optional auth failed:', err.message);
+      logger.info('Optional auth failed:', err.message);
     }
     
     next();

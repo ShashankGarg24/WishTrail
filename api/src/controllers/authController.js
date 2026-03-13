@@ -1,3 +1,4 @@
+const { logger } = require('./../config/observability');
 const DeviceToken = require('../models/DeviceToken');
 const authService = require('../services/authService');
 const jwt = require('jsonwebtoken');
@@ -150,7 +151,7 @@ const getMe = async (req, res, next) => {
 const updateProfile = async (req, res, next) => {
   try {
     // Check for validation errors
-    console.log(req)
+    logger.info(req)
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({

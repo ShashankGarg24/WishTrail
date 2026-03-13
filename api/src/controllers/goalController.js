@@ -1,3 +1,4 @@
+const { logger } = require('./../config/observability');
 const { validationResult } = require('express-validator');
 const goalService = require('../services/goalService');
 const pgGoalService = require('../services/pgGoalService');
@@ -95,7 +96,7 @@ async function buildGoalTimeline(goal, goalDetails) {
           const subGoalsList = await pgGoalService.getGoalsByIds([...subGoalIds]);
           subGoalsList.forEach(g => subGoalsMap.set(g.id.toString(), g.title));
         } catch (err) {
-          console.error('[buildGoalTimeline] Error fetching subgoals:', err);
+          logger.error('[buildGoalTimeline] Error fetching subgoals:', err);
         }
       }
 
@@ -104,7 +105,7 @@ async function buildGoalTimeline(goal, goalDetails) {
           const habitsList = await pgHabitService.getHabitsByIds([...habitIds]);
           habitsList.forEach(h => habitsMap.set(h.id, h.name));
         } catch (err) {
-          console.error('[buildGoalTimeline] Error fetching habits:', err);
+          logger.error('[buildGoalTimeline] Error fetching habits:', err);
         }
       }
 
@@ -168,7 +169,7 @@ async function buildGoalTimeline(goal, goalDetails) {
       }
     }
   } catch (err) {
-    console.error('Error fetching activity timeline:', err);
+    logger.error('Error fetching activity timeline:', err);
   }
 
   // 3. Goal completion event
@@ -207,11 +208,11 @@ const getGoalPost = async (req, res, next) => {
       const user = await pgUserService.getUserById(goal.user_id);
       if (!user || !user.is_active) return res.status(403).json({ success: false, message: 'Access denied' });
     }
-    console.log(goalDetails)
+    logger.info(goalDetails)
     // Determine shareable content based on goal's public status
     const shareNote = goal.is_public ? (goalDetails.completionNote || '') : '';
     const shareImage = goal.is_public ? (goalDetails.completionAttachmentUrl || '') : '';
-    console.log(shareImage);
+    logger.info(shareImage);
 
     // Find the activity for this goal
     let activityId = null;
@@ -245,7 +246,7 @@ const getGoalPost = async (req, res, next) => {
         });
       }
     } catch (err) {
-      console.error('[getGoalPost] Error fetching activity data:', err);
+      logger.error('[getGoalPost] Error fetching activity data:', err);
     }
 
     // Build timeline from existing goal data (derived approach)
@@ -279,7 +280,7 @@ const getGoalPost = async (req, res, next) => {
       });
     }
 
-    console.log(shareImage);
+    logger.info(shareImage);
     return res.status(200).json({
       success: true,
       data: {
@@ -763,7 +764,7 @@ const createGoal = async (req, res, next) => {
         total_goals: 1
       });
     } catch (statsError) {
-      console.error('Failed to update user stats after goal creation:', statsError);
+      logger.error('Failed to update user stats after goal creation:', statsError);
       // Goal was created successfully, but stats update failed
       // Consider implementing a reconciliation job to fix such cases
     }
@@ -910,8 +911,8 @@ const updateGoal = async (req, res, next) => {
           type: 'goal_activity'
         });
         
-        console.log('[updateGoal] Found activity:', !!goalActivity, 'for goal:', goal.id);
-        console.log('[updateGoal] Current updates count:', goalActivity?.data?.updates?.length || 0);
+        logger.info('[updateGoal] Found activity:', !!goalActivity, 'for goal:', goal.id);
+        logger.info('[updateGoal] Current updates count:', goalActivity?.data?.updates?.length || 0);
         
         if (goalActivity) {
           let updates = goalActivity.data?.updates || [];
@@ -976,7 +977,7 @@ const updateGoal = async (req, res, next) => {
           await goalActivity.save();
         }
       } catch (activityError) {
-        console.error('[updateGoal] Error updating activity updates:', activityError);
+        logger.error('[updateGoal] Error updating activity updates:', activityError);
         // Don't fail the request if activity update fails
       }
     }
@@ -1177,7 +1178,7 @@ const deleteGoal = async (req, res, next) => {
     // ── 4. Respond ───────────────────────────────────────────────────────────
     res.status(200).json({ success: true, message: 'Goal deleted successfully' });
   } catch (error) {
-    console.error('[deleteGoal] Error:', error);
+    logger.error('[deleteGoal] Error:', error);
     next(error);
   }
 };
@@ -1205,7 +1206,7 @@ const toggleGoalCompletion = async (req, res, next) => {
       if (!goal) {
         throw Object.assign(new Error('Goal not found'), { statusCode: 404 });
       }
-      console.log('[toggleGoalCompletion] Goal:', goal.id, 'User:', req.user.id, 'Currently completed:', !!goal.completed_at);
+      logger.info('[toggleGoalCompletion] Goal:', goal.id, 'User:', req.user.id, 'Currently completed:', !!goal.completed_at);
       // Compare as numbers (PostgreSQL IDs are integers)
       if (Number(goal.user_id) !== Number(req.user.id)) {
         throw Object.assign(new Error('Access denied'), { statusCode: 403 });
@@ -1239,7 +1240,7 @@ const toggleGoalCompletion = async (req, res, next) => {
       } else {
         // Complete goal in PostgreSQL and update isPublic if changed
         const updated = await pgGoalService.completeGoal(goal.id, req.user.id);
-        console.log('[toggleGoalCompletion] Updated goal from pgGoalService:', JSON.stringify(updated, null, 2));
+        logger.info('[toggleGoalCompletion] Updated goal from pgGoalService:', JSON.stringify(updated, null, 2));
         if (!updated) {
           throw Object.assign(new Error('Goal state changed, please retry'), { statusCode: 409 });
         }
@@ -1302,9 +1303,9 @@ const toggleGoalCompletion = async (req, res, next) => {
               session
             }
           );
-          console.log('[toggleGoalCompletion] Updated subgoal completion in parent activities:', updateResult.modifiedCount);
+          logger.info('[toggleGoalCompletion] Updated subgoal completion in parent activities:', updateResult.modifiedCount);
         } catch (updateError) {
-          console.error('[toggleGoalCompletion] Error updating parent activities:', updateError);
+          logger.error('[toggleGoalCompletion] Error updating parent activities:', updateError);
           // Don't fail the request if this update fails
         }
 
@@ -1359,7 +1360,7 @@ const toggleGoalCompletion = async (req, res, next) => {
           completed_goals: 1
         });
       } catch (statsError) {
-        console.error('Failed to update user stats after goal completion:', statsError);
+        logger.error('Failed to update user stats after goal completion:', statsError);
         // Goal was completed successfully, but stats update failed
         // Consider implementing a reconciliation job to fix such cases
       }
@@ -1752,7 +1753,7 @@ const generateOGImage = async (req, res, next) => {
     const buffer = canvas.toBuffer('image/png')
     res.send(buffer)
   } catch (error) {
-    console.error('Error generating OG image:', error)
+    logger.error('Error generating OG image:', error)
     next(error)
   }
 };
@@ -1968,7 +1969,7 @@ module.exports = {
         try {
           progressData = await goalDivisionService.computeGoalProgress(goal.id, req.user.id);
         } catch (err) {
-          console.error('Error computing progress:', err);
+          logger.error('Error computing progress:', err);
           progressData = { percent: 0 };
         }
       }

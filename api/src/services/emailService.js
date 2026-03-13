@@ -1,3 +1,4 @@
+const { logger } = require('./../config/observability');
 const nodemailer = require('nodemailer');
 
 class EmailService {
@@ -43,7 +44,7 @@ class EmailService {
         )
       ]);
     } catch (error) {
-      console.log("Retrying email...");
+      logger.info("Retrying email...");
       return Promise.race([
         this.transporter.sendMail(mailOptions),
         new Promise((_, reject) =>
@@ -59,7 +60,7 @@ class EmailService {
 
     if (!host || !port || !user || !pass) {
       this.transporter = null;
-      console.warn('Email service is not configured. Set EMAIL_* or SMTP_* environment variables.');
+      logger.warn('Email service is not configured. Set EMAIL_* or SMTP_* environment variables.');
       return;
     }
 
@@ -80,9 +81,9 @@ class EmailService {
     this.transporter = nodemailer.createTransport(config);
     this.transporter.verify((error, success) => {
     if (error) {
-      console.error("SMTP connection error:", error);
+      logger.error("SMTP connection error:", error);
     } else {
-      console.log("Brevo SMTP ready");
+      logger.info("Brevo SMTP ready");
     }
   });
   }
@@ -132,7 +133,7 @@ class EmailService {
         previewUrl: info.previewUrl
       };
     } catch (error) {
-      console.error('Error sending email:', error);
+      logger.error('Error sending email:', error);
       throw new Error('Failed to send email');
     }
   }
@@ -422,7 +423,7 @@ class EmailService {
         messageId: info.messageId
       };
     } catch (error) {
-      console.error('Error sending welcome email:', error);
+      logger.error('Error sending welcome email:', error);
       // Don't throw error for welcome emails - they're not critical
       return { success: false, error: error.message };
     }
@@ -553,7 +554,7 @@ class EmailService {
         previewUrl: info.previewUrl
       };
     } catch (error) {
-      console.error('Error sending password reset email:', error);
+      logger.error('Error sending password reset email:', error);
       throw new Error('Failed to send password reset email');
     }
   }
@@ -582,7 +583,7 @@ class EmailService {
         messageId: info.messageId
       };
     } catch (error) {
-      console.error('Error sending password change confirmation:', error);
+      logger.error('Error sending password change confirmation:', error);
       // Don't throw error for confirmation emails - they're not critical
       return { success: false, error: error.message };
     }

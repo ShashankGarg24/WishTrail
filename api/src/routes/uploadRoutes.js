@@ -1,3 +1,4 @@
+const { logger } = require('./../config/observability');
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
@@ -54,12 +55,12 @@ router.post('/avatar', protect, upload.single('avatar'), async (req, res, next) 
           // Remove file extension
           const publicId = pathAfterUpload.replace(/\.[^.]+$/, '');
           
-          console.log('[uploadAvatar] Attempting to delete old avatar:', publicId);
+          logger.info('[uploadAvatar] Attempting to delete old avatar:', publicId);
           const result = await cloudinaryService.destroy(publicId);
-          console.log('[uploadAvatar] Cloudinary deletion result:', result);
+          logger.info('[uploadAvatar] Cloudinary deletion result:', result);
         }
       } catch (deleteError) {
-        console.error('[uploadAvatar] Failed to delete old avatar:', deleteError);
+        logger.error('[uploadAvatar] Failed to delete old avatar:', deleteError);
         // Don't fail the request if deletion fails
       }
     }

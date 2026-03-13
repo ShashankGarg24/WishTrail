@@ -1,3 +1,4 @@
+const { logger } = require('./../config/observability');
 /**
  * Premium Enforcement Wrapper
  * 
@@ -87,12 +88,12 @@ async function validateJournalEntry(req) {
   const limits = getFeatureLimits('journal', user.premium_expires_at);
   const userTimezone = user.timezone || 'UTC';
   
-  console.log('Journal limits for user', user.id, limits);
+  logger.info('Journal limits for user', user.id, limits);
   
   // Get today's date key in user's timezone (YYYY-MM-DD format)
   const todayKey = getDateKeyInTimezone(new Date(), userTimezone);
   
-  console.log('Counting journal entries for user', user.id, 'for dayKey', todayKey, 'in timezone', userTimezone);
+  logger.info('Counting journal entries for user', user.id, 'for dayKey', todayKey, 'in timezone', userTimezone);
   
   // Count entries by dayKey (which is already stored in user's timezone)
   const todayCount = await JournalEntry.countDocuments({
@@ -100,7 +101,7 @@ async function validateJournalEntry(req) {
     dayKey: todayKey
   });
   
-  console.log('Today journal entries count for user', user.id, todayCount);
+  logger.info('Today journal entries count for user', user.id, todayCount);
   
   // Check daily limit
   if (limits.maxEntriesPerDay !== -1 && todayCount >= limits.maxEntriesPerDay) {

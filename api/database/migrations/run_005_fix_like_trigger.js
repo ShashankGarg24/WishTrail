@@ -1,3 +1,4 @@
+const { logger } = require('./../../src/config/observability');
 /**
  * Run migration 005: Fix like trigger
  * This migration updates the like trigger to work with DELETE operations
@@ -10,7 +11,7 @@ const path = require('path');
 
 async function runMigration() {
   try {
-    console.log('Running migration 005: Fix like trigger...');
+    logger.info('Running migration 005: Fix like trigger...');
     
     // Read the migration SQL file
     const migrationPath = path.join(__dirname, 'schemas', '005_fix_like_trigger.sql');
@@ -19,14 +20,14 @@ async function runMigration() {
     // Execute the migration
     await query(migrationSQL);
     
-    console.log('✅ Migration 005 completed successfully!');
-    console.log('   - Updated update_goal_like_count() function');
-    console.log('   - Trigger now works with DELETE operations');
-    console.log('   - Like counts will be properly maintained');
+    logger.info('✅ Migration 005 completed successfully!');
+    logger.info('   - Updated update_goal_like_count() function');
+    logger.info('   - Trigger now works with DELETE operations');
+    logger.info('   - Like counts will be properly maintained');
     
     process.exit(0);
   } catch (error) {
-    console.error('❌ Migration failed:', error);
+    logger.error('❌ Migration failed:', error);
     process.exit(1);
   }
 }

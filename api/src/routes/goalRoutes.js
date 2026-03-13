@@ -1,3 +1,4 @@
+const { logger } = require('./../config/observability');
 const express = require('express');
 const { body } = require('express-validator');
 const goalController = require('../controllers/goalController');
@@ -140,12 +141,12 @@ router.patch('/:id/completion', upload.single('attachment'), async (req, res, ne
           // Remove file extension
           const publicId = pathAfterUpload.replace(/\.[^.]+$/, '');
           
-          console.log('[updateGoalCompletion] Attempting to delete old image:', publicId);
+          logger.info('[updateGoalCompletion] Attempting to delete old image:', publicId);
           const result = await cloudinaryService.destroy(publicId);
-          console.log('[updateGoalCompletion] Cloudinary deletion result:', result);
+          logger.info('[updateGoalCompletion] Cloudinary deletion result:', result);
         }
       } catch (deleteError) {
-        console.error('[updateGoalCompletion] Failed to delete old image:', deleteError);
+        logger.error('[updateGoalCompletion] Failed to delete old image:', deleteError);
         // Don't fail the request if deletion fails
       }
     }

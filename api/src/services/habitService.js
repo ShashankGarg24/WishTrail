@@ -1,3 +1,4 @@
+const { logger } = require('./../config/observability');
 const mongoose = require('mongoose');
 const Notification = require('../models/Notification');
 const Activity = require('../models/Activity');
@@ -334,11 +335,11 @@ async function toggleLog(userId, habitId, { status = 'done', note = '', mood = '
               }
             );
           } catch (err) {
-            console.error('[habitService] Failed to log habit target achievement:', err);
+            logger.error('[habitService] Failed to log habit target achievement:', err);
           }
         }
       } catch (err) {
-        console.error('Failed to process linked goal for habit target:', err);
+        logger.error('Failed to process linked goal for habit target:', err);
       }
     }
 

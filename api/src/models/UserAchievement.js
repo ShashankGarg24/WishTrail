@@ -1,3 +1,4 @@
+const { logger } = require('./../config/observability');
 const mongoose = require('mongoose');
 
 const userAchievementSchema = new mongoose.Schema({
@@ -120,7 +121,7 @@ userAchievementSchema.pre('save', async function(next) {
         this.progressData.categoryProgress = categoryProgress;
       }
     } catch (error) {
-      console.error('Error capturing progress data:', error);
+      logger.error('Error capturing progress data:', error);
     }
   }
   

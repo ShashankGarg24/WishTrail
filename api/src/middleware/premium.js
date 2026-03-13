@@ -1,3 +1,4 @@
+const { logger } = require('./../config/observability');
 /**
  * Premium Middleware & Utility
  * 
@@ -56,7 +57,7 @@ const requirePremium = (req, res, next) => {
     
     next();
   } catch (error) {
-    console.error('Premium middleware error:', error);
+    logger.error('Premium middleware error:', error);
     res.status(500).json({
       success: false,
       message: 'Error checking premium status'
@@ -114,7 +115,7 @@ const checkFeatureLimit = (featureCategory, action, getCurrentValue = null) => {
       req.featureCheck = check;
       next();
     } catch (error) {
-      console.error('Feature limit check error:', error);
+      logger.error('Feature limit check error:', error);
       res.status(500).json({
         success: false,
         message: 'Error checking feature limits'
@@ -142,7 +143,7 @@ const attachPremiumInfo = (req, res, next) => {
     }
     next();
   } catch (error) {
-    console.error('Attach premium info error:', error);
+    logger.error('Attach premium info error:', error);
     next(); // Don't block request on error
   }
 };
@@ -191,7 +192,7 @@ const validateFeatureAccess = async (user, featureCategory, action, currentValue
       action: action
     };
   } catch (error) {
-    console.error('Feature access validation error:', error);
+    logger.error('Feature access validation error:', error);
     return {
       success: false,
       allowed: false,
@@ -237,7 +238,7 @@ const extendPremium = (currentExpiresAt, additionalMonths = 1) => {
  */
 const logPremiumAccessAttempt = (userId, endpoint, status) => {
   // In production, send to analytics service
-  console.log({
+  logger.info({
     type: 'premium_access_attempt',
     userId: userId,
     endpoint: endpoint,
@@ -254,7 +255,7 @@ const logPremiumAccessAttempt = (userId, endpoint, status) => {
  * Logs when users hit feature limits
  */
 const logFeatureLimitReached = (userId, featureCategory, action, limit) => {
-  console.log({
+  logger.info({
     type: 'feature_limit_reached',
     userId: userId,
     featureCategory: featureCategory,

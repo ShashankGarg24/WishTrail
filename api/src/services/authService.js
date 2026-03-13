@@ -1,3 +1,4 @@
+const { logger } = require('./../config/observability');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { OAuth2Client } = require('google-auth-library');
@@ -105,7 +106,7 @@ class AuthService {
     try {
       await emailService.sendWelcomeEmail(email, name);
     } catch (error) {
-      console.error('Failed to send welcome email:', error);
+      logger.error('Failed to send welcome email:', error);
       // Don't throw error - registration was successful
     }
 
@@ -357,12 +358,12 @@ class AuthService {
             // Remove file extension
             const publicId = pathAfterUpload.replace(/\.[^.]+$/, '');
             
-            console.log('[updateProfile] Attempting to delete old avatar:', publicId);
+            logger.info('[updateProfile] Attempting to delete old avatar:', publicId);
             const result = await cloudinaryService.destroy(publicId);
-            console.log('[updateProfile] Cloudinary deletion result:', result);
+            logger.info('[updateProfile] Cloudinary deletion result:', result);
           }
         } catch (deleteError) {
-          console.error('[updateProfile] Failed to delete old avatar:', deleteError);
+          logger.error('[updateProfile] Failed to delete old avatar:', deleteError);
           // Don't fail the request if deletion fails
         }
       }
@@ -469,7 +470,7 @@ class AuthService {
     try {
       await emailService.sendPasswordChangeConfirmation(user.email, user.name);
     } catch (error) {
-      console.error('Failed to send password change confirmation:', error);
+      logger.error('Failed to send password change confirmation:', error);
     }
 
     return {
@@ -510,8 +511,8 @@ class AuthService {
 
     // Send OTP email (non-blocking)
     emailService.sendOTPEmail(user.email, otpCode, 'password_setup')
-      .then(() => console.log('Password setup OTP email sent successfully'))
-      .catch(error => console.error('Failed to send password setup OTP email:', error));
+      .then(() => logger.info('Password setup OTP email sent successfully'))
+      .catch(error => logger.error('Failed to send password setup OTP email:', error));
 
     return {
       message: 'OTP sent to your email',
@@ -570,7 +571,7 @@ class AuthService {
     try {
       await emailService.sendPasswordChangeConfirmation(user.email, user.name);
     } catch (error) {
-      console.error('Failed to send password change confirmation:', error);
+      logger.error('Failed to send password change confirmation:', error);
     }
 
     return {
@@ -630,7 +631,7 @@ class AuthService {
       
       return tokens;
     } catch (error) {
-      console.error('Invalid refresh token:', error.message);
+      logger.error('Invalid refresh token:', error.message);
       throw new Error('Invalid refresh token');
     }
   }
@@ -697,10 +698,10 @@ class AuthService {
     // Send OTP email asynchronously (non-blocking) - don't wait for it
     emailService.sendOTPEmail(email, otpRecord.code, 'signup')
       .then(() => {
-        console.log('OTP email sent successfully to:', email);
+        logger.info('OTP email sent successfully to:', email);
       })
       .catch((error) => {
-        console.error('Failed to send OTP email:', error);
+        logger.error('Failed to send OTP email:', error);
         // Email failure is logged but doesn't block the user
       });
 
@@ -750,10 +751,10 @@ class AuthService {
     // Send OTP email asynchronously (non-blocking) - don't wait for it
     emailService.sendOTPEmail(email, otpRecord.code, 'signup')
       .then(() => {
-        console.log('Resend OTP email sent successfully to:', email);
+        logger.info('Resend OTP email sent successfully to:', email);
       })
       .catch((error) => {
-        console.error('Failed to resend OTP email:', error);
+        logger.error('Failed to resend OTP email:', error);
         // Email failure is logged but doesn't block the user
       });
 
@@ -793,7 +794,7 @@ class AuthService {
     // Send reset email (non-blocking)
     emailService.sendPasswordResetEmail(email, resetData.token, user.name)
       .catch(error => {
-        console.error('Failed to send password reset email:', error);
+        logger.error('Failed to send password reset email:', error);
       });
 
     return {
@@ -835,7 +836,7 @@ class AuthService {
     // Send confirmation email (non-blocking)
     emailService.sendPasswordChangeConfirmation(user.email, user.name)
       .catch(error => {
-        console.error('Failed to send password change confirmation:', error);
+        logger.error('Failed to send password change confirmation:', error);
       });
 
     return {
@@ -856,7 +857,7 @@ class AuthService {
       });
       
       const payload = ticket.getPayload();
-      console.log(payload)
+      logger.info(payload)
       const { email, name, picture, sub: googleId, email_verified } = payload;
 
       if (!email_verified) {
@@ -922,7 +923,7 @@ class AuthService {
 
 
         // Download Google avatar and upload to Cloudinary (with timeout)
-        console.log(picture)
+        logger.info(picture)
         let avatarUrl = picture;
         try {
           const cloudinaryService = require('./cloudinaryService');
@@ -952,7 +953,7 @@ class AuthService {
           }
         } catch (err) {
           // Fallback to Google picture if Cloudinary fails or times out
-          console.log('Cloudinary upload failed, using Google avatar:', err.message);
+          logger.info('Cloudinary upload failed, using Google avatar:', err.message);
           avatarUrl = picture;
         }
 
@@ -985,7 +986,7 @@ class AuthService {
         try {
           await emailService.sendWelcomeEmail(email, name);
         } catch (error) {
-          console.error('Failed to send welcome email:', error);
+          logger.error('Failed to send welcome email:', error);
         }
       }
 
@@ -1018,7 +1019,7 @@ class AuthService {
       if (error.message === 'Google email not verified') {
         throw error;
       }
-      console.error('Google auth error:', error);
+      logger.error('Google auth error:', error);
       throw new Error('Failed to authenticate with Google. Please try again.');
     }
   }

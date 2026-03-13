@@ -11,6 +11,7 @@
  */
 
 require('dotenv').config();
+const { logger } = require('./../../src/config/observability');
 const { Pool } = require('pg');
 
 const pool = new Pool({
@@ -22,7 +23,7 @@ async function fixHabitLogTimezones() {
   const client = await pool.connect();
   
   try {
-    console.log('Starting habit log timezone fix...\n');
+    logger.info('Starting habit log timezone fix...\n');
     
     // Get all habit logs with their user's timezone
     const query = `
@@ -41,7 +42,7 @@ async function fixHabitLogTimezones() {
     `;
     
     const result = await client.query(query);
-    console.log(`Found ${result.rows.length} habit logs to check\n`);
+    logger.info(`Found ${result.rows.length} habit logs to check\n`);
     
     let fixedCount = 0;
     let skippedCount = 0;
@@ -64,16 +65,16 @@ async function fixHabitLogTimezones() {
         });
         correctDateKey = formatter.format(firstCompletion);
       } catch (err) {
-        console.warn(`Invalid timezone ${userTimezone} for user ${log.user_id}, using UTC`);
+        logger.warn(`Invalid timezone ${userTimezone} for user ${log.user_id}, using UTC`);
         correctDateKey = firstCompletion.toISOString().split('T')[0];
       }
       
       if (correctDateKey !== log.date_key) {
-        console.log(`User ${log.user_id}, Habit ${log.habit_id}:`);
-        console.log(`  Current date_key: ${log.date_key}`);
-        console.log(`  Correct date_key: ${correctDateKey}`);
-        console.log(`  First completion: ${completionTimesMood[0]}`);
-        console.log(`  Timezone: ${userTimezone}`);
+        logger.info(`User ${log.user_id}, Habit ${log.habit_id}:`);
+        logger.info(`  Current date_key: ${log.date_key}`);
+        logger.info(`  Correct date_key: ${correctDateKey}`);
+        logger.info(`  First completion: ${completionTimesMood[0]}`);
+        logger.info(`  Timezone: ${userTimezone}`);
         
         // Check if a log already exists for the correct date
         const checkQuery = `
@@ -84,7 +85,7 @@ async function fixHabitLogTimezones() {
         
         if (checkResult.rows.length > 0 && checkResult.rows[0].id !== log.id) {
           // Merge with existing log
-          console.log(`  → Merging with existing log for ${correctDateKey}`);
+          logger.info(`  → Merging with existing log for ${correctDateKey}`);
           
           const mergeQuery = `
             UPDATE habit_logs
@@ -104,7 +105,7 @@ async function fixHabitLogTimezones() {
           fixedCount++;
         } else {
           // Update the date key
-          console.log(`  → Updating date_key to ${correctDateKey}`);
+          logger.info(`  → Updating date_key to ${correctDateKey}`);
           
           const updateQuery = `
             UPDATE habit_logs
@@ -115,20 +116,20 @@ async function fixHabitLogTimezones() {
           fixedCount++;
         }
         
-        console.log('');
+        logger.info('');
       } else {
         skippedCount++;
       }
     }
     
-    console.log('\n=== Summary ===');
-    console.log(`Total logs checked: ${result.rows.length}`);
-    console.log(`Fixed: ${fixedCount}`);
-    console.log(`Already correct: ${skippedCount}`);
-    console.log('\nDone!');
+    logger.info('\n=== Summary ===');
+    logger.info(`Total logs checked: ${result.rows.length}`);
+    logger.info(`Fixed: ${fixedCount}`);
+    logger.info(`Already correct: ${skippedCount}`);
+    logger.info('\nDone!');
     
   } catch (error) {
-    console.error('Error fixing habit log timezones:', error);
+    logger.error('Error fixing habit log timezones:', error);
     throw error;
   } finally {
     client.release();
@@ -138,6 +139,6 @@ async function fixHabitLogTimezones() {
 
 // Run the migration
 fixHabitLogTimezones().catch(err => {
-  console.error('Migration failed:', err);
+  logger.error('Migration failed:', err);
   process.exit(1);
 });

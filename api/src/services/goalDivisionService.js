@@ -1,3 +1,4 @@
+const { logger } = require('./../config/observability');
 const mongoose = require('mongoose');
 const GoalDetails = require('../models/extended/GoalDetails');
 const pgGoalService = require('./pgGoalService');
@@ -352,7 +353,7 @@ async function setSubGoals(goalId, userId, subGoals) {
       }
     }
   } catch (err) {
-    console.error('Failed to update activity for subgoal changes:', err);
+    logger.error('Failed to update activity for subgoal changes:', err);
   }
 
   // Return combined goal with details
@@ -401,20 +402,20 @@ async function toggleSubGoal(goalId, userId, index, completed, note) {
           userId: userId
         });
 
-        console.log('[toggleSubGoal] Found activity:', !!goalActivity);
-        console.log('[toggleSubGoal] Updates array:', goalActivity?.data?.updates?.length);
+        logger.info('[toggleSubGoal] Found activity:', !!goalActivity);
+        logger.info('[toggleSubGoal] Updates array:', goalActivity?.data?.updates?.length);
 
         if (goalActivity && goalActivity.data.updates) {
           // Find the update entry for this subgoal and update completion date
           const subGoalId = goalDetails.progress.breakdown.subGoals[i].linkedGoalId;
-          console.log('[toggleSubGoal] Looking for subGoalId:', subGoalId, 'completed:', completed);
+          logger.info('[toggleSubGoal] Looking for subGoalId:', subGoalId, 'completed:', completed);
           
           if (subGoalId) {
             const updateEntry = goalActivity.data.updates.find(u => 
               u.subGoalId && u.subGoalId.toString() === subGoalId.toString()
             );
             
-            console.log('[toggleSubGoal] Found update entry:', !!updateEntry);
+            logger.info('[toggleSubGoal] Found update entry:', !!updateEntry);
             
             if (updateEntry) {
               if (completed) {
@@ -427,17 +428,17 @@ async function toggleSubGoal(goalId, userId, index, completed, note) {
               }
               goalActivity.markModified('data');
               await goalActivity.save();
-              console.log('[toggleSubGoal] Updated and saved activity');
+              logger.info('[toggleSubGoal] Updated and saved activity');
             } else {
-              console.log('[toggleSubGoal] No matching update entry found for subGoalId:', subGoalId);
+              logger.info('[toggleSubGoal] No matching update entry found for subGoalId:', subGoalId);
             }
           }
         } else {
-          console.log('[toggleSubGoal] No activity or updates array found');
+          logger.info('[toggleSubGoal] No activity or updates array found');
         }
       }
     } catch (err) {
-      console.error('Failed to update activity for subgoal toggle:', err);
+      logger.error('Failed to update activity for subgoal toggle:', err);
     }
   }
 
@@ -572,7 +573,7 @@ async function setHabitLinks(goalId, userId, links) {
       }
     }
   } catch (err) {
-    console.error('Failed to update activity for habit link changes:', err);
+    logger.error('Failed to update activity for habit link changes:', err);
   }
 
   // Return combined goal with details

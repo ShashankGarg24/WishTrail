@@ -1,3 +1,4 @@
+const { logger } = require('./../config/observability');
 /**
  * Example: Integrating Premium Checks into Existing Controllers
  * 
@@ -335,8 +336,8 @@ app.use(attachPremiumInfo); // Adds premium info to every request
 const someController = async (req, res, next) => {
   try {
     // Premium info is automatically available
-    console.log(req.isPremium); // boolean
-    console.log(req.daysRemaining); // number or null
+    logger.info(req.isPremium); // boolean
+    logger.info(req.daysRemaining); // number or null
     
     // Helper functions available
     const goalLimits = req.getFeatureLimits('goals');

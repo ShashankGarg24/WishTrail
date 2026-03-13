@@ -1,3 +1,4 @@
+const { logger } = require('./../config/observability');
 const pgUserService = require('./pgUserService');
 const pgFollowService = require('./pgFollowService');
 const pgBlockService = require('./pgBlockService');
@@ -323,7 +324,7 @@ class UserService {
     const hs           = habitStatsRow.rows[0];
     const totalHabits  = parseInt(hs.total_habits)   || 0;
     const bestStreak   = parseInt(hs.best_streak)    || 0;
-    console.log(todayLogsRow);
+    logger.info(todayLogsRow);
     const todayHabitLogs = parseInt(todayLogsRow.rows[0].today_habit_logs) || 0;
     const activeToday  = parseInt(activeTodayRow.rows[0].active_today)     || 0;
 
@@ -627,10 +628,10 @@ class UserService {
         isPrivate: user.is_private,
         isBlocked: false // Blocked users are already filtered out
       }));
-      console.log('✨ Enriched users (no auth):', enrichedUsers.length);
+      logger.info('✨ Enriched users (no auth):', enrichedUsers.length);
     }
     
-    console.log('📦 Returning:', enrichedUsers.length, 'users');
+    logger.info('📦 Returning:', enrichedUsers.length, 'users');
     return {
       users: enrichedUsers,
       pagination: {

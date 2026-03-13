@@ -1,3 +1,4 @@
+const { logger } = require('./../config/observability');
 const Activity = require('../models/Activity');
 const pgFollowService = require('../services/pgFollowService');
 const pgLikeService = require('../services/pgLikeService');
@@ -583,7 +584,7 @@ class ActivityService {
       
       return await activity.save();
     } catch (error) {
-      console.error('Error creating activity:', error);
+      logger.error('Error creating activity:', error);
       throw error;
     }
   }

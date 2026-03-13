@@ -1,3 +1,4 @@
+const { logger } = require('./../config/observability');
 const UserPreferences = require('../models/extended/UserPreferences');
 const pgBlockService = require('../services/pgBlockService');
 const userService = require('../services/userService');
@@ -343,7 +344,7 @@ const getUserGoals = async (req, res, next) => {
     const { page = 1, limit = 9, status, category, year } = req.query;
     
     const targetUser = await pgUserService.getUserByUsername(username);
-    console.log('Target user for goals:', targetUser);
+    logger.info('Target user for goals:', targetUser);
     
     // Check privacy if viewing another user's goals
     if (username !== req.user.username) {

@@ -1,3 +1,4 @@
+const { logger } = require('./../config/observability');
 /**
  * PostgreSQL Like Service
  * Handles all like/reaction operations for PostgreSQL
@@ -290,8 +291,8 @@ class PgLikeService {
     }
 
     const result = await query(sql, values);
-    console.log(result.rows);
-    console.log(values)
+    logger.info(result.rows);
+    logger.info(values)
     return parseInt(result.rows[0].count);
   }
 

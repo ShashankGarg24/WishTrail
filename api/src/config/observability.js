@@ -1,4 +1,5 @@
 const axios = require('axios');
+const util = require('util');
 
 let tracer;
 let processHandlersRegistered = false;
@@ -71,8 +72,58 @@ const buildLogEntry = (level, message, meta = {}) => ({
   ...meta
 });
 
+const safeSerialize = (value) => {
+  const seen = new WeakSet();
+  return JSON.stringify(value, (key, val) => {
+    if (typeof val === 'bigint') return val.toString();
+    if (val instanceof Error) return toErrorMeta(val);
+    if (typeof val === 'object' && val !== null) {
+      if (seen.has(val)) return '[Circular]';
+      seen.add(val);
+    }
+    return val;
+  });
+};
+
+const normalizeLoggerArgs = (fallbackMessage, args = []) => {
+  if (!args.length) return { message: fallbackMessage, meta: {} };
+
+  const [firstArg, ...restArgs] = args;
+
+  if (typeof firstArg === 'string') {
+    if (restArgs.length === 0) return { message: firstArg, meta: {} };
+    if (
+      restArgs.length === 1
+      && typeof restArgs[0] === 'object'
+      && restArgs[0] !== null
+      && !Array.isArray(restArgs[0])
+      && !(restArgs[0] instanceof Error)
+    ) {
+      return { message: firstArg, meta: restArgs[0] };
+    }
+
+    return {
+      message: firstArg,
+      meta: {
+        details: restArgs.map((item) => (
+          typeof item === 'string' ? item : util.inspect(item, { depth: 4, breakLength: 120 })
+        ))
+      }
+    };
+  }
+
+  return {
+    message: fallbackMessage,
+    meta: {
+      details: [firstArg, ...restArgs].map((item) => (
+        typeof item === 'string' ? item : util.inspect(item, { depth: 4, breakLength: 120 })
+      ))
+    }
+  };
+};
+
 const outputConsole = (level, entry) => {
-  const payload = JSON.stringify(entry);
+  const payload = safeSerialize(entry);
   if (level === 'error') {
     console.error(payload);
     return;
@@ -87,26 +138,30 @@ const outputConsole = (level, entry) => {
 };
 
 const logger = {
-  debug(message, meta = {}) {
+  debug(...args) {
     if (!truthy(process.env.LOG_DEBUG)) return;
+    const { message, meta } = normalizeLoggerArgs('debug.log', args);
     const entry = buildLogEntry('debug', message, meta);
     outputConsole('debug', entry);
     void sendToDatadogLogs(entry);
   },
 
-  info(message, meta = {}) {
+  info(...args) {
+    const { message, meta } = normalizeLoggerArgs('info.log', args);
     const entry = buildLogEntry('info', message, meta);
     outputConsole('info', entry);
     void sendToDatadogLogs(entry);
   },
 
-  warn(message, meta = {}) {
+  warn(...args) {
+    const { message, meta } = normalizeLoggerArgs('warn.log', args);
     const entry = buildLogEntry('warn', message, meta);
     outputConsole('warn', entry);
     void sendToDatadogLogs(entry);
   },
 
-  error(message, meta = {}) {
+  error(...args) {
+    const { message, meta } = normalizeLoggerArgs('error.log', args);
     const entry = buildLogEntry('error', message, meta);
     outputConsole('error', entry);
     void sendToDatadogLogs(entry);

@@ -1,3 +1,4 @@
+const { logger } = require('./../config/observability');
 const axios = require('axios');
 
 const LOCATIONIQ_URL = process.env.LOCATIONIQ_URL;
@@ -23,7 +24,7 @@ const getCitySuggestions = async (query) => {
       country: place.address?.country || '',
     }));
   } catch (error) {
-    console.error('[LocationIQ Error]', error?.response?.data || error.message);
+    logger.error('[LocationIQ Error]', error?.response?.data || error.message);
     return [];
   }
 };

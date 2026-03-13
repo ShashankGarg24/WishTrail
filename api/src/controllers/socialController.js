@@ -1,3 +1,4 @@
+const { logger } = require('./../config/observability');
 const Activity = require('../models/Activity');
 const Notification = require('../models/Notification');
 const activityService = require('../services/activityService');
@@ -56,7 +57,7 @@ const followUser = async (req, res, next) => {
     // Follow the user directly for public profile
     await pgFollowService.followUser(followerId, parseInt(userId));
     const notif = await Notification.createFollowNotification(followerId, parseInt(userId));
-    console.log('[Follow] Notification created:', notif ? 'Yes' : 'No', 'for follower:', followerId, 'following:', userId);
+    logger.info('[Follow] Notification created:', notif ? 'Yes' : 'No', 'for follower:', followerId, 'following:', userId);
     
     // Check if activity already exists
     const existingActivity = await Activity.findOne({
@@ -93,7 +94,7 @@ const cancelFollowRequest = async (req, res, next) => {
   try {
     const { userId } = req.params;
     const followerId = req.user.id;
-    console.log('Canceling follow request from', followerId, 'to', userId);
+    logger.info('Canceling follow request from', followerId, 'to', userId);
     // Reject the pending request
     const success = await pgFollowService.rejectFollowRequest(followerId, userId);
     if (!success) {

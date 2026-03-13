@@ -1,3 +1,4 @@
+const { logger } = require('./../config/observability');
 /**
  * Timezone utility functions for WishTrail
  * All times are stored in UTC in the database
@@ -27,7 +28,7 @@ function formatDateInTimezone(utcDate, timezone = 'UTC', locale = 'en-US') {
       second: '2-digit'
     }).format(date);
   } catch (error) {
-    console.error('Error formatting date:', error);
+    logger.error('Error formatting date:', error);
     return utcDate.toString();
   }
 }
@@ -49,7 +50,7 @@ function getCurrentDateInTimezone(timezone = 'UTC') {
     
     return formatter.format(now); // Returns YYYY-MM-DD
   } catch (error) {
-    console.error('Error getting current date in timezone:', error);
+    logger.error('Error getting current date in timezone:', error);
     return new Date().toISOString().split('T')[0];
   }
 }
@@ -72,7 +73,7 @@ function getDateKeyInTimezone(date, timezone = 'UTC') {
     
     return formatter.format(dateObj);
   } catch (error) {
-    console.error('Error getting date key in timezone:', error);
+    logger.error('Error getting date key in timezone:', error);
     return new Date(date).toISOString().split('T')[0];
   }
 }
@@ -101,7 +102,7 @@ function getStartOfDayInTimezone(dateKey, timezone = 'UTC') {
     
     return new Date(date.getTime() + offset);
   } catch (error) {
-    console.error('Error getting start of day in timezone:', error);
+    logger.error('Error getting start of day in timezone:', error);
     return new Date(dateKey + 'T00:00:00Z');
   }
 }
@@ -117,7 +118,7 @@ function getEndOfDayInTimezone(dateKey, timezone = 'UTC') {
     const startOfDay = getStartOfDayInTimezone(dateKey, timezone);
     return new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000 - 1);
   } catch (error) {
-    console.error('Error getting end of day in timezone:', error);
+    logger.error('Error getting end of day in timezone:', error);
     return new Date(dateKey + 'T23:59:59.999Z');
   }
 }
@@ -141,7 +142,7 @@ function localToUTC(localDate, timezone = 'UTC') {
     const dateString = date.toLocaleString('en-US', { timeZone: timezone });
     return new Date(dateString + ' UTC');
   } catch (error) {
-    console.error('Error converting local to UTC:', error);
+    logger.error('Error converting local to UTC:', error);
     return new Date(localDate);
   }
 }
@@ -158,7 +159,7 @@ function isToday(date, timezone = 'UTC') {
     const todayKey = getCurrentDateInTimezone(timezone);
     return dateKey === todayKey;
   } catch (error) {
-    console.error('Error checking if date is today:', error);
+    logger.error('Error checking if date is today:', error);
     return false;
   }
 }
@@ -180,7 +181,7 @@ function getDateRangeInTimezone(days, timezone = 'UTC') {
     
     return { startDate, endDate };
   } catch (error) {
-    console.error('Error getting date range:', error);
+    logger.error('Error getting date range:', error);
     const end = new Date().toISOString().split('T')[0];
     const start = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     return { startDate: start, endDate: end };
@@ -205,7 +206,7 @@ function formatTimeInTimezone(date, timezone = 'UTC', locale = 'en-US') {
       hour12: true
     }).format(dateObj);
   } catch (error) {
-    console.error('Error formatting time:', error);
+    logger.error('Error formatting time:', error);
     return date.toString();
   }
 }

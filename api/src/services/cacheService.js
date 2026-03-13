@@ -1,3 +1,4 @@
+const { logger } = require('./../config/observability');
 const redisClient = require('../config/redis');
 
 class CacheService {
@@ -51,7 +52,7 @@ class CacheService {
       const cached = await redisClient.get(key);
       return cached || null;
     } catch (error) {
-      console.error('Cache get error:', error);
+      logger.error('Cache get error:', error);
       return null;
     }
   }
@@ -63,7 +64,7 @@ class CacheService {
       await redisClient.set(key, data, { ex: ttl });
       return true;
     } catch (error) {
-      console.error('Cache set error:', error);
+      logger.error('Cache set error:', error);
       return false;
     }
   }
@@ -74,7 +75,7 @@ class CacheService {
       await redisClient.del(key);
       return true;
     } catch (error) {
-      console.error('Cache delete error:', error);
+      logger.error('Cache delete error:', error);
       return false;
     }
   }
@@ -88,7 +89,7 @@ class CacheService {
       }
       return true;
     } catch (error) {
-      console.error('Cache delete pattern error:', error);
+      logger.error('Cache delete pattern error:', error);
       return false;
     }
   }
@@ -270,7 +271,7 @@ class CacheService {
       await redisClient.ping();
       return true;
     } catch (error) {
-      console.error('Redis health check failed:', error);
+      logger.error('Redis health check failed:', error);
       return false;
     }
   }
@@ -281,7 +282,7 @@ class CacheService {
       await redisClient.flushdb();
       return true;
     } catch (error) {
-      console.error('Cache clear all error:', error);
+      logger.error('Cache clear all error:', error);
       return false;
     }
   }

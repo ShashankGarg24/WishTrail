@@ -6,14 +6,15 @@
 const mongoose = require('mongoose');
 require('dotenv').config();
 
+const { logger } = require('./../../src/config/observability');
 // MongoDB connection string from environment
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/wishtrail';
 
 async function migrate() {
   try {
-    console.log('Connecting to MongoDB...');
+    logger.info('Connecting to MongoDB...');
     await mongoose.connect(MONGODB_URI);
-    console.log('Connected successfully');
+    logger.info('Connected successfully');
 
     const GoalDetails = mongoose.connection.collection('goaldetails');
     
@@ -32,7 +33,7 @@ async function migrate() {
       try {
         // Skip if already migrated
         if (doc.progress?.breakdown?.subGoals || doc.progress?.breakdown?.habits) {
-          console.log(`Skipping goalId ${doc.goalId} - already migrated`);
+          logger.info(`Skipping goalId ${doc.goalId} - already migrated`);
           skippedCount++;
           continue;
         }
@@ -60,34 +61,34 @@ async function migrate() {
           }
         );
 
-        console.log(`Migrated goalId ${doc.goalId} - ${subGoals.length} subgoals, ${habitLinks.length} habits`);
+        logger.info(`Migrated goalId ${doc.goalId} - ${subGoals.length} subgoals, ${habitLinks.length} habits`);
         migratedCount++;
       } catch (error) {
-        console.error(`Error migrating goalId ${doc.goalId}:`, error.message);
+        logger.error(`Error migrating goalId ${doc.goalId}:`, error.message);
       }
     }
 
-    console.log('\n=== Migration Complete ===');
-    console.log(`Migrated: ${migratedCount} documents`);
-    console.log(`Skipped: ${skippedCount} documents`);
-    console.log(`Total processed: ${migratedCount + skippedCount}`);
+    logger.info('\n=== Migration Complete ===');
+    logger.info(`Migrated: ${migratedCount} documents`);
+    logger.info(`Skipped: ${skippedCount} documents`);
+    logger.info(`Total processed: ${migratedCount + skippedCount}`);
 
   } catch (error) {
-    console.error('Migration failed:', error);
+    logger.error('Migration failed:', error);
     process.exit(1);
   } finally {
     await mongoose.disconnect();
-    console.log('Disconnected from MongoDB');
+    logger.info('Disconnected from MongoDB');
   }
 }
 
 // Run migration
 if (require.main === module) {
   migrate().then(() => {
-    console.log('Migration script finished');
+    logger.info('Migration script finished');
     process.exit(0);
   }).catch(error => {
-    console.error('Migration script failed:', error);
+    logger.error('Migration script failed:', error);
     process.exit(1);
   });
 }

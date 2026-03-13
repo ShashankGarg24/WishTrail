@@ -1,3 +1,4 @@
+const { logger } = require('./../config/observability');
 const Config = require('../models/Config');
 
 /**
@@ -43,7 +44,7 @@ const checkMaintenanceMode = async (req, res, next) => {
   } catch (error) {
     // If there's an error checking maintenance mode, allow the request
     // to prevent complete service failure
-    console.error('Maintenance mode check error:', error);
+    logger.error('Maintenance mode check error:', error);
     next();
   }
 };

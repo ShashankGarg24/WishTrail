@@ -1,3 +1,4 @@
+const { logger } = require('./../../src/config/observability');
 /**
  * Migration: Store mood with each completion timestamp
  * 
@@ -11,7 +12,7 @@
 const { query } = require('../src/config/supabase');
 
 async function up() {
-  console.log('Starting migration: mood_in_completion_times_mood');
+  logger.info('Starting migration: mood_in_completion_times_mood');
 
   try {
     // Step 1: Add new JSONB column for completion_times_mood_new
@@ -19,7 +20,7 @@ async function up() {
       ALTER TABLE habit_logs 
       ADD COLUMN IF NOT EXISTS completion_times_mood_new JSONB[] DEFAULT ARRAY[]::JSONB[]
     `);
-    console.log('✓ Added completion_times_mood_new column');
+    logger.info('✓ Added completion_times_mood_new column');
 
     // Step 2: Migrate existing completion_times_mood data to new format
     await query(`
@@ -35,38 +36,38 @@ async function up() {
       )
       WHERE completion_times_mood IS NOT NULL AND array_length(completion_times_mood, 1) > 0
     `);
-    console.log('✓ Migrated existing completion_times_mood data');
+    logger.info('✓ Migrated existing completion_times_mood data');
 
     // Step 3: Drop old completion_times_mood column
     await query(`
       ALTER TABLE habit_logs 
       DROP COLUMN IF EXISTS completion_times_mood
     `);
-    console.log('✓ Dropped old completion_times_mood column');
+    logger.info('✓ Dropped old completion_times_mood column');
 
     // Step 4: Rename completion_times_mood_new to completion_times_mood
     await query(`
       ALTER TABLE habit_logs 
       RENAME COLUMN completion_times_mood_new TO completion_times_mood
     `);
-    console.log('✓ Renamed completion_times_mood_new to completion_times_mood');
+    logger.info('✓ Renamed completion_times_mood_new to completion_times_mood');
 
     // Step 5: Drop mood column
     await query(`
       ALTER TABLE habit_logs 
       DROP COLUMN IF EXISTS mood
     `);
-    console.log('✓ Dropped mood column');
+    logger.info('✓ Dropped mood column');
 
-    console.log('Migration completed successfully!');
+    logger.info('Migration completed successfully!');
   } catch (error) {
-    console.error('Migration failed:', error);
+    logger.error('Migration failed:', error);
     throw error;
   }
 }
 
 async function down() {
-  console.log('Rolling back migration: mood_in_completion_times_mood');
+  logger.info('Rolling back migration: mood_in_completion_times_mood');
 
   try {
     // Step 1: Add back mood column
@@ -74,14 +75,14 @@ async function down() {
       ALTER TABLE habit_logs 
       ADD COLUMN IF NOT EXISTS mood VARCHAR(20) CHECK (mood IN ('very_negative', 'negative', 'neutral', 'positive', 'very_positive'))
     `);
-    console.log('✓ Added back mood column');
+    logger.info('✓ Added back mood column');
 
     // Step 2: Add back old completion_times_mood column
     await query(`
       ALTER TABLE habit_logs 
       ADD COLUMN IF NOT EXISTS completion_times_mood_old TIMESTAMP WITH TIME ZONE[] DEFAULT ARRAY[]::TIMESTAMP WITH TIME ZONE[]
     `);
-    console.log('✓ Added completion_times_mood_old column');
+    logger.info('✓ Added completion_times_mood_old column');
 
     // Step 3: Migrate completion_times_mood back to old format (extract timestamps only)
     await query(`
@@ -97,25 +98,25 @@ async function down() {
       )
       WHERE completion_times_mood IS NOT NULL AND array_length(completion_times_mood, 1) > 0
     `);
-    console.log('✓ Migrated data back to old format');
+    logger.info('✓ Migrated data back to old format');
 
     // Step 4: Drop new completion_times_mood column
     await query(`
       ALTER TABLE habit_logs 
       DROP COLUMN IF EXISTS completion_times_mood
     `);
-    console.log('✓ Dropped new completion_times_mood column');
+    logger.info('✓ Dropped new completion_times_mood column');
 
     // Step 5: Rename completion_times_mood_old back to completion_times_mood
     await query(`
       ALTER TABLE habit_logs 
       RENAME COLUMN completion_times_mood_old TO completion_times_mood
     `);
-    console.log('✓ Renamed completion_times_mood_old to completion_times_mood');
+    logger.info('✓ Renamed completion_times_mood_old to completion_times_mood');
 
-    console.log('Rollback completed successfully!');
+    logger.info('Rollback completed successfully!');
   } catch (error) {
-    console.error('Rollback failed:', error);
+    logger.error('Rollback failed:', error);
     throw error;
   }
 }

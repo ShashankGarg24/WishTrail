@@ -1,3 +1,4 @@
+const { logger } = require('./../config/observability');
 const Activity = require('../models/Activity');
 const cacheService = require('../services/cacheService');
 const ActivityComment = require('../models/ActivityComment');
@@ -213,7 +214,7 @@ const getRecentActivities = async (req, res, next) => {
           .lean()
       ]);
 
-      console.log(`Fetched ${activityList.length} activities from DB for global feed (total: ${totalActivities})`);
+      logger.info(`Fetched ${activityList.length} activities from DB for global feed (total: ${totalActivities})`);
       // Enrich with PostgreSQL data
       const enrichedActivities = await enrichActivities(activityList);
 

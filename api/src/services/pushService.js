@@ -1,3 +1,4 @@
+const { logger } = require('./../config/observability');
 const axios = require('axios');
 const admin = require('firebase-admin');
 const DeviceToken = require('../models/DeviceToken');
@@ -71,8 +72,8 @@ function ensureFirebaseInitialized() {
             const decoded = Buffer.from(rawJson, 'base64').toString('utf8');
             creds = JSON.parse(decoded);
           } catch (e3) {
-            console.error('[push] Firebase init error: SERVICE ACCOUNT in env is not valid JSON or base64 JSON');
-            console.error('[push] Raw value starts with:', rawJson.substring(0, 50));
+            logger.error('[push] Firebase init error: SERVICE ACCOUNT in env is not valid JSON or base64 JSON');
+            logger.error('[push] Raw value starts with:', rawJson.substring(0, 50));
           }
         }
       }
@@ -81,17 +82,17 @@ function ensureFirebaseInitialized() {
         const decoded = Buffer.from(b64, 'base64').toString('utf8');
         creds = JSON.parse(decoded);
       } catch (e3) {
-        console.error('[push] Firebase init error: FIREBASE_SERVICE_ACCOUNT_B64 not valid');
+        logger.error('[push] Firebase init error: FIREBASE_SERVICE_ACCOUNT_B64 not valid');
       }
     }
 
     if (creds) {
       // Validate required fields
       if (!creds.project_id || !creds.private_key || !creds.client_email) {
-        console.error('[push] Service account JSON is missing required fields');
-        console.error('[push] Has project_id:', !!creds.project_id);
-        console.error('[push] Has private_key:', !!creds.private_key);
-        console.error('[push] Has client_email:', !!creds.client_email);
+        logger.error('[push] Service account JSON is missing required fields');
+        logger.error('[push] Has project_id:', !!creds.project_id);
+        logger.error('[push] Has private_key:', !!creds.private_key);
+        logger.error('[push] Has client_email:', !!creds.client_email);
         return;
       }
       
@@ -105,7 +106,7 @@ function ensureFirebaseInitialized() {
     // Fall back to ADC / GOOGLE_APPLICATION_CREDENTIALS file path
     admin.initializeApp();
   } catch (e) {
-    console.error('[push] Firebase init error', e?.message || e);
+    logger.error('[push] Firebase init error', e?.message || e);
   }
 }
 
@@ -115,7 +116,7 @@ async function sendFcmToUser(userId, notification) {
     try {
       ensureFirebaseInitialized();
       if (!admin.apps || admin.apps.length === 0) {
-        console.error('[push] FCM send aborted: Firebase not initialized');
+        logger.error('[push] FCM send aborted: Firebase not initialized');
         return;
       }
       const tokens = await DeviceToken.find({ userId, isActive: true, provider: { $in: ['fcm', 'expo'] } })
@@ -125,7 +126,7 @@ async function sendFcmToUser(userId, notification) {
 
       await sendFcmInternal(tokens, notification);
     } catch (error) {
-      console.error('[push] Background FCM error:', error);
+      logger.error('[push] Background FCM error:', error);
     }
   });
   
@@ -167,7 +168,7 @@ async function sendFcmInternal(tokens, notification) {
       await sendToWebPush(webTokens, notification, dataUrl, invalidFcm);
       successCount += webTokens.length;
     } catch (e) {
-      console.error('[push] web push error:', e?.message);
+      logger.error('[push] web push error:', e?.message);
     }
   }
 
@@ -187,7 +188,7 @@ async function sendFcmInternal(tokens, notification) {
             const actor = await pgUserService.findById(actorId);
             actorName = actor?.name || '';
           } catch (e) {
-            console.error('[push] failed to fetch actor:', e?.message);
+            logger.error('[push] failed to fetch actor:', e?.message);
           }
         }
         
@@ -245,12 +246,12 @@ async function sendFcmInternal(tokens, notification) {
           if (code && (code.includes('registration-token-not-registered') || code.includes('invalid-registration-token'))) {
             invalidFcm.push(mobileTokens[idx]);
           } else {
-            console.warn('[push] mobile fcm send error', code || r.error?.message);
+            logger.warn('[push] mobile fcm send error', code || r.error?.message);
           }
         }
       });
     } catch (e) {
-      console.error('[push] mobile fcm multicast error', e?.message || e);
+      logger.error('[push] mobile fcm multicast error', e?.message || e);
     }
   }
 
@@ -275,7 +276,7 @@ async function sendToWebPush(webTokens, notification, dataUrl, invalidFcm) {
         const actor = await pgUserService.findById(actorId);
         actorName = actor?.name || '';
       } catch (e) {
-        console.error('[push] failed to fetch actor:', e?.message);
+        logger.error('[push] failed to fetch actor:', e?.message);
       }
     }
     
@@ -347,7 +348,7 @@ async function sendToWebPush(webTokens, notification, dataUrl, invalidFcm) {
       if (code && (code.includes('registration-token-not-registered') || code.includes('invalid-registration-token'))) {
         invalidFcm.push(webTokens[idx]);
       } else {
-        console.warn('[push] web fcm send error', code || r.error?.message);
+        logger.warn('[push] web fcm send error', code || r.error?.message);
       }
     }
   });

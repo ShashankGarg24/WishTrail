@@ -1,3 +1,4 @@
+const { logger } = require('./observability');
 const pg = require('pg');
 
 pg.types.setTypeParser(1082, val => val);
@@ -39,16 +40,16 @@ const pool = new Pool(supabaseConfig);
 
 // Error handler
 pool.on('error', (err, client) => {
-  console.error('Unexpected error on idle PostgreSQL client', err);
+  logger.error('Unexpected error on idle PostgreSQL client', err);
   process.exit(-1);
 });
 
 // Test connection on startup
 pool.query('SELECT NOW()', (err, res) => {
   if (err) {
-    console.error('❌ PostgreSQL connection error:', err.message);
+    logger.error('❌ PostgreSQL connection error:', err.message);
   } else {
-    console.log('✅ PostgreSQL (Supabase) connected successfully at', res.rows[0].now);
+    logger.info('✅ PostgreSQL (Supabase) connected successfully at', res.rows[0].now);
   }
 });
 
@@ -59,7 +60,7 @@ const query = async (text, params) => {
     const res = await pool.query(text, params);
     return res;
   } catch (error) {
-    console.error('Database query error:', error.message);
+    logger.error('Database query error:', error.message);
     throw error;
   }
 };

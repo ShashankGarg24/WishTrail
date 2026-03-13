@@ -1,3 +1,4 @@
+const { logger } = require('./../config/observability');
 const mongoose = require('mongoose');
 const Community = require('../models/Community');
 const CommunityMember = require('../models/CommunityMember');
@@ -436,7 +437,7 @@ async function createCommunityOwnedItem(communityId, creatorId, payload) {
         }
       });
     } catch (err) {
-      console.error('Error creating personal copy for creator:', err);
+      logger.error('Error creating personal copy for creator:', err);
     }
     
     // Mirror community addition update
@@ -504,7 +505,7 @@ async function createCommunityOwnedItem(communityId, creatorId, payload) {
       });
       await personalHabit.save();
     } catch (err) {
-      console.error('Error creating personal habit copy for creator:', err);
+      logger.error('Error creating personal habit copy for creator:', err);
     }
     
     // Mirror community addition update
@@ -592,7 +593,7 @@ async function copyFromPersonalToCommunity(communityId, creatorId, { type, sourc
       });
       await personalGoal.save();
     } catch (err) {
-      console.error('Error creating personal copy for creator:', err);
+      logger.error('Error creating personal copy for creator:', err);
     }
     
     // Mirror community addition update
@@ -664,7 +665,7 @@ async function copyFromPersonalToCommunity(communityId, creatorId, { type, sourc
       });
       await personalHabit.save();
     } catch (err) {
-      console.error('Error creating personal habit copy for creator:', err);
+      logger.error('Error creating personal habit copy for creator:', err);
     }
     
     // Mirror community addition update
@@ -802,7 +803,7 @@ async function joinItem(userId, communityId, itemId) {
       }
     }
   } catch (err) {
-    console.error('Error creating personal copy:', err);
+    logger.error('Error creating personal copy:', err);
     // Don't fail the join operation if personal copy creation fails
   }
   
@@ -862,7 +863,7 @@ async function leaveItem(userId, communityId, itemId, options = {}) {
         });
       }
     } catch (err) {
-      console.error('Error deleting personal copy:', err);
+      logger.error('Error deleting personal copy:', err);
     }
   } else if (options.transferToPersonal !== false) {
     // Transfer to personal goals/habits (remove community info)
@@ -893,7 +894,7 @@ async function leaveItem(userId, communityId, itemId, options = {}) {
         );
       }
     } catch (err) {
-      console.error('Error transferring to personal:', err);
+      logger.error('Error transferring to personal:', err);
     }
   }
 
