@@ -5,21 +5,67 @@ class EmailService {
     this.transporter = null;
     this.initializeTransporter();
   }
+  
+  getEmailConfig() {
+    const host = process.env.EMAIL_HOST || process.env.SMTP_HOST;
+    const port = Number(process.env.EMAIL_PORT || process.env.SMTP_PORT || 587);
+    const user = process.env.EMAIL_USER || process.env.SMTP_USER;
+    const pass = process.env.EMAIL_PASS || process.env.EMAIL_PASSWORD || process.env.SMTP_PASS;
+    const from = process.env.EMAIL_FROM || process.env.FROM_EMAIL || 'WishTrail <thewishtrail@gmail.com>';
+    
+    return {
+      host,
+      port,
+      user,
+      pass,
+      from,
+      secure: port === 465
+    };
+  }
+  
+  getFromAddress() {
+    const { from, user } = this.getEmailConfig();
+
+    if (from && from.includes('<') && from.includes('>')) {
+      return from;
+    }
+
+    const emailAddress = from || user || 'thewishtrail@gmail.com';
+    return `WishTrail <${emailAddress}>`;
+  }
+  
+  async sendMailWithTimeout(mailOptions, timeoutMs = 15000) {
+    return Promise.race([
+      this.transporter.sendMail(mailOptions),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Email sending timeout')), timeoutMs)
+      )
+    ]);
+  }
 
   async initializeTransporter() {
     // Configuration for different environments
+    const { host, port, user, pass, secure } = this.getEmailConfig();
+
+    if (!host || !port || !user || !pass) {
+      this.transporter = null;
+      console.warn('Email service is not configured. Set EMAIL_* or SMTP_* environment variables.');
+      return;
+    }
+
     const config = {
-        host: process.env.EMAIL_HOST,
-        port: Number(process.env.EMAIL_PORT),
-        secure: process.env.EMAIL_PORT === '465',
+        host,
+        port,
+        secure,
         auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASS
+          user,
+          pass
         },
         // Connection timeout and pool settings for faster email sending
         connectionTimeout: 10000, // 10 seconds max to establish connection
         greetingTimeout: 5000,    // 5 seconds max for greeting
         socketTimeout: 15000,      // 15 seconds max for socket inactivity
+        family: 4,
         pool: true,                // Use connection pooling
         maxConnections: 5,         // Max 5 concurrent connections
         maxMessages: 100,          // Max messages per connection
@@ -64,7 +110,7 @@ class EmailService {
     const template = templates[purpose] || templates.signup;
 
     const mailOptions = {
-      from: process.env.EMAIL_FROM || 'WishTrail <support@wishtrail.in>',
+      from: this.getFromAddress(),
       to: email,
       subject: template.subject,
       text: template.text,
@@ -76,15 +122,7 @@ class EmailService {
         throw new Error('Email service is not configured');
       }
 
-      // Add timeout wrapper to prevent hanging
-      const sendWithTimeout = Promise.race([
-        this.transporter.sendMail(mailOptions),
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Email sending timeout')), 15000) // 15 second timeout
-        )
-      ]);
-
-      const info = await sendWithTimeout;
+      const info = await this.sendMailWithTimeout(mailOptions);
 
       return {
         success: true,
@@ -159,7 +197,7 @@ class EmailService {
     </head>
     <body>
       <div class="container">
-        <div class="logo">🎯 WishTrail</div>
+        <div class="logo">WishTrail</div>
         <h1>Welcome to WishTrail!</h1>
         <p>Transform your dreams into achievable goals</p>
       </div>
@@ -248,7 +286,7 @@ class EmailService {
     </head>
     <body>
       <div class="container">
-        <div class="logo">🎯 WishTrail</div>
+        <div class="logo">WishTrail</div>
         <h1>Login Verification</h1>
       </div>
       
@@ -334,7 +372,7 @@ class EmailService {
     </head>
     <body>
       <div class="container">
-        <div class="logo">🎯 WishTrail</div>
+        <div class="logo">WishTrail</div>
         <h1>Set Your Password</h1>
       </div>
       
@@ -363,9 +401,9 @@ class EmailService {
    */
   async sendWelcomeEmail(email, name) {
     const mailOptions = {
-      from: process.env.EMAIL_FROM || 'WishTrail <support@wishtrail.in>',
+      from: this.getFromAddress(),
       to: email,
-      subject: 'Welcome to WishTrail! 🎉',
+      subject: 'Welcome to WishTrail!',
       html: this.getWelcomeTemplate(name),
       text: `Welcome to WishTrail, ${name}! Start setting your goals and track your progress. Visit your dashboard to get started.`
     };
@@ -375,7 +413,7 @@ class EmailService {
         throw new Error('Email service is not configured');
       }
 
-      const info = await this.transporter.sendMail(mailOptions);
+      const info = await this.sendMailWithTimeout(mailOptions);
 
       return {
         success: true,
@@ -450,13 +488,13 @@ class EmailService {
     </head>
     <body>
       <div class="container">
-        <div class="logo">🎯 WishTrail</div>
+        <div class="logo">WishTrail</div>
         <h1>Welcome to WishTrail!</h1>
         <p>Transform your dreams into achievable goals</p>
       </div>
       
       <div class="content">
-        <h2>Welcome, ${name}! 🎉</h2>
+        <h2>Welcome, ${name}!</h2>
         <p>Congratulations on joining WishTrail! You're now part of a community dedicated to turning dreams into reality.</p>
         
         <p>Here's what you can do next:</p>
@@ -493,7 +531,7 @@ class EmailService {
     const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${token}`;
     
     const mailOptions = {
-      from: process.env.EMAIL_FROM || 'WishTrail <support@wishtrail.in>',
+      from: this.getFromAddress(),
       to: email,
       subject: 'Reset Your WishTrail Password',
       html: this.getPasswordResetTemplate(resetUrl, name),
@@ -505,7 +543,7 @@ class EmailService {
         throw new Error('Email service is not configured');
       }
 
-      const info = await this.transporter.sendMail(mailOptions);
+      const info = await this.sendMailWithTimeout(mailOptions);
 
       return {
         success: true,
@@ -523,7 +561,7 @@ class EmailService {
    */
   async sendPasswordChangeConfirmation(email, name) {
     const mailOptions = {
-      from: process.env.EMAIL_FROM || 'WishTrail <support@wishtrail.in>',
+      from: this.getFromAddress(),
       to: email,
       subject: 'Password Changed Successfully - WishTrail',
       html: this.getPasswordChangeConfirmationTemplate(name),
@@ -535,7 +573,7 @@ class EmailService {
         throw new Error('Email service is not configured');
       }
 
-      const info = await this.transporter.sendMail(mailOptions);
+      const info = await this.sendMailWithTimeout(mailOptions);
 
       return {
         success: true,
@@ -618,7 +656,7 @@ class EmailService {
     </head>
     <body>
       <div class="container">
-        <div class="logo">🎯 WishTrail</div>
+        <div class="logo">WishTrail</div>
         <h1>Password Reset Request</h1>
         <p>Secure your account with a new password</p>
       </div>
@@ -718,7 +756,7 @@ class EmailService {
     </head>
     <body>
       <div class="container">
-        <div class="logo">🎯 WishTrail</div>
+        <div class="logo">WishTrail</div>
         <div class="success-icon">✅</div>
         <h1>Password Changed Successfully</h1>
         <p>Your account is now secure with your new password</p>
@@ -731,7 +769,7 @@ class EmailService {
         <p>This change was made on <strong>${new Date().toLocaleDateString()}</strong> at <strong>${new Date().toLocaleTimeString()}</strong>.</p>
         
         <div class="warning">
-          <p><strong>⚠️ Security Notice:</strong> If you didn't make this change, please contact our support team immediately at <a href="mailto:thewishtrail@gmail.com">thewishtrail@gmail.com</a></p>
+          <p><strong>Security Notice:</strong> If you didn't make this change, please contact our support team immediately at <a href="mailto:thewishtrail@gmail.com">thewishtrail@gmail.com</a></p>
         </div>
         
         <p>For your security, all existing sessions have been logged out. You'll need to log in again with your new password.</p>
