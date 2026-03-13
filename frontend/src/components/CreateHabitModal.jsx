@@ -77,7 +77,7 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
     try {
       const payload = {
         name,
-        description,
+        description: description.trimEnd(),
         frequency,
         daysOfWeek: frequency === 'daily' ? [] : daysOfWeek.sort()
         // reminders: reminders.filter(Boolean).map(t => ({ time: t })),

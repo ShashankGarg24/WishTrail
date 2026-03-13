@@ -56,7 +56,7 @@ export default function EditHabitModal({ isOpen, onClose, habit, onSave }) {
     try {
       const payload = {
         name,
-        description,
+        description: description.trimEnd(),
         frequency,
         daysOfWeek: frequency === 'daily' ? [] : daysOfWeek.sort()
         // reminders: reminders.filter(Boolean).map(t => ({ time: t })),

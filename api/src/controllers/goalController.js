@@ -589,6 +589,7 @@ const createGoal = async (req, res, next) => {
     }
 
     const { title, description, category, targetDate, year, subGoals, habitLinks } = req.body;
+    const normalizedDescription = typeof description === 'string' ? description.trimEnd() : '';
     const isPublicFlag = (req.body.isPublic === true || req.body.isPublic === 'true') ? true : false;
 
     // Category validation
@@ -709,7 +710,7 @@ const createGoal = async (req, res, next) => {
       // Create extended details in MongoDB
       await GoalDetails.create([{
         goalId: goal.id,
-        description: description || '',
+        description: normalizedDescription,
         progress: {
           percent: 0,
           breakdown: {
@@ -729,7 +730,7 @@ const createGoal = async (req, res, next) => {
         targetDate: goal.target_date,
         completed: goal.completed,
         isPublic: goal.is_public,
-        description: description || '',
+        description: normalizedDescription,
         subGoals: processedSubGoals,
         habitLinks: processedHabitLinks,
         createdAt: goal.created_at
@@ -866,7 +867,7 @@ const updateGoal = async (req, res, next) => {
 
     // Update MongoDB extended fields
     const mongoUpdates = {};
-    if (description !== undefined) mongoUpdates.description = description;
+    if (description !== undefined) mongoUpdates.description = typeof description === 'string' ? description.trimEnd() : description;
 
     // Update sub-goals if provided
     if (Array.isArray(subGoals)) {
@@ -1195,6 +1196,7 @@ const toggleGoalCompletion = async (req, res, next) => {
       })
     }
     const { completionNote, attachmentUrl, isPublic: isPublicRaw, completionFeeling } = req.body
+    const normalizedCompletionNote = typeof completionNote === 'string' ? completionNote.trimEnd() : '';
     
     const session = await mongoose.startSession();
     let resultGoal = null;
@@ -1252,7 +1254,7 @@ const toggleGoalCompletion = async (req, res, next) => {
           { goalId: goal.id },
           {
             $set: {
-              completionNote: completionNote || '',
+              completionNote: normalizedCompletionNote,
               completionAttachmentUrl: attachmentUrl || '',
               completionFeeling: completionFeeling || 'neutral'
             }
@@ -1273,7 +1275,7 @@ const toggleGoalCompletion = async (req, res, next) => {
             goalId: goal.id,
             goalTitle: goal.title,
             goalCategory: goal.category,
-            completionNote: shareCompletion ? (completionNote || '') : '',
+            completionNote: shareCompletion ? normalizedCompletionNote : '',
             completionAttachmentUrl: shareCompletion ? (attachmentUrl || '') : '',
             subGoalsCount: goalDetails?.subGoals?.length || 0,
             completedSubGoalsCount: (goalDetails?.subGoals || []).filter(sg => sg.completed).length
@@ -1308,8 +1310,8 @@ const toggleGoalCompletion = async (req, res, next) => {
 
         // Mention detection in completion note (if public)
         try {
-          if (completionNote) {
-            const mentionMatches = (completionNote.match(/@([a-zA-Z0-9._-]{3,20})/g) || []).map(m => m.slice(1).toLowerCase());
+          if (normalizedCompletionNote) {
+            const mentionMatches = (normalizedCompletionNote.match(/@([a-zA-Z0-9._-]{3,20})/g) || []).map(m => m.slice(1).toLowerCase());
             if (mentionMatches.length > 0) {
               const pgUserService = require('../services/pgUserService');
               const users = await pgUserService.getUsersByUsernames(mentionMatches);
@@ -1342,7 +1344,7 @@ const toggleGoalCompletion = async (req, res, next) => {
           category: updated.category,
           completed: updated.completed,
           completedAt: updated.completed_at,
-          completionNote: completionNote || '',
+          completionNote: normalizedCompletionNote,
           completionAttachmentUrl: attachmentUrl || ''
         };
       }
@@ -1378,6 +1380,7 @@ const toggleGoalCompletion = async (req, res, next) => {
 const updateGoalCompletion = async (req, res, next) => {
   try {
     const { completionNote, attachmentUrl, isPublic: isPublicRaw, completionFeeling } = req.body
+    const normalizedCompletionNote = typeof completionNote === 'string' ? completionNote.trimEnd() : '';
     
     const goal = await pgGoalService.getGoalById(req.params.id);
     if (!goal) {
@@ -1407,7 +1410,7 @@ const updateGoalCompletion = async (req, res, next) => {
       
       // Update completion details in MongoDB
       const updateFields = {};
-      if (completionNote !== undefined) updateFields.completionNote = completionNote || '';
+      if (completionNote !== undefined) updateFields.completionNote = normalizedCompletionNote;
       if (attachmentUrl !== undefined) updateFields.completionAttachmentUrl = attachmentUrl || '';
       if (completionFeeling !== undefined) updateFields.completionFeeling = completionFeeling || 'neutral';
       
@@ -1432,7 +1435,7 @@ const updateGoalCompletion = async (req, res, next) => {
           goalId: goal.id,
           goalTitle: goal.title,
           goalCategory: goal.category,
-          completionNote: shareCompletion ? (completionNote || '') : '',
+          completionNote: shareCompletion ? normalizedCompletionNote : '',
           completionAttachmentUrl: shareCompletion ? (attachmentUrl || '') : '',
           subGoalsCount: goalDetails?.subGoals?.length || 0,
           completedSubGoalsCount: (goalDetails?.subGoals || []).filter(sg => sg.completed).length

@@ -16,7 +16,6 @@ const goalValidation = [
     .withMessage('Title must be between 3 and 200 characters'),
   body('description')
     .optional()
-    .trim()
     .isLength({ max: 1000 })
     .withMessage('Description must be less than 1000 characters'),
   body('category')

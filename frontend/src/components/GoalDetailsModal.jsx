@@ -106,7 +106,7 @@ export default function GoalDetailsModal({ goal, isOpen, onClose, onViewPost }) 
           {goal.description && (
             <div>
               <h4 className="text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">Overview</h4>
-              <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{goal.description}</p>
+              <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">{goal.description}</p>
             </div>
           )}
         </div>

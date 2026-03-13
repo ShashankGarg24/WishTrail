@@ -81,8 +81,9 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal, isEditM
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    const normalizedCompletionNote = completionNote.trimEnd()
 
-    if (completionNote.trim().length > MAX_NOTE_CHARS) {
+    if (normalizedCompletionNote.length > MAX_NOTE_CHARS) {
       window.dispatchEvent(new CustomEvent('wt_toast', {
         detail: { message: 'Completion note must be 1000 characters or less', type: 'error' }
       }));
@@ -99,7 +100,7 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal, isEditM
     try {
       // Build FormData for multipart
       const form = new FormData()
-      form.append('completionNote', completionNote.trim())
+      form.append('completionNote', normalizedCompletionNote)
       form.append('isPublic', String(isPublic))
       form.append('completionFeeling', completionFeeling)
       
@@ -167,8 +168,9 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal, isEditM
     onClose()
   }
 
-  const wordCount = completionNote.trim().split(/\s+/).filter(word => word.length > 0).length
-  const charCount = completionNote.trim().length
+  const normalizedPreviewNote = completionNote.trimEnd()
+  const wordCount = normalizedPreviewNote.split(/\s+/).filter(word => word.length > 0).length
+  const charCount = normalizedPreviewNote.length
 
   if (!isOpen) return null
 

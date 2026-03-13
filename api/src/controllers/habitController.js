@@ -12,6 +12,7 @@ const UserPreferences = require('../models/extended/UserPreferences');
 exports.createHabit = async (req, res, next) => {
   try {
     const { name, description, frequency, daysOfWeek, timezone, reminders, goalId, isPublic } = req.body;
+    const normalizedDescription = typeof description === 'string' ? description.trimEnd() : '';
     if (!name || String(name).trim().length === 0) {
       return res.status(400).json({ success: false, message: 'Habit name is required' });
     }
@@ -22,7 +23,7 @@ exports.createHabit = async (req, res, next) => {
     const errorResponse = handleValidationResponse(res, validation);
     if (errorResponse) return errorResponse;
 
-    const habit = await pgHabitService.createHabit({ userId: req.user.id, name, description, frequency, daysOfWeek, timezone, reminders, goalId, isPublic });
+    const habit = await pgHabitService.createHabit({ userId: req.user.id, name, description: normalizedDescription, frequency, daysOfWeek, timezone, reminders, goalId, isPublic });
     res.status(201).json({ success: true, data: { habit } });
   } catch (error) { next(error); }
 };
@@ -229,7 +230,12 @@ exports.updateHabit = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Invalid habit ID' });
     }
 
-    const habit = await pgHabitService.updateHabit(habitId, req.user.id, req.body || {});
+    const updates = { ...(req.body || {}) };
+    if (typeof updates.description === 'string') {
+      updates.description = updates.description.trimEnd();
+    }
+
+    const habit = await pgHabitService.updateHabit(habitId, req.user.id, updates);
 
     if (!habit) {
       return res.status(404).json({ success: false, message: 'Habit not found' });

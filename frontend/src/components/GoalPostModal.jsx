@@ -452,7 +452,7 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
                         Description
                       </h4>
                       <div className="bg-gray-50 rounded-lg p-4">
-                        <p className="text-sm text-gray-700 leading-relaxed">
+                        <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
                           {goalData.goal.description}
                         </p>
                       </div>
@@ -468,7 +468,7 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
                         </h4>
                       </div>
                       <div className="bg-green-50 rounded-lg p-4 border border-green-100">
-                        <p className="text-sm text-gray-700 italic leading-relaxed">
+                        <p className="text-sm text-gray-700 italic leading-relaxed whitespace-pre-wrap">
                           "{goalData.completion?.note || goalData.share?.note}"
                         </p>
                       </div>

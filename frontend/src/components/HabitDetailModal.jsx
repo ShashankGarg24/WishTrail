@@ -93,7 +93,7 @@ export default function HabitDetailModal({ habit, isOpen, onClose, onLog, onEdit
           {habit.description && (
             <div>
               <h4 className="text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">Description</h4>
-              <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{habit.description}</p>
+              <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">{habit.description}</p>
             </div>
           )}
 
