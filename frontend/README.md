@@ -58,6 +58,7 @@ A beautiful and modern personal goal-tracking web application built with React, 
 WishTrail frontend supports Datadog Browser SDK for:
 - RUM (performance, user interactions, frontend errors)
 - Browser logs
+- Console log forwarding (`console.log/warn/error/debug`)
 - Distributed tracing headers on API calls
 
 Setup:
@@ -65,6 +66,7 @@ Setup:
 2. Set `VITE_DD_ENABLED=true`
 3. Configure `VITE_DD_CLIENT_TOKEN` and `VITE_DD_APPLICATION_ID`
 4. Set metadata (`VITE_DD_SERVICE`, `VITE_DD_ENV`, `VITE_DD_VERSION`)
+5. Enable console forwarding with `VITE_DD_FORWARD_CONSOLE=true` (optional)
 
 Initialization is done in `src/main.jsx` via `src/lib/observability/datadog.js`.
 
