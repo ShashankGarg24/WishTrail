@@ -35,12 +35,22 @@ class EmailService {
   }
   
   async sendMailWithTimeout(mailOptions, timeoutMs = 15000) {
-    return Promise.race([
-      this.transporter.sendMail(mailOptions),
-      new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Email sending timeout')), timeoutMs)
-      )
-    ]);
+    try {
+      return Promise.race([
+        this.transporter.sendMail(mailOptions),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Email sending timeout')), timeoutMs)
+        )
+      ]);
+    } catch (error) {
+      console.log("Retrying email...");
+      return Promise.race([
+        this.transporter.sendMail(mailOptions),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Retry: Email sending timeout')), timeoutMs)
+        )
+      ]);
+    }
   }
 
   async initializeTransporter() {
@@ -76,16 +86,6 @@ class EmailService {
     };
 
     this.transporter = nodemailer.createTransport(config);
-
-    // Verify transporter configuration
-    if (this.transporter) {
-      try {
-        await this.transporter.verify();
-        console.log('Email service is ready');
-      } catch (error) {
-        console.error('Email service configuration error:', error.message);
-      }
-    }
   }
 
   /**
