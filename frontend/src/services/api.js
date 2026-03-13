@@ -258,9 +258,7 @@ export const goalsAPI = {
   toggleGoalCompletion: (id, completionData) => {
     // If FormData (from CompletionModal), send as multipart; otherwise plain JSON
     if (completionData instanceof FormData) {
-      return api.patch(`/goals/${id}/toggle`, completionData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      return api.patch(`/goals/${id}/toggle`, completionData);
     }
     return api.patch(`/goals/${id}/toggle`, { completionNote: completionData || '' });
   },

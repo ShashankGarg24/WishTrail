@@ -41,9 +41,9 @@ const completeGoalValidation = [
 // Multer for completion attachment (image only, 1MB)
 const storage = multer.memoryStorage();
 const fileFilter = (req, file, cb) => {
-  const allowed = ['image/png', 'image/jpeg', 'image/jpg']
+  const allowed = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp']
   if (!file || allowed.includes(file.mimetype)) return cb(null, true)
-  return cb(new Error('Only JPG/JPEG/PNG images are allowed'))
+  return cb(new Error('Only JPG/JPEG/PNG/WEBP images are allowed'))
 }
 const upload = multer({ storage, fileFilter, limits: { fileSize: 1 * 1024 * 1024 } })
 
@@ -92,8 +92,8 @@ router.patch('/:id/toggle', upload.single('attachment'), async (req, res, next) 
     if (err && err.code === 'LIMIT_FILE_SIZE') {
       return res.status(413).json({ success: false, message: 'Image must be under 1 MB' })
     }
-    if (err && /Only JPG|JPEG|PNG/.test(err.message)) {
-      return res.status(400).json({ success: false, message: 'Only JPG/JPEG/PNG images are allowed' })
+    if (err && /Only JPG|JPEG|PNG|WEBP/.test(err.message)) {
+      return res.status(400).json({ success: false, message: 'Only JPG/JPEG/PNG/WEBP images are allowed' })
     }
     next(err)
   }
@@ -157,8 +157,8 @@ router.patch('/:id/completion', upload.single('attachment'), async (req, res, ne
     if (err && err.code === 'LIMIT_FILE_SIZE') {
       return res.status(413).json({ success: false, message: 'Image must be under 1 MB' })
     }
-    if (err && /Only JPG|JPEG|PNG/.test(err.message)) {
-      return res.status(400).json({ success: false, message: 'Only JPG/JPEG/PNG images are allowed' })
+    if (err && /Only JPG|JPEG|PNG|WEBP/.test(err.message)) {
+      return res.status(400).json({ success: false, message: 'Only JPG/JPEG/PNG/WEBP images are allowed' })
     }
     next(err)
   }

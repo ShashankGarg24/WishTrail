@@ -949,10 +949,11 @@ const useApiStore = create(
         try {
           const response = await goalsAPI.toggleGoalCompletion(id, completionData);
           const { goal } = response.data.data;
+          const targetId = String(id);
 
           // Update in current goals list
           set(state => ({
-            goals: state.goals.map(g => g._id === id ? goal : g)
+            goals: state.goals.map(g => (String(g._id) === targetId || String(g.id) === targetId) ? { ...g, ...goal } : g)
           }));
 
           // Invalidate caches and refresh stats

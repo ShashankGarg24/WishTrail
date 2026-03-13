@@ -18,6 +18,7 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal, isEditM
   const [removeExistingImage, setRemoveExistingImage] = useState(false)
   const [completionFeeling, setCompletionFeeling] = useState(existingData?.completionFeeling || 'neutral')
   const { loading } = useApiStore()
+  const [isSubmitting, setIsSubmitting] = useState(false)
   
   // Allow user to change isPublic flag during completion
   const [isPublic, setIsPublic] = useState(goal?.isPublic ?? true)
@@ -47,9 +48,9 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal, isEditM
       setAttachmentFile(null)
       return
     }
-    const allowed = ['image/png', 'image/jpeg', 'image/jpg']
+    const allowed = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp']
     if (!allowed.includes(file.type)) {
-      setAttachmentError('Only JPG/JPEG/PNG images are allowed')
+      setAttachmentError('Only JPG/JPEG/PNG/WEBP images are allowed')
       if (attachmentPreview) URL.revokeObjectURL(attachmentPreview)
       setAttachmentPreview('')
       setAttachmentFile(null)
@@ -81,6 +82,7 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal, isEditM
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    if (isSubmitting) return
     const normalizedCompletionNote = completionNote.trimEnd()
 
     if (normalizedCompletionNote.length > MAX_NOTE_CHARS) {
@@ -98,6 +100,7 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal, isEditM
     }
 
     try {
+      setIsSubmitting(true)
       // Build FormData for multipart
       const form = new FormData()
       form.append('completionNote', normalizedCompletionNote)
@@ -148,6 +151,8 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal, isEditM
       window.dispatchEvent(new CustomEvent('wt_toast', {
         detail: { message: err?.response?.data?.message || `Failed to ${isEditMode ? 'update' : 'complete'} goal. Please try again.`, type: 'error' }
       }));
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -160,6 +165,7 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal, isEditM
     if (attachmentPreview) URL.revokeObjectURL(attachmentPreview)
     setAttachmentPreview('')
     setShowCelebration(false)
+    setIsSubmitting(false)
     onClose()
   }
 
@@ -307,7 +313,7 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal, isEditM
             <label className="flex items-center gap-3 px-4 py-3 border-2 border-dashed rounded-xl cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors border-gray-300 dark:border-gray-700" style={{ fontFamily: 'Manrope' }}>
               <ImageIcon className="h-5 w-5 text-gray-400" />
               <span className="text-sm text-gray-700 dark:text-gray-300">{attachmentFile ? attachmentFile.name : 'Choose JPG/PNG (max 1 MB)'}</span>
-              <input type="file" accept="image/png, image/jpeg, image/jpg" onChange={handleFileChange} className="hidden" />
+              <input type="file" accept="image/png, image/jpeg, image/jpg, image/webp" onChange={handleFileChange} className="hidden" />
             </label>
             {attachmentPreview && (
               <div className="relative inline-block mt-3">
@@ -366,7 +372,7 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal, isEditM
               onClick={handleClose}
               className="flex-1 py-3 px-4 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors font-medium"
               style={{ fontFamily: 'Manrope' }}
-              disabled={loading}
+              disabled={isSubmitting || loading}
             >
               Cancel
             </button>
@@ -374,9 +380,9 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal, isEditM
               type="submit"
               className="flex-1 py-3 px-4 text-white rounded-xl hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium"
               style={{ backgroundColor: THEME_COLOR, fontFamily: 'Manrope' }}
-              disabled={charCount > MAX_NOTE_CHARS || loading}
+              disabled={charCount > MAX_NOTE_CHARS || isSubmitting || loading}
             >
-              {loading ? (isEditMode ? 'Updating...' : 'Completing...') : (isEditMode ? 'Update' : 'Complete')}
+              {(isSubmitting || loading) ? (isEditMode ? 'Updating...' : 'Completing...') : (isEditMode ? 'Update' : 'Complete')}
             </button>
           </div>
         </form>
