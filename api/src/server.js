@@ -68,7 +68,10 @@ const createApp = async () => {
     allowedHeaders: [
       'Content-Type', 'Authorization', 'X-Requested-With', 'Accept',
       'Origin', 'Access-Control-Request-Method', 'Access-Control-Request-Headers',
-      'X-Client-Platform', 'X-Platform', 'Cache-Control', 'Pragma', 'Expires'
+      'X-Client-Platform', 'X-Platform', 'Cache-Control', 'Pragma', 'Expires',
+      'traceparent', 'tracestate', 'baggage',
+      'x-datadog-trace-id', 'x-datadog-parent-id', 'x-datadog-sampling-priority',
+      'x-datadog-origin', 'x-datadog-tags'
     ],
     exposedHeaders: ['X-Total-Count', 'X-Page-Count']
   };
