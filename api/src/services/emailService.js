@@ -62,14 +62,17 @@ class EmailService {
           pass
         },
         // Connection timeout and pool settings for faster email sending
-        connectionTimeout: 10000, // 10 seconds max to establish connection
-        greetingTimeout: 5000,    // 5 seconds max for greeting
-        socketTimeout: 15000,      // 15 seconds max for socket inactivity
+        connectionTimeout: 30000, // 10 seconds max to establish connection
+        greetingTimeout: 20000,    // 5 seconds max for greeting
+        socketTimeout: 30000,      // 15 seconds max for socket inactivity
         family: 4,
-        pool: true,                // Use connection pooling
+        pool: false,                // Use connection pooling
         maxConnections: 5,         // Max 5 concurrent connections
         maxMessages: 100,          // Max messages per connection
         rateLimit: 10,             // Max 10 messages per second
+        tls: {
+          rejectUnauthorized: false
+        }
     };
 
     this.transporter = nodemailer.createTransport(config);
