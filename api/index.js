@@ -1,12 +1,15 @@
 const createApp = require('./src/server');
+const { initializeObservability, logger } = require('./src/config/observability');
+
+initializeObservability();
 
 let cachedApp;
 
 module.exports = async (req, res) => {
   if (!cachedApp) {
-    console.log("⏳ Initializing Express app...");
+    logger.info('serverless.app.initializing');
     cachedApp = await createApp();
-    console.log("✅ Express app ready");
+    logger.info('serverless.app.ready');
   }
 
   cachedApp.handle(req, res);

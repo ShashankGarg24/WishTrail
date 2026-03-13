@@ -1,4 +1,8 @@
 require('dotenv').config();
+const { initializeObservability, logger, requestLoggerMiddleware } = require('./config/observability');
+
+initializeObservability();
+
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -26,7 +30,7 @@ const createApp = async () => {
   require('./cron/habitReminderJobs');
   require('./cron/inactivityJobs');
   require('./cron/notificationJobs');
-  console.log('✅ Initialization complete');
+  logger.info('app.initialization.complete');
 
   const app = express();
 
@@ -98,7 +102,16 @@ const createApp = async () => {
   // // Explore rate limiter removed
 
   app.use(compression());
-  app.use(morgan(process.env.NODE_ENV === 'development' ? 'dev' : 'combined'));
+  if (process.env.NODE_ENV === 'development') {
+    app.use(morgan('dev'));
+  } else {
+    app.use(morgan('combined', {
+      stream: {
+        write: (message) => logger.info('http.access', { message: message.trim() })
+      }
+    }));
+  }
+  app.use(requestLoggerMiddleware);
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
   app.use(cookieParser());
@@ -110,7 +123,7 @@ const createApp = async () => {
   const apiRouter = express.Router();
 
   apiRouter.get('/health', (req, res) => {
-    console.log("✅ /health hit");
+    logger.info('health.check');
     res.status(200).json({
       status: 'success',
       message: 'WishTrail API is running!',
@@ -187,12 +200,14 @@ if (require.main === module) {
           const pubClient = new IORedis(redisSocketUrl);
           const subClient = pubClient.duplicate();
           io.adapter(createAdapter(pubClient, subClient));
-          console.log('✅ Socket.IO Redis adapter enabled');
+          logger.info('socket.redis_adapter.enabled');
         } else {
-          console.log('ℹ️ Socket.IO using in-memory adapter (set REDIS_SOCKET_URL for clustering)');
+          logger.info('socket.redis_adapter.in_memory');
         }
       } catch (e) {
-        console.log('ℹ️ Redis adapter not enabled:', e?.message || e);
+        logger.warn('socket.redis_adapter.unavailable', {
+          error: e?.message || String(e)
+        });
       }
       io.on('connection', (socket) => {
         socket.on('community:join', (communityId) => {
@@ -204,16 +219,26 @@ if (require.main === module) {
       });
       app.set('io', io);
       try { global.__io = io; } catch {}
-      console.log('✅ Socket.IO initialized');
+      logger.info('socket.initialized');
 
       const port = parseInt(process.env.PORT || process.env.API_PORT || '3001', 10);
       const host = '0.0.0.0';
       http.listen(port, host, () => {
-        console.log(`🚀 WishTrail API listening on http://${host}:${port} (env=${process.env.NODE_ENV || 'development'})`);
-        console.log(`   Health check: /api/${process.env.API_VERSION || 'v1'}/health`);
+        logger.info('server.listening', {
+          host,
+          port,
+          env: process.env.NODE_ENV || 'development',
+          healthPath: `/api/${process.env.API_VERSION || 'v1'}/health`
+        });
       });
     } catch (err) {
-      console.error('❌ Failed to start server', err);
+      logger.error('server.start_failed', {
+        error: {
+          name: err.name,
+          message: err.message,
+          stack: err.stack
+        }
+      });
       process.exit(1);
     }
   })();

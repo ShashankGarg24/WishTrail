@@ -161,6 +161,39 @@ api/
 - **Prettier** - Code formatting
 - **Morgan** - HTTP request logging
 
+## 📈 Datadog Observability (Logs + Traces + Monitoring)
+
+WishTrail API includes built-in Datadog integration through `src/config/observability.js`.
+
+### What is integrated
+- **APM traces** via `dd-trace` (Express + supported Node integrations)
+- **Structured logs** on stdout with trace/span correlation fields
+- **Optional direct log shipping** to Datadog Logs intake (API key based)
+- **Request/error/process logging** for monitoring and alerting
+
+### Environment variables
+Set these in your `.env`:
+
+```env
+DD_TRACE_ENABLED=true
+DD_RUNTIME_METRICS_ENABLED=true
+DD_SERVICE=wishtrail-api
+DD_ENV=production
+DD_VERSION=1.0.0
+DD_AGENT_HOST=127.0.0.1
+DD_TRACE_AGENT_PORT=8126
+DD_SITE=datadoghq.com
+
+# Optional: only needed for direct HTTP log shipping
+DATADOG_API_KEY=your_datadog_api_key
+DATADOG_SITE=datadoghq.com
+```
+
+### Datadog setup notes
+- Run the Datadog Agent in your environment and ensure APM is enabled (`8126`).
+- If you already collect container/host stdout logs with Datadog Agent, you can omit `DATADOG_API_KEY` and rely on stdout collection.
+- To ship logs directly without an agent, set `DATADOG_API_KEY`.
+
 ## 🛠 API Endpoints
 
 ### Authentication (`/api/v1/auth`)

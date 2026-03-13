@@ -1,10 +1,17 @@
+const { logger, toErrorMeta } = require('../config/observability');
+
 // Global error handling middleware
 const globalErrorHandler = (err, req, res, next) => {
   let error = { ...err };
   error.message = err.message;
 
   // Log error
-  console.error(err);
+  logger.error('http.error', {
+    method: req.method,
+    path: req.originalUrl || req.url,
+    userId: req.user?.id,
+    error: toErrorMeta(err)
+  });
 
   // Mongoose bad ObjectId
   if (err.name === 'CastError') {

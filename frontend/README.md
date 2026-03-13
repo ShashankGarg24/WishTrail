@@ -53,6 +53,21 @@ A beautiful and modern personal goal-tracking web application built with React, 
 - `npm run preview` - Preview production build
 - `npm run lint` - Run ESLint
 
+## 📈 Datadog Frontend Monitoring
+
+WishTrail frontend supports Datadog Browser SDK for:
+- RUM (performance, user interactions, frontend errors)
+- Browser logs
+- Distributed tracing headers on API calls
+
+Setup:
+1. Copy `.env.example` to `.env`
+2. Set `VITE_DD_ENABLED=true`
+3. Configure `VITE_DD_CLIENT_TOKEN` and `VITE_DD_APPLICATION_ID`
+4. Set metadata (`VITE_DD_SERVICE`, `VITE_DD_ENV`, `VITE_DD_VERSION`)
+
+Initialization is done in `src/main.jsx` via `src/lib/observability/datadog.js`.
+
 ## 🎯 Usage
 
 ### Getting Started
