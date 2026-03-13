@@ -119,7 +119,7 @@ const CreateWishModal = ({ isOpen, onClose, onSave, year, initialData }) => {
 
     const goalData = {
       title: formData.title.trim(),
-      description: formData.description.trim(),
+      description: formData.description.trimEnd(),
       category: formData.category,
       targetDate: formData.targetDate || null,
       year: year,

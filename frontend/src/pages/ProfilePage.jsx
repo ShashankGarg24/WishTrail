@@ -983,7 +983,7 @@ const ProfilePage = () => {
                               <path
                                 fill="none"
                                 strokeWidth="3"
-                                strokeDasharray={`${((isOwnProfile ? (analytics?.goals?.completedGoals || 0) : (userStats?.completedGoals || 0)) / Math.max(1, (isOwnProfile ? (displayUser.totalGoals || 0) : (userStats?.totalGoals || 0)))) * 100}, 100`}
+                                strokeDasharray={`${((isOwnProfile ? (analytics?.goals?.completedGoals || 0) : (analytics?.goals?.completedGoals || 0)) / Math.max(1, (isOwnProfile ? (displayUser.totalGoals || 0) : (userStats?.totalGoals || 0)))) * 100}, 100`}
                                 strokeLinecap="round"
                                 d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                                 style={{ stroke: THEME_COLOR, transition: 'stroke-dasharray 0.5s' }}
@@ -991,7 +991,7 @@ const ProfilePage = () => {
                             </svg>
                             <div className="absolute inset-0 flex flex-col items-center justify-center">
                               <span className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-                                {Math.round(((isOwnProfile ? (analytics?.goals?.completedGoals || 0) : (userStats?.completedGoals || 0)) / Math.max(1, (isOwnProfile ? (displayUser.totalGoals || 0) : (userStats?.totalGoals || 0)))) * 100)}%
+                                {Math.round(((isOwnProfile ? (analytics?.goals?.completedGoals || 0) : (analytics?.goals?.completedGoals || 0)) / Math.max(1, (isOwnProfile ? (displayUser.totalGoals || 0) : (userStats?.totalGoals || 0)))) * 100)}%
                               </span>
                               <span className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 uppercase">Completion</span>
                             </div>
@@ -1005,7 +1005,7 @@ const ProfilePage = () => {
                             </div>
                             <div className="flex-1 p-2 sm:p-3 rounded-lg sm:rounded-xl bg-green-50 dark:bg-green-900/20 text-center border border-green-200/50 dark:border-green-800/30">
                               <div className="text-xs sm:text-sm font-semibold text-green-800 dark:text-green-200">
-                                {isOwnProfile ? (analytics?.goals?.completedGoals || 0) : (userStats?.completedGoals || 0)}
+                                {isOwnProfile ? (analytics?.goals?.completedGoals || 0) : (analytics?.goals?.completedGoals || 0)}
                               </div>
                               <div className="text-[10px] sm:text-xs text-green-600 dark:text-green-400 uppercase">Completed</div>
                             </div>
