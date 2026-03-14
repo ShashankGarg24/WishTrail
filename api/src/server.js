@@ -105,10 +105,12 @@ const createApp = async () => {
   // // Explore rate limiter removed
 
   app.use(compression());
+  const isHealthRequest = (req) => req.path && req.path.endsWith('/health');
   if (process.env.NODE_ENV === 'development') {
     app.use(morgan('dev'));
   } else {
     app.use(morgan('combined', {
+      skip: isHealthRequest,
       stream: {
         write: (message) => logger.info('http.access', { message: message.trim() })
       }
@@ -126,7 +128,7 @@ const createApp = async () => {
   const apiRouter = express.Router();
 
   apiRouter.get('/health', (req, res) => {
-    logger.info('health.check');
+    console.log('health.check');
     res.status(200).json({
       status: 'success',
       message: 'WishTrail API is running!',
