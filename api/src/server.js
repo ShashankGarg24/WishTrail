@@ -38,7 +38,12 @@ const createApp = async () => {
   app.set('trust proxy', 1);
 
   // --- MIDDLEWARE ---
-  const defaultAllowed = ['http://localhost:5173', 'http://127.0.0.1:5173'];
+  const defaultAllowed = [
+    'https://wishtrail.in',
+    'https://www.wishtrail.in',
+    'http://localhost:5173',
+    'http://127.0.0.1:5173'
+  ];
   const fromEnv = (process.env.ALLOWED_ORIGINS || process.env.CLIENT_URL || '')
     .split(',')
     .map(s => s.trim())

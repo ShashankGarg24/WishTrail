@@ -1,9 +1,31 @@
 const { logger } = require('./../config/observability');
 const DeviceToken = require('../models/DeviceToken');
 const authService = require('../services/authService');
-const jwt = require('jsonwebtoken');
 const { validationResult } = require('express-validator');
 const { sanitizeAuthMe } = require('../utility/sanitizer');
+
+const REFRESH_COOKIE_NAME = 'refreshToken';
+const REFRESH_COOKIE_BASE_OPTIONS = {
+  httpOnly: true,
+  secure: true,
+  sameSite: 'none',
+  path: '/',
+  domain: 'api.wishtrail.in'
+};
+
+const REFRESH_COOKIE_OPTIONS = {
+  ...REFRESH_COOKIE_BASE_OPTIONS,
+  maxAge: 7 * 24 * 60 * 60 * 1000
+};
+
+const clearRefreshTokenCookie = (res) => {
+  res.clearCookie(REFRESH_COOKIE_NAME, REFRESH_COOKIE_BASE_OPTIONS);
+};
+
+const setRefreshTokenCookie = (res, token) => {
+  clearRefreshTokenCookie(res);
+  res.cookie(REFRESH_COOKIE_NAME, token, REFRESH_COOKIE_OPTIONS);
+};
 
 // @desc    Complete user profile and register after OTP verification
 // @route   POST /api/v1/auth/complete-profile
@@ -24,14 +46,7 @@ const register = async (req, res, next) => {
 
     // For web: set refresh token cookie. For app: return refresh token in body.
     if (deviceType === 'web') {
-      const isProd = process.env.NODE_ENV === 'production';
-      res.cookie('refreshToken', result.refreshToken, {
-        httpOnly: true,
-        secure: isProd,
-        sameSite: isProd ? 'none' : 'lax',
-        partitioned: isProd ? true : false,
-        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-      });
+      setRefreshTokenCookie(res, result.refreshToken);
     }
 
     res.status(201).json({
@@ -76,14 +91,7 @@ const login = async (req, res, next) => {
 
     // For web: set refresh token cookie (used by web)
     if (deviceType === 'web') {
-      const isProdLogin = process.env.NODE_ENV === 'production';
-      res.cookie('refreshToken', result.refreshToken, {
-        httpOnly: true,
-        secure: isProdLogin,
-        sameSite: isProdLogin ? 'none' : 'lax',
-        partitioned: isProdLogin ? true : false,
-        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-      });
+      setRefreshTokenCookie(res, result.refreshToken);
     }
 
     res.status(200).json({
@@ -117,7 +125,7 @@ const logout = async (req, res, next) => {
     }
 
     // Clear refresh token cookie (for web)
-    res.clearCookie('refreshToken', { httpOnly: true, secure: true, sameSite: 'none', partitioned: true });
+    clearRefreshTokenCookie(res);
 
     res.status(200).json({
       success: true,
@@ -250,26 +258,8 @@ const updatePassword = async (req, res, next) => {
 // @access  Public
 const refreshToken = async (req, res, next) => {
   try {
-    // Prefer header or body when cookies are unavailable (e.g., mobile clients)
-    const headerToken = (req.headers['x-refresh-token'] || '').trim();
     const deviceType = getDeviceType(req);
-
-    const bodyToken = (req.body && req.body.refreshToken) ? String(req.body.refreshToken).trim() : '';
-    const cookieToken = (req.cookies && req.cookies.refreshToken) ? String(req.cookies.refreshToken).trim() : '';
-    let token = headerToken || bodyToken || cookieToken;
-    // Optional: allow Bearer refresh tokens (mobile clients) without overriding cookies
-    if (!token) {
-      const auth = (req.headers['authorization'] || '').trim();
-      if (/^Bearer\s+/.test(auth)) {
-        const bearer = auth.replace(/^Bearer\s+/i, '').trim();
-        try {
-          const decoded = jwt.decode(bearer);
-          if (decoded && decoded.type === 'refresh') {
-            token = bearer;
-          }
-        } catch (_) {}
-      }
-    }
+    const token = (req.cookies && req.cookies.refreshToken) ? String(req.cookies.refreshToken).trim() : '';
 
     if (!token) {
       return res.status(401).json({
@@ -283,14 +273,7 @@ const refreshToken = async (req, res, next) => {
     // For web: set new refresh token as httpOnly cookie; For app: return it in body.
     if (deviceType === 'web') {
       try {
-        const isProdRefresh = process.env.NODE_ENV === 'production';
-        res.cookie('refreshToken', result.refreshToken, {
-          httpOnly: true,
-          secure: isProdRefresh,
-          sameSite: isProdRefresh ? 'none' : 'lax',
-          partitioned: isProdRefresh ? true : false,
-          maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-        });
+        setRefreshTokenCookie(res, result.refreshToken);
       } catch (_) {}
     }
 
@@ -503,14 +486,7 @@ const googleAuth = async (req, res, next) => {
 
     // For web: set refresh token cookie
     if (deviceType === 'web') {
-      const isProd = process.env.NODE_ENV === 'production';
-      res.cookie('refreshToken', result.refreshToken, {
-        httpOnly: true,
-        secure: isProd,
-        sameSite: isProd ? 'none' : 'lax',
-        partitioned: isProd ? true : false,
-        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-      });
+      setRefreshTokenCookie(res, result.refreshToken);
     }
 
     res.status(200).json({
