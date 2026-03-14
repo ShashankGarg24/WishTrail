@@ -7,6 +7,7 @@ const PasswordReset = require('../models/PasswordReset');
 const OTP = require('../models/Otp');
 const emailService = require('./emailService');
 const BloomFilterService = require('../utility/BloomFilterService');
+const { generateAndUploadInitialAvatar } = require('../utility/avatarGenerator');
 const { ALLOWED_MOOD_EMOJIS } = require('../config/constants');
 const pgUserService = require('./pgUserService');
 
@@ -64,12 +65,19 @@ class AuthService {
       throw new Error('User already exists with this email or username');
     }
 
+    const generatedAvatarUrl = await generateAndUploadInitialAvatar({
+      name,
+      email,
+      username: username || ''
+    });
+
     // Create user with all profile data
     const userData = {
       name,
       email,
       password,
       username: username || null,
+      avatar_url: generatedAvatarUrl || DEFAULT_AVATAR_URL,
       dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
       is_active: true,
       isVerified: true, // Since they verified via OTP
