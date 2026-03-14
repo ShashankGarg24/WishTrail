@@ -474,7 +474,12 @@ const resendOTP = async (req, res, next) => {
 };
 
 const getDeviceType = (req) => {
-  return req.get("X-Client-Platform") || (req.get("User-Agent")?.includes("WishTrailApp") ? "app" : "web");
+  const platformHeader = String(req.get('X-Client-Platform') || '').toLowerCase();
+  if (platformHeader === 'app' || platformHeader === 'web') {
+    return platformHeader;
+  }
+
+  return req.get('User-Agent')?.includes('WishTrailApp') ? 'app' : 'web';
 };
 
 // @desc    Google OAuth authentication

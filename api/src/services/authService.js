@@ -16,6 +16,15 @@ const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 // Default avatar URL for users without profile picture
 const DEFAULT_AVATAR_URL = 'https://res.cloudinary.com/dmhqffeay/image/upload/v1737441346/avatars/default-avatar.png';
 
+const createHttpError = (message, statusCode, code) => {
+  const error = new Error(message);
+  error.statusCode = statusCode;
+  if (code) {
+    error.code = code;
+  }
+  return error;
+};
+
 class AuthService {
 
   /**
@@ -610,38 +619,57 @@ class AuthService {
    * Refresh access token
    */
   async refreshToken(refreshToken, deviceType) {
+    let decoded;
+
     try {
-      const decoded = jwt.verify(
+      decoded = jwt.verify(
         refreshToken,
         process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET
       );
-      
-      if (decoded.type !== 'refresh') {
-        throw new Error('Invalid token type');
-      }
-      
-      const user = await pgUserService.getUserById(decoded.userId);
-      if (!user || !user.is_active) {
-        throw new Error('Invalid refresh token');
-      }
-      
-      // Get the stored refresh token for this device type
-      const storedToken = await pgUserService.getRefreshToken(user.id, deviceType);
-      if (storedToken !== refreshToken) {
-        throw new Error('Invalid refresh token');
-      }
-      
-      // Generate new tokens
-      const tokens = this.generateTokens(user.id);
-      
-      // Rotate and persist the newly generated refresh token
-      await pgUserService.updateRefreshToken(user.id, deviceType, tokens.refreshToken);
-      
-      return tokens;
     } catch (error) {
-      logger.error('Invalid refresh token:', error.message);
-      throw new Error('Invalid refresh token');
+      if (error?.name === 'TokenExpiredError') {
+        logger.warn('Refresh token expired');
+        throw createHttpError('Refresh token expired', 401, 'REFRESH_TOKEN_EXPIRED');
+      }
+
+      logger.warn('Refresh token verification failed', { error: error?.message });
+      throw createHttpError('Invalid refresh token', 401, 'REFRESH_TOKEN_INVALID');
     }
+    
+    if (decoded.type !== 'refresh') {
+      throw createHttpError('Invalid refresh token', 401, 'REFRESH_TOKEN_INVALID_TYPE');
+    }
+    
+    const user = await pgUserService.getUserById(decoded.userId);
+    if (!user || !user.is_active) {
+      throw createHttpError('Invalid refresh token', 401, 'REFRESH_TOKEN_USER_INVALID');
+    }
+
+    const normalizedDeviceType = deviceType === 'app' ? 'app' : 'web';
+
+    // Validate token against stored token (try declared device first, then fallback)
+    const primaryToken = await pgUserService.getRefreshToken(user.id, normalizedDeviceType);
+    const fallbackDeviceType = normalizedDeviceType === 'app' ? 'web' : 'app';
+    const fallbackToken = await pgUserService.getRefreshToken(user.id, fallbackDeviceType);
+
+    const tokenMatchesPrimary = primaryToken && primaryToken === refreshToken;
+    const tokenMatchesFallback = fallbackToken && fallbackToken === refreshToken;
+
+    if (!tokenMatchesPrimary && !tokenMatchesFallback) {
+      throw createHttpError('Invalid refresh token', 401, 'REFRESH_TOKEN_MISMATCH');
+    }
+
+    // Keep refresh token stable to avoid race-condition logouts from concurrent refresh calls.
+    const accessToken = jwt.sign(
+      { userId: user.id },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_ACCESS_EXPIRES || '24h' }
+    );
+
+    return {
+      accessToken,
+      refreshToken
+    };
   }
 
   /**
