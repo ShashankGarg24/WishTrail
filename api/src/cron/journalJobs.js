@@ -6,9 +6,9 @@ const { sendMorningQuotes, generateNightlyQuotes } = require('../services/motiva
 // Daily at 8 PM local-equivalent using user's timezone handled in service (still run hourly)
 cron.schedule('0 * * * *', async () => {
   try {
-    logger.info('[Cron] Hourly check for daily journal prompt...');
-    await notifyDailyPrompt();
-    logger.info('[Cron] Hourly journal prompt pass done.');
+    // logger.info('[Cron] Hourly check for daily journal prompt...');
+    // await notifyDailyPrompt();
+    // logger.info('[Cron] Hourly journal prompt pass done.');
   } catch (e) {
     logger.error('[Cron] Daily journal prompt failed:', e);
   }
