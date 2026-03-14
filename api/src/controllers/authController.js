@@ -5,13 +5,13 @@ const { validationResult } = require('express-validator');
 const { sanitizeAuthMe } = require('../utility/sanitizer');
 
 const REFRESH_COOKIE_NAME = 'refreshToken';
-const REFRESH_COOKIE_BASE_OPTIONS = {
-  httpOnly: true,
-  secure: true,
-  sameSite: 'none',
-  path: '/',
-  domain: 'api.wishtrail.in'
-};
+const isProd = process.env.NODE_ENV === 'production';
+
+// In production: cross-site cookie (frontend on wishtrail.in, API on api.wishtrail.in)
+// In development: same-site lax, no domain restriction, no secure requirement
+const REFRESH_COOKIE_BASE_OPTIONS = isProd
+  ? { httpOnly: true, secure: true, sameSite: 'none', path: '/', domain: process.env.COOKIE_DOMAIN || 'api.wishtrail.in' }
+  : { httpOnly: true, secure: false, sameSite: 'lax', path: '/' };
 
 const REFRESH_COOKIE_OPTIONS = {
   ...REFRESH_COOKIE_BASE_OPTIONS,
@@ -259,7 +259,12 @@ const updatePassword = async (req, res, next) => {
 const refreshToken = async (req, res, next) => {
   try {
     const deviceType = getDeviceType(req);
-    const token = (req.cookies && req.cookies.refreshToken) ? String(req.cookies.refreshToken).trim() : '';
+
+    // Read refresh token: cookie (web) → x-refresh-token header → body (app/fallback)
+    const cookieToken = (req.cookies && req.cookies.refreshToken) ? String(req.cookies.refreshToken).trim() : '';
+    const headerToken = String(req.headers['x-refresh-token'] || '').trim();
+    const bodyToken = (req.body && req.body.refreshToken) ? String(req.body.refreshToken).trim() : '';
+    const token = cookieToken || headerToken || bodyToken;
 
     if (!token) {
       return res.status(401).json({
