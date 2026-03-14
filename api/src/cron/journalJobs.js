@@ -18,7 +18,7 @@ cron.schedule('0 * * * *', async () => {
 cron.schedule('0 * * * *', async () => {
   try {
     // Send at users' local 08:00; the service filters by hh:mm
-    await sendMorningQuotes();
+    // await sendMorningQuotes();
   } catch (e) {
     logger.error('[Cron] Morning motivation failed:', e);
   }
@@ -27,9 +27,9 @@ cron.schedule('0 * * * *', async () => {
 // Nightly at 01:00 UTC: pre-generate per-user quotes in Redis via LLM
 cron.schedule('0 1 * * *', async () => {
   try {
-    logger.info('[Cron] Generating nightly motivation quotes...');
-    await generateNightlyQuotes();
-    logger.info('[Cron] Nightly motivation quotes generated.');
+    // logger.info('[Cron] Generating nightly motivation quotes...');
+    // await generateNightlyQuotes();
+    // logger.info('[Cron] Nightly motivation quotes generated.');
   } catch (e) {
     logger.error('[Cron] Nightly motivation generation failed:', e);
   }
