@@ -12,16 +12,17 @@ export default function ExpandableText({ text, maxLength = 150, className = '' }
   if (!text) return null;
 
   const shouldTruncate = text.length > maxLength;
+  const textClasses = `whitespace-pre-line break-words ${className}`.trim();
 
   if (!shouldTruncate) {
-    return <p className={className}>{text}</p>;
+    return <p className={textClasses}>{text}</p>;
   }
 
   const displayText = isExpanded ? text : text.slice(0, maxLength) + '...';
 
   return (
     <div>
-      <p className={className}>
+      <p className={textClasses}>
         {displayText}
         <button
           onClick={() => setIsExpanded(!isExpanded)}
