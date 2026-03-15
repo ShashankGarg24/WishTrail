@@ -1,10 +1,11 @@
 import { forwardRef, useState, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { Share2, Camera, Twitter, Instagram, Link2, Download, Copy, Check } from 'lucide-react'
+import { Camera, Download, Copy } from 'lucide-react'
 import html2canvas from 'html2canvas'
 
 const ShareableGoalCard = forwardRef(({ goal, user, onClose }, ref) => {
-  const [textOverlay, setTextOverlay] = useState(goal.completionNote || '')
+  const MAX_TEXT_OVERLAY_LENGTH = 500
+  const [textOverlay, setTextOverlay] = useState((goal.completionNote || '').slice(0, MAX_TEXT_OVERLAY_LENGTH))
   const [selectedImage, setSelectedImage] = useState(goal.completionAttachmentUrl || null)
   const [imageZoom, setImageZoom] = useState(100)
   const [imagePosition, setImagePosition] = useState({ x: 0, y: 0 })
@@ -199,15 +200,31 @@ const ShareableGoalCard = forwardRef(({ goal, user, onClose }, ref) => {
       link.download = `wishtrail-${goal.title.replace(/\s+/g, '-').toLowerCase()}.png`
       link.href = imageDataUrl
       link.click()
+      try {
+        window.dispatchEvent(new CustomEvent('wt_toast', {
+          detail: { message: 'Image downloaded', type: 'success', duration: 2000 }
+        }))
+      } catch {}
     }
   }
 
   const handleCopyLink = async () => {
-    const shareUrl = `${window.location.origin}/goal/${goal.id}`
+    const goalId = goal?.id || goal?._id
+    const shareUrl = `${window.location.origin}/feed?goalId=${goalId}`
     try {
       await navigator.clipboard.writeText(shareUrl)
+      try {
+        window.dispatchEvent(new CustomEvent('wt_toast', {
+          detail: { message: 'Goal link copied', type: 'success', duration: 2000 }
+        }))
+      } catch {}
     } catch (error) {
       console.error('Failed to copy link:', error)
+      try {
+        window.dispatchEvent(new CustomEvent('wt_toast', {
+          detail: { message: 'Failed to copy link', type: 'error', duration: 2200 }
+        }))
+      } catch {}
     }
   }
 
@@ -288,10 +305,14 @@ const ShareableGoalCard = forwardRef(({ goal, user, onClose }, ref) => {
             <input
               type="text"
               value={textOverlay}
-              onChange={(e) => setTextOverlay(e.target.value)}
+              onChange={(e) => setTextOverlay(e.target.value.slice(0, MAX_TEXT_OVERLAY_LENGTH))}
+              maxLength={MAX_TEXT_OVERLAY_LENGTH}
               placeholder="Document your recipes"
               className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
+            <p className="mt-1 text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 text-right">
+              {textOverlay.length}/{MAX_TEXT_OVERLAY_LENGTH}
+            </p>
           </div>
         </div>
 
@@ -394,12 +415,6 @@ const ShareableGoalCard = forwardRef(({ goal, user, onClose }, ref) => {
               onClick={handleDownload}
               className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm">
                 <Download className="h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4 text-gray-600 dark:text-gray-400" />
-              </button>
-              <button className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm">
-                <Twitter className="h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4 text-gray-600 dark:text-gray-400" />
-              </button>
-              <button className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm">
-                <Instagram className="h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4 text-gray-600 dark:text-gray-400" />
               </button>
             </div>
           </div>
