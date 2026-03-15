@@ -17,64 +17,64 @@ function verifyCronKey(req, res, next) {
 }
 
 router.post('/habit-reminders', verifyCronKey, async (req, res) => {
-  try {
-    const windowMinutes = Math.max(1, Math.min(30, Number(req.query.window || 10)));
-    const startedAt = Date.now();
-    const result = await sendReminderNotifications({ windowMinutes });
-    const durationMs = Date.now() - startedAt;
-    try { logger.info('[cron] habit-reminders', { windowMinutes, durationMs, count: result?.count }); } catch {}
-    res.json({ success: true, data: result, durationMs });
-  } catch (e) {
-    res.status(500).json({ success: false, error: e?.message || 'failed' });
-  }
+  // try {
+  //   const windowMinutes = Math.max(1, Math.min(30, Number(req.query.window || 10)));
+  //   const startedAt = Date.now();
+  //   const result = await sendReminderNotifications({ windowMinutes });
+  //   const durationMs = Date.now() - startedAt;
+  //   try { logger.info('[cron] habit-reminders', { windowMinutes, durationMs, count: result?.count }); } catch {}
+  //   res.json({ success: true, data: result, durationMs });
+  // } catch (e) {
+  //   res.status(500).json({ success: false, error: e?.message || 'failed' });
+  // }
 });
 
 router.post('/journal-prompts', verifyCronKey, async (req, res) => {
-  try {
-    const startedAt = Date.now();
-    await notifyDailyPrompt();
-    const durationMs = Date.now() - startedAt;
-    try { logger.info('[cron] journal-prompts', { durationMs }); } catch {}
-    res.json({ success: true, durationMs });
-  } catch (e) {
-    res.status(500).json({ success: false, error: e?.message || 'failed' });
-  }
+  // try {
+  //   const startedAt = Date.now();
+  //   await notifyDailyPrompt();
+  //   const durationMs = Date.now() - startedAt;
+  //   try { logger.info('[cron] journal-prompts', { durationMs }); } catch {}
+  //   res.json({ success: true, durationMs });
+  // } catch (e) {
+  //   res.status(500).json({ success: false, error: e?.message || 'failed' });
+  // }
 });
 
 router.post('/morning-quotes', verifyCronKey, async (req, res) => {
-  try {
-    const startedAt = Date.now();
-    const r = await sendMorningQuotes();
-    const durationMs = Date.now() - startedAt;
-    try { logger.info('[cron] morning-quotes', { durationMs, count: r?.count }); } catch {}
-    res.json({ success: true, data: r, durationMs });
-  } catch (e) {
-    res.status(500).json({ success: false, error: e?.message || 'failed' });
-  }
+  // try {
+  //   const startedAt = Date.now();
+  //   const r = await sendMorningQuotes();
+  //   const durationMs = Date.now() - startedAt;
+  //   try { logger.info('[cron] morning-quotes', { durationMs, count: r?.count }); } catch {}
+  //   res.json({ success: true, data: r, durationMs });
+  // } catch (e) {
+  //   res.status(500).json({ success: false, error: e?.message || 'failed' });
+  // }
 });
 
 router.post('/nightly-quotes', verifyCronKey, async (req, res) => {
-  try {
-    const startedAt = Date.now();
-    const r = await generateNightlyQuotes();
-    const durationMs = Date.now() - startedAt;
-    try { logger.info('[cron] nightly-quotes', { durationMs }); } catch {}
-    res.json({ success: true, data: r, durationMs });
-  } catch (e) {
-    res.status(500).json({ success: false, error: e?.message || 'failed' });
-  }
+  // try {
+  //   const startedAt = Date.now();
+  //   const r = await generateNightlyQuotes();
+  //   const durationMs = Date.now() - startedAt;
+  //   try { logger.info('[cron] nightly-quotes', { durationMs }); } catch {}
+  //   res.json({ success: true, data: r, durationMs });
+  // } catch (e) {
+  //   res.status(500).json({ success: false, error: e?.message || 'failed' });
+  // }
 });
 
 router.post('/inactivity-reminders', verifyCronKey, async (req, res) => {
-  try {
-    const startedAt = Date.now();
-    const r = await sendDueInactivityReminders({ batchLimit: 2000 });
-    const durationMs = Date.now() - startedAt;
-    try { logger.info('[cron] inactivity-reminders', { durationMs }); } catch {}
-    res.json({ success: true, data: r, durationMs });
-  } catch (e) {
-    res.status(500).json({ success: false, error: e?.message || 'failed' });
-  }
+  // try {
+  //   const startedAt = Date.now();
+  //   const r = await sendDueInactivityReminders({ batchLimit: 2000 });
+  //   const durationMs = Date.now() - startedAt;
+  //   try { logger.info('[cron] inactivity-reminders', { durationMs }); } catch {}
+  //   res.json({ success: true, data: r, durationMs });
+  // } catch (e) {
+  //   res.status(500).json({ success: false, error: e?.message || 'failed' });
+  // }
 });
 
 router.post('/delete-old-notifications', verifyCronKey, async (req, res) => {
