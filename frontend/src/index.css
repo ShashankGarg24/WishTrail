@@ -7,14 +7,14 @@
 
   /* Global zoom/scale configuration */
   html {
-    font-size: 87%;
+    font-size: 90%;
     /* CLS Fix: reserve space for scrollbar so it never shifts layout */
     scrollbar-gutter: stable;
   }
 
   @media (max-width: 768px) {
     html {
-      font-size: 90%;
+      font-size: 92%;
     }
   }
 

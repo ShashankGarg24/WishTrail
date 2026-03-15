@@ -318,28 +318,6 @@ const ShareableGoalCard = forwardRef(({ goal, user, onClose }, ref) => {
 
         {/* Right Panel - Live Preview */}
         <div>
-          {/* Mobile Zoom Slider */}
-          {selectedImage && (
-            <div className="sm:hidden mb-3">
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Zoom
-                </span>
-                <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400">
-                  {imageZoom}%
-                </span>
-              </div>
-              <input
-                type="range"
-                min="50"
-                max="300"
-                value={imageZoom}
-                onChange={(e) => setImageZoom(parseInt(e.target.value))}
-                className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
-              />
-            </div>
-          )}
-
           <div className="mb-2 sm:mb-3 text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider text-center">
             Live Preview
           </div>
@@ -443,7 +421,7 @@ const ShareableGoalCard = forwardRef(({ goal, user, onClose }, ref) => {
 
             {/* Vertical Zoom Slider */}
             {selectedImage && (
-              <div className="hidden sm:flex flex-col items-center gap-2 sm:gap-3 pt-8 sm:pt-10 md:pt-12">
+              <div className="flex flex-col items-center gap-2 sm:gap-3 pt-8 sm:pt-10 md:pt-12">
                 <div className="relative flex flex-col items-center">
                   <div className="text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
                     {imageZoom}%
