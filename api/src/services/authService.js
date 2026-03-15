@@ -10,8 +10,10 @@ const BloomFilterService = require('../utility/BloomFilterService');
 const { generateAndUploadInitialAvatar } = require('../utility/avatarGenerator');
 const { ALLOWED_MOOD_EMOJIS } = require('../config/constants');
 const pgUserService = require('./pgUserService');
+const pgFollowService = require('./pgFollowService');
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const WISHTRAIL_ACCOUNT_ID = Number.parseInt(process.env.WISHTRAIL_ACCOUNT_ID, 10);
 
 // Default avatar URL for users without profile picture
 const DEFAULT_AVATAR_URL = 'https://res.cloudinary.com/dmhqffeay/image/upload/v1737441346/avatars/default-avatar.png';
@@ -103,6 +105,15 @@ class AuthService {
     }
 
     const user = await pgUserService.createUser(userData);
+
+    // Auto-follow WishTrail account for every new user (if configured)
+    if (Number.isInteger(WISHTRAIL_ACCOUNT_ID) && WISHTRAIL_ACCOUNT_ID > 0 && WISHTRAIL_ACCOUNT_ID !== user.id) {
+      try {
+        await pgFollowService.followUser(user.id, WISHTRAIL_ACCOUNT_ID, { status: 'accepted' });
+      } catch (error) {
+        logger.error('Failed to auto-follow WishTrail account:', error);
+      }
+    }
 
     // Create user preferences in MongoDB with interests and dashboard years
     const currentYear = new Date().getFullYear();
@@ -1005,6 +1016,15 @@ class AuthService {
           timezone: timezone || 'UTC',
           locale: locale || 'en-US'
         });
+
+        // Auto-follow WishTrail account for every new Google user (if configured)
+        if (Number.isInteger(WISHTRAIL_ACCOUNT_ID) && WISHTRAIL_ACCOUNT_ID > 0 && WISHTRAIL_ACCOUNT_ID !== user.id) {
+          try {
+            await pgFollowService.followUser(user.id, WISHTRAIL_ACCOUNT_ID, { status: 'accepted' });
+          } catch (error) {
+            logger.error('Failed to auto-follow WishTrail account (Google auth):', error);
+          }
+        }
 
         // Create user preferences in MongoDB with default dashboard year
         const currentYear = new Date().getFullYear();
