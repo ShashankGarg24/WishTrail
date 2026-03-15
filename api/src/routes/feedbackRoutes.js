@@ -2,8 +2,8 @@ const { logger } = require('./../config/observability');
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
-const axios = require('axios');
 const cloudinaryService = require('../services/cloudinaryService');
+const Feedback = require('../models/Feedback');
 const { protect } = require('../middleware/auth');
 
 // Multer memory storage (serverless-friendly)
@@ -52,32 +52,14 @@ router.post('/', protect, upload.single('screenshot'), async (req, res, next) =>
       emotion,
       message: message || '',
       screenshotUrl,
-      userEmail: req.user?.email || '',
-      userName: req.user?.name || '',
-      createdAt: new Date().toISOString(),
+      user: {
+        id: req.user?.id,
+        email: req.user?.email || '',
+        name: req.user?.name || ''
+      }
     };
 
-    const webhookUrl = process.env.FEEDBACK_SHEET_WEBHOOK_URL || '';
-
-    if (webhookUrl) {
-      try {
-        const resp = await axios.post(
-          webhookUrl,
-          feedbackPayload,
-          {
-            timeout: 10000,
-            headers: {
-              "Content-Type": "application/json"
-            }
-          }
-        );
-      } catch (err) {
-        logger.error('Failed to post feedback to sheet webhook:', err?.response?.status || err.message);
-        // Continue; still acknowledge receipt
-      }
-    } else {
-      logger.warn('FEEDBACK_SHEET_WEBHOOK_URL not set. Skipping Google Sheet append.');
-    }
+    await Feedback.create(feedbackPayload);
 
     return res.status(201).json({ success: true, message: 'Feedback submitted'});
   } catch (error) {
