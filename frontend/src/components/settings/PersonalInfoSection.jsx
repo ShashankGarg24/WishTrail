@@ -75,6 +75,7 @@ const PersonalInfoSection = () => {
     instagram: ''
   });
   const [hasChanges, setHasChanges] = useState(false);
+  const isReservedUsername = (value = '') => /wishtrail/i.test(String(value));
 
   // Sync form data when user data changes
   useEffect(() => {
@@ -234,6 +235,11 @@ const PersonalInfoSection = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setUsernameError('');
+
+    if (isReservedUsername(formData.username?.trim())) {
+      setUsernameError('Username not available');
+      return;
+    }
     
     if (!validateSocialUrls()) {
       return;
@@ -251,7 +257,7 @@ const PersonalInfoSection = () => {
     } else {
       const msg = result.error || '';
       if (msg.toLowerCase().includes('username')) {
-        setUsernameError(msg);
+        setUsernameError('Username not available');
       } else {
         toast.error(msg || 'Failed to update profile');
       }

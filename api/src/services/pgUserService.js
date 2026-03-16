@@ -756,6 +756,7 @@ class UserService {
       SELECT id, name, username, avatar_url, created_at
       FROM users
       WHERE is_active = true
+        AND is_private = false
         AND created_at >= $1
         AND created_at < $2
       ORDER BY created_at DESC

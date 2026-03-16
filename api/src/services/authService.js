@@ -14,6 +14,7 @@ const pgFollowService = require('./pgFollowService');
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const WISHTRAIL_ACCOUNT_ID = Number.parseInt(process.env.WISHTRAIL_ACCOUNT_ID, 10);
+const RESERVED_USERNAME_PATTERN = /wishtrail/i;
 
 // Default avatar URL for users without profile picture
 const DEFAULT_AVATAR_URL = 'https://res.cloudinary.com/dmhqffeay/image/upload/v1737441346/avatars/default-avatar.png';
@@ -27,6 +28,8 @@ const createHttpError = (message, statusCode, code) => {
   return error;
 };
 
+const isUsernameReserved = (username) => RESERVED_USERNAME_PATTERN.test(String(username || ''));
+
 class AuthService {
 
   /**
@@ -34,6 +37,10 @@ class AuthService {
    */
   async register(profileData, deviceType, timezone = 'UTC', locale = 'en-US') {
     const { email, name, password, username, dateOfBirth, interests, location } = profileData || {};
+
+    if (username && isUsernameReserved(username)) {
+      throw new Error('Username not available');
+    }
     
     // Validate interests
     const ALLOWED_INTERESTS = [
@@ -325,6 +332,12 @@ class AuthService {
 
     // Username uniqueness check
     if (updateData.username) {
+      if (isUsernameReserved(updateData.username)) {
+        const error = new Error('Username not available');
+        error.statusCode = 400;
+        throw error;
+      }
+
       const existing = await pgUserService.getUserByUsername(updateData.username);
       if (existing && existing.id !== userId) {
         const error = new Error('Username already exists');
@@ -700,13 +713,27 @@ class AuthService {
       });
     }
     
-    if (username && existsInBloom(username)) {
-      const usernameExists = await pgUserService.getUserByUsername(username);
-      checks.push({
-        field: 'username',
-        value: username,
-        exists: !!usernameExists
-      });
+    if (username) {
+      if (isUsernameReserved(username)) {
+        checks.push({
+          field: 'username',
+          value: username,
+          exists: true
+        });
+      } else if (existsInBloom(username)) {
+        const usernameExists = await pgUserService.getUserByUsername(username);
+        checks.push({
+          field: 'username',
+          value: username,
+          exists: !!usernameExists
+        });
+      } else {
+        checks.push({
+          field: 'username',
+          value: username,
+          exists: false
+        });
+      }
     }
     
     const hasConflicts = checks.some(check => check.exists);
@@ -936,6 +963,9 @@ class AuthService {
         isNewUser = true; // Mark as new user
         // Generate a unique username from email
         let baseUsername = email.split('@')[0].toLowerCase().replace(/[^a-z0-9._-]/g, '');
+
+        // Remove reserved keyword from generated username
+        baseUsername = baseUsername.replace(/wishtrail/gi, '');
         
         // Ensure username meets minimum length requirement (3 characters)
         if (baseUsername.length < 3) {
@@ -952,7 +982,7 @@ class AuthService {
         
         // Ensure username is unique - use bloom filter first for optimization
         // Check bloom filter first (fast), only query DB if bloom filter says it might exist
-        while (BloomFilterService.mightExist(username) && await pgUserService.getUserByUsername(username)) {
+        while (isUsernameReserved(username) || (BloomFilterService.mightExist(username) && await pgUserService.getUserByUsername(username))) {
           // Append counter, but ensure total length doesn't exceed 20 chars
           const counterStr = String(counter);
           const maxBaseLength = 20 - counterStr.length;
@@ -965,6 +995,14 @@ class AuthService {
             // Generate random suffix if too many collisions
             username = `${baseUsername.substring(0, 14)}${Math.floor(Math.random() * 999999)}`;
             break;
+          }
+        }
+
+        // Final defensive check to ensure reserved keyword never gets persisted
+        if (isUsernameReserved(username)) {
+          username = `user${Math.floor(Math.random() * 100000000)}`;
+          while (isUsernameReserved(username) || (BloomFilterService.mightExist(username) && await pgUserService.getUserByUsername(username))) {
+            username = `user${Math.floor(Math.random() * 100000000)}`;
           }
         }
 

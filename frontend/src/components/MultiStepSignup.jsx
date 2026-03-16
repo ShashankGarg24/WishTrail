@@ -37,6 +37,7 @@ const INTERESTS_OPTIONS = [
 ];
 
 const MultiStepSignup = ({ onSuccess, onBack }) => {
+  const isReservedUsername = (value = '') => /wishtrail/i.test(value);
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
     name: "",
@@ -121,6 +122,8 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
 
     if (!formData.username.trim()) {
       newErrors.username = "Username is required";
+    } else if (isReservedUsername(formData.username.trim())) {
+      newErrors.username = "Username not available";
     } else if (formData.username.length < 3) {
       newErrors.username = "Username must be at least 3 characters";
     } else if (!/^[a-zA-Z0-9._-]+$/.test(formData.username)) {
@@ -185,7 +188,11 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
         const newErrors = {};
         checks.forEach(check => {
           if (check.exists) {
-            newErrors[check.field] = `This ${check.field} is already taken`;
+            if (check.field === 'username') {
+              newErrors[check.field] = 'Username not available';
+            } else {
+              newErrors[check.field] = `This ${check.field} is already taken`;
+            }
           }
         });
         setErrors(newErrors);

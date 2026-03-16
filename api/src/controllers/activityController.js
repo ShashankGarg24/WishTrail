@@ -54,7 +54,8 @@ async function enrichActivities(activities) {
         // Add isPremium flag
         enrichedActivity.data = {
           ...enrichedActivity.data,
-          isPremium: user.is_premium || false
+          isPremium: user.is_premium || false,
+          userIsPrivate: !!user.is_private
         };
       }
     }
@@ -70,13 +71,15 @@ async function enrichActivities(activities) {
             title: goal.title,
             category: goal.category,
             completed: goal.completed,
-            completed_at: goal.completed_at
+            completed_at: goal.completed_at,
+            is_public: goal.is_public
           },
           // Also keep flat fields for compatibility
           goalTitle: goal.title,
           goalCategory: goal.category,
           isCompleted: goal.completed,
-          completedAt: goal.completed_at
+          completedAt: goal.completed_at,
+          goalIsPublic: goal.is_public
         };
       }
     }
@@ -239,7 +242,19 @@ const getRecentActivities = async (req, res, next) => {
         }));
       }
 
-      const combinedActivities = [...enrichedActivities, ...joinedActivities]
+      const filteredPublicActivities = enrichedActivities.filter((activity) => {
+        // Exclude activities from private profiles
+        if (activity?.data?.userIsPrivate) return false;
+
+        // Exclude goal-related activities for non-public goals
+        if (activity?.data?.goalId) {
+          return activity?.data?.goalIsPublic === true;
+        }
+
+        return true;
+      });
+
+      const combinedActivities = [...filteredPublicActivities, ...joinedActivities]
         .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
         .slice(0, parsedLimit);
 
