@@ -12,6 +12,8 @@ const ShareSheet = lazy(() => import('./ShareSheet'));
 const MIN_DESKTOP_IMAGE_ZOOM = 1;
 const MAX_DESKTOP_IMAGE_ZOOM = 3;
 const DESKTOP_IMAGE_ZOOM_STEP = 0.25;
+const DESCRIPTION_CLAMP_CLASS = 'line-clamp-4';
+const COMPLETION_NOTE_CLAMP_CLASS = 'line-clamp-4';
 
 // Separate comment input component
 const CommentInput = ({ activityId }) => {
@@ -76,7 +78,17 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
   const [shareSheetOpen, setShareSheetOpen] = useState(false);
   const shareUrlRef = useRef('');
   const desktopImageContainerRef = useRef(null);
+  const descriptionTextRef = useRef(null);
+  const completionNoteTextRef = useRef(null);
   const [desktopImageZoom, setDesktopImageZoom] = useState(MIN_DESKTOP_IMAGE_ZOOM);
+  const [expandedText, setExpandedText] = useState({
+    description: false,
+    completionNote: false
+  });
+  const [textIsTruncatable, setTextIsTruncatable] = useState({
+    description: false,
+    completionNote: false
+  });
 
   useEffect(() => {
     if (isOpen && goalId) {
@@ -113,7 +125,41 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
     if (!isOpen) {
       setDesktopImageZoom(MIN_DESKTOP_IMAGE_ZOOM);
     }
+
+    setExpandedText({ description: false, completionNote: false });
+    setTextIsTruncatable({ description: false, completionNote: false });
   }, [isOpen, goalId]);
+
+  useEffect(() => {
+    if (!isOpen || !goalData) return;
+
+    const measureOverflow = () => {
+      const descriptionOverflow = descriptionTextRef.current
+        ? descriptionTextRef.current.scrollHeight > descriptionTextRef.current.clientHeight + 1
+        : false;
+      const completionNoteOverflow = completionNoteTextRef.current
+        ? completionNoteTextRef.current.scrollHeight > completionNoteTextRef.current.clientHeight + 1
+        : false;
+
+      setTextIsTruncatable({
+        description: descriptionOverflow,
+        completionNote: completionNoteOverflow
+      });
+    };
+
+    const frameId = requestAnimationFrame(measureOverflow);
+    window.addEventListener('resize', measureOverflow);
+
+    return () => {
+      cancelAnimationFrame(frameId);
+      window.removeEventListener('resize', measureOverflow);
+    };
+  }, [
+    isOpen,
+    goalData?.goal?.description,
+    goalData?.completion?.note,
+    goalData?.share?.note
+  ]);
 
   const loadGoalData = async () => {
     setLoading(true);
@@ -445,6 +491,11 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
                 {/* Content */}
                 <div className={`flex-1 overflow-y-auto p-6 ${showComments ? 'pb-0' : 'space-y-6'}`}>
                   <div className="space-y-6">
+                  {(() => {
+                    const completionNote = goalData.completion?.note || goalData.share?.note;
+
+                    return (
+                      <>
                   {/* Description */}
                   {goalData.goal?.description && (
                     <div>
@@ -452,9 +503,21 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
                         Description
                       </h4>
                       <div className="bg-gray-50 rounded-lg p-4">
-                        <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                        <p
+                          ref={descriptionTextRef}
+                          className={`text-sm text-gray-700 leading-relaxed whitespace-pre-wrap ${expandedText.description ? '' : DESCRIPTION_CLAMP_CLASS}`}
+                        >
                           {goalData.goal.description}
                         </p>
+                        {textIsTruncatable.description && (
+                          <button
+                            type="button"
+                            onClick={() => setExpandedText(prev => ({ ...prev, description: !prev.description }))}
+                            className="mt-2 text-xs font-semibold text-[#4c99e6] hover:text-blue-600 transition-colors"
+                          >
+                            {expandedText.description ? 'Less' : 'More'}
+                          </button>
+                        )}
                       </div>
                     </div>
                   )}
@@ -468,12 +531,28 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
                         </h4>
                       </div>
                       <div className="bg-green-50 rounded-lg p-4 border border-green-100">
-                        <p className="text-sm text-gray-700 italic leading-relaxed whitespace-pre-wrap">
-                          "{goalData.completion?.note || goalData.share?.note}"
+                        <p
+                          ref={completionNoteTextRef}
+                          className={`text-sm text-gray-700 italic leading-relaxed whitespace-pre-wrap ${expandedText.completionNote ? '' : COMPLETION_NOTE_CLAMP_CLASS}`}
+                        >
+                          "{completionNote}"
                         </p>
+                        {textIsTruncatable.completionNote && (
+                          <button
+                            type="button"
+                            onClick={() => setExpandedText(prev => ({ ...prev, completionNote: !prev.completionNote }))}
+                            className="mt-2 text-xs font-semibold text-[#4c99e6] hover:text-blue-600 transition-colors"
+                          >
+                            {expandedText.completionNote ? 'Less' : 'More'}
+                          </button>
+                        )}
                       </div>
                     </div>
                   )}
+
+                      </>
+                    );
+                  })()}
 
                   {/* Completion Image (inline for mobile or when left panel hidden) */}
                   {completionImageUrl && (isMobile || !hasCompletionImage) && (
