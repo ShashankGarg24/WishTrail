@@ -1,5 +1,29 @@
 const { logger } = require('./../config/observability');
 const productUpdateService = require('../services/productUpdateService');
+const redis = require('../config/redis');
+
+const WHATS_NEW_CACHE_TTL_SECONDS = 12 * 60 * 60;
+const WHATS_NEW_CACHE_PREFIX = 'wishtrail:whats_new:list';
+
+const getWhatsNewCacheKey = ({ page, limit }) => `${WHATS_NEW_CACHE_PREFIX}:page:${page}:limit:${limit}`;
+
+const clearWhatsNewListCache = async () => {
+  try {
+    if (typeof redis.keys === 'function') {
+      const keys = await redis.keys(`${WHATS_NEW_CACHE_PREFIX}:*`);
+      if (Array.isArray(keys) && keys.length > 0) {
+        await redis.del(...keys);
+      }
+      return;
+    }
+    await Promise.allSettled([
+      redis.del(getWhatsNewCacheKey({ page: 1, limit: 50 })),
+      redis.del(getWhatsNewCacheKey({ page: 1, limit: 100 }))
+    ]);
+  } catch (error) {
+    logger.warn('[productUpdates] Failed to clear whats new cache', { error: error?.message });
+  }
+};
 
 module.exports = {
   /**
@@ -75,6 +99,16 @@ module.exports = {
       const pageNum = Math.max(1, parseInt(page) || 1);
       const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 50));
       const offset = (pageNum - 1) * limitNum;
+
+      const cacheKey = getWhatsNewCacheKey({ page: pageNum, limit: limitNum });
+      try {
+        const cachedPayload = await redis.get(cacheKey);
+        if (cachedPayload) {
+          return res.status(200).json(JSON.parse(cachedPayload));
+        }
+      } catch (cacheError) {
+        logger.warn('[productUpdates] Cache read failed', { error: cacheError?.message, cacheKey });
+      }
       
       const updates = await productUpdateService.getAllUpdates({
         limit: limitNum,
@@ -84,7 +118,7 @@ module.exports = {
       const totalCount = await productUpdateService.getUpdateCount();
       const totalPages = Math.ceil(totalCount / limitNum);
       
-      res.status(200).json({
+      const responsePayload = {
         success: true,
         data: {
           updates,
@@ -95,7 +129,15 @@ module.exports = {
             pages: totalPages
           }
         }
-      });
+      };
+
+      try {
+        await redis.set(cacheKey, JSON.stringify(responsePayload), { ex: WHATS_NEW_CACHE_TTL_SECONDS });
+      } catch (cacheError) {
+        logger.warn('[productUpdates] Cache write failed', { error: cacheError?.message, cacheKey });
+      }
+
+      res.status(200).json(responsePayload);
     } catch (error) {
       next(error);
     }
@@ -170,6 +212,8 @@ module.exports = {
         isMajor: isMajor === true,
         type
       });
+
+      await clearWhatsNewListCache();
       
       res.status(201).json({
         success: true,
@@ -211,6 +255,8 @@ module.exports = {
           message: 'Update not found'
         });
       }
+
+      await clearWhatsNewListCache();
       
       res.status(200).json({
         success: true,

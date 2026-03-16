@@ -89,7 +89,7 @@ const WhatsNewPage = () => {
         <div className="mb-12 text-center">
           <motion.div
             initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
+  t          animate={{ opacity: 1, y: 0 }}
             className="mb-6"
           >
             <div className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-blue-100 dark:bg-blue-900 mb-4">

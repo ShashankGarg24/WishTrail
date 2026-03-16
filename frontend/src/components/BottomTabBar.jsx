@@ -7,14 +7,14 @@ const AccountMenuSheet = lazy(() => import('./account/AccountMenuSheet'));
 const TabButton = ({ active, label, Icon, onClick, badge }) => (
   <button
     onClick={onClick}
-    className={`flex-1 flex flex-col items-center justify-center py-2.5 transition-colors ${
+    className={`flex-1 flex flex-col items-center justify-center py-3 transition-colors ${
       active 
         ? 'text-[#4c99e6]' 
         : 'text-gray-500 dark:text-gray-400'
     }`}
   >
     <div className="relative">
-      <Icon className="h-6 w-6" strokeWidth={active ? 2.5 : 2} />
+      <Icon className="h-[24px] w-[24px]" strokeWidth={active ? 2.5 : 2} />
       {typeof badge === 'number' && badge > 0 && (
         <span className="absolute -top-1.5 -right-1.5 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-[#4c99e6] text-white text-[10px] font-semibold">
           {badge > 99 ? '99+' : badge}
@@ -72,9 +72,9 @@ const BottomTabBar = () => {
                 />
                 <button
                   onClick={() => setAccountOpen(true)}
-                  className="flex-1 flex flex-col items-center justify-center py-2.5"
+                  className="flex-1 flex flex-col items-center justify-center py-3.5"
                 >
-                  <div className="w-8 h-8 rounded-full bg-[#4c99e6] flex items-center justify-center overflow-hidden border-2 border-gray-200 dark:border-gray-700">
+                  <div className="w-9 h-9 rounded-full bg-[#4c99e6] flex items-center justify-center overflow-hidden border-2 border-gray-200 dark:border-gray-700">
                     {currentUser?.avatar ? (
                       <img 
                         src={currentUser.avatar} 
@@ -82,7 +82,7 @@ const BottomTabBar = () => {
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <User className="h-4 w-4 text-white" strokeWidth={2.5} />
+                      <User className="h-[18px] w-[18px] text-white" strokeWidth={2.5} />
                     )}
                   </div>
                 </button>

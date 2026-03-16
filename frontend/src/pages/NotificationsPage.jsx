@@ -148,7 +148,7 @@ const NotificationsPageNew = () => {
                   className="flex items-center gap-2 px-4 py-2.5 bg-[#4c99e6] text-white rounded-lg font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <CheckCheck className={`w-4 h-4 ${markingAllRead ? 'animate-spin' : ''}`} />
-                  {markingAllRead ? 'Marking...' : 'Mark all as read'}
+                  {markingAllRead ? 'Marking...' : 'Mark all'}
                 </button>
               )}
               <button
