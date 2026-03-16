@@ -1,6 +1,7 @@
 const { logger } = require('./../config/observability');
 const DeviceToken = require('../models/DeviceToken');
 const authService = require('../services/authService');
+const productUpdateService = require('../services/productUpdateService');
 const { validationResult } = require('express-validator');
 const { sanitizeAuthMe } = require('../utility/sanitizer');
 
@@ -44,6 +45,14 @@ const register = async (req, res, next) => {
     const { timezone, locale } = req.body;
     const result = await authService.register(req.body, deviceType, timezone, locale);
 
+    // Fetch unseen major product update for new users (if any)
+    let latestUpdate = null;
+    try {
+      latestUpdate = await productUpdateService.getLatestUnseenMajorUpdate(result.user.id);
+    } catch (error) {
+      logger.info('Failed to fetch latest product update:', error.message);
+    }
+
     // For web: set refresh token cookie. For app: return refresh token in body.
     if (deviceType === 'web') {
       setRefreshTokenCookie(res, result.refreshToken);
@@ -53,7 +62,7 @@ const register = async (req, res, next) => {
       success: true,
       message: 'Registration completed successfully',
       data: Object.assign(
-        { user: result.user, token: result.token },
+        { user: result.user, token: result.token, latestUpdate },
         deviceType === 'app' ? { refreshToken: result.refreshToken } : {}
       )
     });
@@ -80,6 +89,14 @@ const login = async (req, res, next) => {
     const deviceType = getDeviceType(req);
     const result = await authService.login(email, password, deviceType, timezone, locale);
 
+    // Fetch unseen major product update for client modal
+    let latestUpdate = null;
+    try {
+      latestUpdate = await productUpdateService.getLatestUnseenMajorUpdate(result.user.id);
+    } catch (error) {
+      logger.info('Failed to fetch latest product update:', error.message);
+    }
+
     // ✅ Store Expo push token if login is from app
     if (deviceToken) {
       await DeviceToken.findOneAndUpdate(
@@ -98,7 +115,7 @@ const login = async (req, res, next) => {
       success: true,
       message: 'Login successful',
       data: Object.assign(
-        { user: result.user, token: result.token },
+        { user: result.user, token: result.token, latestUpdate },
         deviceType === 'app' ? { refreshToken: result.refreshToken } : {}
       )
     });
@@ -489,6 +506,14 @@ const googleAuth = async (req, res, next) => {
     
     const result = await authService.googleAuth(token, deviceType, timezone, locale);
 
+    // Fetch unseen major product update for Google auth users
+    let latestUpdate = null;
+    try {
+      latestUpdate = await productUpdateService.getLatestUnseenMajorUpdate(result.user.id);
+    } catch (error) {
+      logger.info('Failed to fetch latest product update:', error.message);
+    }
+
     // For web: set refresh token cookie
     if (deviceType === 'web') {
       setRefreshTokenCookie(res, result.refreshToken);
@@ -498,7 +523,7 @@ const googleAuth = async (req, res, next) => {
       success: true,
       message: result.isNewUser ? 'Registration successful' : 'Login successful',
       data: Object.assign(
-        { user: result.user, token: result.token, isNewUser: result.isNewUser },
+        { user: result.user, token: result.token, isNewUser: result.isNewUser, latestUpdate },
         deviceType === 'app' ? { refreshToken: result.refreshToken } : {}
       )
     });

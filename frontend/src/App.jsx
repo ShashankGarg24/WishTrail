@@ -39,6 +39,7 @@ const TermsOfService = lazy(() => import('./pages/TermsOfService'))
 const CommunityGuidelines = lazy(() => import('./pages/CommunityGuidelines'))
 const CopyrightPolicy = lazy(() => import('./pages/CopyrightPolicy'))
 const LeaderboardPageNew = lazy(() => import('./pages/LeaderboardPage'))
+const WhatsNewPage = lazy(() => import('./pages/WhatsNewPage'))
 function App() {
   const { isDarkMode, initializeAuth, isAuthenticated} = useApiStore()
   const location = useLocation()
@@ -207,6 +208,9 @@ function App() {
               <Route path="/terms-of-service" element={<Suspense fallback={null}><TermsOfService /></Suspense>} />
               <Route path="/community-guidelines" element={<Suspense fallback={null}><CommunityGuidelines /></Suspense>} />
               <Route path="/copyright-policy" element={<Suspense fallback={null}><CopyrightPolicy /></Suspense>} />
+              
+              {/* What's New page - Public */}
+              <Route path="/whats-new" element={<Suspense fallback={null}><WhatsNewPage /></Suspense>} />
               
               {/* Error pages - Public */}
               <Route path="/error/generic" element={<Suspense fallback={null}><GenericErrorPage /></Suspense>} />

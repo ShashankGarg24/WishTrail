@@ -166,6 +166,7 @@ const createApp = async () => {
   apiRouter.use('/communities', require('./routes/communityRoutes'));
   apiRouter.use('/settings', require('./routes/settingsRoutes'));
   apiRouter.use('/premium', require('./routes/premiumRoutes'));
+  apiRouter.use('/product-updates', require('./routes/productUpdateRoutes'));
   // Config management
   apiRouter.use('/config', require('./routes/configRoutes'));
   // Cron endpoints for serverless environments; protect with CRON_SECRET

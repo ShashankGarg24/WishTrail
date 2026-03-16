@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Search, Bell, User, LogOut, Settings, Star, MessageSquare } from 'lucide-react'
+import { Search, Bell, User, LogOut, Settings, Star, MessageSquare, Sparkles } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
 import useApiStore from '../store/apiStore'
 import FeedbackButton from './FeedbackButton'
@@ -226,6 +226,17 @@ const Header = () => {
                       >
                         <MessageSquare className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                         <span className="font-medium">Feedback</span>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setIsProfileMenuOpen(false)
+                          navigate('/whats-new')
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors font-manrope group"
+                      >
+                        <Sparkles className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                        <span className="font-medium">What's New</span>
                       </button>
                     </div>
 

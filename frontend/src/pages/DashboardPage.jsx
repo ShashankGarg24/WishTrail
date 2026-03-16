@@ -17,6 +17,7 @@ const DeleteConfirmModal = lazy(() => import('../components/DeleteConfirmModal')
 const HabitSuggestionsModal = lazy(() => import('../components/HabitSuggestionsModal'))
 const GoalSuggestionsModal = lazy(() => import('../components/GoalSuggestionsModal'))
 const DependencyWarningModal = lazy(() => import('../components/DependencyWarningModal'))
+const WhatsNewModal = lazy(() => import('../components/WhatsNewModal'))
 
 const DashboardPageNew = () => {
   const [activeTab, setActiveTab] = useState('goals')
@@ -52,6 +53,7 @@ const DashboardPageNew = () => {
   const [goalSort, setGoalSort] = useState('newest') // newest, oldest
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 9 // 3x3 grid
+  const [isWhatsNewModalOpen, setIsWhatsNewModalOpen] = useState(false)
 
   const {
     isAuthenticated,
@@ -62,6 +64,8 @@ const DashboardPageNew = () => {
     getDashboardStats,
     getGoals,
     loadHabits,
+    getLatestProductUpdate,
+    latestProductUpdate,
   } = useApiStore()
 
   
@@ -73,6 +77,11 @@ const DashboardPageNew = () => {
     loadHabits({ page: 1 })
   }, [isAuthenticated, selectedYear])
 
+  useEffect(() => {
+    if (!isAuthenticated) return
+    getLatestProductUpdate()
+  }, [isAuthenticated, getLatestProductUpdate])
+
   // Sync tab with URL
   useEffect(() => {
     const tabFromUrl = searchParams.get('tab') || 'goals'
@@ -80,6 +89,13 @@ const DashboardPageNew = () => {
       setActiveTab(tabFromUrl)
     }
   }, [searchParams])
+
+  // Show What's New modal when latestProductUpdate arrives (only once per session)
+  useEffect(() => {
+    if (latestProductUpdate && !isWhatsNewModalOpen) {
+      setIsWhatsNewModalOpen(true)
+    }
+  }, [latestProductUpdate])
 
   const handleHabitCreated = (habit) => {
     if (habit?.id) {
@@ -1174,6 +1190,14 @@ const DashboardPageNew = () => {
               completionAttachmentUrl: goalToEdit.completionAttachmentUrl || '',
               completionFeeling: goalToEdit.completionFeeling || 'neutral'
             }}
+          />
+        )}
+
+        {/* What's New Modal */}
+        {isWhatsNewModalOpen && (
+          <WhatsNewModal
+            isOpen={isWhatsNewModalOpen}
+            onClose={() => setIsWhatsNewModalOpen(false)}
           />
         )}
       </Suspense>

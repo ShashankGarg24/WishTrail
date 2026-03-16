@@ -479,6 +479,14 @@ export const premiumAPI = {
   cancel: () => api.post('/premium/cancel')
 };
 
+// Product Updates API
+export const productUpdatesAPI = {
+  getLatestUnseen: () => api.get('/product-updates/latest'),
+  getAllUpdates: (params) => api.get('/product-updates', { params }),
+  getByType: (type, params) => api.get(`/product-updates/type/${type}`, { params }),
+  markAsSeen: (version) => api.post('/product-updates/seen', { version })
+};
+
 // Utility functions
 export const handleApiError = (error) => {
   if (error.response?.data?.message) {

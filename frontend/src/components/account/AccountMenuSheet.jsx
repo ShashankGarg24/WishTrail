@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import useApiStore from '../../store/apiStore'
-import { User, Settings, MessageSquare, LogOut, ChevronRight, Edit } from 'lucide-react'
+import { User, Settings, MessageSquare, LogOut, ChevronRight, Edit, Sparkles } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
 
 const AccountMenuSheet = ({ open, onClose }) => {
@@ -121,6 +121,11 @@ const AccountMenuSheet = ({ open, onClose }) => {
                 icon={MessageSquare}
                 label="Feedback"
                 onClick={() => { window.dispatchEvent(new CustomEvent('wt_open_feedback')); onClose(); }}
+              />
+              <MenuItem 
+                icon={Sparkles}
+                label="What's New"
+                onClick={() => { navigate(`/whats-new`); onClose(); }}
               />
             </div>
 

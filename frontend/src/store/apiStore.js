@@ -15,7 +15,8 @@ import {
   notificationsAPI,
   journalsAPI,
   habitsAPI,
-  settingsAPI
+  settingsAPI,
+  productUpdatesAPI
 } from '../services/api';
 import { getCurrentDateKey } from '../utils/timezoneUtils';
 
@@ -164,6 +165,11 @@ const useApiStore = create(
       // Cached trending goals for stories bar (per params key)
       cacheTrendingGoals: {},
 
+      // Product Updates
+      latestProductUpdate: null,
+      allProductUpdates: [],
+      productUpdatesPagination: null,
+
       // =====================
       // AUTH ACTIONS
       // =====================
@@ -197,20 +203,21 @@ const useApiStore = create(
         try {
           set({ loading: true, error: null });
           const response = await authAPI.register(profileData);
-          const { user, token } = response.data.data;
+          const { user, token, latestUpdate } = response.data.data;
 
           setAuthToken(token);
           set({
             user,
             token,
             isAuthenticated: true,
-            loading: false
+            loading: false,
+            latestProductUpdate: latestUpdate || null
           });
 
           // Fetch complete user data from /me endpoint
           await get().getMe({ force: true });
 
-          return { success: true, user, token };
+          return { success: true, user, token, latestUpdate };
         } catch (error) {
           const errorMessage = handleApiError(error);
           set({ loading: false, error: errorMessage });
@@ -222,20 +229,21 @@ const useApiStore = create(
         try {
           set({ loading: true, error: null });
           const response = await authAPI.login({ email, password });
-          const { user, token } = response.data.data;
+          const { user, token, latestUpdate } = response.data.data;
 
           setAuthToken(token);
           set({
             user,
             token,
             isAuthenticated: true,
-            loading: false
+            loading: false,
+            latestProductUpdate: latestUpdate || null
           });
 
           // Fetch complete user data from /me endpoint
           await get().getMe({ force: true });
 
-          return { success: true, user, token };
+          return { success: true, user, token, latestUpdate };
         } catch (error) {
           const errorMessage = handleApiError(error);
           set({ loading: false, error: errorMessage });
@@ -247,20 +255,21 @@ const useApiStore = create(
         try {
           set({ loading: true, error: null });
           const response = await authAPI.googleAuth({ token: googleToken });
-          const { user, token, isNewUser } = response.data.data;
+          const { user, token, isNewUser, latestUpdate } = response.data.data;
 
           setAuthToken(token);
           set({
             user,
             token,
             isAuthenticated: true,
-            loading: false
+            loading: false,
+            latestProductUpdate: latestUpdate || null
           });
 
           // Fetch complete user data from /me endpoint
           await get().getMe({ force: true });
 
-          return { success: true, user, token, isNewUser };
+          return { success: true, user, token, isNewUser, latestUpdate };
         } catch (error) {
           const errorMessage = handleApiError(error);
           set({ loading: false, error: errorMessage });
@@ -1793,6 +1802,45 @@ const useApiStore = create(
           console.error('Failed to load interests', err);
           set({ interestsCatalog: [] });
           return [];
+        }
+      },
+
+      // =====================
+      // PRODUCT UPDATES ACTIONS
+      // =====================
+
+      getLatestProductUpdate: async () => {
+        try {
+          const response = await productUpdatesAPI.getLatestUnseen();
+          const update = response.data.data?.update || null;
+          set({ latestProductUpdate: update });
+          return { success: true, update };
+        } catch (error) {
+          const errorMessage = handleApiError(error);
+          return { success: false, error: errorMessage };
+        }
+      },
+
+      getAllProductUpdates: async (params = {}) => {
+        try {
+          const response = await productUpdatesAPI.getAllUpdates(params);
+          const { updates, pagination } = response.data.data;
+          set({ allProductUpdates: updates, productUpdatesPagination: pagination });
+          return { success: true, updates, pagination };
+        } catch (error) {
+          const errorMessage = handleApiError(error);
+          return { success: false, error: errorMessage };
+        }
+      },
+
+      markProductUpdateAsSeen: async (version) => {
+        try {
+          const response = await productUpdatesAPI.markAsSeen(version);
+          set({ latestProductUpdate: null });
+          return { success: true, data: response.data.data };
+        } catch (error) {
+          const errorMessage = handleApiError(error);
+          return { success: false, error: errorMessage };
         }
       },
 
