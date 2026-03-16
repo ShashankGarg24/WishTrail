@@ -741,6 +741,30 @@ class UserService {
     const result = await query(queryText);
     return result.rows[0];
   }
+
+  /**
+   * Get users who joined during the current UTC day
+   * @param {number} limit - Maximum number of users to return
+   * @returns {Promise<Array>} Newly joined users for today
+   */
+  async getUsersJoinedToday(limit = 50) {
+    const now = new Date();
+    const startOfDayUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    const endOfDayUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1));
+
+    const queryText = `
+      SELECT id, name, username, avatar_url, created_at
+      FROM users
+      WHERE is_active = true
+        AND created_at >= $1
+        AND created_at < $2
+      ORDER BY created_at DESC
+      LIMIT $3
+    `;
+
+    const result = await query(queryText, [startOfDayUtc, endOfDayUtc, limit]);
+    return result.rows;
+  }
 }
 
 module.exports = new UserService();

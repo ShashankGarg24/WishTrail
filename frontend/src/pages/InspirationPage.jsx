@@ -238,9 +238,10 @@ const InspirationPage = () => {
                                 {activity.type === 'habit_added' && `Linked a habit to: ${activity.data?.goalTitle || activity.data?.goal?.title || 'a goal'}`}
                                 {activity.type === 'habit_target_achieved' && `Hit habit target for: ${activity.data?.goalTitle || activity.data?.goal?.title || 'a goal'}`}
                                 {activity.type === 'user_followed' && `Started following ${activity.data?.targetUserName || 'someone'}`}
+                                {activity.type === 'user_joined' && 'Joined the WishTrail journey'}
                                 {activity.type === 'streak_milestone' && `Reached a ${activity.data?.streakCount || 0} day streak!`}
                                 {activity.type === 'achievement_earned' && `Earned "${activity.data?.achievementName || 'achievement'}" badge`}
-                                {!['goal_completed', 'goal_created', 'goal_activity', 'subgoal_completed', 'subgoal_added', 'subgoal_removed', 'subgoal_uncompleted', 'habit_added', 'habit_removed', 'habit_target_achieved', 'user_followed', 'streak_milestone', 'achievement_earned'].includes(activity.type) && (activity.data?.goalTitle || activity.data?.goal?.title || activity.type)}
+                                {!['goal_completed', 'goal_created', 'goal_activity', 'subgoal_completed', 'subgoal_added', 'subgoal_removed', 'subgoal_uncompleted', 'habit_added', 'habit_removed', 'habit_target_achieved', 'user_followed', 'user_joined', 'streak_milestone', 'achievement_earned'].includes(activity.type) && (activity.data?.goalTitle || activity.data?.goal?.title || activity.type)}
                               </p>
                               <span className="text-xs text-gray-500 dark:text-gray-400">{formatTimeAgo(activity.createdAt)}</span>
                             </div>

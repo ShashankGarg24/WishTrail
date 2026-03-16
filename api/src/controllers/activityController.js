@@ -218,13 +218,38 @@ const getRecentActivities = async (req, res, next) => {
       // Enrich with PostgreSQL data
       const enrichedActivities = await enrichActivities(activityList);
 
+      // Add synthetic "user joined" activities for today (not persisted in MongoDB)
+      let joinedActivities = [];
+      let joinedCount = 0;
+      if (parsedPage === 1) {
+        const joinedTodayUsers = await pgUserService.getUsersJoinedToday(Math.max(parsedLimit * 2, 20));
+        joinedCount = joinedTodayUsers.length;
+        joinedActivities = joinedTodayUsers.map((user) => ({
+          _id: `user_joined_${user.id}_${new Date(user.created_at).getTime()}`,
+          type: 'user_joined',
+          userId: user.id,
+          name: user.name,
+          username: user.username,
+          avatar: user.avatar_url,
+          data: {
+            joinedAt: user.created_at
+          },
+          createdAt: user.created_at,
+          isPublic: true
+        }));
+      }
+
+      const combinedActivities = [...enrichedActivities, ...joinedActivities]
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        .slice(0, parsedLimit);
+
         activities = {
-          activities: enrichedActivities,
+          activities: combinedActivities,
           pagination: {
             page: parsedPage,
             limit: parsedLimit,
-            total: totalActivities,
-            pages: Math.ceil(totalActivities / parsedLimit)
+            total: totalActivities + (parsedPage === 1 ? joinedCount : 0),
+            pages: Math.ceil((totalActivities + (parsedPage === 1 ? joinedCount : 0)) / parsedLimit)
           }
         };
 

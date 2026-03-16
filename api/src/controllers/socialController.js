@@ -1,5 +1,4 @@
 const { logger } = require('./../config/observability');
-const Activity = require('../models/Activity');
 const Notification = require('../models/Notification');
 const activityService = require('../services/activityService');
 
@@ -58,29 +57,7 @@ const followUser = async (req, res, next) => {
     await pgFollowService.followUser(followerId, parseInt(userId));
     const notif = await Notification.createFollowNotification(followerId, parseInt(userId));
     logger.info('[Follow] Notification created:', notif ? 'Yes' : 'No', 'for follower:', followerId, 'following:', userId);
-    
-    // Check if activity already exists
-    const existingActivity = await Activity.findOne({
-      userId: followerId,
-      type: 'user_followed',
-      'data.targetUserId': parseInt(userId)
-    });
-
-    const currentUser = await pgUserService.findById(followerId);
     // Follower counts are updated automatically by database triggers
-
-    if (!existingActivity) {
-      await Activity.createActivity(
-        followerId,
-        currentUser.name,
-        currentUser.username,
-        currentUser.avatar_url,
-        'user_followed',
-        {
-          targetUserId: parseInt(userId)
-        }
-      );
-    }
     
     res.status(200).json({ success: true, message: 'User followed successfully', data: { requested: false } });
   } catch (error) {
