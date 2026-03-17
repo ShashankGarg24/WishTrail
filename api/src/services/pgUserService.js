@@ -259,6 +259,21 @@ class UserService {
     const result = await query(queryText, values);
     return result.rows[0] || null;
   }
+
+  /**
+   * Set user's last seen product update version
+   */
+  async setLastSeenUpdateVersion(userId, version) {
+    const queryText = `
+      UPDATE users
+      SET last_seen_update_version = $1, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $2 AND is_active = true
+      RETURNING id, last_seen_update_version as "lastSeenUpdateVersion"
+    `;
+
+    const result = await query(queryText, [version, userId]);
+    return result.rows[0] || null;
+  }
   
   /**
    * Update password

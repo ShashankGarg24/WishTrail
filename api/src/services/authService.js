@@ -11,6 +11,7 @@ const { generateAndUploadInitialAvatar } = require('../utility/avatarGenerator')
 const { ALLOWED_MOOD_EMOJIS } = require('../config/constants');
 const pgUserService = require('./pgUserService');
 const pgFollowService = require('./pgFollowService');
+const productUpdateService = require('./productUpdateService');
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const WISHTRAIL_ACCOUNT_ID = Number.parseInt(process.env.WISHTRAIL_ACCOUNT_ID, 10);
@@ -31,6 +32,17 @@ const createHttpError = (message, statusCode, code) => {
 const isUsernameReserved = (username) => RESERVED_USERNAME_PATTERN.test(String(username || ''));
 
 class AuthService {
+
+  async initializeUserLastSeenUpdateVersion(userId) {
+    try {
+      const latestUpdates = await productUpdateService.getAllUpdates({ limit: 1, offset: 0 });
+      const latestVersion = latestUpdates?.[0]?.version;
+      if (!latestVersion) return;
+      await pgUserService.setLastSeenUpdateVersion(userId, latestVersion);
+    } catch (error) {
+      logger.error('Failed to initialize last_seen_update_version for new user:', error);
+    }
+  }
 
   /**
    * Create user
@@ -112,6 +124,7 @@ class AuthService {
     }
 
     const user = await pgUserService.createUser(userData);
+    await this.initializeUserLastSeenUpdateVersion(user.id);
 
     // Auto-follow WishTrail account for every new user (if configured)
     if (Number.isInteger(WISHTRAIL_ACCOUNT_ID) && WISHTRAIL_ACCOUNT_ID > 0 && WISHTRAIL_ACCOUNT_ID !== user.id) {
@@ -1054,6 +1067,7 @@ class AuthService {
           timezone: timezone || 'UTC',
           locale: locale || 'en-US'
         });
+        await this.initializeUserLastSeenUpdateVersion(user.id);
 
         // Auto-follow WishTrail account for every new Google user (if configured)
         if (Number.isInteger(WISHTRAIL_ACCOUNT_ID) && WISHTRAIL_ACCOUNT_ID > 0 && WISHTRAIL_ACCOUNT_ID !== user.id) {
