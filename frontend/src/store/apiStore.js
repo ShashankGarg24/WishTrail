@@ -1174,6 +1174,36 @@ const useApiStore = create(
         }
       },
 
+      getGoalUpdateToday: async (id) => {
+        try {
+          const response = await goalsAPI.getGoalUpdateToday(id);
+          return { success: true, goalUpdate: response?.data?.data?.goalUpdate || null };
+        } catch (error) {
+          const errorMessage = handleApiError(error);
+          return { success: false, error: errorMessage };
+        }
+      },
+
+      upsertGoalUpdateToday: async (id, payload) => {
+        try {
+          const response = await goalsAPI.upsertGoalUpdateToday(id, payload);
+          return { success: true, goalUpdate: response?.data?.data?.goalUpdate || null };
+        } catch (error) {
+          const errorMessage = handleApiError(error);
+          return { success: false, error: errorMessage };
+        }
+      },
+
+      clearGoalUpdateToday: async (id) => {
+        try {
+          const response = await goalsAPI.clearGoalUpdateToday(id);
+          return { success: true, deleted: !!response?.data?.data?.deleted };
+        } catch (error) {
+          const errorMessage = handleApiError(error);
+          return { success: false, error: errorMessage };
+        }
+      },
+
       // Search completed, discoverable goals (public users) - for discovery/explore pages
       searchPublicGoals: async (params = {}) => {
         try {

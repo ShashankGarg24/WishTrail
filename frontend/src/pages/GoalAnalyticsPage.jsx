@@ -21,9 +21,11 @@ import {
 import useApiStore from '../store/apiStore'
 import { createPortal } from 'react-dom'
 import { API_CONFIG } from '../config/api'
+import { goalsAPI } from '../services/api'
 import ExpandableText from '../components/ExpandableText'
 
 const THEME_COLOR = '#4c99e6'
+const GOAL_UPDATES_PAGE_SIZE = 10
 
 const CompletionModal = lazy(() => import('../components/CompletionModal'));
 
@@ -38,6 +40,18 @@ const getIconForEventType = (type) => {
     'goal_completed': Award
   }
   return iconMap[type] || Target
+}
+
+// Helper function to map emotions to emoji + label
+const getEmotionMeta = (emotion) => {
+  const emotionMap = {
+    'great': { emoji: '❤️', label: 'Great' },
+    'good': { emoji: '😊', label: 'Good' },
+    'okay': { emoji: '😐', label: 'Okay' },
+    'challenging': { emoji: '😞', label: 'Tough' },
+    'neutral': { emoji: '✨', label: 'Skip' }
+  }
+  return emotionMap[emotion] || { emoji: '💭', label: 'Update' }
 }
 
 // Helper function to format completion feeling with emoji
@@ -60,9 +74,39 @@ const GoalAnalyticsPage = () => {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
   const [goalData, setGoalData] = useState(null)
+  const [goalUpdates, setGoalUpdates] = useState([])
+  const [goalUpdatesOffset, setGoalUpdatesOffset] = useState(0)
+  const [hasMoreGoalUpdates, setHasMoreGoalUpdates] = useState(true)
+  const [loadingGoalUpdates, setLoadingGoalUpdates] = useState(false)
   const [completing, setCompleting] = useState(false)
   const [isCompletionModalOpen, setIsCompletionModalOpen] = useState(false)
   const { getGoalAnalytics, isAuthenticated, toggleGoalCompletion } = useApiStore()
+
+  const loadMoreGoalUpdates = async (options = {}) => {
+    const { reset = false } = options
+    const offset = reset ? 0 : goalUpdatesOffset
+
+    if (loadingGoalUpdates || (!reset && !hasMoreGoalUpdates)) return
+
+    try {
+      setLoadingGoalUpdates(true)
+      const updatesResponse = await goalsAPI.getGoalUpdates(goalId, {
+        limit: GOAL_UPDATES_PAGE_SIZE,
+        offset
+      })
+
+      const updates = updatesResponse?.data?.data?.updates || []
+      const hasMore = updatesResponse?.data?.data?.pagination?.hasMore === true
+
+      setGoalUpdates(prev => (reset ? updates : [...prev, ...updates]))
+      setGoalUpdatesOffset(offset + updates.length)
+      setHasMoreGoalUpdates(hasMore)
+    } catch (err) {
+      console.error('[GoalAnalytics] Error fetching goal updates:', err)
+    } finally {
+      setLoadingGoalUpdates(false)
+    }
+  }
 
   const loadGoalData = async () => {
     try {
@@ -77,6 +121,11 @@ const GoalAnalyticsPage = () => {
         }));
         console.error('[GoalAnalytics] Invalid response structure:', response)
       }
+
+      setGoalUpdates([])
+      setGoalUpdatesOffset(0)
+      setHasMoreGoalUpdates(true)
+      await loadMoreGoalUpdates({ reset: true })
     } catch (error) {
       console.error('[GoalAnalytics] Error loading goal analytics:', error)
       window.dispatchEvent(new CustomEvent('wt_toast', {
@@ -108,6 +157,18 @@ const GoalAnalyticsPage = () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
   }, [goalId, isAuthenticated, navigate])
+
+  const handleGoalUpdatesScroll = (event) => {
+    if (!hasMoreGoalUpdates || loadingGoalUpdates) return
+
+    const element = event.currentTarget
+    const threshold = 24
+    const isNearBottom = element.scrollHeight - element.scrollTop - element.clientHeight <= threshold
+
+    if (isNearBottom) {
+      loadMoreGoalUpdates()
+    }
+  }
 
   const handleCompleteGoal = async (completionPayload /* FormData */) => {
     if (!goalData?.goal || goalData.goal.completedAt) return
@@ -565,6 +626,81 @@ const GoalAnalyticsPage = () => {
                   </div>
                 )
               })}
+            </div>
+          </motion.div>
+        )}
+
+        {/* Goal Updates */}
+        {(goalUpdates.length > 0 || loadingGoalUpdates || hasMoreGoalUpdates) && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.39 }}
+            className="p-4 rounded-xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 mb-5"
+          >
+            <h2 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+              <MessageCircle className="h-4 w-4 sm:h-5 sm:w-5" style={{ color: THEME_COLOR }} />
+              Goal Updates
+            </h2>
+
+            <div
+              className="max-h-80 overflow-y-auto pr-1 space-y-2.5"
+              onScroll={handleGoalUpdatesScroll}
+            >
+              {goalUpdates.map((update) => {
+                const emotionMeta = update.emotion ? getEmotionMeta(update.emotion) : null
+
+                return (
+                  <div key={update.id} className="p-3 rounded-lg border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-900">
+                    <div className="flex items-center mb-1.5">
+                      <span className="text-xs font-medium text-gray-500 dark:text-gray-400 inline-flex items-center gap-2">
+                        {new Date(update.dateKey || update.createdAt).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric'
+                        })}
+                        {emotionMeta && (
+                          <span
+                            className="px-2 py-0.5 rounded-full text-[10px] font-semibold border"
+                            style={{
+                              color: THEME_COLOR,
+                              backgroundColor: `${THEME_COLOR}12`,
+                              borderColor: `${THEME_COLOR}30`
+                            }}
+                          >
+                            {emotionMeta.label}
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                    {update.text && (
+                      <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                        {update.text}
+                      </p>
+                    )}
+                  </div>
+                )
+              })}
+
+              {!loadingGoalUpdates && goalUpdates.length === 0 && (
+                <p className="text-sm text-gray-500 dark:text-gray-400">No updates yet.</p>
+              )}
+            </div>
+
+            <div className="mt-3 flex justify-center">
+              {loadingGoalUpdates ? (
+                <p className="text-xs text-gray-500 dark:text-gray-400">Loading updates...</p>
+              ) : hasMoreGoalUpdates ? (
+                <button
+                  type="button"
+                  onClick={() => loadMoreGoalUpdates()}
+                  className="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
+                  Load more
+                </button>
+              ) : goalUpdates.length > 0 ? (
+                <p className="text-xs text-gray-500 dark:text-gray-400">All updates loaded</p>
+              ) : null}
             </div>
           </motion.div>
         )}

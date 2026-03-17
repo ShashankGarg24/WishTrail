@@ -5,11 +5,14 @@ const pgGoalService = require('../services/pgGoalService');
 const pgUserService = require('../services/pgUserService');
 const pgLikeService = require('../services/pgLikeService');
 const pgHabitService = require('../services/pgHabitService');
+const pgGoalUpdateService = require('../services/pgGoalUpdateService');
 const { transaction: pgTransaction, query: pgQuery } = require('../config/supabase');
 const mongoose = require('mongoose');
 const { sanitizeGoalsForProfile } = require('../utility/sanitizer');
 const GoalDetails = require('../models/extended/GoalDetails');
 const { getCurrentDateInTimezone } = require('../utility/timezone');
+
+const ALLOWED_GOAL_UPDATE_EMOTIONS = new Set(['great', 'good', 'okay', 'challenging', 'neutral']);
 // @desc    Search goals (completed, discoverable, public users)
 // @route   GET /api/v1/goals/search?q=&category=&interest=&page=&limit=
 // @access  Private
@@ -290,6 +293,7 @@ const getGoalPost = async (req, res, next) => {
           description: goalDetails?.description || '',
           category: goal.category,
           completedAt: goal.completed_at,
+          isUpdatesPublic: goal.is_updates_public,
           subGoals: enrichedSubGoals
         },
         user: {
@@ -406,6 +410,7 @@ const getGoals = async (req, res, next) => {
           targetDate: g.target_date,
           completedAt: g.completed_at,
           isPublic: g.is_public,
+          isUpdatesPublic: g.is_updates_public,
           createdAt: g.created_at,
           updatedAt: g.updated_at,
           description: detailsMap[g.id]?.description || '',
@@ -486,6 +491,7 @@ const getGoals = async (req, res, next) => {
         targetDate: g.target_date,
         completedAt: g.completed_at,
         isPublic: g.is_public,
+        isUpdatesPublic: g.is_updates_public,
         createdAt: g.created_at,
         updatedAt: g.updated_at,
         description: detailsMap[g.id]?.description || '',
@@ -560,6 +566,7 @@ const getGoal = async (req, res, next) => {
       completed: goal.completed,
       completedAt: goal.completed_at,
       isPublic: goal.is_public,
+      isUpdatesPublic: goal.is_updates_public,
       createdAt: goal.created_at,
       updatedAt: goal.updated_at,
       description: goalDetails?.description || '',
@@ -731,6 +738,7 @@ const createGoal = async (req, res, next) => {
         targetDate: goal.target_date,
         completed: goal.completed,
         isPublic: goal.is_public,
+        isUpdatesPublic: goal.is_updates_public,
         description: normalizedDescription,
         subGoals: processedSubGoals,
         habitLinks: processedHabitLinks,
@@ -826,7 +834,10 @@ const updateGoal = async (req, res, next) => {
     }
 
     const { title, description, category, targetDate, subGoals, habitLinks } = req.body;
+    const hasIsPublic = Object.prototype.hasOwnProperty.call(req.body || {}, 'isPublic');
+    const hasIsUpdatesPublic = Object.prototype.hasOwnProperty.call(req.body || {}, 'isUpdatesPublic');
     const isPublicFlag = (req.body.isPublic === true || req.body.isPublic === 'true') ? true : false;
+    const isUpdatesPublicFlag = (req.body.isUpdatesPublic === true || req.body.isUpdatesPublic === 'true') ? true : false;
 
     // ✅ PREMIUM CHECK: Validate subgoals and habit links limits on update
     if ((Array.isArray(subGoals) && subGoals.length > 0) || (Array.isArray(habitLinks) && habitLinks.length > 0)) {
@@ -859,7 +870,8 @@ const updateGoal = async (req, res, next) => {
     if (title) pgUpdates.title = title;
     if (category) pgUpdates.category = category;
     if (targetDate) pgUpdates.target_date = targetDate;
-    pgUpdates.is_public = isPublicFlag;
+    if (hasIsPublic) pgUpdates.is_public = isPublicFlag;
+    if (hasIsUpdatesPublic) pgUpdates.is_updates_public = isUpdatesPublicFlag;
 
     const updatedGoal = await pgGoalService.updateGoal(req.params.id, req.user.id, pgUpdates);
     if (!updatedGoal) {
@@ -1758,6 +1770,136 @@ const generateOGImage = async (req, res, next) => {
   }
 };
 
+// @desc    Get today's goal update
+// @route   GET /api/v1/goals/:id/updates/today
+// @access  Private
+const getTodayGoalUpdate = async (req, res, next) => {
+  try {
+    await pgGoalUpdateService.assertGoalWritable(req.params.id, req.user.id);
+
+    const pgUser = await pgUserService.getUserById(req.user.id);
+    const userTimezone = pgUser?.timezone || 'UTC';
+    const todayKey = getCurrentDateInTimezone(userTimezone);
+
+    const goalUpdate = await pgGoalUpdateService.getTodayUpdate(req.params.id, req.user.id, todayKey);
+
+    return res.status(200).json({
+      success: true,
+      data: { goalUpdate }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Create or update today's goal update
+// @route   PUT /api/v1/goals/:id/updates/today
+// @access  Private
+const upsertTodayGoalUpdate = async (req, res, next) => {
+  try {
+    await pgGoalUpdateService.assertGoalWritable(req.params.id, req.user.id);
+
+    const rawText = typeof req.body?.text === 'string' ? req.body.text.trim() : '';
+    const text = rawText.length > 0 ? rawText : null;
+    const emotion = typeof req.body?.emotion === 'string' && req.body.emotion.trim().length > 0
+      ? req.body.emotion.trim().toLowerCase()
+      : null;
+
+    if (!text && !emotion) {
+      return res.status(400).json({ success: false, message: 'Either text or emotion is required' });
+    }
+
+    if (text && text.length > 300) {
+      return res.status(400).json({ success: false, message: 'Text must be 300 characters or less' });
+    }
+
+    if (emotion && !ALLOWED_GOAL_UPDATE_EMOTIONS.has(emotion)) {
+      return res.status(400).json({ success: false, message: 'Invalid emotion' });
+    }
+
+    const pgUser = await pgUserService.getUserById(req.user.id);
+    const userTimezone = pgUser?.timezone || 'UTC';
+    const todayKey = getCurrentDateInTimezone(userTimezone);
+
+    const goalUpdate = await pgGoalUpdateService.upsertTodayUpdate({
+      goalId: req.params.id,
+      userId: req.user.id,
+      text,
+      emotion,
+      dateKey: todayKey
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Update logged successfully',
+      data: { goalUpdate }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Delete today's goal update
+// @route   DELETE /api/v1/goals/:id/updates/today
+// @access  Private
+const deleteTodayGoalUpdate = async (req, res, next) => {
+  try {
+    await pgGoalUpdateService.assertGoalWritable(req.params.id, req.user.id);
+
+    const pgUser = await pgUserService.getUserById(req.user.id);
+    const userTimezone = pgUser?.timezone || 'UTC';
+    const todayKey = getCurrentDateInTimezone(userTimezone);
+
+    const deleted = await pgGoalUpdateService.deleteTodayUpdate(req.params.id, req.user.id, todayKey);
+
+    return res.status(200).json({
+      success: true,
+      message: deleted ? 'Update cleared successfully' : 'No update found for today',
+      data: { deleted }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get goal updates history
+// @route   GET /api/v1/goals/:id/updates
+// @access  Private
+const getGoalUpdates = async (req, res, next) => {
+  try {
+    const goal = await pgGoalService.getGoalById(req.params.id);
+
+    if (!goal) {
+      return res.status(404).json({ success: false, message: 'Goal not found' });
+    }
+
+    const isOwner = String(goal.user_id) === String(req.user.id);
+    const canViewPublicUpdates = goal.is_public === true && goal.is_updates_public === true;
+    if (!isOwner && !canViewPublicUpdates) {
+      return res.status(403).json({ success: false, message: 'Access denied' });
+    }
+
+    const limit = Math.max(1, Math.min(50, parseInt(req.query?.limit, 10) || 10));
+    const offset = Math.max(0, parseInt(req.query?.offset, 10) || 0);
+    const updatesOwnerId = isOwner ? req.user.id : goal.user_id;
+    const { updates, hasMore } = await pgGoalUpdateService.listGoalUpdates(goal.id, updatesOwnerId, { limit, offset });
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        updates,
+        pagination: {
+          limit,
+          offset,
+          hasMore
+        }
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 
 module.exports = {
   getGoals,
@@ -1775,6 +1917,10 @@ module.exports = {
   searchGoals,
   getGoalPost,
   getGoalTimeline,
+  getGoalUpdates,
+  getTodayGoalUpdate,
+  upsertTodayGoalUpdate,
+  deleteTodayGoalUpdate,
   // Goal Division: sub-goals and habit links
   async setSubGoals(req, res, next) {
     try {
@@ -1987,13 +2133,15 @@ module.exports = {
             completionNote: goalDetails?.completionNote || '',
             createdAt: goal.created_at,
             targetDate: goal.target_date,
+            isUpdatesPublic: goal.is_updates_public,
             year: goal.year,
             likeCount: likeCount,
             commentCount: commentCount,
             subGoals: enrichedSubGoals,
             habitLinks: enrichedHabits,
             progress: progressData,
-            timeline: await buildGoalTimeline(goal, goalDetails)
+            timeline: await buildGoalTimeline(goal, goalDetails),
+            updates: (await pgGoalUpdateService.listGoalUpdates(goal.id, goal.user_id, { limit: 10, offset: 0 })).updates
           }
         }
       });

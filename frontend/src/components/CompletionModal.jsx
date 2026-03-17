@@ -270,6 +270,17 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal, isEditM
             </label>
             <div className="space-y-3">
               <div className="relative px-1">
+                <div className="pointer-events-none absolute left-1 right-1 top-1/2 -translate-y-1/2 z-0">
+                  <div className="h-px w-full bg-gray-300/70 dark:bg-gray-600/70" />
+                  <div className="absolute inset-0 flex items-center justify-between">
+                    {Array.from({ length: 8 }).map((_, idx) => (
+                      <span
+                        key={idx}
+                        className="h-2.5 w-px bg-gray-400/70 dark:bg-gray-500/80"
+                      />
+                    ))}
+                  </div>
+                </div>
                 {/* Slider */}
                 <input
                   type="range"
@@ -290,7 +301,7 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal, isEditM
                     const feelings = ['neutral', 'relieved', 'satisfied', 'happy', 'proud', 'accomplished', 'grateful', 'excited'];
                     setCompletionFeeling(feelings[parseInt(e.target.value)]);
                   }}
-                  className="w-full h-2 rounded-lg appearance-none cursor-pointer"
+                  className="relative z-10 w-full h-2 rounded-lg appearance-none cursor-pointer bg-transparent"
                   style={{ accentColor: THEME_COLOR }}
                 />
               </div>

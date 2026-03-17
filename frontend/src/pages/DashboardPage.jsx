@@ -10,6 +10,7 @@ const CreateGoalWizard = lazy(() => import('../components/CreateGoalWizard'))
 const CompletionModal = lazy(() => import('../components/CompletionModal'))
 const GoalPostModal = lazy(() => import('../components/GoalPostModal'))
 const GoalDetailsModal = lazy(() => import('../components/GoalDetailsModal'))
+const ShareModal = lazy(() => import('../components/ShareModal'))
 const HabitDetailModal = lazy(() => import('../components/HabitDetailModal'))
 const CreateHabitModal = lazy(() => import('../components/CreateHabitModal'))
 const EditHabitModal = lazy(() => import('../components/EditHabitModal'))
@@ -49,6 +50,8 @@ const DashboardPageNew = () => {
   const [isDeletingGoal, setIsDeletingGoal] = useState(false)
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false)
   const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false)
+  const [isShareGoalModalOpen, setIsShareGoalModalOpen] = useState(false)
+  const [goalToShare, setGoalToShare] = useState(null)
   const [goalFilter, setGoalFilter] = useState('all') // all, completed, in-progress
   const [goalSort, setGoalSort] = useState('newest') // newest, oldest
   const [currentPage, setCurrentPage] = useState(1)
@@ -819,6 +822,33 @@ const DashboardPageNew = () => {
                           </span>
                         )}
                       </div>
+                      {goal.completedAt ? (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setGoalToShare(goal)
+                            setIsShareGoalModalOpen(true)
+                          }}
+                          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-semibold hover:opacity-90 transition-opacity"
+                          style={{ backgroundColor: '#4c99e6' }}
+                          title="Share"
+                        >
+                          <Share2 className="w-4 h-4" /> Share
+                        </button>
+                      ) : (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setGoalToEdit(goal)
+                            setIsEditCompletionModalOpen(true)
+                          }}
+                          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-semibold hover:opacity-90 transition-opacity"
+                          style={{ backgroundColor: '#4c99e6' }}
+                          title="Mark Complete"
+                        >
+                          <CheckCircle className="w-4 h-4" /> Complete
+                        </button>
+                      )}
                     </div>
                   </motion.div>
                 ))}
@@ -1191,6 +1221,21 @@ const DashboardPageNew = () => {
               completionFeeling: goalToEdit.completionFeeling || 'neutral'
             }}
           />
+        )}
+
+        {/* Share Goal Modal */}
+        {isShareGoalModalOpen && goalToShare && (
+          <Suspense fallback={null}>
+            <ShareModal
+              isOpen={isShareGoalModalOpen}
+              onClose={() => {
+                setIsShareGoalModalOpen(false)
+                setGoalToShare(null)
+              }}
+              goal={goalToShare}
+              user={user}
+            />
+          </Suspense>
         )}
 
         {/* What's New Modal */}

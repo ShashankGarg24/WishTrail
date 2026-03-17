@@ -8,18 +8,18 @@ class GoalService {
   /**
    * Create a new goal
    */
-  async createGoal({ userId, title, category, year, targetDate, isPublic = false }) {
+  async createGoal({ userId, title, category, year, targetDate, isPublic = false, isUpdatesPublic = false }) {
     const currentYear = year || new Date().getFullYear();
     
     const queryText = `
-      INSERT INTO goals (user_id, title, category, year, target_date, is_public)
-      VALUES ($1, $2, $3, $4, $5, $6)
+      INSERT INTO goals (user_id, title, category, year, target_date, is_public, is_updates_public)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING id, user_id, title, category, year, target_date, completed_at,
-                is_public, created_at, updated_at
+                is_public, is_updates_public, created_at, updated_at
     `;
     
     const result = await query(queryText, [
-      userId, title, category, currentYear, targetDate, isPublic
+      userId, title, category, currentYear, targetDate, isPublic, isUpdatesPublic
     ]);
     
     return result.rows[0];
@@ -37,7 +37,7 @@ class GoalService {
 
     const queryText = `
       SELECT g.id, g.user_id, g.title, g.category, g.year, g.target_date,
-             g.completed_at, g.is_public,
+              g.completed_at, g.is_public, g.is_updates_public,
              g.created_at, g.updated_at,
              u.name as user_name, u.username, u.avatar_url as user_avatar
       FROM goals g
@@ -99,7 +99,7 @@ class GoalService {
     
     const queryText = `
       SELECT id, user_id, title, category, year, target_date, 
-            completed_at, is_public,
+        completed_at, is_public, is_updates_public,
             created_at, updated_at
       FROM goals
       WHERE ${conditions.join(' AND ')}
@@ -134,7 +134,7 @@ class GoalService {
    * Update goal
    */
   async updateGoal(id, userId, updates) {
-    const allowedFields = ['title', 'category', 'target_date', 'is_public'];
+    const allowedFields = ['title', 'category', 'target_date', 'is_public', 'is_updates_public'];
     const setClause = [];
     const values = [];
     let paramIndex = 1;
@@ -158,7 +158,7 @@ class GoalService {
       SET ${setClause.join(', ')}, updated_at = CURRENT_TIMESTAMP
       WHERE id = $${paramIndex} AND user_id = $${paramIndex + 1} AND completed_at IS NULL
       RETURNING id, user_id, title, category, year, target_date,
-                completed_at, is_public, created_at, updated_at
+                completed_at, is_public, is_updates_public, created_at, updated_at
     `;
     
     const result = await query(queryText, values);

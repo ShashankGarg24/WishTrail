@@ -274,6 +274,10 @@ export const goalsAPI = {
   },
   getGoalTimeline: (id) => api.get(`/goals/${id}/timeline`),
   getGoalAnalytics: (id) => api.get(`/goals/${id}/analytics`),
+  getGoalUpdateToday: (id) => api.get(`/goals/${id}/updates/today`),
+  getGoalUpdates: (id, params = {}) => api.get(`/goals/${id}/updates`, { params }),
+  upsertGoalUpdateToday: (id, payload) => api.put(`/goals/${id}/updates/today`, payload),
+  clearGoalUpdateToday: (id) => api.delete(`/goals/${id}/updates/today`),
   // Goal Division
   getProgress: (id) => api.get(`/goals/${id}/progress`),
   setSubGoals: (id, subGoals) => api.put(`/goals/${id}/subgoals`, { subGoals }),

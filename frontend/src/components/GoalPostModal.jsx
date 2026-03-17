@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Heart, MessageCircle, Share2, TrendingUp, Send, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import useApiStore from '../store/apiStore';
-import { activitiesAPI } from '../services/api';
+import { activitiesAPI, goalsAPI } from '../services/api';
 import toast from 'react-hot-toast';
 
 const ActivityCommentsModal = lazy(() => import('./ActivityCommentsModal'));
@@ -12,6 +12,7 @@ const ShareSheet = lazy(() => import('./ShareSheet'));
 const MIN_DESKTOP_IMAGE_ZOOM = 1;
 const MAX_DESKTOP_IMAGE_ZOOM = 3;
 const DESKTOP_IMAGE_ZOOM_STEP = 0.25;
+const GOAL_POST_UPDATES_PAGE_SIZE = 5;
 const DESCRIPTION_CLAMP_CLASS = 'line-clamp-4';
 const COMPLETION_NOTE_CLAMP_CLASS = 'line-clamp-4';
 
@@ -74,8 +75,14 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
   const [timeline, setTimeline] = useState(null);
   const [timelineLoading, setTimelineLoading] = useState(false);
   const [isTimelineExpanded, setIsTimelineExpanded] = useState(false);
+  const [isGoalUpdatesExpanded, setIsGoalUpdatesExpanded] = useState(false);
+  const [hasLoadedGoalUpdates, setHasLoadedGoalUpdates] = useState(false);
   const [liking, setLiking] = useState(false);
   const [shareSheetOpen, setShareSheetOpen] = useState(false);
+  const [goalUpdates, setGoalUpdates] = useState([]);
+  const [goalUpdatesOffset, setGoalUpdatesOffset] = useState(0);
+  const [goalUpdatesHasMore, setGoalUpdatesHasMore] = useState(false);
+  const [goalUpdatesLoading, setGoalUpdatesLoading] = useState(false);
   const shareUrlRef = useRef('');
   const desktopImageContainerRef = useRef(null);
   const descriptionTextRef = useRef(null);
@@ -171,11 +178,73 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
       const response = await useApiStore.getState().getGoalPost(goalId);
       if (response?.success && response?.data) {
         setGoalData(response.data);
+        setGoalUpdates([]);
+        setGoalUpdatesOffset(0);
+        setGoalUpdatesHasMore(false);
+        setIsGoalUpdatesExpanded(false);
+        setHasLoadedGoalUpdates(false);
       }
     } catch (error) {
       console.error('Failed to load goal data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadGoalUpdates = async ({ reset = false } = {}) => {
+    if (!goalId) return;
+    if (goalUpdatesLoading) return;
+    if (!reset && !goalUpdatesHasMore) return;
+
+    const offset = reset ? 0 : goalUpdatesOffset;
+
+    setGoalUpdatesLoading(true);
+    try {
+      const res = await goalsAPI.getGoalUpdates(goalId, {
+        limit: GOAL_POST_UPDATES_PAGE_SIZE,
+        offset
+      });
+
+      const updates = res?.data?.data?.updates || [];
+      const hasMore = res?.data?.data?.pagination?.hasMore === true;
+
+      setGoalUpdates((prev) => (reset ? updates : [...prev, ...updates]));
+      setGoalUpdatesOffset(offset + updates.length);
+      setGoalUpdatesHasMore(hasMore);
+    } catch (error) {
+      console.error('Failed to load goal updates:', error);
+      if (reset) {
+        setGoalUpdates([]);
+      }
+      setGoalUpdatesHasMore(false);
+    } finally {
+      setGoalUpdatesLoading(false);
+    }
+  };
+
+  const handleGoalUpdatesScroll = (event) => {
+    if (!goalUpdatesHasMore || goalUpdatesLoading) return;
+
+    const element = event.currentTarget;
+    const threshold = 24;
+    const isNearBottom = element.scrollHeight - element.scrollTop - element.clientHeight <= threshold;
+
+    if (isNearBottom) {
+      loadGoalUpdates();
+    }
+  };
+
+  const toggleGoalUpdates = async () => {
+    if (isGoalUpdatesExpanded) {
+      setIsGoalUpdatesExpanded(false);
+      return;
+    }
+
+    setIsGoalUpdatesExpanded(true);
+
+    if (!hasLoadedGoalUpdates && !goalUpdatesLoading) {
+      await loadGoalUpdates({ reset: true });
+      setHasLoadedGoalUpdates(true);
     }
   };
 
@@ -618,6 +687,84 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
                       </div>
                     )}
                   </div>
+
+                  {/* Goal Updates */}
+                  {goalData.goal?.isUpdatesPublic && (
+                    <div>
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                          <MessageCircle className="w-4 h-4 text-[#4c99e6]" />
+                          <h4 className="text-sm font-semibold text-gray-900">
+                            Goal Updates
+                          </h4>
+                        </div>
+                        <button
+                          onClick={toggleGoalUpdates}
+                          disabled={goalUpdatesLoading}
+                          className="text-xs font-semibold text-[#4c99e6] hover:text-blue-600 transition-colors disabled:opacity-50"
+                        >
+                          {goalUpdatesLoading && !isGoalUpdatesExpanded
+                            ? 'Loading...'
+                            : isGoalUpdatesExpanded
+                            ? 'Hide'
+                            : 'Show All'}
+                        </button>
+                      </div>
+
+                      {isGoalUpdatesExpanded && (
+                        <>
+                          <div
+                            className="max-h-64 overflow-y-auto rounded-lg border border-gray-100 bg-gray-50 p-3 space-y-2"
+                            onScroll={handleGoalUpdatesScroll}
+                          >
+                            {goalUpdates.map((update) => (
+                              <div key={update.id} className="rounded-lg border border-gray-100 bg-white px-3 py-2.5">
+                                <div className="flex items-center justify-between gap-2 mb-1">
+                                  <span className="text-xs font-medium text-gray-500">
+                                    {new Date(update.dateKey || update.createdAt).toLocaleDateString('en-US', {
+                                      month: 'short',
+                                      day: 'numeric',
+                                      year: 'numeric'
+                                    })}
+                                  </span>
+                                  {update.emotion && (
+                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold border text-[#4c99e6] border-[#4c99e64d] bg-[#4c99e61a]">
+                                      {String(update.emotion).charAt(0).toUpperCase() + String(update.emotion).slice(1)}
+                                    </span>
+                                  )}
+                                </div>
+                                {update.text && (
+                                  <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                                    {update.text}
+                                  </p>
+                                )}
+                              </div>
+                            ))}
+
+                            {!goalUpdatesLoading && goalUpdates.length === 0 && (
+                              <p className="text-sm text-gray-500 text-center py-3">No public updates yet.</p>
+                            )}
+                          </div>
+
+                          <div className="mt-2.5 flex justify-center">
+                            {goalUpdatesLoading ? (
+                              <p className="text-xs text-gray-500">Loading updates...</p>
+                            ) : goalUpdatesHasMore ? (
+                              <button
+                                type="button"
+                                onClick={() => loadGoalUpdates()}
+                                className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                              >
+                                Load more
+                              </button>
+                            ) : goalUpdates.length > 0 ? (
+                              <p className="text-xs text-gray-500">All updates loaded</p>
+                            ) : null}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
 
                   {/* Comments */}
                   {!isMobile && showComments && (
