@@ -90,6 +90,10 @@ const WhatsNewModal = ({ isOpen, onClose }) => {
                   v{update.version}
                 </p>
 
+                <h2 className="text-xl sm:text-xl mb-4 font-bold text-gray-900 dark:text-white">
+                    {update.title}
+                </h2>
+
                 {/* Description */}
                 <div className="max-h-56 overflow-y-auto mb-8 pr-1">
                   <p className="text-gray-700 dark:text-gray-300 text-left leading-relaxed whitespace-pre-line">
