@@ -32,7 +32,7 @@ const InspirationPage = () => {
 
   useEffect(() => {
     // Fetch recent public activities
-    getRecentActivities({ type: 'global', limit: 20 });
+    getRecentActivities({ type: 'global', limit: 20, includeRecentUsers: true, recentUsersDays: 7, recentUsersLimit: 10 });
     // Fetch top achievers for leaderboard
     getGlobalLeaderboard({ type: 'goals', limit: 10 });
     // Fetch trending goals

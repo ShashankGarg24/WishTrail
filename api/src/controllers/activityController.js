@@ -135,9 +135,12 @@ async function enrichActivities(activities) {
 const getRecentActivities = async (req, res, next) => {
   try {
     const { page = 1, limit = 10, type = 'global' } = req.query;
+    const includeRecentUsers = req.query.includeRecentUsers === true || req.query.includeRecentUsers === 'true' || req.query.includeRecentUsers === '1';
+    const recentUsersDays = Math.max(1, parseInt(req.query.recentUsersDays) || 7);
+    const recentUsersLimit = Math.max(1, Math.min(50, parseInt(req.query.recentUsersLimit) || 10));
     const parsedPage = parseInt(page);
     const parsedLimit = parseInt(limit);
-    const cacheParams = { page: parsedPage, limit: parsedLimit, type };
+    const cacheParams = { page: parsedPage, limit: parsedLimit, type, includeRecentUsers, recentUsersDays, recentUsersLimit };
 
     let activities;
     let fromCache = false;
@@ -225,9 +228,12 @@ const getRecentActivities = async (req, res, next) => {
       let joinedActivities = [];
       let joinedCount = 0;
       if (parsedPage === 1) {
-        const joinedTodayUsers = await pgUserService.getUsersJoinedToday(Math.max(parsedLimit * 2, 20));
-        joinedCount = joinedTodayUsers.length;
-        joinedActivities = joinedTodayUsers.map((user) => ({
+        const joinedUsers = includeRecentUsers
+          ? await pgUserService.getUsersJoinedInLastDays(recentUsersDays, recentUsersLimit)
+          : await pgUserService.getUsersJoinedToday(Math.max(parsedLimit * 2, 20));
+
+        joinedCount = joinedUsers.length;
+        joinedActivities = joinedUsers.map((user) => ({
           _id: `user_joined_${user.id}_${new Date(user.created_at).getTime()}`,
           type: 'user_joined',
           userId: user.id,

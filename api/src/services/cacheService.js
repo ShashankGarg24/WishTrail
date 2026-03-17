@@ -42,6 +42,9 @@ class CacheService {
     if (params.category) keyParts.push(`category:${params.category}`);
     if (params.rarity) keyParts.push(`rarity:${params.rarity}`);
     if (params.strategy) keyParts.push(`strategy:${params.strategy}`);
+    if (params.includeRecentUsers !== undefined) keyParts.push(`includeRecentUsers:${params.includeRecentUsers}`);
+    if (params.recentUsersDays) keyParts.push(`recentUsersDays:${params.recentUsersDays}`);
+    if (params.recentUsersLimit) keyParts.push(`recentUsersLimit:${params.recentUsersLimit}`);
 
     return keyParts.join(':');
   }

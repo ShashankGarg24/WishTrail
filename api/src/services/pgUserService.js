@@ -766,6 +766,30 @@ class UserService {
     const result = await query(queryText, [startOfDayUtc, endOfDayUtc, limit]);
     return result.rows;
   }
+
+  /**
+   * Get users who joined in the last N days (inclusive of now, UTC-based window)
+   * @param {number} days - Number of trailing days to include
+   * @param {number} limit - Maximum number of users to return
+   * @returns {Promise<Array>} Newly joined users in the selected period
+   */
+  async getUsersJoinedInLastDays(days = 7, limit = 10) {
+    const safeDays = Math.max(1, parseInt(days, 10) || 7);
+    const safeLimit = Math.max(1, parseInt(limit, 10) || 10);
+
+    const queryText = `
+      SELECT id, name, username, avatar_url, created_at
+      FROM users
+      WHERE is_active = true
+        AND is_private = false
+        AND created_at >= (CURRENT_TIMESTAMP - ($1::int * INTERVAL '1 day'))
+      ORDER BY created_at DESC
+      LIMIT $2
+    `;
+
+    const result = await query(queryText, [safeDays, safeLimit]);
+    return result.rows;
+  }
 }
 
 module.exports = new UserService();
