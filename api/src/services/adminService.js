@@ -365,8 +365,7 @@ const sendBroadcastEmail = async ({ mode, userIds, inactiveDays, subject, title,
           recipientName: user.name,
           title: cleanTitle,
           subtitle: cleanSubtitle,
-          body: cleanBody,
-          ending: cleanEnding
+          body: cleanBody
         }
       })
     )

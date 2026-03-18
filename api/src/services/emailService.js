@@ -589,7 +589,7 @@ class EmailService {
     }
   }
 
-  async sendAdminBroadcastEmail({ to, subject, text, html }) {
+  async sendAdminBroadcastEmail({ to, subject, text }) {
     if (!to || !subject) {
       throw new Error('Missing required email fields');
     }
