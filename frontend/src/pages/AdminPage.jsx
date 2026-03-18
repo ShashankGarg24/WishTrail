@@ -117,7 +117,7 @@ function AdminPage() {
   const [emailSuccess, setEmailSuccess] = useState('');
 
   const canSendEmail = useMemo(() => {
-    if (!emailForm.subject.trim() || !emailForm.title.trim() || !emailForm.body.trim() || !emailForm.ending.trim()) return false;
+    if (!emailForm.subject.trim() || !emailForm.title.trim() || !emailForm.body.trim()) return false;
     if (emailForm.mode === 'selected' && selectedUsers.length === 0) return false;
     return true;
   }, [emailForm, selectedUsers.length]);
