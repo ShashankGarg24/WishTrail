@@ -251,6 +251,8 @@ class UserService {
       throw new Error('User not found');
     }
 
+    await pgUserService.updateLastActive(userId);
+
     // Use client-supplied local date (matches what the log stored) or fall back to UTC
     const todayUTC  = todayParam && /^\d{4}-\d{2}-\d{2}$/.test(todayParam)
       ? todayParam
