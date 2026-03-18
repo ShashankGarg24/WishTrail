@@ -589,6 +589,30 @@ class EmailService {
     }
   }
 
+  async sendAdminBroadcastEmail({ to, subject, text, html }) {
+    if (!to || !subject || !text) {
+      throw new Error('Missing required email fields');
+    }
+
+    if (!this.transporter) {
+      throw new Error('Email service is not configured');
+    }
+
+    const mailOptions = {
+      from: this.getFromAddress(),
+      to,
+      subject,
+      text,
+      html
+    };
+
+    const info = await this.sendMailWithTimeout(mailOptions);
+    return {
+      success: true,
+      messageId: info.messageId
+    };
+  }
+
   /**
    * Get HTML template for password reset email
    */

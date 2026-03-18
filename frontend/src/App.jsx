@@ -40,6 +40,18 @@ const CommunityGuidelines = lazy(() => import('./pages/CommunityGuidelines'))
 const CopyrightPolicy = lazy(() => import('./pages/CopyrightPolicy'))
 const LeaderboardPageNew = lazy(() => import('./pages/LeaderboardPage'))
 const WhatsNewPage = lazy(() => import('./pages/WhatsNewPage'))
+const AdminPage = lazy(() => import('./pages/AdminPage'))
+
+const normalizeRoutePath = (value, fallback = '/admin') => {
+  const raw = String(value || fallback).trim()
+  const withLeadingSlash = raw.startsWith('/') ? raw : `/${raw}`
+  const singleSlash = withLeadingSlash.replace(/\/+/g, '/')
+  const trimmed = singleSlash.replace(/\/+$/g, '')
+  return trimmed || fallback
+}
+
+const ADMIN_UI_ROUTE_PATH = normalizeRoutePath(import.meta.env.VITE_ADMIN_UI_ROUTE, '/admin')
+
 function App() {
   const { isDarkMode, initializeAuth, isAuthenticated} = useApiStore()
   const location = useLocation()
@@ -211,6 +223,7 @@ function App() {
               
               {/* What's New page - Public */}
               <Route path="/whats-new" element={<Suspense fallback={null}><WhatsNewPage /></Suspense>} />
+              <Route path={ADMIN_UI_ROUTE_PATH} element={<Suspense fallback={null}><AdminPage /></Suspense>} />
               
               {/* Error pages - Public */}
               <Route path="/error/generic" element={<Suspense fallback={null}><GenericErrorPage /></Suspense>} />

@@ -1,0 +1,751 @@
+import { useEffect, useMemo, useState } from 'react';
+import { adminAPI, adminAuth } from '../services/adminApi';
+
+const TABS = ['Users', 'Goals', 'Habits', 'Email', 'Analytics', 'Announcements'];
+
+const EMAIL_TEMPLATES = {
+  custom: { subject: '', message: '' },
+  inactive: {
+    subject: 'We miss you at WishTrail',
+    message: 'Hi there,\n\nYour goals are waiting for you. Come back today and take one small step forward on WishTrail.\n\n- Team WishTrail'
+  },
+  comeback: {
+    subject: 'Quick comeback nudge',
+    message: 'Hey,\n\nProgress is built one action at a time. Open WishTrail and mark one task complete today.\n\nYou have this.\n- Team WishTrail'
+  },
+  featureRelease: {
+    subject: 'New feature release on WishTrail',
+    message: 'Hi,\n\nWe just shipped new updates on WishTrail to help you stay consistent and focused. Check out What\'s New and try the latest improvements today.\n\n- Team WishTrail'
+  }
+};
+
+const Pagination = ({ page, pages, onPageChange }) => (
+  <div className="mt-4 flex items-center justify-between text-sm">
+    <button
+      className="px-3 py-1 rounded border border-gray-300 disabled:opacity-40"
+      onClick={() => onPageChange(page - 1)}
+      disabled={page <= 1}
+    >
+      Previous
+    </button>
+    <span className="text-gray-600 dark:text-gray-300">Page {page} of {pages || 1}</span>
+    <button
+      className="px-3 py-1 rounded border border-gray-300 disabled:opacity-40"
+      onClick={() => onPageChange(page + 1)}
+      disabled={page >= (pages || 1)}
+    >
+      Next
+    </button>
+  </div>
+);
+
+const SectionCard = ({ title, children }) => (
+  <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+    <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">{title}</h2>
+    {children}
+  </div>
+);
+
+function AdminPage() {
+  const [activeTab, setActiveTab] = useState('Users');
+  const [token, setToken] = useState(adminAuth.getToken());
+  const [loginForm, setLoginForm] = useState({ email: '', password: '' });
+  const [loginError, setLoginError] = useState('');
+  const [loginLoading, setLoginLoading] = useState(false);
+
+  const [usersData, setUsersData] = useState({ users: [], pagination: { page: 1, pages: 1, total: 0 } });
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [usersError, setUsersError] = useState('');
+  const [usersQuery, setUsersQuery] = useState({ page: 1, limit: 20, search: '', inactiveDays: '' });
+  const [selectedUsers, setSelectedUsers] = useState([]);
+
+  const [goalsData, setGoalsData] = useState({ goals: [], pagination: { page: 1, pages: 1, total: 0 } });
+  const [goalsLoading, setGoalsLoading] = useState(false);
+  const [goalsError, setGoalsError] = useState('');
+  const [goalsQuery, setGoalsQuery] = useState({ page: 1, limit: 20, search: '', status: 'all' });
+
+  const [habitsData, setHabitsData] = useState({ habits: [], pagination: { page: 1, pages: 1, total: 0 } });
+  const [habitsLoading, setHabitsLoading] = useState(false);
+  const [habitsError, setHabitsError] = useState('');
+  const [habitsQuery, setHabitsQuery] = useState({ page: 1, limit: 20, search: '', status: 'all' });
+
+  const [analytics, setAnalytics] = useState({ totalUsers: 0, activeToday: 0, inactiveUsers: 0, totalGoals: 0 });
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [analyticsError, setAnalyticsError] = useState('');
+
+  const [announcementData, setAnnouncementData] = useState({ announcements: [], pagination: { page: 1, pages: 1, total: 0 } });
+  const [announcementsLoading, setAnnouncementsLoading] = useState(false);
+  const [announcementsError, setAnnouncementsError] = useState('');
+  const [announcementQuery, setAnnouncementQuery] = useState({ page: 1, limit: 10 });
+  const [announcementForm, setAnnouncementForm] = useState({ title: '', description: '', isActive: true });
+
+  const [emailForm, setEmailForm] = useState({
+    mode: 'selected',
+    inactiveDays: 30,
+    template: 'custom',
+    subject: '',
+    message: ''
+  });
+  const [emailLoading, setEmailLoading] = useState(false);
+  const [emailError, setEmailError] = useState('');
+  const [emailSuccess, setEmailSuccess] = useState('');
+
+  const canSendEmail = useMemo(() => {
+    if (!emailForm.subject.trim() || !emailForm.message.trim()) return false;
+    if (emailForm.mode === 'selected' && selectedUsers.length === 0) return false;
+    return true;
+  }, [emailForm, selectedUsers.length]);
+
+  const handleLogin = async (event) => {
+    event.preventDefault();
+    setLoginLoading(true);
+    setLoginError('');
+
+    try {
+      const res = await adminAPI.login({
+        email: loginForm.email,
+        password: loginForm.password
+      });
+
+      const newToken = res?.data?.data?.token;
+      if (!newToken) {
+        throw new Error('Missing admin token');
+      }
+
+      adminAuth.setToken(newToken);
+      setToken(newToken);
+    } catch (error) {
+      setLoginError(error?.response?.data?.message || error.message || 'Login failed');
+    } finally {
+      setLoginLoading(false);
+    }
+  };
+
+  const handleLogout = () => {
+    adminAuth.clearToken();
+    setToken('');
+  };
+
+  const loadUsers = async () => {
+    setUsersLoading(true);
+    setUsersError('');
+    try {
+      const res = await adminAPI.getUsers(usersQuery);
+      setUsersData(res?.data?.data || { users: [], pagination: { page: 1, pages: 1, total: 0 } });
+    } catch (error) {
+      setUsersError(error?.response?.data?.message || 'Failed to load users');
+    } finally {
+      setUsersLoading(false);
+    }
+  };
+
+  const loadGoals = async () => {
+    setGoalsLoading(true);
+    setGoalsError('');
+    try {
+      const res = await adminAPI.getGoals(goalsQuery);
+      setGoalsData(res?.data?.data || { goals: [], pagination: { page: 1, pages: 1, total: 0 } });
+    } catch (error) {
+      setGoalsError(error?.response?.data?.message || 'Failed to load goals');
+    } finally {
+      setGoalsLoading(false);
+    }
+  };
+
+  const loadHabits = async () => {
+    setHabitsLoading(true);
+    setHabitsError('');
+    try {
+      const res = await adminAPI.getHabits(habitsQuery);
+      setHabitsData(res?.data?.data || { habits: [], pagination: { page: 1, pages: 1, total: 0 } });
+    } catch (error) {
+      setHabitsError(error?.response?.data?.message || 'Failed to load habits');
+    } finally {
+      setHabitsLoading(false);
+    }
+  };
+
+  const loadAnalytics = async () => {
+    setAnalyticsLoading(true);
+    setAnalyticsError('');
+    try {
+      const res = await adminAPI.getAnalytics({ inactiveDays: 30 });
+      setAnalytics(res?.data?.data?.analytics || { totalUsers: 0, activeToday: 0, inactiveUsers: 0, totalGoals: 0 });
+    } catch (error) {
+      setAnalyticsError(error?.response?.data?.message || 'Failed to load analytics');
+    } finally {
+      setAnalyticsLoading(false);
+    }
+  };
+
+  const loadAnnouncements = async () => {
+    setAnnouncementsLoading(true);
+    setAnnouncementsError('');
+    try {
+      const res = await adminAPI.getAnnouncements(announcementQuery);
+      setAnnouncementData(res?.data?.data || { announcements: [], pagination: { page: 1, pages: 1, total: 0 } });
+    } catch (error) {
+      setAnnouncementsError(error?.response?.data?.message || 'Failed to load announcements');
+    } finally {
+      setAnnouncementsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!token) return;
+    loadUsers();
+    loadGoals();
+    loadHabits();
+    loadAnalytics();
+    loadAnnouncements();
+  }, [token]);
+
+  useEffect(() => {
+    if (!token) return;
+    loadUsers();
+  }, [usersQuery.page, usersQuery.limit]);
+
+  useEffect(() => {
+    if (!token) return;
+    loadGoals();
+  }, [goalsQuery.page, goalsQuery.limit, goalsQuery.status]);
+
+  useEffect(() => {
+    if (!token) return;
+    loadHabits();
+  }, [habitsQuery.page, habitsQuery.limit, habitsQuery.status]);
+
+  useEffect(() => {
+    if (!token) return;
+    loadAnnouncements();
+  }, [announcementQuery.page, announcementQuery.limit]);
+
+  const toggleSelectUser = (id) => {
+    setSelectedUsers((prev) =>
+      prev.includes(id) ? prev.filter((userId) => userId !== id) : [...prev, id]
+    );
+  };
+
+  const applyTemplate = (templateKey) => {
+    const template = EMAIL_TEMPLATES[templateKey] || EMAIL_TEMPLATES.custom;
+    setEmailForm((prev) => ({
+      ...prev,
+      template: templateKey,
+      subject: template.subject,
+      message: template.message
+    }));
+  };
+
+  const sendEmail = async () => {
+    setEmailLoading(true);
+    setEmailError('');
+    setEmailSuccess('');
+
+    try {
+      const payload = {
+        mode: emailForm.mode,
+        inactiveDays: emailForm.mode === 'inactive' ? Number(emailForm.inactiveDays || 30) : undefined,
+        userIds: emailForm.mode === 'selected' ? selectedUsers : undefined,
+        subject: emailForm.subject,
+        message: emailForm.message
+      };
+
+      const res = await adminAPI.sendEmail(payload);
+      const data = res?.data?.data;
+      setEmailSuccess(`Broadcast completed: ${data?.sent || 0} sent, ${data?.failed || 0} failed`);
+    } catch (error) {
+      setEmailError(error?.response?.data?.message || 'Failed to send email');
+    } finally {
+      setEmailLoading(false);
+    }
+  };
+
+  const createAnnouncement = async (event) => {
+    event.preventDefault();
+    setAnnouncementsError('');
+
+    try {
+      await adminAPI.createAnnouncement(announcementForm);
+      setAnnouncementForm({ title: '', description: '', isActive: true });
+      loadAnnouncements();
+    } catch (error) {
+      setAnnouncementsError(error?.response?.data?.message || 'Failed to create announcement');
+    }
+  };
+
+  const toggleAnnouncementActive = async (announcement) => {
+    try {
+      await adminAPI.updateAnnouncement(announcement._id, { isActive: !announcement.isActive });
+      loadAnnouncements();
+    } catch (error) {
+      setAnnouncementsError(error?.response?.data?.message || 'Failed to update announcement');
+    }
+  };
+
+  if (!token) {
+    return (
+      <div className="min-h-screen bg-[#f5f5f5] dark:bg-gray-900 flex items-center justify-center p-4">
+        <div className="w-full max-w-md bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+          <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">WishTrail Admin Login</h1>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">Email</label>
+              <input
+                type="email"
+                className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-900"
+                value={loginForm.email}
+                onChange={(e) => setLoginForm((prev) => ({ ...prev, email: e.target.value }))}
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">Password</label>
+              <input
+                type="password"
+                className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-900"
+                value={loginForm.password}
+                onChange={(e) => setLoginForm((prev) => ({ ...prev, password: e.target.value }))}
+                required
+              />
+            </div>
+            {loginError && <p className="text-sm text-red-600">{loginError}</p>}
+            <button
+              type="submit"
+              className="w-full px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50"
+              disabled={loginLoading}
+            >
+              {loginLoading ? 'Signing in...' : 'Sign in'}
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-[#f5f5f5] dark:bg-gray-900 p-4 sm:p-6">
+      <div className="max-w-7xl mx-auto space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">WishTrail Admin Panel</h1>
+          <button
+            onClick={handleLogout}
+            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded text-sm"
+          >
+            Logout
+          </button>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          {TABS.map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-3 py-2 rounded text-sm border ${
+                activeTab === tab
+                  ? 'bg-blue-600 text-white border-blue-600'
+                  : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600'
+              }`}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+
+        {activeTab === 'Users' && (
+          <SectionCard title="Users">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+              <input
+                placeholder="Search name, username, email"
+                value={usersQuery.search}
+                onChange={(e) => setUsersQuery((prev) => ({ ...prev, search: e.target.value }))}
+                className="border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-900"
+              />
+              <input
+                type="number"
+                min="0"
+                placeholder="Inactive > days"
+                value={usersQuery.inactiveDays}
+                onChange={(e) => setUsersQuery((prev) => ({ ...prev, inactiveDays: e.target.value }))}
+                className="border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-900"
+              />
+              <button
+                onClick={() => {
+                  setUsersQuery((prev) => ({ ...prev, page: 1 }));
+                  loadUsers();
+                }}
+                className="px-3 py-2 bg-blue-600 text-white rounded"
+              >
+                Apply Filters
+              </button>
+            </div>
+
+            {usersLoading ? <p>Loading users...</p> : null}
+            {usersError ? <p className="text-red-600 text-sm">{usersError}</p> : null}
+
+            {!usersLoading && !usersError && (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left border-b border-gray-200 dark:border-gray-700">
+                      <th className="py-2">Select</th>
+                      <th className="py-2">User</th>
+                      <th className="py-2">Email</th>
+                      <th className="py-2">Completed Goals</th>
+                      <th className="py-2">Total Goals</th>
+                      <th className="py-2">Total Habits</th>
+                      <th className="py-2">Last Active</th>
+                      <th className="py-2">Account Active</th>
+                      <th className="py-2">Last Update Seen</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {usersData.users.map((user) => (
+                      <tr key={user.id} className="border-b border-gray-100 dark:border-gray-800">
+                        <td className="py-2">
+                          <input
+                            type="checkbox"
+                            checked={selectedUsers.includes(user.id)}
+                            onChange={() => toggleSelectUser(user.id)}
+                          />
+                        </td>
+                        <td className="py-2">{user.name} (@{user.username})</td>
+                        <td className="py-2">{user.email}</td>
+                        <td className="py-2">{user.completedGoals || 0}</td>
+                        <td className="py-2">{user.totalGoals || 0}</td>
+                        <td className="py-2">{user.totalHabits || 0}</td>
+                        <td className="py-2">{user.lastActiveAt ? new Date(user.lastActiveAt).toLocaleString() : '-'}</td>
+                        <td className="py-2">{user.accountActive ? 'Yes' : 'No'}</td>
+                        <td className="py-2">{user.lastUpdateSeen || '-'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            <Pagination
+              page={usersData.pagination.page || 1}
+              pages={usersData.pagination.pages || 1}
+              onPageChange={(nextPage) => setUsersQuery((prev) => ({ ...prev, page: nextPage }))}
+            />
+          </SectionCard>
+        )}
+
+        {activeTab === 'Goals' && (
+          <SectionCard title="Goals">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+              <input
+                placeholder="Search goal or user"
+                value={goalsQuery.search}
+                onChange={(e) => setGoalsQuery((prev) => ({ ...prev, search: e.target.value }))}
+                className="border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-900"
+              />
+              <select
+                value={goalsQuery.status}
+                onChange={(e) => setGoalsQuery((prev) => ({ ...prev, status: e.target.value, page: 1 }))}
+                className="border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-900"
+              >
+                <option value="all">All</option>
+                <option value="active">Active</option>
+                <option value="completed">Completed</option>
+              </select>
+              <button
+                onClick={() => {
+                  setGoalsQuery((prev) => ({ ...prev, page: 1 }));
+                  loadGoals();
+                }}
+                className="px-3 py-2 bg-blue-600 text-white rounded"
+              >
+                Apply Filters
+              </button>
+            </div>
+
+            {goalsLoading ? <p>Loading goals...</p> : null}
+            {goalsError ? <p className="text-red-600 text-sm">{goalsError}</p> : null}
+
+            {!goalsLoading && !goalsError && (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left border-b border-gray-200 dark:border-gray-700">
+                      <th className="py-2">Goal</th>
+                      <th className="py-2">Category</th>
+                      <th className="py-2">Status</th>
+                      <th className="py-2">Owner</th>
+                      <th className="py-2">Total Updates</th>
+                      <th className="py-2">Last Goal Update</th>
+                      <th className="py-2">Created</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {goalsData.goals.map((goal) => (
+                      <tr key={goal.id} className="border-b border-gray-100 dark:border-gray-800">
+                        <td className="py-2">{goal.title}</td>
+                        <td className="py-2">{goal.category}</td>
+                        <td className="py-2">{goal.completed ? 'Completed' : 'Active'}</td>
+                        <td className="py-2">{goal.user?.username}</td>
+                        <td className="py-2">{goal.totalGoalUpdates || 0}</td>
+                        <td className="py-2">{goal.lastGoalUpdateAt ? new Date(goal.lastGoalUpdateAt).toLocaleString() : '-'}</td>
+                        <td className="py-2">{new Date(goal.createdAt).toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            <Pagination
+              page={goalsData.pagination.page || 1}
+              pages={goalsData.pagination.pages || 1}
+              onPageChange={(nextPage) => setGoalsQuery((prev) => ({ ...prev, page: nextPage }))}
+            />
+          </SectionCard>
+        )}
+
+        {activeTab === 'Habits' && (
+          <SectionCard title="Habits">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+              <input
+                placeholder="Search habit or user"
+                value={habitsQuery.search}
+                onChange={(e) => setHabitsQuery((prev) => ({ ...prev, search: e.target.value }))}
+                className="border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-900"
+              />
+              <select
+                value={habitsQuery.status}
+                onChange={(e) => setHabitsQuery((prev) => ({ ...prev, status: e.target.value, page: 1 }))}
+                className="border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-900"
+              >
+                <option value="all">All</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+              <button
+                onClick={() => {
+                  setHabitsQuery((prev) => ({ ...prev, page: 1 }));
+                  loadHabits();
+                }}
+                className="px-3 py-2 bg-blue-600 text-white rounded"
+              >
+                Apply Filters
+              </button>
+            </div>
+
+            {habitsLoading ? <p>Loading habits...</p> : null}
+            {habitsError ? <p className="text-red-600 text-sm">{habitsError}</p> : null}
+
+            {!habitsLoading && !habitsError && (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left border-b border-gray-200 dark:border-gray-700">
+                      <th className="py-2">Habit</th>
+                      <th className="py-2">Frequency</th>
+                      <th className="py-2">Status</th>
+                      <th className="py-2">Owner</th>
+                      <th className="py-2">Total Logs</th>
+                      <th className="py-2">Current Streak</th>
+                      <th className="py-2">Best Streak</th>
+                      <th className="py-2">Created</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {habitsData.habits.map((habit) => (
+                      <tr key={habit.id} className="border-b border-gray-100 dark:border-gray-800">
+                        <td className="py-2">{habit.name}</td>
+                        <td className="py-2">{habit.frequency || '-'}</td>
+                        <td className="py-2">{habit.status}</td>
+                        <td className="py-2">{habit.user?.username}</td>
+                        <td className="py-2">{habit.totalLogs || 0}</td>
+                        <td className="py-2">{habit.currentStreak || 0}</td>
+                        <td className="py-2">{habit.bestStreak || 0}</td>
+                        <td className="py-2">{habit.createdAt ? new Date(habit.createdAt).toLocaleString() : '-'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            <Pagination
+              page={habitsData.pagination.page || 1}
+              pages={habitsData.pagination.pages || 1}
+              onPageChange={(nextPage) => setHabitsQuery((prev) => ({ ...prev, page: nextPage }))}
+            />
+          </SectionCard>
+        )}
+
+        {activeTab === 'Email' && (
+          <SectionCard title="Email">
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">Audience</label>
+                <select
+                  value={emailForm.mode}
+                  onChange={(e) => setEmailForm((prev) => ({ ...prev, mode: e.target.value }))}
+                  className="w-full sm:w-80 border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-900"
+                >
+                  <option value="selected">Selected users</option>
+                  <option value="all">All users</option>
+                  <option value="inactive">Inactive users</option>
+                </select>
+              </div>
+
+              {emailForm.mode === 'inactive' && (
+                <div>
+                  <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">Inactive more than (days)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={emailForm.inactiveDays}
+                    onChange={(e) => setEmailForm((prev) => ({ ...prev, inactiveDays: e.target.value }))}
+                    className="w-full sm:w-80 border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-900"
+                  />
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">Quick Templates</label>
+                <select
+                  value={emailForm.template}
+                  onChange={(e) => applyTemplate(e.target.value)}
+                  className="w-full sm:w-80 border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-900"
+                >
+                  <option value="custom">Custom email</option>
+                  <option value="inactive">Inactive user</option>
+                  <option value="comeback">Comeback nudge</option>
+                  <option value="featureRelease">Feature release email</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">Subject</label>
+                <input
+                  value={emailForm.subject}
+                  onChange={(e) => setEmailForm((prev) => ({ ...prev, subject: e.target.value, template: 'custom' }))}
+                  className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-900"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">Message</label>
+                <textarea
+                  rows={8}
+                  value={emailForm.message}
+                  onChange={(e) => setEmailForm((prev) => ({ ...prev, message: e.target.value, template: 'custom' }))}
+                  className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-900"
+                />
+              </div>
+
+              <button
+                onClick={sendEmail}
+                disabled={!canSendEmail || emailLoading}
+                className="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50"
+              >
+                {emailLoading ? 'Sending...' : 'Send Email'}
+              </button>
+
+              {emailError ? <p className="text-sm text-red-600">{emailError}</p> : null}
+              {emailSuccess ? <p className="text-sm text-green-600">{emailSuccess}</p> : null}
+            </div>
+          </SectionCard>
+        )}
+
+        {activeTab === 'Analytics' && (
+          <SectionCard title="Analytics">
+            {analyticsLoading ? <p>Loading analytics...</p> : null}
+            {analyticsError ? <p className="text-red-600 text-sm">{analyticsError}</p> : null}
+            {!analyticsLoading && !analyticsError && (
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className="border border-gray-200 dark:border-gray-700 rounded p-4">
+                  <p className="text-sm text-gray-500">Total Users</p>
+                  <p className="text-2xl font-semibold">{analytics.totalUsers}</p>
+                </div>
+                <div className="border border-gray-200 dark:border-gray-700 rounded p-4">
+                  <p className="text-sm text-gray-500">Active Today</p>
+                  <p className="text-2xl font-semibold">{analytics.activeToday}</p>
+                </div>
+                <div className="border border-gray-200 dark:border-gray-700 rounded p-4">
+                  <p className="text-sm text-gray-500">Inactive Users</p>
+                  <p className="text-2xl font-semibold">{analytics.inactiveUsers}</p>
+                </div>
+                <div className="border border-gray-200 dark:border-gray-700 rounded p-4">
+                  <p className="text-sm text-gray-500">Total Goals</p>
+                  <p className="text-2xl font-semibold">{analytics.totalGoals}</p>
+                </div>
+              </div>
+            )}
+          </SectionCard>
+        )}
+
+        {activeTab === 'Announcements' && (
+          <SectionCard title="Announcements">
+            <form onSubmit={createAnnouncement} className="space-y-3 mb-6">
+              <input
+                placeholder="Title"
+                value={announcementForm.title}
+                onChange={(e) => setAnnouncementForm((prev) => ({ ...prev, title: e.target.value }))}
+                className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-900"
+                required
+              />
+              <textarea
+                rows={4}
+                placeholder="Description"
+                value={announcementForm.description}
+                onChange={(e) => setAnnouncementForm((prev) => ({ ...prev, description: e.target.value }))}
+                className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-900"
+                required
+              />
+              <label className="inline-flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={announcementForm.isActive}
+                  onChange={(e) => setAnnouncementForm((prev) => ({ ...prev, isActive: e.target.checked }))}
+                />
+                Active
+              </label>
+              <div>
+                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded">
+                  Add Announcement
+                </button>
+              </div>
+            </form>
+
+            {announcementsLoading ? <p>Loading announcements...</p> : null}
+            {announcementsError ? <p className="text-sm text-red-600">{announcementsError}</p> : null}
+
+            {!announcementsLoading && !announcementsError && (
+              <div className="space-y-3">
+                {announcementData.announcements.map((announcement) => (
+                  <div key={announcement._id} className="border border-gray-200 dark:border-gray-700 rounded p-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <h3 className="font-semibold text-gray-900 dark:text-gray-100">{announcement.title}</h3>
+                        <p className="text-sm text-gray-600 dark:text-gray-300 mt-1 whitespace-pre-line">{announcement.description}</p>
+                        <p className="text-xs text-gray-500 mt-2">{new Date(announcement.createdAt).toLocaleString()}</p>
+                      </div>
+                      <button
+                        onClick={() => toggleAnnouncementActive(announcement)}
+                        className={`px-3 py-1 rounded text-xs ${announcement.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-700'}`}
+                      >
+                        {announcement.isActive ? 'Active' : 'Inactive'}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <Pagination
+              page={announcementData.pagination.page || 1}
+              pages={announcementData.pagination.pages || 1}
+              onPageChange={(nextPage) => setAnnouncementQuery((prev) => ({ ...prev, page: nextPage }))}
+            />
+          </SectionCard>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default AdminPage;

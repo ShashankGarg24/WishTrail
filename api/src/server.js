@@ -20,6 +20,12 @@ const bloomFilter = require('./utility/BloomFilterService');
 
 const apiVersion = process.env.API_VERSION || 'v1';
 const apiBasePath = `/api/${apiVersion}`;
+const normalizeRouteSegment = (value, fallback = 'admin') => {
+  const raw = String(value || fallback).trim().replace(/^\/+|\/+$/g, '');
+  const cleaned = raw.replace(/[^a-zA-Z0-9/_-]/g, '');
+  return cleaned || fallback;
+};
+const adminApiRouteSegment = normalizeRouteSegment(process.env.ADMIN_API_ROUTE_SEGMENT, 'admin');
 
 const createApp = async () => {
 
@@ -167,6 +173,7 @@ const createApp = async () => {
   apiRouter.use('/settings', require('./routes/settingsRoutes'));
   apiRouter.use('/premium', require('./routes/premiumRoutes'));
   apiRouter.use('/product-updates', require('./routes/productUpdateRoutes'));
+  apiRouter.use(`/${adminApiRouteSegment}`, require('./routes/adminRoutes'));
   // Config management
   apiRouter.use('/config', require('./routes/configRoutes'));
   // Cron endpoints for serverless environments; protect with CRON_SECRET
