@@ -40,6 +40,7 @@ const ProfilePage = () => {
   const [userStats, setUserStats] = useState(null);
   const [isFollowing, setIsFollowing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isTabLoading, setIsTabLoading] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [blockOpen, setBlockOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
@@ -113,6 +114,8 @@ const ProfilePage = () => {
   const shareUrlRef = useRef('')
   const [isMobile, setIsMobile] = useState(false)
   const [goalFilter, setGoalFilter] = useState('all') // 'all' | 'in_progress' | 'completed' | 'paused'
+  const previousTabRef = useRef(initialTab)
+  const tabLoadRequestRef = useRef(0)
 
   const THEME_COLOR = '#4c99e6'
 
@@ -164,72 +167,87 @@ const ProfilePage = () => {
   useEffect(() => {
     const tabFromUrl = searchParams.get('tab') || 'overview';
     if (tabFromUrl !== activeTab) {
+      setIsTabLoading(true);
       setActiveTab(tabFromUrl);
     }
   }, [searchParams]);
 
+  useEffect(() => {
+    if (previousTabRef.current !== activeTab) {
+      setIsTabLoading(true);
+      previousTabRef.current = activeTab;
+    }
+  }, [activeTab]);
+
   // Lazy load analytics and content based on active tab
   useEffect(() => {
+    const requestId = ++tabLoadRequestRef.current;
     const loadTabContent = async () => {
-      const targetUsername = isOwnProfile ? currentUser?.username : profileUser?.username;
-      
-      if (!targetUsername) {
-        return;
-      }
+      try {
+        const targetUsername = isOwnProfile ? currentUser?.username : profileUser?.username;
+        
+        if (!targetUsername) {
+          return;
+        }
 
-      // For other users' profiles, check privacy
-      const canViewContent = isOwnProfile || !profileUser?.isPrivate || isFollowing;
+        // For other users' profiles, check privacy
+        const canViewContent = isOwnProfile || !profileUser?.isPrivate || isFollowing;
 
-      // Load analytics when overview tab is viewed
-      if (activeTab === 'overview' && !analytics) {
-        // Own profile: always load (pass null to get own analytics)
-        // Other profile: only if public or following (pass username)
-        if (isOwnProfile || canViewContent) {
-          try {
-            const usernameParam = isOwnProfile ? null : targetUsername;
-            const analyticsResult = await getUserAnalytics(usernameParam);
-            if (analyticsResult.success) {
-              setAnalytics(analyticsResult.analytics);
+        // Load analytics when overview tab is viewed
+        if (activeTab === 'overview' && !analytics) {
+          // Own profile: always load (pass null to get own analytics)
+          // Other profile: only if public or following (pass username)
+          if (isOwnProfile || canViewContent) {
+            try {
+              const usernameParam = isOwnProfile ? null : targetUsername;
+              const analyticsResult = await getUserAnalytics(usernameParam);
+              if (analyticsResult.success) {
+                setAnalytics(analyticsResult.analytics);
+              }
+            } catch (error) {
+              console.error('Failed to load analytics:', error);
             }
-          } catch (error) {
-            console.error('Failed to load analytics:', error);
           }
         }
-      }
 
-      // Load goals when goals tab is viewed
-      if (activeTab === 'goals' && userGoals.length === 0) {
-        // Own profile: always load
-        // Other profile: only if public or following
-        if (isOwnProfile || canViewContent) {
-          try {
-            const targetUsername = isOwnProfile ? currentUser?.username : profileUser?.username;
-            const goalsResult = isOwnProfile 
-              ? await getGoals({ page: 1, limit: GOALS_PER_PAGE })
-              : await getUserGoals(targetUsername, { page: 1, limit: GOALS_PER_PAGE });
-            
-            if (goalsResult.success) {
-              setUserGoals(goalsResult.goals || []);
-              const totalPages = goalsResult.pagination?.pages || 1;
-              setHasMoreGoals(1 < totalPages);
-              setGoalsPage(1);
+        // Load goals when goals tab is viewed
+        if (activeTab === 'goals' && userGoals.length === 0) {
+          // Own profile: always load
+          // Other profile: only if public or following
+          if (isOwnProfile || canViewContent) {
+            try {
+              const targetUsername = isOwnProfile ? currentUser?.username : profileUser?.username;
+              const goalsResult = isOwnProfile 
+                ? await getGoals({ page: 1, limit: GOALS_PER_PAGE })
+                : await getUserGoals(targetUsername, { page: 1, limit: GOALS_PER_PAGE });
+              
+              if (goalsResult.success) {
+                setUserGoals(goalsResult.goals || []);
+                const totalPages = goalsResult.pagination?.pages || 1;
+                setHasMoreGoals(1 < totalPages);
+                setGoalsPage(1);
+              }
+            } catch (error) {
+              console.error('Failed to load goals:', error);
             }
-          } catch (error) {
-            console.error('Failed to load goals:', error);
           }
         }
-      }
 
-      // Load habits when habits tab is viewed (ONLY for own profile or if following/public AND habits visible)
-      if (activeTab === 'habits' && userHabits.length === 0) {
-        if (isOwnProfile) {
-          // Always load for own profile
-          const targetUserId = currentUser?.id;
-          await fetchUserHabits(targetUserId);
-        } else if (canViewContent && profileUser?.showHabits) {
-          // Load for others only if profile accessible AND habits are visible (showHabits = true)
-          const targetUserId = profileUser?.id;
-          await fetchUserHabits(targetUserId);
+        // Load habits when habits tab is viewed (ONLY for own profile or if following/public AND habits visible)
+        if (activeTab === 'habits' && userHabits.length === 0) {
+          if (isOwnProfile) {
+            // Always load for own profile
+            const targetUserId = currentUser?.id;
+            await fetchUserHabits(targetUserId);
+          } else if (canViewContent && profileUser?.showHabits) {
+            // Load for others only if profile accessible AND habits are visible (showHabits = true)
+            const targetUserId = profileUser?.id;
+            await fetchUserHabits(targetUserId);
+          }
+        }
+      } finally {
+        if (tabLoadRequestRef.current === requestId) {
+          setIsTabLoading(false);
         }
       }
     };
@@ -534,6 +552,9 @@ const ProfilePage = () => {
   }
 
   const handleTabChange = (tab) => {
+    if (tab !== activeTab) {
+      setIsTabLoading(true);
+    }
     setSearchParams({ tab });
     setActiveTab(tab);
   };
@@ -579,10 +600,13 @@ const ProfilePage = () => {
     return url.startsWith('http') ? url : `https://${url}`;
   };
 
-  if (loading) {
+  if (loading || isTabLoading) {
     return (
-      <div className="min-h-screen bg-[#f5f5f5] dark:bg-gray-900 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4c99e6]"></div>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center" style={{ fontFamily: 'Manrope, sans-serif' }}>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4c99e6] mx-auto mb-4"></div>
+          <p className="text-gray-500 dark:text-gray-400">Loading profile...</p>
+        </div>
       </div>
     );
   }
@@ -1591,6 +1615,17 @@ const ProfilePage = () => {
               <div className="space-y-1 p-3">
                 {isOwnProfile ? (
                   <>
+                  <button
+                      className="w-full text-center px-4 py-2 text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        navigate('/settings?section=personal-info');
+                        setProfileMenuOpen(false);
+                      }}
+                    >
+                      Edit Profile
+                    </button>
                     <button
                       className="w-full text-center px-4 py-2 text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                       onClick={(e) => {

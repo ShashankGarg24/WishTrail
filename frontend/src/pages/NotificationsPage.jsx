@@ -25,13 +25,29 @@ const NotificationsPageNew = () => {
   } = useApiStore();
 
   const [loading, setLoading] = useState(true);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [markingAllRead, setMarkingAllRead] = useState(false);
   const [openGoalId, setOpenGoalId] = useState(null);
 
   useEffect(() => {
-    if (!isAuthenticated) return;
-    loadNotifications();
+    let isCancelled = false;
+
+    const loadInitial = async () => {
+      if (!isAuthenticated) {
+        if (!isCancelled) setIsInitialLoading(false);
+        return;
+      }
+
+      await loadNotifications();
+      if (!isCancelled) setIsInitialLoading(false);
+    };
+
+    loadInitial();
+
+    return () => {
+      isCancelled = true;
+    };
   }, [isAuthenticated]);
 
   const loadNotifications = async (force = false) => {
@@ -111,12 +127,12 @@ const NotificationsPageNew = () => {
 
   const { today: todayNotifications, week: weekNotifications, month: monthNotifications } = groupNotifications();
 
-  if (loading) {
+  if (isInitialLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center" style={{ fontFamily: 'Manrope, sans-serif' }}>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center" style={{ fontFamily: 'Manrope, sans-serif' }}>
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4c99e6] mx-auto mb-4"></div>
-          <p className="text-gray-500">Loading notifications...</p>
+          <p className="text-gray-500 dark:text-gray-400">Loading notifications...</p>
         </div>
       </div>
     );

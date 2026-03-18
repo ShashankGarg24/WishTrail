@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { User, Shield, Bell, Settings as SettingsIcon } from 'lucide-react';
 import PersonalInfoSection from '../components/settings/PersonalInfoSection';
@@ -13,6 +13,12 @@ const SettingsPageNew = () => {
   // Normalize 'personal' to 'personal-info'
   if (initialTab === 'personal') initialTab = 'personal-info';
   const [activeSection, setActiveSection] = useState(initialTab);
+  const [isSettingsLoading, setIsSettingsLoading] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsSettingsLoading(false), 250);
+    return () => clearTimeout(timer);
+  }, []);
 
   const sections = [
     {
@@ -42,11 +48,25 @@ const SettingsPageNew = () => {
   ];
 
   const handleSectionChange = (sectionId) => {
+    if (sectionId === activeSection) return;
+    setIsSettingsLoading(true);
     setActiveSection(sectionId);
     setSearchParams({ section: sectionId });
+    setTimeout(() => setIsSettingsLoading(false), 250);
   };
 
   const ActiveComponent = sections.find(s => s.id === activeSection)?.component || PersonalInfoSection;
+
+  if (isSettingsLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center" style={{ fontFamily: 'Manrope, sans-serif' }}>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4c99e6] mx-auto mb-4"></div>
+          <p className="text-gray-500 dark:text-gray-400">Loading settings...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">

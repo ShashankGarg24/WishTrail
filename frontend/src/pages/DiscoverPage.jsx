@@ -11,6 +11,7 @@ const GoalPostModal = lazy(() => import('../components/GoalPostModal'))
 
 const DiscoverPageNew = () => {
   const navigate = useNavigate()
+  const [isInitialLoading, setIsInitialLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('goals')
   const [searchParams, setSearchParams] = useSearchParams()
   const [searchQuery, setSearchQuery] = useState('')
@@ -115,47 +116,75 @@ const DiscoverPageNew = () => {
 
   // Load trending goals and top achievers, and user search
   useEffect(() => {
-    if (!isAuthenticated) return;
-    if (activeTab === 'goals') {
-      (async () => {
-        // If searching, use searchPublicGoals API
-        if (debouncedSearch.trim() || (selectedCategory && selectedCategory !== 'all')) {
-          const params = {};
-          if (debouncedSearch.trim()) params.q = debouncedSearch.trim();
-          if (selectedCategory && selectedCategory !== 'all') params.category = selectedCategory;
-          const result = await searchPublicGoals(params);
-          setAllTrendingGoals((result && Array.isArray(result.goals)) ? result.goals : []);
-        } else {
-          const data = await getTrendingGoals({ page: 1, limit: 30 });
-          setAllTrendingGoals(data.goals || []);
+    let isCancelled = false;
+
+    const loadDiscoverData = async () => {
+      if (!isAuthenticated) {
+        if (!isCancelled) {
+          setIsInitialLoading(false);
         }
-      })();
-    } else {
-      (async () => {
-        if (debouncedUserSearch.trim() && debouncedUserSearch.trim().length >= 2) {
-          // Use searchUsers API, which searches by name and username
-          const result = await searchUsers({ search: debouncedUserSearch.trim() });
-          const foundUsers = result?.users || [];
-          // Map API response to match UI expectations (add stats object)
-          const mappedUsers = foundUsers.map(user => ({
-            ...user,
-            stats: {
-              goals: user.totalGoals || 0,
-              done: user.completedGoals || 0,
-              streak: user.currentStreak || 0
-            },
-            following: user.isFollowing || false
-          }));
-          setUsers(mappedUsers);
+        return;
+      }
+
+      try {
+        if (activeTab === 'goals') {
+          // If searching, use searchPublicGoals API
+          if (debouncedSearch.trim() || (selectedCategory && selectedCategory !== 'all')) {
+            const params = {};
+            if (debouncedSearch.trim()) params.q = debouncedSearch.trim();
+            if (selectedCategory && selectedCategory !== 'all') params.category = selectedCategory;
+            const result = await searchPublicGoals(params);
+            if (!isCancelled) {
+              setAllTrendingGoals((result && Array.isArray(result.goals)) ? result.goals : []);
+            }
+          } else {
+            const data = await getTrendingGoals({ page: 1, limit: 30 });
+            if (!isCancelled) {
+              setAllTrendingGoals(data.goals || []);
+            }
+          }
         } else {
-          // No users shown by default - only show through search (min 2 chars)
-          setUsers([]);
+          if (debouncedUserSearch.trim() && debouncedUserSearch.trim().length >= 2) {
+            // Use searchUsers API, which searches by name and username
+            const result = await searchUsers({ search: debouncedUserSearch.trim() });
+            const foundUsers = result?.users || [];
+            // Map API response to match UI expectations (add stats object)
+            const mappedUsers = foundUsers.map(user => ({
+              ...user,
+              stats: {
+                goals: user.totalGoals || 0,
+                done: user.completedGoals || 0,
+                streak: user.currentStreak || 0
+              },
+              following: user.isFollowing || false
+            }));
+            if (!isCancelled) {
+              setUsers(mappedUsers);
+            }
+          } else {
+            // No users shown by default - only show through search (min 2 chars)
+            if (!isCancelled) {
+              setUsers([]);
+            }
+          }
+          // Fetch top achievers from leaderboard
+          const top = await getGlobalLeaderboard({ page: 1, limit: 3 });
+          if (!isCancelled) {
+            setTopAchievers(Array.isArray(top?.leaderboard) ? top?.leaderboard.slice(0, 3) : []);
+          }
         }
-        // Fetch top achievers from leaderboard
-        const top = await getGlobalLeaderboard({ page: 1, limit: 3 });
-        setTopAchievers(Array.isArray(top?.leaderboard) ? top?.leaderboard.slice(0, 3) : []);
-      })();
-    }
+      } finally {
+        if (!isCancelled) {
+          setIsInitialLoading(false);
+        }
+      }
+    };
+
+    loadDiscoverData();
+
+    return () => {
+      isCancelled = true;
+    };
   }, [activeTab, isAuthenticated, getTrendingGoals, getGlobalLeaderboard, debouncedSearch, selectedCategory, searchPublicGoals, debouncedUserSearch, searchUsers]);
 
   // Set trending goals from allTrendingGoals (already filtered by API)
@@ -186,6 +215,17 @@ const DiscoverPageNew = () => {
     "Community is the engine of sustained progress."
   ]
   const randomQuote = quotes[activeTab === 'goals' ? 0 : 1]
+
+  if (isInitialLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4c99e6] mx-auto mb-4"></div>
+          <p className="text-gray-500 dark:text-gray-400 font-manrope">Loading discover...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">

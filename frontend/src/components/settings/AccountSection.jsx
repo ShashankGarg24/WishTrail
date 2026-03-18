@@ -227,8 +227,11 @@ const AccountSection = () => {
       )}
 
       {initialLoading ? (
-        <div className="text-center py-8">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent motion-reduce:animate-[spin_1.5s_linear_infinite]" />
+        <div className="min-h-[220px] flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4c99e6] mx-auto mb-4"></div>
+            <p className="text-gray-500 dark:text-gray-400">Loading settings...</p>
+          </div>
         </div>
       ) : (
         <div className="space-y-6">

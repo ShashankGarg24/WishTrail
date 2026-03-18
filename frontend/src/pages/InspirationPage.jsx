@@ -14,6 +14,7 @@ import GoalPostModal from '../components/GoalPostModal';
 
 const InspirationPage = () => {
   const navigate = useNavigate();
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [trendingGoals, setTrendingGoals] = useState([]);
   const [selectedGoalId, setSelectedGoalId] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -31,14 +32,32 @@ const InspirationPage = () => {
   } = useApiStore();
 
   useEffect(() => {
-    // Fetch recent public activities
-    getRecentActivities({ type: 'global', limit: 20, includeRecentUsers: true, recentUsersDays: 7, recentUsersLimit: 10 });
-    // Fetch top achievers for leaderboard
-    getGlobalLeaderboard({ type: 'goals', limit: 10 });
-    // Fetch trending goals
-    if(isAuthenticated) {
-      loadTrendingGoals();
-    }    
+    let isCancelled = false;
+
+    const loadInitialData = async () => {
+      try {
+        const tasks = [
+          getRecentActivities({ type: 'global', limit: 20, includeRecentUsers: true, recentUsersDays: 7, recentUsersLimit: 10 }),
+          getGlobalLeaderboard({ type: 'goals', limit: 10 })
+        ];
+
+        if (isAuthenticated) {
+          tasks.push(loadTrendingGoals());
+        }
+
+        await Promise.all(tasks);
+      } finally {
+        if (!isCancelled) {
+          setIsInitialLoading(false);
+        }
+      }
+    };
+
+    loadInitialData();
+
+    return () => {
+      isCancelled = true;
+    };
   }, []);
 
   const [searchParams] = useSearchParams();
@@ -96,6 +115,17 @@ const InspirationPage = () => {
 
   const displayActivities = (recentActivities?.activities || []);
   const displayLeaderboard = (leaderboard || []).slice(0, 10);
+
+  if (isInitialLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4c99e6] mx-auto mb-4"></div>
+          <p className="text-gray-500 dark:text-gray-400">Loading inspiration...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">

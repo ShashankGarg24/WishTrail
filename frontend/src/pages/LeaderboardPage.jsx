@@ -8,7 +8,7 @@ const LeaderboardPageNew = () => {
   const [currentPage, setCurrentPage] = useState(1)
   const [leaderboardData, setLeaderboardData] = useState([])
   const [totalPages, setTotalPages] = useState(1)
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
 
   const { getGlobalLeaderboard, user, isAuthenticated } = useApiStore()
@@ -72,6 +72,17 @@ const LeaderboardPageNew = () => {
       'from-orange-400 to-yellow-500'
     ]
     return colors[rank % colors.length]
+  }
+
+  if (loading && leaderboardData.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4c99e6] mx-auto mb-4"></div>
+          <p className="text-gray-500 dark:text-gray-400 font-manrope">Loading leaderboard...</p>
+        </div>
+      </div>
+    )
   }
 
   return (

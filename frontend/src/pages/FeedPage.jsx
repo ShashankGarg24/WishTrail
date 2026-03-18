@@ -17,6 +17,7 @@ const FeedPage = () => {
   const { user, getActivityFeed, likeActivity, getTrendingGoals, report, blockUser, unfollowUser } = useApiStore();
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isInitialFeedLoading, setIsInitialFeedLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedGoalId, setSelectedGoalId] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -163,10 +164,30 @@ const FeedPage = () => {
 
   // Load initial feed on mount
   useEffect(() => {
+    let isCancelled = false;
+
+    const loadInitialFeedData = async () => {
+      if (!user) return;
+      try {
+        await Promise.all([
+          loadActivityFeed(1),
+          loadTrendingGoals()
+        ]);
+      } finally {
+        if (!isCancelled) {
+          setIsInitialFeedLoading(false);
+        }
+      }
+    };
+
     if (user) {
-      loadActivityFeed(1);
-      loadTrendingGoals();
+      setIsInitialFeedLoading(true);
+      loadInitialFeedData();
     }
+
+    return () => {
+      isCancelled = true;
+    };
   }, [user]);
 
   useEffect(() => {
@@ -340,42 +361,42 @@ const FeedPage = () => {
     }
   };
 
-  if (loading && activities.length === 0) {
+  if (isInitialFeedLoading || (loading && activities.length === 0)) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4c99e6] mx-auto mb-4"></div>
-          <p className="text-gray-500">Loading your growth feed...</p>
+          <p className="text-gray-500 dark:text-gray-400">Loading your growth feed...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50" style={{ fontFamily: 'Manrope, sans-serif' }}>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900" style={{ fontFamily: 'Manrope, sans-serif' }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Feed - Left Side (2 columns width) */}
           <div className="lg:col-span-2 space-y-6">
             {/* Page Header */}
             <div className="mb-6">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Growth Feed</h1>
-              <p className="text-gray-600">Celebrate your community's progress.</p>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Growth Feed</h1>
+              <p className="text-gray-600 dark:text-gray-400">Celebrate your community's progress.</p>
             </div>
 
             {/* Error Message */}
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700 text-sm">
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 text-red-700 dark:text-red-300 text-sm">
                 {error}
               </div>
             )}
 
             {/* Activity Feed Cards */}
             {activities.length === 0 && !loading && !error ? (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-12 text-center">
                 <Trophy className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">No activity yet</h3>
-                <p className="text-gray-600">Start following people to see their progress and achievements!</p>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No activity yet</h3>
+                <p className="text-gray-600 dark:text-gray-400">Start following people to see their progress and achievements!</p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -384,7 +405,7 @@ const FeedPage = () => {
                     key={activity.id}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="bg-white rounded-xl shadow-sm border border-gray-100 p-6"
+                    className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6"
                   >
                     {/* User Info Header */}
                     <div className="flex items-start justify-between mb-4">
@@ -410,11 +431,11 @@ const FeedPage = () => {
                                 navigate(`/profile/@${activity.user.username}`);
                               }
                             }}
-                            className="font-semibold text-gray-900 cursor-pointer hover:text-[#4c99e6] transition-colors"
+                            className="font-semibold text-gray-900 dark:text-white cursor-pointer hover:text-[#4c99e6] transition-colors"
                           >
                             {activity.user.name}
                           </h3>
-                          <p className="text-sm text-gray-500">
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
                             {activity.action} • {activity.timestamp}
                           </p>
                         </div>
@@ -426,7 +447,7 @@ const FeedPage = () => {
                             e.stopPropagation();
                             setOpenActivityMenuId(prev => prev === activity.id ? null : activity.id);
                           }}
-                          className="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+                          className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                         >
                           <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
                             <circle cx="10" cy="4" r="1.5" />
@@ -438,10 +459,10 @@ const FeedPage = () => {
                           <div
                             data-activity-menu="true"
                             onClick={(e) => e.stopPropagation()}
-                            className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-xl z-30 overflow-hidden"
+                            className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-30 overflow-hidden"
                           >
                             <button
-                              className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                              className="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                               onClick={() => {
                                 setReportTarget({
                                   type: 'activity',
@@ -458,7 +479,7 @@ const FeedPage = () => {
                             </button>
                             {activity.user?._id && (
                               <button
-                                className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                                className="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                                 onClick={async () => {
                                   try {
                                     await unfollowUser(activity.user._id);
@@ -473,7 +494,7 @@ const FeedPage = () => {
                             )}
                             {activity.user?._id && (
                               <button
-                                className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                                className="w-full text-left px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
                                 onClick={() => {
                                   setBlockUserId(activity.user._id);
                                   setBlockUsername(activity.user?.username || activity.user?.name || '');
@@ -518,14 +539,14 @@ const FeedPage = () => {
                         </div>
                       ) : (
                         <div className="mb-4">
-                          <h4 className="text-xl font-semibold text-gray-900 mb-3">
+                          <h4 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">
                             {activity.content.title}
                           </h4>
                           <CategoryBadge category={activity.content.category} />
                           {(activity.completionNote || activity.completionImage) && (
                             <div className="mt-4 space-y-3">
                               {activity.completionImage && (
-                                <div className="overflow-hidden rounded-lg border border-gray-100 shadow-sm aspect-video bg-gray-100">
+                                <div className="overflow-hidden rounded-lg border border-gray-100 dark:border-gray-700 shadow-sm aspect-video bg-gray-100 dark:bg-gray-700">
                                   <img
                                     src={activity.completionImage}
                                     alt="Activity image"
@@ -534,8 +555,8 @@ const FeedPage = () => {
                                 </div>
                               )}
                               {activity.completionNote && (
-                                <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
-                                  <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 border border-gray-100 dark:border-gray-700">
+                                  <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
                                     {activity.completionNote}
                                   </p>
                                 </div>
@@ -547,7 +568,7 @@ const FeedPage = () => {
                     </div>
 
                     {/* Engagement Bar */}
-                    <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                    <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-gray-700">
                       <div className="flex items-center gap-6">
                         {/* Like Button */}
                         <button
@@ -555,7 +576,7 @@ const FeedPage = () => {
                             e.stopPropagation();
                             handleLike(activity.id);
                           }}
-                          className="flex items-center gap-2 text-gray-600 hover:text-red-500 transition-colors"
+                          className="flex items-center gap-2 text-gray-600 dark:text-gray-300 hover:text-red-500 transition-colors"
                         >
                           <Heart
                             className={`w-5 h-5 ${activity.isLiked ? 'fill-red-500 text-red-500' : ''
@@ -570,7 +591,7 @@ const FeedPage = () => {
                             e.stopPropagation();
                             handleOpenComments(activity.id, activity.originalId);
                           }}
-                          className="flex items-center gap-2 text-gray-600 hover:text-[#4c99e6] transition-colors"
+                          className="flex items-center gap-2 text-gray-600 dark:text-gray-300 hover:text-[#4c99e6] transition-colors"
                         >
                           <MessageCircle className="w-5 h-5" />
                           <span className="text-sm font-medium">{activity.comments}</span>
@@ -597,7 +618,7 @@ const FeedPage = () => {
                               }
                             } catch { }
                           }}
-                          className="flex items-center gap-2 text-gray-600 hover:text-[#4c99e6] transition-colors"
+                          className="flex items-center gap-2 text-gray-600 dark:text-gray-300 hover:text-[#4c99e6] transition-colors"
                         >
                           <Share2 className="w-5 h-5" />
                         </button>
@@ -612,10 +633,10 @@ const FeedPage = () => {
           {/* Right Sidebar */}
           <div className="hidden lg:block space-y-6 lg:sticky lg:top-24 lg:self-start">
             {/* Trending Goals */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
               <div className="flex items-center gap-2 mb-4">
                 <Zap className="w-5 h-5 text-[#4c99e6]" />
-                <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wide">
+                <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
                   Trending Goals
                 </h3>
               </div>
@@ -623,11 +644,11 @@ const FeedPage = () => {
               {trendingLoading ? (
                 <div className="space-y-3">
                   {[...Array(3)].map((_, i) => (
-                    <div key={i} className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-full bg-gray-200 animate-pulse" />
+                      <div key={i} className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-full bg-gray-200 dark:bg-gray-700 animate-pulse" />
                       <div className="flex-1">
-                        <div className="h-4 bg-gray-200 rounded animate-pulse mb-2" />
-                        <div className="h-3 bg-gray-200 rounded w-2/3 animate-pulse" />
+                        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-2" />
+                        <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-2/3 animate-pulse" />
                       </div>
                     </div>
                   ))}
@@ -638,10 +659,10 @@ const FeedPage = () => {
                     <button
                       key={goal.id}
                       onClick={() => handleOpenGoal(goal.id)}
-                      className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 transition-colors text-left group"
+                      className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left group"
                     >
                       <div className={`relative h-12 w-12 rounded-full p-[2px] bg-gradient-to-br ${getCategoryGradient(goal.category)} flex-shrink-0 group-hover:scale-105 transition-transform`}>
-                        <div className="h-full w-full rounded-full bg-white p-[2px]">
+                        <div className="h-full w-full rounded-full bg-white dark:bg-gray-800 p-[2px]">
                           <img
                             src={goal?.user_avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${goal?.user_name}`}
                             alt={goal?.user_name || 'User'}
@@ -652,10 +673,10 @@ const FeedPage = () => {
                         </div>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-semibold text-gray-900 text-sm line-clamp-1 group-hover:text-[#4c99e6] transition-colors">
+                        <h4 className="font-semibold text-gray-900 dark:text-white text-sm line-clamp-1 group-hover:text-[#4c99e6] transition-colors">
                           {goal.title}
                         </h4>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
                           by {goal?.user_name || 'User'}
                         </p>
                       </div>
@@ -665,7 +686,7 @@ const FeedPage = () => {
               ) : (
                 <div className="text-center py-6">
                   <Target className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-                  <p className="text-sm text-gray-500">No trending goals yet</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">No trending goals yet</p>
                 </div>
               )}
             </div>

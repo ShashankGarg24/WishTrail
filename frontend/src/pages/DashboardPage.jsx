@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, lazy, Suspense } from 'react'
+import { useState, useEffect, useMemo, lazy, Suspense, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import CategoryBadge from '../components/CategoryBadge'
 import { getCategoryIcon } from '../utils/categoryIcons'
@@ -57,6 +57,8 @@ const DashboardPageNew = () => {
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 9 // 3x3 grid
   const [isWhatsNewModalOpen, setIsWhatsNewModalOpen] = useState(false)
+  const [isInitialDashboardLoading, setIsInitialDashboardLoading] = useState(true)
+  const hasBootstrappedDashboardRef = useRef(false)
 
   const {
     isAuthenticated,
@@ -75,9 +77,34 @@ const DashboardPageNew = () => {
   // Load initial data
   useEffect(() => {
     if (!isAuthenticated) return
-    getDashboardStats()
-    getGoals({ year: selectedYear, page: 1 })
-    loadHabits({ page: 1 })
+
+    let isCancelled = false
+    const shouldShowPageLoader = !hasBootstrappedDashboardRef.current
+
+    if (shouldShowPageLoader) {
+      setIsInitialDashboardLoading(true)
+    }
+
+    const fetchDashboardData = async () => {
+      try {
+        await Promise.all([
+          getDashboardStats(),
+          getGoals({ year: selectedYear, page: 1 }),
+          loadHabits({ page: 1 })
+        ])
+      } finally {
+        if (!isCancelled && shouldShowPageLoader) {
+          hasBootstrappedDashboardRef.current = true
+          setIsInitialDashboardLoading(false)
+        }
+      }
+    }
+
+    fetchDashboardData()
+
+    return () => {
+      isCancelled = true
+    }
   }, [isAuthenticated, selectedYear])
 
   useEffect(() => {
@@ -234,6 +261,17 @@ const DashboardPageNew = () => {
     }
   }
 
+  if (isAuthenticated && isInitialDashboardLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4c99e6] mx-auto mb-4"></div>
+          <p className="text-gray-500 dark:text-gray-400">Loading dashboard...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-[#f5f5f5] dark:bg-gray-900">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-6 sm:py-8">
@@ -265,7 +303,7 @@ const DashboardPageNew = () => {
                 </div>
                 <div className="text-sm sm:text-base font-manrope font-medium">
                   {activeTab === 'goals' 
-                    ? <span className="text-gray-600 dark:text-gray-300">{`${dashboardStats?.completedGoals} of ${dashboardStats?.totalGoals} targets hit`}</span>
+                    ? <span className="text-gray-600 dark:text-gray-300">{`${dashboardStats?.completedGoals || 0} of ${dashboardStats?.totalGoals || 0} targets hit`}</span>
                     : (() => {
                         const m = dashboardStats?.weekMomentum ?? 0
                         if (m >= 70) return <span className="text-green-500 dark:text-green-400">Strong</span>
@@ -449,7 +487,7 @@ const DashboardPageNew = () => {
                   </div>
                 </div>
                 <div className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1 font-manrope">
-                  {dashboardStats?.totalGoals}
+                  {dashboardStats?.totalGoals || 0}
                 </div>
                 <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 font-manrope uppercase tracking-wide">
                   Total Goals
@@ -464,7 +502,7 @@ const DashboardPageNew = () => {
                   </div>
                 </div>
                 <div className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1 font-manrope">
-                  {dashboardStats?.completedGoals}
+                  {dashboardStats?.completedGoals || 0}
                 </div>
                 <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 font-manrope uppercase tracking-wide">
                   Completed
