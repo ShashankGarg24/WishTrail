@@ -341,10 +341,9 @@ const sendBroadcastEmail = async ({ mode, userIds, inactiveDays, subject, title,
   const cleanTitle = sanitizePlainText(title).slice(0, 180);
   const cleanSubtitle = sanitizePlainText(subtitle).slice(0, 220);
   const cleanBody = sanitizePlainText(body).slice(0, 5000);
-  const cleanEnding = sanitizePlainText(ending).slice(0, 220);
 
-  if (!cleanSubject || !cleanTitle || !cleanBody || !cleanEnding) {
-    throw new Error('Subject, title, body and ending are required');
+  if (!cleanSubject || !cleanTitle || !cleanBody) {
+    throw new Error('Subject, title and body are required');
   }
 
   const recipients = await resolveEmailRecipients({ mode, userIds, inactiveDays });
