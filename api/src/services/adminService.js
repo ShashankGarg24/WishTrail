@@ -336,12 +336,15 @@ const resolveEmailRecipients = async ({ mode, userIds, inactiveDays }) => {
   return res.rows;
 };
 
-const sendBroadcastEmail = async ({ mode, userIds, inactiveDays, subject, message, templateKey }) => {
+const sendBroadcastEmail = async ({ mode, userIds, inactiveDays, subject, title, subtitle, body, ending }) => {
   const cleanSubject = sanitizePlainText(subject).slice(0, 180);
-  const cleanMessage = sanitizePlainText(message).slice(0, 5000);
+  const cleanTitle = sanitizePlainText(title).slice(0, 180);
+  const cleanSubtitle = sanitizePlainText(subtitle).slice(0, 220);
+  const cleanBody = sanitizePlainText(body).slice(0, 5000);
+  const cleanEnding = sanitizePlainText(ending).slice(0, 220);
 
-  if (!cleanSubject || !cleanMessage) {
-    throw new Error('Subject and message are required');
+  if (!cleanSubject || !cleanTitle || !cleanBody || !cleanEnding) {
+    throw new Error('Subject, title, body and ending are required');
   }
 
   const recipients = await resolveEmailRecipients({ mode, userIds, inactiveDays });
@@ -361,8 +364,10 @@ const sendBroadcastEmail = async ({ mode, userIds, inactiveDays, subject, messag
         subject: cleanSubject,
         text: {
           recipientName: user.name,
-          message: cleanMessage,
-          templateKey
+          title: cleanTitle,
+          subtitle: cleanSubtitle,
+          body: cleanBody,
+          ending: cleanEnding
         }
       })
     )

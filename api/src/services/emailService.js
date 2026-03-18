@@ -598,22 +598,25 @@ class EmailService {
       throw new Error('Email service is not configured');
     }
 
-    const templateKey = this.normalizeAdminTemplateKey(text?.templateKey);
-    const message = text?.message || text || '';
+    const title = text?.title || subject || 'WishTrail Update';
+    const subtitle = text?.subtitle || '';
+    const body = text?.body || text?.message || text || '';
     const recipientName = text?.recipientName || 'there';
 
     const campaignHtml = this.getAdminCampaignTemplate({
-      templateKey,
       recipientName,
       subject,
-      message
+      title,
+      subtitle,
+      body
     });
 
     const campaignText = this.getAdminCampaignText({
-      templateKey,
       recipientName,
       subject,
-      message
+      title,
+      subtitle,
+      body
     });
 
     const mailOptions = {
@@ -631,36 +634,18 @@ class EmailService {
     };
   }
 
-  getAdminCampaignTemplate({ templateKey, recipientName, subject, message }) {
+  getAdminCampaignTemplate({ recipientName, subject, title, subtitle, body }) {
     const safeName = this.escapeHtml(String(recipientName || 'there'));
     const safeSubject = this.escapeHtml(String(subject || 'WishTrail Update'));
-    const safeMessage = this.escapeHtml(String(message || '')).replace(/\n/g, '<br/>');
-    const frontEndUrl = process.env.FRONTEND_URL || 'https://wishtrail.in';
-
-    const blocks = {
-      inactivity: {
-        title: 'We Miss Your Progress 💙',
-        subtitle: 'Your goals are still waiting for you.',
-        lead: `Hi ${safeName}, it’s been a while since your last check-in. Even one small action today can restart your momentum.`
-      },
-      comeback: {
-        title: 'Comeback Time 🚀',
-        subtitle: 'Pick one goal and move it forward today.',
-        lead: `Hi ${safeName}, consistency beats perfection. Open WishTrail and complete one tiny step right now.`
-      },
-      featureRelease: {
-        title: 'New Features Are Live ✨',
-        subtitle: 'WishTrail just got better for your growth journey.',
-        lead: `Hi ${safeName}, we’ve shipped fresh improvements to help you plan better, track smarter, and stay motivated.`
-      },
-      custom: {
-        title: 'Update from WishTrail',
-        subtitle: 'Dreams. Goals. Progress.',
-        lead: `Hi ${safeName}, here’s an important update for your WishTrail journey.`
-      }
-    };
-
-    const content = blocks[templateKey] || blocks.custom;
+    const safeTitle = this.escapeHtml(String(title || safeSubject));
+    const safeSubtitle = this.escapeHtml(String(subtitle || ''));
+    const safeBody = this.escapeHtml(String(body || '')).replace(/\n/g, '<br/>');
+    const baseFrontEndUrl = process.env.FRONTEND_URL || 'https://wishtrail.in';
+    const safeBaseUrl = /^https?:\/\//i.test(baseFrontEndUrl)
+      ? baseFrontEndUrl.replace(/\/+$/, '')
+      : `https://${String(baseFrontEndUrl).replace(/\/+$/, '')}`;
+    const dashboardUrl = `${safeBaseUrl}/dashboard`;
+    const safeDashboardUrl = this.escapeHtml(dashboardUrl);
 
     return `
     <!DOCTYPE html>
@@ -730,18 +715,18 @@ class EmailService {
     <body>
       <div class="container">
         <div class="logo">WishTrail</div>
-        <h1>${content.title}</h1>
-        <p>${content.subtitle}</p>
+        <h1>${safeTitle}</h1>
+        ${safeSubtitle ? `<p>${safeSubtitle}</p>` : ''}
       </div>
 
       <div class="content">
         <h2>${safeSubject}</h2>
-        <p>${content.lead}</p>
-        <div class="message-box">${safeMessage}</div>
-        <div style="text-align:center;">
-          <a href="${frontEndUrl}/dashboard" class="cta-button">Open WishTrail</a>
+        <div class="message-box"><p>Hi ${safeName},</p>
+        ${safeBody}
         </div>
-        <p>Keep moving forward — <span class="highlight">small steps, every day</span>.</p>
+        <div style="text-align:center;">
+          <a href="${safeDashboardUrl}" class="cta-button" style="display:inline-block;background:#667eea;color:#ffffff !important;padding:12px 28px;text-decoration:none;border-radius:6px;font-weight:bold;margin:20px 0;">Open WishTrail</a>
+        </div>
       </div>
 
       <div class="footer">
@@ -753,17 +738,18 @@ class EmailService {
     `;
   }
 
-  getAdminCampaignText({ templateKey, recipientName, subject, message }) {
+  getAdminCampaignText({ recipientName, subject, title, subtitle, body }) {
     const greeting = `Hi ${recipientName || 'there'},`;
-    const descriptors = {
-      inactivity: 'We miss your progress on WishTrail.',
-      comeback: 'This is your comeback nudge from WishTrail.',
-      featureRelease: 'New features are now live on WishTrail.',
-      custom: 'Here is an update from WishTrail.'
-    };
-    const descriptor = descriptors[this.normalizeAdminTemplateKey(templateKey)] || descriptors.custom;
+    const safeTitle = String(title || subject || 'WishTrail Update').trim();
+    const safeSubtitle = String(subtitle || '').trim();
+    const safeBody = String(body || '').trim();
+    const baseFrontEndUrl = process.env.FRONTEND_URL || 'https://wishtrail.in';
+    const safeBaseUrl = /^https?:\/\//i.test(baseFrontEndUrl)
+      ? baseFrontEndUrl.replace(/\/+$/, '')
+      : `https://${String(baseFrontEndUrl).replace(/\/+$/, '')}`;
+    const dashboardUrl = `${safeBaseUrl}/dashboard`;
 
-    return `${greeting}\n\n${descriptor}\n\n${subject}\n\n${message}\n\nOpen WishTrail: ${process.env.FRONTEND_URL || 'https://wishtrail.in'}/dashboard\n\n- Team WishTrail`;
+    return `${greeting}\n\n${safeTitle}${safeSubtitle ? `\n${safeSubtitle}` : ''}\n\n${safeBody}\n\nOpen WishTrail: ${dashboardUrl}\n\n- Team WishTrail`;
   }
 
   escapeHtml(value = '') {
@@ -773,22 +759,6 @@ class EmailService {
       .replace(/>/g, '&gt;')
       .replace(/\"/g, '&quot;')
       .replace(/'/g, '&#39;');
-  }
-
-  normalizeAdminTemplateKey(key) {
-    const normalized = String(key || '').trim();
-    if (!normalized) return 'custom';
-
-    const mapping = {
-      inactive: 'inactivity',
-      inactivity: 'inactivity',
-      comeback: 'comeback',
-      featureRelease: 'featureRelease',
-      feature_release: 'featureRelease',
-      custom: 'custom'
-    };
-
-    return mapping[normalized] || 'custom';
   }
 
   /**

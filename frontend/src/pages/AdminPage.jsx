@@ -3,19 +3,48 @@ import { adminAPI, adminAuth } from '../services/adminApi';
 
 const TABS = ['Users', 'Goals', 'Habits', 'Email', 'Analytics'];
 
-const EMAIL_TEMPLATES = {
-  custom: { subject: '', message: '' },
-  inactive: {
-    subject: 'We miss your progress on WishTrail 💙',
-    message: 'Hi there,\n\nIt’s been a while since your last check-in. Your goals are still here waiting for you, and one small step today can restart your momentum.\n\nOpen WishTrail and complete just one action today.\n\n- Team WishTrail'
+const EMAIL_PRESETS = {
+  custom: {
+    subject: '',
+    title: '',
+    subtitle: '',
+    body: ''
+  },
+  inactivity: {
+    subject: 'We miss your progress on WishTrail',
+    title: 'Your goals are still waiting for you',
+    subtitle: 'One small step today can restart your momentum.',
+    body: 'It has been a while since your last check-in. Your goals are still here, and progress is always one action away.\n\nOpen WishTrail today and complete just one meaningful action.'
+  },
+  noGoals: {
+    subject: 'Let’s create your first goal on WishTrail',
+    title: 'Your journey starts with one goal',
+    subtitle: 'No goals yet — now is the best time to begin.',
+    body: 'You have not created any goals yet, and that is okay. A clear goal gives your effort direction and helps you stay consistent.\n\nTake two minutes to create your first goal and define the first step.'
   },
   comeback: {
-    subject: 'Your comeback starts with one small win 🚀',
-    message: 'Hey,\n\nA comeback does not need to be perfect — it only needs to start. Pick one goal, take one action, and build your streak again.\n\nYou’ve done it before. You can do it again.\n\n- Team WishTrail'
+    subject: 'Your comeback starts with one small win',
+    title: 'Ready for your comeback?',
+    subtitle: 'You do not need perfect — you only need to start.',
+    body: 'A comeback is built one action at a time. Pick one goal, complete one task, and rebuild your streak from today.\n\nYou have done hard things before. You can do this again.'
   },
   featureRelease: {
-    subject: 'New features just dropped on WishTrail ✨',
-    message: 'Hi,\n\nWe’ve released new improvements to make planning, tracking, and consistency easier than ever.\n\nCheck out What\'s New and try the latest updates now.\n\n- Team WishTrail'
+    subject: 'New features are live on WishTrail',
+    title: 'What’s new in WishTrail',
+    subtitle: 'We shipped improvements to support your growth journey.',
+    body: 'We have released new updates to make planning, tracking, and consistency easier.\n\nOpen your dashboard and explore the latest features now.'
+  },
+  motivation: {
+    subject: 'Motivation for your journey today',
+    title: 'A quote for your progress',
+    subtitle: '“Success is the sum of small efforts, repeated day in and day out.”',
+    body: 'Progress is not always loud. Quiet consistency wins over time.\n\nChoose one important action today and complete it before the day ends.'
+  },
+  feedback: {
+    subject: 'Help us improve WishTrail with your feedback',
+    title: 'Your feedback matters',
+    subtitle: 'Tell us what is working and what can be better.',
+    body: 'We are continuously improving WishTrail for your goals and habits journey.\n\nShare your honest feedback: what you love, what feels confusing, and what you want next.'
   }
 };
 
@@ -75,17 +104,20 @@ function AdminPage() {
 
   const [emailForm, setEmailForm] = useState({
     mode: 'selected',
+    preset: 'custom',
     inactiveDays: 30,
-    template: 'custom',
     subject: '',
-    message: ''
+    title: '',
+    subtitle: '',
+    body: '',
+    ending: ''
   });
   const [emailLoading, setEmailLoading] = useState(false);
   const [emailError, setEmailError] = useState('');
   const [emailSuccess, setEmailSuccess] = useState('');
 
   const canSendEmail = useMemo(() => {
-    if (!emailForm.subject.trim() || !emailForm.message.trim()) return false;
+    if (!emailForm.subject.trim() || !emailForm.title.trim() || !emailForm.body.trim() || !emailForm.ending.trim()) return false;
     if (emailForm.mode === 'selected' && selectedUsers.length === 0) return false;
     return true;
   }, [emailForm, selectedUsers.length]);
@@ -201,13 +233,16 @@ function AdminPage() {
     );
   };
 
-  const applyTemplate = (templateKey) => {
-    const template = EMAIL_TEMPLATES[templateKey] || EMAIL_TEMPLATES.custom;
+  const applyEmailPreset = (presetKey) => {
+    const preset = EMAIL_PRESETS[presetKey] || EMAIL_PRESETS.custom;
     setEmailForm((prev) => ({
       ...prev,
-      template: templateKey,
-      subject: template.subject,
-      message: template.message
+      preset: presetKey,
+      subject: preset.subject,
+      title: preset.title,
+      subtitle: preset.subtitle,
+      body: preset.body,
+      ending: preset.ending
     }));
   };
 
@@ -222,8 +257,10 @@ function AdminPage() {
         inactiveDays: emailForm.mode === 'inactive' ? Number(emailForm.inactiveDays || 30) : undefined,
         userIds: emailForm.mode === 'selected' ? selectedUsers : undefined,
         subject: emailForm.subject,
-        message: emailForm.message,
-        templateKey: emailForm.template
+        title: emailForm.title,
+        subtitle: emailForm.subtitle,
+        body: emailForm.body,
+        ending: emailForm.ending
       };
 
       const res = await adminAPI.sendEmail(payload);
@@ -559,16 +596,19 @@ function AdminPage() {
               )}
 
               <div>
-                <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">Quick Templates</label>
+                <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">Preset</label>
                 <select
-                  value={emailForm.template}
-                  onChange={(e) => applyTemplate(e.target.value)}
+                  value={emailForm.preset}
+                  onChange={(e) => applyEmailPreset(e.target.value)}
                   className="w-full sm:w-80 border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-900"
                 >
-                  <option value="custom">Custom email</option>
-                  <option value="inactive">Inactive user</option>
-                  <option value="comeback">Comeback nudge</option>
-                  <option value="featureRelease">Feature release email</option>
+                  <option value="custom">Custom</option>
+                  <option value="inactivity">Inactivity</option>
+                  <option value="noGoals">Users With No Goals</option>
+                  <option value="comeback">Comebacks</option>
+                  <option value="featureRelease">Feature Releases</option>
+                  <option value="motivation">Motivation Quotes</option>
+                  <option value="feedback">Feedbacks</option>
                 </select>
               </div>
 
@@ -576,17 +616,35 @@ function AdminPage() {
                 <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">Subject</label>
                 <input
                   value={emailForm.subject}
-                  onChange={(e) => setEmailForm((prev) => ({ ...prev, subject: e.target.value, template: 'custom' }))}
+                  onChange={(e) => setEmailForm((prev) => ({ ...prev, subject: e.target.value, preset: 'custom' }))}
                   className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-900"
                 />
               </div>
 
               <div>
-                <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">Message</label>
+                <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">Title</label>
+                <input
+                  value={emailForm.title}
+                  onChange={(e) => setEmailForm((prev) => ({ ...prev, title: e.target.value, preset: 'custom' }))}
+                  className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-900"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">Subtitle</label>
+                <input
+                  value={emailForm.subtitle}
+                  onChange={(e) => setEmailForm((prev) => ({ ...prev, subtitle: e.target.value, preset: 'custom' }))}
+                  className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-900"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">Body</label>
                 <textarea
                   rows={8}
-                  value={emailForm.message}
-                  onChange={(e) => setEmailForm((prev) => ({ ...prev, message: e.target.value, template: 'custom' }))}
+                  value={emailForm.body}
+                  onChange={(e) => setEmailForm((prev) => ({ ...prev, body: e.target.value, preset: 'custom' }))}
                   className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-900"
                 />
               </div>
