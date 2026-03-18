@@ -30,7 +30,6 @@ const getAllowedAdminIps = () => {
 
 const requireAllowedAdminIp = (req, res, next) => {
   const requestIp = getRequestIp(req);
-  console.log('Admin access attempt from IP:', requestIp);
   const allowedIps = getAllowedAdminIps();
 
   if (!requestIp || !allowedIps.has(requestIp)) {

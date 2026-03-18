@@ -1,21 +1,21 @@
 import { useEffect, useMemo, useState } from 'react';
 import { adminAPI, adminAuth } from '../services/adminApi';
 
-const TABS = ['Users', 'Goals', 'Habits', 'Email', 'Analytics', 'Announcements'];
+const TABS = ['Users', 'Goals', 'Habits', 'Email', 'Analytics'];
 
 const EMAIL_TEMPLATES = {
   custom: { subject: '', message: '' },
   inactive: {
-    subject: 'We miss you at WishTrail',
-    message: 'Hi there,\n\nYour goals are waiting for you. Come back today and take one small step forward on WishTrail.\n\n- Team WishTrail'
+    subject: 'We miss your progress on WishTrail 💙',
+    message: 'Hi there,\n\nIt’s been a while since your last check-in. Your goals are still here waiting for you, and one small step today can restart your momentum.\n\nOpen WishTrail and complete just one action today.\n\n- Team WishTrail'
   },
   comeback: {
-    subject: 'Quick comeback nudge',
-    message: 'Hey,\n\nProgress is built one action at a time. Open WishTrail and mark one task complete today.\n\nYou have this.\n- Team WishTrail'
+    subject: 'Your comeback starts with one small win 🚀',
+    message: 'Hey,\n\nA comeback does not need to be perfect — it only needs to start. Pick one goal, take one action, and build your streak again.\n\nYou’ve done it before. You can do it again.\n\n- Team WishTrail'
   },
   featureRelease: {
-    subject: 'New feature release on WishTrail',
-    message: 'Hi,\n\nWe just shipped new updates on WishTrail to help you stay consistent and focused. Check out What\'s New and try the latest improvements today.\n\n- Team WishTrail'
+    subject: 'New features just dropped on WishTrail ✨',
+    message: 'Hi,\n\nWe’ve released new improvements to make planning, tracking, and consistency easier than ever.\n\nCheck out What\'s New and try the latest updates now.\n\n- Team WishTrail'
   }
 };
 
@@ -72,12 +72,6 @@ function AdminPage() {
   const [analytics, setAnalytics] = useState({ totalUsers: 0, activeToday: 0, inactiveUsers: 0, totalGoals: 0 });
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [analyticsError, setAnalyticsError] = useState('');
-
-  const [announcementData, setAnnouncementData] = useState({ announcements: [], pagination: { page: 1, pages: 1, total: 0 } });
-  const [announcementsLoading, setAnnouncementsLoading] = useState(false);
-  const [announcementsError, setAnnouncementsError] = useState('');
-  const [announcementQuery, setAnnouncementQuery] = useState({ page: 1, limit: 10 });
-  const [announcementForm, setAnnouncementForm] = useState({ title: '', description: '', isActive: true });
 
   const [emailForm, setEmailForm] = useState({
     mode: 'selected',
@@ -178,26 +172,12 @@ function AdminPage() {
     }
   };
 
-  const loadAnnouncements = async () => {
-    setAnnouncementsLoading(true);
-    setAnnouncementsError('');
-    try {
-      const res = await adminAPI.getAnnouncements(announcementQuery);
-      setAnnouncementData(res?.data?.data || { announcements: [], pagination: { page: 1, pages: 1, total: 0 } });
-    } catch (error) {
-      setAnnouncementsError(error?.response?.data?.message || 'Failed to load announcements');
-    } finally {
-      setAnnouncementsLoading(false);
-    }
-  };
-
   useEffect(() => {
     if (!token) return;
     loadUsers();
     loadGoals();
     loadHabits();
     loadAnalytics();
-    loadAnnouncements();
   }, [token]);
 
   useEffect(() => {
@@ -214,11 +194,6 @@ function AdminPage() {
     if (!token) return;
     loadHabits();
   }, [habitsQuery.page, habitsQuery.limit, habitsQuery.status]);
-
-  useEffect(() => {
-    if (!token) return;
-    loadAnnouncements();
-  }, [announcementQuery.page, announcementQuery.limit]);
 
   const toggleSelectUser = (id) => {
     setSelectedUsers((prev) =>
@@ -247,7 +222,8 @@ function AdminPage() {
         inactiveDays: emailForm.mode === 'inactive' ? Number(emailForm.inactiveDays || 30) : undefined,
         userIds: emailForm.mode === 'selected' ? selectedUsers : undefined,
         subject: emailForm.subject,
-        message: emailForm.message
+        message: emailForm.message,
+        templateKey: emailForm.template
       };
 
       const res = await adminAPI.sendEmail(payload);
@@ -257,28 +233,6 @@ function AdminPage() {
       setEmailError(error?.response?.data?.message || 'Failed to send email');
     } finally {
       setEmailLoading(false);
-    }
-  };
-
-  const createAnnouncement = async (event) => {
-    event.preventDefault();
-    setAnnouncementsError('');
-
-    try {
-      await adminAPI.createAnnouncement(announcementForm);
-      setAnnouncementForm({ title: '', description: '', isActive: true });
-      loadAnnouncements();
-    } catch (error) {
-      setAnnouncementsError(error?.response?.data?.message || 'Failed to create announcement');
-    }
-  };
-
-  const toggleAnnouncementActive = async (announcement) => {
-    try {
-      await adminAPI.updateAnnouncement(announcement._id, { isActive: !announcement.isActive });
-      loadAnnouncements();
-    } catch (error) {
-      setAnnouncementsError(error?.response?.data?.message || 'Failed to update announcement');
     }
   };
 
@@ -678,71 +632,6 @@ function AdminPage() {
           </SectionCard>
         )}
 
-        {activeTab === 'Announcements' && (
-          <SectionCard title="Announcements">
-            <form onSubmit={createAnnouncement} className="space-y-3 mb-6">
-              <input
-                placeholder="Title"
-                value={announcementForm.title}
-                onChange={(e) => setAnnouncementForm((prev) => ({ ...prev, title: e.target.value }))}
-                className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-900"
-                required
-              />
-              <textarea
-                rows={4}
-                placeholder="Description"
-                value={announcementForm.description}
-                onChange={(e) => setAnnouncementForm((prev) => ({ ...prev, description: e.target.value }))}
-                className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-900"
-                required
-              />
-              <label className="inline-flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={announcementForm.isActive}
-                  onChange={(e) => setAnnouncementForm((prev) => ({ ...prev, isActive: e.target.checked }))}
-                />
-                Active
-              </label>
-              <div>
-                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded">
-                  Add Announcement
-                </button>
-              </div>
-            </form>
-
-            {announcementsLoading ? <p>Loading announcements...</p> : null}
-            {announcementsError ? <p className="text-sm text-red-600">{announcementsError}</p> : null}
-
-            {!announcementsLoading && !announcementsError && (
-              <div className="space-y-3">
-                {announcementData.announcements.map((announcement) => (
-                  <div key={announcement._id} className="border border-gray-200 dark:border-gray-700 rounded p-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <h3 className="font-semibold text-gray-900 dark:text-gray-100">{announcement.title}</h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-300 mt-1 whitespace-pre-line">{announcement.description}</p>
-                        <p className="text-xs text-gray-500 mt-2">{new Date(announcement.createdAt).toLocaleString()}</p>
-                      </div>
-                      <button
-                        onClick={() => toggleAnnouncementActive(announcement)}
-                        className={`px-3 py-1 rounded text-xs ${announcement.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-700'}`}
-                      >
-                        {announcement.isActive ? 'Active' : 'Inactive'}
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <Pagination
-              page={announcementData.pagination.page || 1}
-              pages={announcementData.pagination.pages || 1}
-              onPageChange={(nextPage) => setAnnouncementQuery((prev) => ({ ...prev, page: nextPage }))}
-            />
-          </SectionCard>
-        )}
       </div>
     </div>
   );

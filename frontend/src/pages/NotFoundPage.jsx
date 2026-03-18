@@ -101,7 +101,7 @@ const NotFoundPage = () => {
             transition={{ delay: 0.7 }}
             className="text-sm text-gray-500 dark:text-gray-500"
           >
-            © 2024 WISHTRAIL JOURNEY
+            © 2026 WISHTRAIL JOURNEY
           </motion.p>
           
           <div className="flex items-center gap-6">

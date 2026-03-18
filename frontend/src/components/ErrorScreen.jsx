@@ -234,7 +234,7 @@ const ErrorScreen = ({
           transition={{ delay: 0.7 }}
           className="text-sm text-gray-500 dark:text-gray-500"
         >
-          © 2024 WishTrail. Preparing for your next milestone.
+          © 2026 WishTrail. Preparing for your next milestone.
         </motion.p>
       </div>
     </div>

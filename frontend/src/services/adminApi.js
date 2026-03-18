@@ -36,8 +36,5 @@ export const adminAPI = {
   getGoals: (params) => adminApi.get(`${ADMIN_BASE_PATH}/goals`, { params }),
   getHabits: (params) => adminApi.get(`${ADMIN_BASE_PATH}/habits`, { params }),
   getAnalytics: (params) => adminApi.get(`${ADMIN_BASE_PATH}/analytics`, { params }),
-  sendEmail: (payload) => adminApi.post(`${ADMIN_BASE_PATH}/email/send`, payload),
-  getAnnouncements: (params) => adminApi.get(`${ADMIN_BASE_PATH}/announcements`, { params }),
-  createAnnouncement: (payload) => adminApi.post(`${ADMIN_BASE_PATH}/announcements`, payload),
-  updateAnnouncement: (id, payload) => adminApi.patch(`${ADMIN_BASE_PATH}/announcements/${id}`, payload)
+  sendEmail: (payload) => adminApi.post(`${ADMIN_BASE_PATH}/email/send`, payload)
 };

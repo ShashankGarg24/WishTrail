@@ -1,14 +1,5 @@
 const { query } = require('../config/supabase');
 const emailService = require('./emailService');
-const AdminAnnouncement = require('../models/AdminAnnouncement');
-
-const escapeHtml = (value = '') =>
-  String(value)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/\"/g, '&quot;')
-    .replace(/'/g, '&#39;');
 
 const sanitizePlainText = (value = '') => {
   const withoutTags = String(value).replace(/<[^>]*>/g, '');
@@ -345,7 +336,7 @@ const resolveEmailRecipients = async ({ mode, userIds, inactiveDays }) => {
   return res.rows;
 };
 
-const sendBroadcastEmail = async ({ mode, userIds, inactiveDays, subject, message }) => {
+const sendBroadcastEmail = async ({ mode, userIds, inactiveDays, subject, message, templateKey }) => {
   const cleanSubject = sanitizePlainText(subject).slice(0, 180);
   const cleanMessage = sanitizePlainText(message).slice(0, 5000);
 
@@ -363,15 +354,16 @@ const sendBroadcastEmail = async ({ mode, userIds, inactiveDays, subject, messag
     };
   }
 
-  const htmlMessage = `<div style="white-space: pre-line; font-family: Arial, sans-serif;">${escapeHtml(cleanMessage)}</div>`;
-
   const results = await Promise.allSettled(
     recipients.map((user) =>
       emailService.sendAdminBroadcastEmail({
         to: user.email,
         subject: cleanSubject,
-        text: cleanMessage,
-        html: htmlMessage
+        text: {
+          recipientName: user.name,
+          message: cleanMessage,
+          templateKey
+        }
       })
     )
   );
@@ -385,84 +377,11 @@ const sendBroadcastEmail = async ({ mode, userIds, inactiveDays, subject, messag
   };
 };
 
-const createAnnouncement = async ({ title, description, isActive, createdBy }) => {
-  const cleanTitle = sanitizePlainText(title).slice(0, 160);
-  const cleanDescription = sanitizePlainText(description).slice(0, 2000);
-
-  if (!cleanTitle || !cleanDescription) {
-    throw new Error('Title and description are required');
-  }
-
-  const doc = await AdminAnnouncement.create({
-    title: cleanTitle,
-    description: cleanDescription,
-    isActive: isActive === true,
-    createdBy: createdBy || 'admin'
-  });
-
-  return doc;
-};
-
-const listAnnouncements = async ({ page, limit }) => {
-  const pageNum = toPositiveInt(page, 1);
-  const limitNum = Math.min(100, toPositiveInt(limit, 20));
-  const skip = (pageNum - 1) * limitNum;
-
-  const [items, total] = await Promise.all([
-    AdminAnnouncement.find()
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limitNum)
-      .lean(),
-    AdminAnnouncement.countDocuments()
-  ]);
-
-  return {
-    announcements: items,
-    pagination: {
-      page: pageNum,
-      limit: limitNum,
-      total,
-      pages: Math.ceil(total / limitNum) || 1
-    }
-  };
-};
-
-const updateAnnouncement = async (id, { title, description, isActive }) => {
-  const update = {};
-
-  if (typeof title === 'string') {
-    update.title = sanitizePlainText(title).slice(0, 160);
-  }
-
-  if (typeof description === 'string') {
-    update.description = sanitizePlainText(description).slice(0, 2000);
-  }
-
-  if (typeof isActive === 'boolean') {
-    update.isActive = isActive;
-  }
-
-  if (Object.keys(update).length === 0) {
-    throw new Error('No valid fields to update');
-  }
-
-  const doc = await AdminAnnouncement.findByIdAndUpdate(id, update, {
-    new: true,
-    runValidators: true
-  }).lean();
-
-  return doc;
-};
-
 module.exports = {
   getUsers,
   getGoals,
   getHabits,
   getAnalytics,
   sendBroadcastEmail,
-  createAnnouncement,
-  listAnnouncements,
-  updateAnnouncement,
   sanitizePlainText
 };

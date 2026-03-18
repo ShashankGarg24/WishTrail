@@ -87,13 +87,14 @@ module.exports = {
 
   async sendEmail(req, res, next) {
     try {
-      const { mode, userIds, inactiveDays, subject, message } = req.body || {};
+      const { mode, userIds, inactiveDays, subject, message, templateKey } = req.body || {};
       const result = await adminService.sendBroadcastEmail({
         mode,
         userIds,
         inactiveDays,
         subject,
-        message
+        message,
+        templateKey
       });
 
       return res.status(200).json({
@@ -103,55 +104,6 @@ module.exports = {
       });
     } catch (error) {
       if (error.message === 'Subject and message are required') {
-        return res.status(400).json({ success: false, message: error.message });
-      }
-      return next(error);
-    }
-  },
-
-  async createAnnouncement(req, res, next) {
-    try {
-      const { title, description, isActive } = req.body || {};
-      const announcement = await adminService.createAnnouncement({
-        title,
-        description,
-        isActive,
-        createdBy: req.admin?.email
-      });
-
-      return res.status(201).json({
-        success: true,
-        data: { announcement }
-      });
-    } catch (error) {
-      if (error.message === 'Title and description are required') {
-        return res.status(400).json({ success: false, message: error.message });
-      }
-      return next(error);
-    }
-  },
-
-  async listAnnouncements(req, res, next) {
-    try {
-      const result = await adminService.listAnnouncements(req.query || {});
-      return res.status(200).json({ success: true, data: result });
-    } catch (error) {
-      return next(error);
-    }
-  },
-
-  async updateAnnouncement(req, res, next) {
-    try {
-      const { id } = req.params;
-      const announcement = await adminService.updateAnnouncement(id, req.body || {});
-
-      if (!announcement) {
-        return res.status(404).json({ success: false, message: 'Announcement not found' });
-      }
-
-      return res.status(200).json({ success: true, data: { announcement } });
-    } catch (error) {
-      if (error.message === 'No valid fields to update') {
         return res.status(400).json({ success: false, message: error.message });
       }
       return next(error);

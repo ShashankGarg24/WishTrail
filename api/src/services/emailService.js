@@ -590,7 +590,7 @@ class EmailService {
   }
 
   async sendAdminBroadcastEmail({ to, subject, text, html }) {
-    if (!to || !subject || !text) {
+    if (!to || !subject) {
       throw new Error('Missing required email fields');
     }
 
@@ -598,12 +598,30 @@ class EmailService {
       throw new Error('Email service is not configured');
     }
 
+    const templateKey = this.normalizeAdminTemplateKey(text?.templateKey);
+    const message = text?.message || text || '';
+    const recipientName = text?.recipientName || 'there';
+
+    const campaignHtml = this.getAdminCampaignTemplate({
+      templateKey,
+      recipientName,
+      subject,
+      message
+    });
+
+    const campaignText = this.getAdminCampaignText({
+      templateKey,
+      recipientName,
+      subject,
+      message
+    });
+
     const mailOptions = {
       from: this.getFromAddress(),
       to,
       subject,
-      text,
-      html
+      text: campaignText,
+      html: campaignHtml
     };
 
     const info = await this.sendMailWithTimeout(mailOptions);
@@ -611,6 +629,166 @@ class EmailService {
       success: true,
       messageId: info.messageId
     };
+  }
+
+  getAdminCampaignTemplate({ templateKey, recipientName, subject, message }) {
+    const safeName = this.escapeHtml(String(recipientName || 'there'));
+    const safeSubject = this.escapeHtml(String(subject || 'WishTrail Update'));
+    const safeMessage = this.escapeHtml(String(message || '')).replace(/\n/g, '<br/>');
+    const frontEndUrl = process.env.FRONTEND_URL || 'https://wishtrail.in';
+
+    const blocks = {
+      inactivity: {
+        title: 'We Miss Your Progress 💙',
+        subtitle: 'Your goals are still waiting for you.',
+        lead: `Hi ${safeName}, it’s been a while since your last check-in. Even one small action today can restart your momentum.`
+      },
+      comeback: {
+        title: 'Comeback Time 🚀',
+        subtitle: 'Pick one goal and move it forward today.',
+        lead: `Hi ${safeName}, consistency beats perfection. Open WishTrail and complete one tiny step right now.`
+      },
+      featureRelease: {
+        title: 'New Features Are Live ✨',
+        subtitle: 'WishTrail just got better for your growth journey.',
+        lead: `Hi ${safeName}, we’ve shipped fresh improvements to help you plan better, track smarter, and stay motivated.`
+      },
+      custom: {
+        title: 'Update from WishTrail',
+        subtitle: 'Dreams. Goals. Progress.',
+        lead: `Hi ${safeName}, here’s an important update for your WishTrail journey.`
+      }
+    };
+
+    const content = blocks[templateKey] || blocks.custom;
+
+    return `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>${safeSubject}</title>
+      <style>
+        body {
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+          line-height: 1.6;
+          color: #333;
+          max-width: 600px;
+          margin: 0 auto;
+          padding: 20px;
+        }
+        .container {
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          padding: 20px;
+          border-radius: 10px;
+          color: white;
+          text-align: center;
+        }
+        .logo {
+          font-size: 28px;
+          font-weight: bold;
+          margin-bottom: 20px;
+        }
+        .content {
+          background: white;
+          padding: 30px;
+          border-radius: 10px;
+          margin: 20px 0;
+          color: #333;
+        }
+        .highlight {
+          color: #667eea;
+          font-weight: bold;
+        }
+        .cta-button {
+          display: inline-block;
+          background: #667eea;
+          color: #ffffff !important;
+          padding: 12px 28px;
+          text-decoration: none;
+          border-radius: 6px;
+          font-weight: bold;
+          margin: 20px 0;
+        }
+        .message-box {
+          background: #f8f9fa;
+          border: 1px solid #e9ecef;
+          border-radius: 8px;
+          padding: 16px;
+          margin-top: 16px;
+          text-align: left;
+        }
+        .footer {
+          font-size: 14px;
+          color: #666;
+          margin-top: 20px;
+          text-align: center;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="logo">WishTrail</div>
+        <h1>${content.title}</h1>
+        <p>${content.subtitle}</p>
+      </div>
+
+      <div class="content">
+        <h2>${safeSubject}</h2>
+        <p>${content.lead}</p>
+        <div class="message-box">${safeMessage}</div>
+        <div style="text-align:center;">
+          <a href="${frontEndUrl}/dashboard" class="cta-button">Open WishTrail</a>
+        </div>
+        <p>Keep moving forward — <span class="highlight">small steps, every day</span>.</p>
+      </div>
+
+      <div class="footer">
+        <p>© 2026 WishTrail. All rights reserved.</p>
+        <p>Dreams. Goals. Progress.</p>
+      </div>
+    </body>
+    </html>
+    `;
+  }
+
+  getAdminCampaignText({ templateKey, recipientName, subject, message }) {
+    const greeting = `Hi ${recipientName || 'there'},`;
+    const descriptors = {
+      inactivity: 'We miss your progress on WishTrail.',
+      comeback: 'This is your comeback nudge from WishTrail.',
+      featureRelease: 'New features are now live on WishTrail.',
+      custom: 'Here is an update from WishTrail.'
+    };
+    const descriptor = descriptors[this.normalizeAdminTemplateKey(templateKey)] || descriptors.custom;
+
+    return `${greeting}\n\n${descriptor}\n\n${subject}\n\n${message}\n\nOpen WishTrail: ${process.env.FRONTEND_URL || 'https://wishtrail.in'}/dashboard\n\n- Team WishTrail`;
+  }
+
+  escapeHtml(value = '') {
+    return String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/\"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  normalizeAdminTemplateKey(key) {
+    const normalized = String(key || '').trim();
+    if (!normalized) return 'custom';
+
+    const mapping = {
+      inactive: 'inactivity',
+      inactivity: 'inactivity',
+      comeback: 'comeback',
+      featureRelease: 'featureRelease',
+      feature_release: 'featureRelease',
+      custom: 'custom'
+    };
+
+    return mapping[normalized] || 'custom';
   }
 
   /**

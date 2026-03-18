@@ -16,8 +16,4 @@ router.get('/habits', adminController.getHabits);
 router.get('/analytics', adminController.getAnalytics);
 router.post('/email/send', adminController.sendEmail);
 
-router.get('/announcements', adminController.listAnnouncements);
-router.post('/announcements', adminController.createAnnouncement);
-router.patch('/announcements/:id', adminController.updateAnnouncement);
-
 module.exports = router;
