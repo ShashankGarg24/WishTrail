@@ -25,7 +25,39 @@ const useApiStore = create(
     (set, get) => ({
       // Theme state
       isDarkMode: false,
-      toggleTheme: () => set(state => ({ isDarkMode: !state.isDarkMode })),
+      applyTheme: (isDark) => {
+        if (typeof document === 'undefined') return;
+        if (isDark) {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      },
+      setThemeMode: (isDark) => {
+        set({ isDarkMode: !!isDark });
+        get().applyTheme(!!isDark);
+      },
+      toggleTheme: () => {
+        const nextTheme = !get().isDarkMode;
+        set({ isDarkMode: nextTheme });
+        get().applyTheme(nextTheme);
+      },
+      syncThemeFromServer: async () => {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          return { success: false, error: 'No token' };
+        }
+        try {
+          const response = await settingsAPI.getThemeSettings();
+          const theme = response?.data?.data?.theme;
+          const isDark = theme === 'dark';
+          get().setThemeMode(isDark);
+          return { success: true, isDarkMode: isDark };
+        } catch (error) {
+          const errorMessage = handleApiError(error);
+          return { success: false, error: errorMessage };
+        }
+      },
 
       // Loading states
       loading: false,
@@ -413,6 +445,7 @@ const useApiStore = create(
           const response = await authAPI.getMe();
           const { user } = response.data.data;
           set({ user, isAuthenticated: true, cacheMeTs: now });
+          await get().syncThemeFromServer();
           // Fetch dashboard years separately from the new endpoint
           get().getDashboardYears();
           return { success: true, user };

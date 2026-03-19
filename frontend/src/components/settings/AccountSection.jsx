@@ -5,10 +5,9 @@ import useApiStore from '../../store/apiStore';
 import { settingsAPI } from '../../services/api';
 
 const AccountSection = () => {
-  const { user } = useApiStore();
+  const { user, isDarkMode, setThemeMode, syncThemeFromServer } = useApiStore();
   const [privateAccount, setPrivateAccount] = useState(false);
   const [showHabits, setShowHabits] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
   const [blocked, setBlocked] = useState([]);
   const [blockedPage, setBlockedPage] = useState(1);
   const [hasMoreBlocked, setHasMoreBlocked] = useState(true);
@@ -24,9 +23,9 @@ const AccountSection = () => {
 
   useEffect(() => {
     fetchPrivacySettings();
-    fetchThemeSettings();
+    syncThemeFromServer();
     fetchBlockedUsers(1);
-  }, []);
+  }, [syncThemeFromServer]);
 
   // Intersection Observer for infinite scroll
   useEffect(() => {
@@ -60,16 +59,6 @@ const AccountSection = () => {
       setError('Failed to load privacy settings');
     } finally {
       setInitialLoading(false);
-    }
-  };
-
-  const fetchThemeSettings = async () => {
-    try {
-      const response = await settingsAPI.getThemeSettings();
-      const theme = response.data.data.theme;
-      setIsDarkMode(theme === 'dark');
-    } catch (error) {
-      console.error('Failed to fetch theme settings:', error);
     }
   };
 
@@ -141,13 +130,7 @@ const AccountSection = () => {
     setSuccess("");
     try {
       await settingsAPI.updateThemeSettings({ theme: newTheme });
-      setIsDarkMode(!isDarkMode);
-      // Apply theme change immediately
-      if (newTheme === 'dark') {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
+      setThemeMode(newTheme === 'dark');
       setSuccess(`Theme changed to ${newTheme} mode`);
     } catch (error) {
       console.error('Failed to update theme:', error);
