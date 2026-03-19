@@ -6,6 +6,7 @@ import { X, Heart, MessageCircle, Share2, TrendingUp, Send, ZoomIn, ZoomOut, Rot
 import useApiStore from '../store/apiStore';
 import { activitiesAPI, goalsAPI } from '../services/api';
 import toast from 'react-hot-toast';
+import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock';
 
 const ActivityCommentsModal = lazy(() => import('./ActivityCommentsModal'));
 const ShareSheet = lazy(() => import('./ShareSheet'));
@@ -112,12 +113,15 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
 
   useEffect(() => {
     if (isOpen) {
-      document.body.style.overflow = 'hidden';
+      lockBodyScroll();
+      document.documentElement.style.overflow = 'hidden';
     } else {
-      document.body.style.overflow = 'unset';
+      unlockBodyScroll();
+      document.documentElement.style.overflow = '';
     }
     return () => {
-      document.body.style.overflow = 'unset';
+      unlockBodyScroll();
+      document.documentElement.style.overflow = '';
     };
   }, [isOpen]);
 

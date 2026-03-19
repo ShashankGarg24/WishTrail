@@ -1130,10 +1130,11 @@ const useApiStore = create(
           const ttlMs = get().cacheTTLs?.goalPosts || 2 * 60 * 1000; // 2 minutes
           const bucket = get().cacheGoalPosts || {};
           const keysToCheck = [];
-          if (id !== undefined && id !== null) {
-            const sid = String(id);
+          if (id !== undefined && id !== null && id !== '') {
+            const sid = String(id).trim();
             keysToCheck.push(`goal:${sid}`);
             keysToCheck.push(`activity:${sid}`);
+            keysToCheck.push(`request:${sid}`);
           }
           if (!force) {
             for (const key of keysToCheck) {
@@ -1149,13 +1150,18 @@ const useApiStore = create(
           try {
             const goalId = resp?.data?.goal?._id;
             const activityId = resp?.data?.social?.activityId;
+            const requestId = id !== undefined && id !== null && id !== '' ? String(id).trim() : null;
             const now = Date.now();
             const current = get().cacheGoalPosts || {};
             const next = { ...current };
+            if (requestId) next[`request:${requestId}`] = { data: resp, ts: now };
             if (goalId) next[`goal:${String(goalId)}`] = { data: resp, ts: now };
             if (activityId) next[`activity:${String(activityId)}`] = { data: resp, ts: now };
-            // Also cache the request id if not one of the above
-            if (id && !goalId && !activityId) next[`goal:${String(id)}`] = { data: resp, ts: now };
+            // Also cache with direct namespaces for alias lookups
+            if (requestId) {
+              next[`goal:${requestId}`] = { data: resp, ts: now };
+              next[`activity:${requestId}`] = { data: resp, ts: now };
+            }
             set({ cacheGoalPosts: next });
           } catch { }
           return { success: true, ...resp };

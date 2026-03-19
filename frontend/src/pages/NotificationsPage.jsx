@@ -8,7 +8,7 @@ const GoalPostModal = lazy(() => import('../components/GoalPostModal'));
 
 const NotificationsPageNew = () => {
   const navigate = useNavigate();
-  const { 
+  const {
     user,
     isAuthenticated,
     getNotifications,
@@ -83,7 +83,7 @@ const NotificationsPageNew = () => {
     if (loadingMore || !notificationsPagination) return;
     const { page, pages } = notificationsPagination;
     if (page >= pages) return;
-    
+
     setLoadingMore(true);
     try {
       await loadMoreNotifications();
@@ -98,7 +98,7 @@ const NotificationsPageNew = () => {
     const now = new Date();
     const date = new Date(dateString);
     const diffInHours = Math.floor((now - date) / (1000 * 60 * 60));
-    
+
     if (diffInHours < 1) return 'Just now';
     if (diffInHours < 24) return `${diffInHours}h ago`;
     const diffInDays = Math.floor(diffInHours / 24);
@@ -141,14 +141,14 @@ const NotificationsPageNew = () => {
   const hasNotifications = (notifications?.length > 0) || (followRequests?.length > 0);
 
   return (
-    <div className="min-h-screen bg-gray-50" style={{ fontFamily: 'Manrope, sans-serif' }}>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900" style={{ fontFamily: 'Manrope, sans-serif' }}>
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-start justify-between mb-2">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Notifications</h1>
-              <p className="text-gray-600">
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Notifications</h1>
+              <p className="text-gray-600 dark:text-gray-400">
                 {unreadNotifications > 0 ? (
                   <>You have <span className="font-semibold text-[#4c99e6]">{unreadNotifications} unread</span> alerts</>
                 ) : (
@@ -170,7 +170,7 @@ const NotificationsPageNew = () => {
               <button
                 onClick={handleRefresh}
                 disabled={loading}
-                className="p-2.5 bg-white border border-gray-200 rounded-lg text-gray-600 hover:text-[#4c99e6] hover:border-[#4c99e6] transition-colors disabled:opacity-50"
+                className="p-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-600 dark:text-gray-300 hover:text-[#4c99e6] hover:border-[#4c99e6] transition-colors disabled:opacity-50"
               >
                 <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
               </button>
@@ -180,12 +180,12 @@ const NotificationsPageNew = () => {
 
         {/* Notifications List */}
         {!hasNotifications ? (
-          <div className="text-center py-16 bg-white rounded-xl border border-gray-100">
-            <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center mx-auto mb-4">
+          <div className="text-center py-16 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700">
+            <div className="w-16 h-16 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center mx-auto mb-4">
               <MessageCircle className="w-8 h-8 text-[#4c99e6]" />
             </div>
-            <p className="text-lg font-semibold text-gray-700 mb-1">No notifications yet</p>
-            <p className="text-sm text-gray-500">When people interact with you, you'll see updates here</p>
+            <p className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-1">No notifications yet</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">When people interact with you, you'll see updates here</p>
           </div>
         ) : (
           <div className="space-y-8">{/* Follow Requests Section */}
@@ -206,11 +206,10 @@ const NotificationsPageNew = () => {
                         key={request.id || request._id}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className={`relative bg-white rounded-lg border transition-all ${
-                          isUnread
-                            ? 'border-l-4 border-l-[#4c99e6] border-r border-r-gray-100 border-t border-t-gray-100 border-b border-b-gray-100 shadow-sm'
-                            : 'border-gray-100'
-                        }`}
+                        className={`relative bg-white dark:bg-gray-800 rounded-lg border transition-all ${isUnread
+                            ? 'border-l-4 border-l-[#4c99e6] border-r border-r-gray-100 dark:border-r-gray-700 border-t border-t-gray-100 dark:border-t-gray-700 border-b border-b-gray-100 dark:border-b-gray-700 shadow-sm'
+                            : 'border-gray-100 dark:border-gray-700'
+                          }`}
                       >
                         <div className="flex items-center gap-4 p-4">
                           <div className="relative flex-shrink-0">
@@ -218,25 +217,25 @@ const NotificationsPageNew = () => {
                               src={actorAvatar}
                               alt={actorName}
                               onClick={() => actorUsername && navigate(`/profile/@${actorUsername}`)}
-                              className="w-12 h-12 rounded-full cursor-pointer hover:opacity-80 ring-2 ring-white"
+                              className="w-12 h-12 rounded-full cursor-pointer hover:opacity-80 ring-2 ring-white dark:ring-gray-900"
                             />
                             {isUnread && (
-                              <span className="absolute -top-1 -right-1 w-3 h-3 bg-[#4c99e6] rounded-full ring-2 ring-white"></span>
+                              <span className="absolute -top-1 -right-1 w-3 h-3 bg-[#4c99e6] rounded-full ring-2 ring-white dark:ring-gray-900"></span>
                             )}
                           </div>
 
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm text-gray-900">
-                              <span 
+                            <p className="text-sm text-gray-900 dark:text-gray-100">
+                              <span
                                 onClick={() => actorUsername && navigate(`/profile/@${actorUsername}`)}
                                 className="font-semibold cursor-pointer hover:text-[#4c99e6]"
                               >
                                 {actorName}
                               </span>
-                              <span className="text-gray-600"> wants to follow you</span>
+                              <span className="text-gray-600 dark:text-gray-400"> wants to follow you</span>
                             </p>
                             <div className="flex items-center gap-2 mt-1">
-                              <p className="text-xs text-gray-500">{formatTimeAgo(request.createdAt)}</p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">{formatTimeAgo(request.createdAt)}</p>
                             </div>
                           </div>
 
@@ -258,7 +257,7 @@ const NotificationsPageNew = () => {
                                 await rejectFollowRequest(request.id || request._id);
                                 await getFollowRequests({ page: 1, limit: 10 });
                               }}
-                              className="p-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-colors"
+                              className="p-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg transition-colors"
                               title="Reject"
                             >
                               <X className="w-4 h-4" />
@@ -298,11 +297,10 @@ const NotificationsPageNew = () => {
                           }
                           if (isUnread) markNotificationRead(notification.id || notification._id);
                         }}
-                        className={`relative bg-white rounded-lg border transition-all cursor-pointer hover:shadow-md ${
-                          isUnread
-                            ? 'border-l-4 border-l-[#4c99e6] border-r border-r-gray-100 border-t border-t-gray-100 border-b border-b-gray-100 shadow-sm'
-                            : 'border-gray-100'
-                        }`}
+                        className={`relative bg-white dark:bg-gray-800 rounded-lg border transition-all cursor-pointer hover:shadow-md ${isUnread
+                            ? 'border-l-4 border-l-[#4c99e6] border-r border-r-gray-100 dark:border-r-gray-700 border-t border-t-gray-100 dark:border-t-gray-700 border-b border-b-gray-100 dark:border-b-gray-700 shadow-sm'
+                            : 'border-gray-100 dark:border-gray-700'
+                          }`}
                       >
                         <div className="flex items-center gap-4 p-4">
                           {/* Avatar */}
@@ -314,17 +312,17 @@ const NotificationsPageNew = () => {
                                 e.stopPropagation();
                                 actorUsername && navigate(`/profile/@${actorUsername}`);
                               }}
-                              className="w-12 h-12 rounded-full cursor-pointer hover:opacity-80 ring-2 ring-white"
+                              className="w-12 h-12 rounded-full cursor-pointer hover:opacity-80 ring-2 ring-white dark:ring-gray-900"
                             />
                             {isUnread && (
-                              <span className="absolute -top-1 -right-1 w-3 h-3 bg-[#4c99e6] rounded-full ring-2 ring-white"></span>
+                              <span className="absolute -top-1 -right-1 w-3 h-3 bg-[#4c99e6] rounded-full ring-2 ring-white dark:ring-gray-900"></span>
                             )}
                           </div>
 
                           {/* Content */}
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm text-gray-900">
-                              <span 
+                            <p className="text-sm text-gray-900 dark:text-gray-100">
+                              <span
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   actorUsername && navigate(`/profile/@${actorUsername}`);
@@ -333,13 +331,13 @@ const NotificationsPageNew = () => {
                               >
                                 {actorName}
                               </span>
-                              <span className="text-gray-600"> {notification.message?.replace(actorName, '').trim()}</span>
+                              <span className="text-gray-600 dark:text-gray-400"> {notification.message?.replace(actorName, '').trim()}</span>
                               {goalTitle && (
                                 <span className="text-[#4c99e6]"> {goalTitle}</span>
                               )}
                             </p>
                             <div className="flex items-center gap-2 mt-1">
-                              <p className="text-xs text-gray-500">{formatTimeAgo(notification.createdAt)}</p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">{formatTimeAgo(notification.createdAt)}</p>
                             </div>
                           </div>
                         </div>
@@ -377,11 +375,10 @@ const NotificationsPageNew = () => {
                           }
                           if (isUnread) markNotificationRead(notification.id || notification._id);
                         }}
-                        className={`relative bg-white rounded-lg border hover:shadow-md transition-all cursor-pointer ${
-                          isUnread
-                            ? 'border-l-4 border-l-[#4c99e6] border-r border-r-gray-100 border-t border-t-gray-100 border-b border-b-gray-100 shadow-sm'
-                            : 'border-gray-100 hover:border-gray-200'
-                        }`}
+                        className={`relative bg-white dark:bg-gray-800 rounded-lg border hover:shadow-md transition-all cursor-pointer ${isUnread
+                            ? 'border-l-4 border-l-[#4c99e6] border-r border-r-gray-100 dark:border-r-gray-700 border-t border-t-gray-100 dark:border-t-gray-700 border-b border-b-gray-100 dark:border-b-gray-700 shadow-sm'
+                            : 'border-gray-100 dark:border-gray-700 hover:border-gray-200 dark:hover:border-gray-600'
+                          }`}
                       >
                         <div className="flex items-center gap-4 p-4">
                           <div className="relative flex-shrink-0">
@@ -392,16 +389,16 @@ const NotificationsPageNew = () => {
                                 e.stopPropagation();
                                 actorUsername && navigate(`/profile/@${actorUsername}`);
                               }}
-                              className="w-12 h-12 rounded-full cursor-pointer hover:opacity-80 ring-2 ring-white"
+                              className="w-12 h-12 rounded-full cursor-pointer hover:opacity-80 ring-2 ring-white dark:ring-gray-900"
                             />
                             {isUnread && (
-                              <span className="absolute -top-1 -right-1 w-3 h-3 bg-[#4c99e6] rounded-full ring-2 ring-white"></span>
+                              <span className="absolute -top-1 -right-1 w-3 h-3 bg-[#4c99e6] rounded-full ring-2 ring-white dark:ring-gray-900"></span>
                             )}
                           </div>
 
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm text-gray-900">
-                              <span 
+                            <p className="text-sm text-gray-900 dark:text-gray-100">
+                              <span
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   actorUsername && navigate(`/profile/@${actorUsername}`);
@@ -410,13 +407,13 @@ const NotificationsPageNew = () => {
                               >
                                 {actorName}
                               </span>
-                              <span className="text-gray-600"> {notification.message?.replace(actorName, '').trim()}</span>
+                              <span className="text-gray-600 dark:text-gray-400"> {notification.message?.replace(actorName, '').trim()}</span>
                               {goalTitle && (
                                 <span className="text-[#4c99e6]"> {goalTitle}</span>
                               )}
                             </p>
                             <div className="flex items-center gap-2 mt-1">
-                              <p className="text-xs text-gray-500">{formatTimeAgo(notification.createdAt)}</p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">{formatTimeAgo(notification.createdAt)}</p>
                             </div>
                           </div>
                         </div>
@@ -454,11 +451,10 @@ const NotificationsPageNew = () => {
                           }
                           markNotificationRead(notification.id || notification._id);
                         }}
-                        className={`relative bg-white rounded-lg border hover:shadow-md transition-all cursor-pointer ${
-                          isUnread
-                            ? 'border-l-4 border-l-[#4c99e6] border-r border-r-gray-100 border-t border-t-gray-100 border-b border-b-gray-100 shadow-sm'
-                            : 'border-gray-100 hover:border-gray-200'
-                        }`}
+                        className={`relative bg-white dark:bg-gray-800 rounded-lg border hover:shadow-md transition-all cursor-pointer ${isUnread
+                            ? 'border-l-4 border-l-[#4c99e6] border-r border-r-gray-100 dark:border-r-gray-700 border-t border-t-gray-100 dark:border-t-gray-700 border-b border-b-gray-100 dark:border-b-gray-700 shadow-sm'
+                            : 'border-gray-100 dark:border-gray-700 hover:border-gray-200 dark:hover:border-gray-600'
+                          }`}
                       >
                         <div className="flex items-center gap-4 p-4">
                           <div className="relative flex-shrink-0">
@@ -469,16 +465,16 @@ const NotificationsPageNew = () => {
                                 e.stopPropagation();
                                 actorUsername && navigate(`/profile/@${actorUsername}`);
                               }}
-                              className="w-12 h-12 rounded-full cursor-pointer hover:opacity-80 ring-2 ring-white"
+                              className="w-12 h-12 rounded-full cursor-pointer hover:opacity-80 ring-2 ring-white dark:ring-gray-900"
                             />
                             {isUnread && (
-                              <span className="absolute -top-1 -right-1 w-3 h-3 bg-[#4c99e6] rounded-full ring-2 ring-white"></span>
+                              <span className="absolute -top-1 -right-1 w-3 h-3 bg-[#4c99e6] rounded-full ring-2 ring-white dark:ring-gray-900"></span>
                             )}
                           </div>
 
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm text-gray-900">
-                              <span 
+                            <p className="text-sm text-gray-900 dark:text-gray-100">
+                              <span
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   actorUsername && navigate(`/profile/@${actorUsername}`);
@@ -487,13 +483,13 @@ const NotificationsPageNew = () => {
                               >
                                 {actorName}
                               </span>
-                              <span className="text-gray-600"> {notification.message?.replace(actorName, '').trim()}</span>
+                              <span className="text-gray-600 dark:text-gray-400"> {notification.message?.replace(actorName, '').trim()}</span>
                               {goalTitle && (
                                 <span className="text-[#4c99e6]"> {goalTitle}</span>
                               )}
                             </p>
                             <div className="flex items-center gap-2 mt-1">
-                              <p className="text-xs text-gray-500">{formatTimeAgo(notification.createdAt)}</p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">{formatTimeAgo(notification.createdAt)}</p>
                             </div>
                           </div>
                         </div>
@@ -510,7 +506,7 @@ const NotificationsPageNew = () => {
                 <button
                   onClick={handleLoadMore}
                   disabled={loadingMore}
-                  className="px-6 py-3 bg-white border-2 border-[#4c99e6] text-[#4c99e6] rounded-xl font-medium hover:bg-blue-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-6 py-3 bg-white dark:bg-gray-800 border-2 border-[#4c99e6] text-[#4c99e6] rounded-xl font-medium hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loadingMore ? (
                     <div className="flex items-center gap-2">
@@ -528,7 +524,7 @@ const NotificationsPageNew = () => {
 
         {/* Inspirational Quote */}
         <div className="mt-12 text-center">
-          <p className="text-sm text-gray-400 italic">
+          <p className="text-sm text-gray-400 dark:text-gray-500 italic">
             "Success is a sequence of deliberate actions, executed with consistency."
           </p>
         </div>

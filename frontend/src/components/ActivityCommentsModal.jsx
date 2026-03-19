@@ -12,7 +12,43 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
   const [input, setInput] = useState('')
   const [replyTo, setReplyTo] = useState(null) // {commentId, userName, userId}
   const [expandedReplies, setExpandedReplies] = useState({}) // {commentId: boolean}
+  const [isMobile, setIsMobile] = useState(false)
+  const [mobileSheetMaxHeight, setMobileSheetMaxHeight] = useState(null)
   const navigate = useNavigate()
+
+  useEffect(() => {
+    const computeMobile = () => setIsMobile(typeof window !== 'undefined' && window.innerWidth < 768)
+    computeMobile()
+    window.addEventListener('resize', computeMobile)
+    return () => window.removeEventListener('resize', computeMobile)
+  }, [])
+
+  useEffect(() => {
+    if (inline || embedded || !isOpen || !isMobile) {
+      setMobileSheetMaxHeight(null)
+      return
+    }
+
+    const setHeight = () => {
+      try {
+        const viewportHeight = window.visualViewport?.height || window.innerHeight
+        setMobileSheetMaxHeight(Math.max(320, Math.floor(viewportHeight - 8)))
+      } catch {
+        setMobileSheetMaxHeight(null)
+      }
+    }
+
+    setHeight()
+    window.visualViewport?.addEventListener('resize', setHeight)
+    window.visualViewport?.addEventListener('scroll', setHeight)
+    window.addEventListener('orientationchange', setHeight)
+
+    return () => {
+      window.visualViewport?.removeEventListener('resize', setHeight)
+      window.visualViewport?.removeEventListener('scroll', setHeight)
+      window.removeEventListener('orientationchange', setHeight)
+    }
+  }, [inline, embedded, isOpen, isMobile])
 
   useEffect(() => {
     const shouldLoad = (inline || embedded) ? !!activity?._id : (isOpen && !!activity?._id)
@@ -193,7 +229,7 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
                             onChange={(e) => setInput(e.target.value)}
                             onKeyDown={handleKeyDown}
                             placeholder={`Replying to ${replyTo.userName}`}
-                            className="flex-1 px-2 py-1.5 text-xs rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#4c99e6] focus:border-[#4c99e6]"
+                            className="flex-1 px-2 py-1.5 text-base md:text-xs rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#4c99e6] focus:border-[#4c99e6]"
                           />
                           <button onClick={handlePost} className="px-2 py-1.5 rounded-lg bg-[#4c99e6] text-white disabled:opacity-50" disabled={!input.trim()}>
                             <Send className="h-3.5 w-3.5" />
@@ -251,13 +287,13 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
         </div>
 
         {!replyTo && !hideInput && (
-          <div className="flex items-center gap-2 mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 sticky bottom-0 bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl z-10 rounded-b-xl">
+          <div className="flex items-center gap-2 mt-4 pt-4 pb-[max(env(safe-area-inset-bottom),12px)] border-t border-gray-200 dark:border-gray-700 sticky bottom-0 bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl z-10 rounded-b-xl">
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={'Write a comment...'}
-              className="flex-1 px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#4c99e6] focus:border-[#4c99e6] transition-all"
+              className="flex-1 px-4 py-2.5 text-base md:text-sm rounded-xl border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#4c99e6] focus:border-[#4c99e6] transition-all"
             />
             <button 
               onClick={handlePost} 
@@ -415,8 +451,9 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
               onClose?.();
             }
           }}
-          className="bg-white dark:bg-gray-900 rounded-t-2xl md:rounded-2xl w-full md:max-w-2xl max-h-[90vh] md:max-h-[85vh] flex flex-col overflow-hidden shadow-2xl"
+          className="bg-white dark:bg-gray-900 rounded-t-2xl md:rounded-2xl w-full md:max-w-2xl max-h-[90dvh] md:max-h-[85vh] flex flex-col overflow-hidden shadow-2xl"
           style={{ fontFamily: 'Manrope, sans-serif' }}
+          style={mobileSheetMaxHeight ? { fontFamily: 'Manrope, sans-serif', maxHeight: `${mobileSheetMaxHeight}px` } : { fontFamily: 'Manrope, sans-serif' }}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Mobile drag handle */}
@@ -468,7 +505,7 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
                               onChange={(e) => setInput(e.target.value)}
                               onKeyDown={handleKeyDown}
                               placeholder={`Replying to ${replyTo.userName}`}
-                              className="flex-1 px-2 py-1.5 text-xs rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#4c99e6] focus:border-[#4c99e6]"
+                              className="flex-1 px-2 py-1.5 text-base md:text-xs rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#4c99e6] focus:border-[#4c99e6]"
                             />
                             <button onClick={handlePost} className="px-2 py-1.5 rounded-lg bg-[#4c99e6] text-white disabled:opacity-50" disabled={!input.trim()}>
                               <Send className="h-3.5 w-3.5" />
@@ -520,12 +557,12 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
 
           {/* New comment input */}
           {!replyTo && (
-            <div className="flex items-center gap-2 p-3 border-t border-gray-200 dark:border-gray-800">
+            <div className="flex items-center gap-2 p-3 pb-[max(env(safe-area-inset-bottom),12px)] border-t border-gray-200 dark:border-gray-800">
               <input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder={'Add a comment'}
-                className="flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#4c99e6] focus:border-[#4c99e6]"
+                className="flex-1 px-3 py-2 text-base md:text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#4c99e6] focus:border-[#4c99e6]"
               />
               <button onClick={handlePost} className="px-3 py-2 rounded-lg bg-[#4c99e6] text-white disabled:opacity-50" disabled={!input.trim()}>
                 <Send className="h-4 w-4" />
