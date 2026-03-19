@@ -9,8 +9,8 @@ const { GOAL_CATEGORIES } = require('../constants/category');
 
 const router = express.Router();
 
-// Validation rules
-const goalValidation = [
+// Create validation rules
+const createGoalValidation = [
   body('title')
     .trim()
     .isLength({ min: 3, max: 200 })
@@ -24,6 +24,31 @@ const goalValidation = [
     .withMessage('Invalid category'),
   body('targetDate')
     .optional({ checkFalsy: true , nullable: true})
+    .isISO8601()
+    .withMessage('Target date must be a valid date'),
+  body('year')
+    .optional()
+    .isInt({ min: 2020, max: 2030 })
+    .withMessage('Year must be between 2020 and 2030')
+];
+
+// Update validation rules (partial updates allowed)
+const updateGoalValidation = [
+  body('title')
+    .optional({ nullable: true })
+    .trim()
+    .isLength({ min: 3, max: 200 })
+    .withMessage('Title must be between 3 and 200 characters'),
+  body('description')
+    .optional({ nullable: true })
+    .isLength({ max: 1000 })
+    .withMessage('Description must be less than 1000 characters'),
+  body('category')
+    .optional({ nullable: true })
+    .isIn(GOAL_CATEGORIES)
+    .withMessage('Invalid category'),
+  body('targetDate')
+    .optional({ checkFalsy: true, nullable: true })
     .isISO8601()
     .withMessage('Target date must be a valid date'),
   body('year')
@@ -67,10 +92,10 @@ router.get('/:id/updates', goalController.getGoalUpdates);
 router.get('/:id/updates/today', goalController.getTodayGoalUpdate);
 router.put('/:id/updates/today', goalController.upsertTodayGoalUpdate);
 router.delete('/:id/updates/today', goalController.deleteTodayGoalUpdate);
-router.post('/', goalValidation, goalController.createGoal);
+router.post('/', createGoalValidation, goalController.createGoal);
 router.get('/yearly/:year', goalController.getYearlyGoalsSummary);
 router.get('/:id', goalController.getGoal);
-router.put('/:id', goalValidation, goalController.updateGoal);
+router.put('/:id', updateGoalValidation, goalController.updateGoal);
 router.delete('/:id', goalController.deleteGoal);
 router.patch('/:id/like', goalController.toggleGoalLike);
 

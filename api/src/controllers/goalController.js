@@ -839,6 +839,15 @@ const updateGoal = async (req, res, next) => {
     const isPublicFlag = (req.body.isPublic === true || req.body.isPublic === 'true') ? true : false;
     const isUpdatesPublicFlag = (req.body.isUpdatesPublic === true || req.body.isUpdatesPublic === 'true') ? true : false;
 
+    const updatableFields = ['title', 'description', 'category', 'targetDate', 'subGoals', 'habitLinks', 'isPublic', 'isUpdatesPublic'];
+    const hasAnyUpdatableField = updatableFields.some((field) => Object.prototype.hasOwnProperty.call(req.body || {}, field));
+    if (!hasAnyUpdatableField) {
+      return res.status(400).json({
+        success: false,
+        message: 'No valid fields provided for update'
+      });
+    }
+
     // ✅ PREMIUM CHECK: Validate subgoals and habit links limits on update
     if ((Array.isArray(subGoals) && subGoals.length > 0) || (Array.isArray(habitLinks) && habitLinks.length > 0)) {
       const user = await pgUserService.findById(req.user.id);

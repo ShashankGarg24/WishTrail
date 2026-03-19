@@ -955,7 +955,7 @@ const DashboardPageNew = () => {
                       </div>
 
                       <h3 className="font-semibold text-gray-900 dark:text-white font-manrope text-base mb-3 pr-16">
-                        {habit.title}
+                        {habit.name}
                       </h3>
 
                       {habit.description && (
