@@ -1,10 +1,8 @@
 const express = require('express');
 const adminController = require('../controllers/adminController');
-const { requireAllowedAdminIp, requireAdminAuth } = require('../middleware/adminAuth');
+const { requireAdminAuth } = require('../middleware/adminAuth');
 
 const router = express.Router();
-
-router.use(requireAllowedAdminIp);
 
 router.post('/login', adminController.login);
 

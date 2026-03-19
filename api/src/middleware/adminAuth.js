@@ -28,20 +28,6 @@ const getAllowedAdminIps = () => {
   return new Set(fromEnv);
 };
 
-const requireAllowedAdminIp = (req, res, next) => {
-  const requestIp = getRequestIp(req);
-  const allowedIps = getAllowedAdminIps();
-
-  if (!requestIp || !allowedIps.has(requestIp)) {
-    return res.status(403).json({
-      success: false,
-      message: 'Admin access denied for this IP'
-    });
-  }
-
-  return next();
-};
-
 const signAdminToken = (payload) => {
   const secret = process.env.ADMIN_JWT_SECRET || process.env.JWT_SECRET;
   if (!secret) {
@@ -100,6 +86,5 @@ const requireAdminAuth = (req, res, next) => {
 module.exports = {
   getRequestIp,
   signAdminToken,
-  requireAllowedAdminIp,
   requireAdminAuth
 };
