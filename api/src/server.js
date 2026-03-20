@@ -164,7 +164,7 @@ const createApp = async () => {
   // Explore routes removed
   apiRouter.use('/upload', require('./routes/uploadRoutes'));
   apiRouter.use('/location', require('./routes/locationRoutes'));
-  apiRouter.use('/daily-logs', require('./routes/dailyLogsRoutes'));
+  apiRouter.use('/daily-logs', require('./routes/DailyLogsRoutes'));
   apiRouter.use('/feedback', require('./routes/feedbackRoutes'));
   apiRouter.use('/habits', require('./routes/habitRoutes'));
   apiRouter.use('/moderation', require('./routes/moderationRoutes'));
