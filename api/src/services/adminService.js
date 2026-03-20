@@ -1,5 +1,6 @@
 const { query } = require('../config/supabase');
 const emailService = require('./emailService');
+const DailyLogsEntry = require('../models/DailyLogsEntry');
 
 const sanitizePlainText = (value = '') => {
   const withoutTags = String(value).replace(/<[^>]*>/g, '');
@@ -13,7 +14,7 @@ const toPositiveInt = (value, fallback) => {
   return parsed;
 };
 
-const formatUserRow = (row) => ({
+const formatUserRow = (row, lastDailyUpdatedAt = null) => ({
   id: row.id,
   name: row.name,
   username: row.username,
@@ -23,6 +24,7 @@ const formatUserRow = (row) => ({
   totalHabits: row.total_habits,
   createdAt: row.created_at,
   lastActiveAt: row.last_active_at,
+  lastDailyUpdatedAt,
   accountActive: row.is_active,
   lastUpdateSeen: row.last_seen_update_version
 });
@@ -112,10 +114,27 @@ const getUsers = async ({ page, limit, search, inactiveDays }) => {
     query(countQuery, [searchTerm, wildcard, inactiveDaysNum])
   ]);
 
+  const listedUserIds = listResult.rows
+    .map((row) => Number(row.id))
+    .filter((id) => Number.isFinite(id));
+
+  let lastDailyUpdatedAtByUserId = {};
+  if (listedUserIds.length > 0) {
+    const latestDailyLogs = await DailyLogsEntry.aggregate([
+      { $match: { userId: { $in: listedUserIds } } },
+      { $group: { _id: '$userId', lastDailyUpdatedAt: { $max: '$updatedAt' } } }
+    ]);
+
+    lastDailyUpdatedAtByUserId = latestDailyLogs.reduce((acc, item) => {
+      acc[String(item._id)] = item.lastDailyUpdatedAt || null;
+      return acc;
+    }, {});
+  }
+
   const total = parseInt(countResult.rows[0]?.total || '0', 10);
 
   return {
-    users: listResult.rows.map(formatUserRow),
+    users: listResult.rows.map((row) => formatUserRow(row, lastDailyUpdatedAtByUserId[String(row.id)] || null)),
     pagination: {
       page: pageNum,
       limit: limitNum,

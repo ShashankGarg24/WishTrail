@@ -82,6 +82,14 @@ const WhatsNewPage = () => {
       .join(' ')
   }
 
+  const parseUpdateTypes = (value) => {
+    if (!value) return ['feature']
+    return String(value)
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean)
+  }
+
   return (
     <div className="min-h-screen bg-[#f5f5f5] dark:bg-gray-900 transition-colors">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
@@ -183,13 +191,16 @@ const WhatsNewPage = () => {
                                 >
                                   {update.isMajor ? 'Major' : 'Minor'}
                                 </span>
-                                <span
-                                  className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${
-                                    typeBadgeColors[update.type] || typeBadgeColors.feature
-                                  }`}
-                                >
-                                  {formatTypeLabel(update.type)}
-                                </span>
+                                {parseUpdateTypes(update.type).map((typeItem) => (
+                                  <span
+                                    key={`${update.id}-${typeItem}`}
+                                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                                      typeBadgeColors[typeItem] || typeBadgeColors.feature
+                                    }`}
+                                  >
+                                    {formatTypeLabel(typeItem)}
+                                  </span>
+                                ))}
                               </div>
 
                               <p className="text-xs text-gray-500 dark:text-gray-400">

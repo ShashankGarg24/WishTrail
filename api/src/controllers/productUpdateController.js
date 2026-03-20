@@ -4,8 +4,25 @@ const redis = require('../config/redis');
 
 const WHATS_NEW_CACHE_TTL_SECONDS = 12 * 60 * 60;
 const WHATS_NEW_CACHE_PREFIX = 'wishtrail:whats_new:list';
+const PRODUCT_UPDATE_TYPES = ['bug_fix', 'enhancement', 'feature'];
 
 const getWhatsNewCacheKey = ({ page, limit }) => `${WHATS_NEW_CACHE_PREFIX}:page:${page}:limit:${limit}`;
+
+const normalizeTypesInput = (rawType) => {
+  const source = Array.isArray(rawType) ? rawType : String(rawType || '').split(',');
+  const cleaned = source
+    .map((item) => String(item || '').trim().toLowerCase())
+    .filter(Boolean);
+
+  const unique = [...new Set(cleaned)];
+  const invalid = unique.filter((item) => !PRODUCT_UPDATE_TYPES.includes(item));
+
+  return {
+    normalized: unique.join(','),
+    values: unique,
+    invalid
+  };
+};
 
 const clearWhatsNewListCache = async () => {
   try {
@@ -153,11 +170,10 @@ module.exports = {
       const { type } = req.params;
       const { page = 1, limit = 50 } = req.query;
       
-      const validTypes = ['bug_fix', 'enhancement', 'feature'];
-      if (!validTypes.includes(type)) {
+      if (!PRODUCT_UPDATE_TYPES.includes(type)) {
         return res.status(400).json({
           success: false,
-          message: `Invalid type. Must be one of: ${validTypes.join(', ')}`
+          message: `Invalid type. Must be one of: ${PRODUCT_UPDATE_TYPES.join(', ')}`
         });
       }
       
@@ -196,12 +212,11 @@ module.exports = {
         });
       }
       
-      // Validate type
-      const validTypes = ['bug_fix', 'enhancement', 'feature'];
-      if (!validTypes.includes(type)) {
+      const { normalized: normalizedTypes, values: normalizedTypeValues, invalid } = normalizeTypesInput(type);
+      if (normalizedTypeValues.length === 0 || invalid.length > 0) {
         return res.status(400).json({
           success: false,
-          message: `Invalid type. Must be one of: ${validTypes.join(', ')}`
+          message: `Invalid type. Must be one of: ${PRODUCT_UPDATE_TYPES.join(', ')}`
         });
       }
       
@@ -210,7 +225,7 @@ module.exports = {
         description,
         version,
         isMajor: isMajor === true,
-        type
+        type: normalizedTypes
       });
 
       await clearWhatsNewListCache();

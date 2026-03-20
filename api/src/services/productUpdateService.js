@@ -173,7 +173,7 @@ class ProductUpdateService {
         type, 
         created_at as "createdAt"
       FROM product_updates
-      WHERE type = $1
+      WHERE $1 = ANY(string_to_array(REPLACE(type, ' ', ''), ','))
       ORDER BY created_at DESC
       LIMIT $2 OFFSET $3
     `;

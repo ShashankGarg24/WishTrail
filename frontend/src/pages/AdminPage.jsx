@@ -385,6 +385,7 @@ function AdminPage() {
                       <th className="py-2">Total Goals</th>
                       <th className="py-2">Total Habits</th>
                       <th className="py-2">Last Active</th>
+                      <th className="py-2">Last Daily Updated</th>
                       <th className="py-2">Account Active</th>
                       <th className="py-2">Last Update Seen</th>
                     </tr>
@@ -405,6 +406,7 @@ function AdminPage() {
                         <td className="py-2">{user.totalGoals || 0}</td>
                         <td className="py-2">{user.totalHabits || 0}</td>
                         <td className="py-2">{user.lastActiveAt ? new Date(user.lastActiveAt).toLocaleString() : '-'}</td>
+                        <td className="py-2">{user.lastDailyUpdatedAt ? new Date(user.lastDailyUpdatedAt).toLocaleString() : '-'}</td>
                         <td className="py-2">{user.accountActive ? 'Yes' : 'No'}</td>
                         <td className="py-2">{user.lastUpdateSeen || '-'}</td>
                       </tr>
