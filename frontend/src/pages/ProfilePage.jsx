@@ -1470,13 +1470,16 @@ const ProfilePage = () => {
               )}
               {activeTab === 'daily-logs' && (
                 <div className={isOwnProfile
-                  ? "bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-4 sm:p-5 shadow-sm border border-gray-100 dark:border-gray-700"
-                  : "bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-xl sm:rounded-2xl p-4 sm:p-5 border border-gray-200 dark:border-gray-700/50"
+                  ? "bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-5 sm:p-6 shadow-sm border border-gray-100 dark:border-gray-700"
+                  : "bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-xl sm:rounded-2xl p-5 sm:p-6 border border-gray-200 dark:border-gray-700/50"
                 }>
-                  <div className="flex items-center justify-between mb-4 sm:mb-5 md:mb-6 gap-2">
-                    <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">Daily Logs Feed</h3>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-5 sm:mb-6 gap-3">
+                    <div>
+                      <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">Your Reflection</h3>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1.5">Track your feelings. Understand your patterns.</p>
+                    </div>
                     {isOwnProfile && (
-                      <div className="flex items-center gap-2">
+                      <div className="w-full sm:w-auto flex items-center gap-2">
                         {/* <button
                           onClick={() => setExportOpen(true)}
                           className="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 inline-flex items-center gap-1.5 text-sm transition-colors"
@@ -1486,7 +1489,7 @@ const ProfilePage = () => {
                         </button> */}
                         <button
                           onClick={() => setIsDailyLogsOpen(true)}
-                          className={`flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-medium transition-colors shadow-sm font-manrope
+                          className={`w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-colors shadow-sm font-manrope
                             ${
                               hasTodayDailyLogs
                                 ? 'bg-gray-300 dark:bg-gray-700 text-gray-600'
@@ -1494,36 +1497,44 @@ const ProfilePage = () => {
                             }
                           `}                        >
                           <PenSquare className="h-4 w-4" />
-                          {hasTodayDailyLogs ? 'Update Today’s Log' : 'Write Today’s Log'}
+                          {hasTodayDailyLogs ? 'Update Today’s Log' : 'Log Today’s Feeling'}
                        </button>
                       </div>
                     )}
                   </div>
                   {/* Daily Logs Feed (own profile) */}
                   {isOwnProfile && (
-                    <div className="space-y-3 sm:space-y-4">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/70 dark:bg-gray-900/40 p-4">
+                    <div className="space-y-5">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/70 dark:bg-gray-900/40 p-5">
                           <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Last 7 Days</p>
-                          <p className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white mt-1">{loggedDaysCount} of 7 days logged</p>
-                          <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">Consistency this week</p>
+                          <p className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white mt-2">{loggedDaysCount} / 7 days logged</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Start your streak today 🔥</p>
                         </div>
-                        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/70 dark:bg-gray-900/40 p-4">
-                          <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Average 7-Day Emotion</p>
-                          <p className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white mt-1">
-                            {averageMood ? DAILY_LOG_MOOD_META[averageMood].label : '-'}
+                        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/70 dark:bg-gray-900/40 p-5">
+                          <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Average 7 Days</p>
+                          <p className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white mt-2">
+                            {averageMood ? DAILY_LOG_MOOD_META[averageMood].label : 'No mood data yet'}
                           </p>
-                          <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">Based on {moodSampleCount} mood-tagged logs</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">{averageMood ? `Based on ${moodSampleCount} mood-tagged logs` : 'Log your feelings to see patterns 📊'}</p>
                         </div>
                       </div>
 
                       {dailyLogsFeed.length === 0 && !dailyLogsLoading && (
-                        <div className="text-center py-8 sm:py-10 md:py-12 border-2 border-dashed border-gray-200 dark:border-gray-600 rounded-xl sm:rounded-2xl">
+                        <div className="text-center py-10 sm:py-12 md:py-14 px-4 border-2 border-dashed border-gray-200 dark:border-gray-600 rounded-xl sm:rounded-2xl">
                           <BookOpen className="h-10 w-10 sm:h-11 sm:w-11 md:h-12 md:w-12 text-gray-300 dark:text-gray-600 mx-auto mb-3 sm:mb-4" />
-                          <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400 mb-3 sm:mb-4">No daily logs yet</p>
+                          <p className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Start your first daily log ✨</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">Capture how you feel in seconds and build your reflection habit.</p>
+                          <button
+                            onClick={() => setIsDailyLogsOpen(true)}
+                            className="w-full sm:w-auto px-5 py-2.5 rounded-lg sm:rounded-xl text-sm font-medium text-white"
+                            style={{ backgroundColor: THEME_COLOR }}
+                          >
+                            Write Today’s Log
+                          </button>
                         </div>
                       )}
-                      <div className="space-y-2 sm:space-y-3 max-h-[400px] sm:max-h-[450px] md:max-h-[500px] overflow-y-auto scrollbar-hide pr-0.5 sm:pr-1">
+                      <div className="space-y-3 sm:space-y-4 max-h-[430px] sm:max-h-[500px] overflow-y-auto scrollbar-hide pr-0.5 sm:pr-1">
                         {sortedDailyLogs.map((e) => {
                           const entryId = e?.id || e?._id || e?.createdAt;
                           const isExpanded = expandedDailyLogIds.includes(entryId);
@@ -1531,7 +1542,7 @@ const ProfilePage = () => {
                           return (
                             <div
                               key={entryId}
-                              className="w-full text-left p-3 sm:p-4 md:p-5 bg-white dark:bg-gray-800 rounded-lg sm:rounded-xl border border-gray-200 dark:border-gray-700"
+                              className="w-full text-left p-4 sm:p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700"
                             >
                               <button
                                 type="button"
@@ -1555,7 +1566,7 @@ const ProfilePage = () => {
                                   </div>
                                   <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                                 </div>
-                                <p className={`text-sm sm:text-base text-gray-700 dark:text-gray-300 leading-relaxed ${isExpanded ? '' : 'line-clamp-1'}`}>
+                                <p className={`text-sm sm:text-base text-gray-700 dark:text-gray-300 leading-relaxed mt-1 ${isExpanded ? '' : 'line-clamp-1'}`}>
                                   {e.content}
                                 </p>
                               </button>
@@ -1575,7 +1586,7 @@ const ProfilePage = () => {
                       </div>
                       <div className="flex items-center justify-center mt-3 sm:mt-4">
                         {dailyLogsHasMore ? (
-                          <button onClick={loadMoreDailyLogs} disabled={dailyLogsLoading} className="px-3 sm:px-4 py-1.5 sm:py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-xs sm:text-sm font-medium transition-colors disabled:opacity-50">
+                          <button onClick={loadMoreDailyLogs} disabled={dailyLogsLoading} className="px-4 sm:px-5 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium transition-colors disabled:opacity-50">
                             {dailyLogsLoading ? 'Loading…' : 'Load More'}
                           </button>
                         ) : (
