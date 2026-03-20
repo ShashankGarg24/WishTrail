@@ -4,7 +4,7 @@ import { useLocation } from 'react-router-dom'
 const SEO = ({ 
   title = 'WishTrail - Dreams. Goals. Progress.',
   description = 'Transform your aspirations into achievable goals. Track your progress, get inspired, and make every year count with WishTrail. Join 5000+ users achieving their dreams.',
-  keywords = 'goals, goal tracking, goal sharing, communities, personal development, wishlist, dream tracking, habit tracker, productivity, self improvement, journal, mood tracking, achievement, progress tracking',
+  keywords = 'goals, goal tracking, goal sharing, communities, personal development, wishlist, dream tracking, habit tracker, productivity, self improvement, daily logs, mood tracking, achievement, progress tracking',
   ogImage = '/og-image.jpg',
   schema = null
 }) => {
@@ -105,7 +105,7 @@ export const HomePageSEO = () => {
       "Personal goal dashboard",
       "Progress tracking and analytics",
       "Social feed and community",
-      "Daily journal",
+      "Daily logs",
       "Leaderboards and achievements",
       "Goal discovery"
     ]

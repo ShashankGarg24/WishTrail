@@ -37,8 +37,8 @@ const PremiumUpgradeModal = ({ isOpen, onClose, feature, currentLimit, premiumLi
   const features = [
     { icon: <Star className="w-5 h-5" />, text: 'Create up to 10 active goals', highlight: feature === 'goals' },
     { icon: <Zap className="w-5 h-5" />, text: 'Track up to 10 habits with custom reminders', highlight: feature === 'habits' },
-    { icon: <Sparkles className="w-5 h-5" />, text: 'Write up to 5 journal entries per day', highlight: feature === 'journal' },
-    { icon: <Crown className="w-5 h-5" />, text: 'Export your journal anytime', highlight: feature === 'journal' },
+    { icon: <Sparkles className="w-5 h-5" />, text: 'Write up to 5 daily logs per day', highlight: feature === 'daily_logs' },
+    { icon: <Crown className="w-5 h-5" />, text: 'Export your daily logs anytime', highlight: feature === 'daily_logs' },
     { icon: <Star className="w-5 h-5" />, text: 'Join up to 50 communities', highlight: feature === 'communities' },
     { icon: <Sparkles className="w-5 h-5" />, text: 'AI-powered insights and suggestions', highlight: feature === 'ai' },
     { icon: <Zap className="w-5 h-5" />, text: 'Advanced analytics and reports', highlight: feature === 'analytics' },
@@ -200,7 +200,7 @@ const PremiumUpgradeModal = ({ isOpen, onClose, feature, currentLimit, premiumLi
               <button
                 onClick={handleUpgrade}
                 disabled={isLoading}
-                className="flex-1 px-6 py-4 bg-[#4c99e6] hover:bg-[#3d88d5] text-white rounded-xl font-bold hover:shadow-2xl transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2">
+                className="flex-1 px-6 py-4 bg-[#4c99e6] hover:bg-[#3d88d5] text-white rounded-xl font-bold hover:shadow-2xl transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2"
               >
                 {isLoading ? (
                   <>

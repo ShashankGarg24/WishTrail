@@ -13,7 +13,7 @@ A complete, scalable, and secure premium feature system for WishTrail that:
 ### Free Tier
 - **Goals:** 5 active goals, 1 subgoal per goal
 - **Habits:** 5 active habits, no reminders
-- **Journal:** 1 entry per day, 500 characters max, no export
+- **DailyLogs:** 1 entry per day, 500 characters max, no export
 - **Communities:** Join 7, own 3
 - **AI:** None
 - **Analytics:** Basic only
@@ -21,7 +21,7 @@ A complete, scalable, and secure premium feature system for WishTrail that:
 ### Premium Tier
 - **Goals:** 10 active goals, 10 subgoals per goal
 - **Habits:** 10 active habits, 5 reminders per habit
-- **Journal:** 5 entries per day, 2000 characters max, export allowed
+- **DailyLogs:** 5 entries per day, 2000 characters max, export allowed
 - **Communities:** Join 50, own 10
 - **AI:** All features unlocked
 - **Analytics:** Advanced insights and custom reports
@@ -52,7 +52,7 @@ Middleware:
 Controllers (with enforcement):
   - api/src/controllers/goalController.js
   - api/src/controllers/habitController.js
-  - api/src/controllers/journalController.js
+  - api/src/controllers/dailyLogsController.js
   - api/src/controllers/communityController.js
   - api/src/controllers/premiumController.js
   
@@ -77,7 +77,7 @@ Hooks:
     - usePremiumStatus()
     - useGoalLimits()
     - useHabitLimits()
-    - useJournalLimits()
+    - useDailyLogsLimits()
     - useCommunityLimits()
     - useAIFeatures()
     - useAnalyticsFeatures()
@@ -157,7 +157,7 @@ Examples:
 3. `api/src/services/pgGoalService.js` - Added countActiveGoals method
 4. `api/src/controllers/habitController.js` - Added limit validation
 5. `api/src/services/pgHabitService.js` - Added countActiveHabits method
-6. `api/src/controllers/journalController.js` - Added limit validation
+6. `api/src/controllers/dailyLogsController.js` - Added limit validation
 7. `api/src/controllers/communityController.js` - Added limit validation
 
 ### Frontend Files Created
@@ -205,7 +205,7 @@ npm run build
 1. Create test users (free and premium)
 2. Test goal creation limits
 3. Test habit creation limits
-4. Test journal entry limits
+4. Test dailyLogs entry limits
 5. Verify upgrade modal appears at limits
 6. Verify backend rejects requests at limits
 
@@ -219,9 +219,9 @@ UPDATE users SET premium_expires_at = NULL WHERE email = 'test@example.com';
 // Expected behavior:
 - Can create 5 goals max
 - Can create 5 habits max
-- Can create 1 journal entry per day
+- Can create 1 dailyLogs entry per day
 - Cannot set habit reminders
-- Cannot export journal
+- Cannot export dailyLogs
 - Cannot use AI features
 - Sees "Upgrade" button
 ```
@@ -236,9 +236,9 @@ WHERE email = 'premium@example.com';
 // Expected behavior:
 - Can create 10 goals max
 - Can create 10 habits max
-- Can create 5 journal entries per day
+- Can create 5 dailyLogs entries per day
 - Can set habit reminders
-- Can export journal
+- Can export dailyLogs
 - Can use AI features
 - Sees premium badge
 ```
@@ -336,10 +336,10 @@ import { UpgradeModal } from '../components/premium/UpgradeModal';
    - Returns 403 with `requiresPremium: true`
    - Frontend catches 403, shows upgrade modal
 
-### Journal Entry Flow (Premium User)
+### DailyLogs Entry Flow (Premium User)
 1. User has written 3 entries today
 2. User creates 4th entry
-3. Frontend checks: `useJournalLimits(3)` → `canCreate: true` (premium allows 5)
+3. Frontend checks: `useDailyLogsLimits(3)` → `canCreate: true` (premium allows 5)
 4. API request sent
 5. Backend validates: premium user, 3 < 5, allows creation
 6. Entry created successfully
@@ -350,7 +350,7 @@ import { UpgradeModal } from '../components/premium/UpgradeModal';
 - [ ] Update auth reducer to include `premium_expires_at`
 - [ ] Integrate hooks into existing goal form
 - [ ] Integrate hooks into existing habit form
-- [ ] Integrate hooks into existing journal form
+- [ ] Integrate hooks into existing dailyLogs form
 - [ ] Add premium badge to navigation
 - [ ] Create `/premium` page
 - [ ] Test all scenarios

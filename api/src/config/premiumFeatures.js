@@ -49,18 +49,18 @@ const PREMIUM_FEATURES = {
   },
 
   // ============================================
-  // JOURNAL
+  // DAILY LOGS
   // ============================================
-  journal: {
+  daily_logs: {
     free: {
       maxEntriesPerDay: 1,
-      maxEntryLength: 1000,
+      maxEntryLength: 300,
       retentionDays: 90, // 3 months
       canExportEntries: false
     },
     premium: {
       maxEntriesPerDay: 5,
-      maxEntryLength: 5000,
+      maxEntryLength: 300,
       retentionDays: -1, // unlimited
       canExportEntries: true
     }
@@ -109,13 +109,13 @@ const PREMIUM_FEATURES = {
     free: {
       aiSuggestions: false,
       smartGoalRecommendations: false,
-      aiJournalPrompts: false,
+      aiDailyLogsPrompts: false,
       maxAiRequestsPerDay: 0
     },
     premium: {
       aiSuggestions: true,
       smartGoalRecommendations: true,
-      aiJournalPrompts: true,
+      aiDailyLogsPrompts: true,
       aiInsights: true,
       aiMotivationalMessages: true,
       maxAiRequestsPerDay: 100

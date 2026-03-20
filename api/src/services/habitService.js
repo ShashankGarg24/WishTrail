@@ -232,7 +232,7 @@ async function deleteHabit(userId, habitId) {
   return { ok: true };
 }
 
-async function toggleLog(userId, habitId, { status = 'done', note = '', mood = 'neutral', journalEntryId = null, date = new Date() } = {}) {
+async function toggleLog(userId, habitId, { status = 'done', note = '', mood = 'neutral', dailyLogsEntryId = null, date = new Date() } = {}) {
   const habit = await pgHabitService.getHabitById(habitId, userId);
   if (!habit) throw Object.assign(new Error('Habit not found'), { statusCode: 404 });
   if (habit.isArchived) throw Object.assign(new Error('Habit is archived'), { statusCode: 400 });
@@ -267,7 +267,7 @@ async function toggleLog(userId, habitId, { status = 'done', note = '', mood = '
       status,
       note,
       mood,
-      journalEntryId
+      dailyLogsEntryId
     });
   }
   

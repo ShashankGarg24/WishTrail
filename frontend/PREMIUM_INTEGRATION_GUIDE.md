@@ -13,7 +13,7 @@ import {
   usePremiumStatus, 
   useGoalLimits, 
   useHabitLimits, 
-  useJournalLimits 
+  useDailyLogsLimits 
 } from '../hooks/usePremium';
 import { 
   LimitIndicator, 
@@ -114,9 +114,9 @@ const {
 } = useHabitLimits(habits.length);
 ```
 
-### `useJournalLimits(todayEntryCount)`
+### `useDailyLogsLimits(todayEntryCount)`
 
-Returns journal-related limits and validation.
+Returns dailyLogs-related limits and validation.
 
 ```javascript
 const {
@@ -125,10 +125,10 @@ const {
   canCreate,       // boolean: can create new entry
   remaining,       // number | '∞': remaining entries today
   maxLength,       // number: max entry length in characters
-  canExport,       // boolean: can export journal
+  canExport,       // boolean: can export dailyLogs
   percentUsed,     // number: percentage of daily limit used
   isPremium        // boolean: premium status
-} = useJournalLimits(todayCount);
+} = useDailyLogsLimits(todayCount);
 ```
 
 ### `useCommunityLimits(joinedCount, ownedCount)`
@@ -157,7 +157,7 @@ const {
   hasAccess,                 // boolean: has any AI access
   aiSuggestions,             // boolean: can use AI suggestions
   smartGoalRecommendations,  // boolean: can use smart recommendations
-  aiJournalPrompts,          // boolean: can use journal prompts
+  aiDailyLogsPrompts,          // boolean: can use dailyLogs prompts
   aiInsights,                // boolean: can use AI insights
   maxRequestsPerDay,         // number: max AI requests per day
   isPremium                  // boolean: premium status
@@ -393,14 +393,14 @@ function SettingsPage() {
 }
 ```
 
-### Pattern 4: Daily Limit Tracking (Journal)
+### Pattern 4: Daily Limit Tracking (DailyLogs)
 
 ```javascript
-import { useJournalLimits } from '../hooks/usePremium';
+import { useDailyLogsLimits } from '../hooks/usePremium';
 
-function JournalEntryForm() {
+function DailyLogsEntryForm() {
   const [todayEntries, setTodayEntries] = useState([]);
-  const journalLimits = useJournalLimits(todayEntries.length);
+  const dailyLogsLimits = useDailyLogsLimits(todayEntries.length);
   
   useEffect(() => {
     // Fetch today's entries
@@ -408,14 +408,14 @@ function JournalEntryForm() {
   }, []);
   
   const handleCreate = async (content) => {
-    if (!journalLimits.canCreate) {
-      alert(`Daily limit reached (${journalLimits.maxEntries} entries/day)`);
+    if (!dailyLogsLimits.canCreate) {
+      alert(`Daily limit reached (${dailyLogsLimits.maxEntries} entries/day)`);
       setShowUpgradeModal(true);
       return;
     }
     
     // Create entry
-    const response = await fetch('/api/journal/entries', {
+    const response = await fetch('/api/dailyLogs/entries', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -432,25 +432,25 @@ function JournalEntryForm() {
   return (
     <div>
       <LimitIndicator
-        current={journalLimits.todayEntries}
-        max={journalLimits.maxEntries}
-        label="Journal Entries Today"
+        current={dailyLogsLimits.todayEntries}
+        max={dailyLogsLimits.maxEntries}
+        label="DailyLogs Entries Today"
       />
       
       <textarea
-        maxLength={journalLimits.maxLength}
-        disabled={!journalLimits.canCreate}
+        maxLength={dailyLogsLimits.maxLength}
+        disabled={!dailyLogsLimits.canCreate}
       />
       
       <p className="text-xs text-gray-500">
-        {content.length} / {journalLimits.maxLength} characters
+        {content.length} / {dailyLogsLimits.maxLength} characters
       </p>
       
       <button 
         onClick={handleCreate}
-        disabled={!journalLimits.canCreate}
+        disabled={!dailyLogsLimits.canCreate}
       >
-        Create Entry ({journalLimits.remaining} remaining today)
+        Create Entry ({dailyLogsLimits.remaining} remaining today)
       </button>
     </div>
   );

@@ -23,7 +23,7 @@ const notificationSchema = new mongoose.Schema({
       'goal_due_soon',
       'weekly_summary',
       'monthly_summary',
-      'journal_prompt',
+      'daily_logs_prompt',
       'habit_reminder',
       'inactivity_reminder',
       'motivation_quote',
@@ -192,7 +192,7 @@ notificationSchema.statics.createNotification = async function(notificationData)
     
     // Default push channel on selected types if not explicitly set
     const pushPreferredTypes = new Set([
-      'habit_reminder','goal_due_soon','weekly_summary','monthly_summary','journal_prompt','inactivity_reminder',
+      'habit_reminder','goal_due_soon','weekly_summary','monthly_summary','daily_logs_prompt','inactivity_reminder',
       'motivation_quote',
       'follow_request','follow_request_accepted','new_follower',
       'friend_created_goal','friend_completed_goal',
@@ -223,7 +223,7 @@ notificationSchema.statics.createNotification = async function(notificationData)
         const socialTypes = new Set(['new_follower','follow_request','follow_request_accepted','activity_comment','comment_reply','mention','activity_liked','comment_liked','goal_liked']);
         if (socialTypes.has(t) && ns?.social && ns.social.enabled === false) allowPush = false;
         if (t === 'habit_reminder' && ns?.habits && ns.habits.enabled === false) allowPush = false;
-        if ((t === 'journal_prompt' || t === 'weekly_summary' || t === 'monthly_summary') && ns?.journal && ns.journal.enabled === false) allowPush = false;
+        if ((t === 'daily_logs_prompt' || t === 'weekly_summary' || t === 'monthly_summary') && ns?.dailyLogs && ns.dailyLogs.enabled === false) allowPush = false;
         if (t === 'motivation_quote' && ns?.motivation && ns.motivation.enabled === false) allowPush = false;
 
         // UNCOMMENT BELOW TO RE-ENABLE NOTIFICATION

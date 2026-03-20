@@ -407,14 +407,17 @@ export const communitiesAPI = {
   memberAnalytics: (id, userId) => api.get(`/communities/${id}/members/${userId}/analytics`),
 };
 
-// Journals API
-export const journalsAPI = {
-  getPrompt: () => api.get('/journals/prompt'),
-  createEntry: (payload) => api.post('/journals', payload),
-  updateEntry: (id, payload) => api.patch(`/journals/${id}`, payload),
-  getMyEntries: (params) => api.get('/journals/me', { params }),
-  export: (params) => api.get('/journals/export', { params, responseType: 'blob' })
+// Daily Logs API (legacy dailyLogss endpoints kept for compatibility)
+export const dailyLogssAPI = {
+  getPrompt: () => api.get('/daily-logs/prompt'),
+  createEntry: (payload) => api.post('/daily-logs', payload),
+  updateEntry: (id, payload) => api.patch(`/daily-logs/${id}`, payload),
+  clearEntry: (id) => api.delete(`/daily-logs/${id}`),
+  getMyEntries: (params) => api.get('/daily-logs/me', { params }),
+  export: (params) => api.get('/daily-logs/export', { params, responseType: 'blob' })
 };
+
+export const dailyLogsAPI = dailyLogssAPI;
 
 // Habits API
 export const habitsAPI = {

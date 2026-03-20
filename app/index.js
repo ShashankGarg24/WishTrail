@@ -44,7 +44,7 @@ function App() {
   const slides = [
     { title: 'Welcome to WishTrail', body: 'Turn dreams into achievable goals with community support.', emoji: '✨' },
     { title: 'Goals & Habits', body: 'Create goals and build daily habits with insightful analytics.', emoji: '📈' },
-    { title: 'Journal & Wellness', body: 'Reflect with prompts, moods and positive points for growth.', emoji: '📓' },
+    { title: 'Daily Logs', body: 'Reflect with prompts, moods and positive points for growth.', emoji: '📓' },
     { title: 'Social & Leaderboards', body: 'Get likes, comments, and compete on leaderboards for motivation.', emoji: '🏆' }
   ];
 

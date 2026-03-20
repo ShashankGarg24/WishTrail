@@ -32,7 +32,7 @@ const createApp = async () => {
   await connectDB();       
   await bloomFilter.init();
   require('./cron/bloomFilterJob');
-  require('./cron/journalJobs');
+  require('./cron/dailyLogsJobs');
   require('./cron/habitReminderJobs');
   require('./cron/inactivityJobs');
   require('./cron/notificationJobs');
@@ -164,7 +164,7 @@ const createApp = async () => {
   // Explore routes removed
   apiRouter.use('/upload', require('./routes/uploadRoutes'));
   apiRouter.use('/location', require('./routes/locationRoutes'));
-  apiRouter.use('/journals', require('./routes/journalRoutes'));
+  apiRouter.use('/daily-logs', require('./routes/dailyLogsRoutes'));
   apiRouter.use('/feedback', require('./routes/feedbackRoutes'));
   apiRouter.use('/habits', require('./routes/habitRoutes'));
   apiRouter.use('/moderation', require('./routes/moderationRoutes'));

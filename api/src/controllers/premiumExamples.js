@@ -72,17 +72,17 @@ const createGoal = async (req, res, next) => {
 const { validateFeatureAccess } = require('../middleware/premium');
 const userService = require('../services/pgUserService');
 
-const createJournalEntry = async (req, res, next) => {
+const createDailyLogsEntry = async (req, res, next) => {
   try {
     const user = await userService.findById(req.user.id);
     
     // Get current entry count for today
-    const todayEntries = await journalService.countTodayEntries(req.user.id);
+    const todayEntries = await dailyLogsService.countTodayEntries(req.user.id);
     
     // Check if user can create more entries
     const validation = await validateFeatureAccess(
       user,
-      'journal',
+      'daily_logs',
       'maxEntriesPerDay',
       todayEntries
     );
@@ -100,7 +100,7 @@ const createJournalEntry = async (req, res, next) => {
     }
     
     // Create entry
-    const entry = await journalService.create(req.user.id, req.body);
+    const entry = await dailyLogsService.create(req.user.id, req.body);
     
     res.status(201).json({
       success: true,
@@ -261,21 +261,21 @@ const createMultipleHabits = async (req, res, next) => {
 
 const { canPerformAction } = require('../config/premiumFeatures');
 
-const searchJournalEntries = async (req, res, next) => {
+const searchDailyLogsEntries = async (req, res, next) => {
   try {
     const user = await userService.findById(req.user.id);
-    const check = canPerformAction('journal', 'canSearchEntries', user.premium_expires_at);
+    const check = canPerformAction('daily_logs', 'canSearchEntries', user.premium_expires_at);
     
     if (!check.allowed) {
       return res.status(403).json({
         success: false,
-        message: 'Journal search is a premium feature'
+        message: 'DailyLogs search is a premium feature'
         // ,
         // upgradeUrl: '/premium/plans'
       });
     }
     
-    const results = await journalService.search(req.user.id, req.query.q);
+    const results = await dailyLogsService.search(req.user.id, req.query.q);
     
     res.json({
       success: true,
@@ -450,12 +450,12 @@ router.post('/api/v1/ai/suggest',
 module.exports = {
   exportGoals,
   createGoal,
-  createJournalEntry,
+  createDailyLogsEntry,
   uploadImage,
   getAnalytics,
   getGoals,
   createMultipleHabits,
-  searchJournalEntries,
+  searchDailyLogsEntries,
   getInsights,
   createCommunity
 };

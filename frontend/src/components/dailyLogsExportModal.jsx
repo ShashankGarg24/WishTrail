@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Download, FileText, BookOpen, Sparkles, Calendar as CalendarIcon } from 'lucide-react'
-import { journalsAPI } from '../services/api'
+import { dailyLogssAPI } from '../services/api'
 
-export default function JournalExportModal({ isOpen, onClose }) {
+export default function DailyLogsExportModal({ isOpen, onClose }) {
   const [format, setFormat] = useState('pdf') // pdf | text
   const [style, setStyle] = useState('simple') // diary | simple
   const [includeMotivation, setIncludeMotivation] = useState(true)
@@ -38,21 +38,21 @@ export default function JournalExportModal({ isOpen, onClose }) {
       const params = { format, style, includeMotivation }
       if (from) params.from = from
       if (to) params.to = to
-      const res = await journalsAPI.export(params)
+      const res = await dailyLogssAPI.export(params)
       const blob = res?.data
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
       const ext = format === 'pdf' ? 'pdf' : 'txt'
       const styleName = style === 'diary' ? 'diary' : 'simple'
-      a.download = `wishtrail-journal-${styleName}.${ext}`
+      a.download = `wishtrail-daily-logs-${styleName}.${ext}`
       document.body.appendChild(a)
       a.click()
       a.remove()
       window.URL.revokeObjectURL(url)
       onClose()
     } catch (error) {
-      const msg = error?.response?.data?.message || 'Failed to export journal'
+      const msg = error?.response?.data?.message || 'Failed to export daily logs'
       alert(msg)
     } finally {
       setLoading(false)
@@ -65,7 +65,7 @@ export default function JournalExportModal({ isOpen, onClose }) {
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/50" onClick={onClose} />
         <motion.div initial={{ opacity: 0, scale: 0.95, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 12 }} className="relative w-full max-w-lg bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-5">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2"><BookOpen className="h-5 w-5 text-indigo-500"/> Export Journal</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2"><BookOpen className="h-5 w-5 text-indigo-500"/> Export Daily Logs</h3>
             <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"><X className="h-5 w-5 text-gray-500"/></button>
           </div>
 

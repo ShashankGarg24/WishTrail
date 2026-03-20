@@ -16,7 +16,7 @@
 
 ## Overview & High-Level Features
 
-WishTrail is a **goal tracking and social wellness platform** that combines personal development, habit building, journaling, and community features. The platform enables users to:
+WishTrail is a **goal tracking and social wellness platform** that combines personal development, habit building, dailyLogsing, and community features. The platform enables users to:
 
 ### Core Features
 
@@ -62,16 +62,17 @@ WishTrail is a **goal tracking and social wellness platform** that combines pers
 - Paginated goal and habit lists
 - Community goals and habits display (coming soon)
 
-#### **Journal & Reflection**
-- Daily journal entries with mood selection
+#### **DailyLogs & Reflection**
+- Daily dailyLogs entries with mood selection
+- Daily log emotions: Happy, Calm, Okay, Stressed, Sad, Angry
 - AI-generated motivational responses
 - Visibility controls: public, friends-only, private
 - Positive points tracking
 - Daily limits: 1 entry/day (free), 5/day (premium)
 - Character limits: 500 (free), 2000 (premium)
 - Timezone-aware daily key (YYYY-MM-DD format)
-- Journal export (premium only)
-- Journal highlights on profile
+- DailyLogs export (premium only)
+- DailyLogs highlights on profile
 - Infinite scroll with pagination
 
 #### **Social Features**
@@ -144,12 +145,12 @@ WishTrail is a **goal tracking and social wellness platform** that combines pers
 - Current mood emoji display
 - Social stats: followers, following, mutuals
 - Privacy controls: public, friends-only, private
-- Visibility toggles: showHabits, showJournal
-- Tabs: Overview, Goals, Habits, Journal
+- Visibility toggles: showHabits, showDailyLogs
+- Tabs: Overview, Goals, Habits, DailyLogs
 - Goal statistics: total, completed, streak
 - Habit statistics with analytics cards
 - Paginated goals and habits lists
-- Journal entries with infinite scroll
+- DailyLogs entries with infinite scroll
 - Profile editing modal
 - Social actions: follow/unfollow, block, report
 - Share profile functionality
@@ -218,7 +219,7 @@ WishTrail is a **goal tracking and social wellness platform** that combines pers
 - **Runtime:** Node.js
 - **Framework:** Express.js
 - **Databases:** 
-  - PostgreSQL (users, goals, habits, journal)
+  - PostgreSQL (users, goals, habits, dailyLogs)
   - MongoDB (activities, communities, legacy data)
   - Redis (caching, sessions)
 - **Authentication:** JWT with httpOnly cookies
@@ -250,9 +251,9 @@ WishTrail is a **goal tracking and social wellness platform** that combines pers
 | Active Habits | 5 |
 | Habit Reminders | ❌ None |
 | Habit History Retention | 60 days |
-| Journal Entries/Day | 1 |
-| Journal Character Limit | 500 |
-| Journal Export | ❌ |
+| DailyLogs Entries/Day | 1 |
+| DailyLogs Character Limit | 500 |
+| DailyLogs Export | ❌ |
 | Communities Joined | 7 |
 | Communities Owned | 3 |
 | AI Suggestions | ❌ |
@@ -267,9 +268,9 @@ WishTrail is a **goal tracking and social wellness platform** that combines pers
 | Active Habits | 10 |
 | Habit Reminders | ✅ Up to 5/habit |
 | Habit History Retention | Unlimited |
-| Journal Entries/Day | 5 |
-| Journal Character Limit | 2000 |
-| Journal Export | ✅ PDF/JSON |
+| DailyLogs Entries/Day | 5 |
+| DailyLogs Character Limit | 2000 |
+| DailyLogs Export | ✅ PDF/JSON |
 | Communities Joined | 50 |
 | Communities Owned | 10 |
 | AI Suggestions | ✅ Unlimited |
@@ -293,7 +294,7 @@ WishTrail is a **goal tracking and social wellness platform** that combines pers
   - Social Feed
   - Discover People & Goals
   - Habit Tracking
-  - Daily Journal
+  - Daily DailyLogs
   - Leaderboards
 - Benefits list with icons
 - Call-to-action buttons (Sign Up / Login)
@@ -456,24 +457,24 @@ WishTrail is a **goal tracking and social wellness platform** that combines pers
    - Empty state with create prompt
    - Clickable to open habit modal
 
-4. **Journal Tab** (own profile only)
-   - Write today's journal button
-   - Journal entry cards:
+4. **DailyLogs Tab** (own profile only)
+   - Write today's dailyLogs button
+   - DailyLogs entry cards:
      - Date/time display
      - Visibility badge
      - Mood indicator
      - Content preview (line-clamp-3)
      - AI motivation snippet
    - Infinite scroll with pagination
-   - Export journal button (premium)
+   - Export dailyLogs button (premium)
    - Empty state with create prompt
-   - Journal submitted state (1/day limit)
+   - DailyLogs submitted state (1/day limit)
 
 #### **Privacy Controls**
 - Private profiles hide content from non-followers
 - Follow requests required for private accounts
 - Habit visibility toggle (showHabits)
-- Journal visibility per entry
+- DailyLogs visibility per entry
 - Analytics privacy
 
 #### **Modals**
@@ -483,10 +484,10 @@ WishTrail is a **goal tracking and social wellness platform** that combines pers
   - Location, DOB, interests
   - Social links
   - Privacy settings
-  - Habit/journal visibility toggles
-- Journal prompt modal (AI-generated prompts)
-- Journal entry view modal
-- Journal export modal (premium)
+  - Habit/dailyLogs visibility toggles
+- DailyLogs prompt modal (AI-generated prompts)
+- DailyLogs entry view modal
+- DailyLogs export modal (premium)
 - Goal details modal
 - Habit detail modal
 - Follow list modal (followers/following)
@@ -851,7 +852,7 @@ WishTrail is a **goal tracking and social wellness platform** that combines pers
      - Friends Only
      - Private
    - Habit visibility toggle (showHabits)
-   - Journal visibility toggle (showJournal)
+   - DailyLogs visibility toggle (showDailyLogs)
    - Profile visibility controls
    - Activity visibility controls
    - Who can follow you
@@ -1114,9 +1115,9 @@ WishTrail is a **goal tracking and social wellness platform** that combines pers
 - HabitDetailModal (view/log habits)
 - HabitAnalyticsModal (embedded analytics)
 - ProfileEditModal (edit profile)
-- JournalPromptModal (write journal entries)
-- JournalEntryModal (view journal entries)
-- JournalExportModal (export journal - premium)
+- DailyLogsPromptModal (write dailyLogs entries)
+- DailyLogsEntryModal (view dailyLogs entries)
+- DailyLogsExportModal (export dailyLogs - premium)
 - ActivityCommentsModal (view/add comments)
 - FollowListModal (followers/following lists)
 - ReportModal (report content)
@@ -1239,7 +1240,7 @@ WishTrail is a **goal tracking and social wellness platform** that combines pers
 - Custom domains
 
 ### **Database Management**
-- PostgreSQL: Managed instance (users, goals, habits, journal)
+- PostgreSQL: Managed instance (users, goals, habits, dailyLogs)
 - MongoDB: Atlas cluster (activities, communities)
 - Redis: Managed instance (caching, sessions)
 - Automated backups
@@ -1264,7 +1265,7 @@ WishTrail is a **goal tracking and social wellness platform** that combines pers
 - Reminders and notifications system
 - Community challenges
 - Collaborative goals
-- Video journal entries
+- Video dailyLogs entries
 - Streak recovery (premium)
 - Multi-language support
 - Accessibility enhancements
@@ -1273,7 +1274,7 @@ WishTrail is a **goal tracking and social wellness platform** that combines pers
 
 ## Summary
 
-WishTrail is a comprehensive goal tracking and social wellness platform with **15+ pages**, **100+ features**, and a robust **premium tier system**. The application combines personal development tools (goals, habits, journal) with social features (feed, discovery, communities) and gamification (points, levels, leaderboards) to create an engaging user experience.
+WishTrail is a comprehensive goal tracking and social wellness platform with **15+ pages**, **100+ features**, and a robust **premium tier system**. The application combines personal development tools (goals, habits, dailyLogs) with social features (feed, discovery, communities) and gamification (points, levels, leaderboards) to create an engaging user experience.
 
 **Key Differentiators:**
 - Mood tracking integrated with habit completion

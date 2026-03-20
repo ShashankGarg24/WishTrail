@@ -214,14 +214,14 @@ const sanitizeGoalsForProfile = (goals) => {
 };
 
 /**
- * Sanitize journal entry for API responses
- * Minimal fields: id, content, mood, visibility, dayKey, motivation, createdAt
- * @param {Object} entry - Journal entry object
+ * Sanitize dailyLogs entry for API responses
+ * Minimal fields: id, content, mood, dayKey, motivation, createdAt
+ * @param {Object} entry - DailyLogs entry object
  * @param {Boolean} isOwner - Whether the requester owns this entry
  * @param {String} viewerId - ID of the user viewing
- * @returns {Object} Sanitized journal entry with minimal fields
+ * @returns {Object} Sanitized dailyLogs entry with minimal fields
  */
-const sanitizeJournalEntry = (entry, isOwner = false, viewerId = null) => {
+const sanitizeDailyLogsEntry = (entry, isOwner = false, viewerId = null) => {
   if (!entry) return null;
   
   const obj = entry.toObject ? entry.toObject() : { ...entry };
@@ -230,7 +230,6 @@ const sanitizeJournalEntry = (entry, isOwner = false, viewerId = null) => {
   const sanitized = {
     content: obj.content,
     mood: obj.mood,
-    visibility: obj.visibility,
     dayKey: obj.dayKey,
     createdAt: obj.createdAt,
     id: obj._id ? obj._id.toString() : undefined
@@ -528,7 +527,7 @@ module.exports = {
   sanitizeGoals,
   sanitizeGoalForProfile,
   sanitizeGoalsForProfile,
-  sanitizeJournalEntry,
+  sanitizeDailyLogsEntry,
   sanitizeHabit,
   sanitizeHabitForProfile,
   sanitizeNotification,

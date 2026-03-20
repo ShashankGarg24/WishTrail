@@ -5,6 +5,7 @@ import { getCategoryIcon } from '../utils/categoryIcons'
 import { Plus, Target, CheckCircle, TrendingUp, Calendar, ChevronDown, Search, Flag, Clock, Eye, Edit, Trash2, Share2, Filter, ArrowUpDown, MinusCircle } from 'lucide-react'
 import useApiStore from '../store/apiStore'
 import { useSearchParams } from 'react-router-dom'
+import DailyLogFab from '../components/DailyLogFab'
 
 const CreateGoalWizard = lazy(() => import('../components/CreateGoalWizard'))
 const CompletionModal = lazy(() => import('../components/CompletionModal'))
@@ -1284,6 +1285,8 @@ const DashboardPageNew = () => {
           />
         )}
       </Suspense>
+
+      <DailyLogFab />
     </div>
   )
 }

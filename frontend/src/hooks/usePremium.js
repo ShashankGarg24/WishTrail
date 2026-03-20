@@ -131,12 +131,12 @@ export function useHabitLimits(currentHabitCount = 0) {
 }
 
 /**
- * Hook to check journal limits
+ * Hook to check daily log limits
  * @param {number} todayEntryCount - Number of entries created today
- * @returns {Object} Journal limit validation
+ * @returns {Object} Daily log limit validation
  */
-export function useJournalLimits(todayEntryCount = 0) {
-  const limits = useFeatureLimits('journal');
+export function useDailyLogsLimits(todayEntryCount = 0) {
+  const limits = useFeatureLimits('daily_logs');
   const { isPremium } = usePremiumStatus();
   
   return useMemo(() => {
@@ -156,6 +156,8 @@ export function useJournalLimits(todayEntryCount = 0) {
     };
   }, [limits, todayEntryCount, isPremium]);
 }
+
+export const useDailyLogLimits = useDailyLogsLimits;
 
 /**
  * Hook to check community limits
@@ -199,7 +201,7 @@ export function useAIFeatures() {
       hasAccess: isPremium && (limits?.aiSuggestions || false),
       aiSuggestions: limits?.aiSuggestions ?? false,
       smartGoalRecommendations: limits?.smartGoalRecommendations ?? false,
-      aiJournalPrompts: limits?.aiJournalPrompts ?? false,
+      aiDailyLogsPrompts: limits?.aiDailyLogsPrompts ?? false,
       aiInsights: limits?.aiInsights ?? false,
       maxRequestsPerDay: limits?.maxAiRequestsPerDay ?? 0,
       isPremium

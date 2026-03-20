@@ -3,7 +3,7 @@ const express = require('express');
 const router = express.Router();
 
 const { sendReminderNotifications } = require('../services/habitService');
-const { notifyDailyPrompt } = require('../services/journalService');
+const { notifyDailyPrompt } = require('../services/dailyLogsService');
 const { sendMorningQuotes, generateNightlyQuotes } = require('../services/motivationService');
 const { sendDueInactivityReminders } = require('../services/inactivityService');
 const Notification = require('../models/Notification');
@@ -29,12 +29,12 @@ router.post('/habit-reminders', verifyCronKey, async (req, res) => {
   // }
 });
 
-router.post('/journal-prompts', verifyCronKey, async (req, res) => {
+router.post('/daily-logs-prompts', verifyCronKey, async (req, res) => {
   // try {
   //   const startedAt = Date.now();
   //   await notifyDailyPrompt();
   //   const durationMs = Date.now() - startedAt;
-  //   try { logger.info('[cron] journal-prompts', { durationMs }); } catch {}
+  //   try { logger.info('[cron] daily-logs-prompts', { durationMs }); } catch {}
   //   res.json({ success: true, durationMs });
   // } catch (e) {
   //   res.status(500).json({ success: false, error: e?.message || 'failed' });

@@ -10,9 +10,9 @@ const NotificationsSection = () => {
   const [hasChanges, setHasChanges] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [openJournalDd, setOpenJournalDd] = useState(false);
+  const [openDailyLogsDd, setOpenDailyLogsDd] = useState(false);
   const [openMotivationDd, setOpenMotivationDd] = useState(false);
-  const journalDdRef = useRef(null);
+  const dailyLogsDdRef = useRef(null);
   const motivationDdRef = useRef(null);
 
   useEffect(() => {
@@ -21,8 +21,8 @@ const NotificationsSection = () => {
 
   useEffect(() => {
     const onDocClick = (e) => {
-      if (openJournalDd && journalDdRef.current && !journalDdRef.current.contains(e.target)) {
-        setOpenJournalDd(false);
+      if (openDailyLogsDd && dailyLogsDdRef.current && !dailyLogsDdRef.current.contains(e.target)) {
+        setOpenDailyLogsDd(false);
       }
       if (openMotivationDd && motivationDdRef.current && !motivationDdRef.current.contains(e.target)) {
         setOpenMotivationDd(false);
@@ -30,7 +30,7 @@ const NotificationsSection = () => {
     };
     document.addEventListener('mousedown', onDocClick);
     return () => document.removeEventListener('mousedown', onDocClick);
-  }, [openJournalDd, openMotivationDd]);
+  }, [openDailyLogsDd, openMotivationDd]);
 
   const fetchNotificationSettings = async () => {
     try {
@@ -39,7 +39,7 @@ const NotificationsSection = () => {
       const settings = data.notificationSettings || {
         inAppEnabled: true,
         habits: { enabled: true },
-        journal: { enabled: true, frequency: 'daily' },
+        dailyLogs: { enabled: true, frequency: 'daily' },
         motivation: { enabled: false, frequency: 'off' },
         social: { enabled: true }
       };
@@ -50,7 +50,7 @@ const NotificationsSection = () => {
       const defaultSettings = {
         inAppEnabled: true,
         habits: { enabled: true },
-        journal: { enabled: true, frequency: 'daily' },
+        dailyLogs: { enabled: true, frequency: 'daily' },
         motivation: { enabled: false, frequency: 'off' },
         social: { enabled: true }
       };
@@ -180,31 +180,31 @@ const NotificationsSection = () => {
           </div>
         </div>
 
-        {/* Journal Reminders */}
+        {/* Daily Log Reminders */}
         <div className={`border-b border-gray-200 dark:border-gray-700 pb-6 ${!notif.inAppEnabled ? 'opacity-50' : ''}`}>
           <div className="flex items-center justify-between">
             <div className="flex-1">
-              <h3 className="text-base font-semibold text-gray-900 dark:text-white">Journal Reminders</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Remind me to write in my journal</p>
+              <h3 className="text-base font-semibold text-gray-900 dark:text-white">Daily Log Reminders</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Remind me to write in my daily logs</p>
             </div>
-            <div ref={journalDdRef} className="relative ml-4">
+            <div ref={dailyLogsDdRef} className="relative ml-4">
               <button
                 type="button"
                 disabled={!notif.inAppEnabled}
                 onClick={(e) => {
                   e.stopPropagation();
-                  setOpenJournalDd(v => !v);
+                  setOpenDailyLogsDd(v => !v);
                   setOpenMotivationDd(false);
                 }}
                 className={`w-36 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm font-medium ${!notif.inAppEnabled ? 'cursor-not-allowed opacity-50' : ''}`}
               >
-                {(notif.journal?.enabled === false || notif.journal?.frequency === 'off')
+                {(notif.dailyLogs?.enabled === false || notif.dailyLogs?.frequency === 'off')
                   ? 'Off'
-                  : (notif.journal?.frequency
-                    ? notif.journal.frequency.charAt(0).toUpperCase() + notif.journal.frequency.slice(1)
+                  : (notif.dailyLogs?.frequency
+                    ? notif.dailyLogs.frequency.charAt(0).toUpperCase() + notif.dailyLogs.frequency.slice(1)
                     : 'Daily')}
               </button>
-              {openJournalDd && (
+              {openDailyLogsDd && (
                 <div className="absolute right-0 top-full mt-2 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50">
                   {['daily', 'weekly', 'off'].map(opt => (
                     <button
@@ -212,10 +212,10 @@ const NotificationsSection = () => {
                       className="w-full text-left px-4 py-2 text-sm text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 first:rounded-t-lg last:rounded-b-lg"
                       onClick={() => {
                         const next = opt === 'off'
-                          ? { ...notif, journal: { ...(notif.journal || {}), enabled: false, frequency: 'off' } }
-                          : { ...notif, journal: { enabled: true, frequency: opt } };
+                          ? { ...notif, dailyLogs: { ...(notif.dailyLogs || {}), enabled: false, frequency: 'off' } }
+                          : { ...notif, dailyLogs: { enabled: true, frequency: opt } };
                         updateNotifSettings(next);
-                        setOpenJournalDd(false);
+                        setOpenDailyLogsDd(false);
                       }}
                     >
                       {opt === 'off' ? 'Off' : (opt.charAt(0).toUpperCase() + opt.slice(1))}
@@ -241,7 +241,7 @@ const NotificationsSection = () => {
                 onClick={(e) => {
                   e.stopPropagation();
                   setOpenMotivationDd(v => !v);
-                  setOpenJournalDd(false);
+                  setOpenDailyLogsDd(false);
                 }}
                 className={`w-36 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm font-medium ${!notif.inAppEnabled ? 'cursor-not-allowed opacity-50' : ''}`}
               >

@@ -53,7 +53,7 @@ const TermsOfService = () => {
       content: [
         {
           subtitle: 'Your Content',
-          text: 'You retain ownership of all content you create, post, or upload to WishTrail, including goals, journal entries, posts, comments, images, and videos (\'User Content\'). You are responsible for ensuring you have the right to share any content you post. Media uploads are subject to file size limits (typically 500KB-1MB for images) and must be in accepted formats (JPEG, PNG, WebP, MP4).'
+          text: 'You retain ownership of all content you create, post, or upload to WishTrail, including goals, daily log entries, posts, comments, images, and videos (\'User Content\'). You are responsible for ensuring you have the right to share any content you post. Media uploads are subject to file size limits (typically 500KB-1MB for images) and must be in accepted formats (JPEG, PNG, WebP, MP4).'
         },
         {
           subtitle: 'License to WishTrail',

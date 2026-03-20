@@ -6,6 +6,7 @@ import useApiStore from '../store/apiStore';
 import GoalPostModal from '../components/GoalPostModal';
 import toast from 'react-hot-toast';
 import CategoryBadge from '../components/CategoryBadge';
+import DailyLogFab from '../components/DailyLogFab';
 
 const ActivityCommentsModal = lazy(() => import('../components/ActivityCommentsModal'));
 const ReportModal = lazy(() => import('../components/ReportModal'));
@@ -800,6 +801,8 @@ const FeedPage = () => {
           title="WishTrail Goal"
         />
       </Suspense>
+
+      <DailyLogFab />
     </div>
   );
 };

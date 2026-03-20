@@ -157,8 +157,8 @@ export const UpgradeModal = ({ isOpen, onClose, preselectedPlan = 'annual' }) =>
                 {[
                   'Create up to 10 active goals with 10 subgoals each',
                   'Track up to 10 habits with custom reminders',
-                  'Write up to 5 journal entries per day',
-                  'Export your journal anytime',
+                  'Write up to 5 daily logs per day',
+                  'Export your daily logs anytime',
                   'Join up to 50 communities and own 10',
                   'AI-powered suggestions and insights',
                   'Advanced analytics and custom reports',

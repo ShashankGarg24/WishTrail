@@ -1,6 +1,6 @@
 # Quick Start: Update Your Existing Components
 
-This guide shows you exactly how to add premium enforcement to your existing goal, habit, and journal components.
+This guide shows you exactly how to add premium enforcement to your existing goal, habit, and dailyLogs components.
 
 ## Step 1: Update Auth Redux Store
 
@@ -250,14 +250,14 @@ const handleSubmit = async (e) => {
 </label>
 ```
 
-## Step 4: Update Journal Entry Component
+## Step 4: Update DailyLogs Entry Component
 
-### Find your journal entry component
+### Find your dailyLogs entry component
 
 **Imports:**
 
 ```javascript
-import { useJournalLimits } from '../hooks/usePremium';
+import { useDailyLogsLimits } from '../hooks/usePremium';
 import { LimitIndicator, UpgradeModal } from '../components/premium/PremiumComponents';
 ```
 
@@ -266,7 +266,7 @@ import { LimitIndicator, UpgradeModal } from '../components/premium/PremiumCompo
 ```javascript
 const [todayEntries, setTodayEntries] = useState([]);
 const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-const journalLimits = useJournalLimits(todayEntries.length);
+const dailyLogsLimits = useDailyLogsLimits(todayEntries.length);
 ```
 
 **Fetch today's entries:**
@@ -275,7 +275,7 @@ const journalLimits = useJournalLimits(todayEntries.length);
 useEffect(() => {
   async function fetchTodayEntries() {
     const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-    const response = await fetch(`/api/journal/entries?date=${today}`, {
+    const response = await fetch(`/api/dailyLogs/entries?date=${today}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     const data = await response.json();
@@ -289,8 +289,8 @@ useEffect(() => {
 
 ```javascript
 <LimitIndicator
-  current={journalLimits.todayEntries}
-  max={journalLimits.maxEntries}
+  current={dailyLogsLimits.todayEntries}
+  max={dailyLogsLimits.maxEntries}
   label="Entries Today"
   className="mb-4"
 />
@@ -302,12 +302,12 @@ useEffect(() => {
 <textarea
   value={content}
   onChange={(e) => setContent(e.target.value)}
-  maxLength={journalLimits.maxLength}
-  disabled={!journalLimits.canCreate}
+  maxLength={dailyLogsLimits.maxLength}
+  disabled={!dailyLogsLimits.canCreate}
   className="..."
 />
 <p className="text-xs text-gray-500">
-  {content.length} / {journalLimits.maxLength} characters
+  {content.length} / {dailyLogsLimits.maxLength} characters
 </p>
 ```
 
@@ -315,8 +315,8 @@ useEffect(() => {
 
 ```javascript
 const handleSubmit = async () => {
-  if (!journalLimits.canCreate) {
-    alert(`Daily limit reached (${journalLimits.maxEntries} entries/day)`);
+  if (!dailyLogsLimits.canCreate) {
+    alert(`Daily limit reached (${dailyLogsLimits.maxEntries} entries/day)`);
     setShowUpgradeModal(true);
     return;
   }
@@ -334,18 +334,18 @@ const handleSubmit = async () => {
 ```javascript
 <button
   onClick={handleExport}
-  disabled={!journalLimits.canExport}
+  disabled={!dailyLogsLimits.canExport}
   className="..."
 >
-  {journalLimits.canExport ? 'Export Journal' : '🔒 Export (Premium)'}
+  {dailyLogsLimits.canExport ? 'Export DailyLogs' : '🔒 Export (Premium)'}
 </button>
 
-{!journalLimits.canExport && (
+{!dailyLogsLimits.canExport && (
   <p className="text-xs text-gray-500">
     <button onClick={() => setShowUpgradeModal(true)} className="underline">
       Upgrade to premium
     </button>
-    {' '}to export your journal
+    {' '}to export your dailyLogs
   </p>
 )}
 ```
@@ -521,17 +521,17 @@ import PremiumPage from './pages/PremiumPage';
 2. Create 5 goals → should allow
 3. Try to create 6th goal → should show upgrade modal
 4. Create 1 habit with reminders → reminder checkbox should be disabled
-5. Create 1 journal entry → should allow
-6. Try 2nd journal entry same day → should show limit reached
-7. Try to export journal → should show "Premium only"
+5. Create 1 dailyLogs entry → should allow
+6. Try 2nd dailyLogs entry same day → should show limit reached
+7. Try to export dailyLogs → should show "Premium only"
 
 ### Test as Premium User:
 
 1. Log in as a user with future `premium_expires_at`
 2. Create 10 goals → should allow
 3. Create 10 habits with reminders → should allow
-4. Create 5 journal entries in one day → should allow
-5. Export journal → should work
+4. Create 5 dailyLogs entries in one day → should allow
+5. Export dailyLogs → should work
 6. See premium badge in navigation
 
 ### Test Premium Expiring:
@@ -567,7 +567,7 @@ import PremiumPage from './pages/PremiumPage';
 1. ✅ Update auth to include premium data
 2. ✅ Add premium checks to goal creation
 3. ✅ Add premium checks to habit creation
-4. ✅ Add premium checks to journal entries
+4. ✅ Add premium checks to dailyLogs entries
 5. ✅ Add premium badge to navigation
 6. ✅ Create premium page
 7. ✅ Test thoroughly

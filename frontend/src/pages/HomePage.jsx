@@ -675,7 +675,7 @@ const HomePage = () => {
                   </div>
                 </motion.div>
 
-                {/* Feature 6: Daily Journal */}
+                {/* Feature 6: Daily Logs */}
                 <motion.div
                   initial={{ opacity: 0, y: 30 }}
                   whileInView={{ opacity: 1, y: 0 }}
@@ -691,7 +691,7 @@ const HomePage = () => {
                     </div>
                     
                     <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-3 sm:mb-4 font-manrope">
-                      Daily Journal
+                      Daily Logs
                     </h3>
                     
                     <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 leading-relaxed mb-4 sm:mb-6 font-manrope">

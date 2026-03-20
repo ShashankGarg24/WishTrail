@@ -1,11 +1,11 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect } from 'react';
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock';
-import { X, Sparkles, Lock, Globe } from 'lucide-react';
+import { X, Sparkles } from 'lucide-react';
 
 const THEME_COLOR = '#4c99e6';
 
-const JournalEntryModal = ({ isOpen, onClose, entry }) => {
+const DailyLogsEntryModal = ({ isOpen, onClose, entry }) => {
   useEffect(() => {
     if (isOpen) {
       lockBodyScroll();
@@ -30,7 +30,7 @@ const JournalEntryModal = ({ isOpen, onClose, entry }) => {
           style={{ fontFamily: 'Manrope, ui-sans-serif, system-ui' }}
         >
           <div className="flex items-center justify-between mb-5">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Journal Entry</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Daily Log Entry</h3>
             <button type="button" onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 transition-colors" aria-label="Close">
               <X className="h-5 w-5" />
             </button>
@@ -41,20 +41,11 @@ const JournalEntryModal = ({ isOpen, onClose, entry }) => {
               {formatDate(entry.createdAt)}
             </div>
             <div className="flex items-center gap-2 mb-3">
-              {entry.visibility === 'public' ? (
-                <span className="inline-flex items-center gap-1.5 text-xs font-medium" style={{ color: THEME_COLOR }}>
-                  <Globe className="h-3.5 w-3.5" /> PUBLIC
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
-                  <Lock className="h-3.5 w-3.5" /> PRIVATE
-                </span>
-              )}
               <span className="text-xs text-gray-500 dark:text-gray-400 capitalize">
-                {String(entry.mood || '').replace('_', ' ') || 'neutral'}
+                {String(entry.mood || '').replace('_', ' ') || 'okay'}
               </span>
             </div>
-            <h4 className="font-semibold text-gray-900 dark:text-white text-base">{entry.title || 'Reflection'}</h4>
+            <h4 className="font-semibold text-gray-900 dark:text-white text-base">{entry.title || 'Daily Log'}</h4>
             <div className="rounded-xl p-4 border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/30">
               <div className="whitespace-pre-wrap text-sm text-gray-900 dark:text-gray-100 leading-relaxed">{entry.content}</div>
             </div>
@@ -75,4 +66,4 @@ const JournalEntryModal = ({ isOpen, onClose, entry }) => {
   );
 };
 
-export default JournalEntryModal;
+export default DailyLogsEntryModal;

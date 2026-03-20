@@ -90,7 +90,7 @@ if (!check.allowed) {
 |---------|------|---------|
 | **Goals** | 10 active | Unlimited |
 | **Habits** | 5 active | Unlimited |
-| **Journal** | 3/day | Unlimited |
+| **Daily Logs** | 3/day | Unlimited |
 | **Following** | 100 max | 1000 max |
 | **Communities** | Join 5 | Join 50, Create 5 |
 | **Storage** | 100 MB | 10 GB |

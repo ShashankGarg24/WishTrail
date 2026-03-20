@@ -6,7 +6,7 @@
 #     - cron: '0 1 * * *'
 #     # Delete old notifications at 02:00 UTC
 #     - cron: '0 2 * * *'
-#     # Morning quotes + journal prompts hourly (services filter local time)
+#     # Morning quotes + daily-logs prompts hourly (services filter local time)
 #     - cron: '0 * * * *'
 #     # Inactivity reminders hourly at :15
 #     - cron: '15 * * * *'
@@ -48,13 +48,13 @@
 #           API_BASE: https://wishtrail-web.onrender.com/api/v1
 #           CRON_SECRET: ${{ secrets.CRON_SECRET }}
 
-#   journal-prompts:
+#   daily-logs-prompts:
 #     if: github.event.schedule == '0 * * * *' || github.event_name == 'workflow_dispatch'
 #     runs-on: ubuntu-latest
 #     steps:
-#       - name: Trigger journal prompts
+#       - name: Trigger daily-logs prompts
 #         run: |
-#           curl -fsS -X POST "$API_BASE/cron/journal-prompts?key=$CRON_SECRET"
+#           curl -fsS -X POST "$API_BASE/cron/daily-logs-prompts?key=$CRON_SECRET"
 #         env:
 #           API_BASE: https://wishtrail-web.onrender.com/api/v1
 #           CRON_SECRET: ${{ secrets.CRON_SECRET }}

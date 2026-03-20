@@ -20,7 +20,7 @@ const PrivacyPolicy = () => {
         },
         {
           subtitle: 'Goals and Activities',
-          text: 'We collect information about your goals, habits, journal entries, milestones, completion times, progress notes, and other activity data you create within the app.'
+          text: 'We collect information about your goals, habits, daily log entries, milestones, completion times, progress notes, and other activity data you create within the app.'
         },
         {
           subtitle: 'Social Features',

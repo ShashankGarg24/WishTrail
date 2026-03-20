@@ -1,13 +1,13 @@
-const journalService = require('../services/journalService');
-const JournalEntry = require('../models/JournalEntry');
+const dailyLogsService = require('../services/dailyLogsService');
+const DailyLogsEntry = require('../models/DailyLogsEntry');
 const PDFDocument = require('pdfkit');
 const axios = require('axios');
-const { sanitizeJournalEntry } = require('../utility/sanitizer');
-const { validateJournalEntry, validateJournalExport, handleValidationResponse } = require('../utility/premiumEnforcement');
+const { sanitizeDailyLogsEntry } = require('../utility/sanitizer');
+const { validateDailyLogsEntry, validateDailyLogsExport, handleValidationResponse } = require('../utility/premiumEnforcement');
 
 exports.getPrompt = async (req, res, next) => {
   try {
-    const prompt = journalService.getTodayPrompt();
+    const prompt = dailyLogsService.getTodayPrompt();
     res.status(200).json({ success: true, data: { prompt } });
   } catch (error) {
     next(error);
@@ -16,20 +16,17 @@ exports.getPrompt = async (req, res, next) => {
 
 exports.createEntry = async (req, res, next) => {
   try {
-    const { content, promptKey, visibility, mood, tags } = req.body;
-    if (!content || String(content).trim().length === 0) {
-      return res.status(400).json({ success: false, message: 'Content is required' });
-    }
+    const { content, promptKey, mood, tags } = req.body;
     
-    // ✅ PREMIUM CHECK: Validate journal entry limits
-    const validation = await validateJournalEntry(req);
+    // ✅ PREMIUM CHECK: Validate daily log limits
+    const validation = await validateDailyLogsEntry(req);
     const errorResponse = handleValidationResponse(res, validation);
     if (errorResponse) return errorResponse;
     
-    const entry = await journalService.createEntry(req.user.id, { content, promptKey, visibility, mood, tags });
+    const entry = await dailyLogsService.createEntry(req.user.id, { content, promptKey, mood, tags });
     
     // ✅ Sanitize entry response - return only essential fields
-    const sanitizedEntry = sanitizeJournalEntry(entry, true, req.user.id);
+    const sanitizedEntry = sanitizeDailyLogsEntry(entry, true, req.user.id);
     
     res.status(201).json({ success: true, data: { entry: sanitizedEntry } });
   } catch (error) {
@@ -40,12 +37,12 @@ exports.createEntry = async (req, res, next) => {
 exports.updateEntry = async (req, res, next) => {
   try {
     const { entryId } = req.params;
-    const { mood, visibility } = req.body;
+    const { content, mood, tags } = req.body;
     if (!entryId) return res.status(400).json({ success: false, message: 'entryId required' });
-    const updated = await journalService.updateEntry(req.user.id, entryId, { mood, visibility });
+    const updated = await dailyLogsService.updateEntry(req.user.id, entryId, { content, mood, tags });
     
     // ✅ Sanitize updated entry response
-    const sanitizedEntry = sanitizeJournalEntry(updated, true, req.user.id);
+    const sanitizedEntry = sanitizeDailyLogsEntry(updated, true, req.user.id);
     
     res.status(200).json({ success: true, data: { entry: sanitizedEntry } });
   } catch (error) {
@@ -53,14 +50,27 @@ exports.updateEntry = async (req, res, next) => {
   }
 };
 
+exports.clearEntry = async (req, res, next) => {
+  try {
+    const { entryId } = req.params;
+    if (!entryId) return res.status(400).json({ success: false, message: 'entryId required' });
+
+    await dailyLogsService.clearEntry(req.user.id, entryId);
+    res.status(200).json({ success: true, data: { cleared: true } });
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.getMyEntries = async (req, res, next) => {
   try {
-    const limit = Math.min(parseInt(req.query.limit) || 20, 50);
-    const skip = parseInt(req.query.skip) || 0;
-    const entries = await journalService.listMyEntries(req.user.id, { limit, skip });
+    const todayOnly = String(req.query.todayOnly || '').toLowerCase() === 'true';
+    const limit = todayOnly ? 1 : Math.min(parseInt(req.query.limit) || 20, 50);
+    const skip = todayOnly ? 0 : (parseInt(req.query.skip) || 0);
+    const entries = await dailyLogsService.listMyEntries(req.user.id, { limit, skip, todayOnly });
     
     // ✅ Sanitize entries - remove __v and internal fields
-    const sanitizedEntries = entries.map(e => sanitizeJournalEntry(e, true, req.user.id));
+    const sanitizedEntries = entries.map(e => sanitizeDailyLogsEntry(e, true, req.user.id));
     
     res.status(200).json({ success: true, data: { entries: sanitizedEntries } });
   } catch (error) {
@@ -73,10 +83,10 @@ exports.getUserHighlights = async (req, res, next) => {
     const targetUserId = req.params.userId;
     const limit = Math.min(parseInt(req.query.limit) || 12, 24);
     const viewerId = req.user?.id;
-    const highlights = await journalService.getUserHighlights(targetUserId, viewerId, { limit });
+    const highlights = await dailyLogsService.getUserHighlights(targetUserId, viewerId, { limit });
     
     // ✅ Sanitize highlights - remove sensitive user data from nested objects
-    const sanitizedHighlights = highlights.map(h => sanitizeJournalEntry(h, false, viewerId));
+    const sanitizedHighlights = highlights.map(h => sanitizeDailyLogsEntry(h, false, viewerId));
     
     res.status(200).json({ success: true, data: { highlights: sanitizedHighlights } });
   } catch (error) {
@@ -84,13 +94,13 @@ exports.getUserHighlights = async (req, res, next) => {
   }
 };
 
-// @desc    Export my journal as PDF or text
-// @route   GET /api/v1/journals/export?format=pdf|text&style=simple|diary&includeMotivation=true|false&from=&to=
+// @desc    Export my daily logs as PDF or text
+// @route   GET /api/v1/dailyLogss/export?format=pdf|text&style=simple|diary&includeMotivation=true|false&from=&to=
 // @access  Private
-exports.exportMyJournal = async (req, res, next) => {
+exports.exportMyDailyLogs = async (req, res, next) => {
   try {
     // ✅ PREMIUM CHECK: Validate export permission
-    const validation = await validateJournalExport(req);
+    const validation = await validateDailyLogsExport(req);
     const errorResponse = handleValidationResponse(res, validation);
     if (errorResponse) return errorResponse;
     
@@ -111,7 +121,7 @@ exports.exportMyJournal = async (req, res, next) => {
       }
     }
 
-    const filter = { userId, isActive: true };
+    const filter = { userId };
     if (from || to) {
       filter.createdAt = {};
       if (from) {
@@ -125,10 +135,10 @@ exports.exportMyJournal = async (req, res, next) => {
         filter.createdAt.$lte = toDate;
       }
     }
-    const entries = await JournalEntry.find(filter).sort({ createdAt: 1 }).lean();
+    const entries = await DailyLogsEntry.find(filter).sort({ createdAt: 1 }).lean();
     
     if (entries.length === 0) {
-      return res.status(404).json({ success: false, message: 'No journal entries found for the selected date range' });
+      return res.status(404).json({ success: false, message: 'No daily logs found for the selected date range' });
     }
 
     if (String(format).toLowerCase() === 'text') {
@@ -136,9 +146,9 @@ exports.exportMyJournal = async (req, res, next) => {
       const lines = [];
       
       if (String(style).toLowerCase() === 'diary') {
-        // Diary style - like an actual journal
+        // Diary style - like an actual daily log dailyLogs
         lines.push('═══════════════════════════════════════════════════════════════');
-        lines.push(`                    ${user.name}'s Journal`);
+        lines.push(`                    ${user.name}'s Daily Logs`);
         lines.push('═══════════════════════════════════════════════════════════════');
         lines.push('');
         lines.push('');
@@ -184,7 +194,7 @@ exports.exportMyJournal = async (req, res, next) => {
         lines.push('═══════════════════════════════════════════════════════════════');
       } else {
         // Simple style - clean and minimal
-        lines.push(`${user.name}'s Journal`);
+        lines.push(`${user.name}'s Daily Logs`);
         lines.push(`Exported on ${new Date().toLocaleDateString()}`);
         lines.push('');
         lines.push('─────────────────────────────────────────────────');
@@ -219,7 +229,7 @@ exports.exportMyJournal = async (req, res, next) => {
 
     // PDF export
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="wishtrail-journal-${user.name.replace(/\s+/g, '_')}.pdf"`);
+    res.setHeader('Content-Disposition', `attachment; filename="wishtrail-daily-logs-${user.name.replace(/\s+/g, '_')}.pdf"`);
     const doc = new PDFDocument({ size: 'A4', margin: 50 });
     doc.pipe(res);
 
@@ -239,7 +249,7 @@ exports.exportMyJournal = async (req, res, next) => {
       }
       
       // Title & range with classic serif
-      doc.font('Times-Bold').fontSize(28).fillColor('#1f2937').text(`${user.name}'s Journal`, { align: 'center' });
+      doc.font('Times-Bold').fontSize(28).fillColor('#1f2937').text(`${user.name}'s Daily Logs`, { align: 'center' });
       doc.moveDown(0.4);
       doc.font('Times-Italic').fontSize(14).fillColor('#6b7280').text(range, { align: 'center' });
       
@@ -309,7 +319,7 @@ exports.exportMyJournal = async (req, res, next) => {
     const writeEntry = (e) => {
       const dt = new Date(e.createdAt);
       if (style === 'diary') {
-        // Diary style - like an actual journal entry (full page per entry)
+        // Diary style - like an actual daily log entry (full page per entry)
         const dateStr = dt.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
         const timeStr = dt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
         
@@ -421,11 +431,11 @@ exports.exportMyJournal = async (req, res, next) => {
       
       if (style === 'diary') {
         // Minimal header/footer for diary style to keep it clean
-        doc.font('Times-Roman').fontSize(8).fillColor('#9ca3af').text(`${user.name}'s Journal`, left, top - 25, { width: right - left, align: 'center' });
+        doc.font('Times-Roman').fontSize(8).fillColor('#9ca3af').text(`${user.name}'s Daily Logs`, left, top - 25, { width: right - left, align: 'center' });
         doc.font('Times-Roman').fontSize(8).fillColor('#d1d5db').text(`${pageNo}`, left, bottom + 8, { width: right - left, align: 'center' });
       } else {
         // Full decoration for simple style
-        doc.font('Helvetica').fontSize(9).fillColor('#6b7280').text(`WishTrail Journal • ${user.name}`, left, top - 30, { width: right - left, align: 'left' });
+        doc.font('Helvetica').fontSize(9).fillColor('#6b7280').text(`WishTrail Daily Logs • ${user.name}`, left, top - 30, { width: right - left, align: 'left' });
         doc.font('Helvetica').fontSize(9).fillColor('#9ca3af').text(`${pageNo}`, left, bottom + 6, { width: right - left, align: 'center' });
         // Left margin rule
         doc.strokeColor('#e5e7eb').lineWidth(1).moveTo(left + 20, top - 10).lineTo(left + 20, bottom - 10).stroke();

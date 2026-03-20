@@ -1,25 +1,33 @@
 ﻿import { GOAL_CATEGORIES } from '../constants/goalCategories'
-import { useState, useEffect, useRef, lazy, Suspense } from "react";
+import { useState, useEffect, useRef, useMemo, lazy, Suspense } from "react";
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { Target, TrendingUp, Star, Edit2, ExternalLink, Youtube, Instagram, MapPin, Globe, Trophy, BookOpen, Clock, CheckCircle, Circle, User, UserPlus, UserCheck, ArrowLeft, Lock, Sparkles, Download, Flame, Award, BarChart2, Activity, MoreVertical, Plus, PenSquare } from "lucide-react";
+import { Target, TrendingUp, Star, Edit2, ExternalLink, Youtube, Instagram, MapPin, Globe, Trophy, BookOpen, Clock, CheckCircle, Circle, User, UserPlus, UserCheck, ArrowLeft, Lock, Sparkles, Download, Flame, Award, BarChart2, Activity, MoreVertical, Plus, PenSquare, ChevronDown } from "lucide-react";
 import { getCategoryIcon } from '../utils/categoryIcons';
 import CategoryBadge from '../components/CategoryBadge';
 const FollowListModal = lazy(() => import("../components/FollowListModal"));
 import { motion } from "framer-motion";
 import useApiStore from "../store/apiStore";
-import { journalsAPI } from "../services/api";
+import { dailyLogssAPI } from "../services/api";
 import { habitsAPI } from '../services/api';
 import ShareSheet from '../components/ShareSheet';
 import toast from 'react-hot-toast';
 import { getDateKeyInTimezone } from '../utils/timezoneUtils';
 const ReportModal = lazy(() => import("../components/ReportModal"));
 const BlockModal = lazy(() => import("../components/BlockModal"));
-const JournalPromptModal = lazy(() => import("../components/JournalPromptModal"));
-const JournalEntryModal = lazy(() => import("../components/JournalEntryModal"));
-const JournalExportModal = lazy(() => import("../components/JournalExportModal"));
+const DailyLogsPromptModal = lazy(() => import("../components/DailyLogsPromptModal"));
+const DailyLogsExportModal = lazy(() => import("../components/DailyLogsExportModal"));
 const HabitAnalyticsCard = lazy(() => import("../components/HabitAnalyticsCard"));
 const HabitDetailModal = lazy(() => import("../components/HabitDetailModal"));
 const GoalPostModal = lazy(() => import('../components/GoalPostModal'));
+
+const DAILY_LOG_MOOD_META = {
+  happy: { label: 'Happy', score: 5, chip: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' },
+  motivated: { label: 'Motivated', score: 4, chip: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' },
+  okay: { label: 'Okay', score: 3, chip: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300' },
+  stressed: { label: 'Stressed', score: 2, chip: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' },
+  angry: { label: 'Angry', score: 1.5, chip: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300' },
+  sad: { label: 'Sad', score: 1, chip: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300' }
+};
 
 const ProfilePage = () => {
   const params = useParams();
@@ -69,9 +77,9 @@ const ProfilePage = () => {
     report,
     blockUser,
     cancelFollowRequest,
-    getUserJournalHighlights,
-    getMyJournalEntries,
-    journalEntries,
+    getUserDailyLogsHighlights,
+    getMyDailyLogsEntries,
+    dailyLogsEntries,
     getFollowers,
     getFollowing,
     getUserAnalytics
@@ -90,15 +98,14 @@ const ProfilePage = () => {
   const displayUser = isOwnProfile ? currentUser : profileUser;
 
   const [isRequested, setIsRequested] = useState(false);
-  const [isJournalOpen, setIsJournalOpen] = useState(false);
-  const [submittedJournalToday, setSubmittedJournalToday] = useState(false);
-  const [entryModalOpen, setEntryModalOpen] = useState(false);
-  const [selectedEntry, setSelectedEntry] = useState(null);
-  const [journalFeed, setJournalFeed] = useState([]);
-  const [journalSkip, setJournalSkip] = useState(0);
-  const JOURNAL_LIMIT = 6;
-  const [journalHasMore, setJournalHasMore] = useState(true);
-  const [journalLoading, setJournalLoading] = useState(false);
+  const [isDailyLogsOpen, setIsDailyLogsOpen] = useState(false);
+  const [submittedDailyLogsToday, setSubmittedDailyLogsToday] = useState(false);
+  const [expandedDailyLogIds, setExpandedDailyLogIds] = useState([]);
+  const [dailyLogsFeed, setDailyLogsFeed] = useState([]);
+  const [dailyLogsSkip, setDailyLogsSkip] = useState(0);
+  const DAILY_LOGS_LIMIT = 14;
+  const [dailyLogsHasMore, setDailyLogsHasMore] = useState(true);
+  const [dailyLogsLoading, setDailyLogsLoading] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [myHabits, setMyHabits] = useState([]);
   const [userHabits, setUserHabits] = useState([]);
@@ -141,12 +148,26 @@ const ProfilePage = () => {
 
     if (isOwnProfile) {
       fetchOwnProfile();
-      // Load journal entries to check if today's journal exists
-      getMyJournalEntries({ limit: 50 }).catch(() => {});
+      // Load dailyLogs entries to check if today's dailyLogs exists
+      getMyDailyLogsEntries({ todayOnly: true, limit: 1 }).catch(() => {});
     } else {
       fetchUserProfile();
     }
   }, [isAuthenticated, usernameParam]);
+
+  useEffect(() => {
+    setFollowModalOpen(false);
+    setFollowers([]);
+    setFollowing([]);
+    setFollowersPage(1);
+    setFollowingPage(1);
+    setHasMoreFollowers(false);
+    setHasMoreFollowing(false);
+    if (!isOwnProfile) {
+      setIsFollowing(false);
+      setIsRequested(false);
+    }
+  }, [usernameParam, isOwnProfile]);
 
   // Outside click to close profile modal menu is handled by backdrop onClick
   useEffect(() => {
@@ -154,12 +175,12 @@ const ProfilePage = () => {
   }, []);
 
 
-  // Open Journal modal directly if ?journal=1 and viewing own profile
+  // Open DailyLogs modal directly if ?dailyLogs=1 and viewing own profile
   useEffect(() => {
     try {
-      const j = searchParams.get('journal');
+      const j = searchParams.get('daily-logs');
       if (j === '1' && isOwnProfile) {
-        setIsJournalOpen(true);
+        setIsDailyLogsOpen(true);
       }
     } catch { }
   }, [searchParams, isOwnProfile]);
@@ -257,75 +278,122 @@ const ProfilePage = () => {
 
   useEffect(() => {
     
-    // Load Journal when tab opens
-    const fetchJournal = async () => {
+    // Load DailyLogs when tab opens
+    const fetchDailyLogs = async () => {
       try {
         
-        if (activeTab === 'journal' && isOwnProfile && currentUser?.username) {
+        if (activeTab === 'daily-logs' && isOwnProfile && currentUser?.username) {
           // Reset feed and load first page (own profile only)
-          setJournalFeed([]);
-          setJournalSkip(0);
-          setJournalHasMore(true);
-          setJournalLoading(true);
+          setDailyLogsFeed([]);
+          setDailyLogsSkip(0);
+          setDailyLogsHasMore(true);
+          setDailyLogsLoading(true);
           
           try {
-            const params = { limit: JOURNAL_LIMIT, skip: 0 };
-            const res = await journalsAPI.getMyEntries(params);
+            const params = { limit: DAILY_LOGS_LIMIT, skip: 0 };
+            const res = await dailyLogssAPI.getMyEntries(params);
             const entries = res?.data?.data?.entries || [];
-            setJournalFeed(entries);
-            setJournalSkip(entries.length);
-            if (entries.length < JOURNAL_LIMIT) setJournalHasMore(false);
+            setDailyLogsFeed(entries);
+            setDailyLogsSkip(entries.length);
+            if (entries.length < DAILY_LOGS_LIMIT) setDailyLogsHasMore(false);
           } catch (err) {
-            setJournalHasMore(false);
+            setDailyLogsHasMore(false);
           } finally {
-            setJournalLoading(false);
+            setDailyLogsLoading(false);
           }
         }
       } catch (e) {
       }
     };
-    fetchJournal();
+    fetchDailyLogs();
   }, [activeTab, profileUser?.username, currentUser?.username, isOwnProfile]);
 
-  const loadMoreJournal = async () => {
-    if (!isOwnProfile || journalLoading || !journalHasMore) return;
+  const loadMoreDailyLogs = async () => {
+    if (!isOwnProfile || dailyLogsLoading || !dailyLogsHasMore) return;
     try {
-      setJournalLoading(true);
-      const params = { limit: JOURNAL_LIMIT, skip: journalSkip };
-      const res = await journalsAPI.getMyEntries(params);
+      setDailyLogsLoading(true);
+      const params = { limit: DAILY_LOGS_LIMIT, skip: dailyLogsSkip };
+      const res = await dailyLogssAPI.getMyEntries(params);
       const entries = res?.data?.data?.entries || [];
-      setJournalFeed(prev => {
+      setDailyLogsFeed(prev => {
         const seen = new Set(prev.map(x => x?.createdAt).filter(Boolean));
         const filtered = entries.filter(e => e && e.createdAt && !seen.has(e.createdAt));
         return [...prev, ...filtered];
       });
-      setJournalSkip(prev => prev + entries.length);
-      if (entries.length < JOURNAL_LIMIT) setJournalHasMore(false);
+      setDailyLogsSkip(prev => prev + entries.length);
+      if (entries.length < DAILY_LOGS_LIMIT) setDailyLogsHasMore(false);
     } catch (_) {
-      setJournalHasMore(false);
+      setDailyLogsHasMore(false);
     } finally {
-      setJournalLoading(false);
+      setDailyLogsLoading(false);
     }
   };
 
-  const hasTodayJournal = (() => {
-    if (!isOwnProfile) return false;
-    if (submittedJournalToday) return true;
-    // Get today's date in user's timezone (YYYY-MM-DD format)
+  const todayDailyLogEntry = useMemo(() => {
+    if (!isOwnProfile) return null;
     const todayKey = getDateKeyInTimezone(new Date());
-    // Check journalFeed (lazy-loaded tab data) first — it's what's visible on screen
-    if (Array.isArray(journalFeed) && journalFeed.length > 0) {
-      if (journalFeed.some(e => e.dayKey === todayKey)) return true;
-      // Fallback: compare createdAt date portion in case dayKey format differs
-      if (journalFeed.some(e => e.createdAt && getDateKeyInTimezone(new Date(e.createdAt)) === todayKey)) return true;
+
+    const matchesToday = (entry) => {
+      if (!entry) return false;
+      if (entry.dayKey === todayKey) return true;
+      if (entry.createdAt && getDateKeyInTimezone(new Date(entry.createdAt)) === todayKey) return true;
+      return false;
+    };
+
+    if (Array.isArray(dailyLogsFeed) && dailyLogsFeed.length > 0) {
+      const fromFeed = dailyLogsFeed.find(matchesToday);
+      if (fromFeed) return fromFeed;
     }
-    // Also check store journalEntries
-    if (Array.isArray(journalEntries) && journalEntries.length > 0) {
-      if (journalEntries.some(e => e.dayKey === todayKey)) return true;
-      if (journalEntries.some(e => e.createdAt && getDateKeyInTimezone(new Date(e.createdAt)) === todayKey)) return true;
+
+    if (Array.isArray(dailyLogsEntries) && dailyLogsEntries.length > 0) {
+      const fromStore = dailyLogsEntries.find(matchesToday);
+      if (fromStore) return fromStore;
     }
-    return false;
-  })();
+
+    return null;
+  }, [isOwnProfile, dailyLogsFeed, dailyLogsEntries]);
+
+  const hasTodayDailyLogs = Boolean(todayDailyLogEntry);
+
+  const sortedDailyLogs = [...(dailyLogsFeed || [])].sort((a, b) => new Date(b?.createdAt || 0) - new Date(a?.createdAt || 0));
+
+  const last7DateKeys = Array.from({ length: 7 }, (_, i) => {
+    const date = new Date();
+    date.setDate(date.getDate() - i);
+    return getDateKeyInTimezone(date);
+  });
+
+  const last7Map = new Map();
+  for (const log of sortedDailyLogs) {
+    if (!log?.createdAt) continue;
+    const key = log.dayKey || getDateKeyInTimezone(new Date(log.createdAt));
+    if (!last7DateKeys.includes(key)) continue;
+    if (!last7Map.has(key)) last7Map.set(key, log);
+  }
+
+  const loggedDaysCount = last7Map.size;
+  const recentMoodLogs = Array.from(last7Map.values()).filter((log) => DAILY_LOG_MOOD_META[log?.mood]);
+  const moodSampleCount = recentMoodLogs.length;
+  const averageMoodScore = moodSampleCount > 0
+    ? recentMoodLogs.reduce((acc, log) => acc + DAILY_LOG_MOOD_META[log.mood].score, 0) / moodSampleCount
+    : null;
+
+  const averageMood = averageMoodScore == null
+    ? null
+    : Object.entries(DAILY_LOG_MOOD_META).reduce((closest, [key, meta]) => {
+      if (!closest) return { key, distance: Math.abs(meta.score - averageMoodScore) };
+      const distance = Math.abs(meta.score - averageMoodScore);
+      return distance < closest.distance ? { key, distance } : closest;
+    }, null)?.key || null;
+
+  const toggleDailyLogExpand = (logId) => {
+    if (!logId) return;
+    setExpandedDailyLogIds((prev) => (
+      prev.includes(logId)
+        ? prev.filter((id) => id !== logId)
+        : [...prev, logId]
+    ));
+  };
 
   const fetchOwnProfile = async () => {
     setLoading(true);
@@ -641,12 +709,14 @@ const ProfilePage = () => {
   const backgroundClass = "min-h-screen bg-[#f5f5f5] dark:bg-gray-900";
   const containerClass = "max-w-4xl";
 
-  const profileTabs = ["overview", "goals", ...(isOwnProfile ? ["habits"] : (profileUser?.showHabits && (isFollowing || !profileUser?.isPrivate) ? ["habits"] : [])), ...(isOwnProfile ? ["journal"] : [])];
+  const profileTabs = ["overview", "goals", ...(isOwnProfile ? ["habits"] : (profileUser?.showHabits && (isFollowing || !profileUser?.isPrivate) ? ["habits"] : [])), ...(isOwnProfile ? ["daily-logs"] : [])];
 
   const formatStatNumber = (n) => {
     if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
     return String(n ?? 0);
   };
+
+  const canAccessProfileContent = isProfileAccessible();
 
   return (
     <div className={`${backgroundClass} font-manrope`} style={{ fontFamily: 'Manrope, ui-sans-serif, system-ui' }}>
@@ -745,9 +815,12 @@ const ProfilePage = () => {
               <div className="flex flex-wrap gap-4 sm:gap-5 md:gap-6 mb-3 sm:mb-4">
                 <button
                   className="text-left"
-                  onClick={isProfileAccessible() ? () => handleTabChange('goals') : undefined}
-                  disabled={!isProfileAccessible()}
-                  style={!isProfileAccessible() ? { pointerEvents: 'none', cursor: 'default' } : {}}
+                  onClick={() => {
+                    if (!canAccessProfileContent) return;
+                    handleTabChange('goals');
+                  }}
+                  disabled={!canAccessProfileContent}
+                  style={!canAccessProfileContent ? { pointerEvents: 'none', cursor: 'default' } : {}}
                 >
                   <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
                     {isOwnProfile ? (displayUser.totalGoals ?? 0) : (userStats?.totalGoals ?? 0)}
@@ -756,7 +829,8 @@ const ProfilePage = () => {
                 </button>
                 <button
                   className="text-left"
-                  onClick={isProfileAccessible() ? async () => {
+                  onClick={async () => {
+                    if (!canAccessProfileContent) return;
                     setFollowModalTab('followers'); setFollowModalOpen(true); setLoadingFollows(true);
                     setFollowersPage(1); setFollowers([]);
                     try {
@@ -767,9 +841,9 @@ const ProfilePage = () => {
                         setHasMoreFollowers((res.followers?.length || 0) >= FOLLOW_LIMIT);
                       }
                     } finally { setLoadingFollows(false); }
-                  } : undefined}
-                  disabled={!isProfileAccessible()}
-                  style={!isProfileAccessible() ? { pointerEvents: 'none', cursor: 'default' } : {}}
+                  }}
+                  disabled={!canAccessProfileContent}
+                  style={!canAccessProfileContent ? { pointerEvents: 'none', cursor: 'default' } : {}}
                 >
                   <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
                     {formatStatNumber(isOwnProfile ? (displayUser.followerCount ?? 0) : (userStats?.followers ?? 0))}
@@ -778,7 +852,8 @@ const ProfilePage = () => {
                 </button>
                 <button
                   className="text-left"
-                  onClick={isProfileAccessible() ? async () => {
+                  onClick={async () => {
+                    if (!canAccessProfileContent) return;
                     setFollowModalTab('following'); setFollowModalOpen(true); setLoadingFollows(true);
                     setFollowingPage(1); setFollowing([]);
                     try {
@@ -789,9 +864,9 @@ const ProfilePage = () => {
                         setHasMoreFollowing((res.following?.length || 0) >= FOLLOW_LIMIT);
                       }
                     } finally { setLoadingFollows(false); }
-                  } : undefined}
-                  disabled={!isProfileAccessible()}
-                  style={!isProfileAccessible() ? { pointerEvents: 'none', cursor: 'default' } : {}}
+                  }}
+                  disabled={!canAccessProfileContent}
+                  style={!canAccessProfileContent ? { pointerEvents: 'none', cursor: 'default' } : {}}
                 >
                   <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
                     {isOwnProfile ? (displayUser.followingCount ?? 0) : (userStats?.followings ?? 0)}
@@ -858,6 +933,10 @@ const ProfilePage = () => {
             onClose={() => setFollowModalOpen(false)}
             activeTab={followModalTab}
             onTabChange={async (tab) => {
+              if (!canAccessProfileContent) {
+                setFollowModalOpen(false);
+                return;
+              }
               setFollowModalTab(tab)
               setLoadingFollows(true)
               try {
@@ -887,6 +966,10 @@ const ProfilePage = () => {
             hasMore={followModalTab === 'followers' ? hasMoreFollowers : hasMoreFollowing}
             loadingMore={loadingMoreFollows}
             onLoadMore={async () => {
+              if (!canAccessProfileContent) {
+                setFollowModalOpen(false);
+                return;
+              }
               setLoadingMoreFollows(true)
               try {
                 const username = isOwnProfile ? currentUser?.username : profileUser?.username;
@@ -968,7 +1051,7 @@ const ProfilePage = () => {
                         : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
                     }`}
                   >
-                    {tab}
+                    {tab === 'daily-logs' ? 'daily logs' : tab}
                     {activeTab === tab && (
                       <span
                         className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full"
@@ -1352,7 +1435,6 @@ const ProfilePage = () => {
                         <thead>
                           <tr className="text-left text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 uppercase border-b border-gray-200 dark:border-gray-700">
                             <th className="pb-3 font-medium">Habit Name</th>
-                            <th className="pb-3 font-medium">Duration</th>
                             <th className="pb-3 font-medium">Best Streak</th>
                             <th className="pb-3 font-medium">Progress</th>
                           </tr>
@@ -1365,7 +1447,6 @@ const ProfilePage = () => {
                                   <span className="text-gray-400">•</span>
                                   {h.name}
                                 </td>
-                                <td className="py-3 text-gray-600 dark:text-gray-400">{h.durationDays ?? 30} Days</td>
                                 <td className="py-3 text-gray-600 dark:text-gray-400">{h.longestStreak ?? 0} Days</td>
                                 <td className="py-3">
                                   <span className="px-2 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: 'rgba(76, 153, 230, 0.2)', color: THEME_COLOR }}>
@@ -1387,88 +1468,118 @@ const ProfilePage = () => {
                   </div>
                 </div>
               )}
-              {activeTab === 'journal' && (
+              {activeTab === 'daily-logs' && (
                 <div className={isOwnProfile
                   ? "bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-4 sm:p-5 shadow-sm border border-gray-100 dark:border-gray-700"
                   : "bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-xl sm:rounded-2xl p-4 sm:p-5 border border-gray-200 dark:border-gray-700/50"
                 }>
                   <div className="flex items-center justify-between mb-4 sm:mb-5 md:mb-6 gap-2">
-                    <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">Reflections Feed</h3>
+                    <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">Daily Logs Feed</h3>
                     {isOwnProfile && (
                       <div className="flex items-center gap-2">
                         {/* <button
                           onClick={() => setExportOpen(true)}
                           className="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 inline-flex items-center gap-1.5 text-sm transition-colors"
-                          title="Export your journal"
+                          title="Export your daily logs"
                         >
                           <Download className="h-3.5 w-3.5" /> Export
                         </button> */}
                         <button
-                          onClick={() => setIsJournalOpen(true)}
-                          disabled={hasTodayJournal}
+                          onClick={() => setIsDailyLogsOpen(true)}
                           className={`flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-medium transition-colors shadow-sm font-manrope
                             ${
-                              hasTodayJournal
-                                ? 'bg-gray-300 dark:bg-gray-700 text-gray-600 cursor-not-allowed'
+                              hasTodayDailyLogs
+                                ? 'bg-gray-300 dark:bg-gray-700 text-gray-600'
                                 : 'bg-[#4c99e6] hover:bg-[#3d88d5] text-white'
                             }
                           `}                        >
                           <PenSquare className="h-4 w-4" />
-                          {hasTodayJournal ? 'Journal Submitted' : 'Write Today’s Journal'}
-                        </button>
+                          {hasTodayDailyLogs ? 'Update Today’s Log' : 'Write Today’s Log'}
+                       </button>
                       </div>
                     )}
                   </div>
-                  {/* Journal Feed (own profile) */}
+                  {/* Daily Logs Feed (own profile) */}
                   {isOwnProfile && (
-                    <div>
-                      {journalFeed.length === 0 && !journalLoading && (
+                    <div className="space-y-3 sm:space-y-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/70 dark:bg-gray-900/40 p-4">
+                          <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Last 7 Days</p>
+                          <p className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white mt-1">{loggedDaysCount} of 7 days logged</p>
+                          <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">Consistency this week</p>
+                        </div>
+                        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/70 dark:bg-gray-900/40 p-4">
+                          <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Average 7-Day Emotion</p>
+                          <p className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white mt-1">
+                            {averageMood ? DAILY_LOG_MOOD_META[averageMood].label : '-'}
+                          </p>
+                          <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">Based on {moodSampleCount} mood-tagged logs</p>
+                        </div>
+                      </div>
+
+                      {dailyLogsFeed.length === 0 && !dailyLogsLoading && (
                         <div className="text-center py-8 sm:py-10 md:py-12 border-2 border-dashed border-gray-200 dark:border-gray-600 rounded-xl sm:rounded-2xl">
                           <BookOpen className="h-10 w-10 sm:h-11 sm:w-11 md:h-12 md:w-12 text-gray-300 dark:text-gray-600 mx-auto mb-3 sm:mb-4" />
-                          <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400 mb-3 sm:mb-4">No reflections yet</p>
-                          <button onClick={() => setIsJournalOpen(true)} disabled={hasTodayJournal} className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-medium ${hasTodayJournal ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'text-white'}`} style={!hasTodayJournal ? { backgroundColor: THEME_COLOR } : {}}>{hasTodayJournal ? 'Submitted Today' : 'Write Your First Entry'}</button>
+                          <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400 mb-3 sm:mb-4">No daily logs yet</p>
                         </div>
                       )}
                       <div className="space-y-2 sm:space-y-3 max-h-[400px] sm:max-h-[450px] md:max-h-[500px] overflow-y-auto scrollbar-hide pr-0.5 sm:pr-1">
-                        {journalFeed.map((e) => (
-                          <button
-                            key={e.id}
-                            onClick={() => { setSelectedEntry(e); setEntryModalOpen(true); }}
-                            className="w-full text-left p-3 sm:p-4 md:p-5 bg-white dark:bg-gray-800 rounded-lg sm:rounded-xl border border-gray-200 dark:border-gray-700 hover:shadow-md transition-all"
-                          >
-                            <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 uppercase mb-1.5 sm:mb-2">{formatDate(e.createdAt)}</div>
-                            <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
-                              {e.visibility === 'public' ? (
-                                <span className="inline-flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs font-medium" style={{ color: THEME_COLOR }}>
-                                  <Globe className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> PUBLIC
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs font-medium text-gray-500">
-                                  <Lock className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> PRIVATE
-                                </span>
+                        {sortedDailyLogs.map((e) => {
+                          const entryId = e?.id || e?._id || e?.createdAt;
+                          const isExpanded = expandedDailyLogIds.includes(entryId);
+                          const moodMeta = DAILY_LOG_MOOD_META[e?.mood] || null;
+                          return (
+                            <div
+                              key={entryId}
+                              className="w-full text-left p-3 sm:p-4 md:p-5 bg-white dark:bg-gray-800 rounded-lg sm:rounded-xl border border-gray-200 dark:border-gray-700"
+                            >
+                              <button
+                                type="button"
+                                onClick={() => toggleDailyLogExpand(entryId)}
+                                className="w-full text-left"
+                              >
+                                <div className="flex items-start justify-between gap-3">
+                                  <div>
+                                    <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 uppercase mb-1.5 sm:mb-2">{formatDate(e.createdAt)}</div>
+                                    <div className="flex items-center gap-2 mb-2 sm:mb-3">
+                                      {moodMeta ? (
+                                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium ${moodMeta.chip}`}>
+                                          {moodMeta.label}
+                                        </span>
+                                      ) : (
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                                          No Mood
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                                </div>
+                                <p className={`text-sm sm:text-base text-gray-700 dark:text-gray-300 leading-relaxed ${isExpanded ? '' : 'line-clamp-1'}`}>
+                                  {e.content}
+                                </p>
+                              </button>
+
+                              {isExpanded && e?.motivation && (
+                                <div className="mt-3 sm:mt-4 p-3 sm:p-4 rounded-lg sm:rounded-xl flex items-start gap-1.5 sm:gap-2" style={{ backgroundColor: 'rgba(76, 153, 230, 0.1)' }}>
+                                  <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0 mt-0.5" style={{ color: THEME_COLOR }} />
+                                  <div>
+                                    <span className="text-[10px] sm:text-xs font-semibold uppercase" style={{ color: THEME_COLOR }}>AI Insight</span>
+                                    <p className="text-xs sm:text-sm mt-0.5 sm:mt-1 leading-relaxed" style={{ color: '#3d7ab8' }}>{e.motivation}</p>
+                                  </div>
+                                </div>
                               )}
                             </div>
-                            <h4 className="font-semibold text-gray-900 dark:text-white mb-1.5 sm:mb-2 line-clamp-1 text-base sm:text-lg">{e.title || 'Reflection'}</h4>
-                            <p className="text-sm sm:text-base text-gray-700 dark:text-gray-300 line-clamp-3 leading-relaxed">{e.content}</p>
-                            {e?.motivation && (
-                              <div className="mt-3 sm:mt-4 p-3 sm:p-4 rounded-lg sm:rounded-xl flex items-start gap-1.5 sm:gap-2" style={{ backgroundColor: 'rgba(76, 153, 230, 0.1)' }}>
-                                <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0 mt-0.5" style={{ color: THEME_COLOR }} />
-                                <div>
-                                  <span className="text-[10px] sm:text-xs font-semibold uppercase" style={{ color: THEME_COLOR }}>AI Insight</span>
-                                  <p className="text-xs sm:text-sm mt-0.5 sm:mt-1 leading-relaxed" style={{ color: '#3d7ab8' }}>{e.motivation}</p>
-                                </div>
-                              </div>
-                            )}
-                          </button>
-                        ))}
+                          )
+                        })}
                       </div>
                       <div className="flex items-center justify-center mt-3 sm:mt-4">
-                        {journalHasMore ? (
-                          <button onClick={loadMoreJournal} disabled={journalLoading} className="px-3 sm:px-4 py-1.5 sm:py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-xs sm:text-sm font-medium transition-colors disabled:opacity-50">
-                            {journalLoading ? 'Loading…' : 'Load More'}
+                        {dailyLogsHasMore ? (
+                          <button onClick={loadMoreDailyLogs} disabled={dailyLogsLoading} className="px-3 sm:px-4 py-1.5 sm:py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-xs sm:text-sm font-medium transition-colors disabled:opacity-50">
+                            {dailyLogsLoading ? 'Loading…' : 'Load More'}
                           </button>
                         ) : (
-                          journalFeed.length > 0 && <div className="text-[10px] sm:text-xs text-gray-400">No more entries</div>
+                          dailyLogsFeed.length > 0 && <div className="text-[10px] sm:text-xs text-gray-400">No more entries</div>
                         )}
                       </div>
                     </div>
@@ -1478,35 +1589,31 @@ const ProfilePage = () => {
             </motion.div>
           </>
         )}
-        {/* Journal Prompt Modal */}
+        {/* Daily Log Modal */}
         {isOwnProfile && (
-          <Suspense fallback={null}><JournalPromptModal
-            isOpen={isJournalOpen}
-            onClose={() => setIsJournalOpen(false)}
-            hasTodayJournal={hasTodayJournal}
-            onSubmitted={async () => {
-              setSubmittedJournalToday(true);
+          <Suspense fallback={null}><DailyLogsPromptModal
+            isOpen={isDailyLogsOpen}
+            onClose={() => setIsDailyLogsOpen(false)}
+            existingEntry={todayDailyLogEntry}
+            onSubmitted={async (entry) => {
+              setSubmittedDailyLogsToday(Boolean(entry));
               try {
-                await getUserJournalHighlights(currentUser?.id, { limit: 12 });
-                const entries = await getMyJournalEntries({ limit: 10 });
-                // Update local journalFeed with fresh entries
-                if (Array.isArray(entries) && entries.length > 0) {
-                  setJournalFeed(entries);
-                  setJournalSkip(entries.length);
+                await getUserDailyLogsHighlights(currentUser?.id, { limit: 12 });
+                const entries = await getMyDailyLogsEntries({ limit: 10 });
+                // Update local dailyLogsFeed with fresh entries
+                if (Array.isArray(entries)) {
+                  setDailyLogsFeed(entries);
+                  setDailyLogsSkip(entries.length);
+                } else {
+                  setDailyLogsFeed([]);
+                  setDailyLogsSkip(0);
                 }
               } catch { }
             }}
           /></Suspense>
         )}
         {exportOpen && (
-          <Suspense fallback={null}><JournalExportModal isOpen={exportOpen} onClose={() => setExportOpen(false)} /></Suspense>
-        )}
-        {entryModalOpen && selectedEntry && (
-          <Suspense fallback={null}><JournalEntryModal
-            isOpen={entryModalOpen}
-            onClose={() => { setEntryModalOpen(false); setSelectedEntry(null); }}
-            entry={selectedEntry}
-          /></Suspense>
+          <Suspense fallback={null}><DailyLogsExportModal isOpen={exportOpen} onClose={() => setExportOpen(false)} /></Suspense>
         )}
       </div>
       {/* Report & Block Modals */}

@@ -329,12 +329,12 @@ const updateNotificationSettings = async (req, res, next) => {
           updateData['notificationSettings.habits.skipIfDone'] = notificationSettings.habits.skipIfDone;
         }
       }
-      if (notificationSettings.journal) {
-        if (typeof notificationSettings.journal.enabled !== 'undefined') {
-          updateData['notificationSettings.journal.enabled'] = notificationSettings.journal.enabled;
+      if (notificationSettings.DailyLogs) {
+        if (typeof notificationSettings.DailyLogs.enabled !== 'undefined') {
+          updateData['notificationSettings.DailyLogs.enabled'] = notificationSettings.DailyLogs.enabled;
         }
-        if (notificationSettings.journal.frequency && ['daily', 'weekly', 'off'].includes(notificationSettings.journal.frequency)) {
-          updateData['notificationSettings.journal.frequency'] = notificationSettings.journal.frequency;
+        if (notificationSettings.DailyLogs.frequency && ['daily', 'weekly', 'off'].includes(notificationSettings.DailyLogs.frequency)) {
+          updateData['notificationSettings.DailyLogs.frequency'] = notificationSettings.DailyLogs.frequency;
         }
       }
       if (notificationSettings.motivation) {

@@ -13,7 +13,7 @@ import {
   locationAPI,
   moderationAPI,
   notificationsAPI,
-  journalsAPI,
+  dailyLogssAPI,
   habitsAPI,
   settingsAPI,
   productUpdatesAPI
@@ -97,10 +97,13 @@ const useApiStore = create(
       unreadNotifications: 0,
       notificationSettings: null,
 
-      // Journaling
-      journalPrompt: null,
-      journalEntries: [],
-      journalHighlights: [],
+      // Daily Logs (legacy dailyLogs keys kept for compatibility)
+      dailyLogsPrompt: null,
+      dailyLogsEntries: [],
+      dailyLogsHighlights: [],
+      dailyLogPrompt: null,
+      dailyLogEntries: [],
+      dailyLogHighlights: [],
 
       // Client-side caches (TTL + persisted)
       cacheActivityFeed: {}, // key -> { data, ts }
@@ -1633,14 +1636,14 @@ const useApiStore = create(
       },
 
       // =====================
-      // JOURNALING ACTIONS
+      // DAILY LOG ACTIONS
       // =====================
-      getJournalPrompt: async () => {
+      getDailyLogsPrompt: async () => {
         try {
-          const res = await journalsAPI.getPrompt();
+          const res = await dailyLogssAPI.getPrompt();
           const prompt = res?.data?.data?.prompt;
           if (prompt) {
-            set({ journalPrompt: prompt });
+            set({ dailyLogsPrompt: prompt, dailyLogPrompt: prompt });
           }
           return prompt;
         } catch (error) {
@@ -1648,12 +1651,15 @@ const useApiStore = create(
         }
       },
 
-      createJournalEntry: async ({ content, promptKey, visibility = 'private', tags = [] }) => {
+      createDailyLogsEntry: async ({ content, promptKey, mood, tags = [] }) => {
         try {
-          const res = await journalsAPI.createEntry({ content, promptKey, visibility, tags });
+          const res = await dailyLogssAPI.createEntry({ content, promptKey, mood, tags });
           const entry = res?.data?.data?.entry;
           if (entry) {
-            set(state => ({ journalEntries: [entry, ...state.journalEntries] }));
+            set(state => ({
+              dailyLogsEntries: [entry, ...state.dailyLogsEntries],
+              dailyLogEntries: [entry, ...state.dailyLogEntries]
+            }));
           }
           return { success: true, entry };
         } catch (error) {
@@ -1662,14 +1668,18 @@ const useApiStore = create(
         }
       },
 
-      updateJournalEntry: async (id, payload) => {
+      updateDailyLogsEntry: async (id, payload) => {
         try {
-          const res = await journalsAPI.updateEntry(id, payload);
+          const res = await dailyLogssAPI.updateEntry(id, payload);
           const entry = res?.data?.data?.entry;
           if (entry) {
             const entryId = entry.id || entry._id;
             set(state => ({ 
-              journalEntries: state.journalEntries.map(e => {
+              dailyLogsEntries: state.dailyLogsEntries.map(e => {
+                const eId = e.id || e._id;
+                return eId === entryId ? entry : e;
+              }),
+              dailyLogEntries: state.dailyLogEntries.map(e => {
                 const eId = e.id || e._id;
                 return eId === entryId ? entry : e;
               })
@@ -1682,17 +1692,43 @@ const useApiStore = create(
         }
       },
 
-      getMyJournalEntries: async (params = {}) => {
+      clearDailyLogsEntry: async (id) => {
         try {
-          const res = await journalsAPI.getMyEntries(params);
+          await dailyLogssAPI.clearEntry(id);
+          set(state => ({
+            dailyLogsEntries: (state.dailyLogsEntries || []).filter(e => {
+              const eId = e?.id || e?._id;
+              return String(eId) !== String(id);
+            }),
+            dailyLogEntries: (state.dailyLogEntries || []).filter(e => {
+              const eId = e?.id || e?._id;
+              return String(eId) !== String(id);
+            })
+          }));
+          return { success: true };
+        } catch (error) {
+          const errorMessage = handleApiError(error);
+          return { success: false, error: errorMessage };
+        }
+      },
+
+      getMyDailyLogsEntries: async (params = {}) => {
+        try {
+          const res = await dailyLogssAPI.getMyEntries(params);
           const entries = res?.data?.data?.entries || [];
-          set({ journalEntries: entries });
+          set({ dailyLogsEntries: entries, dailyLogEntries: entries });
           return entries;
         } catch (error) {
-          set({ journalEntries: [] });
+          set({ dailyLogsEntries: [], dailyLogEntries: [] });
           return [];
         }
       },
+
+      getDailyLogPrompt: async () => get().getDailyLogsPrompt(),
+      createDailyLogEntry: async (payload) => get().createDailyLogsEntry(payload),
+      updateDailyLogEntry: async (id, payload) => get().updateDailyLogsEntry(id, payload),
+      clearDailyLogEntry: async (id) => get().clearDailyLogsEntry(id),
+      getMyDailyLogEntries: async (params = {}) => get().getMyDailyLogsEntries(params),
 
       loadMoreNotifications: async () => {
         try {
@@ -1985,8 +2021,10 @@ const useApiStore = create(
           following: currentState.following || [],
           blockedUsers: currentState.blockedUsers || [],
           followRequests: currentState.followRequests || [],
-          journalEntries: currentState.journalEntries || [],
-          journalHighlights: currentState.journalHighlights || [],
+          dailyLogsEntries: currentState.dailyLogsEntries || [],
+          dailyLogsHighlights: currentState.dailyLogsHighlights || [],
+          dailyLogEntries: currentState.dailyLogEntries || [],
+          dailyLogHighlights: currentState.dailyLogHighlights || [],
           leaderboard: currentState.leaderboard || [],
           goalsSearchResults: currentState.goalsSearchResults || [],
           interestsCatalog: currentState.interestsCatalog || [],

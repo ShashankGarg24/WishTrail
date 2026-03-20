@@ -12,7 +12,7 @@
 - [x] Configured limits:
   - Goals: Free=5, Premium=10
   - Habits: Free=5, Premium=10
-  - Journal: Free=1/day, Premium=5/day
+  - DailyLogs: Free=1/day, Premium=5/day
   - Communities: Free=7 joined/3 owned, Premium=50 joined/10 owned
   - AI: Premium only
   - Analytics: Basic free, Advanced premium
@@ -37,7 +37,7 @@
 - [x] Helper functions:
   - [x] `validateGoalCreation`
   - [x] `validateHabitCreation`
-  - [x] `validateJournalEntry`
+  - [x] `validateDailyLogsEntry`
   - [x] `validateCommunityCreation`
   - [x] `handleValidationResponse`
 
@@ -67,13 +67,13 @@
 - [x] Added `countActiveHabits(userId)` method
 - [x] SQL: `SELECT COUNT(*) WHERE is_active=true AND is_archived=false`
 
-### Journal Controller
-- [x] Updated `api/src/controllers/journalController.js`
+### DailyLogs Controller
+- [x] Updated `api/src/controllers/dailyLogsController.js`
 - [x] Added validation in `createEntry`:
   - [x] Check `maxEntriesPerDay` limit
   - [x] Check `maxEntryLength` limit
   - [x] Return 403 if limit reached
-- [x] Added validation in `exportMyJournal`:
+- [x] Added validation in `exportMyDailyLogs`:
   - [x] Check `canExportEntries` permission
   - [x] Return 403 if not allowed
 
@@ -106,7 +106,7 @@
   - [x] `useAllFeatureLimits()` - Get all limits
   - [x] `useGoalLimits(currentGoalCount)` - Goal-specific validation
   - [x] `useHabitLimits(currentHabitCount)` - Habit-specific validation
-  - [x] `useJournalLimits(todayEntryCount)` - Journal-specific validation
+  - [x] `useDailyLogsLimits(todayEntryCount)` - DailyLogs-specific validation
   - [x] `useCommunityLimits(joinedCount, ownedCount)` - Community-specific validation
   - [x] `useAIFeatures()` - AI feature access
   - [x] `useAnalyticsFeatures()` - Analytics feature access
@@ -178,8 +178,8 @@
 - [ ] Update habit list to show limits
 - [ ] Disable reminder UI for free users
 
-### Journal Management
-- [ ] Update journal entry form with:
+### DailyLogs Management
+- [ ] Update dailyLogs entry form with:
   - [ ] Daily limit indicator
   - [ ] Character count with limit
   - [ ] Premium validation
@@ -283,7 +283,7 @@
 - [ ] Test goal creation at limit (free)
 - [ ] Test goal creation below limit (premium)
 - [ ] Test habit reminders (free vs premium)
-- [ ] Test journal daily limit reset
+- [ ] Test dailyLogs daily limit reset
 - [ ] Test community ownership limits
 - [ ] Test AI feature access
 - [ ] Test analytics access
@@ -357,7 +357,7 @@
 - [ ] Track free → premium conversion rate
 - [ ] Monitor premium retention rate
 - [ ] Measure feature usage by tier
-- [ ] Track upgrade sources (goals, habits, journal, etc.)
+- [ ] Track upgrade sources (goals, habits, dailyLogs, etc.)
 - [ ] Calculate LTV by tier
 
 ## 🔐 Security Checklist
@@ -378,7 +378,7 @@
 **In Progress:** Phase 4 (Frontend Implementation)
 **Next Steps:**
 1. Update auth reducer to include premium_expires_at
-2. Integrate hooks into existing goal/habit/journal components
+2. Integrate hooks into existing goal/habit/dailyLogs components
 3. Add premium page with upgrade flow
 4. Test thoroughly with free and premium accounts
 5. Set up payment provider integration

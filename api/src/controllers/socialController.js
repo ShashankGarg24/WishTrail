@@ -196,20 +196,33 @@ const getFollowers = async (req, res, next) => {
       }
       targetUserId = user.id.toString();
     }
+
+    const targetUserIdNum = Number(targetUserId);
+    const requesterIdNum = Number(req.user.id);
     
-    // If checking another user's followers, ensure they can view
-    if (targetUserId !== req.user.id) {
-      const canView = await pgFollowService.isFollowing(req.user.id, targetUserId);
-      if (!canView) {
-        return res.status(403).json({
+    // If checking another user's followers, allow public profiles; require follow only for private profiles
+    if (targetUserIdNum !== requesterIdNum) {
+      const targetUser = await pgUserService.findById(targetUserIdNum);
+      if (!targetUser || !targetUser.is_active) {
+        return res.status(404).json({
           success: false,
-          message: 'Access denied'
+          message: 'User not found'
         });
+      }
+
+      if (targetUser.is_private) {
+        const canView = await pgFollowService.isFollowing(requesterIdNum, targetUserIdNum);
+        if (!canView) {
+          return res.status(403).json({
+            success: false,
+            message: 'Access denied'
+          });
+        }
       }
     }
     
     const offset = (parseInt(page) - 1) * parseInt(limit);
-    const followers = await pgFollowService.getFollowers({ userId: targetUserId, limit: parseInt(limit), offset });
+    const followers = await pgFollowService.getFollowers({ userId: targetUserIdNum, limit: parseInt(limit), offset });
     
     // ✅ Extract minimal user info - only name, username, avatar
     const sanitizedFollowers = followers.map(f => {
@@ -250,20 +263,33 @@ const getFollowing = async (req, res, next) => {
       }
       targetUserId = user.id.toString();
     }
+
+    const targetUserIdNum = Number(targetUserId);
+    const requesterIdNum = Number(req.user.id);
     
-    // If checking another user's following, ensure they can view
-    if (targetUserId !== req.user.id) {
-      const canView = await pgFollowService.isFollowing(req.user.id, targetUserId);
-      if (!canView) {
-        return res.status(403).json({
+    // If checking another user's following, allow public profiles; require follow only for private profiles
+    if (targetUserIdNum !== requesterIdNum) {
+      const targetUser = await pgUserService.findById(targetUserIdNum);
+      if (!targetUser || !targetUser.is_active) {
+        return res.status(404).json({
           success: false,
-          message: 'Access denied'
+          message: 'User not found'
         });
+      }
+
+      if (targetUser.is_private) {
+        const canView = await pgFollowService.isFollowing(requesterIdNum, targetUserIdNum);
+        if (!canView) {
+          return res.status(403).json({
+            success: false,
+            message: 'Access denied'
+          });
+        }
       }
     }
     
     const offset = (parseInt(page) - 1) * parseInt(limit);
-    const following = await pgFollowService.getFollowing({ userId: targetUserId, limit: parseInt(limit), offset });
+    const following = await pgFollowService.getFollowing({ userId: targetUserIdNum, limit: parseInt(limit), offset });
     
     // ✅ Extract minimal user info - only name, username, avatar
     const sanitizedFollowing = following.map(f => {

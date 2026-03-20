@@ -71,13 +71,13 @@ router.post('/api/v1/habits',
   habitController.createHabit
 );
 
-// Example: In your journalRoutes.js
-router.post('/api/v1/journal',
+// Example: In your dailyLogsRoutes.js
+router.post('/api/v1/daily-logs',
   authenticate,
-  checkFeatureLimit('journal', 'maxEntriesPerDay', async (req) => {
-    return await journalService.countTodayEntries(req.user.id);
+  checkFeatureLimit('daily_logs', 'maxEntriesPerDay', async (req) => {
+    return await dailyLogsService.countTodayEntries(req.user.id);
   }),
-  journalController.createEntry
+  dailyLogsController.createEntry
 );
 
 // ============================================
@@ -378,7 +378,7 @@ const errorHandler = require('./middleware/errorHandler');
 const authRoutes = require('./routes/authRoutes');
 const goalRoutes = require('./routes/goalRoutes');
 const habitRoutes = require('./routes/habitRoutes');
-const journalRoutes = require('./routes/journalRoutes');
+const dailyLogsRoutes = require('./routes/daily-logsRoutes');
 const premiumRoutes = require('./routes/premiumRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 
@@ -395,7 +395,7 @@ app.use(attachPremiumInfo); // Add premium info to all authenticated requests
 
 app.use('/api/v1/goals', goalRoutes);
 app.use('/api/v1/habits', habitRoutes);
-app.use('/api/v1/journal', journalRoutes);
+app.use('/api/v1/daily-logs', dailyLogsRoutes);
 app.use('/api/v1/premium', premiumRoutes);
 app.use('/api/v1/payment', paymentRoutes);
 

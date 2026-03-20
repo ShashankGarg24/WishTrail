@@ -11,7 +11,7 @@ const { getFeatureLimits } = require('../config/premiumFeatures');
 const pgUserService = require('../services/pgUserService');
 const pgGoalService = require('../services/pgGoalService');
 const pgHabitService = require('../services/pgHabitService');
-const JournalEntry = require('../models/JournalEntry');
+const DailyLogsEntry = require('../models/DailyLogsEntry');
 const Community = require('../models/Community');
 const { getDateKeyInTimezone } = require('./timezone');
 
@@ -81,34 +81,34 @@ async function validateHabitCreation(req, hasReminders = false) {
 }
 
 /**
- * Check if user can create a journal entry (premium limits)
+ * Check if user can create a daily log entry (premium limits)
  */
-async function validateJournalEntry(req) {
+async function validateDailyLogsEntry(req) {
   const user = await pgUserService.findById(req.user.id);
-  const limits = getFeatureLimits('journal', user.premium_expires_at);
+  const limits = getFeatureLimits('daily_logs', user.premium_expires_at);
   const userTimezone = user.timezone || 'UTC';
   
-  logger.info('Journal limits for user', user.id, limits);
+  logger.info('Daily log limits for user', user.id, limits);
   
   // Get today's date key in user's timezone (YYYY-MM-DD format)
   const todayKey = getDateKeyInTimezone(new Date(), userTimezone);
   
-  logger.info('Counting journal entries for user', user.id, 'for dayKey', todayKey, 'in timezone', userTimezone);
+  logger.info('Counting daily log entries for user', user.id, 'for dayKey', todayKey, 'in timezone', userTimezone);
   
   // Count entries by dayKey (which is already stored in user's timezone)
-  const todayCount = await JournalEntry.countDocuments({
+  const todayCount = await DailyLogsEntry.countDocuments({
     userId: req.user.id,
     dayKey: todayKey
   });
   
-  logger.info('Today journal entries count for user', user.id, todayCount);
+  logger.info('Today daily log entries count for user', user.id, todayCount);
   
   // Check daily limit
   if (limits.maxEntriesPerDay !== -1 && todayCount >= limits.maxEntriesPerDay) {
     return {
       allowed: false,
-      error: 'JOURNAL_LIMIT_REACHED',
-      message: `You have already submitted your journal entry for today. Come back tomorrow!`,
+      error: 'dailyLogs_LIMIT_REACHED',
+      message: `You have already submitted your daily log for today. Come back tomorrow!`,
       limit: limits.maxEntriesPerDay,
       current: todayCount
     };
@@ -130,17 +130,17 @@ async function validateJournalEntry(req) {
 }
 
 /**
- * Check if user can export journal (premium feature)
+ * Check if user can export daily logs (premium feature)
  */
-async function validateJournalExport(req) {
+async function validateDailyLogsExport(req) {
   const user = await pgUserService.findById(req.user.id);
-  const limits = getFeatureLimits('journal', user.premium_expires_at);
+  const limits = getFeatureLimits('dailyLogs', user.premium_expires_at);
   
   if (!limits.canExportEntries) {
     return {
       allowed: false,
       error: 'PREMIUM_FEATURE_REQUIRED',
-      message: 'Exporting journal entries is a premium feature.',
+      message: 'Exporting daily logs is a premium feature.',
       feature: 'canExportEntries'
     };
   }
@@ -277,8 +277,10 @@ function handleValidationResponse(res, validation) {
 module.exports = {
   validateGoalCreation,
   validateHabitCreation,
-  validateJournalEntry,
-  validateJournalExport,
+  validateDailyLogsEntry,
+  validateDailyLogsExport,
+  validateDailyLogEntry: validateDailyLogsEntry,
+  validateDailyLogExport: validateDailyLogsExport,
   validateCommunityCreation,
   validateCommunityJoin,
   validateAdvancedAnalytics,

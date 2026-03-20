@@ -22,7 +22,7 @@ A comprehensive, secure, and scalable premium feature system built with React, N
 - Database migration with `premium_expires_at` timestamp
 - Premium configuration (single source of truth)
 - Middleware for automatic premium attachment
-- Controllers with enforcement for goals, habits, journal, communities
+- Controllers with enforcement for goals, habits, dailyLogs, communities
 - Services with accurate count queries
 - Validation utilities for reusable checks
 - Premium management endpoints
@@ -84,9 +84,9 @@ A comprehensive, secure, and scalable premium feature system built with React, N
 | **Subgoals per Goal** | 1 | 10 |
 | **Active Habits** | 5 | 10 |
 | **Habit Reminders** | ❌ | ✅ (5 per habit) |
-| **Journal Entries/Day** | 1 | 5 |
-| **Journal Entry Length** | 500 chars | 2000 chars |
-| **Journal Export** | ❌ | ✅ |
+| **DailyLogs Entries/Day** | 1 | 5 |
+| **DailyLogs Entry Length** | 500 chars | 2000 chars |
+| **DailyLogs Export** | ❌ | ✅ |
 | **Communities Joined** | 7 | 50 |
 | **Communities Owned** | 3 | 10 |
 | **AI Suggestions** | ❌ | ✅ |
@@ -136,7 +136,7 @@ WishTrail/
 │   │   │   ├── premiumController.js
 │   │   │   ├── goalController.js (updated)
 │   │   │   ├── habitController.js (updated)
-│   │   │   ├── journalController.js (updated)
+│   │   │   ├── dailyLogsController.js (updated)
 │   │   │   └── communityController.js (updated)
 │   │   │
 │   │   ├── services/
@@ -210,13 +210,13 @@ if (!goalLimits.canCreate) {
 ```sql
 UPDATE users SET premium_expires_at = NULL WHERE id = 1;
 ```
-**Expected:** 5 goals max, 5 habits max, 1 journal/day, no AI
+**Expected:** 5 goals max, 5 habits max, 1 dailyLogs/day, no AI
 
 ### Premium User Test
 ```sql
 UPDATE users SET premium_expires_at = NOW() + INTERVAL '1 year' WHERE id = 1;
 ```
-**Expected:** 10 goals max, 10 habits max, 5 journals/day, AI enabled
+**Expected:** 10 goals max, 10 habits max, 5 dailyLogss/day, AI enabled
 
 ### Expired Premium Test
 ```sql
@@ -335,7 +335,7 @@ import { UpgradeModal } from '../components/premium/UpgradeModal';
 3. Shows "(Premium only)" label
 4. Clicking opens upgrade modal
 
-### Journal Export (Free User)
+### DailyLogs Export (Free User)
 1. User clicks "Export"
 2. Button shows "🔒 Export (Premium)"
 3. Click opens upgrade modal
@@ -402,7 +402,7 @@ import { UpgradeModal } from '../components/premium/UpgradeModal';
 ## 🎯 Next Steps
 
 1. **Follow Quick Start:** [frontend/QUICK_START_INTEGRATION.md](./frontend/QUICK_START_INTEGRATION.md)
-2. **Update Components:** Goals, Habits, Journal forms
+2. **Update Components:** Goals, Habits, DailyLogs forms
 3. **Test Thoroughly:** Free, Premium, Expired scenarios
 4. **Payment Integration:** Choose provider (Stripe recommended)
 5. **Deploy:** Database migration → Backend → Frontend

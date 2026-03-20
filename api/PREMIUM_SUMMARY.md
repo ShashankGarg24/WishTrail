@@ -23,7 +23,7 @@ Your WishTrail application now has a **complete, production-ready premium subscr
 - Defines limits for 10+ feature categories:
   - Goals (max 10 free vs unlimited premium)
   - Habits (max 5 free vs unlimited premium)
-  - Journal (3 entries/day free vs unlimited premium)
+  - Daily Logs (3 entries/day free vs unlimited premium)
   - Social (100 following free vs 1000 premium)
   - Analytics, Storage, AI features, etc.
 - Helper functions to check premium status and limits
@@ -129,7 +129,7 @@ router.post('/api/v1/goals',
 ### Free Users
 - **Goals**: Max 10 active, 20 per year
 - **Habits**: Max 5 active
-- **Journal**: 3 entries/day, 1000 chars each
+- **Daily Logs**: 3 entries/day, 1000 chars each
 - **Social**: Follow max 100 users, join 5 communities
 - **Storage**: 100 MB total
 - **No**: AI features, advanced analytics, data export, video uploads
@@ -137,7 +137,7 @@ router.post('/api/v1/goals',
 ### Premium Users
 - **Goals**: Unlimited
 - **Habits**: Unlimited with advanced analytics
-- **Journal**: Unlimited entries, 5000 chars, photos, search
+- **Daily Logs**: Unlimited entries, 5000 chars, photos, search
 - **Social**: Follow 1000 users, join 50 communities, create communities
 - **Storage**: 10 GB with video support
 - **Includes**: AI features, advanced analytics, data export, custom categories
@@ -173,7 +173,7 @@ router.get('/export', requirePremium, controller);
 router.post('/goals', checkFeatureLimit('goals', 'maxActiveGoals', getCurrentCount), controller);
 
 // Method 3: Manual validation in controller
-const validation = await validateFeatureAccess(user, 'journal', 'canAddPhotos');
+const validation = await validateFeatureAccess(user, 'daily_logs', 'canAddPhotos');
 if (!validation.allowed) { return error(); }
 ```
 

@@ -350,7 +350,7 @@ exports.toggleLog = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Invalid habit ID' });
     }
 
-    const { status, mood, journalEntryId, date } = req.body || {};
+    const { status, mood, date } = req.body || {};
     const userId = req.user.id;
 
     // Verify habit exists and belongs to user

@@ -16,7 +16,7 @@ A social goal-tracking app to create goals, complete them with proof, and stay m
   - Avatar upload
   - Privacy: public, friends‑only, private
   - Follower/following counts and recent goals
-  - Journaling with AI motivation
+  - Daily Logging with AI motivation
 
 - **Goals (Wishes)**
   - CRUD with validation; yearly partitioning and filters

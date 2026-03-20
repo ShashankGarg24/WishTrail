@@ -40,7 +40,7 @@ function buildDeepLink(notification) {
       if (actor) return `${base}/profile/${actor}`;
       return `${base}/notifications`;
     }
-    if (notification?.type === 'journal_prompt') return `${base}/profile?tab=journal`;
+    if (notification?.type === 'daily_logs_prompt') return `${base}/profile@${encodeURIComponent(actor.username)}?tab=daily-logs`;
     if (notification?.type === 'motivation_quote') return `${base}/dashboard`;
   } catch {}
   return `${base}/notifications`;
@@ -206,7 +206,7 @@ async function sendFcmInternal(tokens, notification) {
         };
         if (actorName && actionMap[type]) {
           title = `${actorName} : ${actionMap[type]}`;
-        } else if (type === 'habit_reminder' || type === 'journal_prompt' || type === 'motivation_quote' || type === 'inactivity_reminder') {
+        } else if (type === 'habit_reminder' || type === 'daily_logs_prompt' || type === 'motivation_quote' || type === 'inactivity_reminder') {
           // keep system titles as-is
           title = notification.title || title;
         }

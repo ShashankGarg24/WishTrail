@@ -226,7 +226,7 @@ historyRetentionDays: unlimited
 advancedAnalytics: true
 ```
 
-### Journal
+### Daily Logs
 ```javascript
 // Free users
 maxEntriesPerDay: 3

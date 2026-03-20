@@ -5,6 +5,7 @@ import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
 import { useNavigate } from 'react-router-dom'
 import useApiStore from '../store/apiStore'
 import toast from 'react-hot-toast';
+import ConfirmActionModal from './ConfirmActionModal';
 const ShareModal = lazy(() => import('./ShareModal'));
 
 const THEME_COLOR = '#4c99e6'
@@ -28,6 +29,7 @@ export default function GoalDetailsModal({ goal, isOpen, onClose, onViewPost }) 
   const [hasTodayUpdate, setHasTodayUpdate] = useState(false)
   const [isUpdatesPublic, setIsUpdatesPublic] = useState(true)
   const [isTogglingPublic, setIsTogglingPublic] = useState(false)
+  const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false)
   const moreMenuRef = useRef(null)
   const { user } = useApiStore()
 
@@ -166,11 +168,20 @@ export default function GoalDetailsModal({ goal, isOpen, onClose, onViewPost }) 
   const handleClearToday = async () => {
     if (!goalId || isCompleted) return
 
+    setIsClearConfirmOpen(true)
+  }
+
+  const confirmClearToday = async () => {
+    if (!goalId || isCompleted) return
+
+    setIsSubmitting(true)
     const res = await useApiStore.getState().clearGoalUpdateToday(goalId)
+    setIsSubmitting(false)
     if (res?.success) {
       setUpdateText('')
       setSelectedEmotion(null)
       setHasTodayUpdate(false)
+      setIsClearConfirmOpen(false)
       toast.success('Update cleared successfully')
       return
     }
@@ -283,13 +294,24 @@ export default function GoalDetailsModal({ goal, isOpen, onClose, onViewPost }) 
 
         <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-700 flex-shrink-0">
           <div className="flex items-center justify-between gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-            >
-              Cancel
-            </button>
+            {hasTodayUpdate && !isCompleted ? (
+              <button
+                type="button"
+                onClick={handleClearToday}
+                disabled={isSubmitting}
+                className="px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                Clear today
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              >
+                Cancel
+              </button>
+            )}
 
             <div className="flex items-center gap-2">
               <button
@@ -343,6 +365,16 @@ export default function GoalDetailsModal({ goal, isOpen, onClose, onViewPost }) 
           />
         </Suspense>
       )}
+
+      <ConfirmActionModal
+        isOpen={isClearConfirmOpen}
+        onClose={() => setIsClearConfirmOpen(false)}
+        onConfirm={confirmClearToday}
+        title="Clear today's update?"
+        message="This will remove your goal update for today."
+        confirmText="Clear today"
+        isLoading={isSubmitting}
+      />
     </div>
   )
 }
