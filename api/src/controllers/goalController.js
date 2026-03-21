@@ -1784,7 +1784,7 @@ const generateOGImage = async (req, res, next) => {
 // @access  Private
 const getTodayGoalUpdate = async (req, res, next) => {
   try {
-    await pgGoalUpdateService.assertGoalWritable(req.params.id, req.user.id);
+    const goal = await pgGoalUpdateService.assertGoalWritable(req.params.id, req.user.id);
 
     const pgUser = await pgUserService.getUserById(req.user.id);
     const userTimezone = pgUser?.timezone || 'UTC';
@@ -1794,7 +1794,10 @@ const getTodayGoalUpdate = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      data: { goalUpdate }
+      data: {
+        goalUpdate,
+        isUpdatesPublic: goal.is_updates_public
+      }
     });
   } catch (error) {
     next(error);
@@ -1826,6 +1829,11 @@ const upsertTodayGoalUpdate = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Invalid emotion' });
     }
 
+    const hasIsUpdatesPublic = Object.prototype.hasOwnProperty.call(req.body || {}, 'isUpdatesPublic');
+    const isUpdatesPublic = hasIsUpdatesPublic
+      ? (req.body.isUpdatesPublic === true || req.body.isUpdatesPublic === 'true')
+      : undefined;
+
     const pgUser = await pgUserService.getUserById(req.user.id);
     const userTimezone = pgUser?.timezone || 'UTC';
     const todayKey = getCurrentDateInTimezone(userTimezone);
@@ -1835,7 +1843,8 @@ const upsertTodayGoalUpdate = async (req, res, next) => {
       userId: req.user.id,
       text,
       emotion,
-      dateKey: todayKey
+      dateKey: todayKey,
+      isUpdatesPublic
     });
 
     return res.status(200).json({

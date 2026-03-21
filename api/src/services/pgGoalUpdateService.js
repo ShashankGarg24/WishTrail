@@ -1,9 +1,9 @@
-const { query } = require('../config/supabase');
+const { query, transaction } = require('../config/supabase');
 
 class PgGoalUpdateService {
   async assertGoalWritable(goalId, userId) {
     const goalResult = await query(
-      `SELECT id, user_id, completed_at FROM goals WHERE id = $1`,
+      `SELECT id, user_id, completed_at, is_updates_public FROM goals WHERE id = $1`,
       [goalId]
     );
 
@@ -37,22 +37,36 @@ class PgGoalUpdateService {
     return this._formatRow(result.rows[0] || null);
   }
 
-  async upsertTodayUpdate({ goalId, userId, text, emotion, dateKey }) {
-    const result = await query(
-      `
-        INSERT INTO goal_updates (goal_id, user_id, date_key, text, emotion)
-        VALUES ($1, $2, $3::date, $4, $5)
-        ON CONFLICT (goal_id, date_key)
-        DO UPDATE SET
-          text = EXCLUDED.text,
-          emotion = EXCLUDED.emotion,
-          updated_at = CURRENT_TIMESTAMP
-        RETURNING id, goal_id, user_id, text, emotion, date_key, created_at
-      `,
-      [goalId, userId, dateKey, text, emotion]
-    );
+  async upsertTodayUpdate({ goalId, userId, text, emotion, dateKey, isUpdatesPublic }) {
+    return transaction(async (client) => {
+      const result = await client.query(
+        `
+          INSERT INTO goal_updates (goal_id, user_id, date_key, text, emotion)
+          VALUES ($1, $2, $3::date, $4, $5)
+          ON CONFLICT (goal_id, date_key)
+          DO UPDATE SET
+            text = EXCLUDED.text,
+            emotion = EXCLUDED.emotion,
+            updated_at = CURRENT_TIMESTAMP
+          RETURNING id, goal_id, user_id, text, emotion, date_key, created_at
+        `,
+        [goalId, userId, dateKey, text, emotion]
+      );
 
-    return this._formatRow(result.rows[0] || null);
+      if (typeof isUpdatesPublic === 'boolean') {
+        await client.query(
+          `
+            UPDATE goals
+            SET is_updates_public = $3,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = $1 AND user_id = $2 AND completed_at IS NULL
+          `,
+          [goalId, userId, isUpdatesPublic]
+        );
+      }
+
+      return this._formatRow(result.rows[0] || null);
+    });
   }
 
   async deleteTodayUpdate(goalId, userId, dateKey) {

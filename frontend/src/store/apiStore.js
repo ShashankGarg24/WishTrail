@@ -1219,7 +1219,11 @@ const useApiStore = create(
       getGoalUpdateToday: async (id) => {
         try {
           const response = await goalsAPI.getGoalUpdateToday(id);
-          return { success: true, goalUpdate: response?.data?.data?.goalUpdate || null };
+          return {
+            success: true,
+            goalUpdate: response?.data?.data?.goalUpdate || null,
+            isUpdatesPublic: response?.data?.data?.isUpdatesPublic
+          };
         } catch (error) {
           const errorMessage = handleApiError(error);
           return { success: false, error: errorMessage };
@@ -1229,6 +1233,7 @@ const useApiStore = create(
       upsertGoalUpdateToday: async (id, payload) => {
         try {
           const response = await goalsAPI.upsertGoalUpdateToday(id, payload);
+          try { get().invalidateGoalPostByGoal?.(id); } catch { }
           return { success: true, goalUpdate: response?.data?.data?.goalUpdate || null };
         } catch (error) {
           const errorMessage = handleApiError(error);

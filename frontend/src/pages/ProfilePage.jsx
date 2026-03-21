@@ -1,7 +1,7 @@
 ﻿import { GOAL_CATEGORIES } from '../constants/goalCategories'
 import { useState, useEffect, useRef, useMemo, lazy, Suspense } from "react";
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { Target, TrendingUp, Star, Edit2, ExternalLink, Youtube, Instagram, MapPin, Globe, Trophy, BookOpen, Clock, CheckCircle, Circle, User, UserPlus, UserCheck, ArrowLeft, Lock, Sparkles, Download, Flame, Award, BarChart2, Activity, MoreVertical, Plus, PenSquare, ChevronDown } from "lucide-react";
+import { Target, TrendingUp, Star, Edit2, ExternalLink, Youtube, Instagram, MapPin, Globe, Trophy, BookOpen, Clock, CheckCircle, Circle, User, UserPlus, UserCheck, ArrowLeft, Lock, Sparkles, Download, Flame, Award, BarChart2, Activity, MoreVertical, Plus, PenSquare, ChevronDown, Trash2 } from "lucide-react";
 import { getCategoryIcon } from '../utils/categoryIcons';
 import CategoryBadge from '../components/CategoryBadge';
 const FollowListModal = lazy(() => import("../components/FollowListModal"));
@@ -12,6 +12,7 @@ import { habitsAPI } from '../services/api';
 import ShareSheet from '../components/ShareSheet';
 import toast from 'react-hot-toast';
 import { getDateKeyInTimezone } from '../utils/timezoneUtils';
+import ConfirmActionModal from '../components/ConfirmActionModal';
 const ReportModal = lazy(() => import("../components/ReportModal"));
 const BlockModal = lazy(() => import("../components/BlockModal"));
 const DailyLogsPromptModal = lazy(() => import("../components/DailyLogsPromptModal"));
@@ -79,6 +80,7 @@ const ProfilePage = () => {
     cancelFollowRequest,
     getUserDailyLogsHighlights,
     getMyDailyLogsEntries,
+    clearDailyLogsEntry,
     dailyLogsEntries,
     getFollowers,
     getFollowing,
@@ -106,6 +108,9 @@ const ProfilePage = () => {
   const DAILY_LOGS_LIMIT = 14;
   const [dailyLogsHasMore, setDailyLogsHasMore] = useState(true);
   const [dailyLogsLoading, setDailyLogsLoading] = useState(false);
+  const [deletingDailyLogId, setDeletingDailyLogId] = useState(null);
+  const [isDeleteDailyLogConfirmOpen, setIsDeleteDailyLogConfirmOpen] = useState(false);
+  const [pendingDeleteDailyLogId, setPendingDeleteDailyLogId] = useState(null);
   const [exportOpen, setExportOpen] = useState(false);
   const [myHabits, setMyHabits] = useState([]);
   const [userHabits, setUserHabits] = useState([]);
@@ -393,6 +398,36 @@ const ProfilePage = () => {
         ? prev.filter((id) => id !== logId)
         : [...prev, logId]
     ));
+  };
+
+  const handleDeleteDailyLog = async (entryId) => {
+    if (!entryId || deletingDailyLogId) return;
+
+    setPendingDeleteDailyLogId(String(entryId));
+    setIsDeleteDailyLogConfirmOpen(true);
+  };
+
+  const confirmDeleteDailyLog = async () => {
+    if (!pendingDeleteDailyLogId || deletingDailyLogId) return;
+
+    setDeletingDailyLogId(String(pendingDeleteDailyLogId));
+    try {
+      const res = await clearDailyLogsEntry(pendingDeleteDailyLogId);
+      if (!res?.success) {
+        throw new Error(res?.error || 'Failed to delete daily log');
+      }
+
+      setDailyLogsFeed((prev) => prev.filter((entry) => String(entry?.id || entry?._id) !== String(pendingDeleteDailyLogId)));
+      setExpandedDailyLogIds((prev) => prev.filter((id) => String(id) !== String(pendingDeleteDailyLogId)));
+      setDailyLogsSkip((prev) => Math.max(0, prev - 1));
+      setIsDeleteDailyLogConfirmOpen(false);
+      setPendingDeleteDailyLogId(null);
+      toast.success('Daily log deleted');
+    } catch (error) {
+      toast.error(error?.message || 'Failed to delete daily log');
+    } finally {
+      setDeletingDailyLogId(null);
+    }
   };
 
   const fetchOwnProfile = async () => {
@@ -1537,6 +1572,7 @@ const ProfilePage = () => {
                       <div className="space-y-3 sm:space-y-4 max-h-[430px] sm:max-h-[500px] overflow-y-auto scrollbar-hide pr-0.5 sm:pr-1">
                         {sortedDailyLogs.map((e) => {
                           const entryId = e?.id || e?._id || e?.createdAt;
+                          const isDeletingThisEntry = deletingDailyLogId && String(deletingDailyLogId) === String(entryId);
                           const isExpanded = expandedDailyLogIds.includes(entryId);
                           const moodMeta = DAILY_LOG_MOOD_META[e?.mood] || null;
                           return (
@@ -1544,32 +1580,52 @@ const ProfilePage = () => {
                               key={entryId}
                               className="w-full text-left p-4 sm:p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700"
                             >
-                              <button
-                                type="button"
-                                onClick={() => toggleDailyLogExpand(entryId)}
-                                className="w-full text-left"
-                              >
-                                <div className="flex items-start justify-between gap-3">
-                                  <div>
-                                    <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 uppercase mb-1.5 sm:mb-2">{formatDate(e.createdAt)}</div>
-                                    <div className="flex items-center gap-2 mb-2 sm:mb-3">
-                                      {moodMeta ? (
-                                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium ${moodMeta.chip}`}>
-                                          {moodMeta.label}
-                                        </span>
-                                      ) : (
-                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
-                                          No Mood
-                                        </span>
-                                      )}
+                              <div className="flex items-start gap-3">
+                                <button
+                                  type="button"
+                                  onClick={() => toggleDailyLogExpand(entryId)}
+                                  className="w-full text-left"
+                                >
+                                  <div className="flex items-start justify-between gap-3">
+                                    <div>
+                                      <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 uppercase mb-1.5 sm:mb-2">{formatDate(e.createdAt)}</div>
+                                      <div className="flex items-center gap-2 mb-2 sm:mb-3">
+                                        {moodMeta ? (
+                                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium ${moodMeta.chip}`}>
+                                            {moodMeta.label}
+                                          </span>
+                                        ) : (
+                                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                                            No Mood
+                                          </span>
+                                        )}
+                                      </div>
                                     </div>
+                                    <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                                   </div>
-                                  <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-                                </div>
-                                <p className={`text-sm sm:text-base text-gray-700 dark:text-gray-300 leading-relaxed mt-1 ${isExpanded ? '' : 'line-clamp-1'}`}>
-                                  {e.content}
-                                </p>
-                              </button>
+                                  <p className={`text-sm sm:text-base text-gray-700 dark:text-gray-300 leading-relaxed mt-1 ${isExpanded ? '' : 'line-clamp-1'}`}>
+                                    {e.content}
+                                  </p>
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    handleDeleteDailyLog(entryId);
+                                  }}
+                                  disabled={!!deletingDailyLogId}
+                                  className="shrink-0 p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                  title="Delete entry"
+                                  aria-label="Delete daily log entry"
+                                >
+                                  {isDeletingThisEntry ? (
+                                    <span className="text-[10px] font-medium">...</span>
+                                  ) : (
+                                    <Trash2 className="h-4 w-4" />
+                                  )}
+                                </button>
+                              </div>
 
                               {isExpanded && e?.motivation && (
                                 <div className="mt-3 sm:mt-4 p-3 sm:p-4 rounded-lg sm:rounded-xl flex items-start gap-1.5 sm:gap-2" style={{ backgroundColor: 'rgba(76, 153, 230, 0.1)' }}>
@@ -1924,6 +1980,20 @@ const ProfilePage = () => {
           &ldquo;The only way to achieve the impossible is to believe it is possible.&rdquo;
         </p>
       </footer>
+
+      <ConfirmActionModal
+        isOpen={isDeleteDailyLogConfirmOpen}
+        onClose={() => {
+          if (deletingDailyLogId) return;
+          setIsDeleteDailyLogConfirmOpen(false);
+          setPendingDeleteDailyLogId(null);
+        }}
+        onConfirm={confirmDeleteDailyLog}
+        title="Delete daily log?"
+        message="This will remove your daily log for that day."
+        confirmText="Delete"
+        isLoading={!!deletingDailyLogId}
+      />
     </div>
   );
 };

@@ -13,7 +13,7 @@ router.post('/', protect, dailyLogsController.createEntry);
 // Update a daily log entry (e.g., mood or visibility)
 router.patch('/:entryId', protect, dailyLogsController.updateEntry);
 
-// Clear (soft-delete) a daily log entry
+// Delete a daily log entry by id
 router.delete('/:entryId', protect, dailyLogsController.clearEntry);
 
 // Get my entries

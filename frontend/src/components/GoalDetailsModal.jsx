@@ -27,8 +27,7 @@ export default function GoalDetailsModal({ goal, isOpen, onClose, onViewPost }) 
   const [updateText, setUpdateText] = useState('')
   const [selectedEmotion, setSelectedEmotion] = useState(null)
   const [hasTodayUpdate, setHasTodayUpdate] = useState(false)
-  const [isUpdatesPublic, setIsUpdatesPublic] = useState(true)
-  const [isTogglingPublic, setIsTogglingPublic] = useState(false)
+  const [isUpdatesPublic, setIsUpdatesPublic] = useState(false)
   const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false)
   const moreMenuRef = useRef(null)
   const { user } = useApiStore()
@@ -61,6 +60,10 @@ export default function GoalDetailsModal({ goal, isOpen, onClose, onViewPost }) 
       setIsLoadingUpdate(true)
       const res = await useApiStore.getState().getGoalUpdateToday(goalId)
       if (!isMounted) return
+
+      if (typeof res?.isUpdatesPublic === 'boolean') {
+        setIsUpdatesPublic(res.isUpdatesPublic)
+      }
 
       if (res?.success && res.goalUpdate) {
         setUpdateText(res.goalUpdate.text || '')
@@ -101,6 +104,7 @@ export default function GoalDetailsModal({ goal, isOpen, onClose, onViewPost }) 
   const isCompleted = !!goal?.completedAt
   const trimmedText = updateText.trim()
   const canSubmit = !isCompleted && !isSubmitting && (trimmedText.length > 0 || !!selectedEmotion)
+  const isGoalLogBusy = isLoadingUpdate || isSubmitting
   
   const handleAnalytics = () => {
     if (!goalId) return
@@ -126,24 +130,9 @@ export default function GoalDetailsModal({ goal, isOpen, onClose, onViewPost }) 
     setIsShareModalOpen(true)
   }
 
-  const handleToggleUpdatesPublic = async () => {
-    if (!goalId || isTogglingPublic) return
-
-    setIsTogglingPublic(true)
-    const newValue = !isUpdatesPublic
-    
-    const res = await useApiStore.getState().updateGoal(goalId, {
-      isUpdatesPublic: newValue
-    })
-
-    if (res?.success) {
-      setIsUpdatesPublic(newValue)
-      toast.success(`Updates are now ${newValue ? 'public' : 'private'}`)
-    } else {
-      toast.error(res?.error || 'Failed to update setting')
-    }
-    
-    setIsTogglingPublic(false)
+  const handleToggleUpdatesPublic = () => {
+    if (isCompleted || isSubmitting || isLoadingUpdate) return
+    setIsUpdatesPublic((prev) => !prev)
   }
 
   const handleSubmitUpdate = async () => {
@@ -152,7 +141,8 @@ export default function GoalDetailsModal({ goal, isOpen, onClose, onViewPost }) 
     setIsSubmitting(true)
     const res = await useApiStore.getState().upsertGoalUpdateToday(goalId, {
       text: trimmedText || null,
-      emotion: selectedEmotion || null
+      emotion: selectedEmotion || null,
+      isUpdatesPublic
     })
     setIsSubmitting(false)
 
@@ -217,79 +207,81 @@ export default function GoalDetailsModal({ goal, isOpen, onClose, onViewPost }) 
             <h3 className="text-2xl font-bold text-gray-900 dark:text-white">{goal.title}</h3>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">What did you accomplish today?</label>
-            <textarea
-              value={updateText}
-              onChange={(e) => setUpdateText(e.target.value.slice(0, 300))}
-              placeholder="Share your progress, small wins, or lessons learned..."
-              disabled={isCompleted || isLoadingUpdate || isSubmitting}
-              rows={4}
-              className="w-full rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-sm px-4 py-3 resize-none focus:outline-none focus:ring-2 focus:ring-[#4c99e6]/40 disabled:opacity-60 disabled:cursor-not-allowed"
-            />
-            <div className="flex items-center justify-between mt-2">
-              <span className="text-xs text-gray-400">{trimmedText.length}/300</span>
-              {hasTodayUpdate && !isCompleted && (
+          <div className="space-y-5">
+              <div className="relative">
+                <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">What did you accomplish today?</label>
+                <textarea
+                  value={updateText}
+                  onChange={(e) => setUpdateText(e.target.value.slice(0, 300))}
+                  placeholder="Share your progress, small wins, or lessons learned..."
+                  disabled={isCompleted || isLoadingUpdate || isSubmitting}
+                  rows={4}
+                  className="w-full rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-sm px-4 py-3 resize-none focus:outline-none focus:ring-2 focus:ring-[#4c99e6]/40 disabled:opacity-60 disabled:cursor-not-allowed"
+                />
+                <div className="flex items-center justify-between mt-2">
+                  <span className="text-xs text-gray-400">{trimmedText.length}/300</span>
+                </div>
+
+                {isGoalLogBusy && (
+                  <div className="absolute inset-0 z-10 rounded-xl bg-white/70 dark:bg-gray-900/70 backdrop-blur-[1px] flex flex-col items-center justify-center gap-3">
+                    <div className="h-10 w-10 rounded-full border-4 border-gray-200 dark:border-gray-700 border-t-[#4c99e6] animate-spin" />
+                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {isLoadingUpdate ? 'Loading goal update...' : 'Updating goal log...'}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <p className="text-sm font-medium text-gray-900 dark:text-white mb-3 text-center">How are you feeling about your progress?</p>
+                <div className="grid grid-cols-5 gap-3">
+                  {EMOTIONS.map((emotion) => {
+                    const Icon = emotion.icon
+                    const isSelected = selectedEmotion === emotion.id
+                    return (
+                      <button
+                        key={emotion.id}
+                        type="button"
+                        disabled={isCompleted || isSubmitting}
+                        onClick={() => setSelectedEmotion((prev) => prev === emotion.id ? null : emotion.id)}
+                        className="flex flex-col items-center gap-1.5"
+                      >
+                        <span className={`w-10 h-10 rounded-full border flex items-center justify-center transition-colors ${
+                          isSelected
+                            ? 'bg-[#4c99e6] border-[#4c99e6] text-white'
+                            : 'bg-gray-100 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-300'
+                        }`}>
+                          <Icon className="h-4 w-4" />
+                        </span>
+                        <span className={`text-[11px] font-medium ${isSelected ? 'text-[#4c99e6]' : 'text-gray-400'}`}>
+                          {emotion.label}
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-900/40 px-4 py-3 flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">Make updates public</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Share progress with the Growth Feed</p>
+                </div>
                 <button
                   type="button"
-                  onClick={handleClearToday}
-                  className="text-xs font-medium text-[#4c99e6] hover:underline"
+                  disabled={isCompleted || isSubmitting || isLoadingUpdate}
+                  onClick={handleToggleUpdatesPublic}
+                  aria-pressed={isUpdatesPublic}
+                  className={`relative inline-flex h-6 w-11 items-center overflow-hidden rounded-full transition-colors ${isUpdatesPublic ? 'bg-[#4c99e6]' : 'bg-gray-300 dark:bg-gray-600'} disabled:opacity-60`}
                 >
-                  Clear today
+                  <span className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${isUpdatesPublic ? 'translate-x-5' : 'translate-x-0'}`} />
                 </button>
+              </div>
+
+              {isCompleted && (
+                <p className="text-sm text-red-500">Cannot log updates on completed goal</p>
               )}
-            </div>
           </div>
-
-          <div>
-            <p className="text-sm font-medium text-gray-900 dark:text-white mb-3 text-center">How are you feeling about your progress?</p>
-            <div className="grid grid-cols-5 gap-3">
-              {EMOTIONS.map((emotion) => {
-                const Icon = emotion.icon
-                const isSelected = selectedEmotion === emotion.id
-                return (
-                  <button
-                    key={emotion.id}
-                    type="button"
-                    disabled={isCompleted || isSubmitting}
-                    onClick={() => setSelectedEmotion((prev) => prev === emotion.id ? null : emotion.id)}
-                    className="flex flex-col items-center gap-1.5"
-                  >
-                    <span className={`w-10 h-10 rounded-full border flex items-center justify-center transition-colors ${
-                      isSelected
-                        ? 'bg-[#4c99e6] border-[#4c99e6] text-white'
-                        : 'bg-gray-100 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-300'
-                    }`}>
-                      <Icon className="h-4 w-4" />
-                    </span>
-                    <span className={`text-[11px] font-medium ${isSelected ? 'text-[#4c99e6]' : 'text-gray-400'}`}>
-                      {emotion.label}
-                    </span>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-
-          <div className="rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-900/40 px-4 py-3 flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-900 dark:text-white">Make updates public</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Share progress with the Growth Feed</p>
-            </div>
-            <button
-              type="button"
-              disabled={isTogglingPublic}
-              onClick={handleToggleUpdatesPublic}
-              aria-pressed={isUpdatesPublic}
-              className={`relative inline-flex h-6 w-11 items-center overflow-hidden rounded-full transition-colors ${isUpdatesPublic ? 'bg-[#4c99e6]' : 'bg-gray-300 dark:bg-gray-600'} disabled:opacity-60`}
-            >
-              <span className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${isUpdatesPublic ? 'translate-x-5' : 'translate-x-0'}`} />
-            </button>
-          </div>
-
-          {isCompleted && (
-            <p className="text-sm text-red-500">Cannot log updates on completed goal</p>
-          )}
         </div>
 
         <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-700 flex-shrink-0">
