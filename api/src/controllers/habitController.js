@@ -116,20 +116,23 @@ exports.listHabits = async (req, res, next) => {
     // Attach today's log status to each habit (use client-supplied local date if provided)
     const today = req.query.today || new Date().toISOString().slice(0, 10);
     let todayStatusMap = {};
+    let todayCompletionCountMap = {};
     if (habits.length > 0) {
       const todayLogsResult = await query(
-        `SELECT habit_id, status FROM habit_logs WHERE user_id = $1 AND date_key = $2`,
+        `SELECT habit_id, status, completion_count FROM habit_logs WHERE user_id = $1 AND date_key = $2`,
         [targetUserId, today]
       );
       for (const row of todayLogsResult.rows) {
         todayStatusMap[row.habit_id] = row.status;
+        todayCompletionCountMap[row.habit_id] = row.completion_count || 0;
       }
     }
 
     const result = {
       habits: habits.map(h => ({
         ...sanitizeHabitForProfile(h),
-        todayStatus: todayStatusMap[h.id] || null
+        todayStatus: todayStatusMap[h.id] || null,
+        todayCompletionCount: todayCompletionCountMap[h.id] || 0
       })),
       pagination: {
         page,
@@ -173,19 +176,22 @@ exports.searchHabits = async (req, res, next) => {
     // Attach today's log status
     const today = req.query.today || new Date().toISOString().slice(0, 10);
     let todayStatusMap = {};
+    let todayCompletionCountMap = {};
     if (habits.length > 0) {
       const todayLogsResult = await query(
-        `SELECT habit_id, status FROM habit_logs WHERE user_id = $1 AND date_key = $2`,
+        `SELECT habit_id, status, completion_count FROM habit_logs WHERE user_id = $1 AND date_key = $2`,
         [userId, today]
       );
       for (const row of todayLogsResult.rows) {
         todayStatusMap[row.habit_id] = row.status;
+        todayCompletionCountMap[row.habit_id] = row.completion_count || 0;
       }
     }
 
     const sanitizedHabits = habits.map(h => ({
       ...sanitizeHabitForProfile(h),
-      todayStatus: todayStatusMap[h.id] || null
+      todayStatus: todayStatusMap[h.id] || null,
+      todayCompletionCount: todayCompletionCountMap[h.id] || 0
     }));
 
     res.status(200).json({

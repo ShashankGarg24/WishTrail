@@ -286,7 +286,7 @@ export default function EditHabitModal({ isOpen, onClose, habit, onSave }) {
               className="flex-1 py-3 px-5 text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-lg transition-all"
               style={{ backgroundColor: THEME_COLOR }}
             >
-              {submitting ? 'Saving…' : 'Save Changes'}
+              {submitting ? 'Saving…' : 'Save'}
             </button>
           </div>
         </form>

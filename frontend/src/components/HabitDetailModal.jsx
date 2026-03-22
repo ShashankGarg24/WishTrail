@@ -19,6 +19,8 @@ export default function HabitDetailModal({ habit, isOpen, onClose, onLog, onEdit
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState(null);
   const [isSkipConfirmOpen, setIsSkipConfirmOpen] = useState(false);
+  const [todayCompletionCount, setTodayCompletionCount] = useState(0);
+  const [showLoggedTooltip, setShowLoggedTooltip] = useState(false);
   const moreMenuRef = useRef(null);
   
   useEffect(() => {
@@ -35,8 +37,24 @@ export default function HabitDetailModal({ habit, isOpen, onClose, onLog, onEdit
       setIsMoreMenuOpen(false);
       setActionLoading(null);
       setIsSkipConfirmOpen(false);
+      setTodayCompletionCount(0);
+      setShowLoggedTooltip(false);
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen || !habit) return;
+    const derivedTodayCount = Number.isFinite(habit.todayCompletionCount)
+      ? Number(habit.todayCompletionCount)
+      : (habit.todayStatus === 'done' ? 1 : 0);
+    setTodayCompletionCount(Math.max(0, derivedTodayCount));
+  }, [isOpen, habit]);
+
+  useEffect(() => {
+    if (!showLoggedTooltip) return;
+    const timer = setTimeout(() => setShowLoggedTooltip(false), 2600);
+    return () => clearTimeout(timer);
+  }, [showLoggedTooltip]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -64,9 +82,16 @@ export default function HabitDetailModal({ habit, isOpen, onClose, onLog, onEdit
 
   const handleMarkDone = async () => {
     if (!onLog || actionLoading) return;
+    const wasFirstLogToday = todayCompletionCount === 0;
     setActionLoading('done');
     try {
-      await Promise.resolve(onLog('done', selectedEmotion || 'neutral'));
+      const result = await Promise.resolve(onLog('done', selectedEmotion || 'neutral'));
+      if (result?.success === false) return;
+
+      setTodayCompletionCount((prev) => Math.max(0, prev + 1));
+      if (wasFirstLogToday) {
+        setShowLoggedTooltip(true);
+      }
     } finally {
       setActionLoading(null);
     }
@@ -76,7 +101,11 @@ export default function HabitDetailModal({ habit, isOpen, onClose, onLog, onEdit
     if (!onLog || actionLoading) return;
     setActionLoading('skipped');
     try {
-      await Promise.resolve(onLog('skipped'));
+      const result = await Promise.resolve(onLog('skipped'));
+      if (result?.success === false) return;
+
+      setTodayCompletionCount(0);
+      setShowLoggedTooltip(false);
       setIsSkipConfirmOpen(false);
     } finally {
       setActionLoading(null);
@@ -135,8 +164,8 @@ export default function HabitDetailModal({ habit, isOpen, onClose, onLog, onEdit
             <h4 className="text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 sm:mb-3 uppercase tracking-wide">Progress</h4>
             <div className="grid grid-cols-2 gap-2 sm:gap-3">
               <div className="rounded-xl p-3 sm:p-4 text-center border" style={{ backgroundColor: 'rgba(76, 153, 230, 0.08)', borderColor: 'rgba(76, 153, 230, 0.2)' }}>
-                <div className="text-xl sm:text-2xl font-bold mb-1" style={{ color: THEME_COLOR }}>{habit.totalCompletions || 0}</div>
-                <div className="text-[10px] sm:text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Total Count</div>
+                <div className="text-xl sm:text-2xl font-bold mb-1" style={{ color: THEME_COLOR }}>{todayCompletionCount}</div>
+                <div className="text-[10px] sm:text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Today's Count</div>
                 {habit.targetCompletions && (
                   <div className="text-[10px] sm:text-xs" style={{ color: THEME_COLOR }}>Goal: {habit.targetCompletions}</div>
                 )}
@@ -209,10 +238,16 @@ export default function HabitDetailModal({ habit, isOpen, onClose, onLog, onEdit
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
                 style={{ backgroundColor: THEME_COLOR }}
               >
-                {actionLoading === 'done' ? 'Marking...' : 'Mark as done'}
+                {actionLoading === 'done' ? 'Marking...' : (todayCompletionCount > 0 ? 'Mark Again' : 'Mark as done')}
               </button>
             </div>
           </div>
+
+          {showLoggedTooltip && (
+            <div className="mt-2 inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium text-[#4c99e6] bg-[#4c99e6]/10 border border-[#4c99e6]/20">
+              Logged! You can log again anytime today
+            </div>
+          )}
 
           {isMoreMenuOpen && (
             <div ref={moreMenuRef} className="absolute right-6 bottom-20 w-48 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg overflow-hidden">

@@ -144,12 +144,16 @@ const DashboardPageNew = () => {
     try {
       const res = await useApiStore.getState().logHabit(habitId, status, mood)
       if (res?.success) {
+        const nextTodayCount = status === 'done'
+          ? (res?.log?.completionCount ?? ((selectedHabit?.todayCompletionCount || 0) + 1))
+          : 0
+
         setSelectedHabit((prev) =>
           prev
             ? {
                 ...prev,
-                currentStreak: status === 'done' ? (prev.currentStreak || 0) + 1 : 0,
-                totalCompletions: status === 'done' ? (prev.totalCompletions || 0) + 1 : prev.totalCompletions,
+                todayStatus: status,
+                todayCompletionCount: nextTodayCount,
               }
             : prev
         )
@@ -158,7 +162,7 @@ const DashboardPageNew = () => {
           getDashboardStats({ force: true }),
           loadHabits({ page: 1, force: true })
         ])
-        window.dispatchEvent(new CustomEvent('wt_toast', { detail: { message: status === 'done' ? 'Habit completed!' : 'Habit updated', type: 'success' } }))
+        window.dispatchEvent(new CustomEvent('wt_toast', { detail: { message: status === 'done' ? 'Habit logged!' : 'Habit skipped', type: 'success' } }))
         return { success: true }
       }
       return { success: false, error: res?.error }

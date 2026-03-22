@@ -190,7 +190,7 @@ export default function GoalDetailsModal({ goal, isOpen, onClose, onViewPost }) 
         <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex-shrink-0 relative bg-gray-50/70 dark:bg-gray-900/20">
           <div className="flex items-center gap-2 text-gray-900 dark:text-white font-semibold">
             <Target className="h-4 w-4 text-[#4c99e6]" />
-            <span>Update Goal</span>
+            <span>Log Goal Update</span>
           </div>
           <button
             type="button"
