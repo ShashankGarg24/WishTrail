@@ -103,7 +103,7 @@ export default function HabitsPanel({ onCreate, onOpenHabit, scrollable = false,
                   <div className="flex items-center gap-2 cursor-pointer">
                     <div className="font-medium text-gray-900 dark:text-white truncate" title={h.name}>{h.name}</div>
                     <div className="text-xs px-2 py-0.5 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
-                      {h.frequency === 'daily' ? 'Daily' : (h.daysOfWeek || []).sort().map(d => weekdayNames[d]).join(', ') || 'Weekly'}
+                      {h.frequency === 'daily' ? 'Daily' : (h.daysOfWeek || []).sort().map(d => weekdayNames[d]).join(', ') || 'Custom'}
                     </div>
                   </div>
                   {h.description && (

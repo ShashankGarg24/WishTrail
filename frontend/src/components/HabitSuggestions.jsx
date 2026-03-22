@@ -102,7 +102,7 @@ const HabitSuggestions = ({ interests = [], onSelect, onCreate, variant = 'inlin
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide" style={{ fontFamily: 'Manrope' }}>
-                    {h.frequency === 'weekly' ? 'Weekly' : 'Daily'}
+                    {h.frequency === 'daily' ? 'Daily' : 'Custom'}
                   </p>
                   <h3 className="font-bold text-gray-900 dark:text-white mt-0.5" style={{ fontFamily: 'Manrope' }}>{h.name}</h3>
                 </div>

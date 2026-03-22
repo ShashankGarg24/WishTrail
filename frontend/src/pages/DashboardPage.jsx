@@ -137,9 +137,12 @@ const DashboardPageNew = () => {
   }
 
   const handleHabitLog = async (status, mood = 'neutral') => {
-    if (!selectedHabit) return
+    if (!selectedHabit) return { success: false }
+    const habitId = selectedHabit.id || selectedHabit._id
+    if (!habitId) return { success: false }
+
     try {
-      const res = await useApiStore.getState().logHabit(selectedHabit.id, status, mood)
+      const res = await useApiStore.getState().logHabit(habitId, status, mood)
       if (res?.success) {
         setSelectedHabit((prev) =>
           prev
@@ -150,12 +153,18 @@ const DashboardPageNew = () => {
               }
             : prev
         )
-        // Refresh dashboard stats so todayHabitLogs updates immediately
-        getDashboardStats({ force: true })
+        // Refresh dashboard stats and habits so UI reflects skip/done immediately
+        await Promise.all([
+          getDashboardStats({ force: true }),
+          loadHabits({ page: 1, force: true })
+        ])
         window.dispatchEvent(new CustomEvent('wt_toast', { detail: { message: status === 'done' ? 'Habit completed!' : 'Habit updated', type: 'success' } }))
+        return { success: true }
       }
+      return { success: false, error: res?.error }
     } catch (e) {
       window.dispatchEvent(new CustomEvent('wt_toast', { detail: { message: e?.message || 'Failed to log', type: 'error' } }))
+      return { success: false, error: e?.message }
     }
   }
 
@@ -1112,8 +1121,14 @@ const DashboardPageNew = () => {
             onClose={() => { setIsEditHabitOpen(false); setSelectedHabit(null) }}
             habit={selectedHabit}
             onSave={async (payload) => {
-              await useApiStore.getState().updateHabit(selectedHabit.id, payload)
-              loadHabits({ page: 1 })
+              const habitId = selectedHabit.id || selectedHabit._id
+              if (!habitId) return
+              const res = await useApiStore.getState().updateHabit(habitId, payload)
+              if (!res?.success) return
+              await Promise.all([
+                loadHabits({ page: 1, force: true }),
+                getDashboardStats({ force: true })
+              ])
               setIsEditHabitOpen(false)
               setSelectedHabit(null)
             }}
@@ -1214,6 +1229,12 @@ const DashboardPageNew = () => {
             onClose={() => {
               setIsEditGoalWizardOpen(false)
               setGoalToEdit(null)
+            }}
+            onSaved={async () => {
+              await Promise.all([
+                getGoals({ year: selectedYear, page: currentPage }, { force: true }),
+                getDashboardStats({ force: true })
+              ])
             }}
             year={goalToEdit.year}
             editMode={true}

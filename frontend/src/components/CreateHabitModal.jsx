@@ -48,7 +48,7 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
     if (!isOpen || !initialData) return;
     if (typeof initialData.name === 'string') setName(initialData.name);
     if (typeof initialData.description === 'string') setDescription(initialData.description);
-    if (typeof initialData.frequency === 'string') setFrequency(initialData.frequency);
+    if (typeof initialData.frequency === 'string') setFrequency(initialData.frequency === 'weekly' ? 'custom' : initialData.frequency);
     if (Array.isArray(initialData.daysOfWeek)) setDaysOfWeek(initialData.daysOfWeek);
   }, [isOpen, initialData]);
 
@@ -78,7 +78,7 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
       const payload = {
         name,
         description: description.trimEnd(),
-        frequency,
+        frequency: frequency === 'daily' ? 'daily' : 'custom',
         daysOfWeek: frequency === 'daily' ? [] : daysOfWeek.sort()
         // reminders: reminders.filter(Boolean).map(t => ({ time: t })),
       };

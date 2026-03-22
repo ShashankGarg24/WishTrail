@@ -730,7 +730,10 @@ const useApiStore = create(
           const updated = res?.data?.data || res?.data;
           if (updated) {
             set(state => ({
-              habits: (state.habits || []).map(h => h._id === id ? { ...h, ...updated } : h),
+              habits: (state.habits || []).map(h => {
+                const match = h._id === id || h.id === id || String(h._id) === String(id) || String(h.id) === String(id);
+                return match ? { ...h, ...updated } : h;
+              }),
               cacheDashboardStats: null, // invalidate so totalHabits/activeToday refreshes
             }));
           }
@@ -931,7 +934,10 @@ const useApiStore = create(
 
           // Update in current goals list
           set(state => ({
-            goals: state.goals.map(g => g._id === id ? goal : g),
+            goals: state.goals.map(g => {
+              const match = g._id === id || g.id === id || String(g._id) === String(id) || String(g.id) === String(id);
+              return match ? goal : g;
+            }),
             loading: false
           }));
 
@@ -1997,6 +2003,25 @@ const useApiStore = create(
                 user: null
               });
             }
+          };
+
+          window.__forceLogout = () => {
+            setAuthToken(null);
+            set({
+              user: null,
+              token: null,
+              isAuthenticated: false,
+              goals: [],
+              dashboardStats: null,
+              activityFeed: [],
+              recentActivities: [],
+              followedUsers: [],
+              followers: [],
+              following: [],
+              cacheMeTs: 0,
+              error: null,
+              loading: false
+            });
           };
         }
       }

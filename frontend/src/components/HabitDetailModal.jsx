@@ -1,13 +1,25 @@
-import { useEffect, useState } from 'react';
-import { CheckCircle, SkipForward, Clock, X, Calendar, BarChart3, Smile, Meh, Frown, Heart, Sparkles } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Clock, X, Calendar, BarChart3, Smile, Meh, Frown, Heart, Sparkles, ChevronDown } from 'lucide-react';
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock';
 import { useNavigate } from 'react-router-dom';
+import ConfirmActionModal from './ConfirmActionModal';
 
 const THEME_COLOR = '#4c99e6';
+const EMOTIONS = [
+  { id: 'great', label: 'GREAT', icon: Heart },
+  { id: 'good', label: 'GOOD', icon: Smile },
+  { id: 'okay', label: 'OKAY', icon: Meh },
+  { id: 'challenging', label: 'TOUGH', icon: Frown },
+  { id: 'neutral', label: 'SKIP', icon: Sparkles }
+];
 
 export default function HabitDetailModal({ habit, isOpen, onClose, onLog, onEdit, onDelete }) {
   const navigate = useNavigate();
-  const [showFeelingSelection, setShowFeelingSelection] = useState(false);
+  const [selectedEmotion, setSelectedEmotion] = useState(null);
+  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
+  const [actionLoading, setActionLoading] = useState(null);
+  const [isSkipConfirmOpen, setIsSkipConfirmOpen] = useState(false);
+  const moreMenuRef = useRef(null);
   
   useEffect(() => {
     if (isOpen) {
@@ -19,14 +31,30 @@ export default function HabitDetailModal({ habit, isOpen, onClose, onLog, onEdit
   
   useEffect(() => {
     if (!isOpen) {
-      setShowFeelingSelection(false);
+      setSelectedEmotion(null);
+      setIsMoreMenuOpen(false);
+      setActionLoading(null);
+      setIsSkipConfirmOpen(false);
     }
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleOutsideClick = (event) => {
+      if (moreMenuRef.current && !moreMenuRef.current.contains(event.target)) {
+        setIsMoreMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
   }, [isOpen]);
   
   if (!isOpen || !habit) return null;
   
   const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  const schedule = habit.frequency === 'daily' ? 'Daily habit' : (habit.daysOfWeek || []).sort().map(d => days[d]).join(', ') || 'Weekly';
+  const schedule = habit.frequency === 'daily' ? 'Daily habit' : (habit.daysOfWeek || []).sort().map(d => days[d]).join(', ') || 'Custom';
   const isScheduledToday = (() => {
     if (!habit) return false;
     if (habit.frequency === 'daily') return true;
@@ -34,24 +62,29 @@ export default function HabitDetailModal({ habit, isOpen, onClose, onLog, onEdit
     return Array.isArray(habit.daysOfWeek) && habit.daysOfWeek.includes(day);
   })();
 
-  const handleMarkDone = () => {
-    setShowFeelingSelection(true);
+  const handleMarkDone = async () => {
+    if (!onLog || actionLoading) return;
+    setActionLoading('done');
+    try {
+      await Promise.resolve(onLog('done', selectedEmotion || 'neutral'));
+    } finally {
+      setActionLoading(null);
+    }
   };
 
-  const handleFeelingSelect = (feeling) => {
-    onLog?.('done', feeling);
-    setShowFeelingSelection(false);
+  const confirmSkip = async () => {
+    if (!onLog || actionLoading) return;
+    setActionLoading('skipped');
+    try {
+      await Promise.resolve(onLog('skipped'));
+      setIsSkipConfirmOpen(false);
+    } finally {
+      setActionLoading(null);
+    }
   };
-
-  const feelings = [
-    { id: 'great', label: 'GREAT', icon: Heart, color: '#ec4899', bgColor: 'bg-pink-500' },
-    { id: 'good', label: 'GOOD', icon: Smile, color: '#22c55e', bgColor: 'bg-green-500' },
-    { id: 'okay', label: 'OKAY', icon: Meh, color: '#f59e0b', bgColor: 'bg-orange-500' },
-    { id: 'challenging', label: 'TOUGH', icon: Frown, color: '#ef4444', bgColor: 'bg-red-500' },
-    { id: 'neutral', label: 'SKIP', icon: Sparkles, color: '#6b7280', bgColor: 'bg-gray-500' }
-  ];
   
   const handleAnalyticsClick = () => {
+    setIsMoreMenuOpen(false);
     onClose();
     navigate(`/habits/${habit.id}/analytics`);
   };
@@ -115,75 +148,95 @@ export default function HabitDetailModal({ habit, isOpen, onClose, onLog, onEdit
               </div>
             </div>
           </div>
+
+          <div>
+            <p className="text-sm font-medium text-gray-900 dark:text-white mb-3 text-center">How are you feeling about your progress?</p>
+            <div className="grid grid-cols-5 gap-3">
+              {EMOTIONS.map((emotion) => {
+                const Icon = emotion.icon;
+                const isSelected = selectedEmotion === emotion.id;
+
+                return (
+                  <button
+                    key={emotion.id}
+                    type="button"
+                    onClick={() => setSelectedEmotion((prev) => (prev === emotion.id ? null : emotion.id))}
+                    className="flex flex-col items-center gap-1.5"
+                  >
+                    <span
+                      className={`w-10 h-10 rounded-full border flex items-center justify-center transition-colors ${
+                        isSelected
+                          ? 'bg-[#4c99e6] border-[#4c99e6] text-white'
+                          : 'bg-gray-100 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-300'
+                      }`}
+                    >
+                      <Icon className="h-4 w-4" />
+                    </span>
+                    <span className={`text-[11px] font-medium ${isSelected ? 'text-[#4c99e6]' : 'text-gray-400'}`}>
+                      {emotion.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
 
         {/* Actions Footer */}
         <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-gray-100 dark:border-gray-700 flex-shrink-0">
-          {showFeelingSelection ? (
-            /* Feeling Selection View - only shown after clicking Mark as Done */
-            <div className="space-y-3 sm:space-y-4">
-              <div className="flex items-center justify-between">
-                <h4 className="text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">How did you feel?</h4>
-                <button
-                  type="button"
-                  onClick={() => setShowFeelingSelection(false)}
-                  className="p-1 sm:p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 transition-colors"
-                  aria-label="Close"
-                >
-                  <X className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                </button>
-              </div>
-              <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
-                {feelings.map((feeling) => {
-                  const Icon = feeling.icon;
-                  return (
-                    <button
-                      key={feeling.id}
-                      type="button"
-                      onClick={() => handleFeelingSelect(feeling.id)}
-                      className="flex flex-col items-center gap-1.5 sm:gap-2 p-2 sm:p-3 rounded-full transition-all hover:scale-105 active:scale-95"
-                      style={{ backgroundColor: feeling.color }}
-                    >
-                      <Icon className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
-                      <span className="text-[9px] sm:text-xs font-medium text-white">{feeling.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
+          <div className="flex items-center justify-between gap-3">
+            <button
+              type="button"
+              onClick={() => setIsSkipConfirmOpen(true)}
+              disabled={!isScheduledToday || !!actionLoading}
+              className="px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {actionLoading === 'skipped' ? 'Skipping...' : 'Skip'}
+            </button>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setIsMoreMenuOpen((prev) => !prev)}
+                className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              >
+                More <ChevronDown className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={handleMarkDone}
+                disabled={!isScheduledToday || !!actionLoading}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
+                style={{ backgroundColor: THEME_COLOR }}
+              >
+                {actionLoading === 'done' ? 'Marking...' : 'Mark as done'}
+              </button>
             </div>
-          ) : (
-            /* Normal Action Buttons */
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-3">
+          </div>
+
+          {isMoreMenuOpen && (
+            <div ref={moreMenuRef} className="absolute right-6 bottom-20 w-48 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg overflow-hidden">
               <button
                 type="button"
                 onClick={handleAnalyticsClick}
-                className="inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs sm:text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                className="w-full px-3 py-2.5 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 inline-flex items-center gap-2"
               >
-                <BarChart3 className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> View Analytics
+                <BarChart3 className="h-4 w-4" /> Analytics
               </button>
-              <div className="flex items-center gap-2 sm:gap-3">
-                <button
-                  type="button"
-                  onClick={() => onLog?.('skipped')}
-                  disabled={!isScheduledToday}
-                  className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs sm:text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  <SkipForward className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Skip Day
-                </button>
-                <button
-                  type="button"
-                  onClick={handleMarkDone}
-                  disabled={!isScheduledToday}
-                  className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-white text-xs sm:text-sm font-medium hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
-                  style={{ backgroundColor: THEME_COLOR }}
-                >
-                  <CheckCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Mark as Done
-                </button>
-              </div>
             </div>
           )}
         </div>
       </div>
+
+      <ConfirmActionModal
+        isOpen={isSkipConfirmOpen}
+        onClose={() => setIsSkipConfirmOpen(false)}
+        onConfirm={confirmSkip}
+        title="Skip today?"
+        message="All your progress will be lost for the day."
+        confirmText="Skip"
+        isLoading={actionLoading === 'skipped'}
+      />
     </div>
   );
 }

@@ -26,6 +26,11 @@ function computeConsistency(totalCompletions, createdAt) {
   return Math.min(100, Math.round((totalCompletions / daysSince) * 100));
 }
 
+function normalizeHabitFrequency(frequency) {
+  if (frequency === 'weekly') return 'custom';
+  return frequency || 'daily';
+}
+
 async function createHabit(userId, payload) {
   // Validate that only one type of target is set
   if (payload.targetCompletions && payload.targetDays) {
@@ -43,7 +48,7 @@ async function createHabit(userId, payload) {
     userId,
     name: payload.name,
     description: payload.description || '',
-    frequency: payload.frequency || 'daily',
+    frequency: normalizeHabitFrequency(payload.frequency),
     daysOfWeek: Array.isArray(payload.daysOfWeek) ? payload.daysOfWeek : null,
     timezone: (payload.timezone || user?.timezone || 'UTC'),
     // reminders: Array.isArray(payload.reminders) ? payload.reminders : [],
@@ -129,7 +134,8 @@ async function updateHabit(userId, habitId, payload) {
   if (h.isArchived) throw Object.assign(new Error('Habit is archived'), { statusCode: 400 });
   
   const updates = {};
-  ['name','description','frequency','timezone'].forEach(k => { if (payload[k] !== undefined) updates[k] = payload[k]; });
+  ['name','description','timezone'].forEach(k => { if (payload[k] !== undefined) updates[k] = payload[k]; });
+  if (payload.frequency !== undefined) updates.frequency = normalizeHabitFrequency(payload.frequency);
   if (Array.isArray(payload.daysOfWeek)) updates.daysOfWeek = payload.daysOfWeek;
   if (Array.isArray(payload.reminders)) updates.reminders = payload.reminders;
   if (payload.goalId !== undefined) updates.goalId = payload.goalId || null;
@@ -726,7 +732,7 @@ async function getHabitAnalytics(userId, habitId, { days = 90, userTimezone = 'U
     let expectedDays = 0;
     if (habit.frequency === 'daily') {
       expectedDays = 7;
-    } else if (habit.frequency === 'weekly' && Array.isArray(habit.daysOfWeek) && habit.daysOfWeek.length > 0) {
+    } else if (habit.frequency !== 'daily' && Array.isArray(habit.daysOfWeek) && habit.daysOfWeek.length > 0) {
       // Count how many scheduled days fall within this week
       for (let d = 0; d < 7; d++) {
         const dayDate = new Date(weekStart);

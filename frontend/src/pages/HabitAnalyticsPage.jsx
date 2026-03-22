@@ -172,7 +172,7 @@ export default function HabitAnalyticsPage() {
     
     if (habit.frequency === 'daily') {
       return daysInRange;
-    } else if (habit.frequency === 'weekly' && Array.isArray(habit.daysOfWeek) && habit.daysOfWeek.length > 0) {
+    } else if (habit.frequency !== 'daily' && Array.isArray(habit.daysOfWeek) && habit.daysOfWeek.length > 0) {
       const scheduledDaysPerWeek = habit.daysOfWeek.length;
       const fullWeeks = Math.floor(daysInRange / 7);
       const remainingDays = daysInRange % 7;
@@ -314,7 +314,7 @@ export default function HabitAnalyticsPage() {
         let expectedThisWeek = 0;
         if (habit.frequency === 'daily') {
           expectedThisWeek = 7;
-        } else if (habit.frequency === 'weekly' && Array.isArray(habit.daysOfWeek)) {
+        } else if (habit.frequency !== 'daily' && Array.isArray(habit.daysOfWeek)) {
           expectedThisWeek = habit.daysOfWeek.length;
         } else {
           expectedThisWeek = 1;

@@ -29,7 +29,7 @@ export default function EditHabitModal({ isOpen, onClose, habit, onSave }) {
     if (!isOpen || !habit) return;
     setName(habit.name || '');
     setDescription(habit.description || '');
-    setFrequency(habit.frequency || 'daily');
+    setFrequency(habit.frequency === 'weekly' ? 'custom' : (habit.frequency || 'daily'));
     setDaysOfWeek(Array.isArray(habit.daysOfWeek) ? habit.daysOfWeek.slice() : []);
     setReminders(Array.isArray(habit.reminders) && habit.reminders.length > 0 ? habit.reminders.map(r => r.time || '') : ['']);
     setTargetCompletions(habit.targetCompletions || '');
@@ -57,7 +57,7 @@ export default function EditHabitModal({ isOpen, onClose, habit, onSave }) {
       const payload = {
         name,
         description: description.trimEnd(),
-        frequency,
+        frequency: frequency === 'daily' ? 'daily' : 'custom',
         daysOfWeek: frequency === 'daily' ? [] : daysOfWeek.sort()
         // reminders: reminders.filter(Boolean).map(t => ({ time: t })),
       };
@@ -159,12 +159,11 @@ export default function EditHabitModal({ isOpen, onClose, habit, onSave }) {
                   className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#4c99e6]"
                 >
                   <option value="daily">Daily</option>
-                  <option value="weekly">Weekly</option>
                   <option value="custom">Custom</option>
                 </select>
               </div>
 
-              {(frequency === 'weekly' || frequency === 'custom') && (
+              {(frequency === 'custom') && (
                 <div>
                   <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Select Days</label>
                   <div className="flex flex-wrap gap-2">

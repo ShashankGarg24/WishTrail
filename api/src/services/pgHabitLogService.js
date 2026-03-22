@@ -92,7 +92,7 @@ class PgHabitLogService {
               const currDate = new Date(logs[i].date_key + 'T00:00:00Z');
               const diffDays = Math.floor((prevDate - currDate) / (1000 * 60 * 60 * 24));
               
-              if (diffDays === 1 || (habit.frequency === 'weekly' && diffDays <= 7)) {
+              if (diffDays === 1 || (habit.frequency !== 'daily' && diffDays <= 7)) {
                 tempStreak++;
                 if (i < 10) currentStreak = tempStreak; // Only count recent logs for current streak
               } else {

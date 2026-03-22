@@ -3,11 +3,11 @@ export const INTEREST_TO_HABITS = {
     { name: 'Morning jog', description: 'Run for 20 minutes right after waking up.', frequency: 'daily' },
     { name: 'Push-up set', description: 'Complete 3 sets of push-ups (choose your reps).', frequency: 'daily' },
     { name: 'Stretch routine', description: 'Do a 10-minute mobility and stretching session.', frequency: 'daily' },
-    { name: 'Strength circuit', description: 'Full-body strength routine 3 times per week.', frequency: 'weekly', daysOfWeek: [1,3,5] },
+    { name: 'Strength circuit', description: 'Full-body strength routine 3 times per week.', frequency: 'custom', daysOfWeek: [1,3,5] },
     { name: 'Evening walk', description: 'Walk 30 minutes after dinner.', frequency: 'daily' },
-    { name: 'Core workout', description: '10 minutes of core exercises (planks, dead bugs, etc.).', frequency: 'weekly', daysOfWeek: [2,4,6] },
-    { name: 'Bike ride', description: 'Cycle outdoors or on a trainer 2x per week.', frequency: 'weekly', daysOfWeek: [3,6] },
-    { name: 'Yoga flow', description: 'Follow a 15-minute beginner yoga sequence.', frequency: 'weekly', daysOfWeek: [1,4,6] },
+    { name: 'Core workout', description: '10 minutes of core exercises (planks, dead bugs, etc.).', frequency: 'custom', daysOfWeek: [2,4,6] },
+    { name: 'Bike ride', description: 'Cycle outdoors or on a trainer 2x per week.', frequency: 'custom', daysOfWeek: [3,6] },
+    { name: 'Yoga flow', description: 'Follow a 15-minute beginner yoga sequence.', frequency: 'custom', daysOfWeek: [1,4,6] },
     { name: 'Stairs instead of elevator', description: 'Choose stairs whenever possible to increase NEAT.', frequency: 'daily' },
     { name: '10k steps', description: 'Reach a minimum step count target each day.', frequency: 'daily' }
   ],
@@ -18,8 +18,8 @@ export const INTEREST_TO_HABITS = {
     { name: 'Fruit and veg', description: 'Include at least 2 servings of produce.', frequency: 'daily' },
     { name: 'Sunlight break', description: 'Get 10 minutes of outdoor daylight.', frequency: 'daily' },
     { name: 'Limit caffeine', description: 'Cap coffee/tea intake to a set number of cups.', frequency: 'daily' },
-    { name: 'Home-cooked meal', description: 'Cook at least one meal at home.', frequency: 'weekly', daysOfWeek: [1,3,5] },
-    { name: 'Meal prep', description: 'Prep 2–3 meals/snacks ahead of time.', frequency: 'weekly', daysOfWeek: [0] },
+    { name: 'Home-cooked meal', description: 'Cook at least one meal at home.', frequency: 'custom', daysOfWeek: [1,3,5] },
+    { name: 'Meal prep', description: 'Prep 2–3 meals/snacks ahead of time.', frequency: 'custom', daysOfWeek: [0] },
     { name: 'Stretch before bed', description: '5-minute wind-down stretch for better sleep.', frequency: 'daily' },
     { name: 'Daily multivitamin', description: 'Take your vitamin or supplement consistently.', frequency: 'daily' }
   ],
@@ -27,7 +27,7 @@ export const INTEREST_TO_HABITS = {
     { name: 'Daily planning', description: 'Review priorities and write a top-3 list.', frequency: 'daily' },
     { name: 'Inbox zero block', description: 'Spend 10 minutes clearing inbox once a day.', frequency: 'daily' },
     { name: 'Focus sprint', description: 'One 25-minute distraction-free Pomodoro.', frequency: 'daily' },
-    { name: 'Deep work block', description: 'Schedule a 60-minute deep work session 3x/week.', frequency: 'weekly', daysOfWeek: [1,3,5] },
+    { name: 'Deep work block', description: 'Schedule a 60-minute deep work session 3x/week.', frequency: 'custom', daysOfWeek: [1,3,5] },
     { name: 'Evening shutdown', description: '5-minute end-of-day review and plan tomorrow.', frequency: 'daily' },
     { name: 'Declutter desk', description: 'Reset your workspace at day end.', frequency: 'daily' }
   ],
@@ -36,34 +36,34 @@ export const INTEREST_TO_HABITS = {
     { name: 'Breathing break', description: 'Box-breathe for 2 minutes mid-day.', frequency: 'daily' },
     { name: 'Gratitude 3', description: 'Write three things you are grateful for.', frequency: 'daily' },
     { name: 'Digital sunset', description: 'No screens 30 minutes before bed.', frequency: 'daily' },
-    { name: 'Nature walk', description: 'Mindful 15-minute walk once or twice weekly.', frequency: 'weekly', daysOfWeek: [6] }
+    { name: 'Nature walk', description: 'Mindful 15-minute walk once or twice weekly.', frequency: 'custom', daysOfWeek: [6] }
   ],
   learning: [
     { name: 'Read 10 pages', description: 'Read at least 10 pages of a book.', frequency: 'daily' },
     { name: 'Language practice', description: 'Practice vocabulary for 10 minutes.', frequency: 'daily' },
-    { name: 'Course module', description: 'Finish one lesson from a course.', frequency: 'weekly', daysOfWeek: [2,4] },
+    { name: 'Course module', description: 'Finish one lesson from a course.', frequency: 'custom', daysOfWeek: [2,4] },
     { name: 'Note review', description: 'Summarize one key concept learned today.', frequency: 'daily' }
   ],
   nutrition: [
     { name: 'Protein with every meal', description: 'Ensure a protein source at each meal.', frequency: 'daily' },
     { name: 'Veg-first plate', description: 'Start meals with vegetables.', frequency: 'daily' },
     { name: 'No late-night snacks', description: 'Set a kitchen-closed time.', frequency: 'daily' },
-    { name: 'Sugar-free day', description: 'Choose one day per week with no added sugar.', frequency: 'weekly', daysOfWeek: [2] }
+    { name: 'Sugar-free day', description: 'Choose one day per week with no added sugar.', frequency: 'custom', daysOfWeek: [2] }
   ],
   finance: [
     { name: 'Expense log', description: 'Record all spending once a day.', frequency: 'daily' },
-    { name: 'Savings transfer', description: 'Auto-transfer a small amount to savings.', frequency: 'weekly', daysOfWeek: [5] },
-    { name: 'Subscription audit', description: 'Review subscriptions once a month.', frequency: 'weekly', daysOfWeek: [0] }
+    { name: 'Savings transfer', description: 'Auto-transfer a small amount to savings.', frequency: 'custom', daysOfWeek: [5] },
+    { name: 'Subscription audit', description: 'Review subscriptions once a month.', frequency: 'custom', daysOfWeek: [0] }
   ],
   relationships: [
     { name: 'Check-in text', description: 'Send a thoughtful message to someone.', frequency: 'daily' },
-    { name: 'Quality time', description: '30 minutes of undistracted time with partner/family.', frequency: 'weekly', daysOfWeek: [6] },
-    { name: 'Call a friend', description: 'Catch up with one friend each week.', frequency: 'weekly', daysOfWeek: [0] }
+    { name: 'Quality time', description: '30 minutes of undistracted time with partner/family.', frequency: 'custom', daysOfWeek: [6] },
+    { name: 'Call a friend', description: 'Catch up with one friend each week.', frequency: 'custom', daysOfWeek: [0] }
   ],
   career: [
     { name: 'Skill drill', description: 'Practice one job-relevant skill for 15 minutes.', frequency: 'daily' },
-    { name: 'Network nudge', description: 'Engage with one colleague or mentor.', frequency: 'weekly', daysOfWeek: [3] },
-    { name: 'Portfolio update', description: 'Add one bullet/accomplishment this week.', frequency: 'weekly', daysOfWeek: [5] }
+    { name: 'Network nudge', description: 'Engage with one colleague or mentor.', frequency: 'custom', daysOfWeek: [3] },
+    { name: 'Portfolio update', description: 'Add one bullet/accomplishment this week.', frequency: 'custom', daysOfWeek: [5] }
   ],
   creativity: [
     { name: 'Sketch daily', description: 'Draw for 10 minutes.', frequency: 'daily' },
@@ -73,7 +73,7 @@ export const INTEREST_TO_HABITS = {
   wellness: [
     { name: 'Posture check', description: 'Do a 2-minute posture reset every afternoon.', frequency: 'daily' },
     { name: 'Step outside', description: 'Go outdoors for fresh air for 5 minutes.', frequency: 'daily' },
-    { name: 'Weekend sport', description: 'Play a sport or active game.', frequency: 'weekly', daysOfWeek: [6] }
+    { name: 'Weekend sport', description: 'Play a sport or active game.', frequency: 'custom', daysOfWeek: [6] }
   ],
 }
 

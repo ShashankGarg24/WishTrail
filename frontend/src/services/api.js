@@ -12,6 +12,40 @@ const api = axios.create({
 
 // 🔥 NEW: Proactive token refresh (refresh 5 minutes before expiry)
 let tokenRefreshTimer = null;
+let forceLogoutInProgress = false;
+
+const isRouteUnauthorized401 = (response) => {
+  if (response?.status !== 401) return false;
+  const message = response?.data?.message || response?.data?.error || '';
+  return /not authorized to access this route/i.test(String(message));
+};
+
+const forceLogoutAndRedirectToAuth = () => {
+  if (forceLogoutInProgress) return;
+  forceLogoutInProgress = true;
+
+  try { localStorage.removeItem('token'); } catch { }
+  try { delete api.defaults.headers.common.Authorization; } catch { }
+
+  if (tokenRefreshTimer) {
+    clearTimeout(tokenRefreshTimer);
+    tokenRefreshTimer = null;
+  }
+
+  try {
+    if (typeof window !== 'undefined' && typeof window.__forceLogout === 'function') {
+      window.__forceLogout();
+    } else if (typeof window !== 'undefined' && typeof window.__updateAuthToken === 'function') {
+      window.__updateAuthToken(null);
+    }
+  } catch { }
+
+  try {
+    if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/auth')) {
+      window.location.assign('/auth');
+    }
+  } catch { }
+};
 
 const scheduleTokenRefresh = () => {
   if (tokenRefreshTimer) clearTimeout(tokenRefreshTimer);
@@ -119,6 +153,11 @@ api.interceptors.response.use(
     if (!response) return Promise.reject(error);
     if (response.status !== 401) return Promise.reject(error);
 
+    if (isRouteUnauthorized401(response)) {
+      forceLogoutAndRedirectToAuth();
+      return Promise.reject(error);
+    }
+
     const originalRequest = config;
 
     // 🚫 If user is not authenticated (no token), don't attempt refresh or redirect
@@ -134,8 +173,7 @@ api.interceptors.response.use(
 
     // If refresh itself failed, logout
     if (originalRequest?.url?.includes('/auth/refresh')) {
-      localStorage.removeItem('token');
-      window.location.href = '/auth';
+      forceLogoutAndRedirectToAuth();
       return Promise.reject(error);
     }
 
@@ -191,27 +229,10 @@ api.interceptors.response.use(
       originalRequest.headers.Authorization = `Bearer ${newToken}`;
       return api(originalRequest);
     } catch (refreshErr) {
-      // On refresh failure, clear token and avoid infinite reload loops
-      try { localStorage.removeItem('token'); } catch { }
-      try { delete api.defaults.headers.common.Authorization; } catch { }
-      
-      // 🔥 UPDATE: Clear Zustand store state on refresh failure
-      if (typeof window !== 'undefined' && window.__updateAuthToken) {
-        window.__updateAuthToken(null);
-      }
-      
-      // 🔥 NEW: Clear refresh timer on failure
-      if (tokenRefreshTimer) {
-        clearTimeout(tokenRefreshTimer);
-        tokenRefreshTimer = null;
-      }
+      // On refresh failure, clear auth state and avoid infinite loops
+      forceLogoutAndRedirectToAuth();
       
       processQueue(refreshErr, null);
-      // Only navigate if not already on auth, and do it once
-      try {
-        const onAuth = window.location.pathname.startsWith('/auth');
-        if (!onAuth) window.location.assign('/auth');
-      } catch { }
       return Promise.reject(refreshErr);
     } finally {
       isRefreshing = false;

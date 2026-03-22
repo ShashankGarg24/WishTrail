@@ -10,7 +10,7 @@ import PremiumLimitIndicator from './PremiumLimitIndicator'
 
 const THEME_COLOR = '#4c99e6'
 
-export default function CreateGoalWizard({ isOpen, onClose, year, initialData, editMode = false, goalId = null }) {
+export default function CreateGoalWizard({ isOpen, onClose, year, initialData, editMode = false, goalId = null, onSaved }) {
   const MAX_TITLE_CHARS = 200
   const MAX_DESC_CHARS = 1000
 
@@ -293,6 +293,10 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
 
       // Refresh dashboard stats to reflect changes
       try { await getDashboardStats({ force: true }) } catch { }
+
+      if (typeof onSaved === 'function') {
+        try { await onSaved(result?.goal || null) } catch { }
+      }
 
       onClose?.()
     } catch (e) {

@@ -811,7 +811,7 @@ exports.getHabitAnalytics = async (req, res, next) => {
         const startDay = new Date(effectiveWeekStart);
         const endDay = new Date(effectiveWeekEnd);
         expectedDays = Math.ceil((endDay - startDay) / (24 * 60 * 60 * 1000)) + 1;
-      } else if (sanitizedHabit.frequency === 'weekly' && Array.isArray(sanitizedHabit.daysOfWeek) && sanitizedHabit.daysOfWeek.length > 0) {
+      } else if (sanitizedHabit.frequency !== 'daily' && Array.isArray(sanitizedHabit.daysOfWeek) && sanitizedHabit.daysOfWeek.length > 0) {
         // Count only matching days of week within the effective range
         const startDay = new Date(effectiveWeekStart);
         const endDay = new Date(effectiveWeekEnd);
