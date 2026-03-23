@@ -415,7 +415,6 @@ exports.getHeatmap = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Invalid habit ID' });
     }
 
-    const months = Math.min(parseInt(req.query.months) || 3, 12);
     const userId = req.user.id;
 
     // Verify habit exists and belongs to user
@@ -428,9 +427,38 @@ exports.getHeatmap = async (req, res, next) => {
     const pgUser = await pgUserService.getUserById(userId);
     const userTimezone = pgUser?.timezone || 'UTC';
 
-    // Calculate date range in user's timezone (months * 30 days approximation)
-    const days = months * 30;
-    const { startDate: startDateKey } = getDateRangeInTimezone(days, userTimezone);
+    // ✅ PREMIUM CHECK: Enforce analytics history limit based on premium status
+    const { getFeatureLimits } = require('../config/premiumFeatures');
+    const analyticsLimits = getFeatureLimits('analytics', pgUser?.premium_expires_at);
+    const maxHistoryDays = analyticsLimits.maxHistoryDays || 60;
+
+    // Support days-based filter; fallback to months (legacy)
+    const requestedDays = parseInt(req.query.days);
+    const months = Math.min(parseInt(req.query.months) || 3, 12);
+    const rangeDays = !isNaN(requestedDays) && requestedDays > 0
+      ? Math.min(requestedDays, maxHistoryDays)
+      : Math.min(months * 30, maxHistoryDays);
+
+    // Calculate requested date range in user's timezone
+    const { startDate: requestedStartDateKey, endDate: endDateKey } = getDateRangeInTimezone(rangeDays - 1, userTimezone);
+
+    // Clamp range start to habit creation date in user's timezone
+    let habitCreatedDateKey = requestedStartDateKey;
+    try {
+      const formatter = new Intl.DateTimeFormat('en-CA', {
+        timeZone: userTimezone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      });
+      habitCreatedDateKey = formatter.format(new Date(habit.created_at || habit.createdAt));
+    } catch (err) {
+      habitCreatedDateKey = new Date(habit.created_at || habit.createdAt).toISOString().split('T')[0];
+    }
+
+    const startDateKey = requestedStartDateKey > habitCreatedDateKey
+      ? requestedStartDateKey
+      : habitCreatedDateKey;
 
     // Extend the query range to account for timezone differences
     // Since date_key is stored in UTC, we need to fetch 1-2 days extra
@@ -445,11 +473,11 @@ exports.getHeatmap = async (req, res, next) => {
     const sql = `
       SELECT date_key, status, completion_count, completion_times_mood
       FROM habit_logs
-      WHERE habit_id = $1 AND user_id = $2 AND date_key >= $3
+      WHERE habit_id = $1 AND user_id = $2 AND date_key >= $3 AND date_key <= $4
       ORDER BY date_key ASC
     `;
 
-    const result = await query(sql, [habitId, userId, extendedStartKey]);
+    const result = await query(sql, [habitId, userId, extendedStartKey, endDateKey]);
 
     // Convert heatmap data to user's timezone by grouping completion_times_mood
     const heatmapMap = {};
@@ -501,9 +529,9 @@ exports.getHeatmap = async (req, res, next) => {
       }
     });
 
-    const heatmap = Object.values(heatmapMap).sort((a, b) =>
-      new Date(a.dateKey) - new Date(b.dateKey)
-    );
+    const heatmap = Object.values(heatmapMap)
+      .filter(entry => entry.dateKey >= startDateKey && entry.dateKey <= endDateKey)
+      .sort((a, b) => new Date(a.dateKey) - new Date(b.dateKey));
 
     res.status(200).json({ success: true, data: { heatmap } });
   } catch (error) { next(error); }
@@ -624,8 +652,26 @@ exports.getHabitAnalytics = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Habit not found' });
     }
 
-    // Calculate date range in user's timezone
-    const { startDate: startDateKey, endDate: endDateKey } = getDateRangeInTimezone(days - 1, userTimezone);
+    // Calculate requested date range in user's timezone
+    const { startDate: requestedStartDateKey, endDate: endDateKey } = getDateRangeInTimezone(days - 1, userTimezone);
+
+    // Clamp range start to habit creation date in user's timezone
+    let habitCreatedDateKey = requestedStartDateKey;
+    try {
+      const formatter = new Intl.DateTimeFormat('en-CA', {
+        timeZone: userTimezone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      });
+      habitCreatedDateKey = formatter.format(new Date(habit.created_at || habit.createdAt));
+    } catch (err) {
+      habitCreatedDateKey = new Date(habit.created_at || habit.createdAt).toISOString().split('T')[0];
+    }
+
+    const startDateKey = requestedStartDateKey > habitCreatedDateKey
+      ? requestedStartDateKey
+      : habitCreatedDateKey;
 
     const { query } = require('../config/supabase');
 
@@ -637,11 +683,11 @@ exports.getHabitAnalytics = async (req, res, next) => {
         completion_count,
         completion_times_mood
       FROM habit_logs
-      WHERE habit_id = $1 AND user_id = $2 AND date_key >= $3
+      WHERE habit_id = $1 AND user_id = $2 AND date_key >= $3 AND date_key <= $4
       ORDER BY date_key ASC
     `;
 
-    const result = await query(sql, [habitId, userId, startDateKey]);
+    const result = await query(sql, [habitId, userId, startDateKey, endDateKey]);
     // Calculate analytics matching previous MongoDB implementation
     const logs = result.rows;
     const doneLogs = logs.filter(l => l.status === 'done');
@@ -733,42 +779,21 @@ exports.getHabitAnalytics = async (req, res, next) => {
       }
     });
 
-    const timeline = Object.values(timelineMap).sort((a, b) => new Date(a.date) - new Date(b.date));
+    const timeline = Object.values(timelineMap)
+      .filter(t => t.date >= startDateKey && t.date <= endDateKey)
+      .sort((a, b) => new Date(a.date) - new Date(b.date));
 
     // Calculate weekly breakdown (last 12 weeks or based on days parameter)
     // Use timeline (which has dates in user's timezone) for weekly aggregation
     const weeklyData = [];
-    const weeksToShow = Math.min(12, Math.ceil(days / 7));
+    const effectiveRangeDays = Math.max(
+      1,
+      Math.ceil((new Date(endDateKey) - new Date(startDateKey)) / (24 * 60 * 60 * 1000)) + 1
+    );
+    const weeksToShow = Math.min(12, Math.ceil(effectiveRangeDays / 7));
 
-    // Get current date in user's timezone to calculate week boundaries
-    const now = new Date();
-    let weekEndDate = new Date(now);
-
-    // Try to use user's timezone for date calculation, fall back to UTC if it fails
-    try {
-      const formatter = new Intl.DateTimeFormat('en-CA', {
-        timeZone: userTimezone,
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit'
-      });
-      const todayInUserTz = formatter.format(now);
-
-      // Parse the formatted date string (format should be YYYY-MM-DD)
-      const parts = todayInUserTz.split('-');
-      if (parts.length === 3) {
-        const parsedYear = parseInt(parts[0]);
-        const parsedMonth = parseInt(parts[1]);
-        const parsedDay = parseInt(parts[2]);
-
-        if (!isNaN(parsedYear) && !isNaN(parsedMonth) && !isNaN(parsedDay)) {
-          weekEndDate = new Date(Date.UTC(parsedYear, parsedMonth - 1, parsedDay));
-        }
-      }
-    } catch (err) {
-      // Fallback to UTC if timezone conversion fails
-      // weekEndDate already initialized to current date in UTC above
-    }
+    // Anchor weekly breakdown to effective range end (user timezone)
+    let weekEndDate = new Date(`${endDateKey}T00:00:00.000Z`);
 
     // Validate the date before proceeding
     if (isNaN(weekEndDate.getTime())) {
@@ -790,8 +815,15 @@ exports.getHabitAnalytics = async (req, res, next) => {
       const weekStartKey = currentWeekStartDate.toISOString().split('T')[0];
       const weekEndKey = currentWeekEndDate.toISOString().split('T')[0];
 
+      const effectiveWeekStart = weekStartKey < startDateKey ? startDateKey : weekStartKey;
+      const effectiveWeekEnd = weekEndKey > endDateKey ? endDateKey : weekEndKey;
+
+      if (effectiveWeekStart > effectiveWeekEnd) {
+        continue;
+      }
+
       // Get timeline entries for this week (timeline dates are in user's timezone)
-      const weekTimelineEntries = timeline.filter(t => t.date >= weekStartKey && t.date <= weekEndKey);
+      const weekTimelineEntries = timeline.filter(t => t.date >= effectiveWeekStart && t.date <= effectiveWeekEnd);
 
       // Total completions from timeline
       const weekCompletions = weekTimelineEntries.reduce((sum, t) => sum + (t.completionCount || 0), 0);
@@ -801,16 +833,14 @@ exports.getHabitAnalytics = async (req, res, next) => {
 
       // Skipped days from original logs
       const weekSkippedLogs = logs.filter(l =>
-        l.date_key >= weekStartKey &&
-        l.date_key <= weekEndKey &&
+        l.date_key >= effectiveWeekStart &&
+        l.date_key <= effectiveWeekEnd &&
         l.status === 'skipped'
       );
       const skippedDays = new Set(weekSkippedLogs.map(l => l.date_key)).size;
 
       // Calculate expected days based on frequency, only counting days within the filter range
       let expectedDays = 0;
-      const effectiveWeekStart = weekStartKey < startDateKey ? startDateKey : weekStartKey;
-      const effectiveWeekEnd = weekEndKey > endDateKey ? endDateKey : weekEndKey;
 
       if (sanitizedHabit.frequency === 'daily') {
         // Count all days in the effective week range
@@ -838,8 +868,8 @@ exports.getHabitAnalytics = async (req, res, next) => {
       const missedDays = Math.max(0, expectedDays - activeDays - skippedDays);
 
       weeklyData.push({
-        weekStart: weekStartKey,
-        weekEnd: weekEndKey,
+        weekStart: effectiveWeekStart,
+        weekEnd: effectiveWeekEnd,
         completions: weekCompletions,
         activeDays,
         skippedDays,
@@ -877,6 +907,8 @@ exports.getHabitAnalytics = async (req, res, next) => {
 
     // Format response to match previous MongoDB implementation
     const analytics = {
+      rangeStart: startDateKey,
+      rangeEnd: endDateKey,
       habit: {
         _id: sanitizedHabit.id, // Keep _id for backward compatibility
         name: sanitizedHabit.name,

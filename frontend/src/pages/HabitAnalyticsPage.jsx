@@ -164,11 +164,36 @@ export default function HabitAnalyticsPage() {
     );
   }
 
-  const { habit, stats, consistency, statusCounts, timeline, weeklyData } = analytics;
+  const { habit, stats, consistency, statusCounts, timeline, weeklyData, rangeStart, rangeEnd } = analytics;
+
+  const formatShortDate = (dateKey) => {
+    if (!dateKey || typeof dateKey !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) return '';
+    const date = new Date(`${dateKey}T12:00:00Z`);
+    if (isNaN(date.getTime())) return '';
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return `${monthNames[date.getUTCMonth()]} ${date.getUTCDate()}`;
+  };
+
+  const activityRangeStartLabel = formatShortDate(rangeStart) || '';
+  const activityRangeEndLabel = formatShortDate(rangeEnd) || '';
 
   // Calculate expected occurrences based on habit frequency and date range
   const calculateExpectedOccurrences = () => {
-    const daysInRange = days || 90;
+    if (Array.isArray(weeklyData) && weeklyData.length > 0) {
+      return weeklyData.reduce((sum, week) => sum + (week.expectedDays || 0), 0);
+    }
+
+    let daysInRange = days || 90;
+    if (
+      typeof rangeStart === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(rangeStart) &&
+      typeof rangeEnd === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(rangeEnd)
+    ) {
+      const start = new Date(`${rangeStart}T12:00:00Z`);
+      const end = new Date(`${rangeEnd}T12:00:00Z`);
+      if (!isNaN(start.getTime()) && !isNaN(end.getTime()) && end >= start) {
+        daysInRange = Math.max(1, Math.ceil((end - start) / (24 * 60 * 60 * 1000)) + 1);
+      }
+    }
     
     if (habit.frequency === 'daily') {
       return daysInRange;
@@ -426,6 +451,7 @@ export default function HabitAnalyticsPage() {
       },
       x: {
         stacked: true,
+        offset: true,
         ticks: {
           color: document.documentElement.classList.contains('dark') ? '#9ca3af' : '#6b7280'
         },
@@ -487,6 +513,7 @@ export default function HabitAnalyticsPage() {
         }
       },
       x: {
+        offset: true,
         ticks: {
           color: document.documentElement.classList.contains('dark') ? '#9ca3af' : '#6b7280'
         },
@@ -511,29 +538,42 @@ export default function HabitAnalyticsPage() {
       };
     });
 
-    // Find the latest date from timeline (backend already converted to user timezone)
-    // If no timeline data, use current date
-    let latestDate;
-    if (timelineArr.length > 0) {
+    // Build heatmap exactly for backend effective range when provided
+    let startDate = null;
+    let endDate = null;
+
+    if (
+      typeof rangeStart === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(rangeStart) &&
+      typeof rangeEnd === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(rangeEnd)
+    ) {
+      startDate = new Date(`${rangeStart}T12:00:00Z`);
+      endDate = new Date(`${rangeEnd}T12:00:00Z`);
+    }
+
+    if (!startDate || !endDate || isNaN(startDate.getTime()) || isNaN(endDate.getTime()) || endDate < startDate) {
+      // Fallback to previous behavior if range is unavailable
       const validDates = timelineArr
         .map(entry => entry.date)
         .filter(d => typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d));
       if (validDates.length > 0) {
         const latestDateStr = validDates.reduce((max, d) => (d > max ? d : max), validDates[0]);
-        const candidate = new Date(latestDateStr + 'T12:00:00Z');
-        latestDate = isNaN(candidate.getTime()) ? new Date() : candidate;
+        endDate = new Date(`${latestDateStr}T12:00:00Z`);
       } else {
-        latestDate = new Date();
+        endDate = new Date();
       }
-    } else {
-      latestDate = new Date();
+      const fallbackDays = Math.max(1, days || 90);
+      startDate = new Date(endDate);
+      startDate.setUTCDate(startDate.getUTCDate() - (fallbackDays - 1));
     }
-    
-    const totalDaysToShow = days || 90;
+
+    const totalDaysToShow = Math.max(
+      1,
+      Math.ceil((endDate - startDate) / (24 * 60 * 60 * 1000)) + 1
+    );
     const daysArray = [];
     
     for (let i = totalDaysToShow - 1; i >= 0; i--) {
-      const date = new Date(latestDate);
+      const date = new Date(endDate);
       if (isNaN(date.getTime())) continue;
       date.setUTCDate(date.getUTCDate() - i);
       const dateKey = date.toISOString().split('T')[0];
@@ -771,7 +811,7 @@ export default function HabitAnalyticsPage() {
               <span className="text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Completion Rate</span>
             </div>
             <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{completionRate}%</p>
-            <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-1">avg. consistency · Targeting 95% overall</p>
+            <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-1">avg. consistency</p>
           </motion.div>
 
           <motion.div
@@ -819,7 +859,7 @@ export default function HabitAnalyticsPage() {
               </div>
             </div>
             <div className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
-              {weekLabels[0]} to {weekLabels[weekLabels.length - 1]}
+              {activityRangeStartLabel} to {activityRangeEndLabel}
             </div>
           </motion.div>
 
@@ -869,7 +909,7 @@ export default function HabitAnalyticsPage() {
               </div>
             </div>
             <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
-              {weekLabels[0]} to {weekLabels[weekLabels.length - 1]}
+              {activityRangeStartLabel} to {activityRangeEndLabel}
             </div>
           </motion.div>
 
