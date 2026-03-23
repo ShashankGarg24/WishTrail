@@ -1267,7 +1267,10 @@ const DashboardPageNew = () => {
               try {
                 const result = await useApiStore.getState().updateGoalCompletion(goalToEdit.id, formData)
                 if (result?.success) {
-                  await getGoals({ year: selectedYear, page: currentPage })
+                  await Promise.all([
+                    getGoals({ year: selectedYear, page: currentPage }),
+                    getDashboardStats({ force: true })
+                  ])
                   setIsEditCompletionModalOpen(false)
                   setGoalToEdit(null)
                 }
