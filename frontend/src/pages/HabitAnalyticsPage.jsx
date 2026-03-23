@@ -41,7 +41,7 @@ export default function HabitAnalyticsPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { isPremium } = usePremiumStatus();
-  const maxDays = isPremium ? 365 : 60;
+  const maxDays = isPremium ? 365 : 30;
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [days, setDays] = useState(Math.min(90, maxDays));
