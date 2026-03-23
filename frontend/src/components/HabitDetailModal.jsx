@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Clock, X, Calendar, BarChart3, Smile, Meh, Frown, Heart, Sparkles, ChevronDown } from 'lucide-react';
+import { Clock, X, Calendar, BarChart3, Smile, Meh, Frown, Heart, CircleSlash2, ChevronDown } from 'lucide-react';
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock';
 import { useNavigate } from 'react-router-dom';
 import ConfirmActionModal from './ConfirmActionModal';
@@ -10,7 +10,7 @@ const EMOTIONS = [
   { id: 'good', label: 'GOOD', icon: Smile },
   { id: 'okay', label: 'OKAY', icon: Meh },
   { id: 'challenging', label: 'TOUGH', icon: Frown },
-  { id: 'neutral', label: 'SKIP', icon: Sparkles }
+  { id: 'neutral', label: 'SKIP', icon: CircleSlash2 }
 ];
 
 export default function HabitDetailModal({ habit, isOpen, onClose, onLog, onEdit, onDelete }) {
@@ -171,9 +171,8 @@ export default function HabitDetailModal({ habit, isOpen, onClose, onLog, onEdit
                 )}
               </div>
               <div className="rounded-xl p-3 sm:p-4 text-center border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/30">
-                <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-1">{habit.currentStreak || habit.totalDays || 0}</div>
+                <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-1">{habit.totalDays || 0}</div>
                 <div className="text-[10px] sm:text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Active Days</div>
-                <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">Current streak</div>
               </div>
             </div>
           </div>

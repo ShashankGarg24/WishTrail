@@ -1,6 +1,6 @@
 import CategoryBadge from './CategoryBadge';
 import { useEffect, useRef, useState, lazy, Suspense } from 'react'
-import { Eye, BarChart3, X, Target, Heart, Smile, Meh, Frown, Sparkles, MoreHorizontal, ChevronDown, Send } from 'lucide-react'
+import { Eye, BarChart3, X, Target, Heart, Smile, Meh, Frown, CircleSlash2, ChevronDown } from 'lucide-react'
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
 import { useNavigate } from 'react-router-dom'
 import useApiStore from '../store/apiStore'
@@ -15,7 +15,7 @@ const EMOTIONS = [
   { id: 'good', label: 'GOOD', icon: Smile },
   { id: 'okay', label: 'OKAY', icon: Meh },
   { id: 'challenging', label: 'TOUGH', icon: Frown },
-  { id: 'neutral', label: 'SKIP', icon: Sparkles }
+  { id: 'neutral', label: 'SKIP', icon: CircleSlash2 }
 ]
 
 export default function GoalDetailsModal({ goal, isOpen, onClose, onViewPost }) {
