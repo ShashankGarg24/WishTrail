@@ -257,15 +257,13 @@ class UserService {
     const todayUTC  = todayParam && /^\d{4}-\d{2}-\d{2}$/.test(todayParam)
       ? todayParam
       : new Date().toISOString().split('T')[0];
-    const todayDOW  = new Date(todayUTC + 'T12:00:00Z').getUTCDay(); // 0=Sun … 6=Sat
-
     // Run all queries in parallel for a single round-trip budget
     const [
       todayGoalRows,
       habitStatsRow,
       todayLogsRow,
-      activeTodayRow,
-      last7DaysRows,
+      active7DaysRows,
+      done7DaysRows,
     ] = await Promise.all([
 
       // Goal completions made today (for the Goals tab)
@@ -289,16 +287,30 @@ class UserService {
         [userId, todayUTC]
       ),
 
-      // Habits that are scheduled for today (daily = always; weekly/custom = DOW match)
+      // Per-day active habit counts for last 7 days (considering each habit's creation date)
       pgQuery(
-        `SELECT COUNT(*) AS active_today
-         FROM habits
-         WHERE user_id = $1
-           AND (
-             frequency = 'daily'
-             OR (frequency IN ('weekly', 'custom') AND days_of_week @> ARRAY[$2::int])
-           )`,
-        [userId, todayDOW]
+        `WITH days AS (
+           SELECT generate_series($2::date - INTERVAL '6 days', $2::date, INTERVAL '1 day')::date AS date_key
+         )
+         SELECT
+           days.date_key::text,
+           COUNT(h.id) FILTER (
+             WHERE h.id IS NOT NULL
+               AND (
+                 h.frequency = 'daily'
+                 OR (
+                   h.frequency IN ('weekly', 'custom')
+                   AND h.days_of_week @> ARRAY[EXTRACT(DOW FROM days.date_key)::int]
+                 )
+               )
+           ) AS active_count
+         FROM days
+         LEFT JOIN habits h
+           ON h.user_id = $1
+          AND h.created_at::date <= days.date_key
+         GROUP BY days.date_key
+         ORDER BY days.date_key`,
+        [userId, todayUTC]
       ),
 
       // Per-day 'done' log counts for the last 7 days (today inclusive)
@@ -307,11 +319,11 @@ class UserService {
          FROM habit_logs
          WHERE user_id = $1
            AND status   = 'done'
-           AND date_key >= CURRENT_DATE - INTERVAL '6 days'
-           AND date_key <= CURRENT_DATE
+           AND date_key >= $2::date - INTERVAL '6 days'
+           AND date_key <= $2::date
          GROUP BY date_key
          ORDER BY date_key`,
-        [userId]
+        [userId, todayUTC]
       ),
     ]);
 
@@ -328,26 +340,32 @@ class UserService {
     const bestStreak   = parseInt(hs.best_streak)    || 0;
     logger.info(todayLogsRow);
     const todayHabitLogs = parseInt(todayLogsRow.rows[0].today_habit_logs) || 0;
-    const activeToday  = parseInt(activeTodayRow.rows[0].active_today)     || 0;
+    const activeMap = {};
+    for (const row of active7DaysRows.rows) {
+      activeMap[row.date_key] = parseInt(row.active_count) || 0;
+    }
+    const activeToday  = activeMap[todayUTC] || 0;
 
     // ── 7-day weighted momentum ───────────────────────────────────────────────
     // Weight: today = 7, yesterday = 6, … 6 days ago = 1  (more recent = heavier)
     // Daily performance = min(done / activeToday, 1) * 100  (capped at 100 %)
     const logsMap = {};
-    for (const row of last7DaysRows.rows) {
+    for (const row of done7DaysRows.rows) {
       logsMap[row.date_key] = parseInt(row.done_count) || 0;
     }
 
     let weightedSum  = 0;
     let totalWeight  = 0;
+    const momentumBaseDate = new Date(`${todayUTC}T12:00:00Z`);
     for (let i = 0; i < 7; i++) {
-      const d = new Date();
+      const d = new Date(momentumBaseDate);
       d.setUTCDate(d.getUTCDate() - i);
       const dateKey    = d.toISOString().split('T')[0];
       const weight     = 7 - i;                          // today=7 … 6 days ago=1
       const done       = logsMap[dateKey] || 0;
-      const perf       = activeToday > 0
-        ? Math.min(100, Math.round((done / activeToday) * 100))
+      const activeOnDay = activeMap[dateKey] || 0;
+      const perf       = activeOnDay > 0
+        ? Math.min(100, Math.round((done / activeOnDay) * 100))
         : 0;
       weightedSum  += perf * weight;
       totalWeight  += weight;

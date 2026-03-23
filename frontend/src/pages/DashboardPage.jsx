@@ -313,7 +313,7 @@ const DashboardPageNew = () => {
             <div className="flex items-center gap-3 sm:gap-4 lg:gap-5 bg-white dark:bg-gray-800 rounded-xl px-4 sm:px-6 lg:px-8 py-4 sm:py-5 shadow-sm border border-gray-100 dark:border-gray-700 w-full lg:w-auto">
               <div className="text-left flex-1">
                 <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 font-manrope uppercase tracking-wide mb-2">
-                  {activeTab === 'goals' ? 'Yearly Pulse' : '7 Week Momentum'}
+                  {activeTab === 'goals' ? 'Yearly Pulse' : '7 Day Momentum'}
                 </div>
                 <div className="text-sm sm:text-base font-manrope font-medium">
                   {activeTab === 'goals' 
