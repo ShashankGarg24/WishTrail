@@ -1218,7 +1218,7 @@ const toggleGoalCompletion = async (req, res, next) => {
         errors: errors.array(),
       })
     }
-    const { completionNote, attachmentUrl, isPublic: isPublicRaw, completionFeeling } = req.body
+    const { completionNote, attachmentUrl, isPublic, completionFeeling } = req.body
     const normalizedCompletionNote = typeof completionNote === 'string' ? completionNote.trimEnd() : '';
     if (normalizedCompletionNote.length > MAX_COMPLETION_NOTE_CHARS) {
       return res.status(400).json({
@@ -1241,7 +1241,7 @@ const toggleGoalCompletion = async (req, res, next) => {
       }
 
       // Allow user to change isPublic flag during completion
-      const newIsPublic = isPublicRaw === 'true' || isPublicRaw === true ? true : (isPublicRaw === 'false' || isPublicRaw === false ? false : goal.is_public)
+      const newIsPublic = isPublic === 'true' || isPublic === true ? true : (isPublic === 'false' || isPublic === false ? false : goal.is_public)
       const shareCompletion = newIsPublic ?? true
       
       // Get user's timezone to calculate correct "today"
@@ -1444,8 +1444,8 @@ const updateGoalCompletion = async (req, res, next) => {
     const session = await mongoose.startSession();
     await session.withTransaction(async () => {
       // Update isPublic flag if changed
-      const newIsPublic = isPublicRaw === 'true' || isPublicRaw === true ? true : 
-                         (isPublicRaw === 'false' || isPublicRaw === false ? false : goal.is_public)
+      const newIsPublic = isPublic === 'true' || isPublic === true ? true : 
+                         (isPublic === 'false' || isPublic === false ? false : goal.is_public)
       const shareCompletion = newIsPublic ?? true
       
       if (newIsPublic !== goal.is_public) {
