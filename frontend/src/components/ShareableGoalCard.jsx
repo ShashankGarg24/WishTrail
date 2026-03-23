@@ -323,8 +323,26 @@ const ShareableGoalCard = forwardRef(({ goal, user, onClose }, ref) => {
           </div>
           
           {/* Preview Card */}
-          <div className="relative flex flex-col sm:flex-row items-start gap-3 sm:gap-4">
-            <div className="relative w-full sm:max-w-md mx-auto sm:mx-0">
+          <div className="relative w-full">
+            {selectedImage && (
+              <div className="lg:hidden w-full flex items-center justify-center gap-3 mb-3 sm:mb-4">
+                <div className="text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 min-w-[46px] text-right">
+                  {imageZoom}%
+                </div>
+                <input
+                  type="range"
+                  min="50"
+                  max="300"
+                  value={imageZoom}
+                  onChange={(e) => setImageZoom(parseInt(e.target.value))}
+                  className="w-full max-w-[220px] h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                />
+              </div>
+            )}
+
+            <div className="lg:grid lg:grid-cols-[56px_minmax(0,1fr)_56px] lg:items-start">
+              <div className="hidden lg:block" />
+              <div className="relative w-full max-w-md mx-auto">
               <div ref={cardRef} className="bg-[#B5C4A0] rounded-2xl sm:rounded-3xl overflow-hidden shadow-xl">
               {/* Badge */}
               <div className="export-badge absolute top-2 left-2 sm:top-3 sm:left-3 md:top-4 md:left-4 z-10">
@@ -404,45 +422,50 @@ const ShareableGoalCard = forwardRef(({ goal, user, onClose }, ref) => {
               </div>
               </div>
 
-            {/* Social Share Icons */}
-            <div className="flex items-center justify-center gap-2 sm:gap-3 mt-4 sm:mt-6">
-              <button 
-              onClick={handleCopyLink}
-              className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm">
-                <Copy className="h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4 text-gray-600 dark:text-gray-400" />
-              </button>
-              <button 
-              onClick={handleDownload}
-              className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm">
-                <Download className="h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4 text-gray-600 dark:text-gray-400" />
-              </button>
-            </div>
-          </div>
-
-            {/* Vertical Zoom Slider */}
-            {selectedImage && (
-              <div className="flex flex-col items-center gap-2 sm:gap-3 pt-8 sm:pt-10 md:pt-12">
-                <div className="relative flex flex-col items-center">
-                  <div className="text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
-                    {imageZoom}%
-                  </div>
-                  <input
-                    type="range"
-                    min="50"
-                    max="300"
-                    value={imageZoom}
-                    onChange={(e) => setImageZoom(parseInt(e.target.value))}
-                    className="h-40 sm:h-44 md:h-48 w-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500 slider-vertical"
-                    orient="vertical"
-                    style={{
-                      writingMode: 'bt-lr',
-                      WebkitAppearance: 'slider-vertical',
-                      width: '8px'
-                    }}
-                  />
-                </div>
+              {/* Social Share Icons */}
+              <div className="flex items-center justify-center gap-2 sm:gap-3 mt-4 sm:mt-6">
+                <button
+                  onClick={handleCopyLink}
+                  className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm"
+                >
+                  <Copy className="h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4 text-gray-600 dark:text-gray-400" />
+                </button>
+                <button
+                  onClick={handleDownload}
+                  className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm"
+                >
+                  <Download className="h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4 text-gray-600 dark:text-gray-400" />
+                </button>
               </div>
-            )}
+              </div>
+
+              {/* Desktop Side Zoom Slider */}
+              <div className="hidden lg:flex items-start justify-center pt-12">
+                {selectedImage ? (
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                      {imageZoom}%
+                    </div>
+                    <input
+                      type="range"
+                      min="50"
+                      max="300"
+                      value={imageZoom}
+                      onChange={(e) => setImageZoom(parseInt(e.target.value))}
+                      className="h-44 w-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500 slider-vertical"
+                      orient="vertical"
+                      style={{
+                        writingMode: 'bt-lr',
+                        WebkitAppearance: 'slider-vertical',
+                        width: '8px'
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <div className="h-44 w-8" aria-hidden="true" />
+                )}
+              </div>
+            </div>
           </div>
 
           {/* Footer Quote */}

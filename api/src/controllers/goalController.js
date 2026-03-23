@@ -53,6 +53,7 @@ const ActivityComment = require('../models/ActivityComment');
 const { createCanvas } = require('canvas');
 const goalDivisionService = require('../services/goalDivisionService');
 const Notification = require('../models/Notification');
+const MAX_COMPLETION_NOTE_CHARS = 300;
 
 /**
  * Build timeline events from existing goal data
@@ -1219,6 +1220,12 @@ const toggleGoalCompletion = async (req, res, next) => {
     }
     const { completionNote, attachmentUrl, isPublic: isPublicRaw, completionFeeling } = req.body
     const normalizedCompletionNote = typeof completionNote === 'string' ? completionNote.trimEnd() : '';
+    if (normalizedCompletionNote.length > MAX_COMPLETION_NOTE_CHARS) {
+      return res.status(400).json({
+        success: false,
+        message: `Completion note must be ${MAX_COMPLETION_NOTE_CHARS} characters or less`
+      });
+    }
     
     const session = await mongoose.startSession();
     let resultGoal = null;
@@ -1403,6 +1410,12 @@ const updateGoalCompletion = async (req, res, next) => {
   try {
     const { completionNote, attachmentUrl, isPublic: isPublicRaw, completionFeeling } = req.body
     const normalizedCompletionNote = typeof completionNote === 'string' ? completionNote.trimEnd() : '';
+    if (normalizedCompletionNote.length > MAX_COMPLETION_NOTE_CHARS) {
+      return res.status(400).json({
+        success: false,
+        message: `Completion note must be ${MAX_COMPLETION_NOTE_CHARS} characters or less`
+      });
+    }
 
     let goal = await pgGoalService.getGoalById(req.params.id);
     if (!goal) {

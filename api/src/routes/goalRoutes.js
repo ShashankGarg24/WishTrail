@@ -60,8 +60,8 @@ const updateGoalValidation = [
 const completeGoalValidation = [
   body('completionNote')
     .trim()
-    .isLength({ min: 10, max: 1000 })
-    .withMessage('Completion note must be between 10 and 1000 characters')
+    .isLength({ min: 10, max: 300 })
+    .withMessage('Completion note must be between 10 and 300 characters')
 ];
 
 // Multer for completion attachment (image only, 1MB)

@@ -20,7 +20,6 @@ import {
 } from 'lucide-react'
 import useApiStore from '../store/apiStore'
 import { createPortal } from 'react-dom'
-import { API_CONFIG } from '../config/api'
 import { goalsAPI } from '../services/api'
 import ExpandableText from '../components/ExpandableText'
 
@@ -188,23 +187,7 @@ const GoalAnalyticsPage = () => {
       }
     }))
     
-    let result
-    if (completionPayload instanceof FormData) {
-      try {
-        const res = await fetch(`${API_CONFIG.BASE_URL}/goals/${goalId}/toggle`, {
-          method: 'PATCH',
-          credentials: 'include',
-          headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
-          body: completionPayload
-        })
-        const data = await res.json()
-        result = { success: res.ok && data.success, data }
-      } catch (e) {
-        result = { success: false, error: e.message }
-      }
-    } else {
-      result = await toggleGoalCompletion(goalId, completionPayload)
-    }
+    const result = await toggleGoalCompletion(goalId, completionPayload)
     
     if (result?.success) {
       // Reload goal data to reflect completion with full data

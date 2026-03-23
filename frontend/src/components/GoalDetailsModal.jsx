@@ -207,6 +207,12 @@ export default function GoalDetailsModal({ goal, isOpen, onClose, onViewPost }) 
             <h3 className="text-2xl font-bold text-gray-900 dark:text-white">{goal.title}</h3>
           </div>
 
+          {isCompleted ? (
+            <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 px-4 py-4">
+              <p className="text-sm font-medium text-gray-900 dark:text-white mb-1">This goal is completed</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Daily logging is disabled for completed goals.</p>
+            </div>
+          ) : (
           <div className="space-y-5">
               <div className="relative">
                 <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">What did you accomplish today?</label>
@@ -277,11 +283,8 @@ export default function GoalDetailsModal({ goal, isOpen, onClose, onViewPost }) 
                   <span className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${isUpdatesPublic ? 'translate-x-5' : 'translate-x-0'}`} />
                 </button>
               </div>
-
-              {isCompleted && (
-                <p className="text-sm text-red-500">Cannot log updates on completed goal</p>
-              )}
           </div>
+          )}
         </div>
 
         <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-700 flex-shrink-0">
@@ -313,15 +316,17 @@ export default function GoalDetailsModal({ goal, isOpen, onClose, onViewPost }) 
               >
                 More <ChevronDown className="h-4 w-4" />
               </button>
-              <button
-                type="button"
-                onClick={handleSubmitUpdate}
-                disabled={!canSubmit || isLoadingUpdate}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
-                style={{ backgroundColor: THEME_COLOR }}
-              >
-                 {isSubmitting ? 'Updating...' : 'Update'}
-              </button>
+              {!isCompleted && (
+                <button
+                  type="button"
+                  onClick={handleSubmitUpdate}
+                  disabled={!canSubmit || isLoadingUpdate}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
+                  style={{ backgroundColor: THEME_COLOR }}
+                >
+                   {isSubmitting ? 'Updating...' : 'Update'}
+                </button>
+              )}
             </div>
           </div>
 

@@ -1047,6 +1047,7 @@ const useApiStore = create(
           set({ cacheGoals: newCache });
           // Invalidate goal post detail cache for this goal
           try { get().invalidateGoalPostByGoal?.(id); } catch { }
+          try { await get().getDashboardStats({ force: true }); } catch { }
 
           return { success: true, goal };
         } catch (error) {

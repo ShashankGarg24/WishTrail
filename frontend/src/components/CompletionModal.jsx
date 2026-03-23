@@ -8,7 +8,7 @@ import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
 const THEME_COLOR = '#4c99e6'
 
 const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal, isEditMode = false, existingData = null }) => {
-  const MAX_NOTE_CHARS = 1000
+  const MAX_NOTE_CHARS = 300
   const [completionNote, setCompletionNote] = useState(existingData?.completionNote || '')
   const [showCelebration, setShowCelebration] = useState(false)
   const [attachmentFile, setAttachmentFile] = useState(null)
@@ -87,7 +87,7 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal, isEditM
 
     if (normalizedCompletionNote.length > MAX_NOTE_CHARS) {
       window.dispatchEvent(new CustomEvent('wt_toast', {
-        detail: { message: 'Completion note must be 1000 characters or less', type: 'error' }
+        detail: { message: 'Completion note must be 300 characters or less', type: 'error' }
       }));
       return
     }
