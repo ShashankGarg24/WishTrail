@@ -164,6 +164,23 @@ class GoalService {
     const result = await query(queryText, values);
     return result.rows[0] || null;
   }
+
+  /**
+   * Update goal visibility regardless of completion state
+   */
+  async updateGoalVisibility(id, userId, isPublic) {
+    const queryText = `
+      UPDATE goals
+      SET is_public = $1,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = $2 AND user_id = $3
+      RETURNING id, user_id, title, category, year, target_date,
+                completed_at, is_public, is_updates_public, created_at, updated_at
+    `;
+
+    const result = await query(queryText, [isPublic, id, userId]);
+    return result.rows[0] || null;
+  }
   
   /**
    * Toggle goal completion

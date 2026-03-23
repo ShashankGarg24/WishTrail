@@ -1275,7 +1275,7 @@ const toggleGoalCompletion = async (req, res, next) => {
         
         // Update isPublic if changed
         if (newIsPublic !== goal.is_public) {
-          await pgGoalService.updateGoal(goal.id, req.user.id, { is_public: newIsPublic });
+          await pgGoalService.updateGoalVisibility(goal.id, req.user.id, newIsPublic);
         }
 
         // Update completion details in MongoDB
@@ -1449,7 +1449,7 @@ const updateGoalCompletion = async (req, res, next) => {
       const shareCompletion = newIsPublic ?? true
       
       if (newIsPublic !== goal.is_public) {
-        await pgGoalService.updateGoal(goal.id, req.user.id, { is_public: newIsPublic });
+        await pgGoalService.updateGoalVisibility(goal.id, req.user.id, newIsPublic);
       }
       
       // Update completion details in MongoDB
