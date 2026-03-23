@@ -1408,7 +1408,7 @@ const toggleGoalCompletion = async (req, res, next) => {
 // @access  Private
 const updateGoalCompletion = async (req, res, next) => {
   try {
-    const { completionNote, attachmentUrl, isPublic: isPublicRaw, completionFeeling } = req.body
+    const { completionNote, attachmentUrl, isPublic, completionFeeling } = req.body
     const normalizedCompletionNote = typeof completionNote === 'string' ? completionNote.trimEnd() : '';
     if (normalizedCompletionNote.length > MAX_COMPLETION_NOTE_CHARS) {
       return res.status(400).json({
