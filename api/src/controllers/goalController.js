@@ -1403,8 +1403,8 @@ const updateGoalCompletion = async (req, res, next) => {
   try {
     const { completionNote, attachmentUrl, isPublic: isPublicRaw, completionFeeling } = req.body
     const normalizedCompletionNote = typeof completionNote === 'string' ? completionNote.trimEnd() : '';
-    
-    const goal = await pgGoalService.getGoalById(req.params.id);
+
+    let goal = await pgGoalService.getGoalById(req.params.id);
     if (!goal) {
       return res.status(404).json({ success: false, message: 'Goal not found' });
     }
@@ -1414,9 +1414,18 @@ const updateGoalCompletion = async (req, res, next) => {
       return res.status(403).json({ success: false, message: 'Access denied' });
     }
     
-    // Check if goal is completed
+    // If endpoint is called directly for an incomplete goal,
+    // complete it first and continue updating completion payload.
     if (!goal.completed_at) {
-      return res.status(400).json({ success: false, message: 'Goal is not completed yet' });
+      const completedGoal = await pgGoalService.completeGoal(goal.id, req.user.id);
+      if (!completedGoal) {
+        return res.status(409).json({ success: false, message: 'Goal state changed, please retry' });
+      }
+      goal = {
+        ...goal,
+        ...completedGoal,
+        completed_at: completedGoal.completed_at
+      };
     }
     
     const session = await mongoose.startSession();
