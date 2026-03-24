@@ -163,7 +163,7 @@ const DashboardPageNew = () => {
           loadHabits({ page: 1, force: true })
         ])
         window.dispatchEvent(new CustomEvent('wt_toast', { detail: { message: status === 'done' ? 'Habit logged!' : 'Habit skipped', type: 'success' } }))
-        return { success: true }
+        return { success: true, todayCompletionCount: nextTodayCount, log: res?.log }
       }
       return { success: false, error: res?.error }
     } catch (e) {
@@ -1268,7 +1268,7 @@ const DashboardPageNew = () => {
                 const result = await useApiStore.getState().updateGoalCompletion(goalToEdit.id, formData)
                 if (result?.success) {
                   await Promise.all([
-                    getGoals({ year: selectedYear, page: currentPage }),
+                    getGoals({ year: selectedYear, page: currentPage, force: true }),
                     getDashboardStats({ force: true })
                   ])
                   setIsEditCompletionModalOpen(false)

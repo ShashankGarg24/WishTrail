@@ -94,6 +94,38 @@ const InspirationPage = () => {
     const category = GOAL_CATEGORIES.find(c => c.id === categoryId);
     return category?.label || categoryId;
   };
+
+  const GOAL_ACTIVITY_TYPES = new Set([
+    'goal_completed',
+    'goal_created',
+    'goal_activity',
+    'subgoal_completed',
+    'subgoal_added',
+    'subgoal_removed',
+    'subgoal_uncompleted',
+    'habit_added',
+    'habit_removed',
+    'habit_target_achieved'
+  ]);
+
+  const getActivityEffectiveDate = (activity) => {
+    const createdAt = activity?.createdAt;
+    const isGoalActivity = GOAL_ACTIVITY_TYPES.has(activity?.type);
+
+    if (!isGoalActivity) return createdAt;
+
+    const isCompleted =
+      activity?.type === 'goal_completed' ||
+      activity?.data?.lastUpdateType === 'completed' ||
+      !!activity?.data?.completedAt ||
+      !!activity?.data?.goal?.completedAt;
+
+    if (isCompleted) {
+      return activity?.data?.completedAt || activity?.data?.goal?.completedAt || createdAt;
+    }
+
+    return createdAt;
+  };
   
   const handleOpenGoal = (goalId) => {
     setSelectedGoalId(goalId);
@@ -113,7 +145,11 @@ const InspirationPage = () => {
     }
   };
 
-  const displayActivities = (recentActivities?.activities || []);
+  const displayActivities = [...(recentActivities?.activities || [])].sort((a, b) => {
+    const aTs = new Date(getActivityEffectiveDate(a) || 0).getTime();
+    const bTs = new Date(getActivityEffectiveDate(b) || 0).getTime();
+    return bTs - aTs;
+  });
   const displayLeaderboard = (leaderboard || []).slice(0, 10);
 
   if (isInitialLoading) {
@@ -273,7 +309,7 @@ const InspirationPage = () => {
                                 {activity.type === 'achievement_earned' && `Earned "${activity.data?.achievementName || 'achievement'}" badge`}
                                 {!['goal_completed', 'goal_created', 'goal_activity', 'subgoal_completed', 'subgoal_added', 'subgoal_removed', 'subgoal_uncompleted', 'habit_added', 'habit_removed', 'habit_target_achieved', 'user_followed', 'user_joined', 'streak_milestone', 'achievement_earned'].includes(activity.type) && (activity.data?.goalTitle || activity.data?.goal?.title || activity.type)}
                               </p>
-                              <span className="text-xs text-gray-500 dark:text-gray-400">{formatTimeAgo(activity.createdAt)}</span>
+                              <span className="text-xs text-gray-500 dark:text-gray-400">{formatTimeAgo(getActivityEffectiveDate(activity))}</span>
                             </div>
                           </div>
                         </div>

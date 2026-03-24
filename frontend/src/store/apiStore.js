@@ -1031,18 +1031,21 @@ const useApiStore = create(
         try {
           const response = await goalsAPI.updateGoalCompletion(id, completionData);
           const { goal } = response.data.data;
+          const targetId = String(id);
 
           // Update in current goals list
           set(state => ({
-            goals: state.goals.map(g => g._id === id || g.id === id ? { ...g, ...goal } : g)
+            goals: state.goals.map(g => (String(g._id) === targetId || String(g.id) === targetId) ? { ...g, ...goal } : g)
           }));
 
           // Invalidate caches
           const yearToInvalidate = goal?.year;
           const currentCache = get().cacheGoals || {};
-          const newCache = { ...currentCache };
+          let newCache = { ...currentCache };
           if (yearToInvalidate !== undefined) {
             Object.keys(newCache).forEach(k => { if (k.includes(`year=${yearToInvalidate}`)) delete newCache[k]; });
+          } else {
+            newCache = {};
           }
           set({ cacheGoals: newCache });
           // Invalidate goal post detail cache for this goal

@@ -1743,11 +1743,20 @@ const ProfilePage = () => {
           }}
           onLog={isOwnProfile ? async (status, mood = 'neutral') => {
             try {
-              await habitsAPI.log(openHabitId, { status, mood });
+              const response = await habitsAPI.log(openHabitId, { status, mood });
+              const log = response?.data?.data?.log || response?.data?.log;
               toast.success(`Habit ${status === 'done' ? 'completed' : status}!`);
               fetchUserHabits(); // Refresh the habits list
+              return {
+                success: true,
+                todayCompletionCount: status === 'done'
+                  ? (Number.isFinite(log?.completionCount) ? Number(log.completionCount) : undefined)
+                  : 0,
+                log
+              };
             } catch (error) {
               toast.error('Failed to log habit');
+              return { success: false, error };
             }
           } : undefined}
           onEdit={isOwnProfile ? () => {

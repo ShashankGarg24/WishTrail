@@ -88,7 +88,13 @@ export default function HabitDetailModal({ habit, isOpen, onClose, onLog, onEdit
       const result = await Promise.resolve(onLog('done', selectedEmotion || 'neutral'));
       if (result?.success === false) return;
 
-      setTodayCompletionCount((prev) => Math.max(0, prev + 1));
+      const nextTodayCount = Number.isFinite(result?.todayCompletionCount)
+        ? Number(result.todayCompletionCount)
+        : (Number.isFinite(result?.log?.completionCount) ? Number(result.log.completionCount) : null);
+
+      if (nextTodayCount !== null) {
+        setTodayCompletionCount(Math.max(0, nextTodayCount));
+      }
       if (wasFirstLogToday) {
         setShowLoggedTooltip(true);
       }
