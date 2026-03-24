@@ -290,6 +290,7 @@ class GoalService {
     
     const conditions = [
       'g.completed_at > $1',
+      'g.is_public = true',
       'u.is_private = false'
     ];
     
