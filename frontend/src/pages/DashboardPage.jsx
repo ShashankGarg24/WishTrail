@@ -244,8 +244,7 @@ const DashboardPageNew = () => {
   const filteredHabits = useMemo(() => {
     if (!searchQuery) return habits || []
     return (habits || []).filter(h =>
-      h.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      h.description?.toLowerCase().includes(searchQuery.toLowerCase())
+      h.name?.toLowerCase().includes(searchQuery.toLowerCase())
     )
   }, [habits, searchQuery])
 
