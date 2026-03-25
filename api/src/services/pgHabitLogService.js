@@ -80,6 +80,7 @@ class PgHabitLogService {
 
         if (logResult.rows.length > 0) {
           let tempStreak = 0;
+          let currentStreakFinalized = false;
           const logs = logResult.rows;
           const habit = habitResult.rows[0];
 
@@ -94,10 +95,10 @@ class PgHabitLogService {
 
               if (diffDays === 1 || (habit.frequency !== 'daily' && diffDays <= 7)) {
                 tempStreak++;
-                if (i < 10) currentStreak = tempStreak; // Only count recent logs for current streak
+                if (!currentStreakFinalized) currentStreak = tempStreak;
               } else {
+                currentStreakFinalized = true;
                 tempStreak = 1;
-                if (i < 10) currentStreak = tempStreak;
               }
             }
 
@@ -108,22 +109,8 @@ class PgHabitLogService {
         // Update habit stats
         await client.query(`
           UPDATE habits
-          SET current_streak = (
-                SELECT COUNT(DISTINCT date_key)
-                FROM habit_logs
-                WHERE habit_id = $1 
-                  AND status = 'done'
-                  AND date_key >= (CURRENT_DATE - INTERVAL '30 days')::date
-              ),
-              longest_streak = GREATEST(
-                longest_streak,
-                (
-                  SELECT COUNT(DISTINCT date_key)
-                  FROM habit_logs
-                  WHERE habit_id = $1 
-                    AND status = 'done'
-                )
-              ),
+          SET current_streak = $3,
+              longest_streak = $4,
               last_logged_date_key = $2,
               total_completions = (
                 SELECT COALESCE(SUM(completion_count), 0)
@@ -137,7 +124,7 @@ class PgHabitLogService {
               ),
               updated_at = CURRENT_TIMESTAMP
           WHERE id = $1
-        `, [habitId, dateKey]);
+        `, [habitId, dateKey, currentStreak, longestStreak]);
       }
 
       return this._formatHabitLog(log);
@@ -365,6 +352,7 @@ class PgHabitLogService {
           let currentStreak = 0;
           let longestStreak = 0;
           let tempStreak = 0;
+          let currentStreakFinalized = false;
 
           if (logs.length > 0) {
             const isExpectedDay = (dateKey, frequency, daysOfWeek) => {
@@ -388,9 +376,10 @@ class PgHabitLogService {
                 if (diffDays === 1 || (habit.frequency !== 'daily' && diffDays <= 7)) {
                   if (isExpectedDay(log.date_key, habit.frequency, habit.days_of_week)) {
                     tempStreak++;
-                    if (i < 10) currentStreak = tempStreak;
+                    if (!currentStreakFinalized) currentStreak = tempStreak;
                   }
                 } else {
+                  currentStreakFinalized = true;
                   if (tempStreak > longestStreak) longestStreak = tempStreak;
                   tempStreak = 1;
                 }

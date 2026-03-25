@@ -244,6 +244,7 @@ async function toggleLog(userId, habitId, { status = 'done', note = '', mood = '
   if (habit.isArchived) throw Object.assign(new Error('Habit is archived'), { statusCode: 400 });
 
   const dateKey = toDateKeyUTC(date);
+  const todayKey = toDateKeyUTC(new Date());
   
   let log;
   
@@ -263,6 +264,17 @@ async function toggleLog(userId, habitId, { status = 'done', note = '', mood = '
         RETURNING *
       `, [userId, habitId, dateKey, status]);
       log = result.rows[0];
+    }
+
+    // If today is skipped/missed, current streak should not include today.
+    if (dateKey === todayKey) {
+      const { query } = require('../config/supabase');
+      await query(`
+        UPDATE habits
+        SET current_streak = 0,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = $1 AND user_id = $2
+      `, [habitId, userId]);
     }
   } else {
     // For 'done' status, use logHabit which handles creating/updating log and calculating streaks

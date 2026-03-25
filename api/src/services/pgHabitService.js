@@ -364,6 +364,7 @@ class PgHabitService {
 
     const daysOfWeek = habit.daysOfWeek;
     const frequency = habit.frequency;
+    let currentStreakFinalized = false;
 
     // Calculate streaks
     for (let i = 0; i < logs.length; i++) {
@@ -382,10 +383,11 @@ class PgHabitService {
           // Check if this day should be logged based on frequency
           if (isExpectedDay(log.date_key, frequency, daysOfWeek)) {
             tempStreak++;
-            if (i < 10) currentStreak = tempStreak; // Only count recent streak
+            if (!currentStreakFinalized) currentStreak = tempStreak;
           }
         } else {
           // Streak broken
+          currentStreakFinalized = true;
           if (tempStreak > longestStreak) longestStreak = tempStreak;
           tempStreak = 1;
         }

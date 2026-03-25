@@ -220,7 +220,8 @@ const ProfilePage = () => {
         const canViewContent = isOwnProfile || !profileUser?.isPrivate || isFollowing;
 
         // Load analytics when overview tab is viewed
-        if (activeTab === 'overview' && !analytics) {
+        // Reload when profile changes or tab becomes overview
+        if (activeTab === 'overview') {
           // Own profile: always load (pass null to get own analytics)
           // Other profile: only if public or following (pass username)
           if (isOwnProfile || canViewContent) {
@@ -279,7 +280,7 @@ const ProfilePage = () => {
     };
 
     loadTabContent();
-  }, [activeTab, isOwnProfile, profileUser, isFollowing, analytics, userGoals.length, userHabits.length, currentUser?.id]);
+  }, [activeTab, isOwnProfile, profileUser?.username, isFollowing, userGoals.length, userHabits.length, currentUser?.id]);
 
   useEffect(() => {
     
