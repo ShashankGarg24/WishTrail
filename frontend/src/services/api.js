@@ -455,6 +455,8 @@ export const habitsAPI = {
   heatmap: (id, params) => api.get(`/habits/${id}/heatmap`, { params }),
   analytics: (id, params) => api.get(`/habits/${id}/analytics`, { params }),
   logs: (id, params) => api.get(`/habits/${id}/logs`, { params }),
+  updateLogCompletionEntry: (habitId, logId, completionIndex, payload) =>
+    api.patch(`/habits/${habitId}/logs/${logId}/completions/${completionIndex}`, payload),
 };
 
 // Location API

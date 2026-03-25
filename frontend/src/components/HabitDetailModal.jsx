@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Clock, X, Calendar, BarChart3, Smile, Meh, Frown, Heart, CircleSlash2, ChevronDown } from 'lucide-react';
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock';
 import { useNavigate } from 'react-router-dom';
+import { habitsAPI } from '../services/api';
 import ConfirmActionModal from './ConfirmActionModal';
 
 const THEME_COLOR = '#4c99e6';
@@ -21,6 +22,11 @@ export default function HabitDetailModal({ habit, isOpen, onClose, onLog, onEdit
   const [isSkipConfirmOpen, setIsSkipConfirmOpen] = useState(false);
   const [todayCompletionCount, setTodayCompletionCount] = useState(0);
   const [showLoggedTooltip, setShowLoggedTooltip] = useState(false);
+  const [todayLog, setTodayLog] = useState(null);
+  const [todayEntries, setTodayEntries] = useState([]);
+  const [logsLoading, setLogsLoading] = useState(false);
+  const [entrySavingIndex, setEntrySavingIndex] = useState(null);
+  const [logsError, setLogsError] = useState('');
   const moreMenuRef = useRef(null);
   
   useEffect(() => {
@@ -39,6 +45,11 @@ export default function HabitDetailModal({ habit, isOpen, onClose, onLog, onEdit
       setIsSkipConfirmOpen(false);
       setTodayCompletionCount(0);
       setShowLoggedTooltip(false);
+      setTodayLog(null);
+      setTodayEntries([]);
+      setLogsLoading(false);
+      setEntrySavingIndex(null);
+      setLogsError('');
     }
   }, [isOpen]);
 
@@ -80,6 +91,96 @@ export default function HabitDetailModal({ habit, isOpen, onClose, onLog, onEdit
     return Array.isArray(habit.daysOfWeek) && habit.daysOfWeek.includes(day);
   })();
 
+  const getTodayDateKey = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const toTimeValue = (timestamp) => {
+    if (!timestamp) return '';
+    const dt = new Date(timestamp);
+    if (Number.isNaN(dt.getTime())) return '';
+    const hh = String(dt.getHours()).padStart(2, '0');
+    const mm = String(dt.getMinutes()).padStart(2, '0');
+    return `${hh}:${mm}`;
+  };
+
+  const withUpdatedTime = (originalTimestamp, timeValue) => {
+    const baseDate = originalTimestamp ? new Date(originalTimestamp) : new Date();
+    if (Number.isNaN(baseDate.getTime())) return null;
+    const [h, m] = String(timeValue || '').split(':').map((v) => parseInt(v, 10));
+    if (Number.isNaN(h) || Number.isNaN(m)) return null;
+    const next = new Date(baseDate);
+    next.setHours(h, m, 0, 0);
+    return next.toISOString();
+  };
+
+  const loadTodayLog = async () => {
+    const habitId = habit?.id || habit?._id;
+    if (!habitId) return;
+    setLogsLoading(true);
+    setLogsError('');
+    try {
+      const response = await habitsAPI.logs(habitId, { page: 1, limit: 10 });
+      const logs = response?.data?.data?.logs || [];
+      const todayKey = getTodayDateKey();
+      const found = logs.find((log) => log?.dateKey === todayKey) || null;
+      setTodayLog(found);
+      if (found) {
+        setTodayCompletionCount(Number(found.completionCount || 0));
+      }
+    } catch (error) {
+      setLogsError('Could not load today logs');
+    } finally {
+      setLogsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!isOpen || !habit) return;
+    loadTodayLog();
+  }, [isOpen, habit?.id, habit?._id]);
+
+  useEffect(() => {
+    if (!todayLog || !Array.isArray(todayLog.completionTimesMood)) {
+      setTodayEntries([]);
+      return;
+    }
+    setTodayEntries(todayLog.completionTimesMood.map((entry) => ({
+      timestamp: entry?.timestamp || null,
+      mood: entry?.mood || 'neutral',
+      timeValue: toTimeValue(entry?.timestamp),
+      dirty: false
+    })));
+  }, [todayLog]);
+
+  const handleUpdateCompletionEntry = async (index) => {
+    const habitId = habit?.id || habit?._id;
+    const logId = todayLog?.id;
+    const target = todayEntries[index];
+    if (!habitId || !logId || !target) return;
+
+    const nextTimestamp = withUpdatedTime(target.timestamp, target.timeValue);
+    if (!nextTimestamp) return;
+
+    setEntrySavingIndex(index);
+    try {
+      const response = await habitsAPI.updateLogCompletionEntry(habitId, logId, index, {
+        timestamp: nextTimestamp,
+        mood: target.mood || 'neutral'
+      });
+      const updatedLog = response?.data?.data?.log;
+      if (updatedLog) {
+        setTodayLog((prev) => ({ ...(prev || {}), ...updatedLog }));
+      }
+    } finally {
+      setEntrySavingIndex(null);
+    }
+  };
+
   const handleMarkDone = async () => {
     if (!onLog || actionLoading) return;
     const wasFirstLogToday = todayCompletionCount === 0;
@@ -98,6 +199,7 @@ export default function HabitDetailModal({ habit, isOpen, onClose, onLog, onEdit
       if (wasFirstLogToday) {
         setShowLoggedTooltip(true);
       }
+      await loadTodayLog();
     } finally {
       setActionLoading(null);
     }
@@ -113,6 +215,7 @@ export default function HabitDetailModal({ habit, isOpen, onClose, onLog, onEdit
       setTodayCompletionCount(0);
       setShowLoggedTooltip(false);
       setIsSkipConfirmOpen(false);
+      await loadTodayLog();
     } finally {
       setActionLoading(null);
     }
@@ -157,30 +260,79 @@ export default function HabitDetailModal({ habit, isOpen, onClose, onLog, onEdit
 
         {/* Content - Scrollable */}
         <div className="px-4 sm:px-6 py-4 sm:py-5 space-y-4 sm:space-y-5 overflow-y-auto scrollbar-hide flex-1 min-h-0">
-          {/* Description */}
-          {habit.description && (
-            <div>
-              <h4 className="text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">Description</h4>
-              <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">{habit.description}</p>
-            </div>
-          )}
-
-          {/* Progress Cards */}
+          {/* Today's Logs */}
           <div>
-            <h4 className="text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 sm:mb-3 uppercase tracking-wide">Progress</h4>
-            <div className="grid grid-cols-2 gap-2 sm:gap-3">
-              <div className="rounded-xl p-3 sm:p-4 text-center border" style={{ backgroundColor: 'rgba(76, 153, 230, 0.08)', borderColor: 'rgba(76, 153, 230, 0.2)' }}>
-                <div className="text-xl sm:text-2xl font-bold mb-1" style={{ color: THEME_COLOR }}>{todayCompletionCount}</div>
-                <div className="text-[10px] sm:text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Today's Count</div>
-                {habit.targetCompletions && (
-                  <div className="text-[10px] sm:text-xs" style={{ color: THEME_COLOR }}>Goal: {habit.targetCompletions}</div>
+            <div className="flex items-center justify-between gap-2 mb-2 sm:mb-3">
+              <h4 className="text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Today's Logs</h4>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700">
+                {todayCompletionCount} logged
+              </span>
+            </div>
+
+            {logsLoading ? (
+              <div className="rounded-xl p-3 sm:p-4 border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/30 text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                Loading today's logs...
+              </div>
+            ) : logsError ? (
+              <div className="rounded-xl p-3 sm:p-4 border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 text-xs sm:text-sm text-red-600 dark:text-red-300">
+                {logsError}
+              </div>
+            ) : !todayLog ? (
+              <div className="rounded-xl p-3 sm:p-4 border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/30 text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                No logs for today yet.
+              </div>
+            ) : todayLog.status === 'skipped' ? (
+              <div className="rounded-xl p-3 sm:p-4 border border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-900/20 text-xs sm:text-sm text-yellow-700 dark:text-yellow-300 inline-flex items-center gap-2">
+                <CircleSlash2 className="w-4 h-4" /> Skipped today
+              </div>
+            ) : (
+              <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/30 p-2 sm:p-3 max-h-48 overflow-y-auto scrollbar-hide space-y-2">
+                {todayEntries.length > 0 ? todayEntries.map((entry, idx) => (
+                  <div key={`${todayLog.id}-${idx}`} className="rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 p-2 sm:p-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-[100px_1fr_auto] gap-2 items-center">
+                      <input
+                        type="time"
+                        value={entry.timeValue || ''}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setTodayEntries((prev) => prev.map((item, index) => (
+                            index === idx ? { ...item, timeValue: value, dirty: true } : item
+                          )));
+                        }}
+                        className="px-2.5 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 text-sm text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#4c99e6]/40"
+                      />
+                      <select
+                        value={entry.mood || 'neutral'}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setTodayEntries((prev) => prev.map((item, index) => (
+                            index === idx ? { ...item, mood: value, dirty: true } : item
+                          )));
+                        }}
+                        className="px-2.5 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 text-sm text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#4c99e6]/40"
+                      >
+                        <option value="great">Great</option>
+                        <option value="good">Good</option>
+                        <option value="okay">Okay</option>
+                        <option value="challenging">Tough</option>
+                        <option value="neutral">Neutral</option>
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => handleUpdateCompletionEntry(idx)}
+                        disabled={!entry.dirty || entrySavingIndex === idx}
+                        className="px-3 py-2 rounded-lg text-xs sm:text-sm font-medium text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                        style={{ backgroundColor: THEME_COLOR }}
+                      >
+                        {entrySavingIndex === idx ? 'Saving...' : 'Save'}
+                      </button>
+                    </div>
+                  </div>
+                )) : (
+                  <div className="px-2 py-1 text-xs sm:text-sm text-gray-500 dark:text-gray-400">No completion entries found.</div>
                 )}
               </div>
-              <div className="rounded-xl p-3 sm:p-4 text-center border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/30">
-                <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-1">{habit.totalDays || 0}</div>
-                <div className="text-[10px] sm:text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Active Days</div>
-              </div>
-            </div>
+            )}
           </div>
 
           <div>

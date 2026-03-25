@@ -1092,4 +1092,55 @@ exports.getHabitLogs = async (req, res, next) => {
   }
 };
 
+/**
+ * Update one completion entry (time + mood) in a habit daily log
+ */
+exports.updateHabitLogCompletionEntry = async (req, res, next) => {
+  try {
+    const habitId = parseInt(req.params.id, 10);
+    const logId = parseInt(req.params.logId, 10);
+    const completionIndex = parseInt(req.params.completionIndex, 10);
+
+    if (!habitId || Number.isNaN(habitId)) {
+      return res.status(400).json({ success: false, message: 'Invalid habit ID' });
+    }
+    if (!logId || Number.isNaN(logId)) {
+      return res.status(400).json({ success: false, message: 'Invalid log ID' });
+    }
+    if (Number.isNaN(completionIndex) || completionIndex < 0) {
+      return res.status(400).json({ success: false, message: 'Invalid completion index' });
+    }
+
+    const userId = req.user.id;
+    const { timestamp, mood } = req.body || {};
+
+    if (!timestamp || Number.isNaN(new Date(timestamp).getTime())) {
+      return res.status(400).json({ success: false, message: 'Valid timestamp is required' });
+    }
+
+    const habit = await pgHabitService.getHabitById(habitId, userId);
+    if (!habit) {
+      return res.status(404).json({ success: false, message: 'Habit not found' });
+    }
+
+    const log = await pgHabitLogService.updateCompletionEntry(
+      habitId,
+      logId,
+      userId,
+      completionIndex,
+      { timestamp, mood }
+    );
+
+    if (!log) {
+      return res.status(404).json({ success: false, message: 'Habit log entry not found' });
+    }
+
+    res.json({
+      success: true,
+      data: { log }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 

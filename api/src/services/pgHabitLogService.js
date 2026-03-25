@@ -67,22 +67,22 @@ class PgHabitLogService {
         const habitResult = await client.query(`
           SELECT frequency, days_of_week FROM habits WHERE id = $1
         `, [habitId]);
-        
+
         const logResult = await client.query(`
           SELECT date_key, status
           FROM habit_logs
           WHERE habit_id = $1 AND status = 'done'
           ORDER BY date_key DESC
         `, [habitId]);
-        
+
         let currentStreak = 0;
         let longestStreak = 0;
-        
+
         if (logResult.rows.length > 0) {
           let tempStreak = 0;
           const logs = logResult.rows;
           const habit = habitResult.rows[0];
-          
+
           for (let i = 0; i < logs.length; i++) {
             if (i === 0) {
               tempStreak = 1;
@@ -91,7 +91,7 @@ class PgHabitLogService {
               const prevDate = new Date(logs[i - 1].date_key + 'T00:00:00Z');
               const currDate = new Date(logs[i].date_key + 'T00:00:00Z');
               const diffDays = Math.floor((prevDate - currDate) / (1000 * 60 * 60 * 24));
-              
+
               if (diffDays === 1 || (habit.frequency !== 'daily' && diffDays <= 7)) {
                 tempStreak++;
                 if (i < 10) currentStreak = tempStreak; // Only count recent logs for current streak
@@ -100,11 +100,11 @@ class PgHabitLogService {
                 if (i < 10) currentStreak = tempStreak;
               }
             }
-            
+
             longestStreak = Math.max(longestStreak, tempStreak);
           }
         }
-        
+
         // Update habit stats
         await client.query(`
           UPDATE habits
@@ -313,19 +313,19 @@ class PgHabitLogService {
       // Get the current log to check previous state
       const getLogSql = `SELECT * FROM habit_logs WHERE id = $1 AND user_id = $2`;
       const logResult = await client.query(getLogSql, [id, userId]);
-      
+
       if (logResult.rows.length === 0) {
         return null;
       }
-      
+
       const currentLog = logResult.rows[0];
       const previousCompletionCount = currentLog.completion_count || 0;
       const previousStatus = currentLog.status;
 
-      logger.info('[updateHabitLog] Current log:', { 
-        id: currentLog.id, 
-        status: previousStatus, 
-        completionCount: previousCompletionCount 
+      logger.info('[updateHabitLog] Current log:', {
+        id: currentLog.id,
+        status: previousStatus,
+        completionCount: previousCompletionCount
       });
       logger.info('[updateHabitLog] Update to:', updates);
 
@@ -333,9 +333,9 @@ class PgHabitLogService {
       if (updates.status === 'skipped' || updates.status === 'missed') {
         setClause.push(`completion_count = 0`);
         setClause.push(`completion_times_mood = ARRAY[]::jsonb[]`);
-        
+
         logger.info('[updateHabitLog] Clearing completions, adjusting habit stats');
-        
+
         // Adjust habit stats if previous status was 'done'
         if (previousStatus === 'done' && previousCompletionCount > 0) {
           // Subtract completions and days
@@ -345,14 +345,14 @@ class PgHabitLogService {
                 total_days = GREATEST(0, total_days - 1)
             WHERE id = $2
           `, [previousCompletionCount, currentLog.habit_id]);
-          
+
           // Recalculate streaks within transaction
           const habitResult = await client.query(`
             SELECT frequency, days_of_week FROM habits WHERE id = $1
           `, [currentLog.habit_id]);
-          
+
           const habit = habitResult.rows[0];
-          
+
           // Get all done logs for streak calculation, excluding the current log being updated
           const logResult = await client.query(`
             SELECT date_key, status
@@ -360,12 +360,12 @@ class PgHabitLogService {
             WHERE habit_id = $1 AND status = 'done' AND id != $2
             ORDER BY date_key DESC
           `, [currentLog.habit_id, currentLog.id]);
-          
+
           const logs = logResult.rows;
           let currentStreak = 0;
           let longestStreak = 0;
           let tempStreak = 0;
-          
+
           if (logs.length > 0) {
             const isExpectedDay = (dateKey, frequency, daysOfWeek) => {
               if (frequency === 'daily') return true;
@@ -373,10 +373,10 @@ class PgHabitLogService {
               const dayOfWeek = date.getUTCDay();
               return daysOfWeek && daysOfWeek.includes(dayOfWeek);
             };
-            
+
             for (let i = 0; i < logs.length; i++) {
               const log = logs[i];
-              
+
               if (i === 0) {
                 tempStreak = 1;
                 currentStreak = 1;
@@ -384,7 +384,7 @@ class PgHabitLogService {
                 const prevDate = new Date(logs[i - 1].date_key + 'T00:00:00Z');
                 const currDate = new Date(log.date_key + 'T00:00:00Z');
                 const diffDays = Math.floor((prevDate - currDate) / (1000 * 60 * 60 * 24));
-                
+
                 if (diffDays === 1 || (habit.frequency !== 'daily' && diffDays <= 7)) {
                   if (isExpectedDay(log.date_key, habit.frequency, habit.days_of_week)) {
                     tempStreak++;
@@ -396,39 +396,39 @@ class PgHabitLogService {
                 }
               }
             }
-            
+
             if (tempStreak > longestStreak) longestStreak = tempStreak;
-            
+
             // Check if current streak should be reset
             const lastLogDate = new Date(logs[0].date_key + 'T00:00:00Z');
             const today = new Date();
             const daysSinceLastLog = Math.floor((today - lastLogDate) / (1000 * 60 * 60 * 24));
-            
+
             if (daysSinceLastLog > 1) {
               currentStreak = 0;
             }
           }
-          
+
           // Get current longest_streak to preserve it if it's higher
           // BUT only if there are remaining logs - if no logs, both streaks should be 0
           let finalLongestStreak = 0;
-          
+
           if (logs.length > 0) {
             const currentHabitResult = await client.query(`
               SELECT longest_streak FROM habits WHERE id = $1
             `, [currentLog.habit_id]);
-            
+
             const existingLongestStreak = currentHabitResult.rows[0]?.longest_streak || 0;
             finalLongestStreak = Math.max(longestStreak, existingLongestStreak);
           }
-          
+
           logger.info('[updateHabitLog] Streak recalculation:', {
             logsRemaining: logs.length,
             currentStreak,
             longestStreak,
             finalLongestStreak
           });
-          
+
           await client.query(`
             UPDATE habits
             SET current_streak = $1,
@@ -436,7 +436,7 @@ class PgHabitLogService {
                 updated_at = CURRENT_TIMESTAMP
             WHERE id = $3
           `, [currentStreak, finalLongestStreak, currentLog.habit_id]);
-          
+
           logger.info('[updateHabitLog] Habit updated with new streaks');
         }
       }
@@ -451,11 +451,63 @@ class PgHabitLogService {
       values.push(id, userId);
 
       const result = await client.query(sql, values);
-      
+
       logger.info('[updateHabitLog] Log updated, returning');
-      
+
       return result.rows[0] ? this._formatHabitLog(result.rows[0]) : null;
     });
+  }
+
+  /**
+   * Update a specific completion entry (time + mood) inside habit log's completion_times_mood
+   * @param {number} habitId - Habit ID
+   * @param {number} logId - Habit log ID
+   * @param {number} userId - User ID for ownership check
+   * @param {number} completionIndex - Zero-based completion index
+   * @param {Object} payload - Entry update payload
+   * @returns {Promise<Object|null>} Updated habit log or null
+   */
+  async updateCompletionEntry(habitId, logId, userId, completionIndex, payload = {}) {
+    const mood = String(payload.mood || 'neutral').toLowerCase();
+    const timestamp = payload.timestamp;
+
+    if (!timestamp) return null;
+
+    const validMoods = new Set(['great', 'good', 'okay', 'challenging', 'neutral']);
+    if (!validMoods.has(mood)) return null;
+
+    const getSql = `
+      SELECT *
+      FROM habit_logs
+      WHERE id = $1 AND habit_id = $2 AND user_id = $3
+    `;
+    const getResult = await query(getSql, [logId, habitId, userId]);
+    if (!getResult.rows[0]) return null;
+
+    const currentLog = getResult.rows[0];
+    const entries = Array.isArray(currentLog.completion_times_mood) ? [...currentLog.completion_times_mood] : [];
+
+    if (completionIndex < 0 || completionIndex >= entries.length) return null;
+
+    entries[completionIndex] = {
+      ...entries[completionIndex],
+      timestamp: new Date(timestamp).toISOString(),
+      mood
+    };
+
+    const updateSql = `
+      WITH payload AS (
+        SELECT value AS entry
+        FROM jsonb_array_elements($1::jsonb)
+      )
+      UPDATE habit_logs
+      SET completion_times_mood = COALESCE((SELECT array_agg(entry) FROM payload), ARRAY[]::jsonb[])
+      WHERE id = $2 AND habit_id = $3 AND user_id = $4
+      RETURNING *
+    `;
+
+    const updateResult = await query(updateSql, [JSON.stringify(entries), logId, habitId, userId]);
+    return updateResult.rows[0] ? this._formatHabitLog(updateResult.rows[0]) : null;
   }
 
   /**
@@ -531,7 +583,7 @@ class PgHabitLogService {
       skippedCount: parseInt(row.skipped_count),
       totalCompletions: parseInt(row.total_completions || 0),
       avgCompletionsPerDay: parseFloat(row.avg_completions_per_day || 0),
-      completionRate: row.total_logs > 0 
+      completionRate: row.total_logs > 0
         ? (parseInt(row.completed_count) / parseInt(row.total_logs) * 100).toFixed(2)
         : 0
     };
