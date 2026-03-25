@@ -511,6 +511,71 @@ class PgHabitLogService {
   }
 
   /**
+   * Delete a specific completion entry from habit log's completion_times_mood
+   * @param {number} habitId - Habit ID
+   * @param {number} logId - Habit log ID
+   * @param {number} userId - User ID for ownership check
+   * @param {number} completionIndex - Zero-based completion index
+   * @returns {Promise<Object|null>} Result with deleted flag and updated log
+   */
+  async deleteCompletionEntry(habitId, logId, userId, completionIndex) {
+    const getSql = `
+      SELECT *
+      FROM habit_logs
+      WHERE id = $1 AND habit_id = $2 AND user_id = $3
+    `;
+    const getResult = await query(getSql, [logId, habitId, userId]);
+    if (!getResult.rows[0]) return null;
+
+    const currentLog = getResult.rows[0];
+    const entries = Array.isArray(currentLog.completion_times_mood) ? [...currentLog.completion_times_mood] : [];
+
+    if (completionIndex < 0 || completionIndex >= entries.length) return null;
+
+    entries.splice(completionIndex, 1);
+
+    if (entries.length === 0) {
+      const deleted = await this.deleteHabitLog(logId, userId);
+      if (!deleted) return null;
+      return { deleted: true, log: null };
+    }
+
+    const updateSql = `
+      WITH payload AS (
+        SELECT value AS entry
+        FROM jsonb_array_elements($1::jsonb)
+      )
+      UPDATE habit_logs
+      SET completion_times_mood = COALESCE((SELECT array_agg(entry) FROM payload), ARRAY[]::jsonb[]),
+          completion_count = $2
+      WHERE id = $3 AND habit_id = $4 AND user_id = $5
+      RETURNING *
+    `;
+
+    const updateResult = await query(updateSql, [JSON.stringify(entries), entries.length, logId, habitId, userId]);
+    const updatedRow = updateResult.rows[0];
+    if (!updatedRow) return null;
+
+    await query(`
+      UPDATE habits
+      SET total_completions = (
+            SELECT COALESCE(SUM(completion_count), 0)
+            FROM habit_logs
+            WHERE habit_id = $1 AND status = 'done'
+          ),
+          total_days = (
+            SELECT COUNT(DISTINCT date_key)
+            FROM habit_logs
+            WHERE habit_id = $1 AND status = 'done'
+          ),
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = $1
+    `, [habitId]);
+
+    return { deleted: false, log: this._formatHabitLog(updatedRow) };
+  }
+
+  /**
    * Delete habit log
    * @param {number} id - Habit log ID
    * @param {number} userId - User ID for ownership check

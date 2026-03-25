@@ -457,6 +457,8 @@ export const habitsAPI = {
   logs: (id, params) => api.get(`/habits/${id}/logs`, { params }),
   updateLogCompletionEntry: (habitId, logId, completionIndex, payload) =>
     api.patch(`/habits/${habitId}/logs/${logId}/completions/${completionIndex}`, payload),
+  deleteLogCompletionEntry: (habitId, logId, completionIndex) =>
+    api.delete(`/habits/${habitId}/logs/${logId}/completions/${completionIndex}`),
 };
 
 // Location API

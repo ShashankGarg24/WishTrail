@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Clock, X, Calendar, BarChart3, Smile, Meh, Frown, Heart, CircleSlash2, ChevronDown } from 'lucide-react';
+import { Clock, X, Calendar, BarChart3, Smile, Meh, Frown, Heart, CircleSlash2, ChevronDown, Trash2 } from 'lucide-react';
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock';
 import { useNavigate } from 'react-router-dom';
 import { habitsAPI } from '../services/api';
@@ -25,7 +25,9 @@ export default function HabitDetailModal({ habit, isOpen, onClose, onLog, onEdit
   const [todayLog, setTodayLog] = useState(null);
   const [todayEntries, setTodayEntries] = useState([]);
   const [logsLoading, setLogsLoading] = useState(false);
-  const [entrySavingIndex, setEntrySavingIndex] = useState(null);
+  const [entriesUpdating, setEntriesUpdating] = useState(false);
+  const [entryDeletingIndex, setEntryDeletingIndex] = useState(null);
+  const [entryDeleteTargetIndex, setEntryDeleteTargetIndex] = useState(null);
   const [logsError, setLogsError] = useState('');
   const moreMenuRef = useRef(null);
   
@@ -48,7 +50,9 @@ export default function HabitDetailModal({ habit, isOpen, onClose, onLog, onEdit
       setTodayLog(null);
       setTodayEntries([]);
       setLogsLoading(false);
-      setEntrySavingIndex(null);
+      setEntriesUpdating(false);
+      setEntryDeletingIndex(null);
+      setEntryDeleteTargetIndex(null);
       setLogsError('');
     }
   }, [isOpen]);
@@ -166,7 +170,6 @@ export default function HabitDetailModal({ habit, isOpen, onClose, onLog, onEdit
     const nextTimestamp = withUpdatedTime(target.timestamp, target.timeValue);
     if (!nextTimestamp) return;
 
-    setEntrySavingIndex(index);
     try {
       const response = await habitsAPI.updateLogCompletionEntry(habitId, logId, index, {
         timestamp: nextTimestamp,
@@ -176,8 +179,59 @@ export default function HabitDetailModal({ habit, isOpen, onClose, onLog, onEdit
       if (updatedLog) {
         setTodayLog((prev) => ({ ...(prev || {}), ...updatedLog }));
       }
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const handleUpdateEditedEntries = async () => {
+    if (entriesUpdating || !todayLog) return;
+    const dirtyIndexes = todayEntries
+      .map((entry, index) => (entry?.dirty ? index : -1))
+      .filter((index) => index >= 0);
+
+    if (dirtyIndexes.length === 0) return;
+
+    setEntriesUpdating(true);
+    try {
+      for (const index of dirtyIndexes) {
+        await handleUpdateCompletionEntry(index);
+      }
+      await loadTodayLog();
     } finally {
-      setEntrySavingIndex(null);
+      setEntriesUpdating(false);
+    }
+  };
+
+  const confirmDeleteCompletionEntry = async () => {
+    const index = entryDeleteTargetIndex;
+    const habitId = habit?.id || habit?._id;
+    const logId = todayLog?.id;
+
+    if (index === null || index === undefined || !habitId || !logId) {
+      setEntryDeleteTargetIndex(null);
+      return;
+    }
+
+    setEntryDeletingIndex(index);
+    try {
+      const response = await habitsAPI.deleteLogCompletionEntry(habitId, logId, index);
+      const wasDeleted = Boolean(response?.data?.data?.deleted);
+      const updatedLog = response?.data?.data?.log || null;
+
+      if (wasDeleted) {
+        setTodayLog(null);
+        setTodayEntries([]);
+        setTodayCompletionCount(0);
+      } else if (updatedLog) {
+        setTodayLog((prev) => ({ ...(prev || {}), ...updatedLog }));
+      }
+
+      await loadTodayLog();
+    } finally {
+      setEntryDeletingIndex(null);
+      setEntryDeleteTargetIndex(null);
     }
   };
 
@@ -226,6 +280,9 @@ export default function HabitDetailModal({ habit, isOpen, onClose, onLog, onEdit
     onClose();
     navigate(`/habits/${habit.id}/analytics`);
   };
+
+  const hasDirtyEntries = todayEntries.some((entry) => entry?.dirty);
+  const isUpdateAction = hasDirtyEntries && todayLog?.status === 'done';
   
   return (
     <div className="fixed inset-0 z-[101] flex items-center justify-center p-4" style={{ zIndex: 1000 }}>
@@ -289,7 +346,7 @@ export default function HabitDetailModal({ habit, isOpen, onClose, onLog, onEdit
               <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/30 p-2 sm:p-3 max-h-48 overflow-y-auto scrollbar-hide space-y-2">
                 {todayEntries.length > 0 ? todayEntries.map((entry, idx) => (
                   <div key={`${todayLog.id}-${idx}`} className="rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 p-2 sm:p-3">
-                    <div className="grid grid-cols-1 sm:grid-cols-[100px_1fr_auto] gap-2 items-center">
+                    <div className="grid grid-cols-[100px_1fr_auto] sm:grid-cols-[100px_1fr_auto] gap-2 items-center">
                       <input
                         type="time"
                         value={entry.timeValue || ''}
@@ -319,12 +376,12 @@ export default function HabitDetailModal({ habit, isOpen, onClose, onLog, onEdit
                       </select>
                       <button
                         type="button"
-                        onClick={() => handleUpdateCompletionEntry(idx)}
-                        disabled={!entry.dirty || entrySavingIndex === idx}
-                        className="px-3 py-2 rounded-lg text-xs sm:text-sm font-medium text-white disabled:opacity-50 disabled:cursor-not-allowed"
-                        style={{ backgroundColor: THEME_COLOR }}
+                        onClick={() => setEntryDeleteTargetIndex(idx)}
+                        disabled={entriesUpdating || entryDeletingIndex === idx}
+                        className="p-2 rounded-lg border border-red-200 dark:border-red-800 text-red-600 dark:text-red-300 bg-red-50 dark:bg-red-900/20 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center"
+                        aria-label="Delete log entry"
                       >
-                        {entrySavingIndex === idx ? 'Saving...' : 'Save'}
+                        <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
                   </div>
@@ -390,12 +447,16 @@ export default function HabitDetailModal({ habit, isOpen, onClose, onLog, onEdit
               </button>
               <button
                 type="button"
-                onClick={handleMarkDone}
-                disabled={!isScheduledToday || !!actionLoading}
+                onClick={isUpdateAction ? handleUpdateEditedEntries : handleMarkDone}
+                disabled={!isScheduledToday || !!actionLoading || entriesUpdating || entryDeletingIndex !== null}
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
                 style={{ backgroundColor: THEME_COLOR }}
               >
-                {actionLoading === 'done' ? 'Marking...' : (todayCompletionCount > 0 ? 'Mark Again' : 'Mark as done')}
+                {entriesUpdating
+                  ? 'Updating...'
+                  : (actionLoading === 'done'
+                    ? 'Marking...'
+                    : (isUpdateAction ? 'Update' : (todayCompletionCount > 0 ? 'Mark Again' : 'Mark as done')))}
               </button>
             </div>
           </div>
@@ -428,6 +489,16 @@ export default function HabitDetailModal({ habit, isOpen, onClose, onLog, onEdit
         message="All your progress will be lost for the day."
         confirmText="Skip"
         isLoading={actionLoading === 'skipped'}
+      />
+
+      <ConfirmActionModal
+        isOpen={entryDeleteTargetIndex !== null}
+        onClose={() => setEntryDeleteTargetIndex(null)}
+        onConfirm={confirmDeleteCompletionEntry}
+        title="Delete this log entry?"
+        message="This completion entry will be removed from today’s habit log."
+        confirmText="Delete"
+        isLoading={entryDeleteTargetIndex !== null && entryDeletingIndex === entryDeleteTargetIndex}
       />
     </div>
   );

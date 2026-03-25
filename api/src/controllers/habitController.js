@@ -1144,3 +1144,52 @@ exports.updateHabitLogCompletionEntry = async (req, res, next) => {
   }
 };
 
+/**
+ * Delete one completion entry from a habit daily log
+ */
+exports.deleteHabitLogCompletionEntry = async (req, res, next) => {
+  try {
+    const habitId = parseInt(req.params.id, 10);
+    const logId = parseInt(req.params.logId, 10);
+    const completionIndex = parseInt(req.params.completionIndex, 10);
+
+    if (!habitId || Number.isNaN(habitId)) {
+      return res.status(400).json({ success: false, message: 'Invalid habit ID' });
+    }
+    if (!logId || Number.isNaN(logId)) {
+      return res.status(400).json({ success: false, message: 'Invalid log ID' });
+    }
+    if (Number.isNaN(completionIndex) || completionIndex < 0) {
+      return res.status(400).json({ success: false, message: 'Invalid completion index' });
+    }
+
+    const userId = req.user.id;
+
+    const habit = await pgHabitService.getHabitById(habitId, userId);
+    if (!habit) {
+      return res.status(404).json({ success: false, message: 'Habit not found' });
+    }
+
+    const result = await pgHabitLogService.deleteCompletionEntry(
+      habitId,
+      logId,
+      userId,
+      completionIndex
+    );
+
+    if (!result) {
+      return res.status(404).json({ success: false, message: 'Habit log entry not found' });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        deleted: result.deleted,
+        log: result.log
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
