@@ -77,7 +77,7 @@ const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, goalTitle, isDeleting 
                   <ul className="text-sm text-red-700 dark:text-red-400 space-y-1 list-disc list-inside">
                     <li>Habit history and statistics</li>
                     <li>Daily logs and completion records</li>
-                    <li>Scheduled reminders and alerts</li>
+                    {/* <li>Scheduled reminders and alerts</li> */}
                   </ul>
                 </div>
               )}

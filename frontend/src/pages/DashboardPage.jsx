@@ -37,6 +37,7 @@ const DashboardPageNew = () => {
   const [habitDependencies, setHabitDependencies] = useState([])
   const [isHabitWarningModalOpen, setIsHabitWarningModalOpen] = useState(false)
   const [isDeletingHabit, setIsDeletingHabit] = useState(false)
+  const [skipHabitDependencyCheck, setSkipHabitDependencyCheck] = useState(false)
   const [isHabitIdeasOpen, setIsHabitIdeasOpen] = useState(false)
   const [isGoalIdeasOpen, setIsGoalIdeasOpen] = useState(false)
   const [initialHabitData, setInitialHabitData] = useState(null)
@@ -112,6 +113,24 @@ const DashboardPageNew = () => {
     if (!isAuthenticated) return
     getLatestProductUpdate()
   }, [isAuthenticated, getLatestProductUpdate])
+
+  useEffect(() => {
+    const preloadActionModals = () => {
+      import('../components/CreateGoalWizard')
+      import('../components/CompletionModal')
+      import('../components/EditHabitModal')
+      import('../components/DeleteConfirmModal')
+      import('../components/DependencyWarningModal')
+    }
+
+    if (typeof window !== 'undefined' && typeof window.requestIdleCallback === 'function') {
+      const id = window.requestIdleCallback(preloadActionModals)
+      return () => window.cancelIdleCallback?.(id)
+    }
+
+    const timer = setTimeout(preloadActionModals, 0)
+    return () => clearTimeout(timer)
+  }, [])
 
   // Sync tab with URL
   useEffect(() => {
@@ -947,18 +966,12 @@ const DashboardPageNew = () => {
                           <Edit className="w-4 h-4 text-gray-600 dark:text-gray-300" />
                         </button>
                         <button
-                          onClick={async (e) => {
+                          onClick={(e) => {
                             e.stopPropagation()
-                            const checkHabitDependencies = useApiStore.getState().checkHabitDependencies
-                            const depResult = await checkHabitDependencies?.(habit.id)
-                            if (depResult?.success && depResult?.data?.data?.linkedGoals?.length > 0) {
-                              setHabitDependencies(depResult.data.data.linkedGoals)
-                              setHabitToDelete(habit)
-                              setIsHabitWarningModalOpen(true)
-                            } else {
-                              setHabitToDelete(habit)
-                              setIsHabitDeleteModalOpen(true)
-                            }
+                            setHabitDependencies([])
+                            setSkipHabitDependencyCheck(false)
+                            setHabitToDelete(habit)
+                            setIsHabitDeleteModalOpen(true)
                           }}
                           className="p-2 bg-gray-100 dark:bg-gray-700 hover:bg-red-100 dark:hover:bg-red-900/40 rounded-lg transition-colors"
                           title="Delete"
@@ -1056,7 +1069,11 @@ const DashboardPageNew = () => {
       </div>
 
       {/* Modals */}
-      <Suspense fallback={null}>
+      <Suspense fallback={(
+        <div className="fixed inset-0 z-[210] pointer-events-none flex items-center justify-center">
+          <div className="px-3 py-2 rounded-lg bg-black/55 text-white text-xs font-medium">Opening...</div>
+        </div>
+      )}>
         {isCreateModalOpen && (
           <CreateGoalWizard
             isOpen={isCreateModalOpen}
@@ -1103,17 +1120,11 @@ const DashboardPageNew = () => {
             onClose={() => setSelectedHabit(null)}
             onLog={handleHabitLog}
             onEdit={() => setIsEditHabitOpen(true)}
-            onDelete={async () => {
-              const checkHabitDependencies = useApiStore.getState().checkHabitDependencies
-              const depResult = await checkHabitDependencies?.(selectedHabit.id)
-              if (depResult?.success && depResult?.data?.data?.linkedGoals?.length > 0) {
-                setHabitDependencies(depResult.data.data.linkedGoals)
-                setHabitToDelete(selectedHabit)
-                setIsHabitWarningModalOpen(true)
-              } else {
-                setHabitToDelete(selectedHabit)
-                setIsHabitDeleteModalOpen(true)
-              }
+            onDelete={() => {
+              setHabitDependencies([])
+              setSkipHabitDependencyCheck(false)
+              setHabitToDelete(selectedHabit)
+              setIsHabitDeleteModalOpen(true)
             }}
           />
         )}
@@ -1141,9 +1152,10 @@ const DashboardPageNew = () => {
         {isHabitWarningModalOpen && habitToDelete && (
           <DependencyWarningModal
             isOpen={isHabitWarningModalOpen}
-            onClose={() => { setIsHabitWarningModalOpen(false); setHabitToDelete(null); setHabitDependencies([]) }}
+            onClose={() => { setIsHabitWarningModalOpen(false); setHabitToDelete(null); setHabitDependencies([]); setSkipHabitDependencyCheck(false) }}
             onContinue={() => {
               setIsHabitWarningModalOpen(false)
+              setSkipHabitDependencyCheck(true)
               setIsHabitDeleteModalOpen(true)
             }}
             itemTitle={habitToDelete.name}
@@ -1155,10 +1167,21 @@ const DashboardPageNew = () => {
         {isHabitDeleteModalOpen && habitToDelete && (
           <DeleteConfirmModal
             isOpen={isHabitDeleteModalOpen}
-            onClose={() => { setIsHabitDeleteModalOpen(false); setHabitToDelete(null); setHabitDependencies([]) }}
+            onClose={() => { setIsHabitDeleteModalOpen(false); setHabitToDelete(null); setHabitDependencies([]); setSkipHabitDependencyCheck(false) }}
             onConfirm={async () => {
               setIsDeletingHabit(true)
               try {
+                if (!skipHabitDependencyCheck) {
+                  const checkHabitDependencies = useApiStore.getState().checkHabitDependencies
+                  const depResult = await checkHabitDependencies?.(habitToDelete.id)
+                  if (depResult?.success && depResult?.data?.data?.linkedGoals?.length > 0) {
+                    setHabitDependencies(depResult.data.data.linkedGoals)
+                    setIsHabitDeleteModalOpen(false)
+                    setIsHabitWarningModalOpen(true)
+                    return
+                  }
+                }
+
                 const res = await useApiStore.getState().deleteHabit(habitToDelete.id)
                 if (res?.success) {
                   setIsHabitDeleteModalOpen(false)
@@ -1170,6 +1193,7 @@ const DashboardPageNew = () => {
                 }
               } finally {
                 setIsDeletingHabit(false)
+                setSkipHabitDependencyCheck(false)
               }
             }}
             goalTitle={habitToDelete.name}
