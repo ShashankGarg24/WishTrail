@@ -10,6 +10,10 @@
 
 ### 💡 Others
 
+## 2.1.15 — 2026-02-10
+
+_This version does not introduce any user-facing changes._
+
 ## 2.1.14 — 2025-07-07
 
 ### 🐛 Bug fixes
