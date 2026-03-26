@@ -56,8 +56,8 @@
       "WEB_URL": "https://wishtrail.in/",
       "API_URL": "https://api.wishtrail.in/api/v1",
       "GOOGLE_WEB_CLIENT_ID": "432981958169-2h8j4m57iuntmvi8s0d9su2hj1g9rtn1.apps.googleusercontent.com",
-      "GOOGLE_ANDROID_CLIENT_ID": "",
-      "GOOGLE_IOS_CLIENT_ID": "",
+      "GOOGLE_ANDROID_CLIENT_ID": "432981958169-4rk41u22u86ludgs47v11ba69fbp0m89.apps.googleusercontent.com",
+      "GOOGLE_IOS_CLIENT_ID": "432981958169-soehlll09fd1c41821q5h7rmrpjvjncd.apps.googleusercontent.com",
       "eas": {
         "projectId": "e3515452-9da8-40f1-a213-2cda05137373"
       }

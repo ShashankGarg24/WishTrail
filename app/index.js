@@ -26,11 +26,18 @@ const WEB_URL = (Constants.expoConfig?.extra?.WEB_URL || Constants.manifest?.ext
 const API_BASE = (
   Constants.expoConfig?.extra?.API_URL ||
   Constants.manifest?.extra?.API_URL ||
+  Constants.manifest2?.extra?.expoClient?.extra?.API_URL ||
   `${WEB_URL.replace(/\/$/, '')}/api/v1`
 );
-const GOOGLE_IOS_CLIENT_ID = (Constants.expoConfig?.extra?.GOOGLE_IOS_CLIENT_ID || Constants.manifest?.extra?.GOOGLE_IOS_CLIENT_ID || '');
-const GOOGLE_ANDROID_CLIENT_ID = (Constants.expoConfig?.extra?.GOOGLE_ANDROID_CLIENT_ID || Constants.manifest?.extra?.GOOGLE_ANDROID_CLIENT_ID || '');
-const GOOGLE_WEB_CLIENT_ID = (Constants.expoConfig?.extra?.GOOGLE_WEB_CLIENT_ID || Constants.manifest?.extra?.GOOGLE_WEB_CLIENT_ID || '');
+const APP_EXTRA =
+  Constants.expoConfig?.extra ||
+  Constants.manifest?.extra ||
+  Constants.manifest2?.extra?.expoClient?.extra ||
+  {};
+
+const GOOGLE_WEB_CLIENT_ID = (APP_EXTRA.GOOGLE_WEB_CLIENT_ID || '').trim();
+const GOOGLE_ANDROID_CLIENT_ID = (APP_EXTRA.GOOGLE_ANDROID_CLIENT_ID || GOOGLE_WEB_CLIENT_ID || '').trim();
+const GOOGLE_IOS_CLIENT_ID = (APP_EXTRA.GOOGLE_IOS_CLIENT_ID || GOOGLE_WEB_CLIENT_ID || '').trim();
 
 function App() {
   const webRef = useRef(null);
