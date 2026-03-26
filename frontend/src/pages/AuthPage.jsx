@@ -10,6 +10,7 @@ import GoogleSignInButton from "../components/GoogleSignInButton";
 
 const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true);
+  const [inNativeApp, setInNativeApp] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -35,6 +36,14 @@ const AuthPage = () => {
       navigate(from, { replace: true });
     }
   }, [isAuthenticated, navigate, from]);
+
+  useEffect(() => {
+    try {
+      setInNativeApp(typeof window !== 'undefined' && !!window.ReactNativeWebView);
+    } catch {
+      setInNativeApp(false);
+    }
+  }, []);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -279,11 +288,28 @@ const AuthPage = () => {
 
             {/* Social Sign-in Buttons */}
             <div className="space-y-2 sm:space-y-3">
-              <GoogleSignInButton
-                mode="signin"
-                onSuccess={handleGoogleSuccess}
-                onError={handleGoogleError}
-              />
+              {inNativeApp ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    try {
+                      window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'WT_NATIVE_GOOGLE_LOGIN' }));
+                    } catch (error) {
+                      console.error('Native Google trigger failed:', error);
+                      toast.error('Unable to start Google Sign-In');
+                    }
+                  }}
+                  className="w-full py-2.5 sm:py-3 px-4 text-sm sm:text-base bg-white border border-gray-300 text-gray-900 rounded-lg font-medium hover:bg-gray-50 transition-all"
+                >
+                  Continue with Google
+                </button>
+              ) : (
+                <GoogleSignInButton
+                  mode="signin"
+                  onSuccess={handleGoogleSuccess}
+                  onError={handleGoogleError}
+                />
+              )}
             </div>
 
             {/* Divider */}

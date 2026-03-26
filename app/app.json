@@ -1,61 +1,66 @@
 {
-    "expo": {
-        "name": "WishTrail",
-        "slug": "wishtrail",
-        "version": "1.0.0",
-        "orientation": "portrait",
-        "scheme": "wishtrail",
-        "icon": "./assets/icon.png",
-        "splash": {
-            "image": "./assets/splash.png",
-            "resizeMode": "cover",
-            "backgroundColor": "#11273c"
-        },
-        "updates": {
-            "fallbackToCacheTimeout": 0
-        },
-        "assetBundlePatterns": [
-            "**/*"
-        ],
-        "ios": {
-            "supportsTablet": true,
-            "bundleIdentifier": "com.yourco.wishtrail",
-            "associatedDomains": [
-                "applinks:wishtrail.in"
-            ],
-            "icon": "./assets/icon.png"
-        },
-        "android": {
-            "package": "com.yourco.wishtrail",
-            "adaptiveIcon": {
-                "foregroundImage": "./assets/icon.png",
-                "backgroundColor": "#11273c"
-            },
-            "intentFilters": [
-                {
-                    "action": "VIEW",
-                    "data": [
-                        {
-                            "scheme": "https",
-                            "host": "wishtrail.in",
-                            "pathPrefix": "/"
-                        }
-                    ],
-                    "category": [
-                        "BROWSABLE",
-                        "DEFAULT"
-                    ]
-                }
-            ]
-        },
-        "web": {},
-        "plugins": [],
-        "extra": {
-            "WEB_URL": "https://wishtrail.in/",
-            "API_URL": "https://api.wishtrail.in/api/v1",
-            "eas": {
-                "projectId": "e3515452-9da8-40f1-a213-2cda05137373"
+  "expo": {
+    "name": "WishTrail",
+    "slug": "wishtrail",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "wishtrail",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "cover",
+      "backgroundColor": "#11273c"
+    },
+    "updates": {
+      "fallbackToCacheTimeout": 0
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.yourco.wishtrail",
+      "associatedDomains": [
+        "applinks:wishtrail.in"
+      ],
+      "icon": "./assets/icon.png"
+    },
+    "android": {
+      "package": "com.yourco.wishtrail",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#11273c"
+      },
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "data": [
+            {
+              "scheme": "https",
+              "host": "wishtrail.in",
+              "pathPrefix": "/"
             }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
+      ]
+    },
+    "web": {},
+    "plugins": [
+      "expo-web-browser"
+    ],
+    "extra": {
+      "WEB_URL": "https://wishtrail.in/",
+      "API_URL": "https://api.wishtrail.in/api/v1",
+      "GOOGLE_WEB_CLIENT_ID": "432981958169-2h8j4m57iuntmvi8s0d9su2hj1g9rtn1.apps.googleusercontent.com",
+      "GOOGLE_ANDROID_CLIENT_ID": "",
+      "GOOGLE_IOS_CLIENT_ID": "",
+      "eas": {
+        "projectId": "e3515452-9da8-40f1-a213-2cda05137373"
+      }
     }
+  }
 }

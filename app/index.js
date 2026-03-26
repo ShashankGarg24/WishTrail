@@ -1,9 +1,13 @@
 import React, { useMemo, useRef, useState, useCallback, useEffect } from 'react';
-import { Platform, SafeAreaView, StatusBar, View, RefreshControl, Linking, AppState, Text, TouchableOpacity, Dimensions, ScrollView, ActivityIndicator, Animated, PermissionsAndroid } from 'react-native';
+import { Platform, SafeAreaView, StatusBar, View, RefreshControl, Linking, AppState, Text, TouchableOpacity, Dimensions, ScrollView, ActivityIndicator, Animated, PermissionsAndroid, Alert, Image } from 'react-native';
 import { WebView } from 'react-native-webview';
 import Constants from 'expo-constants';
 import { registerRootComponent } from 'expo';
+import * as WebBrowser from 'expo-web-browser';
+import * as Google from 'expo-auth-session/providers/google';
 // Push notifications removed (Expo). FCM to be integrated later.
+
+WebBrowser.maybeCompleteAuthSession();
 
 // RNFB: set a background handler early to suppress warnings and ensure background messages are handled gracefully.
 try {
@@ -24,6 +28,9 @@ const API_BASE = (
   Constants.manifest?.extra?.API_URL ||
   `${WEB_URL.replace(/\/$/, '')}/api/v1`
 );
+const GOOGLE_IOS_CLIENT_ID = (Constants.expoConfig?.extra?.GOOGLE_IOS_CLIENT_ID || Constants.manifest?.extra?.GOOGLE_IOS_CLIENT_ID || '');
+const GOOGLE_ANDROID_CLIENT_ID = (Constants.expoConfig?.extra?.GOOGLE_ANDROID_CLIENT_ID || Constants.manifest?.extra?.GOOGLE_ANDROID_CLIENT_ID || '');
+const GOOGLE_WEB_CLIENT_ID = (Constants.expoConfig?.extra?.GOOGLE_WEB_CLIENT_ID || Constants.manifest?.extra?.GOOGLE_WEB_CLIENT_ID || '');
 
 function App() {
   const webRef = useRef(null);
@@ -32,6 +39,8 @@ function App() {
   const appState = useRef(AppState.currentState);
   const [authToken, setAuthToken] = useState(null);
   const [userId, setUserId] = useState(null);
+  const [currentPath, setCurrentPath] = useState('/');
+  const [isNativeGoogleLoading, setIsNativeGoogleLoading] = useState(false);
   const [initialUri, setInitialUri] = useState(WEB_URL);
   const [initialResolved, setInitialResolved] = useState(false);
   // Expo push removed
@@ -41,11 +50,22 @@ function App() {
   // Onboarding state
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingIndex, setOnboardingIndex] = useState(0);
+  const onboardingScrollRef = useRef(null);
+  const splashProgress = useRef(new Animated.Value(0)).current;
+  const appLogo = useMemo(() => require('./assets/icon.png'), []);
   const slides = [
-    { title: 'Welcome to WishTrail', body: 'Turn dreams into achievable goals with community support.', emoji: '✨' },
-    { title: 'Goals & Habits', body: 'Create goals and build daily habits with insightful analytics.', emoji: '📈' },
-    { title: 'Daily Logs', body: 'Reflect with prompts, moods and positive points for growth.', emoji: '📓' },
-    { title: 'Social & Leaderboards', body: 'Get likes, comments, and compete on leaderboards for motivation.', emoji: '🏆' }
+    {
+      title: 'Define Your Path',
+      body: 'Turn your biggest dreams into actionable goals with our professional planning tools.'
+    },
+    {
+      title: 'Grow Together',
+      body: 'Find inspiration in the community feed and celebrate milestones with a supportive circle.'
+    },
+    {
+      title: 'Build Better Habits',
+      body: 'Stay consistent with daily logs and interactive heatmaps that keep you on track.'
+    }
   ];
 
   // Deep link forwarding state
@@ -67,17 +87,6 @@ function App() {
   const ptrAnim = useRef(new Animated.Value(0)).current;
   const lastProgressUpdate = useRef(0);
   const ptrAnimRef = useRef(null);
-
-  // Animated pager for onboarding
-  const scrollX = useRef(new Animated.Value(0)).current;
-  const emojiPulse = useRef(new Animated.Value(0)).current;
-  const bodyAnim = useRef(new Animated.Value(0)).current;
-  const ctaAnim = useRef(new Animated.Value(0)).current;
-  const pulseLoopRef = useRef(null);
-
-  // Animated background blobs for onboarding
-  const blob1 = useRef(new Animated.Value(0)).current;
-  const blob2 = useRef(new Animated.Value(0)).current;
 
   // Inject web-level pull-to-refresh gesture to control overlay and reload (enabled only on /feed and /notifications)
   const injectPullToRefreshJS = useCallback(() => {
@@ -207,39 +216,35 @@ function App() {
     }
   };
 
-  // Start/stop richer onboarding animations on slide change and overlay visibility
   useEffect(() => {
-    if (!showOnboarding) return;
-    try {
-      // Background blobs gentle float
-      Animated.loop(Animated.sequence([
-        Animated.timing(blob1, { toValue: 1, duration: 3000, useNativeDriver: true }),
-        Animated.timing(blob1, { toValue: 0, duration: 3000, useNativeDriver: true })
-      ])).start();
-      Animated.loop(Animated.sequence([
-        Animated.timing(blob2, { toValue: 1, duration: 3500, useNativeDriver: true }),
-        Animated.timing(blob2, { toValue: 0, duration: 3500, useNativeDriver: true })
-      ])).start();
-    } catch { }
-  }, [showOnboarding, blob1, blob2]);
+    if (showOnboarding) {
+      setOnboardingIndex(0);
+    }
+  }, [showOnboarding]);
 
   useEffect(() => {
-    // Restart pulse and intro anims when slide index changes
-    try {
-      if (pulseLoopRef.current && pulseLoopRef.current.stop) pulseLoopRef.current.stop();
-    } catch { }
-    try { emojiPulse.setValue(0); bodyAnim.setValue(0); ctaAnim.setValue(0); } catch { }
-    const up = Animated.timing(emojiPulse, { toValue: 1, duration: 800, useNativeDriver: true });
-    const down = Animated.timing(emojiPulse, { toValue: 0, duration: 800, useNativeDriver: true });
-    const loop = Animated.loop(Animated.sequence([up, down]));
-    pulseLoopRef.current = loop; try { loop.start(); } catch { }
-    try { Animated.timing(bodyAnim, { toValue: 1, duration: 450, useNativeDriver: true }).start(); } catch { }
-    try { Animated.spring(ctaAnim, { toValue: 1, useNativeDriver: true, friction: 6, tension: 120 }).start(); } catch { }
-  }, [onboardingIndex, emojiPulse, bodyAnim, ctaAnim]);
+    if (initialResolved) return;
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(splashProgress, { toValue: 1, duration: 900, useNativeDriver: false }),
+        Animated.timing(splashProgress, { toValue: 0.35, duration: 750, useNativeDriver: false })
+      ])
+    );
+    loop.start();
+    return () => {
+      try { loop.stop(); } catch { }
+    };
+  }, [initialResolved, splashProgress]);
 
   // FCM init + handlers (unchanged)
   const [fcmToken, setFcmToken] = useState(null);
   const didRegisterRef = useRef(false);
+
+  const [googleRequest, googleResponse, promptGoogleSignIn] = Google.useIdTokenAuthRequest({
+    iosClientId: GOOGLE_IOS_CLIENT_ID || undefined,
+    androidClientId: GOOGLE_ANDROID_CLIENT_ID || undefined,
+    webClientId: GOOGLE_WEB_CLIENT_ID || undefined
+  });
   useEffect(() => {
     const disableFcm = !!(Constants?.expoConfig?.extra?.DISABLE_FCM || Constants?.manifest?.extra?.DISABLE_FCM);
     if (disableFcm) { try { console.log('FCM disabled via extra.DISABLE_FCM'); } catch { }; return; }
@@ -385,9 +390,19 @@ function App() {
           try { SecureStore && SecureStore.setItemAsync && SecureStore.setItemAsync('wt_refresh_token', rt); } catch { }
           try { webRef.current?.injectJavaScript(`window.__WT_REFRESH_TOKEN = ${JSON.stringify(rt)}; true;`); } catch { }
         }
+      } else if (data?.type === 'WT_NATIVE_GOOGLE_LOGIN') {
+        const hasConfig = !!(GOOGLE_IOS_CLIENT_ID || GOOGLE_ANDROID_CLIENT_ID || GOOGLE_WEB_CLIENT_ID);
+        if (!hasConfig) {
+          Alert.alert('Google Sign-In', 'Google OAuth client IDs are not configured in app settings.');
+          return;
+        }
+        promptGoogleSignIn().catch(() => {
+          Alert.alert('Google Sign-In', 'Unable to open Google sign-in. Please try again.');
+        });
       } else if (data?.type === 'WT_PATH') {
         try {
           const p = String(data.path || '/');
+          setCurrentPath(p);
           const isPTR = p.startsWith('/feed') || p.startsWith('/notifications');
           setIsPTRPage(isPTR);
           // Immediately reset PTR state when navigating away from PTR pages
@@ -453,7 +468,89 @@ function App() {
         });
       }
     } catch { }
-  }, [ptrAnim]);
+  }, [ptrAnim, promptGoogleSignIn]);
+
+  const completeNativeGoogleLogin = useCallback(async (idToken) => {
+    if (!idToken) return;
+    setIsNativeGoogleLoading(true);
+    try {
+      const timezone = (() => {
+        try { return Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch { return ''; }
+      })();
+      const locale = (() => {
+        try { return Intl.DateTimeFormat().resolvedOptions().locale || ''; } catch { return ''; }
+      })();
+
+      const response = await fetch(`${API_BASE.replace(/\/$/, '')}/auth/google`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Client-Platform': 'app'
+        },
+        body: JSON.stringify({ token: idToken, timezone, locale })
+      });
+
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok || !payload?.success) {
+        throw new Error(payload?.message || 'Google sign-in failed');
+      }
+
+      const token = payload?.data?.token || '';
+      const refreshToken = payload?.data?.refreshToken || '';
+
+      if (!token) {
+        throw new Error('No token returned from Google login');
+      }
+
+      setAuthToken(token);
+      try { AsyncStorage && AsyncStorage.setItem('wt_native_authed', '1'); } catch { }
+
+      if (refreshToken) {
+        try { SecureStore && SecureStore.setItemAsync && SecureStore.setItemAsync('wt_refresh_token', refreshToken); } catch { }
+      }
+
+      const bridgeScript = `
+        (function(){
+          try {
+            localStorage.setItem('token', ${JSON.stringify(token)});
+            if (window.__updateAuthToken) window.__updateAuthToken(${JSON.stringify(token)});
+            ${refreshToken ? `window.__WT_REFRESH_TOKEN = ${JSON.stringify(refreshToken)};` : ''}
+            window.location.assign('/dashboard');
+          } catch(e) {}
+        })(); true;
+      `;
+      try { webRef.current?.injectJavaScript(bridgeScript); } catch { }
+    } catch (error) {
+      Alert.alert('Google Sign-In', error?.message || 'Unable to sign in with Google. Please try again.');
+    } finally {
+      setIsNativeGoogleLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!googleResponse) return;
+    if (googleResponse.type === 'success') {
+      const idToken = googleResponse?.params?.id_token;
+      if (idToken) {
+        completeNativeGoogleLogin(idToken);
+      } else {
+        Alert.alert('Google Sign-In', 'Google did not return an ID token.');
+      }
+    }
+  }, [googleResponse, completeNativeGoogleLogin]);
+
+  const handleNativeGoogleSignIn = useCallback(async () => {
+    const hasConfig = !!(GOOGLE_IOS_CLIENT_ID || GOOGLE_ANDROID_CLIENT_ID || GOOGLE_WEB_CLIENT_ID);
+    if (!hasConfig) {
+      Alert.alert('Google Sign-In', 'Google OAuth client IDs are not configured in app settings.');
+      return;
+    }
+    try {
+      await promptGoogleSignIn();
+    } catch (error) {
+      Alert.alert('Google Sign-In', 'Unable to open Google sign-in. Please try again.');
+    }
+  }, [promptGoogleSignIn]);
 
   // App Shortcuts / Quick Actions (mobile only)
   useEffect(() => {
@@ -563,88 +660,187 @@ function App() {
     }
   }, [showOnboarding, askPushPermissionOnce]);
 
-  // Full-screen onboarding carousel (animated)
+  // Full-screen onboarding carousel (design-aligned)
   const renderOnboarding = () => {
     if (!showOnboarding) return null;
     const { width, height } = Dimensions.get('window');
-    const b1x = blob1.interpolate({ inputRange: [0, 1], outputRange: [-40, 20] });
-    const b1y = blob1.interpolate({ inputRange: [0, 1], outputRange: [-30, 10] });
-    const b2x = blob2.interpolate({ inputRange: [0, 1], outputRange: [30, -20] });
-    const b2y = blob2.interpolate({ inputRange: [0, 1], outputRange: [20, -15] });
-    const pulseScale = emojiPulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.08] });
-    const pulseRotate = emojiPulse.interpolate({ inputRange: [0, 1], outputRange: ['-4deg', '4deg'] });
-    const bodyOpacity = bodyAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 1] });
-    const bodyTranslate = bodyAnim.interpolate({ inputRange: [0, 1], outputRange: [10, 0] });
-    const ctaScale = ctaAnim.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1] });
+    const titleColor = '#073863';
+    const bodyColor = '#1a5a8d';
+
+    const moveTo = (nextIndex) => {
+      const i = Math.max(0, Math.min(nextIndex, slides.length - 1));
+      setOnboardingIndex(i);
+      try { onboardingScrollRef.current?.scrollTo({ x: i * width, animated: true }); } catch { }
+    };
+
+    const renderSlideArt = (idx) => {
+      if (idx === 0) {
+        return (
+          <View style={{ width: '100%', alignItems: 'center', marginBottom: 26 }}>
+            <View style={{ width: '92%', borderRadius: 34, padding: 16, backgroundColor: '#f5f7fb', shadowColor: '#0c3e66', shadowOpacity: 0.08, shadowRadius: 20, shadowOffset: { width: 0, height: 10 }, elevation: 2 }}>
+              <View style={{ width: 82, height: 82, borderRadius: 41, backgroundColor: '#d9e8f9', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
+                <Image source={appLogo} style={{ width: 46, height: 46, borderRadius: 12 }} resizeMode="contain" />
+              </View>
+              <View style={{ height: 14, width: '62%', borderRadius: 7, backgroundColor: '#dbe8f6', marginBottom: 12 }} />
+              <View style={{ height: 16, width: '96%', borderRadius: 8, backgroundColor: '#dde8f5', marginBottom: 8 }} />
+              <View style={{ height: 16, width: '76%', borderRadius: 8, backgroundColor: '#dde8f5' }} />
+            </View>
+            <View style={{ width: '74%', marginTop: -20, borderRadius: 26, padding: 20, backgroundColor: '#0462a6' }}>
+              <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: '#91c5ef', marginBottom: 12 }} />
+              <View style={{ height: 20, borderRadius: 10, backgroundColor: '#e8f0fa', marginBottom: 12 }} />
+              <View style={{ height: 18, width: '72%', borderRadius: 9, backgroundColor: '#7fb0d8', marginBottom: 14 }} />
+              <View style={{ height: 12, borderRadius: 6, backgroundColor: '#7baed8' }}>
+                <View style={{ height: 12, width: '68%', borderRadius: 6, backgroundColor: '#f2f7ff' }} />
+              </View>
+            </View>
+          </View>
+        );
+      }
+
+      if (idx === 1) {
+        return (
+          <View style={{ width: '100%', marginBottom: 26 }}>
+            <View style={{ flexDirection: 'row', marginBottom: 22 }}>
+              {[0, 1, 2].map((dot) => (
+                <View key={dot} style={{ width: 58, height: 8, borderRadius: 4, marginRight: 8, backgroundColor: dot === 2 ? '#0462a6' : '#b7d4f0' }} />
+              ))}
+            </View>
+            <View style={{ borderRadius: 26, backgroundColor: '#ffffff', padding: 18, marginBottom: 16 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+                <Image source={appLogo} style={{ width: 52, height: 52, borderRadius: 12, marginRight: 12 }} resizeMode="contain" />
+                <View>
+                  <Text style={{ color: '#073863', fontWeight: '700', fontSize: 18 }}>Elena S.</Text>
+                  <Text style={{ color: '#2f6ea1', fontSize: 14 }}>2m ago • Meditation Trail</Text>
+                </View>
+              </View>
+              <Text style={{ color: '#384a5e', fontSize: 17, lineHeight: 25 }}>
+                "Day 15 completed. The morning silence is becoming my favorite ritual."
+              </Text>
+              <View style={{ flexDirection: 'row', marginTop: 14 }}>
+                <Text style={{ color: '#0462a6', fontWeight: '700', marginRight: 18 }}>♥ 24</Text>
+                <Text style={{ color: '#2f6ea1' }}>💬 8</Text>
+              </View>
+            </View>
+            <View style={{ borderRadius: 24, backgroundColor: '#ffffff', padding: 18 }}>
+              <Text style={{ color: '#073863', fontWeight: '700', fontSize: 26, marginBottom: 6 }}>New Milestone!</Text>
+              <View style={{ height: 12, borderRadius: 6, backgroundColor: '#c9dff2', marginBottom: 10 }}>
+                <View style={{ width: '84%', height: 12, borderRadius: 6, backgroundColor: '#0462a6' }} />
+              </View>
+              <Text style={{ color: '#1a5a8d', fontSize: 20 }}>Marcus reached 85% of 'Marathon Prep'</Text>
+            </View>
+          </View>
+        );
+      }
+
+      return (
+        <View style={{ width: '100%', marginBottom: 24 }}>
+          <View style={{ borderRadius: 24, backgroundColor: '#ffffff', padding: 18, marginBottom: 16 }}>
+            <Text style={{ color: '#1a5a8d', fontSize: 14, letterSpacing: 1, marginBottom: 6 }}>CURRENT STREAK</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' }}>
+              <Text style={{ color: '#0462a6', fontSize: 56, fontWeight: '700' }}>12 <Text style={{ fontSize: 38, color: '#1a5a8d' }}>Days</Text></Text>
+              <View style={{ width: 86, height: 86, borderRadius: 43, backgroundColor: '#b9d3ef', alignItems: 'center', justifyContent: 'center' }}>
+                <Text style={{ fontSize: 28, color: '#0462a6' }}>🔥</Text>
+              </View>
+            </View>
+          </View>
+          <View style={{ borderRadius: 24, backgroundColor: '#dce8f6', padding: 18 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
+              <Text style={{ color: '#073863', fontSize: 24, fontWeight: '700' }}>Activity Map</Text>
+              <Text style={{ color: '#2f6ea1', fontSize: 16 }}>May 2024</Text>
+            </View>
+            {[0, 1, 2, 3].map((row) => (
+              <View key={row} style={{ flexDirection: 'row', marginBottom: 8 }}>
+                {[0, 1, 2, 3, 4, 5, 6].map((col) => {
+                  const palette = ['#9fc1e8', '#75a4d7', '#0f69a6', '#085992'];
+                  const color = palette[(row + col + (row === 2 ? 1 : 0)) % palette.length];
+                  return <View key={`${row}-${col}`} style={{ width: 30, height: 30, borderRadius: 6, backgroundColor: color, marginRight: 8 }} />;
+                })}
+              </View>
+            ))}
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 }}>
+              <Text style={{ color: '#2f6ea1', fontSize: 14 }}>Less  ▪ ▪ ▪  More</Text>
+              <Text style={{ color: '#0f69a6', fontSize: 14 }}>● Target Met</Text>
+            </View>
+          </View>
+        </View>
+      );
+    };
 
     return (
-      <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#0f172a' }}>
+      <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#e8edf5' }}>
         <SafeAreaView style={{ flex: 1 }}>
-          {/* Animated background blobs */}
-          <Animated.View style={{ position: 'absolute', width: 220, height: 220, borderRadius: 110, backgroundColor: 'rgba(99,102,241,0.2)', top: 80, left: 30, transform: [{ translateX: b1x }, { translateY: b1y }] }} />
-          <Animated.View style={{ position: 'absolute', width: 260, height: 260, borderRadius: 130, backgroundColor: 'rgba(59,130,246,0.18)', bottom: 40, right: 20, transform: [{ translateX: b2x }, { translateY: b2y }] }} />
-
-          <View style={{ position: 'absolute', top: 12, right: 16, zIndex: 10 }}>
-            <TouchableOpacity onPress={finishOnboarding}>
-              <Text style={{ color: '#cbd5e1', fontSize: 14 }}>Skip</Text>
-            </TouchableOpacity>
-          </View>
-          <Animated.ScrollView
+          {onboardingIndex < slides.length - 1 && (
+            <View style={{ position: 'absolute', top: 12, right: 22, zIndex: 10 }}>
+              <TouchableOpacity onPress={finishOnboarding}>
+                <Text style={{ color: '#1a5a8d', fontSize: 38 }}>Skip</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          <ScrollView
+            ref={onboardingScrollRef}
             horizontal
             pagingEnabled
             showsHorizontalScrollIndicator={false}
-            onScroll={Animated.event([{ nativeEvent: { contentOffset: { x: scrollX } } }], { useNativeDriver: true })}
             onMomentumScrollEnd={(e) => {
               try {
                 const i = Math.round(e.nativeEvent.contentOffset.x / Math.max(width, 1));
                 if (i !== onboardingIndex) setOnboardingIndex(i);
               } catch { }
             }}
-            scrollEventThrottle={16}
             style={{ flex: 1 }}
           >
             {slides.map((s, i) => {
-              const inputRange = [(i - 1) * width, i * width, (i + 1) * width];
-              const emojiParallax = scrollX.interpolate({ inputRange, outputRange: [20, 0, -20], extrapolate: 'clamp' });
-              const titleTranslate = scrollX.interpolate({ inputRange, outputRange: [20, 0, -20], extrapolate: 'clamp' });
-              const isActive = i === onboardingIndex;
               return (
-                <View key={i} style={{ width, height, paddingHorizontal: 24, paddingTop: 48, alignItems: 'center' }}>
-                  <Animated.View style={{ width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(99,102,241,0.15)', alignItems: 'center', justifyContent: 'center', marginBottom: 24, transform: [{ translateY: emojiParallax }, ...(isActive ? [{ scale: pulseScale }, { rotate: pulseRotate }] : [])] }}>
-                    <Text style={{ fontSize: 56 }}>{s.emoji}</Text>
-                  </Animated.View>
-                  <Animated.Text style={{ fontSize: 28, fontWeight: '800', color: 'white', textAlign: 'center', marginBottom: 12, transform: [{ translateY: titleTranslate }] }}>{s.title}</Animated.Text>
-                  <Animated.Text style={{ fontSize: 16, color: '#cbd5e1', textAlign: 'center', lineHeight: 22, paddingHorizontal: 12, opacity: isActive ? bodyOpacity : 0.6, transform: isActive ? [{ translateY: bodyTranslate }] : [] }}>{s.body}</Animated.Text>
+                <View key={i} style={{ width, minHeight: height, paddingHorizontal: 24, paddingTop: 42 }}>
+                  {renderSlideArt(i)}
+                  <Text style={{ color: titleColor, fontSize: 58, fontWeight: '800', marginBottom: 10 }}>{s.title}</Text>
+                  <Text style={{ color: bodyColor, fontSize: 24, lineHeight: 36 }}>{s.body}</Text>
                 </View>
               );
             })}
-          </Animated.ScrollView>
-          <View style={{ position: 'absolute', bottom: 24, left: 24, right: 24, alignItems: 'center' }}>
-            <View style={{ flexDirection: 'row', marginBottom: 12 }}>
+          </ScrollView>
+
+          <View style={{ position: 'absolute', bottom: 24, left: 24, right: 24 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
               {slides.map((_, i) => {
-                const inputRange = [(i - 1) * width, i * width, (i + 1) * width];
-                const dotScale = scrollX.interpolate({ inputRange, outputRange: [1, 1.4, 1], extrapolate: 'clamp' });
                 return (
-                  <Animated.View key={i} style={{ width: 8, height: 8, borderRadius: 4, marginHorizontal: 4, backgroundColor: i === onboardingIndex ? '#6366F1' : '#334155', transform: [{ scale: dotScale }] }} />
+                  <View
+                    key={i}
+                    style={{
+                      width: i === onboardingIndex ? 44 : 14,
+                      height: 10,
+                      borderRadius: 5,
+                      marginRight: 8,
+                      backgroundColor: i === onboardingIndex ? '#0462a6' : '#b7d4f0'
+                    }}
+                  />
                 );
               })}
             </View>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%' }}>
-              {onboardingIndex === 0 ? (
-                <View style={{ paddingVertical: 12, paddingHorizontal: 18, borderRadius: 12, backgroundColor: 'transparent' }} />
-              ) : (
-                <Animated.View style={{ transform: [{ scale: ctaScale }] }}>
-                  <TouchableOpacity onPress={() => onboardingIndex > 0 && setOnboardingIndex(onboardingIndex - 1)} style={{ paddingVertical: 12, paddingHorizontal: 18, borderRadius: 12, backgroundColor: '#111827' }}>
-                    <Text style={{ color: '#cbd5e1', fontSize: 15 }}>Back</Text>
-                  </TouchableOpacity>
-                </Animated.View>
-              )}
-              <Animated.View style={{ transform: [{ scale: ctaScale }] }}>
-                <TouchableOpacity onPress={() => { if (onboardingIndex < slides.length - 1) setOnboardingIndex(onboardingIndex + 1); else finishOnboarding(); }} style={{ paddingVertical: 12, paddingHorizontal: 18, borderRadius: 12, backgroundColor: '#2563EB' }}>
-                  <Text style={{ color: 'white', fontSize: 15 }}>{onboardingIndex < slides.length - 1 ? 'Continue' : 'Finish'}</Text>
+
+            {onboardingIndex < slides.length - 1 ? (
+              <TouchableOpacity
+                onPress={() => moveTo(onboardingIndex + 1)}
+                style={{ height: 86, borderRadius: 43, backgroundColor: '#0462a6', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <Text style={{ color: '#ffffff', fontSize: 20, fontWeight: '700' }}>Next</Text>
+              </TouchableOpacity>
+            ) : (
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                <TouchableOpacity
+                  onPress={() => moveTo(onboardingIndex - 1)}
+                  style={{ height: 86, width: '28%', borderRadius: 43, backgroundColor: '#b7d4f0', alignItems: 'center', justifyContent: 'center' }}
+                >
+                  <Text style={{ color: '#1a5a8d', fontSize: 18, fontWeight: '700' }}>Back</Text>
                 </TouchableOpacity>
-              </Animated.View>
-            </View>
+                <TouchableOpacity
+                  onPress={finishOnboarding}
+                  style={{ height: 86, width: '68%', borderRadius: 43, backgroundColor: '#0462a6', alignItems: 'center', justifyContent: 'center' }}
+                >
+                  <Text style={{ color: '#ffffff', fontSize: 20, fontWeight: '700' }}>Get Started</Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
         </SafeAreaView>
       </View>
@@ -668,11 +864,21 @@ function App() {
   };
 
   if (!initialResolved) {
+    const splashFillWidth = splashProgress.interpolate({ inputRange: [0, 1], outputRange: [8, 44] });
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#ffffff' }}>
-        <StatusBar barStyle={Platform.OS === 'ios' ? 'light-content' : 'default'} />
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#e8edf5' }}>
+        <StatusBar barStyle={'dark-content'} />
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <ActivityIndicator />
+          <View style={{ width: 174, height: 174, borderRadius: 42, backgroundColor: '#f5f7fb', alignItems: 'center', justifyContent: 'center', marginBottom: 24 }}>
+            <Image source={appLogo} style={{ width: 98, height: 98, borderRadius: 20 }} resizeMode="contain" />
+          </View>
+          <Text style={{ color: '#4d5f6e', fontSize: 62, fontWeight: '700', marginBottom: 4 }}>WishTrail</Text>
+          <Text style={{ color: '#6f95b6', fontSize: 18, letterSpacing: 3 }}>FIND YOUR PATH</Text>
+        </View>
+        <View style={{ position: 'absolute', bottom: 64, left: 0, right: 0, alignItems: 'center' }}>
+          <View style={{ width: 86, height: 4, borderRadius: 2, backgroundColor: '#b7d4f0', overflow: 'hidden' }}>
+            <Animated.View style={{ width: splashFillWidth, height: 4, borderRadius: 2, backgroundColor: '#0462a6' }} />
+          </View>
         </View>
       </SafeAreaView>
     );
@@ -699,6 +905,28 @@ function App() {
         renderLoading={() => <View style={{ flex: 1, backgroundColor: '#fff' }} />}
         refreshControl={undefined}
       />
+      {!authToken && currentPath.startsWith('/auth') && (
+        <View style={{ position: 'absolute', left: 16, right: 16, bottom: 22 }}>
+          <TouchableOpacity
+            onPress={handleNativeGoogleSignIn}
+            disabled={isNativeGoogleLoading || !googleRequest}
+            style={{
+              backgroundColor: '#ffffff',
+              borderColor: '#d1d5db',
+              borderWidth: 1,
+              borderRadius: 12,
+              height: 48,
+              alignItems: 'center',
+              justifyContent: 'center',
+              opacity: (isNativeGoogleLoading || !googleRequest) ? 0.7 : 1
+            }}
+          >
+            <Text style={{ color: '#111827', fontSize: 15, fontWeight: '600' }}>
+              {isNativeGoogleLoading ? 'Signing in with Google...' : 'Continue with Google'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
       {renderPtrOverlay()}
       {renderOnboarding()}
     </SafeAreaView>

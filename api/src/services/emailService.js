@@ -12,7 +12,7 @@ class EmailService {
     const port = Number(process.env.EMAIL_PORT || process.env.SMTP_PORT || 587);
     const user = process.env.EMAIL_USER || process.env.SMTP_USER;
     const pass = process.env.EMAIL_PASS || process.env.EMAIL_PASSWORD || process.env.SMTP_PASS;
-    const from = process.env.EMAIL_FROM || process.env.FROM_EMAIL || 'WishTrail <thewishtrail@gmail.com>';
+    const from = process.env.EMAIL_FROM || process.env.FROM_EMAIL || 'WishTrail <support@wishtrail.in>';
     
     return {
       host,
@@ -31,7 +31,7 @@ class EmailService {
       return from;
     }
 
-    const emailAddress = from || user || 'thewishtrail@gmail.com';
+    const emailAddress = from || user || 'support@wishtrail.in';
     return `WishTrail <${emailAddress}>`;
   }
   
@@ -944,7 +944,7 @@ class EmailService {
         <p>This change was made on <strong>${new Date().toLocaleDateString()}</strong> at <strong>${new Date().toLocaleTimeString()}</strong>.</p>
         
         <div class="warning">
-          <p><strong>Security Notice:</strong> If you didn't make this change, please contact our support team immediately at <a href="mailto:thewishtrail@gmail.com">thewishtrail@gmail.com</a></p>
+          <p><strong>Security Notice:</strong> If you didn't make this change, please contact our support team immediately at <a href="mailto:support@wishtrail.in">support@wishtrail.in</a></p>
         </div>
         
         <p>For your security, all existing sessions have been logged out. You'll need to log in again with your new password.</p>
