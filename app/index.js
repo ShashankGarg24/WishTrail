@@ -912,28 +912,6 @@ function App() {
         renderLoading={() => <View style={{ flex: 1, backgroundColor: '#fff' }} />}
         refreshControl={undefined}
       />
-      {!authToken && currentPath.startsWith('/auth') && (
-        <View style={{ position: 'absolute', left: 16, right: 16, bottom: 22 }}>
-          <TouchableOpacity
-            onPress={handleNativeGoogleSignIn}
-            disabled={isNativeGoogleLoading || !googleRequest}
-            style={{
-              backgroundColor: '#ffffff',
-              borderColor: '#d1d5db',
-              borderWidth: 1,
-              borderRadius: 12,
-              height: 48,
-              alignItems: 'center',
-              justifyContent: 'center',
-              opacity: (isNativeGoogleLoading || !googleRequest) ? 0.7 : 1
-            }}
-          >
-            <Text style={{ color: '#111827', fontSize: 15, fontWeight: '600' }}>
-              {isNativeGoogleLoading ? 'Signing in with Google...' : 'Continue with Google'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
       {renderPtrOverlay()}
       {renderOnboarding()}
     </SafeAreaView>

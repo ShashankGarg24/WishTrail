@@ -38,6 +38,7 @@ const INTERESTS_OPTIONS = [
 
 const MultiStepSignup = ({ onSuccess, onBack }) => {
   const isReservedUsername = (value = '') => /wishtrail/i.test(value);
+  const [inNativeApp, setInNativeApp] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
     name: "",
@@ -57,6 +58,14 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
 
   const { checkExistingUser, requestOTP, verifyOTP, register, resendOTP, loading } = useApiStore();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    try {
+      setInNativeApp(typeof window !== 'undefined' && !!window.ReactNativeWebView);
+    } catch {
+      setInNativeApp(false);
+    }
+  }, []);
 
   // OTP timer effect
   useEffect(() => {
@@ -345,15 +354,32 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
 
       {/* Social Sign-in Buttons */}
       <div className="space-y-3">
-        <GoogleSignInButton
-          mode="signup"
-          onSuccess={(credential) => {
-            toast.info('Google Sign-Up handled by main auth flow');
-          }}
-          onError={(error) => {
-            console.error('Google signup error:', error);
-          }}
-        />
+        {inNativeApp ? (
+          <button
+            type="button"
+            onClick={() => {
+              try {
+                window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'WT_NATIVE_GOOGLE_LOGIN' }));
+              } catch (error) {
+                console.error('Native Google trigger failed:', error);
+                toast.error('Unable to start Google Sign-In');
+              }
+            }}
+            className="w-full py-2.5 sm:py-3 px-4 text-sm sm:text-base bg-white border border-gray-300 text-gray-900 rounded-lg font-medium hover:bg-gray-50 transition-all"
+          >
+            Continue with Google
+          </button>
+        ) : (
+          <GoogleSignInButton
+            mode="signup"
+            onSuccess={(credential) => {
+              toast.info('Google Sign-Up handled by main auth flow');
+            }}
+            onError={(error) => {
+              console.error('Google signup error:', error);
+            }}
+          />
+        )}
 
       </div>
 
