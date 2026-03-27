@@ -299,8 +299,9 @@ const AuthPage = () => {
                       toast.error('Unable to start Google Sign-In');
                     }
                   }}
-                  className="w-full py-2.5 sm:py-3 px-4 text-sm sm:text-base bg-white border border-gray-300 text-gray-900 rounded-lg font-medium hover:bg-gray-50 transition-all"
+                  className="w-full py-2.5 sm:py-3 px-4 text-sm sm:text-base bg-white border border-gray-300 text-gray-900 rounded-lg font-medium hover:bg-gray-50 transition-all flex items-center justify-center"
                 >
+                  <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-white border border-gray-200 text-[12px] font-bold text-gray-700">G</span>
                   Continue with Google
                 </button>
               ) : (

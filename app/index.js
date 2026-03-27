@@ -50,6 +50,7 @@ function App() {
   const [isNativeGoogleLoading, setIsNativeGoogleLoading] = useState(false);
   const [initialUri, setInitialUri] = useState(WEB_URL);
   const [initialResolved, setInitialResolved] = useState(false);
+  const [hasLoadedInitialPage, setHasLoadedInitialPage] = useState(false);
   // Expo push removed
   const authProbeTries = useRef(0);
   const authProbeTimer = useRef(null);
@@ -627,35 +628,7 @@ function App() {
   // Resolve initial URL: dashboard if authed, home otherwise; override with notification deeplink
   useEffect(() => {
     (async () => {
-      let target = WEB_URL;
-      try {
-        const authed = AsyncStorage ? await AsyncStorage.getItem('wt_native_authed') : null;
-        if (authed === '1') {
-          target = `${WEB_URL.replace(/\/$/, '')}/dashboard`;
-        }
-      } catch { }
-      // If app was opened via a deep link/intent, prefer it
-      try {
-        const initialUrl = await Linking.getInitialURL();
-        if (initialUrl) {
-          // If it's a relative-internal URL, normalize to web origin
-          const u = new URL(initialUrl, WEB_URL);
-          if (u.origin === new URL(WEB_URL).origin) {
-            target = u.toString();
-          }
-        }
-      } catch { }
-      try {
-        let messaging;
-        try { const mod = require('@react-native-firebase/messaging'); messaging = mod?.default || mod; } catch { messaging = null; }
-        if (messaging) {
-          const initial = await messaging().getInitialNotification();
-          const url = initial?.data?.url || '';
-          if (url) {
-            target = `${WEB_URL.replace(/\/$/, '')}?url=${encodeURIComponent(url)}`;
-          }
-        }
-      } catch { }
+      const target = `${WEB_URL.replace(/\/$/, '')}/dashboard`;
       setInitialUri(target);
       setInitialResolved(true);
     })();
@@ -673,6 +646,8 @@ function App() {
     const { width, height } = Dimensions.get('window');
     const titleColor = '#073863';
     const bodyColor = '#1a5a8d';
+    const titleSize = width < 380 ? 34 : 40;
+    const bodySize = width < 380 ? 16 : 18;
 
     const moveTo = (nextIndex) => {
       const i = Math.max(0, Math.min(nextIndex, slides.length - 1));
@@ -684,15 +659,15 @@ function App() {
       if (idx === 0) {
         return (
           <View style={{ width: '100%', alignItems: 'center', marginBottom: 26 }}>
-            <View style={{ width: '92%', borderRadius: 34, padding: 16, backgroundColor: '#f5f7fb', shadowColor: '#0c3e66', shadowOpacity: 0.08, shadowRadius: 20, shadowOffset: { width: 0, height: 10 }, elevation: 2 }}>
-              <View style={{ width: 82, height: 82, borderRadius: 41, backgroundColor: '#d9e8f9', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
-                <Image source={appLogo} style={{ width: 46, height: 46, borderRadius: 12 }} resizeMode="contain" />
+            <View style={{ width: '92%', borderRadius: 28, padding: 14, backgroundColor: '#f5f7fb', shadowColor: '#0c3e66', shadowOpacity: 0.08, shadowRadius: 20, shadowOffset: { width: 0, height: 10 }, elevation: 2 }}>
+              <View style={{ width: 68, height: 68, borderRadius: 34, backgroundColor: '#d9e8f9', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
+                <Image source={appLogo} style={{ width: 38, height: 38 }} resizeMode="contain" />
               </View>
               <View style={{ height: 14, width: '62%', borderRadius: 7, backgroundColor: '#dbe8f6', marginBottom: 12 }} />
               <View style={{ height: 16, width: '96%', borderRadius: 8, backgroundColor: '#dde8f5', marginBottom: 8 }} />
               <View style={{ height: 16, width: '76%', borderRadius: 8, backgroundColor: '#dde8f5' }} />
             </View>
-            <View style={{ width: '74%', marginTop: -20, borderRadius: 26, padding: 20, backgroundColor: '#0462a6' }}>
+            <View style={{ width: '74%', marginTop: -20, borderRadius: 24, padding: 16, backgroundColor: '#0462a6' }}>
               <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: '#91c5ef', marginBottom: 12 }} />
               <View style={{ height: 20, borderRadius: 10, backgroundColor: '#e8f0fa', marginBottom: 12 }} />
               <View style={{ height: 18, width: '72%', borderRadius: 9, backgroundColor: '#7fb0d8', marginBottom: 14 }} />
@@ -712,15 +687,15 @@ function App() {
                 <View key={dot} style={{ width: 58, height: 8, borderRadius: 4, marginRight: 8, backgroundColor: dot === 2 ? '#0462a6' : '#b7d4f0' }} />
               ))}
             </View>
-            <View style={{ borderRadius: 26, backgroundColor: '#ffffff', padding: 18, marginBottom: 16 }}>
+            <View style={{ borderRadius: 22, backgroundColor: '#ffffff', padding: 14, marginBottom: 14 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
-                <Image source={appLogo} style={{ width: 52, height: 52, borderRadius: 12, marginRight: 12 }} resizeMode="contain" />
+                <Image source={appLogo} style={{ width: 42, height: 42, borderRadius: 10, marginRight: 10 }} resizeMode="contain" />
                 <View>
                   <Text style={{ color: '#073863', fontWeight: '700', fontSize: 18 }}>Elena S.</Text>
                   <Text style={{ color: '#2f6ea1', fontSize: 14 }}>2m ago • Meditation Trail</Text>
                 </View>
               </View>
-              <Text style={{ color: '#384a5e', fontSize: 17, lineHeight: 25 }}>
+              <Text style={{ color: '#384a5e', fontSize: 15, lineHeight: 22 }}>
                 "Day 15 completed. The morning silence is becoming my favorite ritual."
               </Text>
               <View style={{ flexDirection: 'row', marginTop: 14 }}>
@@ -728,12 +703,12 @@ function App() {
                 <Text style={{ color: '#2f6ea1' }}>💬 8</Text>
               </View>
             </View>
-            <View style={{ borderRadius: 24, backgroundColor: '#ffffff', padding: 18 }}>
-              <Text style={{ color: '#073863', fontWeight: '700', fontSize: 26, marginBottom: 6 }}>New Milestone!</Text>
+            <View style={{ borderRadius: 20, backgroundColor: '#ffffff', padding: 14 }}>
+              <Text style={{ color: '#073863', fontWeight: '700', fontSize: 22, marginBottom: 6 }}>New Milestone!</Text>
               <View style={{ height: 12, borderRadius: 6, backgroundColor: '#c9dff2', marginBottom: 10 }}>
                 <View style={{ width: '84%', height: 12, borderRadius: 6, backgroundColor: '#0462a6' }} />
               </View>
-              <Text style={{ color: '#1a5a8d', fontSize: 20 }}>Marcus reached 85% of 'Marathon Prep'</Text>
+              <Text style={{ color: '#1a5a8d', fontSize: 16 }}>Marcus reached 85% of 'Marathon Prep'</Text>
             </View>
           </View>
         );
@@ -741,18 +716,18 @@ function App() {
 
       return (
         <View style={{ width: '100%', marginBottom: 24 }}>
-          <View style={{ borderRadius: 24, backgroundColor: '#ffffff', padding: 18, marginBottom: 16 }}>
+          <View style={{ borderRadius: 20, backgroundColor: '#ffffff', padding: 14, marginBottom: 14 }}>
             <Text style={{ color: '#1a5a8d', fontSize: 14, letterSpacing: 1, marginBottom: 6 }}>CURRENT STREAK</Text>
             <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' }}>
-              <Text style={{ color: '#0462a6', fontSize: 56, fontWeight: '700' }}>12 <Text style={{ fontSize: 38, color: '#1a5a8d' }}>Days</Text></Text>
-              <View style={{ width: 86, height: 86, borderRadius: 43, backgroundColor: '#b9d3ef', alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={{ color: '#0462a6', fontSize: 42, fontWeight: '700' }}>12 <Text style={{ fontSize: 28, color: '#1a5a8d' }}>Days</Text></Text>
+              <View style={{ width: 70, height: 70, borderRadius: 35, backgroundColor: '#b9d3ef', alignItems: 'center', justifyContent: 'center' }}>
                 <Text style={{ fontSize: 28, color: '#0462a6' }}>🔥</Text>
               </View>
             </View>
           </View>
-          <View style={{ borderRadius: 24, backgroundColor: '#dce8f6', padding: 18 }}>
+          <View style={{ borderRadius: 20, backgroundColor: '#dce8f6', padding: 14 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
-              <Text style={{ color: '#073863', fontSize: 24, fontWeight: '700' }}>Activity Map</Text>
+              <Text style={{ color: '#073863', fontSize: 20, fontWeight: '700' }}>Activity Map</Text>
               <Text style={{ color: '#2f6ea1', fontSize: 16 }}>May 2024</Text>
             </View>
             {[0, 1, 2, 3].map((row) => (
@@ -760,7 +735,7 @@ function App() {
                 {[0, 1, 2, 3, 4, 5, 6].map((col) => {
                   const palette = ['#9fc1e8', '#75a4d7', '#0f69a6', '#085992'];
                   const color = palette[(row + col + (row === 2 ? 1 : 0)) % palette.length];
-                  return <View key={`${row}-${col}`} style={{ width: 30, height: 30, borderRadius: 6, backgroundColor: color, marginRight: 8 }} />;
+                  return <View key={`${row}-${col}`} style={{ width: 24, height: 24, borderRadius: 6, backgroundColor: color, marginRight: 6 }} />;
                 })}
               </View>
             ))}
@@ -779,7 +754,7 @@ function App() {
           {onboardingIndex < slides.length - 1 && (
             <View style={{ position: 'absolute', top: 12, right: 22, zIndex: 10 }}>
               <TouchableOpacity onPress={finishOnboarding}>
-                <Text style={{ color: '#1a5a8d', fontSize: 38 }}>Skip</Text>
+                <Text style={{ color: '#1a5a8d', fontSize: 18, fontWeight: '600' }}>Skip</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -798,10 +773,10 @@ function App() {
           >
             {slides.map((s, i) => {
               return (
-                <View key={i} style={{ width, minHeight: height, paddingHorizontal: 24, paddingTop: 42 }}>
+                <View key={i} style={{ width, minHeight: height, paddingHorizontal: 22, paddingTop: 28 }}>
                   {renderSlideArt(i)}
-                  <Text style={{ color: titleColor, fontSize: 58, fontWeight: '800', marginBottom: 10 }}>{s.title}</Text>
-                  <Text style={{ color: bodyColor, fontSize: 24, lineHeight: 36 }}>{s.body}</Text>
+                  <Text style={{ color: titleColor, fontSize: titleSize, fontWeight: '800', marginBottom: 10 }}>{s.title}</Text>
+                  <Text style={{ color: bodyColor, fontSize: bodySize, lineHeight: bodySize * 1.5 }}>{s.body}</Text>
                 </View>
               );
             })}
@@ -828,23 +803,23 @@ function App() {
             {onboardingIndex < slides.length - 1 ? (
               <TouchableOpacity
                 onPress={() => moveTo(onboardingIndex + 1)}
-                style={{ height: 86, borderRadius: 43, backgroundColor: '#0462a6', alignItems: 'center', justifyContent: 'center' }}
+                style={{ height: 58, borderRadius: 29, backgroundColor: '#0462a6', alignItems: 'center', justifyContent: 'center' }}
               >
-                <Text style={{ color: '#ffffff', fontSize: 20, fontWeight: '700' }}>Next</Text>
+                <Text style={{ color: '#ffffff', fontSize: 18, fontWeight: '700' }}>Next</Text>
               </TouchableOpacity>
             ) : (
               <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                 <TouchableOpacity
                   onPress={() => moveTo(onboardingIndex - 1)}
-                  style={{ height: 86, width: '28%', borderRadius: 43, backgroundColor: '#b7d4f0', alignItems: 'center', justifyContent: 'center' }}
+                  style={{ height: 56, width: '32%', borderRadius: 28, backgroundColor: '#b7d4f0', alignItems: 'center', justifyContent: 'center' }}
                 >
-                  <Text style={{ color: '#1a5a8d', fontSize: 18, fontWeight: '700' }}>Back</Text>
+                  <Text style={{ color: '#1a5a8d', fontSize: 16, fontWeight: '700' }}>Back</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={finishOnboarding}
-                  style={{ height: 86, width: '68%', borderRadius: 43, backgroundColor: '#0462a6', alignItems: 'center', justifyContent: 'center' }}
+                  style={{ height: 56, width: '64%', borderRadius: 28, backgroundColor: '#0462a6', alignItems: 'center', justifyContent: 'center' }}
                 >
-                  <Text style={{ color: '#ffffff', fontSize: 20, fontWeight: '700' }}>Get Started</Text>
+                  <Text style={{ color: '#ffffff', fontSize: 17, fontWeight: '700' }}>Get Started</Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -876,11 +851,11 @@ function App() {
       <SafeAreaView style={{ flex: 1, backgroundColor: '#e8edf5' }}>
         <StatusBar barStyle={'dark-content'} />
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <View style={{ width: 174, height: 174, borderRadius: 42, backgroundColor: '#f5f7fb', alignItems: 'center', justifyContent: 'center', marginBottom: 24 }}>
-            <Image source={appLogo} style={{ width: 98, height: 98, borderRadius: 20 }} resizeMode="contain" />
+          <View style={{ width: 126, height: 126, borderRadius: 30, backgroundColor: '#f5f7fb', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+            <Image source={appLogo} style={{ width: 72, height: 72 }} resizeMode="contain" />
           </View>
-          <Text style={{ color: '#4d5f6e', fontSize: 62, fontWeight: '700', marginBottom: 4 }}>WishTrail</Text>
-          <Text style={{ color: '#6f95b6', fontSize: 18, letterSpacing: 3 }}>FIND YOUR PATH</Text>
+          <Text style={{ color: '#4d5f6e', fontSize: 42, fontWeight: '700', marginBottom: 4 }}>WishTrail</Text>
+          <Text style={{ color: '#6f95b6', fontSize: 14, letterSpacing: 2.4 }}>FIND YOUR PATH</Text>
         </View>
         <View style={{ position: 'absolute', bottom: 64, left: 0, right: 0, alignItems: 'center' }}>
           <View style={{ width: 86, height: 4, borderRadius: 2, backgroundColor: '#b7d4f0', overflow: 'hidden' }}>
@@ -891,6 +866,8 @@ function App() {
     );
   }
 
+  const splashFillWidth = splashProgress.interpolate({ inputRange: [0, 1], outputRange: [8, 44] });
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#ffffff' }}>
       <StatusBar barStyle={Platform.OS === 'ios' ? 'light-content' : 'default'} />
@@ -900,7 +877,7 @@ function App() {
         source={{ uri: initialUri }}
         originWhitelist={originWhitelist}
         onLoadStart={() => { setLoading(true); if (ptrAnimRef.current) { try { ptrAnimRef.current.stop(); } catch { } } setPtrLoading(false); setPtrVisible(false); setPtrProgress(0); ptrAnim.setValue(0); }}
-        onLoadEnd={() => { setLoading(false); setWebReady(true); if (pendingDeepLinkRef.current) { forwardDeepLinkToWeb(pendingDeepLinkRef.current); pendingDeepLinkRef.current = ''; } injectAuthProbe(); injectRefreshToken(); setTimeout(() => { if (ptrAnimRef.current) { try { ptrAnimRef.current.stop(); } catch { } } setPtrLoading(false); setPtrVisible(false); setPtrProgress(0); ptrAnim.setValue(0); }, 400); }}
+        onLoadEnd={() => { setLoading(false); if (!hasLoadedInitialPage) setHasLoadedInitialPage(true); setWebReady(true); if (pendingDeepLinkRef.current) { forwardDeepLinkToWeb(pendingDeepLinkRef.current); pendingDeepLinkRef.current = ''; } injectAuthProbe(); injectRefreshToken(); setTimeout(() => { if (ptrAnimRef.current) { try { ptrAnimRef.current.stop(); } catch { } } setPtrLoading(false); setPtrVisible(false); setPtrProgress(0); ptrAnim.setValue(0); }, 400); }}
         onShouldStartLoadWithRequest={onShouldStartLoadWithRequest}
         onMessage={onMessage}
         pullToRefreshEnabled={false}
@@ -912,6 +889,24 @@ function App() {
         renderLoading={() => <View style={{ flex: 1, backgroundColor: '#fff' }} />}
         refreshControl={undefined}
       />
+      {!hasLoadedInitialPage && (
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#e8edf5' }}>
+          <SafeAreaView style={{ flex: 1 }}>
+            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+              <View style={{ width: 126, height: 126, borderRadius: 30, backgroundColor: '#f5f7fb', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+                <Image source={appLogo} style={{ width: 72, height: 72 }} resizeMode="contain" />
+              </View>
+              <Text style={{ color: '#4d5f6e', fontSize: 42, fontWeight: '700', marginBottom: 4 }}>WishTrail</Text>
+              <Text style={{ color: '#6f95b6', fontSize: 14, letterSpacing: 2.4 }}>FIND YOUR PATH</Text>
+            </View>
+            <View style={{ position: 'absolute', bottom: 64, left: 0, right: 0, alignItems: 'center' }}>
+              <View style={{ width: 86, height: 4, borderRadius: 2, backgroundColor: '#b7d4f0', overflow: 'hidden' }}>
+                <Animated.View style={{ width: splashFillWidth, height: 4, borderRadius: 2, backgroundColor: '#0462a6' }} />
+              </View>
+            </View>
+          </SafeAreaView>
+        </View>
+      )}
       {renderPtrOverlay()}
       {renderOnboarding()}
     </SafeAreaView>
