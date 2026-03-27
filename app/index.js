@@ -50,7 +50,7 @@ function App() {
   const [isNativeGoogleLoading, setIsNativeGoogleLoading] = useState(false);
   const [initialUri, setInitialUri] = useState(WEB_URL);
   const [initialResolved, setInitialResolved] = useState(false);
-  const [hasLoadedInitialPage, setHasLoadedInitialPage] = useState(false);
+  const [hasLoadedDashboard, setHasLoadedDashboard] = useState(false);
   // Expo push removed
   const authProbeTries = useRef(0);
   const authProbeTimer = useRef(null);
@@ -231,7 +231,7 @@ function App() {
   }, [showOnboarding]);
 
   useEffect(() => {
-    if (initialResolved) return;
+    if (hasLoadedDashboard) return;
     const loop = Animated.loop(
       Animated.sequence([
         Animated.timing(splashProgress, { toValue: 1, duration: 900, useNativeDriver: false }),
@@ -242,7 +242,7 @@ function App() {
     return () => {
       try { loop.stop(); } catch { }
     };
-  }, [initialResolved, splashProgress]);
+  }, [hasLoadedDashboard, splashProgress]);
 
   // FCM init + handlers (unchanged)
   const [fcmToken, setFcmToken] = useState(null);
@@ -411,6 +411,9 @@ function App() {
         try {
           const p = String(data.path || '/');
           setCurrentPath(p);
+          if (p.startsWith('/dashboard')) {
+            setHasLoadedDashboard(true);
+          }
           const isPTR = p.startsWith('/feed') || p.startsWith('/notifications');
           setIsPTRPage(isPTR);
           // Immediately reset PTR state when navigating away from PTR pages
@@ -845,11 +848,11 @@ function App() {
     );
   };
 
-  if (!initialResolved) {
-    const splashFillWidth = splashProgress.interpolate({ inputRange: [0, 1], outputRange: [8, 44] });
-    return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#e8edf5' }}>
-        <StatusBar barStyle={'dark-content'} />
+  const splashFillWidth = splashProgress.interpolate({ inputRange: [0, 1], outputRange: [8, 44] });
+
+  const renderStartupSplash = () => (
+    <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#e8edf5', zIndex: 20 }}>
+      <SafeAreaView style={{ flex: 1 }}>
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
           <View style={{ width: 126, height: 126, borderRadius: 30, backgroundColor: '#f5f7fb', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
             <Image source={appLogo} style={{ width: 72, height: 72 }} resizeMode="contain" />
@@ -863,10 +866,17 @@ function App() {
           </View>
         </View>
       </SafeAreaView>
+    </View>
+  );
+
+  if (!initialResolved) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#e8edf5' }}>
+        <StatusBar barStyle={'dark-content'} />
+        {renderStartupSplash()}
+      </SafeAreaView>
     );
   }
-
-  const splashFillWidth = splashProgress.interpolate({ inputRange: [0, 1], outputRange: [8, 44] });
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#ffffff' }}>
@@ -877,7 +887,7 @@ function App() {
         source={{ uri: initialUri }}
         originWhitelist={originWhitelist}
         onLoadStart={() => { setLoading(true); if (ptrAnimRef.current) { try { ptrAnimRef.current.stop(); } catch { } } setPtrLoading(false); setPtrVisible(false); setPtrProgress(0); ptrAnim.setValue(0); }}
-        onLoadEnd={() => { setLoading(false); if (!hasLoadedInitialPage) setHasLoadedInitialPage(true); setWebReady(true); if (pendingDeepLinkRef.current) { forwardDeepLinkToWeb(pendingDeepLinkRef.current); pendingDeepLinkRef.current = ''; } injectAuthProbe(); injectRefreshToken(); setTimeout(() => { if (ptrAnimRef.current) { try { ptrAnimRef.current.stop(); } catch { } } setPtrLoading(false); setPtrVisible(false); setPtrProgress(0); ptrAnim.setValue(0); }, 400); }}
+        onLoadEnd={() => { setLoading(false); setWebReady(true); if (pendingDeepLinkRef.current) { forwardDeepLinkToWeb(pendingDeepLinkRef.current); pendingDeepLinkRef.current = ''; } injectAuthProbe(); injectRefreshToken(); setTimeout(() => { if (ptrAnimRef.current) { try { ptrAnimRef.current.stop(); } catch { } } setPtrLoading(false); setPtrVisible(false); setPtrProgress(0); ptrAnim.setValue(0); }, 400); }}
         onShouldStartLoadWithRequest={onShouldStartLoadWithRequest}
         onMessage={onMessage}
         pullToRefreshEnabled={false}
@@ -889,24 +899,7 @@ function App() {
         renderLoading={() => <View style={{ flex: 1, backgroundColor: '#fff' }} />}
         refreshControl={undefined}
       />
-      {!hasLoadedInitialPage && (
-        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#e8edf5' }}>
-          <SafeAreaView style={{ flex: 1 }}>
-            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-              <View style={{ width: 126, height: 126, borderRadius: 30, backgroundColor: '#f5f7fb', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-                <Image source={appLogo} style={{ width: 72, height: 72 }} resizeMode="contain" />
-              </View>
-              <Text style={{ color: '#4d5f6e', fontSize: 42, fontWeight: '700', marginBottom: 4 }}>WishTrail</Text>
-              <Text style={{ color: '#6f95b6', fontSize: 14, letterSpacing: 2.4 }}>FIND YOUR PATH</Text>
-            </View>
-            <View style={{ position: 'absolute', bottom: 64, left: 0, right: 0, alignItems: 'center' }}>
-              <View style={{ width: 86, height: 4, borderRadius: 2, backgroundColor: '#b7d4f0', overflow: 'hidden' }}>
-                <Animated.View style={{ width: splashFillWidth, height: 4, borderRadius: 2, backgroundColor: '#0462a6' }} />
-              </View>
-            </View>
-          </SafeAreaView>
-        </View>
-      )}
+      {!hasLoadedDashboard && renderStartupSplash()}
       {renderPtrOverlay()}
       {renderOnboarding()}
     </SafeAreaView>
