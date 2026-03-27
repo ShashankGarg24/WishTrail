@@ -5,7 +5,6 @@ import Constants from 'expo-constants';
 import { registerRootComponent } from 'expo';
 import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
-import IndeterminateProgressBar from './components/IndeterminateProgressBar';
 // Push notifications removed (Expo). FCM to be integrated later.
 
 WebBrowser.maybeCompleteAuthSession();
@@ -51,7 +50,6 @@ function App() {
   const [isNativeGoogleLoading, setIsNativeGoogleLoading] = useState(false);
   const [initialUri, setInitialUri] = useState(WEB_URL);
   const [initialResolved, setInitialResolved] = useState(false);
-  const [hasLoadedDashboard, setHasLoadedDashboard] = useState(false);
   // Expo push removed
   const authProbeTries = useRef(0);
   const authProbeTimer = useRef(null);
@@ -397,9 +395,6 @@ function App() {
         try {
           const p = String(data.path || '/');
           setCurrentPath(p);
-          if (!p.startsWith('/dashboard')) {
-            setHasLoadedDashboard(true);
-          }
           const isPTR = p.startsWith('/feed') || p.startsWith('/notifications');
           setIsPTRPage(isPTR);
           // Immediately reset PTR state when navigating away from PTR pages
@@ -463,8 +458,6 @@ function App() {
           setPtrProgress(0);
           setPtrLoading(false);
         });
-      } else if (data?.type === 'WT_DASHBOARD_READY') {
-        setHasLoadedDashboard(true);
       }
     } catch { }
   }, [ptrAnim, promptGoogleSignIn]);
@@ -836,33 +829,11 @@ function App() {
     );
   };
 
-  const renderStartupSplash = () => (
-    <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#e8edf5', zIndex: 20 }}>
-      <SafeAreaView style={{ flex: 1 }}>
-        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }}>
-          <View style={{ width: 126, height: 126, borderRadius: 30, backgroundColor: '#f5f7fb', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-            <View style={{ width: 84, height: 84, borderRadius: 22, overflow: 'hidden', backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center' }}>
-              <Image source={appLogo} style={{ width: 76, height: 76 }} resizeMode="contain" />
-            </View>
-          </View>
-          <Text style={{ color: '#4d5f6e', fontSize: 34, fontWeight: '600', marginBottom: 4 }}>WishTrail</Text>
-          <Text style={{ color: '#6f95b6', fontSize: 11, letterSpacing: 2.1 }}>FIND YOUR PATH</Text>
-        </View>
-        <View style={{ position: 'absolute', bottom: 64, left: 0, right: 0, alignItems: 'center' }}>
-          <IndeterminateProgressBar
-            width={86}
-            height={4}
-          />
-        </View>
-      </SafeAreaView>
-    </View>
-  );
-
   if (!initialResolved) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: '#e8edf5' }}>
         <StatusBar barStyle={'dark-content'} />
-        {renderStartupSplash()}
+        <View style={{ flex: 1 }} />
       </SafeAreaView>
     );
   }
@@ -888,7 +859,6 @@ function App() {
         renderLoading={() => <View style={{ flex: 1, backgroundColor: '#e8edf5' }} />}
         refreshControl={undefined}
       />
-      {!hasLoadedDashboard && renderStartupSplash()}
       {renderPtrOverlay()}
       {renderOnboarding()}
     </SafeAreaView>
