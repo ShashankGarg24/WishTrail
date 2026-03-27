@@ -5,6 +5,7 @@ import Constants from 'expo-constants';
 import { registerRootComponent } from 'expo';
 import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
+import IndeterminateProgressBar from './components/IndeterminateProgressBar';
 // Push notifications removed (Expo). FCM to be integrated later.
 
 WebBrowser.maybeCompleteAuthSession();
@@ -59,7 +60,6 @@ function App() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingIndex, setOnboardingIndex] = useState(0);
   const onboardingScrollRef = useRef(null);
-  const splashProgress = useRef(new Animated.Value(0)).current;
   const appLogo = useMemo(() => require('./assets/icon.png'), []);
   const slides = [
     {
@@ -230,20 +230,6 @@ function App() {
     }
   }, [showOnboarding]);
 
-  useEffect(() => {
-    if (hasLoadedDashboard) return;
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(splashProgress, { toValue: 1, duration: 900, useNativeDriver: false }),
-        Animated.timing(splashProgress, { toValue: 0.35, duration: 750, useNativeDriver: false })
-      ])
-    );
-    loop.start();
-    return () => {
-      try { loop.stop(); } catch { }
-    };
-  }, [hasLoadedDashboard, splashProgress]);
-
   // FCM init + handlers (unchanged)
   const [fcmToken, setFcmToken] = useState(null);
   const didRegisterRef = useRef(false);
@@ -411,7 +397,7 @@ function App() {
         try {
           const p = String(data.path || '/');
           setCurrentPath(p);
-          if (p.startsWith('/dashboard')) {
+          if (!p.startsWith('/dashboard')) {
             setHasLoadedDashboard(true);
           }
           const isPTR = p.startsWith('/feed') || p.startsWith('/notifications');
@@ -477,6 +463,8 @@ function App() {
           setPtrProgress(0);
           setPtrLoading(false);
         });
+      } else if (data?.type === 'WT_DASHBOARD_READY') {
+        setHasLoadedDashboard(true);
       }
     } catch { }
   }, [ptrAnim, promptGoogleSignIn]);
@@ -848,22 +836,23 @@ function App() {
     );
   };
 
-  const splashFillWidth = splashProgress.interpolate({ inputRange: [0, 1], outputRange: [8, 44] });
-
   const renderStartupSplash = () => (
     <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#e8edf5', zIndex: 20 }}>
       <SafeAreaView style={{ flex: 1 }}>
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }}>
           <View style={{ width: 126, height: 126, borderRadius: 30, backgroundColor: '#f5f7fb', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-            <Image source={appLogo} style={{ width: 72, height: 72 }} resizeMode="contain" />
+            <View style={{ width: 84, height: 84, borderRadius: 22, overflow: 'hidden', backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center' }}>
+              <Image source={appLogo} style={{ width: 76, height: 76 }} resizeMode="contain" />
+            </View>
           </View>
-          <Text style={{ color: '#4d5f6e', fontSize: 42, fontWeight: '700', marginBottom: 4 }}>WishTrail</Text>
-          <Text style={{ color: '#6f95b6', fontSize: 14, letterSpacing: 2.4 }}>FIND YOUR PATH</Text>
+          <Text style={{ color: '#4d5f6e', fontSize: 34, fontWeight: '600', marginBottom: 4 }}>WishTrail</Text>
+          <Text style={{ color: '#6f95b6', fontSize: 11, letterSpacing: 2.1 }}>FIND YOUR PATH</Text>
         </View>
         <View style={{ position: 'absolute', bottom: 64, left: 0, right: 0, alignItems: 'center' }}>
-          <View style={{ width: 86, height: 4, borderRadius: 2, backgroundColor: '#b7d4f0', overflow: 'hidden' }}>
-            <Animated.View style={{ width: splashFillWidth, height: 4, borderRadius: 2, backgroundColor: '#0462a6' }} />
-          </View>
+          <IndeterminateProgressBar
+            width={86}
+            height={4}
+          />
         </View>
       </SafeAreaView>
     </View>
@@ -879,7 +868,7 @@ function App() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#ffffff' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#e8edf5' }}>
       <StatusBar barStyle={Platform.OS === 'ios' ? 'light-content' : 'default'} />
       <WebView
         ref={webRef}
@@ -896,7 +885,7 @@ function App() {
         scrollEnabled
         allowsBackForwardNavigationGestures
         startInLoadingState
-        renderLoading={() => <View style={{ flex: 1, backgroundColor: '#fff' }} />}
+        renderLoading={() => <View style={{ flex: 1, backgroundColor: '#e8edf5' }} />}
         refreshControl={undefined}
       />
       {!hasLoadedDashboard && renderStartupSplash()}
