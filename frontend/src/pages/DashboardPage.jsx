@@ -115,6 +115,17 @@ const DashboardPageNew = () => {
   }, [isAuthenticated, getLatestProductUpdate])
 
   useEffect(() => {
+    if (!isAuthenticated || isInitialDashboardLoading) return
+    try {
+      window.ReactNativeWebView?.postMessage(
+        JSON.stringify({ type: 'WT_DASHBOARD_READY' })
+      )
+    } catch (_) {
+      // Non-native contexts do not provide the ReactNativeWebView bridge.
+    }
+  }, [isAuthenticated, isInitialDashboardLoading])
+
+  useEffect(() => {
     const preloadActionModals = () => {
       import('../components/CreateGoalWizard')
       import('../components/CompletionModal')
