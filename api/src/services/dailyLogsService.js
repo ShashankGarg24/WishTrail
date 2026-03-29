@@ -398,16 +398,16 @@ async function notifyDailyPrompt(windowMinutes = 30, targetHHmm = '20:00') {
   const users = result.rows;
   const userIds = users.map(u => Number(u.id)).filter(Boolean);
   const prefDocs = await UserPreferences.find({ userId: { $in: userIds } })
-    .select('userId notificationSettings')
+    .select('userId notifications')
     .lean();
-  const prefMap = new Map(prefDocs.map((p) => [Number(p.userId), p.notificationSettings || {}]));
+  const prefMap = new Map(prefDocs.map((p) => [Number(p.userId), p.notifications || {}]));
 
   const jobs = [];
   const targetMin = parseHHmmToMinutes(targetHHmm) ?? 20 * 60;
   for (const u of users) {
     const ns = prefMap.get(Number(u.id)) || {};
-    if (ns?.inAppEnabled === false) continue;
-    if (ns?.dailyLogs?.enabled === false || ns?.dailyLogs?.frequency === 'off') continue;
+    if (ns?.inApp?.enabled === false) continue;
+    if (ns?.inApp?.dailyLogReminder === false) continue;
 
     const tz = u.timezone || 'UTC';
     const localMin = minutesOfDayInTimezone(tz);

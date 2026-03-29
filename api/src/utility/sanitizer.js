@@ -50,6 +50,7 @@ const PRIVATE_USER_FIELDS = [
   'email',
   'dateOfBirth',
   'date_of_birth',
+  'notifications',
   'notificationSettings',
   'dashboardYears',
   'timezone',

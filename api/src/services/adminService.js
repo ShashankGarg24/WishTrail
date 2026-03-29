@@ -1,6 +1,7 @@
 const { query } = require('../config/supabase');
 const emailService = require('./emailService');
 const DailyLogsEntry = require('../models/DailyLogsEntry');
+const UserPreferences = require('../models/extended/UserPreferences');
 
 const sanitizePlainText = (value = '') => {
   const withoutTags = String(value).replace(/<[^>]*>/g, '');
@@ -14,11 +15,12 @@ const toPositiveInt = (value, fallback) => {
   return parsed;
 };
 
-const formatUserRow = (row, lastDailyUpdatedAt = null) => ({
+const formatUserRow = (row, lastDailyUpdatedAt = null, emailNotificationsEnabled = true) => ({
   id: row.id,
   name: row.name,
   username: row.username,
   email: row.email,
+  emailNotificationsEnabled,
   completedGoals: row.completed_goals,
   totalGoals: row.total_goals,
   totalHabits: row.total_habits,
@@ -67,12 +69,27 @@ const formatHabitRow = (row) => ({
   }
 });
 
-const getUsers = async ({ page, limit, search, inactiveDays }) => {
+const getUsers = async ({ page, limit, search, inactiveDays, emailNotifications = 'all' }) => {
   const pageNum = toPositiveInt(page, 1);
   const limitNum = Math.min(100, toPositiveInt(limit, 20));
   const offset = (pageNum - 1) * limitNum;
   const searchTerm = sanitizePlainText(search || '');
   const inactiveDaysNum = Math.max(0, parseInt(inactiveDays, 10) || 0);
+  const normalizedEmailFilter = ['all', 'enabled', 'disabled'].includes(String(emailNotifications || '').toLowerCase())
+    ? String(emailNotifications).toLowerCase()
+    : 'all';
+
+  let disabledIds = [];
+  if (normalizedEmailFilter !== 'all') {
+    const disabledPrefs = await UserPreferences.find({ 'notifications.email.enabled': false })
+      .select('userId')
+      .lean();
+    disabledIds = disabledPrefs
+      .map((p) => Number(p.userId))
+      .filter((id) => Number.isFinite(id));
+  }
+
+  const disabledIdsForSql = disabledIds.length ? disabledIds : [-1];
 
   const listQuery = `
     SELECT
@@ -96,8 +113,13 @@ const getUsers = async ({ page, limit, search, inactiveDays }) => {
     WHERE
       ($1 = '' OR u.name ILIKE $2 OR u.username ILIKE $2 OR u.email ILIKE $2)
       AND ($3::int <= 0 OR COALESCE(u.last_active_at, u.created_at) < NOW() - make_interval(days => $3::int))
+      AND (
+        $4 = 'all'
+        OR ($4 = 'disabled' AND u.id = ANY($5::bigint[]))
+        OR ($4 = 'enabled' AND u.id <> ALL($5::bigint[]))
+      )
     ORDER BY u.created_at DESC
-    LIMIT $4 OFFSET $5
+    LIMIT $6 OFFSET $7
   `;
 
   const countQuery = `
@@ -106,12 +128,17 @@ const getUsers = async ({ page, limit, search, inactiveDays }) => {
     WHERE
       ($1 = '' OR name ILIKE $2 OR username ILIKE $2 OR email ILIKE $2)
       AND ($3::int <= 0 OR COALESCE(last_active_at, created_at) < NOW() - make_interval(days => $3::int))
+      AND (
+        $4 = 'all'
+        OR ($4 = 'disabled' AND id = ANY($5::bigint[]))
+        OR ($4 = 'enabled' AND id <> ALL($5::bigint[]))
+      )
   `;
 
   const wildcard = `%${searchTerm}%`;
   const [listResult, countResult] = await Promise.all([
-    query(listQuery, [searchTerm, wildcard, inactiveDaysNum, limitNum, offset]),
-    query(countQuery, [searchTerm, wildcard, inactiveDaysNum])
+    query(listQuery, [searchTerm, wildcard, inactiveDaysNum, normalizedEmailFilter, disabledIdsForSql, limitNum, offset]),
+    query(countQuery, [searchTerm, wildcard, inactiveDaysNum, normalizedEmailFilter, disabledIdsForSql])
   ]);
 
   const listedUserIds = listResult.rows
@@ -119,14 +146,26 @@ const getUsers = async ({ page, limit, search, inactiveDays }) => {
     .filter((id) => Number.isFinite(id));
 
   let lastDailyUpdatedAtByUserId = {};
+  let emailNotificationsByUserId = {};
   if (listedUserIds.length > 0) {
-    const latestDailyLogs = await DailyLogsEntry.aggregate([
-      { $match: { userId: { $in: listedUserIds } } },
-      { $group: { _id: '$userId', lastDailyUpdatedAt: { $max: '$updatedAt' } } }
+    const [latestDailyLogs, listedPrefs] = await Promise.all([
+      DailyLogsEntry.aggregate([
+        { $match: { userId: { $in: listedUserIds } } },
+        { $group: { _id: '$userId', lastDailyUpdatedAt: { $max: '$updatedAt' } } }
+      ]),
+      UserPreferences.find({ userId: { $in: listedUserIds } })
+        .select('userId notifications.email.enabled')
+        .lean()
     ]);
 
     lastDailyUpdatedAtByUserId = latestDailyLogs.reduce((acc, item) => {
       acc[String(item._id)] = item.lastDailyUpdatedAt || null;
+      return acc;
+    }, {});
+
+    emailNotificationsByUserId = listedPrefs.reduce((acc, item) => {
+      const enabled = item?.notifications?.email?.enabled !== false;
+      acc[String(item.userId)] = enabled;
       return acc;
     }, {});
   }
@@ -134,7 +173,11 @@ const getUsers = async ({ page, limit, search, inactiveDays }) => {
   const total = parseInt(countResult.rows[0]?.total || '0', 10);
 
   return {
-    users: listResult.rows.map((row) => formatUserRow(row, lastDailyUpdatedAtByUserId[String(row.id)] || null)),
+    users: listResult.rows.map((row) => formatUserRow(
+      row,
+      lastDailyUpdatedAtByUserId[String(row.id)] || null,
+      emailNotificationsByUserId[String(row.id)] !== false
+    )),
     pagination: {
       page: pageNum,
       limit: limitNum,

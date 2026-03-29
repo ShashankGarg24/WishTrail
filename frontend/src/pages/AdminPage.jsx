@@ -85,7 +85,7 @@ function AdminPage() {
   const [usersData, setUsersData] = useState({ users: [], pagination: { page: 1, pages: 1, total: 0 } });
   const [usersLoading, setUsersLoading] = useState(false);
   const [usersError, setUsersError] = useState('');
-  const [usersQuery, setUsersQuery] = useState({ page: 1, limit: 20, search: '', inactiveDays: '' });
+  const [usersQuery, setUsersQuery] = useState({ page: 1, limit: 20, search: '', inactiveDays: '', emailNotifications: 'all' });
   const [selectedUsers, setSelectedUsers] = useState([]);
 
   const [goalsData, setGoalsData] = useState({ goals: [], pagination: { page: 1, pages: 1, total: 0 } });
@@ -344,7 +344,7 @@ function AdminPage() {
 
         {activeTab === 'Users' && (
           <SectionCard title="Users">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 mb-4">
               <input
                 placeholder="Search name, username, email"
                 value={usersQuery.search}
@@ -359,6 +359,15 @@ function AdminPage() {
                 onChange={(e) => setUsersQuery((prev) => ({ ...prev, inactiveDays: e.target.value }))}
                 className="border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-900"
               />
+              <select
+                value={usersQuery.emailNotifications}
+                onChange={(e) => setUsersQuery((prev) => ({ ...prev, emailNotifications: e.target.value }))}
+                className="border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-900"
+              >
+                <option value="all">Email Notif: All</option>
+                <option value="enabled">Email Notif: Enabled</option>
+                <option value="disabled">Email Notif: Disabled</option>
+              </select>
               <button
                 onClick={() => {
                   setUsersQuery((prev) => ({ ...prev, page: 1 }));
@@ -381,6 +390,7 @@ function AdminPage() {
                       <th className="py-2">Select</th>
                       <th className="py-2">User</th>
                       <th className="py-2">Email</th>
+                      <th className="py-2">Email Notifications</th>
                       <th className="py-2">Completed Goals</th>
                       <th className="py-2">Total Goals</th>
                       <th className="py-2">Total Habits</th>
@@ -402,6 +412,7 @@ function AdminPage() {
                         </td>
                         <td className="py-2">{user.name} (@{user.username})</td>
                         <td className="py-2">{user.email}</td>
+                        <td className="py-2">{user.emailNotificationsEnabled ? 'Enabled' : 'Disabled'}</td>
                         <td className="py-2">{user.completedGoals || 0}</td>
                         <td className="py-2">{user.totalGoals || 0}</td>
                         <td className="py-2">{user.totalHabits || 0}</td>

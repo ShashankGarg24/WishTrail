@@ -208,38 +208,48 @@ notificationSchema.statics.createNotification = async function(notificationData)
 
     const notification = new this(notificationData);
     const saved = await notification.save();
-    // Push delivery (best-effort)
-    if (saved?.channels?.push) {
-      try {
-        const UserPreferences = require('./extended/UserPreferences');
-        const prefs = await UserPreferences.findOne({ userId: saved.userId })
-          .select('notificationSettings')
-          .lean();
-        let allowPush = true;
+    try {
+      const UserPreferences = require('./extended/UserPreferences');
+      const prefs = await UserPreferences.findOne({ userId: saved.userId })
+        .select('notifications')
+        .lean();
+      const ns = prefs?.notifications || {};
+      const inApp = ns?.inApp || {};
+      const emailEnabled = ns?.email?.enabled !== false;
+      const inAppEnabled = inApp?.enabled !== false;
 
-        // Respect per-category user settings
-        const t = saved.type;
-        const ns = prefs?.notificationSettings || {};
-        if (ns?.inAppEnabled === false) allowPush = false;
+      const socialTypes = new Set(['new_follower','follow_request','follow_request_accepted','activity_comment','comment_reply','mention','activity_liked','comment_liked','goal_liked']);
+      const isSocialType = socialTypes.has(saved.type);
+      const isDailyLogType = saved.type === 'daily_logs_prompt';
+      const isHabitType = saved.type === 'habit_reminder';
 
-        const socialTypes = new Set(['new_follower','follow_request','follow_request_accepted','activity_comment','comment_reply','mention','activity_liked','comment_liked','goal_liked']);
-        if (socialTypes.has(t) && ns?.social && ns.social.enabled === false) allowPush = false;
-        if (t === 'habit_reminder' && ns?.habits && ns.habits.enabled === false) allowPush = false;
-        if ((t === 'daily_logs_prompt' || t === 'weekly_summary' || t === 'monthly_summary') && ns?.dailyLogs && ns.dailyLogs.enabled === false) allowPush = false;
-        if (t === 'motivation_quote' && ns?.motivation && ns.motivation.enabled === false) allowPush = false;
+      let allowInAppTopic = inAppEnabled;
+      if (isSocialType && inApp.socialUpdates === false) allowInAppTopic = false;
+      if (isDailyLogType && inApp.dailyLogReminder === false) allowInAppTopic = false;
+      if (isHabitType && inApp.habitReminders === false) allowInAppTopic = false;
 
-        if (allowPush) {
-          const { sendFcmToUser } = require('../services/pushService');
-          const dispatch = await sendFcmToUser(saved.userId, saved);
-          if (dispatch?.queued) {
-            await this.updateOne(
-              { _id: saved._id },
-              { $set: { isDelivered: true, deliveredAt: new Date() } }
-            );
-          }
+      const channelPatch = {};
+      if (saved?.channels?.inApp && !allowInAppTopic) channelPatch['channels.inApp'] = false;
+      if (saved?.channels?.push && !allowInAppTopic) channelPatch['channels.push'] = false;
+      if (saved?.channels?.email && !emailEnabled) channelPatch['channels.email'] = false;
+
+      if (Object.keys(channelPatch).length) {
+        await this.updateOne({ _id: saved._id }, { $set: channelPatch });
+      }
+
+      const pushAllowed = saved?.channels?.push && allowInAppTopic;
+      if (pushAllowed) {
+        const { sendFcmToUser } = require('../services/pushService');
+        const dispatch = await sendFcmToUser(saved.userId, saved);
+        if (dispatch?.queued) {
+          await this.updateOne(
+            { _id: saved._id },
+            { $set: { isDelivered: true, deliveredAt: new Date() } }
+          );
         }
-      } catch (_) {}
-    }
+      }
+    } catch (_) {}
+
     return saved;
   } catch (error) {
     logger.error('Error creating notification:', error);
@@ -256,7 +266,7 @@ notificationSchema.statics.getUserNotifications = function(userId, options = {})
     skip = 0
   } = options;
   
-  const query = { userId };
+  const query = { userId, 'channels.inApp': { $ne: false } };
   
   if (isRead !== null) {
     query.isRead = isRead;
@@ -277,6 +287,7 @@ notificationSchema.statics.getUserNotifications = function(userId, options = {})
 notificationSchema.statics.getUnreadCount = function(userId) {
   return this.countDocuments({
     userId,
+    'channels.inApp': { $ne: false },
     isRead: false
   });
 };

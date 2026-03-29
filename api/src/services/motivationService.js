@@ -63,7 +63,7 @@ async function sendMorningQuotes(windowMinutes = 30) {
   const userIds = pgUsers.map(u => u.id);
   const preferences = await UserPreferences.find({ 
     userId: { $in: userIds } 
-  }).select('userId notificationSettings interests').lean();
+  }).select('userId notifications interests').lean();
   
   // Create a map for quick lookup
   const prefsMap = new Map();
@@ -76,10 +76,8 @@ async function sendMorningQuotes(windowMinutes = 30) {
   
   for (const u of pgUsers) {
     const prefs = prefsMap.get(u.id) || {};
-    const ns = prefs.notificationSettings || {};
-    if (ns?.inAppEnabled === false) continue;
-    const mot = ns.motivation || {};
-    if (mot.enabled === false || mot.frequency === 'off') continue;
+    const ns = prefs.notifications || {};
+    if (ns?.inApp?.enabled === false) continue;
     
     const { hhmm, weekday } = nowInTimezoneHHmmAndWeekday(u.timezone || 'UTC');
     const [h, m] = hhmm.split(':').map(n => Number(n));

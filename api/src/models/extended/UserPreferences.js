@@ -47,25 +47,12 @@ const userPreferencesSchema = new mongoose.Schema({
   notifications: {
     email: {
       enabled: { type: Boolean, default: true },
-      weeklyDigest: { type: Boolean, default: true },
-      goalReminders: { type: Boolean, default: true },
-      socialUpdates: { type: Boolean, default: true }
-    },
-    push: {
-      enabled: { type: Boolean, default: true },
-      goalReminders: { type: Boolean, default: true },
-      socialUpdates: { type: Boolean, default: true },
-      habitReminders: { type: Boolean, default: true },
-      quietHours: {
-        enabled: { type: Boolean, default: false },
-        start: { type: String, default: '22:00' }, // HH:mm format
-        end: { type: String, default: '08:00' }
-      }
     },
     inApp: {
       enabled: { type: Boolean, default: true },
-      sound: { type: Boolean, default: true },
-      vibration: { type: Boolean, default: true }
+      dailyLogReminder: { type: Boolean, default: true },
+      socialUpdates: { type: Boolean, default: true },
+      habitReminders: { type: Boolean, default: true }
     }
   },
 

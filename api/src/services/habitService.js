@@ -525,16 +525,17 @@ async function sendReminderNotifications({ windowMinutes = 10 } = {}) {
   const jobs = [];
   for (const u of users) {
     // Check notification preferences in MongoDB
-    const prefs = await UserPreferences.findOne({ userId: u.id }).select('notificationSettings').lean();
-    const ns = prefs?.notificationSettings || {};
-    if (ns.habits && ns.habits.enabled === false) continue;
+    const prefs = await UserPreferences.findOne({ userId: u.id }).select('notifications').lean();
+    const ns = prefs?.notifications || {};
+    if (ns?.inApp?.enabled === false) continue;
+    if (ns?.inApp?.habitReminders === false) continue;
     
     // Quiet hours removed
     const due = await dueHabitsForReminder(u.id, u.timezone || 'Asia/Kolkata', windowMinutes);
     for (const job of due) {
       const h = job.habit;
       // Skip if already done today (default true)
-      const skipIfDone = ns.habits && typeof ns.habits.skipIfDone === 'boolean' ? ns.habits.skipIfDone : true;
+      const skipIfDone = true;
       if (skipIfDone) {
         const todayKey = toDateKeyUTC(new Date());
         const done = await pgHabitLogService.isLoggedToday(h.id, todayKey);

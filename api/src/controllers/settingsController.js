@@ -2,41 +2,49 @@ const pgUserService = require('../services/pgUserService');
 const pgBlockService = require('../services/pgBlockService');
 const UserPreferences = require('../models/extended/UserPreferences');
 
-function normalizeNotificationSettings(raw = {}) {
-  const dailyLogsRaw = raw.dailyLogs || raw.DailyLogs || {};
-  const motivationRaw = raw.motivation || {};
-  const socialRaw = raw.social || {};
+function normalizeNotifications(raw = {}, legacy = {}) {
+  const dailyLogsRaw = legacy.dailyLogs || legacy.DailyLogs || {};
+  const socialRaw = legacy.social || {};
+  const habitsRaw = legacy.habits || {};
 
-  const dailyLogsEnabled = typeof dailyLogsRaw.enabled === 'boolean'
+  const enabledFromLegacy = typeof legacy.inAppEnabled === 'boolean' ? legacy.inAppEnabled : undefined;
+  const dailyFromLegacy = typeof dailyLogsRaw.enabled === 'boolean'
     ? dailyLogsRaw.enabled
-    : (dailyLogsRaw.frequency ? dailyLogsRaw.frequency !== 'off' : true);
-  const dailyLogsFrequency = ['daily', 'weekly', 'off'].includes(dailyLogsRaw.frequency)
-    ? dailyLogsRaw.frequency
-    : (dailyLogsEnabled ? 'daily' : 'off');
-
-  const motivationEnabled = typeof motivationRaw.enabled === 'boolean'
-    ? motivationRaw.enabled
-    : (motivationRaw.frequency ? motivationRaw.frequency !== 'off' : false);
-  const motivationFrequency = ['off', 'daily', 'weekly'].includes(motivationRaw.frequency)
-    ? motivationRaw.frequency
-    : (motivationEnabled ? 'daily' : 'off');
+    : (dailyLogsRaw.frequency ? dailyLogsRaw.frequency !== 'off' : undefined);
+  const socialFromLegacy = typeof socialRaw.enabled === 'boolean' ? socialRaw.enabled : undefined;
+  const habitFromLegacy = typeof habitsRaw.enabled === 'boolean' ? habitsRaw.enabled : undefined;
 
   return {
-    inAppEnabled: typeof raw.inAppEnabled === 'boolean' ? raw.inAppEnabled : true,
+    email: {
+      enabled: typeof raw?.email?.enabled === 'boolean' ? raw.email.enabled : true,
+    },
+    inApp: {
+      enabled: typeof raw?.inApp?.enabled === 'boolean' ? raw.inApp.enabled : (enabledFromLegacy ?? true),
+      dailyLogReminder: typeof raw?.inApp?.dailyLogReminder === 'boolean' ? raw.inApp.dailyLogReminder : (dailyFromLegacy ?? true),
+      socialUpdates: typeof raw?.inApp?.socialUpdates === 'boolean' ? raw.inApp.socialUpdates : (socialFromLegacy ?? true),
+      habitReminders: typeof raw?.inApp?.habitReminders === 'boolean' ? raw.inApp.habitReminders : (habitFromLegacy ?? true),
+    }
+  };
+}
+
+function toLegacyNotificationSettings(notifications = {}) {
+  const inApp = notifications?.inApp || {};
+  return {
+    inAppEnabled: inApp.enabled !== false,
     habits: {
-      enabled: typeof raw?.habits?.enabled === 'boolean' ? raw.habits.enabled : true,
-      skipIfDone: typeof raw?.habits?.skipIfDone === 'boolean' ? raw.habits.skipIfDone : true
+      enabled: inApp.habitReminders !== false,
+      skipIfDone: true
     },
     dailyLogs: {
-      enabled: dailyLogsEnabled,
-      frequency: dailyLogsFrequency
+      enabled: inApp.dailyLogReminder !== false,
+      frequency: inApp.dailyLogReminder === false ? 'off' : 'daily'
     },
     motivation: {
-      enabled: motivationEnabled,
-      frequency: motivationFrequency
+      enabled: false,
+      frequency: 'off'
     },
     social: {
-      enabled: typeof socialRaw.enabled === 'boolean' ? socialRaw.enabled : true
+      enabled: inApp.socialUpdates !== false
     }
   };
 }
@@ -321,15 +329,16 @@ const unblockUser = async (req, res, next) => {
 const getNotificationSettings = async (req, res, next) => {
   try {
     const prefs = await UserPreferences.findOne({ userId: req.user.id })
-      .select('notificationSettings preferences.notifications')
+      .select('notifications notificationSettings preferences.notifications')
       .lean();
 
-    const normalized = normalizeNotificationSettings(prefs?.notificationSettings || {});
+    const normalized = normalizeNotifications(prefs?.notifications || {}, prefs?.notificationSettings || {});
 
     res.status(200).json({
       success: true,
       data: {
-        notificationSettings: normalized,
+        notifications: normalized,
+        notificationSettings: toLegacyNotificationSettings(normalized),
         preferences: prefs.preferences?.notifications || {}
       }
     });
@@ -343,45 +352,17 @@ const getNotificationSettings = async (req, res, next) => {
 // @access  Private
 const updateNotificationSettings = async (req, res, next) => {
   try {
-    const { notificationSettings, preferences } = req.body;
+    const { notificationSettings, notifications, preferences } = req.body;
     
     const updateData = {};
     
-    if (notificationSettings) {
-      // Validate and update notificationSettings fields
-      if (typeof notificationSettings.inAppEnabled !== 'undefined') {
-        updateData['notificationSettings.inAppEnabled'] = notificationSettings.inAppEnabled;
-      }
-      if (notificationSettings.habits) {
-        if (typeof notificationSettings.habits.enabled !== 'undefined') {
-          updateData['notificationSettings.habits.enabled'] = notificationSettings.habits.enabled;
-        }
-        if (typeof notificationSettings.habits.skipIfDone !== 'undefined') {
-          updateData['notificationSettings.habits.skipIfDone'] = notificationSettings.habits.skipIfDone;
-        }
-      }
-      const dailyLogsInput = notificationSettings.dailyLogs || notificationSettings.DailyLogs;
-      if (dailyLogsInput) {
-        if (typeof dailyLogsInput.enabled !== 'undefined') {
-          updateData['notificationSettings.dailyLogs.enabled'] = dailyLogsInput.enabled;
-        }
-        if (dailyLogsInput.frequency && ['daily', 'weekly', 'off'].includes(dailyLogsInput.frequency)) {
-          updateData['notificationSettings.dailyLogs.frequency'] = dailyLogsInput.frequency;
-        }
-      }
-      if (notificationSettings.motivation) {
-        if (typeof notificationSettings.motivation.enabled !== 'undefined') {
-          updateData['notificationSettings.motivation.enabled'] = notificationSettings.motivation.enabled;
-        }
-        if (notificationSettings.motivation.frequency && ['off', 'daily', 'weekly'].includes(notificationSettings.motivation.frequency)) {
-          updateData['notificationSettings.motivation.frequency'] = notificationSettings.motivation.frequency;
-        }
-      }
-      if (notificationSettings.social) {
-        if (typeof notificationSettings.social.enabled !== 'undefined') {
-          updateData['notificationSettings.social.enabled'] = notificationSettings.social.enabled;
-        }
-      }
+    if (notificationSettings || notifications) {
+      const normalized = normalizeNotifications(notifications || {}, notificationSettings || {});
+      updateData['notifications.email.enabled'] = normalized.email.enabled;
+      updateData['notifications.inApp.enabled'] = normalized.inApp.enabled;
+      updateData['notifications.inApp.dailyLogReminder'] = normalized.inApp.dailyLogReminder;
+      updateData['notifications.inApp.socialUpdates'] = normalized.inApp.socialUpdates;
+      updateData['notifications.inApp.habitReminders'] = normalized.inApp.habitReminders;
     }
 
     if (preferences) {
@@ -398,17 +379,18 @@ const updateNotificationSettings = async (req, res, next) => {
 
     const prefs = await UserPreferences.findOneAndUpdate(
       { userId: req.user.id },
-      { $set: updateData },
+      { $set: updateData, $unset: { notificationSettings: '' } },
       { new: true, upsert: true, runValidators: true }
-    ).select('notificationSettings preferences.notifications');
+    ).select('notifications preferences.notifications');
 
-    const normalizedSettings = normalizeNotificationSettings(prefs?.notificationSettings || notificationSettings || {});
+    const normalizedNotifications = normalizeNotifications(prefs?.notifications || {}, {});
 
     res.status(200).json({
       success: true,
       message: 'Notification settings updated successfully',
       data: {
-        notificationSettings: normalizedSettings,
+        notifications: normalizedNotifications,
+        notificationSettings: toLegacyNotificationSettings(normalizedNotifications),
         preferences: prefs.preferences?.notifications || {}
       }
     });
