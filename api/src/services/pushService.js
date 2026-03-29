@@ -111,27 +111,36 @@ function ensureFirebaseInitialized() {
 }
 
 async function sendFcmToUser(userId, notification) {
-  // Run in background - don't block the caller
-  setImmediate(async () => {
-    try {
-      ensureFirebaseInitialized();
-      if (!admin.apps || admin.apps.length === 0) {
-        logger.error('[push] FCM send aborted: Firebase not initialized');
-        return;
-      }
-      const tokens = await DeviceToken.find({ userId, isActive: true, provider: { $in: ['fcm', 'expo'] } })
-        .select('token provider platform')
-        .lean();
-      if (!tokens.length) return;
-
-      await sendFcmInternal(tokens, notification);
-    } catch (error) {
-      logger.error('[push] Background FCM error:', error);
+  try {
+    ensureFirebaseInitialized();
+    if (!admin.apps || admin.apps.length === 0) {
+      logger.error('[push] FCM send aborted: Firebase not initialized');
+      return { ok: false, queued: false, tokenCount: 0 };
     }
-  });
-  
-  // Return immediately
-  return { ok: true, queued: true };
+
+    const tokens = await DeviceToken.find({ userId, isActive: true, provider: { $in: ['fcm', 'expo'] } })
+      .select('token provider platform')
+      .lean();
+
+    if (!tokens.length) {
+      logger.info('[push] No active device tokens for user', userId);
+      return { ok: true, queued: false, tokenCount: 0 };
+    }
+
+    // Run actual send in background after token lookup.
+    setImmediate(async () => {
+      try {
+        await sendFcmInternal(tokens, notification);
+      } catch (error) {
+        logger.error('[push] Background FCM error:', error);
+      }
+    });
+
+    return { ok: true, queued: true, tokenCount: tokens.length };
+  } catch (error) {
+    logger.error('[push] sendFcmToUser setup error:', error?.message || error);
+    return { ok: false, queued: false, tokenCount: 0 };
+  }
 }
 
 async function sendFcmInternal(tokens, notification) {

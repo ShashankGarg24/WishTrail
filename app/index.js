@@ -233,7 +233,7 @@ function App() {
 
   // FCM init + handlers (unchanged)
   const [fcmToken, setFcmToken] = useState(null);
-  const didRegisterRef = useRef(false);
+  const lastRegisteredSignatureRef = useRef('');
 
   const [googleRequest, googleResponse, promptGoogleSignIn] = Google.useIdTokenAuthRequest({
     iosClientId: GOOGLE_IOS_CLIENT_ID || undefined,
@@ -296,15 +296,28 @@ function App() {
   useEffect(() => {
     (async () => {
       try {
-        if (didRegisterRef.current) return;
         const API = (Constants.expoConfig?.extra?.API_URL || Constants.manifest?.extra?.API_URL || '').replace(/\/$/, '');
         if (!API || !fcmToken || !(authToken || userId)) return;
-        await fetch(`${API}/notifications/devices/register`, {
+
+        const currentUserId = userId || null;
+        const signature = `${String(currentUserId || '')}:${String(fcmToken || '')}`;
+        if (lastRegisteredSignatureRef.current === signature) return;
+
+        const response = await fetch(`${API}/notifications/devices/register`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}) },
           body: JSON.stringify({ token: fcmToken, platform: Platform.OS, provider: 'fcm', userId: userId || undefined })
         });
-        didRegisterRef.current = true;
+
+        if (response.ok) {
+          lastRegisteredSignatureRef.current = signature;
+          try { console.log('FCM register success for user:', currentUserId || 'auth-only'); } catch { }
+        } else {
+          try {
+            const txt = await response.text();
+            console.log('FCM register failed:', response.status, txt?.slice?.(0, 200));
+          } catch { }
+        }
       } catch (_) { }
     })();
   }, [authToken, userId, fcmToken]);

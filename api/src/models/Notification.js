@@ -226,12 +226,16 @@ notificationSchema.statics.createNotification = async function(notificationData)
         if ((t === 'daily_logs_prompt' || t === 'weekly_summary' || t === 'monthly_summary') && ns?.dailyLogs && ns.dailyLogs.enabled === false) allowPush = false;
         if (t === 'motivation_quote' && ns?.motivation && ns.motivation.enabled === false) allowPush = false;
 
-        // UNCOMMENT BELOW TO RE-ENABLE NOTIFICATION
-        // if (allowPush) {
-        //   const { sendFcmToUser } = require('../services/pushService');
-        //   await sendFcmToUser(saved.userId, saved);
-        //   await this.updateOne({ _id: saved._id }, { $set: { isDelivered: true, deliveredAt: new Date() } });
-        // }
+        if (allowPush) {
+          const { sendFcmToUser } = require('../services/pushService');
+          const dispatch = await sendFcmToUser(saved.userId, saved);
+          if (dispatch?.queued) {
+            await this.updateOne(
+              { _id: saved._id },
+              { $set: { isDelivered: true, deliveredAt: new Date() } }
+            );
+          }
+        }
       } catch (_) {}
     }
     return saved;
