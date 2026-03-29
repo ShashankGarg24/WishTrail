@@ -58,7 +58,6 @@ function App() {
   const [initialResolved, setInitialResolved] = useState(false);
   const [hasLoadedDashboard, setHasLoadedDashboard] = useState(false);
   // Expo push removed
-  const authProbeTries = useRef(0);
   const authProbeTimer = useRef(null);
   const splashFallbackTimer = useRef(null);
 
@@ -388,22 +387,37 @@ function App() {
       `;
       webRef.current?.injectJavaScript(script);
       injectPullToRefreshJS();
-      if (!authToken && authProbeTries.current < 10) {
-        clearTimeout(authProbeTimer.current);
-        authProbeTimer.current = setTimeout(() => {
-          authProbeTries.current += 1;
-          injectAuthProbe();
-        }, 1500);
-      } else {
-        clearTimeout(authProbeTimer.current);
-      }
     } catch { }
-  }, [authToken, injectPullToRefreshJS]);
+  }, [injectPullToRefreshJS]);
 
   useEffect(() => {
     const t = setTimeout(() => injectAuthProbe(), 1200);
     return () => clearTimeout(t);
   }, [injectAuthProbe]);
+
+  // Keep probing while native auth context is missing; login can happen long after initial load.
+  useEffect(() => {
+    if (authToken && userId) {
+      if (authProbeTimer.current) {
+        clearInterval(authProbeTimer.current);
+        authProbeTimer.current = null;
+      }
+      return;
+    }
+
+    if (!authProbeTimer.current) {
+      authProbeTimer.current = setInterval(() => {
+        try { injectAuthProbe(); } catch { }
+      }, 4000);
+    }
+
+    return () => {
+      if (authProbeTimer.current) {
+        clearInterval(authProbeTimer.current);
+        authProbeTimer.current = null;
+      }
+    };
+  }, [authToken, userId, injectAuthProbe]);
 
   // Inject refresh token helper
   const injectRefreshToken = useCallback(async () => {
