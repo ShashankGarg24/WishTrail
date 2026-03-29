@@ -22,7 +22,12 @@ try {
 const AsyncStorage = (() => { try { return require('@react-native-async-storage/async-storage').default; } catch { return null; } })();
 let SecureStore = null; try { SecureStore = require('expo-secure-store'); } catch (_) { SecureStore = null; }
 
-const WEB_URL = (Constants.expoConfig?.extra?.WEB_URL || Constants.manifest?.extra?.WEB_URL || 'http://localhost:5173');
+const WEB_URL = (
+  Constants.expoConfig?.extra?.WEB_URL ||
+  Constants.manifest?.extra?.WEB_URL ||
+  Constants.manifest2?.extra?.expoClient?.extra?.WEB_URL ||
+  'http://localhost:5173'
+);
 // Backend API base (include /api/v1). Falls back to WEB_URL + /api/v1 when not provided
 const API_BASE = (
   Constants.expoConfig?.extra?.API_URL ||
@@ -245,6 +250,7 @@ function App() {
     if (disableFcm) { try { console.log('FCM disabled via extra.DISABLE_FCM'); } catch { }; return; }
     (async () => {
       try {
+        try { console.log('[FCM] init start', { platform: Platform.OS }); } catch { }
         let messaging;
         try {
           const mod = require('@react-native-firebase/messaging');
@@ -254,9 +260,14 @@ function App() {
 
         let authStatus = null;
         try { authStatus = await messaging().requestPermission(); } catch (_) { }
+        try { console.log('[FCM] permission status:', authStatus); } catch { }
 
         const enabled = (typeof authStatus === 'number') ? (authStatus >= 1) : !!authStatus;
-        if (!enabled) return;
+        if (!enabled) {
+          try { console.log('[FCM] permission not granted; skipping token'); } catch { }
+          return;
+        }
+        try { if (typeof messaging().registerDeviceForRemoteMessages === 'function') await messaging().registerDeviceForRemoteMessages(); } catch (_) { }
         const token = await messaging().getToken();
         setFcmToken(token);
         try { console.log('FCM token:', token ? (token.slice(0, 12) + '...') : 'null'); } catch { }
@@ -296,7 +307,7 @@ function App() {
   useEffect(() => {
     (async () => {
       try {
-        const API = (Constants.expoConfig?.extra?.API_URL || Constants.manifest?.extra?.API_URL || '').replace(/\/$/, '');
+        const API = (API_BASE || '').replace(/\/$/, '');
         console.log('[FCM Register Debug] API:', API ? 'present' : 'MISSING', 'fcmToken:', fcmToken ? fcmToken.slice(0, 12) + '...' : 'MISSING', 'authToken:', authToken ? 'present' : 'MISSING', 'userId:', userId || 'MISSING');
         
         if (!API || !fcmToken || !(authToken || userId)) {
@@ -334,6 +345,28 @@ function App() {
       }
     })();
   }, [authToken, userId, fcmToken]);
+
+  // Retry FCM token fetch when auth arrives but token is missing (helps recover from startup race)
+  useEffect(() => {
+    if (!authToken || fcmToken) return;
+    (async () => {
+      try {
+        let messaging;
+        try {
+          const mod = require('@react-native-firebase/messaging');
+          messaging = mod?.default || mod;
+        } catch (_) { messaging = null; }
+        if (!messaging) return;
+        const token = await messaging().getToken();
+        if (token) {
+          setFcmToken(token);
+          try { console.log('[FCM] retry token success:', token.slice(0, 12) + '...'); } catch { }
+        }
+      } catch (e) {
+        try { console.log('[FCM] retry token failed:', e?.message || e); } catch { }
+      }
+    })();
+  }, [authToken, fcmToken]);
 
   // Inject auth + PTR gesture
   const injectAuthProbe = useCallback(() => {
