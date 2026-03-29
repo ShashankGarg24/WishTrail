@@ -12,8 +12,15 @@ WebBrowser.maybeCompleteAuthSession();
 
 // RNFB: set a background handler early to suppress warnings and ensure background messages are handled gracefully.
 try {
-  const mod = require('@react-native-firebase/messaging');
-  const bgMessaging = mod && (mod.default || mod);
+  let bgMessaging;
+  try {
+    const mod = require('@react-native-firebase/messaging');
+    messaging = mod?.default || mod;
+    console.log('[FCM] module loaded:', !!messaging);
+  } catch (e) {
+    console.log('[FCM] require failed:', e);
+  }
+  bgMessaging = mod && (mod.default || mod);
   if (bgMessaging && typeof bgMessaging === 'function' && Platform.OS === 'android') {
     try { bgMessaging().setBackgroundMessageHandler(async () => { }); } catch (_) { }
   }
