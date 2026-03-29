@@ -49,14 +49,31 @@ const followUser = async (req, res, next) => {
     // If target user is private, create follow request and notification
     if (userToFollow.is_private) {
       await pgFollowService.requestFollow(followerId, parseInt(userId));
-      await Notification.createFollowRequestNotification(followerId, parseInt(userId));
+      
+      // Send follow request notification asynchronously (non-blocking)
+      setImmediate(async () => {
+        try {
+          await Notification.createFollowRequestNotification(followerId, parseInt(userId));
+        } catch (err) {
+          logger.error('[followUser] Error creating follow request notification:', err?.message);
+        }
+      });
+      
       return res.status(200).json({ success: true, message: 'Follow request sent', data: { requested: true } });
     }
 
     // Follow the user directly for public profile
     await pgFollowService.followUser(followerId, parseInt(userId));
-    const notif = await Notification.createFollowNotification(followerId, parseInt(userId));
-    logger.info('[Follow] Notification created:', notif ? 'Yes' : 'No', 'for follower:', followerId, 'following:', userId);
+    
+    // Send follow notification asynchronously (non-blocking)
+    setImmediate(async () => {
+      try {
+        await Notification.createFollowNotification(followerId, parseInt(userId));
+      } catch (err) {
+        logger.error('[followUser] Error creating notification:', err?.message);
+      }
+    });
+    logger.info('[Follow] Notification queued for follower:', followerId, 'following:', userId);
     // Follower counts are updated automatically by database triggers
     
     res.status(200).json({ success: true, message: 'User followed successfully', data: { requested: false } });
@@ -77,7 +94,16 @@ const cancelFollowRequest = async (req, res, next) => {
     if (!success) {
       return res.status(404).json({ success: false, message: 'No pending request' });
     }
-    await Notification.deleteFollowRequestNotification(followerId, userId);
+    
+    // Delete follow request notification asynchronously (non-blocking)
+    setImmediate(async () => {
+      try {
+        await Notification.deleteFollowRequestNotification(followerId, userId);
+      } catch (err) {
+        logger.error('[cancelFollowRequest] Error deleting notification:', err?.message);
+      }
+    });
+    
     return res.status(200).json({ success: true, message: 'Follow request canceled' });
   } catch (err) {
     next(err);

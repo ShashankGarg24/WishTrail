@@ -1337,33 +1337,39 @@ const toggleGoalCompletion = async (req, res, next) => {
           // Don't fail the request if this update fails
         }
 
-        // Mention detection in completion note (if public)
+        // Mention detection in completion note (if public) - async/non-blocking
         try {
           if (normalizedCompletionNote) {
             const mentionMatches = (normalizedCompletionNote.match(/@([a-zA-Z0-9._-]{3,20})/g) || []).map(m => m.slice(1).toLowerCase());
             if (mentionMatches.length > 0) {
-              const pgUserService = require('../services/pgUserService');
-              const users = await pgUserService.getUsersByUsernames(mentionMatches);
-              const mentionedIds = Array.from(new Set(users.map(u => u.id)));
-              
-              // Get the activity for mention notifications
-              const savedActivity = await Activity.findOne({
-                userId: req.user.id,
-                'data.goalId': goal.id,
-                type: 'goal_activity'
-              }).lean();
-              
-              if (savedActivity) {
-                const Notification = require('../models/Notification');
-                await Promise.all(mentionedIds
-                  .filter(uid => uid !== req.user.id)
-                  .map(uid => Notification.createMentionNotification(req.user.id, uid, { activityId: savedActivity._id }))
-                );
-              }
-              }
+              // Send mention notifications asynchronously (non-blocking)
+              setImmediate(async () => {
+                try {
+                  const pgUserService = require('../services/pgUserService');
+                  const users = await pgUserService.getUsersByUsernames(mentionMatches);
+                  const mentionedIds = Array.from(new Set(users.map(u => u.id)));
+                  
+                  // Get the activity for mention notifications
+                  const savedActivity = await Activity.findOne({
+                    userId: req.user.id,
+                    'data.goalId': goal.id,
+                    type: 'goal_activity'
+                  }).lean();
+                  
+                  if (savedActivity) {
+                    const Notification = require('../models/Notification');
+                    await Promise.all(mentionedIds
+                      .filter(uid => uid !== req.user.id)
+                      .map(uid => Notification.createMentionNotification(req.user.id, uid, { activityId: savedActivity._id }))
+                    );
+                  }
+                } catch (err) {
+                  logger.error('[toggleGoalCompletion] Error with mention notifications:', err?.message);
+                }
+              });
             }
           }
-       catch (_) { }
+        } catch (_) { }
 
         // Combine PostgreSQL and MongoDB data for result
         resultGoal = {
@@ -1536,6 +1542,18 @@ const toggleGoalLike = async (req, res, next) => {
     }
 
     const result = await pgLikeService.toggleLike(req.user.id, 'goal', goal.id);
+
+    // Send like notification asynchronously (non-blocking)
+    if (result.isLiked) {
+      setImmediate(async () => {
+        try {
+          const Notification = require('../models/Notification');
+          await Notification.createGoalLikeNotification(req.user.id, goal.id, goal.user_id);
+        } catch (err) {
+          logger.error('[toggleGoalLike] Error creating notification:', err?.message);
+        }
+      });
+    }
 
     res.status(200).json({
       success: true,

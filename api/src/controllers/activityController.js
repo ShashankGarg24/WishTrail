@@ -352,8 +352,16 @@ const getUserActivities = async (req, res, next) => {
         pgLikeService.getLikeCount(String(id), 'activity'),
         pgLikeService.hasUserLiked(req.user.id, 'activity', String(id))
       ]);
+      
+      // Send like notification asynchronously (non-blocking)
       if (isLiked) {
-        await Notification.createActivityLikeNotification(req.user.id, activity);
+        setImmediate(async () => {
+          try {
+            await Notification.createActivityLikeNotification(req.user.id, activity);
+          } catch (err) {
+            logger.error('[toggleActivityLike] Error creating notification:', err?.message);
+          }
+        });
       }
       
       res.status(200).json({ success: true, data: { likeCount, isLiked } });
@@ -660,9 +668,19 @@ const addActivityComment = async (req, res, next) => {
     }
     const comment = await ActivityComment.create({ activityId: id, userId: String(req.user.id), text: text.trim() });
     const [user] = await Promise.all([
-      pgUserService.getUserById(req.user.id),
-      Notification.createActivityCommentNotification(req.user.id, activity)
+      pgUserService.getUserById(req.user.id)
+      // Don't await notification creation - do it async/non-blocking
     ]);
+    
+    // Send comment notification asynchronously (non-blocking)
+    setImmediate(async () => {
+      try {
+        await Notification.createActivityCommentNotification(req.user.id, activity);
+      } catch (err) {
+        logger.error('[addActivityComment] Error creating comment notification:', err?.message);
+      }
+    });
+    
     const populated = {
       ...comment.toObject(),
       userId: {
@@ -680,10 +698,18 @@ const addActivityComment = async (req, res, next) => {
         const User = require('../models/User');
         const users = await User.find({ username: { $in: mentionMatches } }).select('_id').lean();
         const mentionedIds = Array.from(new Set(users.map(u => String(u._id))));
-        await Promise.all(mentionedIds
-          .filter(uid => uid !== String(req.user.id) && uid !== String(activity.userId))
-          .map(uid => Notification.createMentionNotification(req.user.id, uid, { activityId: id, commentId: comment._id }))
-        );
+        
+        // Send mention notifications asynchronously (non-blocking)
+        setImmediate(async () => {
+          try {
+            await Promise.all(mentionedIds
+              .filter(uid => uid !== String(req.user.id) && uid !== String(activity.userId))
+              .map(uid => Notification.createMentionNotification(req.user.id, uid, { activityId: id, commentId: comment._id }))
+            );
+          } catch (err) {
+            logger.error('[addActivityComment] Error creating mention notifications:', err?.message);
+          }
+        });
       }
     } catch (_) {}
     res.status(201).json({ success: true, data: { comment: populated } });
@@ -721,23 +747,38 @@ const replyToActivityComment = async (req, res, next) => {
         avatar: user.avatar_url
       }
     };
-    await Notification.createCommentReplyNotification(req.user.id, parent, activity);
-    if (mentionUserId) {
-      await Notification.createMentionNotification(req.user.id, mentionUserId, { activityId: id, commentId });
-    }
-    // Mention detection in reply text as well
-    try {
-      const mentionMatches = (text.match(/@([a-zA-Z0-9._-]{3,20})/g) || []).map(m => m.slice(1).toLowerCase());
-      if (mentionMatches.length > 0) {
-        const User = require('../models/User');
-        const users = await User.find({ username: { $in: mentionMatches } }).select('_id').lean();
-        const mentionedIds = Array.from(new Set(users.map(u => String(u._id))));
-        await Promise.all(mentionedIds
-          .filter(uid => uid !== String(req.user.id) && uid !== String(parent.userId))
-          .map(uid => Notification.createMentionNotification(req.user.id, uid, { activityId: id, commentId: reply._id }))
-        );
+    
+    // Send reply and mention notifications asynchronously (non-blocking)
+    setImmediate(async () => {
+      try {
+        await Notification.createCommentReplyNotification(req.user.id, parent, activity);
+      } catch (err) {
+        logger.error('[replyToActivityComment] Error creating reply notification:', err?.message);
       }
-    } catch (_) {}
+      
+      if (mentionUserId) {
+        try {
+          await Notification.createMentionNotification(req.user.id, mentionUserId, { activityId: id, commentId });
+        } catch (err) {
+          logger.error('[replyToActivityComment] Error creating mention notification:', err?.message);
+        }
+      }
+      
+      // Mention detection in reply text as well
+      try {
+        const mentionMatches = (text.match(/@([a-zA-Z0-9._-]{3,20})/g) || []).map(m => m.slice(1).toLowerCase());
+        if (mentionMatches.length > 0) {
+          const User = require('../models/User');
+          const users = await User.find({ username: { $in: mentionMatches } }).select('_id').lean();
+          const mentionedIds = Array.from(new Set(users.map(u => String(u._id))));
+          await Promise.all(mentionedIds
+            .filter(uid => uid !== String(req.user.id) && uid !== String(parent.userId))
+            .map(uid => Notification.createMentionNotification(req.user.id, uid, { activityId: id, commentId: reply._id }))
+          );
+        }
+      } catch (_) {}
+    });
+    
     res.status(201).json({ success: true, data: { reply: populated } });
   } catch (err) {
     next(err);
@@ -768,9 +809,18 @@ const toggleCommentLike = async (req, res, next) => {
       pgLikeService.getLikeCount(targetId, 'activity_comment'),
       pgLikeService.hasUserLiked(req.user.id, 'activity_comment', targetId)
     ]);
+    
+    // Send like notification asynchronously (non-blocking)
     if (isLiked) {
-      await Notification.createCommentLikeNotification(req.user.id, comment);
+      setImmediate(async () => {
+        try {
+          await Notification.createCommentLikeNotification(req.user.id, comment);
+        } catch (err) {
+          logger.error('[toggleCommentLike] Error creating notification:', err?.message);
+        }
+      });
     }
+    
     res.status(200).json({ success: true, data: { likeCount, isLiked } });
   } catch (err) {
     next(err);

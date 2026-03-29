@@ -343,11 +343,17 @@ const acceptFollowRequest = async (req, res, next) => {
     // Accept the follow request
     await pgFollowService.acceptFollowRequest(followerId, userId);
 
-    // Convert the notification from follow_request to new_follower
-    await Notification.convertFollowRequestToNewFollower(followerId, userId);
-
-    // Notify the requester that their request was accepted
-    await Notification.createFollowAcceptedNotification(userId, followerId);
+    // Convert and notify asynchronously (non-blocking)
+    setImmediate(async () => {
+      try {
+        // Convert the notification from follow_request to new_follower
+        await Notification.convertFollowRequestToNewFollower(followerId, userId);
+        // Notify the requester that their request was accepted
+        await Notification.createFollowAcceptedNotification(userId, followerId);
+      } catch (err) {
+        logger.error('[acceptFollowRequest] Error with notifications:', err?.message);
+      }
+    });
 
     return res.status(200).json({ 
       success: true, 
@@ -382,8 +388,14 @@ const rejectFollowRequest = async (req, res, next) => {
     // Reject the follow request
     await pgFollowService.rejectFollowRequest(followerId, userId);
 
-    // Delete the notification
-    await Notification.deleteFollowRequestNotification(followerId, userId);
+    // Delete notification asynchronously (non-blocking)
+    setImmediate(async () => {
+      try {
+        await Notification.deleteFollowRequestNotification(followerId, userId);
+      } catch (err) {
+        logger.error('[rejectFollowRequest] Error deleting notification:', err?.message);
+      }
+    });
 
     return res.status(200).json({ 
       success: true, 
