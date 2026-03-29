@@ -297,12 +297,21 @@ function App() {
     (async () => {
       try {
         const API = (Constants.expoConfig?.extra?.API_URL || Constants.manifest?.extra?.API_URL || '').replace(/\/$/, '');
-        if (!API || !fcmToken || !(authToken || userId)) return;
+        console.log('[FCM Register Debug] API:', API ? 'present' : 'MISSING', 'fcmToken:', fcmToken ? fcmToken.slice(0, 12) + '...' : 'MISSING', 'authToken:', authToken ? 'present' : 'MISSING', 'userId:', userId || 'MISSING');
+        
+        if (!API || !fcmToken || !(authToken || userId)) {
+          console.log('[FCM Register] Skipping: missing API/token/auth');
+          return;
+        }
 
         const currentUserId = userId || null;
         const signature = `${String(currentUserId || '')}:${String(fcmToken || '')}`;
-        if (lastRegisteredSignatureRef.current === signature) return;
+        if (lastRegisteredSignatureRef.current === signature) {
+          console.log('[FCM Register] Skipping: already registered with same signature');
+          return;
+        }
 
+        console.log('[FCM Register] Attempting registration for user:', currentUserId);
         const response = await fetch(`${API}/notifications/devices/register`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}) },
@@ -311,14 +320,18 @@ function App() {
 
         if (response.ok) {
           lastRegisteredSignatureRef.current = signature;
-          try { console.log('FCM register success for user:', currentUserId || 'auth-only'); } catch { }
+          console.log('✓ FCM register SUCCESS for user:', currentUserId || 'auth-only');
         } else {
           try {
             const txt = await response.text();
-            console.log('FCM register failed:', response.status, txt?.slice?.(0, 200));
-          } catch { }
+            console.log('✗ FCM register FAILED:', response.status, txt?.slice?.(0, 300));
+          } catch (e) {
+            console.log('✗ FCM register FAILED:', response.status, response.statusText);
+          }
         }
-      } catch (_) { }
+      } catch (e) {
+        console.log('[FCM Register Error]:', e?.message || e);
+      }
     })();
   }, [authToken, userId, fcmToken]);
 
