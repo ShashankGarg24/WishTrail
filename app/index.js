@@ -297,7 +297,7 @@ function App() {
           }
         } catch { }
       } catch (e) {
-        try { console.log('FCM init error', e?.message || e); } caFCM tch { }
+        try { console.log('FCM init error', e?.message || e); } catch { }
       }
     })();
   }, [webReady, forwardDeepLinkToWeb]);
