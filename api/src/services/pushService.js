@@ -40,7 +40,7 @@ function buildDeepLink(notification) {
       if (actor) return `${base}/profile/${actor}`;
       return `${base}/notifications`;
     }
-    if (notification?.type === 'daily_logs_prompt') return `${base}/profile@${encodeURIComponent(actor.username)}?tab=daily-logs`;
+    if (notification?.type === 'daily_logs_prompt') return `${base}/profile?tab=daily-logs`;
     if (notification?.type === 'motivation_quote') return `${base}/dashboard`;
   } catch {}
   return `${base}/notifications`;
@@ -146,6 +146,20 @@ async function sendFcmToUser(userId, notification) {
 async function sendFcmInternal(tokens, notification) {
 
   const dataUrl = buildDeepLink(notification);
+  const type = String(notification?.type || '');
+  const mobileOnlyTypes = new Set([
+    'new_follower',
+    'follow_request',
+    'follow_request_accepted',
+    'activity_comment',
+    'comment_reply',
+    'mention',
+    'activity_liked',
+    'comment_liked',
+    'goal_liked',
+    'daily_logs_prompt',
+    'motivation_quote'
+  ]);
   
   // Deduplicate tokens first
   const uniqueTokens = [];
@@ -159,13 +173,17 @@ async function sendFcmInternal(tokens, notification) {
   
   
   // Separate web and mobile tokens to avoid duplicates
-  const webTokens = uniqueTokens
+  let webTokens = uniqueTokens
     .filter(t => t.platform === 'web' && t.provider === 'fcm')
     .map(t => t.token);
   
   const mobileTokens = uniqueTokens
     .filter(t => t.platform !== 'web' && (t.provider === 'fcm' || (t.token && !t.token.startsWith('ExponentPushToken'))))
     .map(t => t.token);
+
+  if (mobileOnlyTypes.has(type)) {
+    webTokens = [];
+  }
 
 
   const invalidFcm = [];

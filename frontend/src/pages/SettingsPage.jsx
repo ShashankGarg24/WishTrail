@@ -9,6 +9,7 @@ import AccountSection from '../components/settings/AccountSection';
 const SettingsPageNew = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const isNativeApp = typeof window !== 'undefined' && !!window.ReactNativeWebView;
   let initialTab = searchParams.get('section') || searchParams.get('tab') || 'personal-info';
   // Normalize 'personal' to 'personal-info'
   if (initialTab === 'personal') initialTab = 'personal-info';
@@ -33,19 +34,26 @@ const SettingsPageNew = () => {
       icon: Shield,
       component: SecuritySection
     },
-    // {
-    //   id: 'notifications',
-    //   label: 'Notifications',
-    //   icon: Bell,
-    //   component: NotificationsSection
-    // },
+    {
+      id: 'notifications',
+      label: 'Notifications',
+      icon: Bell,
+      component: NotificationsSection
+    },
     {
       id: 'account',
       label: 'Account',
       icon: SettingsIcon,
       component: AccountSection
     }
-  ];
+  ].filter((section) => isNativeApp || section.id !== 'notifications');
+
+  useEffect(() => {
+    if (!isNativeApp && activeSection === 'notifications') {
+      setActiveSection('personal-info');
+      setSearchParams({ section: 'personal-info' });
+    }
+  }, [isNativeApp, activeSection, setSearchParams]);
 
   const handleSectionChange = (sectionId) => {
     if (sectionId === activeSection) return;

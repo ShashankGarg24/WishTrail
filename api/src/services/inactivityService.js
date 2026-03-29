@@ -44,7 +44,7 @@ function shouldStop() { return false; }
 async function sendDueInactivityReminders({ batchLimit = 1000 } = {}) {
   // Consider active users only
   const result = await query(
-    'SELECT id, last_active_at, notification_settings, timezone FROM users WHERE is_active = true'
+    'SELECT id, last_active_at, timezone FROM users WHERE is_active = true'
   );
   const users = result.rows;
   let sent = 0;

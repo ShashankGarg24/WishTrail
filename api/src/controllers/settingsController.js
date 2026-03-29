@@ -2,6 +2,45 @@ const pgUserService = require('../services/pgUserService');
 const pgBlockService = require('../services/pgBlockService');
 const UserPreferences = require('../models/extended/UserPreferences');
 
+function normalizeNotificationSettings(raw = {}) {
+  const dailyLogsRaw = raw.dailyLogs || raw.DailyLogs || {};
+  const motivationRaw = raw.motivation || {};
+  const socialRaw = raw.social || {};
+
+  const dailyLogsEnabled = typeof dailyLogsRaw.enabled === 'boolean'
+    ? dailyLogsRaw.enabled
+    : (dailyLogsRaw.frequency ? dailyLogsRaw.frequency !== 'off' : true);
+  const dailyLogsFrequency = ['daily', 'weekly', 'off'].includes(dailyLogsRaw.frequency)
+    ? dailyLogsRaw.frequency
+    : (dailyLogsEnabled ? 'daily' : 'off');
+
+  const motivationEnabled = typeof motivationRaw.enabled === 'boolean'
+    ? motivationRaw.enabled
+    : (motivationRaw.frequency ? motivationRaw.frequency !== 'off' : false);
+  const motivationFrequency = ['off', 'daily', 'weekly'].includes(motivationRaw.frequency)
+    ? motivationRaw.frequency
+    : (motivationEnabled ? 'daily' : 'off');
+
+  return {
+    inAppEnabled: typeof raw.inAppEnabled === 'boolean' ? raw.inAppEnabled : true,
+    habits: {
+      enabled: typeof raw?.habits?.enabled === 'boolean' ? raw.habits.enabled : true,
+      skipIfDone: typeof raw?.habits?.skipIfDone === 'boolean' ? raw.habits.skipIfDone : true
+    },
+    dailyLogs: {
+      enabled: dailyLogsEnabled,
+      frequency: dailyLogsFrequency
+    },
+    motivation: {
+      enabled: motivationEnabled,
+      frequency: motivationFrequency
+    },
+    social: {
+      enabled: typeof socialRaw.enabled === 'boolean' ? socialRaw.enabled : true
+    }
+  };
+}
+
 // @desc    Get privacy settings
 // @route   GET /api/v1/settings/privacy
 // @access  Private
@@ -284,21 +323,13 @@ const getNotificationSettings = async (req, res, next) => {
     const prefs = await UserPreferences.findOne({ userId: req.user.id })
       .select('notificationSettings preferences.notifications')
       .lean();
-    
-    if (!prefs) {
-      return res.status(200).json({
-        success: true,
-        data: {
-          notificationSettings: {},
-          preferences: {}
-        }
-      });
-    }
+
+    const normalized = normalizeNotificationSettings(prefs?.notificationSettings || {});
 
     res.status(200).json({
       success: true,
       data: {
-        notificationSettings: prefs.notificationSettings || {},
+        notificationSettings: normalized,
         preferences: prefs.preferences?.notifications || {}
       }
     });
@@ -329,12 +360,13 @@ const updateNotificationSettings = async (req, res, next) => {
           updateData['notificationSettings.habits.skipIfDone'] = notificationSettings.habits.skipIfDone;
         }
       }
-      if (notificationSettings.DailyLogs) {
-        if (typeof notificationSettings.DailyLogs.enabled !== 'undefined') {
-          updateData['notificationSettings.DailyLogs.enabled'] = notificationSettings.DailyLogs.enabled;
+      const dailyLogsInput = notificationSettings.dailyLogs || notificationSettings.DailyLogs;
+      if (dailyLogsInput) {
+        if (typeof dailyLogsInput.enabled !== 'undefined') {
+          updateData['notificationSettings.dailyLogs.enabled'] = dailyLogsInput.enabled;
         }
-        if (notificationSettings.DailyLogs.frequency && ['daily', 'weekly', 'off'].includes(notificationSettings.DailyLogs.frequency)) {
-          updateData['notificationSettings.DailyLogs.frequency'] = notificationSettings.DailyLogs.frequency;
+        if (dailyLogsInput.frequency && ['daily', 'weekly', 'off'].includes(dailyLogsInput.frequency)) {
+          updateData['notificationSettings.dailyLogs.frequency'] = dailyLogsInput.frequency;
         }
       }
       if (notificationSettings.motivation) {
@@ -370,11 +402,13 @@ const updateNotificationSettings = async (req, res, next) => {
       { new: true, upsert: true, runValidators: true }
     ).select('notificationSettings preferences.notifications');
 
+    const normalizedSettings = normalizeNotificationSettings(prefs?.notificationSettings || notificationSettings || {});
+
     res.status(200).json({
       success: true,
       message: 'Notification settings updated successfully',
       data: {
-        notificationSettings: prefs.notificationSettings || {},
+        notificationSettings: normalizedSettings,
         preferences: prefs.preferences?.notifications || {}
       }
     });

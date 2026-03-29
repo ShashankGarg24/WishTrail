@@ -72,11 +72,12 @@ async function sendMorningQuotes(windowMinutes = 30) {
   });
   
   const jobs = [];
-  const targetH = 7, targetM = 0;
+  const targetH = 8, targetM = 0;
   
   for (const u of pgUsers) {
     const prefs = prefsMap.get(u.id) || {};
     const ns = prefs.notificationSettings || {};
+    if (ns?.inAppEnabled === false) continue;
     const mot = ns.motivation || {};
     if (mot.enabled === false || mot.frequency === 'off') continue;
     

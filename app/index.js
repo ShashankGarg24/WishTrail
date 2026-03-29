@@ -184,6 +184,44 @@ function App() {
     } catch { }
   }, []);
 
+  const postNotificationPermissionState = useCallback(async () => {
+    try {
+      let granted = true;
+      let status = 'granted';
+
+      if (Platform.OS === 'android' && Platform.Version >= 33) {
+        const postNoti = PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS;
+        const hasPermission = await PermissionsAndroid.check(postNoti);
+        granted = !!hasPermission;
+        status = granted ? 'granted' : 'denied';
+      } else if (Platform.OS === 'ios') {
+        let messaging;
+        try {
+          const mod = require('@react-native-firebase/messaging');
+          messaging = mod?.default || mod;
+        } catch (_) { messaging = null; }
+        if (messaging) {
+          try {
+            const auth = await messaging().hasPermission();
+            granted = typeof auth === 'number' ? auth >= 1 : !!auth;
+            status = granted ? 'granted' : 'denied';
+          } catch (_) {
+            granted = false;
+            status = 'unknown';
+          }
+        }
+      }
+
+      const payload = JSON.stringify({
+        type: 'WT_NOTIFICATION_PERMISSION_STATE',
+        granted,
+        status,
+        platform: Platform.OS
+      });
+      webRef.current?.injectJavaScript(`window.dispatchEvent(new MessageEvent('message', { data: ${JSON.stringify(payload)} })); true;`);
+    } catch (_) { }
+  }, []);
+
   useEffect(() => {
     (async () => {
       try {
@@ -494,6 +532,10 @@ function App() {
         promptGoogleSignIn().catch(() => {
           Alert.alert('Google Sign-In', 'Unable to open Google sign-in. Please try again.');
         });
+      } else if (data?.type === 'WT_REQUEST_NOTIFICATION_PERMISSION_STATE') {
+        postNotificationPermissionState().catch(() => { });
+      } else if (data?.type === 'WT_OPEN_APP_NOTIFICATION_SETTINGS') {
+        try { Linking.openSettings(); } catch { }
       } else if (data?.type === 'WT_PATH') {
         try {
           const p = String(data.path || '/');
@@ -568,7 +610,7 @@ function App() {
         setHasLoadedDashboard(true);
       }
     } catch { }
-  }, [ptrAnim, promptGoogleSignIn]);
+  }, [ptrAnim, promptGoogleSignIn, postNotificationPermissionState]);
 
   const completeNativeGoogleLogin = useCallback(async (idToken) => {
     if (!idToken) return;
@@ -990,7 +1032,7 @@ function App() {
         source={{ uri: initialUri }}
         originWhitelist={originWhitelist}
         onLoadStart={() => { setLoading(true); if (ptrAnimRef.current) { try { ptrAnimRef.current.stop(); } catch { } } setPtrLoading(false); setPtrVisible(false); setPtrProgress(0); ptrAnim.setValue(0); }}
-        onLoadEnd={() => { setLoading(false); setWebReady(true); setHasLoadedDashboard(true); if (splashFallbackTimer.current) { clearTimeout(splashFallbackTimer.current); splashFallbackTimer.current = null; } if (pendingDeepLinkRef.current) { forwardDeepLinkToWeb(pendingDeepLinkRef.current); pendingDeepLinkRef.current = ''; } injectAuthProbe(); injectRefreshToken(); setTimeout(() => { if (ptrAnimRef.current) { try { ptrAnimRef.current.stop(); } catch { } } setPtrLoading(false); setPtrVisible(false); setPtrProgress(0); ptrAnim.setValue(0); }, 400); }}
+        onLoadEnd={() => { setLoading(false); setWebReady(true); setHasLoadedDashboard(true); if (splashFallbackTimer.current) { clearTimeout(splashFallbackTimer.current); splashFallbackTimer.current = null; } if (pendingDeepLinkRef.current) { forwardDeepLinkToWeb(pendingDeepLinkRef.current); pendingDeepLinkRef.current = ''; } injectAuthProbe(); injectRefreshToken(); setTimeout(() => { postNotificationPermissionState().catch(() => { }); if (ptrAnimRef.current) { try { ptrAnimRef.current.stop(); } catch { } } setPtrLoading(false); setPtrVisible(false); setPtrProgress(0); ptrAnim.setValue(0); }, 400); }}
         onShouldStartLoadWithRequest={onShouldStartLoadWithRequest}
         onMessage={onMessage}
         pullToRefreshEnabled={false}

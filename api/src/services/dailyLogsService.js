@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const DailyLogsEntry = require('../models/DailyLogsEntry');
 const Notification = require('../models/Notification');
+const UserPreferences = require('../models/extended/UserPreferences');
 const { query } = require('../config/supabase');
 const axios = require('axios');
 const redis = require('../config/redis');
@@ -390,17 +391,24 @@ function parseHHmmToMinutes(text) {
 async function notifyDailyPrompt(windowMinutes = 30, targetHHmm = '20:00') {
   const prompt = getTodayPrompt();
   // Query PostgreSQL for active users with timezone
-  // Note: notification_settings are in MongoDB UserPreferences, not migrated yet
   const result = await query(
     'SELECT id, timezone FROM users WHERE is_active = true',
     []
   );
   const users = result.rows;
+  const userIds = users.map(u => Number(u.id)).filter(Boolean);
+  const prefDocs = await UserPreferences.find({ userId: { $in: userIds } })
+    .select('userId notificationSettings')
+    .lean();
+  const prefMap = new Map(prefDocs.map((p) => [Number(p.userId), p.notificationSettings || {}]));
+
   const jobs = [];
   const targetMin = parseHHmmToMinutes(targetHHmm) ?? 20 * 60;
   for (const u of users) {
-    // TODO: Check notification settings from UserPreferences MongoDB collection if needed
-    // For now, send to all active users
+    const ns = prefMap.get(Number(u.id)) || {};
+    if (ns?.inAppEnabled === false) continue;
+    if (ns?.dailyLogs?.enabled === false || ns?.dailyLogs?.frequency === 'off') continue;
+
     const tz = u.timezone || 'UTC';
     const localMin = minutesOfDayInTimezone(tz);
     // Send once any time after the target time (20:00) the same day

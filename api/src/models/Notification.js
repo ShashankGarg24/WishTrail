@@ -211,13 +211,15 @@ notificationSchema.statics.createNotification = async function(notificationData)
     // Push delivery (best-effort)
     if (saved?.channels?.push) {
       try {
-        const pgUserService = require('../services/pgUserService');
-        const user = await pgUserService.findById(saved.userId);
+        const UserPreferences = require('./extended/UserPreferences');
+        const prefs = await UserPreferences.findOne({ userId: saved.userId })
+          .select('notificationSettings')
+          .lean();
         let allowPush = true;
 
         // Respect per-category user settings
         const t = saved.type;
-        const ns = user?.notification_settings || {};
+        const ns = prefs?.notificationSettings || {};
         if (ns?.inAppEnabled === false) allowPush = false;
 
         const socialTypes = new Set(['new_follower','follow_request','follow_request_accepted','activity_comment','comment_reply','mention','activity_liked','comment_liked','goal_liked']);

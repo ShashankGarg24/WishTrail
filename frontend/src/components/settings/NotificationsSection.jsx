@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import { Bell, Mail, Smartphone, Clock, CheckCircle, AlertCircle } from 'lucide-react';
+import { Bell, CheckCircle, AlertCircle, Smartphone } from 'lucide-react';
 import { settingsAPI } from '../../services/api';
 
 const NotificationsSection = () => {
+  const isNativeApp = typeof window !== 'undefined' && !!window.ReactNativeWebView;
   const [notif, setNotif] = useState(null);
   const [originalNotif, setOriginalNotif] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -10,6 +11,7 @@ const NotificationsSection = () => {
   const [hasChanges, setHasChanges] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [devicePermissionGranted, setDevicePermissionGranted] = useState(null);
   const [openDailyLogsDd, setOpenDailyLogsDd] = useState(false);
   const [openMotivationDd, setOpenMotivationDd] = useState(false);
   const dailyLogsDdRef = useRef(null);
@@ -18,6 +20,36 @@ const NotificationsSection = () => {
   useEffect(() => {
     fetchNotificationSettings();
   }, []);
+
+  useEffect(() => {
+    if (!isNativeApp) return;
+
+    const onNativeMessage = (event) => {
+      try {
+        const payload = typeof event?.data === 'string' ? JSON.parse(event.data) : null;
+        if (!payload || payload.type !== 'WT_NOTIFICATION_PERMISSION_STATE') return;
+
+        const granted = !!payload.granted;
+        setDevicePermissionGranted(granted);
+
+        setNotif((prev) => {
+          if (!prev) return prev;
+          if (granted) return prev;
+          // Keep app-level master aligned with device notification permission state.
+          return { ...prev, inAppEnabled: false };
+        });
+      } catch (_) { }
+    };
+
+    window.addEventListener('message', onNativeMessage);
+    try {
+      window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'WT_REQUEST_NOTIFICATION_PERMISSION_STATE' }));
+    } catch (_) { }
+
+    return () => {
+      window.removeEventListener('message', onNativeMessage);
+    };
+  }, [isNativeApp]);
 
   useEffect(() => {
     const onDocClick = (e) => {
@@ -103,6 +135,19 @@ const NotificationsSection = () => {
     );
   }
 
+  if (!isNativeApp) {
+    return null;
+  }
+
+  const handleMasterToggle = (checked) => {
+    if (checked && devicePermissionGranted === false) {
+      setError('Device notifications are disabled. Please enable them in app settings.');
+      try { window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'WT_OPEN_APP_NOTIFICATION_SETTINGS' })); } catch (_) { }
+      return;
+    }
+    updateNotifSettings({ ...notif, inAppEnabled: checked });
+  };
+
   return (
     <div className="p-6">
       {/* Header */}
@@ -138,8 +183,8 @@ const NotificationsSection = () => {
                 <Bell className="h-5 w-5 text-gray-600 dark:text-gray-400" />
               </div>
               <div>
-                <h3 className="text-base font-semibold text-gray-900 dark:text-white">In-App Notifications</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Master switch for all in-app notifications</p>
+                <h3 className="text-base font-semibold text-gray-900 dark:text-white">App Notifications</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Synced with your device notification permission</p>
               </div>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
@@ -147,37 +192,23 @@ const NotificationsSection = () => {
                 type="checkbox"
                 className="sr-only peer"
                 checked={notif.inAppEnabled !== false}
-                onChange={(e) => updateNotifSettings({ ...notif, inAppEnabled: e.target.checked })}
+                onChange={(e) => handleMasterToggle(e.target.checked)}
               />
               <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
             </label>
           </div>
-        </div>
-
-        {/* Habit Reminders */}
-        <div className={`border-b border-gray-200 dark:border-gray-700 pb-6 ${!notif.inAppEnabled ? 'opacity-50' : ''}`}>
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-base font-semibold text-gray-900 dark:text-white">Habit Reminders</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Get notified to complete your daily habits</p>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                className="sr-only peer"
-                disabled={!notif.inAppEnabled}
-                checked={(notif.habits?.enabled !== false)}
-                onChange={(e) => {
-                  if (!notif.inAppEnabled) return;
-                  updateNotifSettings({
-                    ...notif,
-                    habits: { ...(notif.habits || {}), enabled: e.target.checked }
-                  });
-                }}
-              />
-              <div className={`w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600 ${!notif.inAppEnabled ? 'cursor-not-allowed' : ''}`}></div>
-            </label>
-          </div>
+          {devicePermissionGranted === false && (
+            <button
+              type="button"
+              onClick={() => {
+                try { window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'WT_OPEN_APP_NOTIFICATION_SETTINGS' })); } catch (_) { }
+              }}
+              className="mt-3 inline-flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400"
+            >
+              <Smartphone className="h-4 w-4" />
+              Open App Settings to enable notifications
+            </button>
+          )}
         </div>
 
         {/* Daily Log Reminders */}
