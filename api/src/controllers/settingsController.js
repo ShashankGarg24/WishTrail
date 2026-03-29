@@ -4,6 +4,7 @@ const UserPreferences = require('../models/extended/UserPreferences');
 
 function normalizeNotifications(raw = {}, legacy = {}) {
   const dailyLogsRaw = legacy.dailyLogs || legacy.DailyLogs || {};
+  const motivationRaw = legacy.motivation || {};
   const socialRaw = legacy.social || {};
   const habitsRaw = legacy.habits || {};
 
@@ -13,6 +14,9 @@ function normalizeNotifications(raw = {}, legacy = {}) {
     : (dailyLogsRaw.frequency ? dailyLogsRaw.frequency !== 'off' : undefined);
   const socialFromLegacy = typeof socialRaw.enabled === 'boolean' ? socialRaw.enabled : undefined;
   const habitFromLegacy = typeof habitsRaw.enabled === 'boolean' ? habitsRaw.enabled : undefined;
+  const motivationFromLegacy = typeof motivationRaw.enabled === 'boolean'
+    ? motivationRaw.enabled
+    : (motivationRaw.frequency ? motivationRaw.frequency !== 'off' : undefined);
 
   return {
     email: {
@@ -21,6 +25,7 @@ function normalizeNotifications(raw = {}, legacy = {}) {
     inApp: {
       enabled: typeof raw?.inApp?.enabled === 'boolean' ? raw.inApp.enabled : (enabledFromLegacy ?? true),
       dailyLogReminder: typeof raw?.inApp?.dailyLogReminder === 'boolean' ? raw.inApp.dailyLogReminder : (dailyFromLegacy ?? true),
+      motivationReminder: typeof raw?.inApp?.motivationReminder === 'boolean' ? raw.inApp.motivationReminder : (motivationFromLegacy ?? true),
       socialUpdates: typeof raw?.inApp?.socialUpdates === 'boolean' ? raw.inApp.socialUpdates : (socialFromLegacy ?? true),
       habitReminders: typeof raw?.inApp?.habitReminders === 'boolean' ? raw.inApp.habitReminders : (habitFromLegacy ?? true),
     }
@@ -40,8 +45,8 @@ function toLegacyNotificationSettings(notifications = {}) {
       frequency: inApp.dailyLogReminder === false ? 'off' : 'daily'
     },
     motivation: {
-      enabled: false,
-      frequency: 'off'
+      enabled: inApp.motivationReminder !== false,
+      frequency: inApp.motivationReminder === false ? 'off' : 'daily'
     },
     social: {
       enabled: inApp.socialUpdates !== false
@@ -361,6 +366,7 @@ const updateNotificationSettings = async (req, res, next) => {
       updateData['notifications.email.enabled'] = normalized.email.enabled;
       updateData['notifications.inApp.enabled'] = normalized.inApp.enabled;
       updateData['notifications.inApp.dailyLogReminder'] = normalized.inApp.dailyLogReminder;
+      updateData['notifications.inApp.motivationReminder'] = normalized.inApp.motivationReminder;
       updateData['notifications.inApp.socialUpdates'] = normalized.inApp.socialUpdates;
       updateData['notifications.inApp.habitReminders'] = normalized.inApp.habitReminders;
     }

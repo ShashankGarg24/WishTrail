@@ -221,11 +221,13 @@ notificationSchema.statics.createNotification = async function(notificationData)
       const socialTypes = new Set(['new_follower','follow_request','follow_request_accepted','activity_comment','comment_reply','mention','activity_liked','comment_liked','goal_liked']);
       const isSocialType = socialTypes.has(saved.type);
       const isDailyLogType = saved.type === 'daily_logs_prompt';
+      const isMotivationType = saved.type === 'motivation_quote';
       const isHabitType = saved.type === 'habit_reminder';
 
       let allowInAppTopic = inAppEnabled;
       if (isSocialType && inApp.socialUpdates === false) allowInAppTopic = false;
       if (isDailyLogType && inApp.dailyLogReminder === false) allowInAppTopic = false;
+      if (isMotivationType && inApp.motivationReminder === false) allowInAppTopic = false;
       if (isHabitType && inApp.habitReminders === false) allowInAppTopic = false;
 
       const channelPatch = {};

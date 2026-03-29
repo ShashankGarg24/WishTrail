@@ -46,14 +46,7 @@ const SettingsPageNew = () => {
       icon: SettingsIcon,
       component: AccountSection
     }
-  ].filter((section) => isNativeApp || section.id !== 'notifications');
-
-  useEffect(() => {
-    if (!isNativeApp && activeSection === 'notifications') {
-      setActiveSection('personal-info');
-      setSearchParams({ section: 'personal-info' });
-    }
-  }, [isNativeApp, activeSection, setSearchParams]);
+  ];
 
   const handleSectionChange = (sectionId) => {
     if (sectionId === activeSection) return;

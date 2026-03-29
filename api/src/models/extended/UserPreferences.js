@@ -51,6 +51,7 @@ const userPreferencesSchema = new mongoose.Schema({
     inApp: {
       enabled: { type: Boolean, default: true },
       dailyLogReminder: { type: Boolean, default: true },
+      motivationReminder: { type: Boolean, default: true },
       socialUpdates: { type: Boolean, default: true },
       habitReminders: { type: Boolean, default: true }
     }

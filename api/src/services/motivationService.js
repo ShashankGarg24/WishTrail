@@ -78,6 +78,7 @@ async function sendMorningQuotes(windowMinutes = 30) {
     const prefs = prefsMap.get(u.id) || {};
     const ns = prefs.notifications || {};
     if (ns?.inApp?.enabled === false) continue;
+    if (ns?.inApp?.motivationReminder === false) continue;
     
     const { hhmm, weekday } = nowInTimezoneHHmmAndWeekday(u.timezone || 'UTC');
     const [h, m] = hhmm.split(':').map(n => Number(n));
@@ -85,8 +86,6 @@ async function sendMorningQuotes(windowMinutes = 30) {
     const targetMin = targetH * 60 + targetM;
     // Send once any time after the target time (08:00) the same day
     if (nowMin < targetMin) continue;
-    // weekly => send on Mon & Thu after 07:00
-    if ((mot.frequency || 'off') === 'weekly' && !['Mon', 'Thu'].includes(weekday)) continue;
     
     // Idempotency: one per day per user
     try {

@@ -1,6 +1,17 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Bell, CheckCircle, AlertCircle, Smartphone } from 'lucide-react';
 import { settingsAPI } from '../../services/api';
+
+const defaultSettings = {
+  email: { enabled: true },
+  inApp: {
+    enabled: true,
+    dailyLogReminder: true,
+    motivationReminder: true,
+    socialUpdates: true,
+    habitReminders: true
+  }
+};
 
 const NotificationsSection = () => {
   const isNativeApp = typeof window !== 'undefined' && !!window.ReactNativeWebView;
@@ -12,10 +23,6 @@ const NotificationsSection = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [devicePermissionGranted, setDevicePermissionGranted] = useState(null);
-  const [openDailyLogsDd, setOpenDailyLogsDd] = useState(false);
-  const [openMotivationDd, setOpenMotivationDd] = useState(false);
-  const dailyLogsDdRef = useRef(null);
-  const motivationDdRef = useRef(null);
 
   useEffect(() => {
     fetchNotificationSettings();
@@ -33,10 +40,8 @@ const NotificationsSection = () => {
         setDevicePermissionGranted(granted);
 
         setNotif((prev) => {
-          if (!prev) return prev;
-          if (granted) return prev;
-          // Keep app-level master aligned with device notification permission state.
-          return { ...prev, inAppEnabled: false };
+          if (!prev || granted) return prev;
+          return { ...prev, inApp: { ...(prev.inApp || {}), enabled: false } };
         });
       } catch (_) { }
     };
@@ -51,41 +56,15 @@ const NotificationsSection = () => {
     };
   }, [isNativeApp]);
 
-  useEffect(() => {
-    const onDocClick = (e) => {
-      if (openDailyLogsDd && dailyLogsDdRef.current && !dailyLogsDdRef.current.contains(e.target)) {
-        setOpenDailyLogsDd(false);
-      }
-      if (openMotivationDd && motivationDdRef.current && !motivationDdRef.current.contains(e.target)) {
-        setOpenMotivationDd(false);
-      }
-    };
-    document.addEventListener('mousedown', onDocClick);
-    return () => document.removeEventListener('mousedown', onDocClick);
-  }, [openDailyLogsDd, openMotivationDd]);
-
   const fetchNotificationSettings = async () => {
     try {
       const response = await settingsAPI.getNotificationSettings();
-      const data = response.data.data;
-      const settings = data.notificationSettings || {
-        inAppEnabled: true,
-        habits: { enabled: true },
-        dailyLogs: { enabled: true, frequency: 'daily' },
-        motivation: { enabled: false, frequency: 'off' },
-        social: { enabled: true }
-      };
+      const data = response?.data?.data || {};
+      const settings = data.notifications || defaultSettings;
       setNotif(settings);
       setOriginalNotif(JSON.parse(JSON.stringify(settings)));
-    } catch (error) {
-      console.error('Failed to fetch notification settings:', error);
-      const defaultSettings = {
-        inAppEnabled: true,
-        habits: { enabled: true },
-        dailyLogs: { enabled: true, frequency: 'daily' },
-        motivation: { enabled: false, frequency: 'off' },
-        social: { enabled: true }
-      };
+    } catch (err) {
+      console.error('Failed to fetch notification settings:', err);
       setNotif(defaultSettings);
       setOriginalNotif(JSON.parse(JSON.stringify(defaultSettings)));
     } finally {
@@ -105,16 +84,14 @@ const NotificationsSection = () => {
     setError('');
     setSuccess('');
     try {
-      await settingsAPI.updateNotificationSettings({
-        notificationSettings: notif
-      });
+      await settingsAPI.updateNotificationSettings({ notifications: notif });
       setOriginalNotif(JSON.parse(JSON.stringify(notif)));
       setHasChanges(false);
       setSuccess('Notification preferences saved successfully');
       setTimeout(() => setSuccess(''), 3000);
-    } catch (error) {
-      console.error('Failed to save notification settings:', error);
-      setError(error.response?.data?.message || 'Failed to save notification settings');
+    } catch (err) {
+      console.error('Failed to save notification settings:', err);
+      setError(err?.response?.data?.message || 'Failed to save notification settings');
     } finally {
       setSaving(false);
     }
@@ -127,6 +104,15 @@ const NotificationsSection = () => {
     setSuccess('');
   };
 
+  const handleMasterToggle = (checked) => {
+    if (checked && devicePermissionGranted === false) {
+      setError('Device notifications are disabled. Please enable them in app settings.');
+      try { window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'WT_OPEN_APP_NOTIFICATION_SETTINGS' })); } catch (_) { }
+      return;
+    }
+    updateNotifSettings({ ...notif, inApp: { ...(notif.inApp || {}), enabled: checked } });
+  };
+
   if (loading || !notif) {
     return (
       <div className="p-6">
@@ -135,30 +121,19 @@ const NotificationsSection = () => {
     );
   }
 
-  if (!isNativeApp) {
-    return null;
-  }
-
-  const handleMasterToggle = (checked) => {
-    if (checked && devicePermissionGranted === false) {
-      setError('Device notifications are disabled. Please enable them in app settings.');
-      try { window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'WT_OPEN_APP_NOTIFICATION_SETTINGS' })); } catch (_) { }
-      return;
-    }
-    updateNotifSettings({ ...notif, inAppEnabled: checked });
-  };
+  const inAppEnabled = notif?.inApp?.enabled !== false;
 
   return (
     <div className="p-6">
-      {/* Header */}
       <div className="mb-6">
         <h2 className="text-xl font-bold text-gray-900 dark:text-white">Notification Preferences</h2>
         <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-          Manage how and when you receive updates about your goals, habits, and social activity.
+          {isNativeApp
+            ? 'Manage how and when you receive app notifications.'
+            : 'Manage how and when you receive email notifications.'}
         </p>
       </div>
 
-      {/* Error Message */}
       {error && (
         <div className="mb-4 flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-800 dark:text-red-200">
           <AlertCircle className="h-5 w-5 flex-shrink-0" />
@@ -166,7 +141,6 @@ const NotificationsSection = () => {
         </div>
       )}
 
-      {/* Success Message */}
       {success && (
         <div className="mb-4 flex items-center gap-2 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg text-green-800 dark:text-green-200">
           <CheckCircle className="h-5 w-5 flex-shrink-0" />
@@ -175,163 +149,136 @@ const NotificationsSection = () => {
       )}
 
       <div className="space-y-6">
-        {/* In-App Notifications Master Toggle */}
+        {isNativeApp && (
+          <div className="border-b border-gray-200 dark:border-gray-700 pb-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800">
+                  <Bell className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                </div>
+                <div>
+                  <h3 className="text-base font-semibold text-gray-900 dark:text-white">App Notifications</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Synced with your device notification permission</p>
+                </div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="sr-only peer"
+                  checked={inAppEnabled}
+                  onChange={(e) => handleMasterToggle(e.target.checked)}
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+              </label>
+            </div>
+            {devicePermissionGranted === false && (
+              <button
+                type="button"
+                onClick={() => {
+                  try { window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'WT_OPEN_APP_NOTIFICATION_SETTINGS' })); } catch (_) { }
+                }}
+                className="mt-3 inline-flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400"
+              >
+                <Smartphone className="h-4 w-4" />
+                Open App Settings to enable notifications
+              </button>
+            )}
+          </div>
+        )}
+
         <div className="border-b border-gray-200 dark:border-gray-700 pb-6">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800">
-                <Bell className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-              </div>
-              <div>
-                <h3 className="text-base font-semibold text-gray-900 dark:text-white">App Notifications</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Synced with your device notification permission</p>
-              </div>
+            <div>
+              <h3 className="text-base font-semibold text-gray-900 dark:text-white">Email Notifications</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Allow important updates via email</p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
               <input
                 type="checkbox"
                 className="sr-only peer"
-                checked={notif.inAppEnabled !== false}
-                onChange={(e) => handleMasterToggle(e.target.checked)}
+                checked={notif?.email?.enabled !== false}
+                onChange={(e) => updateNotifSettings({
+                  ...notif,
+                  email: { ...(notif.email || {}), enabled: e.target.checked }
+                })}
               />
               <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
             </label>
           </div>
-          {devicePermissionGranted === false && (
-            <button
-              type="button"
-              onClick={() => {
-                try { window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'WT_OPEN_APP_NOTIFICATION_SETTINGS' })); } catch (_) { }
-              }}
-              className="mt-3 inline-flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400"
-            >
-              <Smartphone className="h-4 w-4" />
-              Open App Settings to enable notifications
-            </button>
-          )}
         </div>
 
-        {/* Daily Log Reminders */}
-        <div className={`border-b border-gray-200 dark:border-gray-700 pb-6 ${!notif.inAppEnabled ? 'opacity-50' : ''}`}>
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <h3 className="text-base font-semibold text-gray-900 dark:text-white">Daily Log Reminders</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Remind me to write in my daily logs</p>
-            </div>
-            <div ref={dailyLogsDdRef} className="relative ml-4">
-              <button
-                type="button"
-                disabled={!notif.inAppEnabled}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setOpenDailyLogsDd(v => !v);
-                  setOpenMotivationDd(false);
-                }}
-                className={`w-36 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm font-medium ${!notif.inAppEnabled ? 'cursor-not-allowed opacity-50' : ''}`}
-              >
-                {(notif.dailyLogs?.enabled === false || notif.dailyLogs?.frequency === 'off')
-                  ? 'Off'
-                  : (notif.dailyLogs?.frequency
-                    ? notif.dailyLogs.frequency.charAt(0).toUpperCase() + notif.dailyLogs.frequency.slice(1)
-                    : 'Daily')}
-              </button>
-              {openDailyLogsDd && (
-                <div className="absolute right-0 top-full mt-2 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50">
-                  {['daily', 'weekly', 'off'].map(opt => (
-                    <button
-                      key={opt}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 first:rounded-t-lg last:rounded-b-lg"
-                      onClick={() => {
-                        const next = opt === 'off'
-                          ? { ...notif, dailyLogs: { ...(notif.dailyLogs || {}), enabled: false, frequency: 'off' } }
-                          : { ...notif, dailyLogs: { enabled: true, frequency: opt } };
-                        updateNotifSettings(next);
-                        setOpenDailyLogsDd(false);
-                      }}
-                    >
-                      {opt === 'off' ? 'Off' : (opt.charAt(0).toUpperCase() + opt.slice(1))}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Motivation */}
-        <div className={`border-b border-gray-200 dark:border-gray-700 pb-6 ${!notif.inAppEnabled ? 'opacity-50' : ''}`}>
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <h3 className="text-base font-semibold text-gray-900 dark:text-white">Motivation</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Receive motivational quotes and tips</p>
-            </div>
-            <div ref={motivationDdRef} className="relative ml-4">
-              <button
-                type="button"
-                disabled={!notif.inAppEnabled}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setOpenMotivationDd(v => !v);
-                  setOpenDailyLogsDd(false);
-                }}
-                className={`w-36 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm font-medium ${!notif.inAppEnabled ? 'cursor-not-allowed opacity-50' : ''}`}
-              >
-                {(notif.motivation?.enabled === false || notif.motivation?.frequency === 'off')
-                  ? 'Off'
-                  : (notif.motivation?.frequency
-                    ? notif.motivation.frequency.charAt(0).toUpperCase() + notif.motivation.frequency.slice(1)
-                    : 'Daily')}
-              </button>
-              {openMotivationDd && (
-                <div className="absolute right-0 top-full mt-2 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50">
-                  {['daily', 'weekly', 'off'].map(opt => (
-                    <button
-                      key={opt}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 first:rounded-t-lg last:rounded-b-lg"
-                      onClick={() => {
-                        const next = opt === 'off'
-                          ? { ...notif, motivation: { ...(notif.motivation || {}), enabled: false, frequency: 'off' } }
-                          : { ...notif, motivation: { enabled: true, frequency: opt } };
-                        updateNotifSettings(next);
-                        setOpenMotivationDd(false);
-                      }}
-                    >
-                      {opt === 'off' ? 'Off' : (opt.charAt(0).toUpperCase() + opt.slice(1))}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Social Activity */}
-        <div className={`${!notif.inAppEnabled ? 'opacity-50' : ''}`}>
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-base font-semibold text-gray-900 dark:text-white">Social Activity</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Notifications for follows, likes, and comments</p>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                className="sr-only peer"
-                disabled={!notif.inAppEnabled}
-                checked={(notif.social?.enabled === true)}
-                onChange={(e) => {
-                  if (!notif.inAppEnabled) return;
-                  updateNotifSettings({
+        {isNativeApp && (
+          <div className={`border-b border-gray-200 dark:border-gray-700 pb-6 ${!inAppEnabled ? 'opacity-50' : ''}`}>
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-semibold text-gray-900 dark:text-white">Daily Log Reminders</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Remind me daily to write my log</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="sr-only peer"
+                  disabled={!inAppEnabled}
+                  checked={notif?.inApp?.dailyLogReminder !== false}
+                  onChange={(e) => updateNotifSettings({
                     ...notif,
-                    social: { ...(notif.social || {}), enabled: e.target.checked }
-                  });
-                }}
-              />
-              <div className={`w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600 ${!notif.inAppEnabled ? 'cursor-not-allowed' : ''}`}></div>
-            </label>
+                    inApp: { ...(notif.inApp || {}), dailyLogReminder: e.target.checked }
+                  })}
+                />
+                <div className={`w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600 ${!inAppEnabled ? 'cursor-not-allowed' : ''}`}></div>
+              </label>
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Action Buttons */}
+        {isNativeApp && (
+          <div className={`border-b border-gray-200 dark:border-gray-700 pb-6 ${!inAppEnabled ? 'opacity-50' : ''}`}>
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-semibold text-gray-900 dark:text-white">Motivation Reminders</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Get daily motivational reminder at 8 AM</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="sr-only peer"
+                  disabled={!inAppEnabled}
+                  checked={notif?.inApp?.motivationReminder !== false}
+                  onChange={(e) => updateNotifSettings({
+                    ...notif,
+                    inApp: { ...(notif.inApp || {}), motivationReminder: e.target.checked }
+                  })}
+                />
+                <div className={`w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600 ${!inAppEnabled ? 'cursor-not-allowed' : ''}`}></div>
+              </label>
+            </div>
+          </div>
+        )}
+
+        {isNativeApp && (
+          <div className={`${!inAppEnabled ? 'opacity-50' : ''}`}>
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-semibold text-gray-900 dark:text-white">Social Activity</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Notifications for follows, likes, and comments</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="sr-only peer"
+                  disabled={!inAppEnabled}
+                  checked={notif?.inApp?.socialUpdates !== false}
+                  onChange={(e) => updateNotifSettings({
+                    ...notif,
+                    inApp: { ...(notif.inApp || {}), socialUpdates: e.target.checked }
+                  })}
+                />
+                <div className={`w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600 ${!inAppEnabled ? 'cursor-not-allowed' : ''}`}></div>
+              </label>
+            </div>
+          </div>
+        )}
+
         <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
           <button
             type="button"
