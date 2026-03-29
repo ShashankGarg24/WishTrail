@@ -15,8 +15,8 @@ try {
   let bgMessaging;
   try {
     const mod = require('@react-native-firebase/messaging');
-    messaging = mod?.default || mod;
-    console.log('[FCM] module loaded:', !!messaging);
+    bgMessaging = mod?.default || mod;
+    console.log('[FCM] module loaded:', !!bgMessaging);
   } catch (e) {
     console.log('[FCM] require failed:', e);
   }
@@ -189,13 +189,15 @@ function App() {
         if (!AsyncStorage) { setShowOnboarding(true); return; }
         const seen = await AsyncStorage.getItem('wt_onboarding_seen');
         if (!seen) setShowOnboarding(true);
-        else {
-          // If onboarding was already completed, request permissions now
-          askPushPermissionOnce().catch(() => { });
-        }
       } catch { setShowOnboarding(true); }
     })();
   }, []);
+
+  // Always request notification permission on app startup.
+  // OS decides whether to show a dialog again based on current permission state.
+  useEffect(() => {
+    askPushPermissionOnce().catch(() => { });
+  }, [askPushPermissionOnce]);
 
   const completeOnboarding = useCallback(async () => {
     try { if (AsyncStorage) await AsyncStorage.setItem('wt_onboarding_seen', '1'); } catch { }
@@ -265,13 +267,30 @@ function App() {
         if (!messaging) { try { console.log('FCM: messaging module not available; skipping'); } catch { }; return; }
 
         let authStatus = null;
-        try { authStatus = await messaging().requestPermission(); } catch (_) { }
-        try { console.log('[FCM] permission status:', authStatus); } catch { }
+        if (Platform.OS === 'ios') {
+          try { authStatus = await messaging().requestPermission(); } catch (_) { }
+          try { console.log('[FCM] permission status:', authStatus); } catch { }
 
-        const enabled = (typeof authStatus === 'number') ? (authStatus >= 1) : !!authStatus;
-        if (!enabled) {
-          try { console.log('[FCM] permission not granted; skipping token'); } catch { }
-          return;
+          const enabled = (typeof authStatus === 'number') ? (authStatus >= 1) : !!authStatus;
+          if (!enabled) {
+            try { console.log('[FCM] iOS permission not granted; skipping token'); } catch { }
+            return;
+          }
+        } else {
+          try { authStatus = await messaging().requestPermission(); } catch (_) { }
+          try { console.log('[FCM] permission status:', authStatus); } catch { }
+
+          // Android may report null here; still continue to fetch/register FCM token.
+          if (Platform.Version >= 33) {
+            try {
+              const postNoti = PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS;
+              const hasPermission = await PermissionsAndroid.check(postNoti);
+              if (!hasPermission) {
+                const req = await PermissionsAndroid.request(postNoti);
+                try { console.log('[FCM] POST_NOTIFICATIONS:', req); } catch { }
+              }
+            } catch (_) { }
+          }
         }
         try { if (typeof messaging().registerDeviceForRemoteMessages === 'function') await messaging().registerDeviceForRemoteMessages(); } catch (_) { }
         const token = await messaging().getToken();
