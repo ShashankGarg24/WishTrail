@@ -54,6 +54,8 @@ const { createCanvas } = require('canvas');
 const goalDivisionService = require('../services/goalDivisionService');
 const Notification = require('../models/Notification');
 const MAX_COMPLETION_NOTE_CHARS = 300;
+const MAX_GOAL_TITLE_CHARS = 100;
+const MAX_GOAL_DESCRIPTION_CHARS = 200;
 
 /**
  * Build timeline events from existing goal data
@@ -598,8 +600,23 @@ const createGoal = async (req, res, next) => {
     }
 
     const { title, description, category, targetDate, year, subGoals, habitLinks } = req.body;
+    const normalizedTitle = typeof title === 'string' ? title.trim() : '';
     const normalizedDescription = typeof description === 'string' ? description.trimEnd() : '';
     const isPublicFlag = (req.body.isPublic === true || req.body.isPublic === 'true') ? true : false;
+
+    if (!normalizedTitle || normalizedTitle.length < 3 || normalizedTitle.length > MAX_GOAL_TITLE_CHARS) {
+      return res.status(400).json({
+        success: false,
+        message: `Title must be between 3 and ${MAX_GOAL_TITLE_CHARS} characters`
+      });
+    }
+
+    if (normalizedDescription.length > MAX_GOAL_DESCRIPTION_CHARS) {
+      return res.status(400).json({
+        success: false,
+        message: `Description must be less than ${MAX_GOAL_DESCRIPTION_CHARS} characters`
+      });
+    }
 
     // Category validation
     const { GOAL_CATEGORIES } = require('../constants/category');
@@ -681,7 +698,7 @@ const createGoal = async (req, res, next) => {
       // Create goal in PostgreSQL
       const goal = await pgGoalService.createGoal({
         userId: req.user.id,
-        title,
+        title: normalizedTitle,
         category,
         year: currentYear,
         targetDate,
@@ -849,6 +866,26 @@ const updateGoal = async (req, res, next) => {
       });
     }
 
+    if (title !== undefined) {
+      const normalizedTitle = typeof title === 'string' ? title.trim() : '';
+      if (!normalizedTitle || normalizedTitle.length < 3 || normalizedTitle.length > MAX_GOAL_TITLE_CHARS) {
+        return res.status(400).json({
+          success: false,
+          message: `Title must be between 3 and ${MAX_GOAL_TITLE_CHARS} characters`
+        });
+      }
+    }
+
+    if (description !== undefined) {
+      const normalizedDescription = typeof description === 'string' ? description.trimEnd() : '';
+      if (normalizedDescription.length > MAX_GOAL_DESCRIPTION_CHARS) {
+        return res.status(400).json({
+          success: false,
+          message: `Description must be less than ${MAX_GOAL_DESCRIPTION_CHARS} characters`
+        });
+      }
+    }
+
     // ✅ PREMIUM CHECK: Validate subgoals and habit links limits on update
     if ((Array.isArray(subGoals) && subGoals.length > 0) || (Array.isArray(habitLinks) && habitLinks.length > 0)) {
       const user = await pgUserService.findById(req.user.id);
@@ -877,7 +914,7 @@ const updateGoal = async (req, res, next) => {
 
     // Update PostgreSQL fields
     const pgUpdates = {};
-    if (title) pgUpdates.title = title;
+    if (title !== undefined) pgUpdates.title = String(title).trim();
     if (category) pgUpdates.category = category;
     if (targetDate) pgUpdates.target_date = targetDate;
     if (hasIsPublic) pgUpdates.is_public = isPublicFlag;

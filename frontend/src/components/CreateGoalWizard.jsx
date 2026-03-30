@@ -1,27 +1,22 @@
-import { useEffect, useMemo, useState, useCallback, useRef, lazy, Suspense } from 'react'
+import { useEffect, useMemo, useState, useRef } from 'react'
 import { GOAL_CATEGORIES } from '../constants/goalCategories'
 import { motion } from 'framer-motion'
-import { X, Target, Calendar, Tag, AlertCircle, ChevronLeft, Globe, Clock, Crown } from 'lucide-react'
+import { X, Target, Calendar, Tag, AlertCircle, ChevronDown, ChevronRight } from 'lucide-react'
 import useApiStore from '../store/apiStore'
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
-const GoalDivisionEditor = lazy(() => import('./GoalDivisionEditor'));
 import { useGoalLimits } from '../hooks/usePremium'
 import PremiumLimitIndicator from './PremiumLimitIndicator'
 
 const THEME_COLOR = '#4c99e6'
 
 export default function CreateGoalWizard({ isOpen, onClose, year, initialData, editMode = false, goalId = null, onSaved }) {
-  const MAX_TITLE_CHARS = 200
-  const MAX_DESC_CHARS = 1000
+  const MAX_TITLE_CHARS = 100
+  const MAX_DESC_CHARS = 200
 
   const {
     createGoal,
     updateGoal,
-    setSubGoals,
-    setHabitLinks,
-    loadHabits,
     getDashboardStats,
-    habits,
     goals
   } = useApiStore()
 
@@ -31,8 +26,8 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
   }, [goals])
   const goalLimits = useGoalLimits(activeGoalsCount)
 
-  const [step, setStep] = useState(1)
   const [saving, setSaving] = useState(false)
+  const [showAdditionalDetails, setShowAdditionalDetails] = useState(false)
   const [errors, setErrors] = useState({})
   const [formData, setFormData] = useState({
     title: '',
@@ -42,22 +37,13 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
     isPublic: true
   })
 
-  // Step 2 state: sub-goals and habit links (local; applied after goal creation)
-  const [localSubGoals, setLocalSubGoals] = useState([])
-  const [localHabitLinks, setLocalHabitLinks] = useState([])
   const prevIsOpenRef = useRef(false)
 
   useEffect(() => {
     // Only initialize when modal transitions from closed to open
     if (isOpen && !prevIsOpenRef.current) {
       prevIsOpenRef.current = true
-      setStep(1)
       setSaving(false)
-
-      // Load habits if not already loaded (needed for habit links dropdown)
-      if (editMode && (!habits || habits.length === 0)) {
-        loadHabits({}).catch(() => {})
-      }
 
       // Format target date for HTML date input if it exists
       let formattedTargetDate = ''
@@ -75,18 +61,8 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
         targetDate: formattedTargetDate,
         isPublic: initialData?.isPublic ?? true
       })
+      setShowAdditionalDetails(false)
       setErrors({})
-
-      // Load existing sub-goals and habit links if in edit mode
-      if (editMode && initialData) {
-        const subGoals = Array.isArray(initialData.subGoals) ? initialData.subGoals.map(s => ({ ...s })) : []
-        const habitLinks = Array.isArray(initialData.habitLinks) ? initialData.habitLinks.map(h => ({ ...h })) : []
-        setLocalSubGoals(subGoals)
-        setLocalHabitLinks(habitLinks)
-      } else {
-        setLocalSubGoals([])
-        setLocalHabitLinks([])
-      }
     }
     
     // Track modal closed state
@@ -100,19 +76,6 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
 
   // Canonical categories for dropdown
   const categories = GOAL_CATEGORIES;
-
-  // Memoize the value prop to prevent infinite loops
-  const divisionEditorValue = useMemo(() => ({
-    subGoals: localSubGoals,
-    habitLinks: localHabitLinks
-  }), [localSubGoals, localHabitLinks])
-
-  // Memoize onChange handler to prevent infinite loops
-  const handleDivisionChange = useCallback((v) => {
-    if (!v) return
-    if (Array.isArray(v.subGoals)) setLocalSubGoals(v.subGoals.map(s => ({ ...s })))
-    if (Array.isArray(v.habitLinks)) setLocalHabitLinks(v.habitLinks.map(h => ({ ...h })))
-  }, [])
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target
@@ -162,57 +125,13 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
         if (targetDate < minAllowedDate) newErrors.targetDate = 'Target date must be at least 1 day from today'
       }
     }
+    if (newErrors.description || newErrors.targetDate) {
+      setShowAdditionalDetails(true)
+    }
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
 
-  // Step 2 helpers
-  const totalWeight = useMemo(() => {
-    const sg = localSubGoals.reduce((s, g) => s + (Number(g.weight) || 0), 0)
-    const hl = localHabitLinks.reduce((s, h) => s + (Number(h.weight) || 0), 0)
-    return sg + hl
-  }, [localSubGoals, localHabitLinks])
-
-  const round5 = (n) => {
-    const x = Math.max(0, Math.min(100, Number(n) || 0))
-    return Math.round(x / 5) * 5
-  }
-
-  const equalizeWeights = () => {
-    const count = (localSubGoals?.length || 0) + (localHabitLinks?.length || 0)
-    if (count === 0) return
-    const base = Math.floor(100 / count)
-    const remainder = 100 - base * count
-    const weights = Array(count).fill(base).map((w, i) => w + (i < remainder ? 1 : 0))
-    const nextSG = localSubGoals.map((sg, i) => ({ ...sg, weight: weights[i] }))
-    const nextHL = localHabitLinks.map((hl, i) => ({ ...hl, weight: weights[i + localSubGoals.length] }))
-    setLocalSubGoals(nextSG)
-    setLocalHabitLinks(nextHL)
-  }
-
-  const normalizeToHundred = (arr) => {
-    const sum = arr.reduce((s, w) => s + w, 0)
-    if (sum === 100 || sum === 0) return arr
-    const ratio = 100 / sum
-    let scaled = arr.map(w => round5(w * ratio))
-    let diff = 100 - scaled.reduce((s, w) => s + w, 0)
-    let i = 0
-    while (diff !== 0 && i < scaled.length * 2) {
-      const idx = i % scaled.length
-      if (diff > 0 && scaled[idx] < 100) { scaled[idx] += 5; diff -= 5 }
-      else if (diff < 0 && scaled[idx] > 0) { scaled[idx] -= 5; diff += 5 }
-      i++
-    }
-    return scaled
-  }
-
-  const goNext = async () => {
-    if (!validateStep1()) return
-    setSaving(true)
-    try { await loadHabits({}).catch(() => { }) } catch { }
-    setStep(2)
-    setSaving(false)
-  }
 
   const handleSave = async () => {
     // Check premium limits before saving (only for new goals)
@@ -221,17 +140,6 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
         detail: { 
           message: 'You have reached the limit for goal creation.', 
           type: 'error' 
-        } 
-      }))
-      return
-    }
-
-    // Check subgoal limit for free users
-    if (!goalLimits.isPremium && localSubGoals.length > goalLimits.maxSubgoals) {
-      window.dispatchEvent(new CustomEvent('wt_toast', { 
-        detail: { 
-          message: `Free users can only add ${goalLimits.maxSubgoals} sub-goal per goal. Upgrade to Premium for more.`, 
-          type: 'warning' 
         } 
       }))
       return
@@ -248,35 +156,6 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
         year: year,
         isPublic: !!formData.isPublic
       }
-
-      // Prepare division data if any exists
-      const allWeights = [
-        ...localSubGoals.map(s => Number(s.weight || 0)),
-        ...localHabitLinks.map(h => Number(h.weight || 0))
-      ]
-
-      let normalizedSubGoals = []
-      let normalizedHabitLinks = []
-
-      if (allWeights.some(w => Number(w) > 0)) {
-        const normalized = normalizeToHundred(allWeights)
-        normalizedSubGoals = localSubGoals.map((s, i) => ({
-          title: String(s.title || '').trim(),
-          linkedGoalId: s.linkedGoalId || undefined,
-          weight: Number(normalized[i] || 0),
-          completedAt: s.completedAt || undefined
-        })).filter(s => s.title.length > 0 || (s.linkedGoalId && String(s.linkedGoalId).length > 0))
-
-        normalizedHabitLinks = localHabitLinks.map((h, j) => ({
-          habitId: h.habitId,
-          weight: Number(normalized[localSubGoals.length + j] || 0),
-          endDate: h.endDate || undefined
-        })).filter(h => h.habitId)
-      }
-
-      // Add division data to payload
-      goalPayload.subGoals = normalizedSubGoals
-      goalPayload.habitLinks = normalizedHabitLinks
 
       let result
       if (editMode && goalId) {
@@ -360,52 +239,31 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
             </div>
           </div>
 
-          {/* Stepper: 1 Details | 2 Division */}
+          {/*
+            Temporary onboarding simplification:
+            hide the top step indicator completely for now.
+          */}
+          {/**
           <div className="flex items-center justify-center gap-2 sm:gap-3">
             <button
               type="button"
-              onClick={() => setStep(1)}
-              className={`flex items-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all ${
-                step === 1 
-                  ? 'border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white' 
-                  : 'border-2 border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400'
-              }`}
-              style={step === 1 ? { borderColor: THEME_COLOR, backgroundColor: `${THEME_COLOR}10` } : {}}
+              className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+              style={{ borderColor: THEME_COLOR, backgroundColor: `${THEME_COLOR}10` }}
             >
               <span
                 className="flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full text-[10px] sm:text-xs font-bold text-white flex-shrink-0"
-                style={{ backgroundColor: step === 1 ? THEME_COLOR : '#d1d5db' }}
+                style={{ backgroundColor: THEME_COLOR }}
               >
                 1
               </span>
               <span className="hidden sm:inline">Details</span>
             </button>
-            <div className="w-4 sm:w-8 h-0.5 rounded" style={{ backgroundColor: step === 1 ? '#e5e7eb' : THEME_COLOR }} />
-            <button
-              type="button"
-              onClick={() => { if (!editMode && !goalLimits.canCreate) return; if (validateStep1()) setStep(2) }}
-              disabled={!editMode && !goalLimits.canCreate}
-              className={`flex items-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
-                step === 2 
-                  ? 'border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white' 
-                  : 'border-2 border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400'
-              }`}
-              style={step === 2 ? { borderColor: THEME_COLOR, backgroundColor: `${THEME_COLOR}10` } : {}}
-            >
-              <span
-                className="flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full text-[10px] sm:text-xs font-bold text-white flex-shrink-0"
-                style={{ backgroundColor: step === 2 ? THEME_COLOR : '#d1d5db' }}
-              >
-                2
-              </span>
-              <span className="hidden sm:inline">Division</span>
-            </button>
           </div>
+          */}
         </div>
 
-        {step === 1 && (
-          <form onSubmit={(e) => { e.preventDefault(); goNext(); }} className="flex-1 overflow-y-auto scrollbar-hide">
-            <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6">
+        <form onSubmit={(e) => { e.preventDefault(); if (validateStep1()) handleSave(); }} className="flex-1 min-h-0 flex flex-col">
+          <div className="flex-1 min-h-0 overflow-y-auto theme-scrollbar px-4 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6">
               {/* Premium Limit Indicator (only show when limit reached and for new goals) */}
               {!editMode && !goalLimits.canCreate && (
                 <PremiumLimitIndicator
@@ -459,33 +317,6 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
                 )}
               </div>
 
-              {/* Description */}
-              <div>
-                <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" style={{ fontFamily: 'Manrope' }}>
-                  Description
-                </label>
-                <textarea
-                  id="description"
-                  name="description"
-                  value={formData.description}
-                  onChange={handleInputChange}
-                  rows={4}
-                  className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 resize-none transition-colors ${errors.description ? 'border-red-500' : 'border-gray-300 dark:border-gray-700'}`}
-                  style={{ fontFamily: 'Manrope', borderColor: errors.description ? '#ef4444' : (formData.description ? THEME_COLOR : undefined) }}
-                  placeholder="Describe your goal in detail, including why it's important to you"
-                  required
-                  disabled={!editMode && !goalLimits.canCreate}
-                  maxLength={MAX_DESC_CHARS}
-                />
-                <div className="mt-1 text-xs text-gray-500 dark:text-gray-400 text-right" style={{ fontFamily: 'Manrope' }}>{formData.description.length}/{MAX_DESC_CHARS}</div>
-                {errors.description && (
-                  <div className="flex items-center gap-2 mt-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-300 text-sm" style={{ fontFamily: 'Manrope' }}>
-                    <AlertCircle className="h-4 w-4 flex-shrink-0" />
-                    {errors.description}
-                  </div>
-                )}
-              </div>
-
               {/* Category */}
               <div>
                 <label htmlFor="category" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" style={{ fontFamily: 'Manrope' }}>
@@ -515,47 +346,109 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
                 )}
               </div>
 
-              {/* Target Date */}
-              <div className="relative">
-                <label htmlFor="targetDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" style={{ fontFamily: 'Manrope' }}>
-                  <Calendar className="h-3.5 w-3.5 inline mr-1" />
-                  Target Date 
-                </label>
-                <input 
-                  type="date" 
-                  disabled={!editMode && !goalLimits.canCreate} 
-                  id="targetDate" 
-                  name="targetDate" 
-                  value={formData.targetDate} 
-                  onChange={handleInputChange} 
-                  min={getMinDate()} 
-                  className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-colors ${errors.targetDate ? 'border-red-500' : 'border-gray-300 dark:border-gray-700'}`}
-                  style={{ fontFamily: 'Manrope', borderColor: errors.targetDate ? '#ef4444' : (formData.targetDate ? THEME_COLOR : undefined), position: 'relative' }}
-                />
-                {errors.targetDate && (
-                  <div className="flex items-center gap-2 mt-2 text-red-600 dark:text-red-400 text-xs" style={{ fontFamily: 'Manrope' }}>
-                    <AlertCircle className="h-3 w-3 flex-shrink-0" />
-                    {errors.targetDate}
+              {/* Additional details (optional) */}
+              <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/60 dark:bg-gray-800/40">
+                <button
+                  type="button"
+                  onClick={() => setShowAdditionalDetails(prev => !prev)}
+                  className="w-full px-4 py-3 flex items-center justify-between text-left"
+                >
+                  <div>
+                    <div className="text-sm font-semibold text-gray-900 dark:text-white" style={{ fontFamily: 'Manrope' }}>
+                      Additional Details
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400" style={{ fontFamily: 'Manrope' }}>
+                      Optional fields for richer goal setup
+                    </div>
+                  </div>
+                  {showAdditionalDetails ? (
+                    <ChevronDown className="h-4 w-4 text-gray-500" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4 text-gray-500" />
+                  )}
+                </button>
+
+                {showAdditionalDetails && (
+                  <div className="px-4 pb-4 space-y-4 border-t border-gray-200 dark:border-gray-700">
+                    {/* Description */}
+                    <div>
+                      <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" style={{ fontFamily: 'Manrope' }}>
+                        Description
+                      </label>
+                      <textarea
+                        id="description"
+                        name="description"
+                        value={formData.description}
+                        onChange={handleInputChange}
+                        rows={4}
+                        className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 resize-none transition-colors ${errors.description ? 'border-red-500' : 'border-gray-300 dark:border-gray-700'}`}
+                        style={{ fontFamily: 'Manrope', borderColor: errors.description ? '#ef4444' : (formData.description ? THEME_COLOR : undefined) }}
+                        placeholder="Describe your goal in detail, including why it's important to you"
+                        disabled={!editMode && !goalLimits.canCreate}
+                        maxLength={MAX_DESC_CHARS}
+                      />
+                      <div className="mt-1 text-xs text-gray-500 dark:text-gray-400 text-right" style={{ fontFamily: 'Manrope' }}>{formData.description.length}/{MAX_DESC_CHARS}</div>
+                      {errors.description && (
+                        <div className="flex items-center gap-2 mt-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-300 text-sm" style={{ fontFamily: 'Manrope' }}>
+                          <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                          {errors.description}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Target Date */}
+                    <div className="relative">
+                      <label htmlFor="targetDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" style={{ fontFamily: 'Manrope' }}>
+                        <Calendar className="h-3.5 w-3.5 inline mr-1" />
+                        Target Date
+                      </label>
+                      <input
+                        type="date"
+                        disabled={!editMode && !goalLimits.canCreate}
+                        id="targetDate"
+                        name="targetDate"
+                        value={formData.targetDate}
+                        onChange={handleInputChange}
+                        min={getMinDate()}
+                        className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-colors ${errors.targetDate ? 'border-red-500' : 'border-gray-300 dark:border-gray-700'}`}
+                        style={{ fontFamily: 'Manrope', borderColor: errors.targetDate ? '#ef4444' : (formData.targetDate ? THEME_COLOR : undefined), position: 'relative' }}
+                      />
+                      {errors.targetDate && (
+                        <div className="flex items-center gap-2 mt-2 text-red-600 dark:text-red-400 text-xs" style={{ fontFamily: 'Manrope' }}>
+                          <AlertCircle className="h-3 w-3 flex-shrink-0" />
+                          {errors.targetDate}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Visibility settings */}
+                    <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700">
+                      <label className="flex items-center justify-between gap-3 cursor-pointer">
+                        <div>
+                          <div className="text-sm font-medium text-gray-900 dark:text-white" style={{ fontFamily: 'Manrope' }}>Make this goal public</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400" style={{ fontFamily: 'Manrope' }}>Others can see and interact with your goal</div>
+                        </div>
+                        <span className="relative inline-flex items-center">
+                          <input
+                            type="checkbox"
+                            name="isPublic"
+                            checked={!!formData.isPublic}
+                            onChange={handleInputChange}
+                            className="sr-only peer"
+                          />
+                          <span
+                            className="w-11 h-6 rounded-full transition-colors peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-offset-2 dark:peer-focus:ring-offset-gray-800"
+                            style={{
+                              backgroundColor: formData.isPublic ? THEME_COLOR : '#d1d5db',
+                              boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.06)'
+                            }}
+                          />
+                          <span className="pointer-events-none absolute left-[2px] top-[2px] h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5" />
+                        </span>
+                      </label>
+                    </div>
                   </div>
                 )}
-              </div>
-
-              {/* Visibility settings */}
-              <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700">
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input 
-                    type="checkbox" 
-                    name="isPublic" 
-                    checked={!!formData.isPublic} 
-                    onChange={handleInputChange} 
-                    className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500" 
-                    style={{ accentColor: THEME_COLOR }}
-                  />
-                  <div>
-                    <div className="text-sm font-medium text-gray-900 dark:text-white" style={{ fontFamily: 'Manrope' }}>Make this goal public</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400" style={{ fontFamily: 'Manrope' }}>Others can see and interact with your goal</div>
-                  </div>
-                </label>
               </div>
             </div>
 
@@ -575,50 +468,10 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
                 className="flex-1 py-3 px-5 text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-lg transition-all"
                 style={{ backgroundColor: THEME_COLOR, fontFamily: 'Manrope' }}
               >
-                {saving ? (editMode ? 'Updating…' : 'Creating…') : (!editMode && !goalLimits.canCreate ? 'Limit Reached' : 'Next →')}
+                {saving ? (editMode ? 'Updating…' : 'Creating…') : (!editMode && !goalLimits.canCreate ? 'Limit Reached' : (editMode ? 'Update' : 'Create'))}
               </button>
             </div>
           </form>
-        )}
-        {step === 2 && (
-          <div className="flex-1 overflow-y-auto scrollbar-hide flex flex-col">
-            <div className="flex-1 px-8 py-6">
-              <Suspense fallback={null}>
-                <GoalDivisionEditor
-                  key={`draft-${editMode ? goalId : 'new'}`}
-                  goalId={goalId}
-                  draftMode
-                  renderInline
-                  value={divisionEditorValue}
-                  onChange={handleDivisionChange}
-                  habits={habits}
-                  onClose={() => setStep(1)}
-                />
-              </Suspense>
-            </div>
-
-            {/* Actions Footer */}
-            <div className="bg-gray-50 dark:bg-gray-800/50 px-4 sm:px-6 lg:px-8 py-4 sm:py-5 border-t border-gray-200 dark:border-gray-700 flex items-center gap-2 sm:gap-3">
-              <button 
-                type="button" 
-                onClick={() => setStep(1)}
-                className="flex-1 py-2.5 sm:py-3 px-3 sm:px-5 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 font-medium transition-all inline-flex items-center justify-center gap-2 text-sm sm:text-base"
-                style={{ fontFamily: 'Manrope' }}
-              >
-                <ChevronLeft className="h-4 w-4" /> Back
-              </button>
-              <button 
-                type="button" 
-                onClick={handleSave} 
-                disabled={saving || (!editMode && !goalLimits.canCreate)} 
-                className="flex-1 py-3 px-5 text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-lg transition-all"
-                style={{ backgroundColor: THEME_COLOR, fontFamily: 'Manrope' }}
-              >
-                {saving ? (editMode ? 'Updating…' : 'Saving…') : (!editMode && !goalLimits.canCreate ? 'Limit Reached' : (editMode ? 'Update' : 'Create'))}
-              </button>
-            </div>
-          </div>
-        )}
       </motion.div>
       </motion.div>
     </>

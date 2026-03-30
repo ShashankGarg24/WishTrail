@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { X, Calendar, Info, Clock, Crown } from 'lucide-react';
+import { X, Calendar, Info, Clock, Crown, ChevronDown, ChevronRight } from 'lucide-react';
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock';
 
 const THEME_COLOR = '#4c99e6';
@@ -18,6 +18,9 @@ const dayOptions = [
   { label: 'Sat', value: 6 },
 ];
 
+const MAX_HABIT_TITLE_CHARS = 100;
+const MAX_HABIT_DESC_CHARS = 200;
+
 export default function CreateHabitModal({ isOpen, onClose, onCreated, initialData }) {
   const { habits } = useApiStore();
   const [name, setName] = useState('');
@@ -27,6 +30,7 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
   const [reminders, setReminders] = useState(['']);
   const [targetCompletions, setTargetCompletions] = useState('');
   const [targetDays, setTargetDays] = useState('');
+  const [showAdditionalDetails, setShowAdditionalDetails] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -41,13 +45,14 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
     if (!isOpen) return;
     lockBodyScroll();
     setError(''); // Clear error when modal opens
+    setShowAdditionalDetails(false);
     return () => unlockBodyScroll();
   }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen || !initialData) return;
-    if (typeof initialData.name === 'string') setName(initialData.name);
-    if (typeof initialData.description === 'string') setDescription(initialData.description);
+    if (typeof initialData.name === 'string') setName(initialData.name.slice(0, MAX_HABIT_TITLE_CHARS));
+    if (typeof initialData.description === 'string') setDescription(initialData.description.slice(0, MAX_HABIT_DESC_CHARS));
     if (typeof initialData.frequency === 'string') setFrequency(initialData.frequency === 'weekly' ? 'custom' : initialData.frequency);
     if (Array.isArray(initialData.daysOfWeek)) setDaysOfWeek(initialData.daysOfWeek);
   }, [isOpen, initialData]);
@@ -60,6 +65,21 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    const normalizedName = String(name || '').trim();
+    const normalizedDescription = String(description || '').trimEnd();
+    if (!normalizedName) {
+      setError('Habit name is required');
+      return;
+    }
+    if (normalizedName.length > MAX_HABIT_TITLE_CHARS) {
+      setError(`Habit name cannot exceed ${MAX_HABIT_TITLE_CHARS} characters`);
+      return;
+    }
+    if (normalizedDescription.length > MAX_HABIT_DESC_CHARS) {
+      setError(`Description cannot exceed ${MAX_HABIT_DESC_CHARS} characters`);
+      return;
+    }
     
     // Check premium limits
     if (!habitLimits.canCreate) {
@@ -76,8 +96,8 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
     setError(''); // Clear previous errors
     try {
       const payload = {
-        name,
-        description: description.trimEnd(),
+        name: normalizedName,
+        description: normalizedDescription,
         frequency: frequency === 'daily' ? 'daily' : 'custom',
         daysOfWeek: frequency === 'daily' ? [] : daysOfWeek.sort()
         // reminders: reminders.filter(Boolean).map(t => ({ time: t })),
@@ -134,8 +154,8 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
         </div>
 
         {/* Content */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto scrollbar-hide scrollbar-hide">
-          <fieldset disabled={!habitLimits.canCreate} className="border-0 p-0 m-0 min-w-0">
+        <form onSubmit={handleSubmit} className="flex-1 min-h-0 flex flex-col">
+          <fieldset disabled={!habitLimits.canCreate} className="border-0 p-0 m-0 min-w-0 flex-1 min-h-0 overflow-y-auto theme-scrollbar">
           <div className="px-4 sm:px-6 py-4 sm:py-5 space-y-4 sm:space-y-5">
             {error && (
               <div className="flex items-start gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-700 dark:text-red-300 text-sm">
@@ -173,41 +193,26 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
             <div className="space-y-3 sm:space-y-4">
               <h4 className="text-[10px] sm:text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide flex items-center gap-2">
                 <span className="w-5 h-5 sm:w-6 sm:h-6 rounded flex items-center justify-center text-white text-[10px] sm:text-xs" style={{ backgroundColor: THEME_COLOR }}>i</span>
-                Basic Information
+                Required Details
               </h4>
               <div>
                 <label className="block text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">Habit Name *</label>
                 <input 
                   value={name} 
-                  onChange={(e) => setName(e.target.value)} 
+                  onChange={(e) => setName(e.target.value.slice(0, MAX_HABIT_TITLE_CHARS))} 
                   placeholder="e.g., Morning meditation"
+                  maxLength={MAX_HABIT_TITLE_CHARS}
                   required 
                   className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4c99e6] transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
                 />
+                <div className="mt-1 text-xs text-gray-500 dark:text-gray-400 text-right">{name.length}/{MAX_HABIT_TITLE_CHARS}</div>
               </div>
-              <div>
-                <label className="block text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">Description</label>
-                <textarea 
-                  value={description} 
-                  onChange={(e) => setDescription(e.target.value)} 
-                  placeholder="Add any notes or motivation for this habit"
-                  rows={3} 
-                  className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4c99e6] transition-colors resize-none disabled:opacity-50 disabled:cursor-not-allowed" 
-                />
-              </div>
-            </div>
 
-            {/* Schedule */}
-            <div className="space-y-3 sm:space-y-4">
-              <h4 className="text-[10px] sm:text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide flex items-center gap-2">
-                <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4" style={{ color: THEME_COLOR }} />
-                Schedule
-              </h4>
               <div>
                 <label className="block text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">Frequency *</label>
-                <select 
-                  value={frequency} 
-                  onChange={(e) => setFrequency(e.target.value)} 
+                <select
+                  value={frequency}
+                  onChange={(e) => setFrequency(e.target.value)}
                   className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#4c99e6] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <option value="daily">Daily</option>
@@ -220,13 +225,13 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
                   <label className="block text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Select Days</label>
                   <div className="flex flex-wrap gap-1.5 sm:gap-2">
                     {dayOptions.map(d => (
-                      <button 
-                        type="button" 
-                        key={d.value} 
-                        onClick={() => toggleDay(d.value)} 
+                      <button
+                        type="button"
+                        key={d.value}
+                        onClick={() => toggleDay(d.value)}
                         className={`px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium border transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                          daysOfWeek.includes(d.value) 
-                            ? 'text-white border-transparent' 
+                          daysOfWeek.includes(d.value)
+                            ? 'text-white border-transparent'
                             : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
                         }`}
                         style={daysOfWeek.includes(d.value) ? { backgroundColor: THEME_COLOR } : {}}
@@ -239,49 +244,85 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
               )}
             </div>
 
-            {/* Goals */}
-            <div className="space-y-3 sm:space-y-4">
-              <h4 className="text-[10px] sm:text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide flex items-center gap-2">
-                <Info className="h-3.5 w-3.5 sm:h-4 sm:w-4" style={{ color: THEME_COLOR }} />
-                Goals
-              </h4>
-              <div className="p-2.5 sm:p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200 text-[10px] sm:text-xs">
-                Choose either count-based OR days-based target (not both).
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            {/* Additional details (optional) */}
+            <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/60 dark:bg-gray-800/40">
+              <button
+                type="button"
+                onClick={() => setShowAdditionalDetails(prev => !prev)}
+                className="w-full px-4 py-3 flex items-center justify-between text-left"
+              >
                 <div>
-                  <label className="block text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Target Total Count</label>
-                  <input 
-                    type="number" 
-                    min="0"
-                    value={targetCompletions} 
-                    onChange={(e) => {
-                      setTargetCompletions(e.target.value);
-                      if (e.target.value) setTargetDays('');
-                    }} 
-                    placeholder="e.g., 100"
-                    disabled={targetDays && parseInt(targetDays) > 0}
-                    className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#4c99e6] disabled:opacity-50 disabled:cursor-not-allowed" 
-                  />
-                  <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-1">Total times to complete this habit</p>
+                  <div className="text-sm font-semibold text-gray-900 dark:text-white">Additional Details</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">Optional fields for richer habit setup</div>
                 </div>
-                <div>
-                  <label className="block text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Target Days</label>
-                  <input 
-                    type="number" 
-                    min="0"
-                    value={targetDays} 
-                    onChange={(e) => {
-                      setTargetDays(e.target.value);
-                      if (e.target.value) setTargetCompletions('');
-                    }} 
-                    placeholder="e.g., 30"
-                    disabled={targetCompletions && parseInt(targetCompletions) > 0}
-                    className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#4c99e6] disabled:opacity-50 disabled:cursor-not-allowed" 
-                  />
-                  <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-1">Number of unique days</p>
+                {showAdditionalDetails ? (
+                  <ChevronDown className="h-4 w-4 text-gray-500" />
+                ) : (
+                  <ChevronRight className="h-4 w-4 text-gray-500" />
+                )}
+              </button>
+
+              {showAdditionalDetails && (
+                <div className="px-4 pb-4 space-y-4 border-t border-gray-200 dark:border-gray-700">
+                  <div>
+                    <label className="block text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">Description</label>
+                    <textarea
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value.slice(0, MAX_HABIT_DESC_CHARS))}
+                      placeholder="Add any notes or motivation for this habit"
+                      maxLength={MAX_HABIT_DESC_CHARS}
+                      rows={3}
+                      className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4c99e6] transition-colors resize-none disabled:opacity-50 disabled:cursor-not-allowed"
+                    />
+                    <div className="mt-1 text-xs text-gray-500 dark:text-gray-400 text-right">{description.length}/{MAX_HABIT_DESC_CHARS}</div>
+                  </div>
+
+                  {/* Goals */}
+                  <div className="space-y-3 sm:space-y-4">
+                    <h4 className="text-[10px] sm:text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide flex items-center gap-2">
+                      <Info className="h-3.5 w-3.5 sm:h-4 sm:w-4" style={{ color: THEME_COLOR }} />
+                      Goals
+                    </h4>
+                    <div className="p-2.5 sm:p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200 text-[10px] sm:text-xs">
+                      Choose either count-based OR days-based target.
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                      <div>
+                        <label className="block text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Target Total Count</label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={targetCompletions}
+                          onChange={(e) => {
+                            setTargetCompletions(e.target.value);
+                            if (e.target.value) setTargetDays('');
+                          }}
+                          placeholder="e.g., 100"
+                          disabled={targetDays && parseInt(targetDays) > 0}
+                          className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#4c99e6] disabled:opacity-50 disabled:cursor-not-allowed"
+                        />
+                        <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-1">Total times to complete this habit</p>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Target Days</label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={targetDays}
+                          onChange={(e) => {
+                            setTargetDays(e.target.value);
+                            if (e.target.value) setTargetCompletions('');
+                          }}
+                          placeholder="e.g., 30"
+                          disabled={targetCompletions && parseInt(targetCompletions) > 0}
+                          className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#4c99e6] disabled:opacity-50 disabled:cursor-not-allowed"
+                        />
+                        <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-1">Number of unique days</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
           </fieldset>

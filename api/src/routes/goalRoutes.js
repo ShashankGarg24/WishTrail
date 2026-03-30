@@ -13,12 +13,12 @@ const router = express.Router();
 const createGoalValidation = [
   body('title')
     .trim()
-    .isLength({ min: 3, max: 200 })
-    .withMessage('Title must be between 3 and 200 characters'),
+    .isLength({ min: 3, max: 100 })
+    .withMessage('Title must be between 3 and 100 characters'),
   body('description')
     .optional()
-    .isLength({ max: 1000 })
-    .withMessage('Description must be less than 1000 characters'),
+    .isLength({ max: 200 })
+    .withMessage('Description must be less than 200 characters'),
   body('category')
     .isIn(GOAL_CATEGORIES)
     .withMessage('Invalid category'),
@@ -37,12 +37,12 @@ const updateGoalValidation = [
   body('title')
     .optional({ nullable: true })
     .trim()
-    .isLength({ min: 3, max: 200 })
-    .withMessage('Title must be between 3 and 200 characters'),
+    .isLength({ min: 3, max: 100 })
+    .withMessage('Title must be between 3 and 100 characters'),
   body('description')
     .optional({ nullable: true })
-    .isLength({ max: 1000 })
-    .withMessage('Description must be less than 1000 characters'),
+    .isLength({ max: 200 })
+    .withMessage('Description must be less than 200 characters'),
   body('category')
     .optional({ nullable: true })
     .isIn(GOAL_CATEGORIES)

@@ -196,6 +196,42 @@
     background: rgba(75, 85, 99, 0.7);
   }
 
+  /* Theme scrollbar for modal content areas */
+  .theme-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #cfeafb transparent;
+  }
+
+  .theme-scrollbar::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .theme-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .theme-scrollbar::-webkit-scrollbar-thumb {
+    background: #cfeafb;
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+
+  .theme-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #b9e1f9;
+    background-clip: padding-box;
+  }
+
+  .dark .theme-scrollbar::-webkit-scrollbar-thumb {
+    background: #d7effc;
+    background-clip: padding-box;
+  }
+
+  .dark .theme-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #c6e7fb;
+    background-clip: padding-box;
+  }
+
   .break-anywhere {
     overflow-wrap: anywhere;
     word-break: break-word;
