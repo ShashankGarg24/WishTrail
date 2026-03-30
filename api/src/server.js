@@ -173,6 +173,7 @@ const createApp = async () => {
   apiRouter.use('/settings', require('./routes/settingsRoutes'));
   apiRouter.use('/premium', require('./routes/premiumRoutes'));
   apiRouter.use('/product-updates', require('./routes/productUpdateRoutes'));
+  apiRouter.use('/sync', require('./routes/syncRoutes'));
   apiRouter.use(`/${adminApiRouteSegment}`, require('./routes/adminRoutes'));
   // Config management
   apiRouter.use('/config', require('./routes/configRoutes'));

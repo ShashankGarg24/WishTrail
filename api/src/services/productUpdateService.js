@@ -101,6 +101,28 @@ class ProductUpdateService {
   }
 
   /**
+   * Get latest product update regardless of type/major flag
+   */
+  async getLatestUpdate() {
+    const queryText = `
+      SELECT
+        id,
+        title,
+        description,
+        version,
+        is_major as "isMajor",
+        type,
+        created_at as "createdAt"
+      FROM product_updates
+      ORDER BY created_at DESC
+      LIMIT 1
+    `;
+
+    const result = await query(queryText);
+    return result.rows[0] || null;
+  }
+
+  /**
    * Mark update as seen by user
    */
   async markUpdateAsSeen(userId, version) {
