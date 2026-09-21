@@ -329,13 +329,14 @@ class PgHabitService {
    * @param {string} currentDateKey - Current date key (YYYY-MM-DD)
    * @returns {Promise<Object>} Streak information
    */
-  async calculateStreak(habitId, currentDateKey) {
+  async calculateStreak(habitId, currentDateKey, client = null) {
     // This will be called from habitLogService after logging
     // Gets the habit's frequency and calculates streak based on expected days
     const habit = await this.getHabitById(habitId);
     if (!habit) return { currentStreak: 0, longestStreak: 0 };
 
     // Get all logs for this habit, ordered by date descending
+    const q = client && client.query ? async (text, params) => (await client.query(text, params)) : query;
     const logSql = `
       SELECT date_key, status
       FROM habit_logs
@@ -343,7 +344,7 @@ class PgHabitService {
       ORDER BY date_key DESC
     `;
 
-    const logResult = await query(logSql, [habitId]);
+    const logResult = await q(logSql, [habitId]);
     const logs = logResult.rows;
 
     if (logs.length === 0) {

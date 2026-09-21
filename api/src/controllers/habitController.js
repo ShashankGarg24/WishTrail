@@ -139,11 +139,27 @@ exports.listHabits = async (req, res, next) => {
     }
 
     const result = {
-      habits: habits.map(h => ({
-        ...sanitizeHabitForProfile(h),
-        todayStatus: todayStatusMap[h.id] || null,
-        todayCompletionCount: todayCompletionCountMap[h.id] || 0
-      })),
+      habits: habits.map(h => {
+        const sh = sanitizeHabitForProfile(h);
+        try {
+          const lastKey = sh.lastLoggedDateKey;
+          const todayKey = today;
+          if (!lastKey) {
+            sh.currentStreak = 0;
+          } else {
+            const lastDate = new Date(lastKey + 'T00:00:00Z');
+            const tDate = new Date(todayKey + 'T00:00:00Z');
+            const daysSince = Math.floor((tDate - lastDate) / (1000 * 60 * 60 * 24));
+            if (daysSince > 1) sh.currentStreak = 0;
+          }
+        } catch (err) { /* ignore parsing errors and keep existing streak */ }
+
+        return {
+          ...sh,
+          todayStatus: todayStatusMap[h.id] || null,
+          todayCompletionCount: todayCompletionCountMap[h.id] || 0
+        };
+      }),
       pagination: {
         page,
         limit,
@@ -198,11 +214,27 @@ exports.searchHabits = async (req, res, next) => {
       }
     }
 
-    const sanitizedHabits = habits.map(h => ({
-      ...sanitizeHabitForProfile(h),
-      todayStatus: todayStatusMap[h.id] || null,
-      todayCompletionCount: todayCompletionCountMap[h.id] || 0
-    }));
+    const sanitizedHabits = habits.map(h => {
+      const sh = sanitizeHabitForProfile(h);
+      try {
+        const lastKey = sh.lastLoggedDateKey;
+        const todayKey = today;
+        if (!lastKey) {
+          sh.currentStreak = 0;
+        } else {
+          const lastDate = new Date(lastKey + 'T00:00:00Z');
+          const tDate = new Date(todayKey + 'T00:00:00Z');
+          const daysSince = Math.floor((tDate - lastDate) / (1000 * 60 * 60 * 24));
+          if (daysSince > 1) sh.currentStreak = 0;
+        }
+      } catch (err) { /* ignore parsing errors */ }
+
+      return {
+        ...sh,
+        todayStatus: todayStatusMap[h.id] || null,
+        todayCompletionCount: todayCompletionCountMap[h.id] || 0
+      };
+    });
 
     res.status(200).json({
       success: true,

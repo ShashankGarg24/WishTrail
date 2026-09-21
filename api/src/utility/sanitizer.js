@@ -310,6 +310,8 @@ const sanitizeHabitForProfile = (habit) => {
     totalDays: obj.totalDays || obj.total_days || 0,
     targetCompletions: obj.targetCompletions || obj.target_completions || null,
     targetDays: obj.targetDays || obj.target_days || null
+    ,
+    lastLoggedDateKey: obj.lastLoggedDateKey || obj.last_logged_date_key || null
   };
 };
 
