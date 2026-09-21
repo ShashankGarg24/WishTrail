@@ -26,6 +26,11 @@ const Header = () => {
   useEffect(() => {
     const compute = () => setIsMobile(typeof window !== 'undefined' && window.innerWidth < 768)
     compute()
+    // Recompute on resize so desktop/mobile UI updates correctly
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', compute)
+    }
+
     const handleClickOutside = (event) => {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
         setIsProfileMenuOpen(false)
@@ -35,6 +40,9 @@ const Header = () => {
       document.addEventListener('mousedown', handleClickOutside)
     }
     return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('resize', compute)
+      }
       document.removeEventListener('mousedown', handleClickOutside)
     }
   }, [isProfileMenuOpen])
