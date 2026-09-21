@@ -55,12 +55,12 @@ const PREMIUM_FEATURES = {
     free: {
       maxEntriesPerDay: 1,
       maxEntryLength: 300,
-      retentionDays: 90, // 3 months
+      retentionDays: 60, // 3 months
       canExportEntries: false
     },
     premium: {
-      maxEntriesPerDay: 5,
-      maxEntryLength: 300,
+      maxEntriesPerDay: 1,
+      maxEntryLength: 500,
       retentionDays: -1, // unlimited
       canExportEntries: true
     }

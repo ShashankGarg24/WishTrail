@@ -14,11 +14,10 @@ Allow: /inspiration
 Allow: /privacy-policy
 Allow: /terms-of-service
 Allow: /community-guidelines
-Allow: /copyright-policy
 
 # User-specific pages - Block from indexing
 Disallow: /dashboard
-Disallow: /profile/*/settings
+Disallow: /profile
 Disallow: /notifications
 Disallow: /settings
 Disallow: /reset-password

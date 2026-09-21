@@ -318,7 +318,7 @@ export default function CommunitySettings({ community, role, setShowDeleteModal,
                     : 'bg-[#4c99e6] hover:bg-[#3d88d5] text-white shadow-lg hover:shadow-xl'
                   }`}
               >
-                {profileSaving ? 'Saving…' : 'Save Changes'}
+                {profileSaving ? 'Saving…' : 'Save'}
               </button>
               {profileStatus && (
                 <span className={`text-sm font-semibold flex items-center gap-1 ${profileStatus === 'Saved' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
@@ -414,7 +414,7 @@ export default function CommunitySettings({ community, role, setShowDeleteModal,
                     : 'bg-[#4c99e6] hover:bg-[#3d88d5] text-white shadow-lg hover:shadow-xl'
                   }`}
               >
-                {permissionsSaving ? 'Saving…' : 'Save Changes'}
+                {permissionsSaving ? 'Saving…' : 'Save'}
               </button>
               {permissionsStatus && (
                 <span className={`text-sm font-semibold flex items-center gap-1 ${permissionsStatus === 'Saved' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>

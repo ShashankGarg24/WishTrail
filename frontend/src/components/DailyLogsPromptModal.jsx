@@ -218,7 +218,7 @@ const DailyLogsPromptModal = ({ isOpen, onClose, onSubmitted, existingEntry = nu
                     className="inline-flex items-center gap-2 px-5 py-2.5 text-white rounded-xl hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-semibold transition-opacity"
                     style={{ backgroundColor: THEME_COLOR }}
                   >
-                    {submitting ? 'Saving...' : (existingEntry ? 'Save Changes' : 'Update Log')}
+                    {submitting ? 'Saving...' : (existingEntry ? 'Save' : 'Update')}
                   </button>
                 </div>
               </form>

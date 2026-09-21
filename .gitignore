@@ -1,1 +1,9 @@
 app/.expo/
+
+node_modules/
+**/node_modules/
+.expo/
+dist/
+build/
+android/build/
+ios/build/
