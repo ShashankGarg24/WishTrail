@@ -837,6 +837,82 @@ export default function HabitAnalyticsPage() {
         </div>
 
         {/* Charts Grid */}
+        {/* Daily Logs moved above analytics */}
+        
+        {/* Habit Logs List */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.5 }}
+          className="bg-white dark:bg-gray-800 rounded-2xl p-3 sm:p-4 md:p-6 border border-gray-200 dark:border-gray-700 shadow-sm mb-5"
+        >
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+              <Calendar className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: THEME_COLOR }} />
+              Daily Logs
+            </h3>
+            {logsPagination && (
+              <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                {logsPagination.total} total logs
+              </span>
+            )}
+          </div>
+
+          <div className="space-y-2 max-h-[400px] sm:max-h-[500px] md:max-h-[600px] overflow-y-auto">
+            {logs && logs.length > 0 ? (
+              <>
+                {logs.map((log, idx) => {
+                const statusColors = {
+                  done: 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800',
+                  skipped: 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800',
+                  missed: 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800',
+                  none: 'bg-gray-50 dark:bg-gray-800/40 border-gray-200 dark:border-gray-700'
+                };
+
+                const statusIcons = {
+                  done: <CheckCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-600 dark:text-green-400" />,
+                  skipped: <SkipForward className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-yellow-600 dark:text-yellow-400" />,
+                  missed: <XCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-red-600 dark:text-red-400" />
+                };
+
+                const moodIcons = {
+                  great: { icon: <Heart className="h-3 w-3 sm:h-3.5 sm:w-3.5" />, label: 'Great', color: 'text-pink-600 dark:text-pink-400' },
+                  good: { icon: <Smile className="h-3 w-3 sm:h-3.5 sm:w-3.5" />, label: 'Good', color: 'text-green-600 dark:text-green-400' },
+                  okay: { icon: <Meh className="h-3 w-3 sm:h-3.5 sm:w-3.5" />, label: 'Okay', color: 'text-blue-600 dark:text-blue-400' },
+                  challenging: { icon: <Frown className="h-3 w-3 sm:h-3.5 sm:w-3.5" />, label: 'Challenging', color: 'text-yellow-600 dark:text-yellow-400' },
+                  neutral: { icon: <Meh className="h-3 w-3 sm:h-3.5 sm:w-3.5" />, label: 'Neutral', color: 'text-gray-600 dark:text-gray-400' }
+                };
+
+                return (
+                  <div key={log.id || idx} className={`p-3 rounded-lg border ${statusColors[log.status || 'none']} flex items-start gap-3`}> 
+                    <div className="flex-shrink-0">{statusIcons[log.status] || <Clock className="h-3.5 w-3.5 text-gray-400" />}</div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <div className="text-sm font-semibold text-gray-900 dark:text-white">{formatDate(log.createdAt || log.date || '')}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">{formatTime(log.createdAt || log.date || '')}</div>
+                      </div>
+                      <div className="text-sm text-gray-600 dark:text-gray-300 mt-1">{log.note || ''}</div>
+                    </div>
+                  </div>
+                );
+                })}
+              </>
+            ) : (
+              <div className="text-center py-10 text-gray-500 dark:text-gray-400">No logs found</div>
+            )}
+          </div>
+        </motion.div>
+
+        <div className="relative mb-5">
+          {/* Blurred overlay for analytics - shows Coming Soon */}
+          <div style={{ position: 'relative' }}>
+            <div style={{ position: 'absolute', inset: 0, zIndex: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+              <div style={{ padding: '10px 18px', borderRadius: 9999, background: 'linear-gradient(90deg, rgba(255,255,255,0.7), rgba(255,255,255,0.5))', boxShadow: '0 6px 20px rgba(0,0,0,0.08)', backdropFilter: 'blur(2px)', WebkitBackdropFilter: 'blur(2px)', color: '#111827', fontWeight: 600 }}>
+                Coming Soon
+              </div>
+            </div>
+            <div style={{ filter: 'blur(6px)', WebkitFilter: 'blur(6px)', pointerEvents: 'none' }} aria-hidden="true">
+        
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 mb-5">
           {/* Activity Trends */}
           <motion.div
@@ -1038,216 +1114,10 @@ export default function HabitAnalyticsPage() {
         </motion.div>
         </div>
 
-        {/* Habit Logs List */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.5 }}
-          className="bg-white dark:bg-gray-800 rounded-2xl p-3 sm:p-4 md:p-6 border border-gray-200 dark:border-gray-700 shadow-sm"
-        >
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <Calendar className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: THEME_COLOR }} />
-              Daily Logs
-            </h3>
-            {logsPagination && (
-              <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                {logsPagination.total} total logs
-              </span>
-            )}
+            </div>
           </div>
+        </div>
 
-          <div className="space-y-2 max-h-[400px] sm:max-h-[500px] md:max-h-[600px] overflow-y-auto">
-            {logs && logs.length > 0 ? (
-              <>
-                {logs.map((log, idx) => {
-                const statusColors = {
-                  done: 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800',
-                  skipped: 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800',
-                  missed: 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800',
-                  none: 'bg-gray-50 dark:bg-gray-800/40 border-gray-200 dark:border-gray-700'
-                };
-
-                const statusIcons = {
-                  done: <CheckCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-600 dark:text-green-400" />,
-                  skipped: <SkipForward className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-yellow-600 dark:text-yellow-400" />,
-                  missed: <XCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-red-600 dark:text-red-400" />
-                };
-
-                const moodIcons = {
-                  great: { icon: <Heart className="h-3 w-3 sm:h-3.5 sm:w-3.5" />, label: 'Great', color: 'text-pink-600 dark:text-pink-400' },
-                  good: { icon: <Smile className="h-3 w-3 sm:h-3.5 sm:w-3.5" />, label: 'Good', color: 'text-green-600 dark:text-green-400' },
-                  okay: { icon: <Meh className="h-3 w-3 sm:h-3.5 sm:w-3.5" />, label: 'Okay', color: 'text-blue-600 dark:text-blue-400' },
-                  neutral: { icon: <Meh className="h-3 w-3 sm:h-3.5 sm:w-3.5" />, label: 'Neutral', color: 'text-yellow-600 dark:text-yellow-400' },
-                  challenging: { icon: <Frown className="h-3 w-3 sm:h-3.5 sm:w-3.5" />, label: 'Challenging', color: 'text-orange-600 dark:text-orange-400' }
-                };
-
-                const formatDate = (dateStr) => {
-                  const date = new Date(dateStr + 'T12:00:00Z');
-                  const today = new Date();
-                  const yesterday = new Date(today);
-                  yesterday.setDate(yesterday.getDate() - 1);
-                  
-                  const dateKey = date.toISOString().split('T')[0];
-                  const todayKey = today.toISOString().split('T')[0];
-                  const yesterdayKey = yesterday.toISOString().split('T')[0];
-                  
-                  if (dateKey === todayKey) return 'Today';
-                  if (dateKey === yesterdayKey) return 'Yesterday';
-                  
-                  return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-                };
-
-                const formatTime = (timestamp) => {
-                  if (!timestamp) return '';
-                  const date = new Date(timestamp);
-                  return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-                };
-                
-                const averageMoodData = log.averageMood ? moodIcons[log.averageMood] : null;
-                  const isExpanded = expandedLogIds.has(log.id);
-
-                  return (
-                    <div
-                      key={log.id || idx}
-                      className={`p-3 sm:p-4 rounded-xl border transition-all hover:shadow-md ${statusColors[log.status] || statusColors.none}`}
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        {/* Left: Date and Status */}
-                        <div className="flex items-start gap-3 flex-1">
-                          <div className="flex-shrink-0 mt-1">
-                            {statusIcons[log.status]}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1 flex-wrap">
-                              <span className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white">
-                                {formatDate(log.dateKey)}
-                              </span>
-                              <span className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full bg-white dark:bg-gray-900/50 text-gray-600 dark:text-gray-400 capitalize font-medium">
-                                {log.status}
-                              </span>
-                              {/* Average Mood Badge */}
-                              {averageMoodData && log.completionCount > 0 && (
-                                <div className="flex items-center gap-1.5 px-1.5 sm:px-2 py-0.5 rounded-full bg-white dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700">
-                                  {averageMoodData.icon}
-                                  <span className={`text-[10px] sm:text-xs font-medium ${averageMoodData.color}`}>
-                                    Avg: {averageMoodData.label}
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Completion details */}
-                            {log.status === 'done' && (
-                              <div className="space-y-2 mt-2">
-                                {/* Completion count with expand button */}
-                                {log.completionCount > 0 && (
-                                  <button
-                                    onClick={() => toggleLogExpanded(log.id)}
-                                    className="flex items-center gap-2 text-xs sm:text-sm hover:bg-white/50 dark:hover:bg-gray-900/50 rounded-lg p-1 -ml-1 transition-colors group w-full text-left"
-                                  >
-                                    <CheckCircle className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-green-600 dark:text-green-400 flex-shrink-0" />
-                                    <span className="text-gray-700 dark:text-gray-300 flex-1">
-                                      <span className="font-semibold">{log.completionCount}</span> completion{log.completionCount !== 1 ? 's' : ''}
-                                    </span>
-                                    {log.completionTimesMood && log.completionTimesMood.length > 0 && (
-                                      <div className="flex items-center gap-1 text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">
-                                        <Clock className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
-                                        <span className="group-hover:text-primary-600 dark:group-hover:text-primary-400">
-                                          {isExpanded ? 'Hide' : 'Show'} times
-                                        </span>
-                                        {isExpanded ? (
-                                          <ChevronUp className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                                        ) : (
-                                          <ChevronDown className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                                        )}
-                                      </div>
-                                    )}
-                                  </button>
-                                )}
-
-                                {/* Completion times - Collapsible */}
-                                <AnimatePresence>
-                                  {isExpanded && log.completionTimesMood && log.completionTimesMood.length > 0 && (
-                                    <motion.div
-                                      initial={{ height: 0, opacity: 0 }}
-                                      animate={{ height: 'auto', opacity: 1 }}
-                                      exit={{ height: 0, opacity: 0 }}
-                                      transition={{ duration: 0.2 }}
-                                      className="space-y-2 overflow-hidden"
-                                    >
-                                      {log.completionTimesMood.map((completion, timeIdx) => {
-                                        const timestamp = completion.timestamp || completion;
-                                        const mood = completion.mood || 'neutral';
-                                        const moodData = moodIcons[mood];
-                                        
-                                        return (
-                                          <div key={timeIdx} className="flex items-center gap-3 p-2 rounded-lg bg-white/50 dark:bg-gray-900/30 ml-6">
-                                            <Clock className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
-                                            <span className="px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-[10px] sm:text-xs font-medium">
-                                              {formatTime(timestamp)}
-                                            </span>
-                                            {moodData && (
-                                              <div className="flex items-center gap-1.5">
-                                                {moodData.icon}
-                                                <span className={`text-[10px] sm:text-xs font-medium ${moodData.color}`}>
-                                                  {moodData.label}
-                                                </span>
-                                              </div>
-                                            )}
-                                          </div>
-                                        );
-                                      })}
-                                    </motion.div>
-                                  )}
-                                </AnimatePresence>
-                              {/* Note */}
-                              {log.note && (
-                                <div className="mt-2 p-1.5 sm:p-2 rounded-lg bg-white/50 dark:bg-gray-900/30">
-                                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 italic">
-                                    "{log.note}"
-                                  </p>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-              
-              {/* Load More Button */}
-              {logsPagination && logsPagination.hasMore && (
-                <button
-                  onClick={loadMoreLogs}
-                  disabled={logsLoading}
-                  className="w-full py-2 sm:py-3 mt-4 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-[#4c99e6] hover:text-[#4c99e6] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {logsLoading ? (
-                    <div className="flex items-center justify-center gap-2">
-                      <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-primary-500" />
-                      Loading...
-                    </div>
-                  ) : (
-                    `Load More (${logsPagination.total - logs.length} remaining)`
-                  )}
-                </button>
-              )}
-            </>
-            ) : logsLoading ? (
-              <div className="text-center py-12">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto" />
-              </div>
-            ) : (
-              <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-                <Calendar className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                <p>No log data available</p>
-              </div>
-            )}
-          </div>
-        </motion.div>
       </div>
     </div>
   );
