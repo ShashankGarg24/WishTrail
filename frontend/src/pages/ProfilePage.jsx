@@ -1,7 +1,7 @@
 ﻿import { GOAL_CATEGORIES } from '../constants/goalCategories'
 import { useState, useEffect, useRef, useMemo, lazy, Suspense } from "react";
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { Target, TrendingUp, Star, Edit2, ExternalLink, Youtube, Instagram, MapPin, Globe, Trophy, BookOpen, Clock, CheckCircle, Circle, User, UserPlus, UserCheck, ArrowLeft, Lock, Sparkles, Download, Flame, Award, BarChart2, Activity, MoreVertical, Plus, PenSquare, ChevronDown, Trash2 } from "lucide-react";
+import { Target, TrendingUp, Star, Edit2, ExternalLink, Youtube, Instagram, MapPin, Globe, Trophy, BookOpen, Clock, CheckCircle, Circle, User, UserPlus, UserCheck, ArrowLeft, Lock, Download, Flame, Award, BarChart2, Activity, MoreVertical, Plus } from "lucide-react";
 import { getCategoryIcon } from '../utils/categoryIcons';
 import CategoryBadge from '../components/CategoryBadge';
 const FollowListModal = lazy(() => import("../components/FollowListModal"));
@@ -1433,14 +1433,6 @@ const ProfilePage = () => {
                                   <span className="text-xs sm:text-sm" style={{ color: THEME_COLOR }}>DAY STREAK</span>
                                 </div>
                               </div>
-                              <div className="mb-2 sm:mb-3">
-                                <div className="flex justify-between text-[10px] sm:text-xs mb-1">
-                                  <span className="text-gray-500 dark:text-gray-400">{Math.round(consistency)}% Consistency</span>
-                                </div>
-                                <div className="h-2 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
-                                  <div className="h-full rounded-full" style={{ width: `${Math.min(100, consistency)}%`, backgroundColor: THEME_COLOR }} />
-                                </div>
-                              </div>
                             </motion.div>
                           );
                         })}
@@ -1506,23 +1498,16 @@ const ProfilePage = () => {
               )}
               {activeTab === 'daily-logs' && (
                 <div className={isOwnProfile
-                  ? "bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-5 sm:p-6 shadow-sm border border-gray-100 dark:border-gray-700"
-                  : "bg-white/80 dark:bg-gray-800/50 backdrop-blur-lg rounded-xl sm:rounded-2xl p-5 sm:p-6 border border-gray-200 dark:border-gray-700/50"
+                  ? "bg-white/95 dark:bg-gray-800/90 backdrop-blur-2xl rounded-2xl p-5 sm:p-6 shadow-sm border border-white/70 dark:border-gray-700"
+                  : "bg-white/90 dark:bg-gray-800/70 backdrop-blur-2xl rounded-2xl p-5 sm:p-6 border border-white/60 dark:border-gray-700/50"
                 }>
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-5 sm:mb-6 gap-3">
                     <div>
-                      <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">Your Reflection</h3>
-                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1.5">Track your feelings. Understand your patterns.</p>
+                      <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">Daily Logs</h3>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1.5">A simple space to capture how the day felt.</p>
                     </div>
                     {isOwnProfile && (
-                      <div className="w-full sm:w-auto flex items-center gap-2">
-                        {/* <button
-                          onClick={() => setExportOpen(true)}
-                          className="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 inline-flex items-center gap-1.5 text-sm transition-colors"
-                          title="Export your daily logs"
-                        >
-                          <Download className="h-3.5 w-3.5" /> Export
-                        </button> */}
+                      <div className="w-full sm:w-auto">
                         <button
                           onClick={() => setIsDailyLogsOpen(true)}
                           className={`w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-colors shadow-sm font-manrope
@@ -1532,7 +1517,6 @@ const ProfilePage = () => {
                                 : 'bg-[#4c99e6] hover:bg-[#3d88d5] text-white'
                             }
                           `}                        >
-                          <PenSquare className="h-4 w-4" />
                           {hasTodayDailyLogs ? 'Update Today’s Log' : 'Log Today’s Feeling'}
                        </button>
                       </div>
@@ -1542,24 +1526,23 @@ const ProfilePage = () => {
                   {isOwnProfile && (
                     <div className="space-y-5">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/70 dark:bg-gray-900/40 p-5">
-                          <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Last 7 Days</p>
+                        <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-900/40 p-5">
+                          <p className="text-xs uppercase tracking-[0.2em] text-gray-500 dark:text-gray-400">Last 7 Days</p>
                           <p className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white mt-2">{loggedDaysCount} / 7 days logged</p>
-                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Start your streak today 🔥</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Keep the streak going.</p>
                         </div>
-                        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/70 dark:bg-gray-900/40 p-5">
-                          <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Average 7 Days</p>
+                        <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-900/40 p-5">
+                          <p className="text-xs uppercase tracking-[0.2em] text-gray-500 dark:text-gray-400">Mood Trend</p>
                           <p className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white mt-2">
                             {averageMood ? DAILY_LOG_MOOD_META[averageMood].label : 'No mood data yet'}
                           </p>
-                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">{averageMood ? `Based on ${moodSampleCount} mood-tagged logs` : 'Log your feelings to see patterns 📊'}</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">{averageMood ? `Based on ${moodSampleCount} mood-tagged logs` : 'Add a log to start tracking patterns.'}</p>
                         </div>
                       </div>
 
                       {dailyLogsFeed.length === 0 && !dailyLogsLoading && (
-                        <div className="text-center py-10 sm:py-12 md:py-14 px-4 border-2 border-dashed border-gray-200 dark:border-gray-600 rounded-xl sm:rounded-2xl">
-                          <BookOpen className="h-10 w-10 sm:h-11 sm:w-11 md:h-12 md:w-12 text-gray-300 dark:text-gray-600 mx-auto mb-3 sm:mb-4" />
-                          <p className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Start your first daily log ✨</p>
+                        <div className="text-center py-10 sm:py-12 md:py-14 px-4 border border-dashed border-gray-200 dark:border-gray-600 rounded-2xl bg-gray-50/50 dark:bg-gray-900/20">
+                          <p className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Start your first daily log</p>
                           <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">Capture how you feel in seconds and build your reflection habit.</p>
                           <button
                             onClick={() => setIsDailyLogsOpen(true)}
@@ -1579,7 +1562,7 @@ const ProfilePage = () => {
                           return (
                             <div
                               key={entryId}
-                              className="w-full text-left p-4 sm:p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700"
+                              className="w-full text-left p-4 sm:p-5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm"
                             >
                               <div className="flex items-start gap-3">
                                 <button
@@ -1602,7 +1585,7 @@ const ProfilePage = () => {
                                         )}
                                       </div>
                                     </div>
-                                    <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                                    <span className="text-xs font-medium text-[#4c99e6] whitespace-nowrap">{isExpanded ? 'Hide' : 'Details'}</span>
                                   </div>
                                   <p className={`text-sm sm:text-base text-gray-700 dark:text-gray-300 leading-relaxed mt-1 ${isExpanded ? '' : 'line-clamp-1'}`}>
                                     {e.content}
@@ -1616,21 +1599,20 @@ const ProfilePage = () => {
                                     handleDeleteDailyLog(entryId);
                                   }}
                                   disabled={!!deletingDailyLogId}
-                                  className="shrink-0 p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                  className="shrink-0 text-xs font-medium text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                   title="Delete entry"
                                   aria-label="Delete daily log entry"
                                 >
                                   {isDeletingThisEntry ? (
                                     <span className="text-[10px] font-medium">...</span>
                                   ) : (
-                                    <Trash2 className="h-4 w-4" />
+                                    'Delete'
                                   )}
                                 </button>
                               </div>
 
                               {isExpanded && e?.motivation && (
-                                <div className="mt-3 sm:mt-4 p-3 sm:p-4 rounded-lg sm:rounded-xl flex items-start gap-1.5 sm:gap-2" style={{ backgroundColor: 'rgba(76, 153, 230, 0.1)' }}>
-                                  <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0 mt-0.5" style={{ color: THEME_COLOR }} />
+                                <div className="mt-3 sm:mt-4 p-3 sm:p-4 rounded-xl border border-blue-100 dark:border-blue-900/40 bg-blue-50/80 dark:bg-blue-900/15">
                                   <div>
                                     <span className="text-[10px] sm:text-xs font-semibold uppercase" style={{ color: THEME_COLOR }}>AI Insight</span>
                                     <p className="text-xs sm:text-sm mt-0.5 sm:mt-1 leading-relaxed" style={{ color: '#3d7ab8' }}>{e.motivation}</p>

@@ -5,14 +5,14 @@ export default function HabitAnalyticsCard({ analytics, days = 30, embedded = fa
   const navigate = useNavigate();
   if (!analytics) {
     return embedded ? (
-      <div className="grid grid-cols-3 gap-4">
-        {[0,1,2].map(i => <div key={i} className="h-16 bg-gray-100 dark:bg-gray-800 rounded" />)}
+      <div className="grid grid-cols-3 gap-4 rounded-2xl border border-white/60 dark:border-gray-700 bg-white/95 dark:bg-gray-900/90 backdrop-blur-2xl p-4 shadow-[0_20px_60px_rgba(15,23,42,0.12)]">
+        {[0,1,2].map(i => <div key={i} className="h-16 bg-gray-100/90 dark:bg-gray-800/80 rounded-xl" />)}
       </div>
     ) : (
-      <div className="glass-card-hover p-6 rounded-xl">
+      <div className="rounded-2xl border border-white/60 dark:border-gray-700 bg-white/95 dark:bg-gray-900/90 backdrop-blur-2xl p-6 shadow-[0_20px_60px_rgba(15,23,42,0.12)]">
         <div className="animate-pulse h-6 w-32 bg-gray-200 dark:bg-gray-700 rounded mb-4" />
         <div className="grid grid-cols-3 gap-4">
-          {[0,1,2].map(i => <div key={i} className="h-16 bg-gray-100 dark:bg-gray-800 rounded" />)}
+          {[0,1,2].map(i => <div key={i} className="h-16 bg-gray-100/90 dark:bg-gray-800/80 rounded-xl" />)}
         </div>
       </div>
     );
@@ -100,7 +100,7 @@ export default function HabitAnalyticsCard({ analytics, days = 30, embedded = fa
   return embedded ? (
     <div>{Inner}</div>
   ) : (
-    <div className="glass-card-hover p-6 rounded-xl">{Inner}</div>
+    <div className="rounded-2xl border border-white/60 dark:border-gray-700 bg-white/95 dark:bg-gray-900/90 backdrop-blur-2xl p-6 shadow-[0_20px_60px_rgba(15,23,42,0.12)]">{Inner}</div>
   );
 }
 

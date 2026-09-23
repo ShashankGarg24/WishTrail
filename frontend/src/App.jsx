@@ -68,9 +68,6 @@ function App() {
   const [inNativeApp, setInNativeApp] = useState(false)
   const [maintenanceMode, setMaintenanceMode] = useState(null)
   const [maintenanceMessage, setMaintenanceMessage] = useState('')
-  const mobileBottomInset = inNativeApp && isAuthenticated
-    ? 'calc(104px + env(safe-area-inset-bottom, 0px))'
-    : undefined
   const hideFooterOnRoute = isAuthenticated && (
     location.pathname === '/dashboard' ||
     location.pathname === '/feed' ||
@@ -230,7 +227,7 @@ function App() {
         {/* <div className="relative min-h-screen pb-16 sm:pb-16"> */}
         <div className="relative min-h-screen bg-[#f5f5f5] dark:bg-gray-900 flex flex-col">
           <Header />
-          <main className="flex-grow" style={mobileBottomInset ? { paddingBottom: mobileBottomInset } : undefined}>
+          <main className={`flex-grow ${isAuthenticated ? 'pb-[calc(6.5rem+env(safe-area-inset-bottom,0px))] md:pb-0' : ''}`}>
             <Suspense fallback={<RouteLoadingScreen />}>
               <ScrollMemory />
               <Routes>
