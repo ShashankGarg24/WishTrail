@@ -71,6 +71,18 @@ function App() {
   const mobileBottomInset = inNativeApp && isAuthenticated
     ? 'calc(104px + env(safe-area-inset-bottom, 0px))'
     : undefined
+  const hideFooterOnRoute = isAuthenticated && (
+    location.pathname === '/dashboard' ||
+    location.pathname === '/feed' ||
+    location.pathname === '/discover' ||
+    location.pathname === '/notifications' ||
+    location.pathname === '/settings' ||
+    location.pathname === '/leaderboard' ||
+    location.pathname.startsWith('/profile/') ||
+    location.pathname.startsWith('/goal/') ||
+    location.pathname.startsWith('/habits/') ||
+    location.pathname.startsWith('/goals/')
+  )
 
   // Check maintenance and coming-soon mode on app load
   useEffect(() => {
@@ -269,7 +281,7 @@ function App() {
           {/* Bottom nav (web) */}
           {isAuthenticated && <BottomTabBar />}
           {/* Footer on web at all sizes; hide only inside native app */}
-          {!inNativeApp && (
+          {!inNativeApp && !hideFooterOnRoute && (
             <Footer />
           )}
           <Suspense fallback={null}><FeedbackButton /></Suspense>
