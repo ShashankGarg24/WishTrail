@@ -14,12 +14,6 @@ const api = axios.create({
 let tokenRefreshTimer = null;
 let forceLogoutInProgress = false;
 
-const isRouteUnauthorized401 = (response) => {
-  if (response?.status !== 401) return false;
-  const message = response?.data?.message || response?.data?.error || '';
-  return /not authorized to access this route/i.test(String(message));
-};
-
 const forceLogoutAndRedirectToAuth = () => {
   if (forceLogoutInProgress) return;
   forceLogoutInProgress = true;
@@ -152,11 +146,6 @@ api.interceptors.response.use(
     const { config, response } = error || {};
     if (!response) return Promise.reject(error);
     if (response.status !== 401) return Promise.reject(error);
-
-    if (isRouteUnauthorized401(response)) {
-      forceLogoutAndRedirectToAuth();
-      return Promise.reject(error);
-    }
 
     const originalRequest = config;
 

@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Users, Loader2 } from 'lucide-react'
@@ -54,11 +54,37 @@ const ListItem = ({ user, onOpenProfile, actionType, onFollowBack, onRemove }) =
 }
 
 const FollowListModal = ({ isOpen, onClose, activeTab = 'followers', onTabChange, followers = [], following = [], followersCount = 0, followingCount = 0, loading = false, onOpenProfile, hasMore = false, onLoadMore, loadingMore = false, getIsFollowingBack, onFollowBack, onRemove }) => {
+  const scrollRef = useRef(null)
+
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape') onClose?.() }
     if (isOpen) window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
   }, [isOpen, onClose])
+
+  useEffect(() => {
+    if (!isOpen || !scrollRef.current || !hasMore || loading || loadingMore) return
+
+    const container = scrollRef.current
+    const sentinel = container.querySelector('[data-follow-list-sentinel]')
+    if (!sentinel) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          onLoadMore?.()
+        }
+      },
+      {
+        root: container,
+        rootMargin: '120px 0px',
+        threshold: 0.1
+      }
+    )
+
+    observer.observe(sentinel)
+    return () => observer.disconnect()
+  }, [isOpen, hasMore, loading, loadingMore, onLoadMore, activeTab])
 
   // Lock body scroll when modal is open
   useEffect(() => {
@@ -132,7 +158,7 @@ const FollowListModal = ({ isOpen, onClose, activeTab = 'followers', onTabChange
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-5">
+            <div ref={scrollRef} className="flex-1 overflow-y-auto px-5">
               {loading && (
                 <div className="space-y-2 py-4">
                   {Array.from({ length: 5 }).map((_, i) => (
@@ -161,7 +187,7 @@ const FollowListModal = ({ isOpen, onClose, activeTab = 'followers', onTabChange
                     )
                   })}
                   {hasMore && (
-                    <div className="py-3">
+                    <div className="py-3" data-follow-list-sentinel>
                       <button
                         type="button"
                         onClick={onLoadMore}
@@ -176,13 +202,6 @@ const FollowListModal = ({ isOpen, onClose, activeTab = 'followers', onTabChange
               )}
             </div>
 
-            {!loading && list.length > 0 && (
-              <div className="px-5 py-3 border-t border-gray-100 dark:border-gray-800 text-center">
-                <button type="button" className="text-xs text-gray-500 dark:text-gray-400 hover:underline">
-                  {activeTab === 'followers' ? 'SHOWING ALL FOLLOWERS' : 'SHOWING ALL FOLLOWING'}
-                </button>
-              </div>
-            )}
           </motion.div>
         </div>
       )}
