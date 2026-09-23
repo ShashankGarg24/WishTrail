@@ -53,7 +53,7 @@ const normalizeRoutePath = (value, fallback = '/admin') => {
 const ADMIN_UI_ROUTE_PATH = normalizeRoutePath(import.meta.env.VITE_ADMIN_UI_ROUTE, '/admin')
 
 const RouteLoadingScreen = () => (
-  <div className="flex-1 flex items-center justify-center px-6 py-16 bg-white dark:bg-gray-900">
+  <div className="flex min-h-[calc(100dvh-3.5rem)] sm:min-h-[calc(100dvh-4rem)] w-full items-center justify-center px-6 bg-white dark:bg-gray-900">
     <div className="text-center">
       <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-[#4c99e6]" />
       <p className="text-gray-500 dark:text-gray-400">Loading...</p>
