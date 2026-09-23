@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Shield, Mail } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 
 const PrivacyPolicy = () => {
   const [activeSection, setActiveSection] = useState(null)
+  const location = useLocation()
 
   const sections = [
     {
@@ -132,7 +133,7 @@ const PrivacyPolicy = () => {
         },
         {
           subtitle: 'Deletion',
-          text: 'You have the right to delete your account and all associated data. Upon deletion, your personal information will be permanently removed from our systems within 30 days.'
+          text: 'You have the right to delete your account and all associated data. You can start that process from Settings > Account > Danger Zone > Delete Account. Upon deletion, your personal information will be permanently removed from our systems within 30 days.'
         },
         {
           subtitle: 'Privacy Settings',
@@ -145,6 +146,15 @@ const PrivacyPolicy = () => {
         {
           subtitle: 'Cookie Management',
           text: 'You can control cookies through your browser settings, though some features may not function properly if cookies are disabled.'
+        }
+      ]
+    },
+    {
+      id: 'delete-account',
+      title: 'Delete Account',
+      content: [
+        {
+          text: 'You can delete your WishTrail account from the app by going to Settings > Account > Danger Zone > Delete Account. This action permanently removes your account and associated personal data, and it cannot be undone. If you are reviewing this policy from another page, you can jump directly to this section using the #delete-account link.'
         }
       ]
     },
@@ -238,6 +248,21 @@ const PrivacyPolicy = () => {
       element.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }
   }
+
+  useEffect(() => {
+    const sectionId = location.hash.replace('#', '')
+    if (!sectionId) return
+
+    const target = document.getElementById(sectionId)
+    if (!target) return
+
+    setActiveSection(sectionId)
+    const timer = window.setTimeout(() => {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 0)
+
+    return () => window.clearTimeout(timer)
+  }, [location.hash])
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900" style={{ fontFamily: 'Manrope, sans-serif' }}>
