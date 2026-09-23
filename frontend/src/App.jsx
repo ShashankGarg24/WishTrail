@@ -52,6 +52,15 @@ const normalizeRoutePath = (value, fallback = '/admin') => {
 
 const ADMIN_UI_ROUTE_PATH = normalizeRoutePath(import.meta.env.VITE_ADMIN_UI_ROUTE, '/admin')
 
+const RouteLoadingScreen = () => (
+  <div className="flex-1 flex items-center justify-center px-6 py-16 bg-white dark:bg-gray-900">
+    <div className="text-center">
+      <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-[#4c99e6]" />
+      <p className="text-gray-500 dark:text-gray-400">Loading...</p>
+    </div>
+  </div>
+)
+
 function App() {
   const { isDarkMode, initializeAuth, isAuthenticated} = useApiStore()
   const location = useLocation()
@@ -210,50 +219,52 @@ function App() {
         <div className="relative min-h-screen bg-[#f5f5f5] dark:bg-gray-900 flex flex-col">
           <Header />
           <main className="flex-grow" style={mobileBottomInset ? { paddingBottom: mobileBottomInset } : undefined}>
-            <ScrollMemory />
-            <Routes>
+            <Suspense fallback={<RouteLoadingScreen />}>
+              <ScrollMemory />
+              <Routes>
               {/* Public routes */}
-              <Route path="/" element={<Suspense fallback={null}><HomePage /></Suspense>} />
-              <Route path="/auth" element={<Suspense fallback={null}><AuthPage /></Suspense>} />
-              <Route path="/reset-password" element={<Suspense fallback={null}><ResetPasswordPage /></Suspense>} />
-              <Route path="/inspiration" element={<Suspense fallback={null}><InspirationPage /></Suspense>} />
+              <Route path="/" element={<HomePage />} />
+              <Route path="/auth" element={<AuthPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
+              <Route path="/inspiration" element={<InspirationPage />} />
               
               {/* Legal pages - Public */}
-              <Route path="/privacy-policy" element={<Suspense fallback={null}><PrivacyPolicy /></Suspense>} />
-              <Route path="/terms-of-service" element={<Suspense fallback={null}><TermsOfService /></Suspense>} />
-              <Route path="/community-guidelines" element={<Suspense fallback={null}><CommunityGuidelines /></Suspense>} />
-              <Route path="/copyright-policy" element={<Suspense fallback={null}><CopyrightPolicy /></Suspense>} />
+              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+              <Route path="/terms-of-service" element={<TermsOfService />} />
+              <Route path="/community-guidelines" element={<CommunityGuidelines />} />
+              <Route path="/copyright-policy" element={<CopyrightPolicy />} />
               
               {/* What's New page - Public */}
-              <Route path="/whats-new" element={<Suspense fallback={null}><WhatsNewPage /></Suspense>} />
-              <Route path={ADMIN_UI_ROUTE_PATH} element={<Suspense fallback={null}><AdminPage /></Suspense>} />
+              <Route path="/whats-new" element={<WhatsNewPage />} />
+              <Route path={ADMIN_UI_ROUTE_PATH} element={<AdminPage />} />
               
               {/* Error pages - Public */}
-              <Route path="/error/generic" element={<Suspense fallback={null}><GenericErrorPage /></Suspense>} />
-              <Route path="/error/network" element={<Suspense fallback={null}><NetworkErrorPage /></Suspense>} />
-              <Route path="/error/500" element={<Suspense fallback={null}><ServerErrorPage /></Suspense>} />
-              <Route path="/error/permission" element={<Suspense fallback={null}><PermissionErrorPage /></Suspense>} />
-              <Route path="/error/auth" element={<Suspense fallback={null}><AuthExpiredPage /></Suspense>} />
+              <Route path="/error/generic" element={<GenericErrorPage />} />
+              <Route path="/error/network" element={<NetworkErrorPage />} />
+              <Route path="/error/500" element={<ServerErrorPage />} />
+              <Route path="/error/permission" element={<PermissionErrorPage />} />
+              <Route path="/error/auth" element={<AuthExpiredPage />} />
               
               {/* Protected routes - Require authentication */}
-              <Route path="/dashboard" element={<PrivateRoute><Suspense fallback={null}><DashboardPageNew /></Suspense></PrivateRoute>} />
-              <Route path="/feed" element={<PrivateRoute><Suspense fallback={null}><FeedPage /></Suspense></PrivateRoute>} />
-              <Route path="/discover" element={<PrivateRoute><Suspense fallback={null}><DiscoverPageNew /></Suspense></PrivateRoute>} />
-              <Route path="/notifications" element={<PrivateRoute><Suspense fallback={null}><NotificationsPageNew /></Suspense></PrivateRoute>} />
-              <Route path="/profile/:username" element={<PrivateRoute><Suspense fallback={null}><ProfilePage /></Suspense></PrivateRoute>} />
-              <Route path="/settings" element={<PrivateRoute><Suspense fallback={null}><SettingsPageNew /></Suspense></PrivateRoute>} />
-              <Route path="/leaderboard" element={<PrivateRoute><Suspense fallback={null}><LeaderboardPageNew /></Suspense></PrivateRoute>} />
+              <Route path="/dashboard" element={<PrivateRoute><DashboardPageNew /></PrivateRoute>} />
+              <Route path="/feed" element={<PrivateRoute><FeedPage /></PrivateRoute>} />
+              <Route path="/discover" element={<PrivateRoute><DiscoverPageNew /></PrivateRoute>} />
+              <Route path="/notifications" element={<PrivateRoute><NotificationsPageNew /></PrivateRoute>} />
+              <Route path="/profile/:username" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
+              <Route path="/settings" element={<PrivateRoute><SettingsPageNew /></PrivateRoute>} />
+              <Route path="/leaderboard" element={<PrivateRoute><LeaderboardPageNew /></PrivateRoute>} />
               {/* <Route path="/communities" element={<PrivateRoute><Suspense fallback={null}><CommunitiesPage /></Suspense></PrivateRoute>} />
               <Route path="/communities/:id" element={<PrivateRoute><Suspense fallback={null}><CommunityDetailPage /></Suspense></PrivateRoute>} /> */}
-              <Route path="/habits/:id/analytics" element={<PrivateRoute><Suspense fallback={null}><HabitAnalyticsPage /></Suspense></PrivateRoute>} />
-              <Route path="/goals/:goalId/analytics" element={<PrivateRoute><Suspense fallback={null}><GoalAnalyticsPage /></Suspense></PrivateRoute>} />
+              <Route path="/habits/:id/analytics" element={<PrivateRoute><HabitAnalyticsPage /></PrivateRoute>} />
+              <Route path="/goals/:goalId/analytics" element={<PrivateRoute><GoalAnalyticsPage /></PrivateRoute>} />
               
               {/* Goal deeplink opens modal within feed/discover - Protected */}
-              <Route path="/goal/:goalId" element={<PrivateRoute><Suspense fallback={null}><FeedPage /></Suspense></PrivateRoute>} />
+              <Route path="/goal/:goalId" element={<PrivateRoute><FeedPage /></PrivateRoute>} />
               
               {/* 404 - Public */}
-              <Route path="*" element={<Suspense fallback={null}><NotFoundPage /></Suspense>} />
-            </Routes>
+              <Route path="*" element={<NotFoundPage />} />
+              </Routes>
+            </Suspense>
           </main>
           {/* Bottom nav (web) */}
           {isAuthenticated && <BottomTabBar />}
