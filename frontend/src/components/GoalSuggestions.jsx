@@ -603,7 +603,7 @@ const INTEREST_TO_GOALS = {
   };
   
 
-const ALL_CATEGORIES = Object.keys(INTEREST_TO_GOALS)
+export const ALL_GOAL_CATEGORIES = Object.keys(INTEREST_TO_GOALS)
 
 function shuffleArray(source) {
   const arr = [...source]
@@ -626,17 +626,17 @@ function uniqueByTitle(items) {
 
 function pickMixedSuggestions(interests, size = 6) {
   const normalized = Array.isArray(interests) ? interests.filter(Boolean) : []
-  let chosenCategories = normalized.filter((c) => ALL_CATEGORIES.includes(c))
+  let chosenCategories = normalized.filter((c) => ALL_GOAL_CATEGORIES.includes(c))
 
   // Ensure at least 3 categories; if none provided, pick 3 random
   if (chosenCategories.length < 3) {
-    const remainingForMin = ALL_CATEGORIES.filter((c) => !chosenCategories.includes(c))
+    const remainingForMin = ALL_GOAL_CATEGORIES.filter((c) => !chosenCategories.includes(c))
     const needed = Math.min(3 - chosenCategories.length, remainingForMin.length)
     chosenCategories = [...chosenCategories, ...shuffleArray(remainingForMin).slice(0, needed)]
   }
 
   // Always add 1–2 random categories for exploration (even if user has many interests)
-  const remaining = ALL_CATEGORIES.filter((c) => !chosenCategories.includes(c))
+  const remaining = ALL_GOAL_CATEGORIES.filter((c) => !chosenCategories.includes(c))
   const extraCount = Math.min(remaining.length, Math.floor(Math.random() * 2) + 1) // 1 or 2
   if (extraCount > 0) {
     chosenCategories = [...chosenCategories, ...shuffleArray(remaining).slice(0, extraCount)]
@@ -658,7 +658,7 @@ function pickMixedSuggestions(interests, size = 6) {
 
   // If still not enough, pull from remaining categories
   if (picked.length < size) {
-    const remainingCategories = ALL_CATEGORIES.filter((c) => !chosenCategories.includes(c))
+    const remainingCategories = ALL_GOAL_CATEGORIES.filter((c) => !chosenCategories.includes(c))
     const remainingPool = shuffleArray(remainingCategories.flatMap((c) => INTEREST_TO_GOALS[c] || []))
     picked.push(...remainingPool)
   }
@@ -670,17 +670,20 @@ function pickMixedSuggestions(interests, size = 6) {
 // variant: 'empty' | 'inline'
 // - empty: used when user has no active goals; shows suggestions by default
 // - inline: used when user has goals; collapsed by default with CTA to expand
-const GoalSuggestions = ({ interests = [], onSelect, onCreate, variant = 'inline', limit = 6, forceExpanded = false, showHeader = true, titleOverride, containerClassName = 'mt-10', innerContainerClassName = 'max-w-5xl mx-auto' }) => {
+const GoalSuggestions = ({ interests = [], category = 'all', onSelect, onCreate, variant = 'inline', limit = 6, forceExpanded = false, showHeader = true, titleOverride, containerClassName = 'mt-10', innerContainerClassName = 'max-w-5xl mx-auto' }) => {
   const [expanded, setExpanded] = useState(forceExpanded || variant === 'empty')
   const [suggestions, setSuggestions] = useState([])
 
   const regenerate = () => {
-    setSuggestions(pickMixedSuggestions(interests, limit))
+    const pool = category !== 'all' && ALL_GOAL_CATEGORIES.includes(category)
+      ? INTEREST_TO_GOALS[category] || []
+      : null
+    setSuggestions(pool ? shuffleArray(pool).slice(0, limit) : pickMixedSuggestions(interests, limit))
   }
 
   useEffect(() => {
     regenerate()
-  }, [JSON.stringify(interests), limit])
+  }, [JSON.stringify(interests), category, limit])
 
   if (!forceExpanded && variant === 'inline' && !expanded) {
     return (
@@ -740,27 +743,26 @@ const GoalSuggestions = ({ interests = [], onSelect, onCreate, variant = 'inline
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -12 }}
               transition={{ duration: 0.25, delay: Math.min(idx * 0.04, 0.25) }}
-              className="p-5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:shadow-lg hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-200"
+              role="button"
+              tabIndex={0}
+              onClick={() => onSelect?.(g)}
+              onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onSelect?.(g) } }}
+              className="p-3 sm:p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:shadow-lg hover:border-[#4c99e6]/60 cursor-pointer transition-all duration-200"
             >
-              <div className="flex items-start justify-between mb-3">
-                <div className="p-2 rounded-lg" style={{ backgroundColor: `${THEME_COLOR}20` }}>
+              <div className="flex items-start gap-2 sm:gap-3 mb-2 sm:mb-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${THEME_COLOR}20` }}>
                   <div style={{ color: THEME_COLOR }}>
                     {getCategoryIcon(g.category)}
                   </div>
                 </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wide" style={{ fontFamily: 'Manrope' }}>
+                    {g.category}
+                  </div>
+                  <div className="font-bold text-gray-900 dark:text-white mt-0.5 text-sm sm:text-base" style={{ fontFamily: 'Manrope' }}>{g.title}</div>
+                </div>
               </div>
-              <div className="text-xs text-gray-500 dark:text-gray-400 mb-2 font-semibold uppercase tracking-wider" style={{ fontFamily: 'Manrope' }}>
-                {g.category}
-              </div>
-              <div className="font-bold text-gray-900 dark:text-white mb-2 text-sm" style={{ fontFamily: 'Manrope' }}>{g.title}</div>
-              <div className="text-xs text-gray-600 dark:text-gray-400 mb-4 line-clamp-2" style={{ fontFamily: 'Manrope', lineHeight: '1.4' }}>{g.description}</div>
-              <button 
-                onClick={() => onSelect?.(g)} 
-                className="w-full py-2 px-3 text-white rounded-lg hover:opacity-90 transition-all font-medium text-sm"
-                style={{ backgroundColor: THEME_COLOR, fontFamily: 'Manrope' }}
-              >
-                Use this goal
-              </button>
+              <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 line-clamp-2" style={{ fontFamily: 'Manrope', lineHeight: '1.4' }}>{g.description}</div>
             </motion.div>
             )
           })}

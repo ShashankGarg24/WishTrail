@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { X, RefreshCw, Phone, Activity, Music, Moon, TreePine, Utensils, Heart, Briefcase, Lightbulb, DollarSign, BookOpen, Palette } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { discoverHabitIdeas } from '../services/habitIdeas'
+import { ALL_HABIT_CATEGORIES, discoverHabitIdeas, discoverHabitIdeasForCategory } from '../services/habitIdeas'
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
 
 const THEME_COLOR = '#4c99e6'
@@ -47,6 +47,7 @@ function getCategoryLabel(category) {
 const HabitSuggestionsModal = ({ isOpen, onClose, interests = [], onSelect, onCreate, limit = 6, title = 'Habit Suggestions' }) => {
   const [suggestions, setSuggestions] = useState([])
   const [shuffleVersion, setShuffleVersion] = useState(0)
+  const [selectedCategory, setSelectedCategory] = useState('all')
 
   useEffect(() => {
     if (!isOpen) return
@@ -56,9 +57,11 @@ const HabitSuggestionsModal = ({ isOpen, onClose, interests = [], onSelect, onCr
 
   useEffect(() => {
     if (isOpen) {
-      setSuggestions(discoverHabitIdeas(interests, limit))
+      setSuggestions(selectedCategory === 'all'
+        ? discoverHabitIdeas(interests, limit)
+        : discoverHabitIdeasForCategory(selectedCategory, limit))
     }
-  }, [isOpen, interests, limit, shuffleVersion])
+  }, [isOpen, interests, limit, selectedCategory, shuffleVersion])
 
   const handleShuffle = () => {
     setShuffleVersion((v) => v + 1)
@@ -87,30 +90,40 @@ const HabitSuggestionsModal = ({ isOpen, onClose, interests = [], onSelect, onCr
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between flex-shrink-0">
+          <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-gray-100 dark:border-gray-700 flex items-start justify-between gap-3 flex-shrink-0">
             <div>
               <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">{title}</h2>
               <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
                 Pick a habit idea and customize the details. You can always edit later.
               </p>
             </div>
-            <div className="flex items-center gap-1 sm:gap-2">
+              <div className="flex items-center gap-1 sm:gap-2">
               <button
                 type="button"
                 onClick={handleShuffle}
-                className="inline-flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors"
+                aria-label="Refresh suggestions"
+                className="p-2 sm:p-2.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-colors"
                 style={{ color: THEME_COLOR }}
               >
-                <RefreshCw className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Shuffle</span>
+                <RefreshCw className="h-5 w-5 sm:h-6 sm:w-6" />
               </button>
               <button
                 type="button"
                 onClick={onClose}
-                className="p-1.5 sm:p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 transition-colors"
+                className="p-2 sm:p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 transition-colors"
                 aria-label="Close"
               >
-                <X className="h-4 w-4 sm:h-5 sm:w-5" />
+                  <X className="h-5 w-5 sm:h-6 sm:w-6" />
               </button>
+            </div>
+          </div>
+
+          <div className="px-4 sm:px-6 pt-3 border-b border-gray-100 dark:border-gray-700">
+            <div className="flex gap-2 overflow-x-auto pb-3 scrollbar-hide" aria-label="Habit categories">
+              {['all', ...ALL_HABIT_CATEGORIES].map((category) => {
+                const active = selectedCategory === category
+                return <button key={category} type="button" onClick={() => setSelectedCategory(category)} className="flex-none px-3 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wide transition-colors" style={active ? { color: 'white', backgroundColor: THEME_COLOR } : { color: '#4b5563', backgroundColor: '#f3f4f6' }}>{category === 'all' ? 'All' : getCategoryLabel(category)}</button>
+              })}
             </div>
           </div>
 
@@ -126,7 +139,11 @@ const HabitSuggestionsModal = ({ isOpen, onClose, interests = [], onSelect, onCr
                     initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.2, delay: idx * 0.03 }}
-                    className="bg-white dark:bg-gray-700/30 rounded-xl border border-gray-200 dark:border-gray-600 p-3 sm:p-4 flex flex-col"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => { onSelect?.(h); onClose?.() }}
+                    onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onSelect?.(h); onClose?.() } }}
+                    className="bg-white dark:bg-gray-700/30 rounded-xl border border-gray-200 dark:border-gray-600 p-3 sm:p-4 flex flex-col cursor-pointer hover:border-[#4c99e6]/60 hover:shadow-md transition-all"
                   >
                     <div className="flex items-start gap-2 sm:gap-3 mb-2 sm:mb-3">
                       <div
@@ -145,17 +162,6 @@ const HabitSuggestionsModal = ({ isOpen, onClose, interests = [], onSelect, onCr
                     <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 line-clamp-2 flex-1 mb-3 sm:mb-4">
                       {h.description}
                     </p>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        onSelect?.(h)
-                        onClose?.()
-                      }}
-                      className="w-full py-2 sm:py-2.5 rounded-lg text-white text-xs sm:text-sm font-medium transition-opacity hover:opacity-90"
-                      style={{ backgroundColor: THEME_COLOR }}
-                    >
-                      Use this habit
-                    </button>
                   </motion.div>
                 )
               })}

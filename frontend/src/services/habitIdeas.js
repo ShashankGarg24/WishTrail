@@ -140,3 +140,10 @@ export function discoverHabitIdeas(interests = [], limit = 6) {
 
   return shuffleArray(uniqueByName(picked)).slice(0, limit)
 }
+
+export function discoverHabitIdeasForCategory(category, limit = 6) {
+  const key = String(category || '').toLowerCase()
+  return shuffleArray([...(INTEREST_TO_HABITS[key] || [])])
+    .slice(0, limit)
+    .map((item) => ({ ...item, category: key }))
+}

@@ -397,7 +397,7 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
                     </div>
 
                     {/* Target Date */}
-                    <div className="relative">
+                    <div className="relative min-w-0 max-w-full overflow-hidden">
                       <label htmlFor="targetDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" style={{ fontFamily: 'Manrope' }}>
                         <Calendar className="h-3.5 w-3.5 inline mr-1" />
                         Target Date
@@ -410,8 +410,8 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
                         value={formData.targetDate}
                         onChange={handleInputChange}
                         min={getMinDate()}
-                        className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-colors ${errors.targetDate ? 'border-red-500' : 'border-gray-300 dark:border-gray-700'}`}
-                        style={{ fontFamily: 'Manrope', borderColor: errors.targetDate ? '#ef4444' : (formData.targetDate ? THEME_COLOR : undefined), position: 'relative' }}
+                        className={`block w-full min-w-0 max-w-full box-border px-3 sm:px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-colors ${errors.targetDate ? 'border-red-500' : 'border-gray-300 dark:border-gray-700'}`}
+                        style={{ fontFamily: 'Manrope', borderColor: errors.targetDate ? '#ef4444' : (formData.targetDate ? THEME_COLOR : undefined), position: 'relative', WebkitAppearance: 'none' }}
                       />
                       {errors.targetDate && (
                         <div className="flex items-center gap-2 mt-2 text-red-600 dark:text-red-400 text-xs" style={{ fontFamily: 'Manrope' }}>
