@@ -267,13 +267,10 @@ class PgHabitLogService {
       }
 
       const currentLog = logResult.rows[0];
-      const previousCompletionCount = currentLog.completion_count || 0;
-      const previousStatus = currentLog.status;
-
       logger.info('[updateHabitLog] Current log:', {
         id: currentLog.id,
-        status: previousStatus,
-        completionCount: previousCompletionCount
+        status: currentLog.status,
+        completionCount: currentLog.completion_count || 0
       });
       logger.info('[updateHabitLog] Update to:', updates);
 
@@ -282,51 +279,7 @@ class PgHabitLogService {
         setClause.push(`completion_count = 0`);
         setClause.push(`completion_times_mood = ARRAY[]::jsonb[]`);
 
-        logger.info('[updateHabitLog] Clearing completions, adjusting habit stats');
-
-        // Adjust habit stats if previous status was 'done'
-        if (previousStatus === 'done' && previousCompletionCount > 0) {
-          // Subtract completions and days
-          await client.query(`
-            UPDATE habits
-            SET total_completions = GREATEST(0, total_completions - $1),
-                total_days = GREATEST(0, total_days - 1)
-            WHERE id = $2
-          `, [previousCompletionCount, currentLog.habit_id]);
-
-          // Recalculate streaks using centralized service inside transaction
-          const streakInfo = await pgHabitService.calculateStreak(
-            currentLog.habit_id,
-            new Date().toISOString().split('T')[0],
-            client
-          );
-
-          let currentStreak = streakInfo.currentStreak || 0;
-          let longestStreak = streakInfo.longestStreak || 0;
-
-          // Determine if there are remaining done logs to decide final longest
-          const remainingResult = await client.query(`
-            SELECT COUNT(*)::int AS cnt FROM habit_logs WHERE habit_id = $1 AND status = 'done'
-          `, [currentLog.habit_id]);
-          const remaining = remainingResult.rows[0]?.cnt || 0;
-
-          let finalLongestStreak = 0;
-          if (remaining > 0) {
-            const currentHabitResult = await client.query(`
-              SELECT longest_streak FROM habits WHERE id = $1
-            `, [currentLog.habit_id]);
-            const existingLongestStreak = currentHabitResult.rows[0]?.longest_streak || 0;
-            finalLongestStreak = Math.max(longestStreak, existingLongestStreak);
-          }
-
-          await client.query(`
-            UPDATE habits
-            SET current_streak = $1,
-                longest_streak = $2,
-                updated_at = CURRENT_TIMESTAMP
-            WHERE id = $3
-          `, [currentStreak, finalLongestStreak, currentLog.habit_id]);
-        }
+        logger.info('[updateHabitLog] Clearing completions before recalculating habit stats');
       }
 
       const sql = `
@@ -339,6 +292,43 @@ class PgHabitLogService {
       values.push(id, userId);
 
       const result = await client.query(sql, values);
+
+      // Recalculate after the log update. Reading before this point sees the
+      // completion that is being skipped, which leaves stale current/best
+      // streaks. Exact aggregate queries also avoid decrementing a day twice.
+      if (updates.status === 'skipped' || updates.status === 'missed') {
+        const todayDateKey = new Date().toISOString().split('T')[0];
+        const updatedDateKey = new Date(currentLog.date_key).toISOString().split('T')[0];
+        const streakInfo = await pgHabitService.calculateStreak(
+          currentLog.habit_id,
+          todayDateKey,
+          client
+        );
+        const currentStreak = updatedDateKey === todayDateKey ? 0 : (streakInfo.currentStreak || 0);
+
+        await client.query(`
+          UPDATE habits
+          SET current_streak = $1,
+              longest_streak = $2,
+              last_logged_date_key = (
+                SELECT MAX(date_key)
+                FROM habit_logs
+                WHERE habit_id = $3 AND status = 'done'
+              ),
+              total_completions = (
+                SELECT COALESCE(SUM(completion_count), 0)
+                FROM habit_logs
+                WHERE habit_id = $3 AND status = 'done'
+              ),
+              total_days = (
+                SELECT COUNT(DISTINCT date_key)
+                FROM habit_logs
+                WHERE habit_id = $3 AND status = 'done'
+              ),
+              updated_at = CURRENT_TIMESTAMP
+          WHERE id = $3
+        `, [currentStreak, streakInfo.longestStreak || 0, currentLog.habit_id]);
+      }
 
       logger.info('[updateHabitLog] Log updated, returning');
 
