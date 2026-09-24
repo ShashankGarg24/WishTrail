@@ -9,6 +9,7 @@ const THEME_COLOR = '#4c99e6';
 import { habitsAPI } from '../services/api';
 import { usePremiumStatus } from '../hooks/usePremium';
 import ExpandableText from '../components/ExpandableText';
+import MetricInfoModal from '../components/MetricInfoModal';
 import { Line, Bar, Doughnut } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -46,6 +47,7 @@ export default function HabitAnalyticsPage() {
   const [loading, setLoading] = useState(true);
   const [days, setDays] = useState(Math.min(90, maxDays));
   const [selectedDay, setSelectedDay] = useState(null);
+  const [metricInfo, setMetricInfo] = useState(null);
   const heatmapRef = useRef(null);
   
   // Paginated logs state
@@ -771,7 +773,7 @@ export default function HabitAnalyticsPage() {
               <div className="p-1 sm:p-1.5 rounded-lg text-white" style={{ backgroundColor: THEME_COLOR }}>
                 <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </div>
-              <span className="text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Active Days</span>
+              <button type="button" onClick={() => setMetricInfo({ title: 'Active Days', description: 'The number of days in this period when you completed this habit at least once.' })} className="text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide hover:text-[#4c99e6]">Active Days</button>
             </div>
             <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{activeDays} / {Math.max(1, Math.ceil((new Date(`${rangeEnd}T12:00:00Z`) - new Date(`${rangeStart}T12:00:00Z`)) / 86400000) + 1)}</p>
             <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-1">active days in this period</p>
@@ -787,7 +789,7 @@ export default function HabitAnalyticsPage() {
               <div className="p-1 sm:p-1.5 rounded-lg text-white" style={{ backgroundColor: THEME_COLOR }}>
                 <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </div>
-              <span className="text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Total Count</span>
+              <button type="button" onClick={() => setMetricInfo({ title: 'Total Count', description: 'All-time completions recorded for this habit.' })} className="text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide hover:text-[#4c99e6]">Total Count</button>
             </div>
             <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{stats?.totalCompletions || 0}</p>
             <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-1">all-time completions</p>
@@ -803,7 +805,7 @@ export default function HabitAnalyticsPage() {
               <div className="p-1 sm:p-1.5 rounded-lg text-white" style={{ backgroundColor: THEME_COLOR }}>
                 <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </div>
-              <span className="text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Completion Rate</span>
+              <button type="button" onClick={() => setMetricInfo({ title: 'Completion Rate', description: 'How often you completed this habit when it was scheduled during the selected period.', note: 'Skipped and missed scheduled occurrences are included. Unscheduled days are not.' })} className="text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide hover:text-[#4c99e6]">Completion Rate</button>
             </div>
             <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{completionRate}%</p>
             <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-1">avg. consistency</p>
@@ -819,7 +821,7 @@ export default function HabitAnalyticsPage() {
               <div className="p-1 sm:p-1.5 rounded-lg text-orange-500">
                 <Flame className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </div>
-              <span className="text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Current Streak</span>
+              <button type="button" onClick={() => setMetricInfo({ title: 'Current Streak', description: 'A run of consecutive scheduled occurrences completed without a break.' })} className="text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide hover:text-[#4c99e6]">Current Streak</button>
             </div>
             <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{currentStreak}</p>
             <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-1">days in a row</p>
@@ -1114,6 +1116,7 @@ export default function HabitAnalyticsPage() {
         </div>
 
       </div>
+      {metricInfo && <MetricInfoModal metric={metricInfo} onClose={() => setMetricInfo(null)} />}
     </div>
   );
 }

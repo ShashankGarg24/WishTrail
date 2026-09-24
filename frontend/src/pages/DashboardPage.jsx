@@ -341,7 +341,7 @@ const DashboardPageNew = () => {
           
           {/* Yearly Pulse / Habit Consistency - Top Right */}
           <div className="flex flex-col items-end flex-shrink-0 w-full lg:w-auto">
-            <button type="button" onClick={() => setMetricInfo(activeTab === 'goals' ? { title: 'Goal Completion', description: 'This tells you how many of your selected-year goals are finished.', formula: 'completed goals ÷ eligible goals × 100' } : { title: '7-Day Consistency', description: 'This shows how often you completed habit occurrences that were scheduled in the last seven days.', formula: 'completed scheduled occurrences ÷ scheduled occurrences × 100', note: 'Days a habit is not scheduled do not count against you.' })} className="flex items-center gap-3 sm:gap-4 lg:gap-5 bg-white dark:bg-gray-800 rounded-xl px-4 sm:px-6 lg:px-8 py-4 sm:py-5 shadow-sm border border-gray-100 dark:border-gray-700 w-full lg:w-auto text-left hover:border-blue-300 dark:hover:border-blue-700 transition-colors">
+            <button type="button" onClick={() => setMetricInfo(activeTab === 'goals' ? { title: 'Goal Completion', description: 'This tells you how many of your selected-year goals are finished.' } : { title: '7-Day Consistency', description: 'This shows how often you completed habit occurrences that were scheduled in the last seven days.', note: 'Days a habit is not scheduled do not count against you.' })} className="flex items-center gap-3 sm:gap-4 lg:gap-5 bg-white dark:bg-gray-800 rounded-xl px-4 sm:px-6 lg:px-8 py-4 sm:py-5 shadow-sm border border-gray-100 dark:border-gray-700 w-full lg:w-auto text-left hover:border-blue-300 dark:hover:border-blue-700 transition-colors">
               <div className="text-left flex-1">
                 <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 font-manrope uppercase tracking-wide mb-2">
                   {activeTab === 'goals' ? 'Goal Completion' : '7-Day Consistency'}
@@ -540,7 +540,7 @@ const DashboardPageNew = () => {
               </button>
 
               {/* Completed */}
-              <button type="button" onClick={() => setMetricInfo({ title: 'Completed Goals', description: 'Goals you have marked as finished.', formula: 'A goal counts when it has a completion date.' })} className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-5 shadow-sm border border-gray-100 dark:border-gray-700 text-left hover:border-blue-300 dark:hover:border-blue-700 transition-colors">
+              <button type="button" onClick={() => setMetricInfo({ title: 'Completed Goals', description: 'Goals you have marked as finished.' })} className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-5 shadow-sm border border-gray-100 dark:border-gray-700 text-left hover:border-blue-300 dark:hover:border-blue-700 transition-colors">
                 <div className="flex items-center justify-between mb-3">
                   <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
                     <CheckCircle className="w-5 h-5 text-gray-500 dark:text-gray-400" />
@@ -602,7 +602,7 @@ const DashboardPageNew = () => {
               </button>
 
               {/* Today's Habit Progress */}
-              <button type="button" onClick={() => setMetricInfo({ title: "Today's Habit Progress", description: 'How many habit occurrences scheduled for today you have completed.', formula: 'completed today ÷ scheduled today', note: 'Habits not scheduled today are excluded.' })} className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-5 shadow-sm border border-gray-100 dark:border-gray-700 text-left hover:border-blue-300 dark:hover:border-blue-700 transition-colors">
+              <button type="button" onClick={() => setMetricInfo({ title: "Today's Habit Progress", description: 'How many habit occurrences scheduled for today you have completed.', note: 'Habits not scheduled today are excluded.' })} className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-5 shadow-sm border border-gray-100 dark:border-gray-700 text-left hover:border-blue-300 dark:hover:border-blue-700 transition-colors">
                 <div className="flex items-center justify-between mb-3">
                   <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
                     <TrendingUp className="w-5 h-5 text-[#4c99e6]" />

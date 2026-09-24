@@ -22,6 +22,7 @@ import useApiStore from '../store/apiStore'
 import { createPortal } from 'react-dom'
 import { goalsAPI } from '../services/api'
 import ExpandableText from '../components/ExpandableText'
+import MetricInfoModal from '../components/MetricInfoModal'
 
 const THEME_COLOR = '#4c99e6'
 const GOAL_UPDATES_PAGE_SIZE = 10
@@ -79,6 +80,7 @@ const GoalAnalyticsPage = () => {
   const [loadingGoalUpdates, setLoadingGoalUpdates] = useState(false)
   const [completing, setCompleting] = useState(false)
   const [isCompletionModalOpen, setIsCompletionModalOpen] = useState(false)
+  const [metricInfo, setMetricInfo] = useState(null)
   const { getGoalAnalytics, isAuthenticated, toggleGoalCompletion } = useApiStore()
 
   const loadMoreGoalUpdates = async (options = {}) => {
@@ -403,10 +405,11 @@ const GoalAnalyticsPage = () => {
         <div className={`grid ${analytics?.isCompleted ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-1 md:grid-cols-3'} gap-3 mb-5`}>
           {/* Overview Metrics */}
           <motion.div
+            onClick={() => setMetricInfo({ title: 'Goal Progress', description: 'This shows how far this goal has moved forward. Completed goals are always shown as fully complete.', note: 'When a goal has milestones or linked habits, their existing weights determine the progress.' })}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="p-3 rounded-lg bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700"
+            className="p-3 rounded-lg bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 cursor-pointer hover:border-blue-300 dark:hover:border-blue-700"
           >
             <div className="flex items-center gap-2 mb-1.5">
               <div className="p-1.5 sm:p-2 rounded-lg" style={{ background: THEME_COLOR }}>
@@ -422,10 +425,11 @@ const GoalAnalyticsPage = () => {
           </motion.div>
 
           <motion.div
+            onClick={() => setMetricInfo({ title: 'Days Since Creation', description: 'How many calendar days have passed since you created this goal.' })}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.15 }}
-            className="p-3 rounded-lg bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700"
+            className="p-3 rounded-lg bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 cursor-pointer hover:border-blue-300 dark:hover:border-blue-700"
           >
             <div className="flex items-center gap-2 mb-1.5">
               <div className="p-1.5 sm:p-2 rounded-lg" style={{ background: THEME_COLOR }}>
@@ -438,10 +442,11 @@ const GoalAnalyticsPage = () => {
           </motion.div>
 
           <motion.div
+            onClick={() => setMetricInfo({ title: 'Deadline', description: 'The number of days remaining until this goal’s deadline, or how many days overdue it is.' })}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="p-3 rounded-lg bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700"
+            className="p-3 rounded-lg bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 cursor-pointer hover:border-blue-300 dark:hover:border-blue-700"
           >
             <div className="flex items-center gap-2 mb-1.5">
               <div className="p-1.5 sm:p-2 rounded-lg" style={{ background: THEME_COLOR }}>
@@ -804,6 +809,7 @@ const GoalAnalyticsPage = () => {
         </Suspense>,
         document.body
       )}
+      {metricInfo && <MetricInfoModal metric={metricInfo} onClose={() => setMetricInfo(null)} />}
     </div>
   )
 }
