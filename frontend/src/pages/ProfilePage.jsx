@@ -1756,6 +1756,7 @@ const ProfilePage = () => {
               return { success: false, error };
             }
           } : undefined}
+          onHabitStatsChanged={isOwnProfile ? fetchUserHabits : undefined}
           onEdit={isOwnProfile ? () => {
             // Navigate to edit or open edit modal if needed
             toast.info('Edit functionality coming soon');

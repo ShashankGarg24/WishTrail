@@ -486,20 +486,36 @@ class PgHabitLogService {
 
       // Recalculate habit stats
       if (log.status === 'done') {
+        // Calculate through this transaction so the just-deleted completion is
+        // excluded from both the current and best streaks.
         const streakInfo = await pgHabitService.calculateStreak(
           log.habit_id,
-          new Date().toISOString().split('T')[0]
+          new Date().toISOString().split('T')[0],
+          client
         );
 
         await client.query(`
           UPDATE habits
           SET current_streak = $1,
               longest_streak = $2,
-              total_completions = GREATEST(0, total_completions - $3),
-              total_days = GREATEST(0, total_days - 1),
+              last_logged_date_key = (
+                SELECT MAX(date_key)
+                FROM habit_logs
+                WHERE habit_id = $3 AND status = 'done'
+              ),
+              total_completions = (
+                SELECT COALESCE(SUM(completion_count), 0)
+                FROM habit_logs
+                WHERE habit_id = $3 AND status = 'done'
+              ),
+              total_days = (
+                SELECT COUNT(DISTINCT date_key)
+                FROM habit_logs
+                WHERE habit_id = $3 AND status = 'done'
+              ),
               updated_at = CURRENT_TIMESTAMP
-          WHERE id = $4
-        `, [streakInfo.currentStreak, streakInfo.longestStreak, log.completion_count, log.habit_id]);
+          WHERE id = $3
+        `, [streakInfo.currentStreak, streakInfo.longestStreak, log.habit_id]);
       }
 
       return true;

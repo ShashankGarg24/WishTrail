@@ -51,7 +51,7 @@ class PgHabitService {
    * @param {number} userId - Optional user ID for ownership check
    * @returns {Promise<Object|null>} Habit or null
    */
-  async getHabitById(id, userId = null) {
+  async getHabitById(id, userId = null, client = null) {
     let sql = `
       SELECT h.*, u.username, u.name as user_name, u.avatar_url
       FROM habits h
@@ -65,7 +65,8 @@ class PgHabitService {
       values.push(userId);
     }
 
-    const result = await query(sql, values);
+    const execute = client && client.query ? client.query.bind(client) : query;
+    const result = await execute(sql, values);
     return result.rows[0] ? this._formatHabit(result.rows[0]) : null;
   }
 
@@ -332,7 +333,10 @@ class PgHabitService {
   async calculateStreak(habitId, currentDateKey, client = null) {
     // This will be called from habitLogService after logging
     // Gets the habit's frequency and calculates streak based on expected days
-    const habit = await this.getHabitById(habitId);
+    // Use the caller's transaction when one is supplied. This matters when a
+    // completion has just been deleted: a separate connection cannot see that
+    // uncommitted deletion and would calculate a stale streak.
+    const habit = await this.getHabitById(habitId, null, client);
     if (!habit) return { currentStreak: 0, longestStreak: 0 };
 
     // Get all logs for this habit, ordered by date descending

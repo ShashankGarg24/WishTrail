@@ -14,7 +14,7 @@ const EMOTIONS = [
   { id: 'neutral', label: 'SKIP', icon: CircleSlash2 }
 ];
 
-export default function HabitDetailModal({ habit, isOpen, onClose, onLog, onEdit, onDelete }) {
+export default function HabitDetailModal({ habit, isOpen, onClose, onLog, onEdit, onDelete, onHabitStatsChanged }) {
   const navigate = useNavigate();
   const [selectedEmotion, setSelectedEmotion] = useState(null);
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
@@ -229,6 +229,7 @@ export default function HabitDetailModal({ habit, isOpen, onClose, onLog, onEdit
       }
 
       await loadTodayLog();
+      await Promise.resolve(onHabitStatsChanged?.());
     } finally {
       setEntryDeletingIndex(null);
       setEntryDeleteTargetIndex(null);

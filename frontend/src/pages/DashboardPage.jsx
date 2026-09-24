@@ -1098,6 +1098,12 @@ const DashboardPageNew = () => {
             isOpen={!!selectedHabit && !isEditHabitOpen}
             onClose={() => setSelectedHabit(null)}
             onLog={handleHabitLog}
+            onHabitStatsChanged={async () => {
+              await Promise.all([
+                getDashboardStats({ force: true, year: selectedYear }),
+                loadHabits({ page: 1, force: true })
+              ])
+            }}
             onEdit={() => setIsEditHabitOpen(true)}
             onDelete={() => {
               setHabitDependencies([])
