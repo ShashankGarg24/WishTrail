@@ -1166,14 +1166,12 @@ const ProfilePage = () => {
                   <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 shadow-sm border border-gray-100 dark:border-gray-700">
                     <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white mb-1.5 sm:mb-2 flex items-center gap-2">
                       <Activity className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: THEME_COLOR }} />
-                      Habit Statistics
+                      Habit Consistency
                     </h3>
                     <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-3 sm:mb-4">Last 7 days</p>
                     {isProfileAccessible() ? (() => {
-                      const l7 = analytics?.habits ?? { done: 0, skipped: 0 };
-                      const total7 = l7.done + l7.skipped;
-                      // pct = logged out of (logged + skipped)
-                      const pct = total7 > 0 ? Math.round((l7.done / total7) * 100) : 0;
+                      const l7 = analytics?.habits ?? { done: 0, skipped: 0, missed: 0, expected: 0, consistency: 0 };
+                      const pct = Math.max(0, Math.min(100, l7.consistency ?? 0));
                       return (
                         <>
                           <div className="flex flex-col items-center mb-4 sm:mb-5">
@@ -1196,20 +1194,28 @@ const ProfilePage = () => {
                               </svg>
                               <div className="absolute inset-0 flex flex-col items-center justify-center">
                                 <span className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{pct}%</span>
-                                <span className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 uppercase">Logged</span>
+                                <span className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 uppercase">Consistency</span>
                               </div>
                             </div>
+                            {l7.trendPoints === null || l7.trendPoints === undefined ? (
+                              <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-2">No previous-period comparison</p>
+                            ) : (
+                              <p className={`text-[10px] sm:text-xs mt-2 ${l7.trendPoints > 0 ? 'text-green-600 dark:text-green-400' : l7.trendPoints < 0 ? 'text-amber-600 dark:text-amber-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                                {l7.trendPoints > 0 ? '↑' : l7.trendPoints < 0 ? '↓' : '→'} {Math.abs(l7.trendPoints)} pts vs previous 7 days
+                              </p>
+                            )}
                           </div>
                           <div className="flex gap-2 sm:gap-3 w-full">
                             <div className="flex-1 p-2 sm:p-3 rounded-lg sm:rounded-xl bg-green-50 dark:bg-green-900/20 text-center border border-green-200/50 dark:border-green-800/30">
                               <div className="text-xs sm:text-sm font-semibold text-green-800 dark:text-green-200">{l7.done}</div>
-                              <div className="text-[10px] sm:text-xs text-green-600 dark:text-green-400 uppercase">Logged</div>
+                              <div className="text-[10px] sm:text-xs text-green-600 dark:text-green-400 uppercase">Completed</div>
                             </div>
                             <div className="flex-1 p-2 sm:p-3 rounded-lg sm:rounded-xl bg-yellow-50 dark:bg-yellow-900/20 text-center border border-yellow-200/50 dark:border-yellow-800/30">
-                              <div className="text-xs sm:text-sm font-semibold text-yellow-800 dark:text-yellow-200">{l7.skipped}</div>
-                              <div className="text-[10px] sm:text-xs text-yellow-600 dark:text-yellow-400 uppercase">Skipped</div>
+                              <div className="text-xs sm:text-sm font-semibold text-yellow-800 dark:text-yellow-200">{l7.expected}</div>
+                              <div className="text-[10px] sm:text-xs text-yellow-600 dark:text-yellow-400 uppercase">Expected</div>
                             </div>
                           </div>
+                          <p className="text-xs sm:text-sm text-center text-gray-500 dark:text-gray-400 mt-3">{l7.activeDays || 0} / {l7.periodDays || 7} Active Days</p>
                         </>
                       );
                     })() : (
@@ -1219,11 +1225,11 @@ const ProfilePage = () => {
                       </div>
                     )}
                   </div>
-                  {/* Goals in Progress */}
+                  {/* Current Goals */}
                   <div className="lg:col-span-2">
                     <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 shadow-sm border border-gray-100 dark:border-gray-700">
                       <div className="flex items-center justify-between mb-4 sm:mb-5">
-                        <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">Goals in Progress</h3>
+                        <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">Current Goals</h3>
                         {userGoals.filter(g => !g.completedAt).length > 0 && (
                           <button
                             onClick={() => handleTabChange('goals')}
@@ -1469,7 +1475,13 @@ const ProfilePage = () => {
                         </thead>
                         <tbody>
                           {userHabits.length > 0 ? (
-                            userHabits.slice(0, 5).map((h) => (
+                            [...userHabits].sort((a, b) => {
+                              const archived = Number(Boolean(a.archived || a.isArchived)) - Number(Boolean(b.archived || b.isArchived));
+                              if (archived) return archived;
+                              const streak = (b.currentStreak || 0) - (a.currentStreak || 0);
+                              if (streak) return streak;
+                              return new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0);
+                            }).slice(0, 5).map((h) => (
                               <tr key={h.id} className="border-b border-gray-100 dark:border-gray-700/50">
                                 <td className="py-3 flex items-center gap-2">
                                   <span className="text-gray-400">•</span>

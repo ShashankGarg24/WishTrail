@@ -219,47 +219,12 @@ const GoalAnalyticsPage = () => {
     const daysSinceCreation = Math.floor((now - createdDate) / (1000 * 60 * 60 * 24))
     const daysUntilDeadline = targetDate ? Math.floor((targetDate - now) / (1000 * 60 * 60 * 24)) : null
     
-    // Progress calculation - compute on the fly
+    // The API owns goal-progress calculation so weighted components stay consistent.
     const subGoalsTotal = goal.subGoals?.length || 0
     const subGoalsCompleted = goal.subGoals?.filter(sg => sg.completedAt)?.length || 0
     const habitLinksTotal = goal.habitLinks?.length || 0
     
-    // Calculate progress on the fly:
-    // 1. If goal is completed, always show 100%
-    // 2. If no subgoals/habits and not completed, show 0%
-    // 3. Otherwise calculate weighted progress from subgoals and habits
-    let progressPercent = 0
-    if (goal.completedAt) {
-      progressPercent = 100
-    } else if (subGoalsTotal === 0 && habitLinksTotal === 0) {
-      progressPercent = 0
-    } else {
-      // Calculate weighted progress
-      const allItems = [...(goal.subGoals || []), ...(goal.habitLinks || [])]
-      
-      // Get total weight or use equal weights
-      const totalWeight = allItems.reduce((sum, item) => sum + (item.weight || 0), 0)
-      const useEqualWeights = totalWeight === 0
-      const normalizedWeightFactor = useEqualWeights ? (100 / allItems.length) : (100 / totalWeight)
-      
-      let totalProgress = 0
-      
-      // Calculate subgoal contribution (0% or 100% based on completion)
-      goal.subGoals?.forEach(sg => {
-        const weight = useEqualWeights ? normalizedWeightFactor : (sg.weight || 0) * normalizedWeightFactor
-        const isCompleted = !!sg.completedAt
-        totalProgress += isCompleted ? weight : 0
-      })
-      
-      // Calculate habit contribution (ratio based on target)
-      goal.habitLinks?.forEach(habit => {
-        const weight = useEqualWeights ? normalizedWeightFactor : (habit.weight || 0) * normalizedWeightFactor
-        const ratio = habit.progressRatio || 0 // Backend provides this
-        totalProgress += ratio * weight
-      })
-      
-      progressPercent = Math.round(totalProgress * 100) / 100
-    }
+    const progressPercent = Math.max(0, Math.min(100, goal.completedAt ? 100 : (goal.progress?.percent ?? 0)))
     
     // Engagement - use the new structure
     const totalLikes = goal.likeCount || 0

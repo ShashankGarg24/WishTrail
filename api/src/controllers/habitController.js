@@ -6,6 +6,7 @@ const pgUserService = require('../services/pgUserService');
 const pgFollowService = require('../services/pgFollowService');
 const { sanitizeHabit, sanitizeHabitForProfile } = require('../utility/sanitizer');
 const { getCurrentDateInTimezone, getDateRangeInTimezone } = require('../utility/timezone');
+const { habitCompletion } = require('../utility/metrics');
 const { validateHabitCreation, handleValidationResponse } = require('../utility/premiumEnforcement');
 const UserPreferences = require('../models/extended/UserPreferences');
 
@@ -753,10 +754,6 @@ exports.getHabitAnalytics = async (req, res, next) => {
     // Use sanitizer to ensure proper field mapping
     const sanitizedHabit = sanitizeHabit(habit);
 
-    // Calculate consistency based on days since creation
-    const daysSinceStart = Math.ceil((Date.now() - new Date(sanitizedHabit.createdAt).getTime()) / (24 * 60 * 60 * 1000));
-    const consistency = Math.min(100, Math.round((sanitizedHabit.totalDays / Math.max(1, daysSinceStart)) * 100));
-
     // Build timeline with completion times converted to user's timezone
     const timelineMap = {};
 
@@ -956,8 +953,8 @@ exports.getHabitAnalytics = async (req, res, next) => {
       totalExpectedDays += w.expectedDays;
     });
 
-    // Missing days = expected days in filter - (done + skipped days)
-    const missed = Math.max(0, totalExpectedDays - completions - skips);
+    const periodCompletion = habitCompletion({ expected: totalExpectedDays, done: completions, skipped: skips });
+    const consistency = periodCompletion.percentage;
 
     // Format response to match previous MongoDB implementation
     const analytics = {
@@ -976,9 +973,11 @@ exports.getHabitAnalytics = async (req, res, next) => {
       stats,
       consistency,
       statusCounts: {
-        done: completions,
-        missed,
-        skipped: skips
+        done: periodCompletion.done,
+        missed: periodCompletion.missed,
+        skipped: periodCompletion.skipped,
+        expected: periodCompletion.expected,
+        activeDays: new Set(doneLogs.map(log => log.date_key)).size
       },
       timeline,
       weeklyData

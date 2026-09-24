@@ -139,9 +139,10 @@ async function computeGoalProgress(goalId, requestingUserId) {
   }
 
   const totalWeight = subGoals.reduce((s,g) => s + (g.weight || 0), 0) + habitLinks.reduce((s,h) => s + (h.weight || 0), 0);
+  const componentCount = subGoals.length + habitLinks.length;
 
   // Auto-normalize if weights do not sum to 100 (soft normalization for computation only)
-  const norm = totalWeight > 0 ? (100 / totalWeight) : 0;
+  const norm = totalWeight > 0 ? (100 / totalWeight) : (componentCount > 0 ? 100 / componentCount : 0);
 
   let percent = 0;
   const breakdown = { subGoals: [], habits: [] };
@@ -159,7 +160,7 @@ async function computeGoalProgress(goalId, requestingUserId) {
   }
   
   for (const sg of subGoals) {
-    const w = (sg.weight || 0) * norm;
+    const w = totalWeight > 0 ? (sg.weight || 0) * norm : norm;
     let ratio = sg.completed ? 1 : 0;
     if (!sg.completed && sg.linkedGoalId) {
       const lg = linkedById.get(Number(sg.linkedGoalId));
@@ -171,7 +172,7 @@ async function computeGoalProgress(goalId, requestingUserId) {
   }
 
   for (const link of habitLinks) {
-    const w = (link.weight || 0) * norm;
+    const w = totalWeight > 0 ? (link.weight || 0) * norm : norm;
     const { ratio, targetCount, doneCount } = await computeHabitLinkProgress(goal.user_id, link, goal);
     const contrib = ratio * w;
     percent += contrib;

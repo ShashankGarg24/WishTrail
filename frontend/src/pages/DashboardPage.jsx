@@ -91,7 +91,7 @@ const DashboardPageNew = () => {
       try {
         await Promise.all([
           getDashboardStats(),
-          getGoals({ year: selectedYear, page: 1 }),
+          getGoals({ year: selectedYear, page: 1, limit: 1000 }),
           loadHabits({ page: 1 })
         ])
       } finally {
@@ -342,11 +342,11 @@ const DashboardPageNew = () => {
             <div className="flex items-center gap-3 sm:gap-4 lg:gap-5 bg-white dark:bg-gray-800 rounded-xl px-4 sm:px-6 lg:px-8 py-4 sm:py-5 shadow-sm border border-gray-100 dark:border-gray-700 w-full lg:w-auto">
               <div className="text-left flex-1">
                 <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 font-manrope uppercase tracking-wide mb-2">
-                  {activeTab === 'goals' ? 'Yearly Pulse' : '7 Day Momentum'}
+                  {activeTab === 'goals' ? 'Goal Completion' : '7-Day Consistency'}
                 </div>
                 <div className="text-sm sm:text-base font-manrope font-medium">
                   {activeTab === 'goals' 
-                    ? <span className="text-gray-600 dark:text-gray-300">{`${dashboardStats?.completedGoals || 0} of ${dashboardStats?.totalGoals || 0} targets hit`}</span>
+                    ? <span className="text-gray-600 dark:text-gray-300">{`${goals?.filter(g => g?.completedAt).length || 0} / ${goals?.length || 0} completed`}</span>
                     : (() => {
                         const m = dashboardStats?.weekMomentum ?? 0
                         if (m >= 70) return <span className="text-green-500 dark:text-green-400">Strong</span>
@@ -375,7 +375,7 @@ const DashboardPageNew = () => {
                     strokeWidth="6"
                     fill="transparent"
                     strokeDasharray={`${2 * Math.PI * 38}`}
-                    strokeDashoffset={`${2 * Math.PI * 38 * (1 - (activeTab === 'goals' ? yearlyProgress : (dashboardStats?.weekMomentum ?? 0)) / 100)}`}
+                    strokeDashoffset={`${2 * Math.PI * 38 * (1 - (activeTab === 'goals' ? yearlyProgress : (dashboardStats?.weekConsistency ?? dashboardStats?.weekMomentum ?? 0)) / 100)}`}
                     className="transition-all duration-1000 ease-out"
                     strokeLinecap="round"
                     transform="rotate(-90 48 48)"
@@ -383,7 +383,7 @@ const DashboardPageNew = () => {
                 </svg>
                 <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
                   <span className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white font-manrope">
-                    {activeTab === 'goals' ? yearlyProgress : (dashboardStats?.weekMomentum ?? 0)}%
+                    {activeTab === 'goals' ? yearlyProgress : (dashboardStats?.weekConsistency ?? dashboardStats?.weekMomentum ?? 0)}%
                   </span>
                 </div>
               </div>
@@ -552,24 +552,7 @@ const DashboardPageNew = () => {
                 </div>
               </div>
 
-              {/* In Progress */}
-              <div className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-5 shadow-sm border border-gray-100 dark:border-gray-700">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                    <TrendingUp className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-                  </div>
-                </div>
-                <div className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1 font-manrope">
-                  {dashboardStats?.totalGoals && dashboardStats?.completedGoals 
-                  ? dashboardStats?.totalGoals - dashboardStats?.completedGoals
-                  : 0}
-                </div>
-                <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 font-manrope uppercase tracking-wide">
-                  In Progress
-                </div>
-              </div>
-
-              {/* Daily Tasks */}
+              {/* Today's Wins */}
               <div className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-5 shadow-sm border border-gray-100 dark:border-gray-700">
                 <div className="flex items-center justify-between mb-3">
                   <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
@@ -580,13 +563,13 @@ const DashboardPageNew = () => {
                   {dashboardStats?.todayCompletions || 0}
                 </div>
                 <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 font-manrope uppercase tracking-wide">
-                  Daily Tasks
+                  Today's Wins
                 </div>
               </div>
             </>
           ) : (
             <>
-              {/* Total Habits */}
+              {/* Current Streak */}
               <div className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-5 shadow-sm border border-gray-100 dark:border-gray-700">
                 <div className="flex items-center justify-between mb-3">
                   <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
@@ -594,10 +577,10 @@ const DashboardPageNew = () => {
                   </div>
                 </div>
                 <div className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1 font-manrope">
-                  {dashboardStats?.totalHabits ?? habits?.length ?? 0}
+                  {dashboardStats?.currentHabitStreak ?? 0}
                 </div>
                 <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 font-manrope uppercase tracking-wide">
-                  Total Habits
+                  Current Streak
                 </div>
               </div>
 
@@ -616,7 +599,7 @@ const DashboardPageNew = () => {
                 </div>
               </div>
 
-              {/* Today's Habit Logs */}
+              {/* Today's Habit Progress */}
               <div className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-5 shadow-sm border border-gray-100 dark:border-gray-700">
                 <div className="flex items-center justify-between mb-3">
                   <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
@@ -624,27 +607,13 @@ const DashboardPageNew = () => {
                   </div>
                 </div>
                 <div className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1 font-manrope">
-                  {dashboardStats?.todayHabitLogs ?? 0}
+                  {(dashboardStats?.todayHabitLogs ?? 0) + ' / ' + (dashboardStats?.activeToday ?? 0)}
                 </div>
                 <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 font-manrope uppercase tracking-wide">
-                  Habits Logged Today
+                  Today's Habit Progress
                 </div>
               </div>
 
-              {/* Active Today */}
-              <div className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-5 shadow-sm border border-gray-100 dark:border-gray-700">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                    <Target className="w-5 h-5 text-[#4c99e6]" />
-                  </div>
-                </div>
-                <div className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1 font-manrope">
-                  {dashboardStats?.activeToday ?? 0}
-                </div>
-                <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 font-manrope uppercase tracking-wide">
-                  Active Today
-                </div>
-              </div>
             </>
           )}
         </motion.div>

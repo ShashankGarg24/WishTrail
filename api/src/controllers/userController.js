@@ -7,6 +7,39 @@ const pgGoalService = require('../services/pgGoalService');
 const { validationResult } = require('express-validator');
 const authService = require('../services/authService');
 const { sanitizeUser, sanitizeGoalsForProfile } = require('../utility/sanitizer');
+const GoalDetails = require('../models/extended/GoalDetails');
+const { getDateKeyInTimezone } = require('../utility/timezone');
+const { activeDays, percentagePointTrend } = require('../utility/metrics');
+
+function previousDateKey(dateKey) {
+  const date = new Date(`${dateKey}T12:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() - 1);
+  return date.toISOString().slice(0, 10);
+}
+
+async function buildPeriodActivity(userId, requestingUserId, userTimezone, habitAnalytics, habitService) {
+  const { startDate, endDate } = habitAnalytics.period;
+  const goalsResult = await pgGoalService.getUserGoals({ userId, page: 1, limit: 1000, requestingUserId });
+  const goals = goalsResult.goals || [];
+  const dateKeys = [...(habitAnalytics.activeDateKeys || [])];
+  goals.forEach(goal => {
+    if (goal.completed_at) dateKeys.push(getDateKeyInTimezone(goal.completed_at, userTimezone));
+  });
+  const details = goals.length ? await GoalDetails.find({ goalId: { $in: goals.map(goal => goal.id) } }).lean() : [];
+  details.forEach(detail => (detail.progress?.breakdown?.subGoals || []).forEach(subGoal => {
+    if (subGoal.completedAt) dateKeys.push(getDateKeyInTimezone(subGoal.completedAt, userTimezone));
+  }));
+  const previous = await habitService.analytics(userId, {
+    days: Math.max(1, Math.round((new Date(`${endDate}T12:00:00Z`) - new Date(`${startDate}T12:00:00Z`)) / 86400000) + 1),
+    userTimezone,
+    endDateKey: previousDateKey(startDate)
+  });
+  return {
+    activeDays: activeDays(dateKeys.filter(key => key >= startDate && key <= endDate), endDate),
+    periodDays: Math.max(1, Math.round((new Date(`${endDate}T12:00:00Z`) - new Date(`${startDate}T12:00:00Z`)) / 86400000) + 1),
+    trendPoints: previous.totals.expected > 0 ? percentagePointTrend(habitAnalytics.totals.percentage, previous.totals.percentage) : null
+  };
+}
 
 // Lightweight block status check
 const getBlockStatus = async (req, res, next) => {
@@ -609,13 +642,20 @@ const getAnalytics = async (req, res, next) => {
     const completedGoals = completedGoalsResult.pagination.total;
     
     // Get habits analytics (7 days by default)
-    const habitAnalytics = await habitService.analytics(targetUserId, { days: 7 });
+    const habitAnalytics = await habitService.analytics(targetUserId, { days: 7, userTimezone: user.timezone || 'UTC' });
+    const periodActivity = await buildPeriodActivity(targetUserId, req.user.id, user.timezone || 'UTC', habitAnalytics, habitService);
     
     const analytics = {
-      // Only logged (done) and skipped are tracked — missed is not surfaced
+      // Consistency is completed scheduled occurrences over all scheduled occurrences.
       habits: {
         done: habitAnalytics.totals?.done || 0,
-        skipped: habitAnalytics.totals?.skipped || 0
+        skipped: habitAnalytics.totals?.skipped || 0,
+        missed: habitAnalytics.totals?.missed || 0,
+        expected: habitAnalytics.totals?.expected || 0,
+        consistency: habitAnalytics.totals?.percentage || 0,
+        activeDays: periodActivity.activeDays,
+        periodDays: periodActivity.periodDays,
+        trendPoints: periodActivity.trendPoints
       },
       goals: {
         totalGoals: totalGoals || 0,
@@ -684,13 +724,20 @@ const getUserAnalytics = async (req, res, next) => {
     const completedGoals = completedGoalsResult.pagination.total;
     
     // Get habits analytics — last 7 days
-    const habitAnalytics = await habitService.analytics(targetUserId, { days: 7 });
+    const habitAnalytics = await habitService.analytics(targetUserId, { days: 7, userTimezone: targetUser.timezone || 'UTC' });
+    const periodActivity = await buildPeriodActivity(targetUserId, req.user.id, targetUser.timezone || 'UTC', habitAnalytics, habitService);
     
     const analytics = {
-      // Only logged (done) and skipped are tracked — missed is not surfaced
+      // Consistency is completed scheduled occurrences over all scheduled occurrences.
       habits: {
         done: habitAnalytics.totals?.done || 0,
-        skipped: habitAnalytics.totals?.skipped || 0
+        skipped: habitAnalytics.totals?.skipped || 0,
+        missed: habitAnalytics.totals?.missed || 0,
+        expected: habitAnalytics.totals?.expected || 0,
+        consistency: habitAnalytics.totals?.percentage || 0,
+        activeDays: periodActivity.activeDays,
+        periodDays: periodActivity.periodDays,
+        trendPoints: periodActivity.trendPoints
       },
       goals: {
         totalGoals: totalGoals || 0,
@@ -731,4 +778,4 @@ module.exports = {
   deleteDashboardYear,
   getAnalytics,
   getUserAnalytics
-}; 
+};

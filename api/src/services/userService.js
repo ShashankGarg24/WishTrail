@@ -1,4 +1,5 @@
 const { logger } = require('./../config/observability');
+const { percentage } = require('../utility/metrics');
 const pgUserService = require('./pgUserService');
 const pgFollowService = require('./pgFollowService');
 const pgBlockService = require('./pgBlockService');
@@ -266,13 +267,18 @@ class UserService {
       done7DaysRows,
     ] = await Promise.all([
 
-      // Goal completions made today (for the Goals tab)
-      pgGoalService.getUserGoals({ userId, completed: true, page: 1, limit: 100 }),
+      pgQuery(
+        `SELECT COUNT(*) AS today_completions FROM goals
+         WHERE user_id = $1 AND completed_at IS NOT NULL
+           AND (completed_at AT TIME ZONE $2)::date = $3::date`,
+        [userId, user.timezone || 'UTC', todayUTC]
+      ),
 
       // Total active habits + best (longest) streak across all habits
       pgQuery(
         `SELECT
            COUNT(*) AS total_habits,
+           COALESCE(MAX(current_streak), 0) AS current_habit_streak,
            COALESCE(MAX(longest_streak), 0) AS best_streak
          FROM habits
          WHERE user_id = $1`,
@@ -328,17 +334,13 @@ class UserService {
     ]);
 
     // ── Goal today-completions ────────────────────────────────────────────────
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-    const todayCompletions = todayGoalRows.goals.filter(
-      g => new Date(g.completed_at) >= todayStart
-    ).length;
+    const todayCompletions = parseInt(todayGoalRows.rows[0]?.today_completions, 10) || 0;
 
     // ── Habit scalar stats ────────────────────────────────────────────────────
     const hs           = habitStatsRow.rows[0];
     const totalHabits  = parseInt(hs.total_habits)   || 0;
+    const currentHabitStreak = parseInt(hs.current_habit_streak) || 0;
     const bestStreak   = parseInt(hs.best_streak)    || 0;
-    logger.info(todayLogsRow);
     const todayHabitLogs = parseInt(todayLogsRow.rows[0].today_habit_logs) || 0;
     const activeMap = {};
     for (const row of active7DaysRows.rows) {
@@ -354,23 +356,19 @@ class UserService {
       logsMap[row.date_key] = parseInt(row.done_count) || 0;
     }
 
-    let weightedSum  = 0;
-    let totalWeight  = 0;
+    let scheduledOccurrences = 0;
+    let completedOccurrences = 0;
     const momentumBaseDate = new Date(`${todayUTC}T12:00:00Z`);
     for (let i = 0; i < 7; i++) {
       const d = new Date(momentumBaseDate);
       d.setUTCDate(d.getUTCDate() - i);
       const dateKey    = d.toISOString().split('T')[0];
-      const weight     = 7 - i;                          // today=7 … 6 days ago=1
       const done       = logsMap[dateKey] || 0;
       const activeOnDay = activeMap[dateKey] || 0;
-      const perf       = activeOnDay > 0
-        ? Math.min(100, Math.round((done / activeOnDay) * 100))
-        : 0;
-      weightedSum  += perf * weight;
-      totalWeight  += weight;
+      scheduledOccurrences += activeOnDay;
+      completedOccurrences += Math.min(done, activeOnDay);
     }
-    const weekMomentum = totalWeight > 0 ? Math.round(weightedSum / totalWeight) : 0;
+    const weekConsistency = percentage(completedOccurrences, scheduledOccurrences);
 
     return {
       // Goals
@@ -381,10 +379,13 @@ class UserService {
       longestStreak:  user.longest_streak  || 0,
       // Habits
       totalHabits,
+      currentHabitStreak,
       bestStreak,
       todayHabitLogs,
       activeToday,
-      weekMomentum,
+      // Retained for existing clients; it now uses the consistency formula.
+      weekMomentum: weekConsistency,
+      weekConsistency,
     };
   }
   
@@ -850,4 +851,4 @@ class UserService {
   }
 }
 
-module.exports = new UserService(); 
+module.exports = new UserService();

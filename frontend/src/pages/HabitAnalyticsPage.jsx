@@ -220,14 +220,9 @@ export default function HabitAnalyticsPage() {
     }
   };
 
-  const expectedOccurrences = calculateExpectedOccurrences();
-  const activeDays = statusCounts.done;
-  const skippedDays = statusCounts.skipped;
-  
-  const expectedDaysAdjusted = Math.max(0, expectedOccurrences - skippedDays);
-  const completionRate = expectedDaysAdjusted > 0 
-    ? Math.round((activeDays / expectedDaysAdjusted) * 100) 
-    : 0;
+  const expectedOccurrences = statusCounts.expected ?? calculateExpectedOccurrences();
+  const activeDays = statusCounts.activeDays ?? statusCounts.done;
+  const completionRate = Math.max(0, Math.min(100, consistency ?? 0));
 
   // Calculate streaks from timeline
   const currentStreak = stats?.currentStreak || 0;
@@ -778,8 +773,8 @@ export default function HabitAnalyticsPage() {
               </div>
               <span className="text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Active Days</span>
             </div>
-            <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{activeDays}</p>
-            <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-1">days this month</p>
+            <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{activeDays} / {Math.max(1, Math.ceil((new Date(`${rangeEnd}T12:00:00Z`) - new Date(`${rangeStart}T12:00:00Z`)) / 86400000) + 1)}</p>
+            <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-1">active days in this period</p>
           </motion.div>
 
           <motion.div

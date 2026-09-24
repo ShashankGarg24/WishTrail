@@ -1,4 +1,15 @@
 const { logger } = require('./../config/observability');
+
+function formatDateKey(date, timezone) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).formatToParts(date);
+  const value = Object.fromEntries(parts.filter(part => part.type !== 'literal').map(part => [part.type, part.value]));
+  return `${value.year}-${value.month}-${value.day}`;
+}
 /**
  * Timezone utility functions for WishTrail
  * All times are stored in UTC in the database
@@ -41,14 +52,7 @@ function formatDateInTimezone(utcDate, timezone = 'UTC', locale = 'en-US') {
 function getCurrentDateInTimezone(timezone = 'UTC') {
   try {
     const now = new Date();
-    const formatter = new Intl.DateTimeFormat('en-CA', {
-      timeZone: timezone,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit'
-    });
-    
-    return formatter.format(now); // Returns YYYY-MM-DD
+    return formatDateKey(now, timezone);
   } catch (error) {
     logger.error('Error getting current date in timezone:', error);
     return new Date().toISOString().split('T')[0];
@@ -64,14 +68,7 @@ function getCurrentDateInTimezone(timezone = 'UTC') {
 function getDateKeyInTimezone(date, timezone = 'UTC') {
   try {
     const dateObj = typeof date === 'string' ? new Date(date) : date;
-    const formatter = new Intl.DateTimeFormat('en-CA', {
-      timeZone: timezone,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit'
-    });
-    
-    return formatter.format(dateObj);
+    return formatDateKey(dateObj, timezone);
   } catch (error) {
     logger.error('Error getting date key in timezone:', error);
     return new Date(date).toISOString().split('T')[0];

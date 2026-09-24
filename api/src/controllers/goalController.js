@@ -2204,15 +2204,12 @@ module.exports = {
         });
       }
 
-      // Compute progress if not already present
-      let progressData = goalDetails?.progress || { percent: 0 };
-      if (!goalDetails?.progress || !goalDetails.progress.percent) {
-        try {
-          progressData = await goalDivisionService.computeGoalProgress(goal.id, req.user.id);
-        } catch (err) {
-          logger.error('Error computing progress:', err);
-          progressData = { percent: 0 };
-        }
+      // Compute from the authoritative division service; cached Mongo values may be stale.
+      let progressData = { percent: 0 };
+      try {
+        progressData = await goalDivisionService.computeGoalProgress(goal.id, req.user.id);
+      } catch (err) {
+        logger.error('Error computing progress:', err);
       }
 
       return res.status(200).json({
@@ -2244,4 +2241,4 @@ module.exports = {
       next(error);
     }
   }
-}; 
+};

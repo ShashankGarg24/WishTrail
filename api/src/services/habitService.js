@@ -7,6 +7,8 @@ const pgHabitLogService = require('./pgHabitLogService');
 const pgUserService = require('./pgUserService');
 const UserPreferences = require('../models/extended/UserPreferences');
 const redis = require('../config/redis');
+const { getCurrentDateInTimezone } = require('../utility/timezone');
+const { scheduledOccurrences, habitCompletion } = require('../utility/metrics');
 
 function toDateKeyUTC(date = new Date()) {
   const d = new Date(date);
@@ -563,51 +565,56 @@ async function sendReminderNotifications({ windowMinutes = 10 } = {}) {
   return { ok: true, count: jobs.length };
 }
 
-async function analytics(userId, { days = 7 } = {}) {
+async function analytics(userId, { days = 7, userTimezone = 'UTC', endDateKey } = {}) {
   const { query: pgQuery } = require('../config/supabase');
-  const from = new Date();
-  from.setUTCDate(from.getUTCDate() - Math.max(1, days));
-  const fromKey = toDateKeyUTC(from);
-  const toKey   = toDateKeyUTC(new Date());
+  const endKey = endDateKey || getCurrentDateInTimezone(userTimezone);
+  const from = new Date(`${endKey}T12:00:00.000Z`);
+  from.setUTCDate(from.getUTCDate() - Math.max(0, days - 1));
+  const fromKey = from.toISOString().slice(0, 10);
 
-  // Counts: done (logged) and skipped only — missed is not tracked
-  // No upper date_key bound so client-timezone date keys ahead of server UTC aren't excluded
+  // Count only this local-calendar range; future client date keys are excluded.
   const countResult = await pgQuery(
     `SELECT status, COUNT(*)::int AS cnt
      FROM habit_logs
-     WHERE user_id = $1 AND date_key >= $2
-       AND status IN ('done', 'skipped')
+     WHERE user_id = $1 AND date_key >= $2 AND date_key <= $3
+       AND status IN ('done', 'skipped', 'missed')
      GROUP BY status`,
-    [userId, fromKey]
+    [userId, fromKey, endKey]
   );
 
-  const totals = { done: 0, skipped: 0 };
+  const loggedTotals = { done: 0, skipped: 0, missed: 0 };
   for (const row of countResult.rows) {
-    if (row.status === 'done')         totals.done    = row.cnt;
-    else if (row.status === 'skipped') totals.skipped = row.cnt;
+    if (Object.prototype.hasOwnProperty.call(loggedTotals, row.status)) loggedTotals[row.status] = row.cnt;
   }
 
   // Per-habit breakdown (still useful for future)
   const byHabitResult = await pgQuery(
     `SELECT habit_id, status, COUNT(*)::int AS cnt
      FROM habit_logs
-     WHERE user_id = $1 AND date_key >= $2
+     WHERE user_id = $1 AND date_key >= $2 AND date_key <= $3
      GROUP BY habit_id, status`,
-    [userId, fromKey]
+    [userId, fromKey, endKey]
   );
   const byHabit = {};
   for (const row of byHabitResult.rows) {
     if (!byHabit[row.habit_id]) byHabit[row.habit_id] = { done: 0, missed: 0, skipped: 0 };
     byHabit[row.habit_id][row.status] = row.cnt;
   }
+  const activeDatesResult = await pgQuery(
+    `SELECT DISTINCT date_key::text AS date_key FROM habit_logs
+     WHERE user_id = $1 AND status = 'done' AND date_key >= $2 AND date_key <= $3`,
+    [userId, fromKey, endKey]
+  );
   // top streaks snapshot from PostgreSQL
   const habitsResult = await pgHabitService.getUserHabits({ 
     userId, 
     limit: 1000 
   });
   const habits = habitsResult || []; // getUserHabits returns array directly, not wrapped
+  const expected = habits.reduce((total, habit) => total + scheduledOccurrences(habit, fromKey, endKey), 0);
+  const totals = habitCompletion({ expected, ...loggedTotals });
   const top = habits
-    .sort((a,b) => (b.currentStreak||0) - (a.currentStreak||0))
+    .sort((a,b) => (b.currentStreak||0) - (a.currentStreak||0) || (b.longestStreak||0) - (a.longestStreak||0) || new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0))
     .slice(0, 5)
     .map(h => ({
       id: h.id,
@@ -616,7 +623,7 @@ async function analytics(userId, { days = 7 } = {}) {
       longestStreak: h.longestStreak || 0,
       totalCompletions: h.totalCompletions || 0
     }));
-  return { totals, byHabit, topHabits: top };
+  return { totals, byHabit, topHabits: top, activeDateKeys: activeDatesResult.rows.map(row => row.date_key), period: { startDate: fromKey, endDate: endKey } };
 }
 
 // Individual habit detailed analytics
