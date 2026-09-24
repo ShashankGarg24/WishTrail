@@ -1193,6 +1193,7 @@ const DashboardPageNew = () => {
             onClose={() => setIsHabitIdeasOpen(false)}
             interests={user?.interests || []}
             onSelect={openPrefilledHabitModal}
+            onCreate={() => openPrefilledHabitModal(null)}
             limit={6}
             title="Habit Suggestions"
           />

@@ -728,7 +728,11 @@ export default function HabitAnalyticsPage() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 shadow-sm border border-gray-200 dark:border-gray-700"
+              role="button"
+              tabIndex={0}
+              onClick={() => setMetricInfo({ title: 'Target Progress', description: 'Your progress toward the total number of times you want to complete this habit.' })}
+              onKeyDown={(event) => event.key === 'Enter' && setMetricInfo({ title: 'Target Progress', description: 'Your progress toward the total number of times you want to complete this habit.' })}
+              className="cursor-pointer bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 shadow-sm border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700 transition-colors"
             >
               <div className="flex items-center gap-2 mb-2">
                 <div className="p-1 sm:p-1.5 rounded-lg text-white" style={{ backgroundColor: THEME_COLOR }}>
@@ -749,7 +753,11 @@ export default function HabitAnalyticsPage() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 shadow-sm border border-gray-200 dark:border-gray-700"
+              role="button"
+              tabIndex={0}
+              onClick={() => setMetricInfo({ title: 'Target Progress', description: 'Your progress toward the number of days you want this habit to be active.' })}
+              onKeyDown={(event) => event.key === 'Enter' && setMetricInfo({ title: 'Target Progress', description: 'Your progress toward the number of days you want this habit to be active.' })}
+              className="cursor-pointer bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 shadow-sm border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700 transition-colors"
             >
               <div className="flex items-center gap-2 mb-2">
                 <div className="p-1 sm:p-1.5 rounded-lg text-white" style={{ backgroundColor: THEME_COLOR }}>
@@ -767,7 +775,11 @@ export default function HabitAnalyticsPage() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 shadow-sm border border-gray-200 dark:border-gray-700"
+            role="button"
+            tabIndex={0}
+            onClick={() => setMetricInfo({ title: 'Active Days', description: 'The number of days in this period when you completed this habit at least once.' })}
+            onKeyDown={(event) => event.key === 'Enter' && setMetricInfo({ title: 'Active Days', description: 'The number of days in this period when you completed this habit at least once.' })}
+            className="cursor-pointer bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 shadow-sm border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700 transition-colors"
           >
             <div className="flex items-center gap-2 mb-2">
               <div className="p-1 sm:p-1.5 rounded-lg text-white" style={{ backgroundColor: THEME_COLOR }}>
@@ -783,7 +795,11 @@ export default function HabitAnalyticsPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.05 }}
-            className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 shadow-sm border border-gray-200 dark:border-gray-700"
+            role="button"
+            tabIndex={0}
+            onClick={() => setMetricInfo({ title: 'Total Count', description: 'All-time completions recorded for this habit.' })}
+            onKeyDown={(event) => event.key === 'Enter' && setMetricInfo({ title: 'Total Count', description: 'All-time completions recorded for this habit.' })}
+            className="cursor-pointer bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 shadow-sm border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700 transition-colors"
           >
             <div className="flex items-center gap-2 mb-2">
               <div className="p-1 sm:p-1.5 rounded-lg text-white" style={{ backgroundColor: THEME_COLOR }}>
@@ -799,7 +815,11 @@ export default function HabitAnalyticsPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 shadow-sm border border-gray-200 dark:border-gray-700"
+            role="button"
+            tabIndex={0}
+            onClick={() => setMetricInfo({ title: 'Completion Rate', description: 'How often you completed this habit when it was scheduled during the selected period.', note: 'Skipped and missed scheduled occurrences are included. Unscheduled days are not.' })}
+            onKeyDown={(event) => event.key === 'Enter' && setMetricInfo({ title: 'Completion Rate', description: 'How often you completed this habit when it was scheduled during the selected period.', note: 'Skipped and missed scheduled occurrences are included. Unscheduled days are not.' })}
+            className="cursor-pointer bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 shadow-sm border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700 transition-colors"
           >
             <div className="flex items-center gap-2 mb-2">
               <div className="p-1 sm:p-1.5 rounded-lg text-white" style={{ backgroundColor: THEME_COLOR }}>
@@ -815,7 +835,7 @@ export default function HabitAnalyticsPage() {
             )}
           </motion.div>
 
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 shadow-sm border border-gray-200 dark:border-gray-700">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} role="button" tabIndex={0} onClick={() => setMetricInfo({ title: 'Follow-through Rate', description: 'How often you completed this habit after excluding occurrences you deliberately skipped.', note: 'This is a secondary metric. Completion Rate remains the clearest view of all scheduled occurrences.' })} onKeyDown={(event) => event.key === 'Enter' && setMetricInfo({ title: 'Follow-through Rate', description: 'How often you completed this habit after excluding occurrences you deliberately skipped.', note: 'This is a secondary metric. Completion Rate remains the clearest view of all scheduled occurrences.' })} className="cursor-pointer bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 shadow-sm border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700 transition-colors">
             <div className="flex items-center gap-2 mb-2">
               <div className="p-1 sm:p-1.5 rounded-lg text-white" style={{ backgroundColor: THEME_COLOR }}><SkipForward className="w-3.5 h-3.5 sm:w-4 sm:h-4" /></div>
               <button type="button" onClick={() => setMetricInfo({ title: 'Follow-through Rate', description: 'How often you completed this habit after excluding occurrences you deliberately skipped.', note: 'This is a secondary metric. Completion Rate remains the clearest view of all scheduled occurrences.' })} className="text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide hover:text-[#4c99e6]">Follow-through Rate</button>
@@ -828,7 +848,11 @@ export default function HabitAnalyticsPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 shadow-sm border border-gray-200 dark:border-gray-700"
+            role="button"
+            tabIndex={0}
+            onClick={() => setMetricInfo({ title: 'Current Streak', description: 'A run of consecutive scheduled occurrences completed without a break.' })}
+            onKeyDown={(event) => event.key === 'Enter' && setMetricInfo({ title: 'Current Streak', description: 'A run of consecutive scheduled occurrences completed without a break.' })}
+            className="cursor-pointer bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 shadow-sm border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700 transition-colors"
           >
             <div className="flex items-center gap-2 mb-2">
               <div className="p-1 sm:p-1.5 rounded-lg text-orange-500">
