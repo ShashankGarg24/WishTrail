@@ -1,4 +1,4 @@
-const { query } = require('../config/supabase');
+const { query, transaction } = require('../config/supabase');
 
 /**
  * PostgreSQL Service Layer for Product Updates
@@ -15,8 +15,28 @@ class ProductUpdateService {
       RETURNING id, title, description, version, is_major as "isMajor", type, created_at as "createdAt"
     `;
     
-    const result = await query(queryText, [title, description, version, isMajor, type]);
-    return result.rows[0];
+    const values = [title, description, version, isMajor, type];
+    try {
+      const result = await query(queryText, values);
+      return result.rows[0];
+    } catch (error) {
+      // Manual imports can leave PostgreSQL's SERIAL sequence behind the rows
+      // already in the table. Repair it once, under a table lock, then retry.
+      if (error.code !== '23505' || error.constraint !== 'product_updates_pkey') throw error;
+
+      return transaction(async (client) => {
+        await client.query('LOCK TABLE product_updates IN SHARE ROW EXCLUSIVE MODE');
+        await client.query(`
+          SELECT setval(
+            pg_get_serial_sequence('product_updates', 'id'),
+            COALESCE((SELECT MAX(id) FROM product_updates), 1),
+            true
+          )
+        `);
+        const retry = await client.query(queryText, values);
+        return retry.rows[0];
+      });
+    }
   }
 
   /** Update an existing release note, identified by its original version. */
