@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useDragControls } from 'framer-motion'
 import { X, Send, Heart, MessageCircle } from 'lucide-react'
 import { activitiesAPI } from '../services/api'
 import useApiStore from '../store/apiStore'
@@ -14,6 +14,7 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
   const [expandedReplies, setExpandedReplies] = useState({})
   const [isMobile, setIsMobile] = useState(false)
   const [mobileSheetMaxHeight, setMobileSheetMaxHeight] = useState(null)
+  const dragControls = useDragControls()
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -187,7 +188,36 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
   if (!inline && !embedded && !isOpen) return null
   if (embedded) return <section className="w-full" style={{ fontFamily: 'Manrope, sans-serif' }}><div className="mb-3 flex items-center gap-2"><MessageCircle className="h-4 w-4 text-[#4c99e6]" /><h3 className="text-sm font-semibold text-gray-900 dark:text-white">Comments</h3>{comments.length > 0 && <span className="text-xs text-gray-500">{comments.length}</span>}</div><CommentList /><div className="mt-4"><Composer /></div></section>
   if (inline) return <section className="flex h-full w-full flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900" style={{ fontFamily: 'Manrope, sans-serif' }}><header className="flex items-center justify-between border-b border-gray-100 px-4 py-3 dark:border-gray-800"><h2 className="font-semibold text-gray-900 dark:text-white">Comments</h2>{onClose && <button type="button" onClick={onClose} aria-label="Close comments" className="rounded-full p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"><X className="h-5 w-5" /></button>}</header><div className="min-h-0 flex-1 overflow-y-auto px-4 py-4"><CommentList /></div><Composer /></section>
-  return <AnimatePresence><motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="fixed inset-0 z-[210] flex items-end bg-black/70 md:items-center md:justify-center md:p-4"><motion.section initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 40, opacity: 0 }} drag="y" dragConstraints={{ top: 0, bottom: 0 }} dragElastic={{ top: 0, bottom: 0.45 }} onDragEnd={(_, info) => { if (info.offset.y > 120 || info.velocity.y > 600) onClose?.() }} onClick={(event) => event.stopPropagation()} style={mobileSheetMaxHeight ? { fontFamily: 'Manrope, sans-serif', maxHeight: `${mobileSheetMaxHeight}px` } : { fontFamily: 'Manrope, sans-serif' }} className="flex max-h-[90dvh] w-full flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl md:max-h-[85vh] md:max-w-2xl md:rounded-2xl dark:bg-gray-900"><div className="flex justify-center pt-2 md:hidden"><span className="h-1.5 w-12 rounded-full bg-gray-300 dark:bg-gray-700" /></div><header className="flex items-center justify-between border-b border-gray-100 px-4 py-3 dark:border-gray-800"><h2 className="font-semibold text-gray-900 dark:text-white">Comments</h2><button type="button" onClick={onClose} aria-label="Close comments" className="rounded-full p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"><X className="h-5 w-5" /></button></header><div className="min-h-0 flex-1 overflow-y-auto px-4 py-4"><CommentList /></div><Composer /></motion.section></motion.div></AnimatePresence>
+  return (
+    <AnimatePresence>
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="fixed inset-0 z-[210] flex items-end bg-black/70 md:items-center md:justify-center md:p-4">
+        <motion.section
+          initial={{ y: 40, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: 40, opacity: 0 }}
+          drag="y"
+          dragControls={dragControls}
+          dragListener={false}
+          dragConstraints={{ top: 0, bottom: 0 }}
+          dragElastic={{ top: 0, bottom: 0.45 }}
+          onDragEnd={(_, info) => { if (info.offset.y > 120 || info.velocity.y > 600) onClose?.() }}
+          onClick={(event) => event.stopPropagation()}
+          style={mobileSheetMaxHeight ? { fontFamily: 'Manrope, sans-serif', maxHeight: `${mobileSheetMaxHeight}px` } : { fontFamily: 'Manrope, sans-serif' }}
+          className="flex max-h-[90dvh] w-full flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl md:max-h-[85vh] md:max-w-2xl md:rounded-2xl dark:bg-gray-900"
+        >
+          <div onPointerDown={(event) => dragControls.start(event)} className="flex cursor-grab justify-center pt-2 active:cursor-grabbing md:hidden">
+            <span className="h-1.5 w-12 rounded-full bg-gray-300 dark:bg-gray-700" />
+          </div>
+          <header className="flex items-center justify-between border-b border-gray-100 px-4 py-3 dark:border-gray-800">
+            <h2 className="font-semibold text-gray-900 dark:text-white">Comments</h2>
+            <button type="button" onClick={onClose} aria-label="Close comments" className="rounded-full p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"><X className="h-5 w-5" /></button>
+          </header>
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4"><CommentList /></div>
+          <Composer />
+        </motion.section>
+      </motion.div>
+    </AnimatePresence>
+  )
 }
 
 export default ActivityCommentsModal
