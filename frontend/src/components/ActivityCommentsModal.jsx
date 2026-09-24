@@ -173,7 +173,7 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
           dragElastic={{ top: 0, bottom: 0.45 }}
           onDragEnd={(_, info) => { if (info.offset.y > 120 || info.velocity.y > 600) onClose?.() }}
           onClick={(event) => event.stopPropagation()}
-          style={mobileSheetMaxHeight ? { fontFamily: 'Manrope, sans-serif', maxHeight: `${mobileSheetMaxHeight}px` } : { fontFamily: 'Manrope, sans-serif' }}
+          style={{ fontFamily: 'Manrope, sans-serif' }}
           className="flex max-h-[90dvh] w-full flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl md:max-h-[85vh] md:max-w-2xl md:rounded-2xl dark:bg-gray-900"
         >
           <div onPointerDown={(event) => dragControls.start(event)} className="flex cursor-grab justify-center pt-2 active:cursor-grabbing md:hidden">
