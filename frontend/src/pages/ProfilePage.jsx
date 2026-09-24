@@ -13,6 +13,7 @@ import ShareSheet from '../components/ShareSheet';
 import toast from 'react-hot-toast';
 import { getDateKeyInTimezone } from '../utils/timezoneUtils';
 import ConfirmActionModal from '../components/ConfirmActionModal';
+import MetricInfoModal from '../components/MetricInfoModal';
 const ReportModal = lazy(() => import("../components/ReportModal"));
 const BlockModal = lazy(() => import("../components/BlockModal"));
 const DailyLogsPromptModal = lazy(() => import("../components/DailyLogsPromptModal"));
@@ -64,6 +65,7 @@ const ProfilePage = () => {
   const [hasMoreFollowing, setHasMoreFollowing] = useState(false);
   const [loadingMoreFollows, setLoadingMoreFollows] = useState(false);
   const [quoteModalOpen, setQuoteModalOpen] = useState(false);
+  const [metricInfo, setMetricInfo] = useState(null);
   
   const FOLLOW_LIMIT = 20;
 
@@ -1107,7 +1109,7 @@ const ProfilePage = () => {
               {activeTab === 'overview' && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5 md:gap-6">
                   {/* Goal Statistics - circular progress */}
-                  <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+                  <button type="button" onClick={() => setMetricInfo({ title: 'Goal Completion', description: 'The share of goals that have been marked finished.', formula: 'completed goals ÷ total goals × 100' })} className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 shadow-sm border border-gray-100 dark:border-gray-700 text-left hover:border-blue-300 dark:hover:border-blue-700 transition-colors">
                     <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white mb-4 sm:mb-5 flex items-center gap-2">
                       <BarChart2 className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: THEME_COLOR }} />
                       Goal Statistics
@@ -1161,9 +1163,9 @@ const ProfilePage = () => {
                         <p className="text-gray-500 dark:text-gray-400 text-sm">Statistics are private</p>
                       </div>
                     )}
-                  </div>
+                  </button>
                   {/* Habit Stats - Last 7 Days */}
-                  <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+                  <button type="button" onClick={() => setMetricInfo({ title: 'Habit Consistency', description: 'How often you completed the habit occurrences scheduled in the last seven days.', formula: 'completed scheduled occurrences ÷ scheduled occurrences × 100', note: 'Skipped and missed occurrences stay in the denominator; unscheduled days do not.' })} className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 shadow-sm border border-gray-100 dark:border-gray-700 text-left hover:border-blue-300 dark:hover:border-blue-700 transition-colors">
                     <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white mb-1.5 sm:mb-2 flex items-center gap-2">
                       <Activity className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: THEME_COLOR }} />
                       Habit Consistency
@@ -1224,7 +1226,7 @@ const ProfilePage = () => {
                         <p className="text-gray-500 dark:text-gray-400 text-sm">Analytics are private</p>
                       </div>
                     )}
-                  </div>
+                  </button>
                   {/* Current Goals */}
                   <div className="lg:col-span-2">
                     <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 shadow-sm border border-gray-100 dark:border-gray-700">
@@ -1998,6 +2000,7 @@ const ProfilePage = () => {
         confirmText="Delete"
         isLoading={!!deletingDailyLogId}
       />
+      {metricInfo && <MetricInfoModal metric={metricInfo} onClose={() => setMetricInfo(null)} />}
     </div>
   );
 };
