@@ -1,5 +1,6 @@
 const { logger } = require('./../config/observability');
 const { percentage } = require('../utility/metrics');
+const goalDivisionService = require('./goalDivisionService');
 const pgUserService = require('./pgUserService');
 const pgFollowService = require('./pgFollowService');
 const pgBlockService = require('./pgBlockService');
@@ -9,6 +10,8 @@ const { query: pgQuery } = require('../config/supabase');
 const UserPreferences = require('../models/extended/UserPreferences');
 const Activity = require('../models/Activity');
 const Notification = require('../models/Notification');
+const GoalDetails = require('../models/extended/GoalDetails');
+const { getDateKeyInTimezone } = require('../utility/timezone');
 
 class UserService {
   /**
@@ -246,7 +249,7 @@ class UserService {
   /**
    * Get dashboard statistics for user
    */
-  async getDashboardStats(userId, todayParam) {
+  async getDashboardStats(userId, todayParam, yearParam) {
     const user = await pgUserService.findById(userId);
     if (!user) {
       throw new Error('User not found');
@@ -258,6 +261,7 @@ class UserService {
     const todayUTC  = todayParam && /^\d{4}-\d{2}-\d{2}$/.test(todayParam)
       ? todayParam
       : new Date().toISOString().split('T')[0];
+    const selectedYear = Number.isInteger(Number(yearParam)) ? Number(yearParam) : new Date().getFullYear();
     // Run all queries in parallel for a single round-trip budget
     const [
       todayGoalRows,
@@ -334,7 +338,7 @@ class UserService {
     ]);
 
     // ── Goal today-completions ────────────────────────────────────────────────
-    const todayCompletions = parseInt(todayGoalRows.rows[0]?.today_completions, 10) || 0;
+    const completedGoalsToday = parseInt(todayGoalRows.rows[0]?.today_completions, 10) || 0;
 
     // ── Habit scalar stats ────────────────────────────────────────────────────
     const hs           = habitStatsRow.rows[0];
@@ -369,12 +373,57 @@ class UserService {
       completedOccurrences += Math.min(done, activeOnDay);
     }
     const weekConsistency = percentage(completedOccurrences, scheduledOccurrences);
+    const [previousActiveRows, previousDoneRows] = await Promise.all([
+      pgQuery(
+        `WITH days AS (SELECT generate_series($2::date - INTERVAL '13 days', $2::date - INTERVAL '7 days', INTERVAL '1 day')::date AS date_key)
+         SELECT days.date_key::text, COUNT(h.id) FILTER (WHERE h.id IS NOT NULL AND (h.frequency = 'daily' OR (h.frequency IN ('weekly', 'custom') AND h.days_of_week @> ARRAY[EXTRACT(DOW FROM days.date_key)::int]))) AS active_count
+         FROM days LEFT JOIN habits h ON h.user_id = $1 AND h.created_at::date <= days.date_key
+         GROUP BY days.date_key ORDER BY days.date_key`,
+        [userId, todayUTC]
+      ),
+      pgQuery(
+        `SELECT date_key::text, COUNT(*) AS done_count FROM habit_logs
+         WHERE user_id = $1 AND status = 'done' AND date_key >= $2::date - INTERVAL '13 days' AND date_key <= $2::date - INTERVAL '7 days'
+         GROUP BY date_key`,
+        [userId, todayUTC]
+      )
+    ]);
+    const previousExpected = previousActiveRows.rows.reduce((sum, row) => sum + (parseInt(row.active_count) || 0), 0);
+    const previousDone = previousDoneRows.rows.reduce((sum, row) => sum + (parseInt(row.done_count) || 0), 0);
+    const previousConsistency = percentage(Math.min(previousDone, previousExpected), previousExpected);
+    const consistencyTrendPoints = previousExpected > 0 ? weekConsistency - previousConsistency : null;
+
+    const yearlyGoals = await pgGoalService.getUserGoals({ userId, year: selectedYear, page: 1, limit: 1000 });
+    const goalProgresses = await Promise.all((yearlyGoals.goals || []).map(async goal => {
+      try { return (await goalDivisionService.computeGoalProgress(goal.id, userId)).percent; } catch (_) { return goal.completed_at ? 100 : 0; }
+    }));
+    const goalProgress = goalProgresses.length
+      ? Math.round(goalProgresses.reduce((sum, value) => sum + value, 0) / goalProgresses.length)
+      : 0;
+    const allGoals = await pgGoalService.getUserGoals({ userId, page: 1, limit: 1000 });
+    const goalDetails = allGoals.goals.length
+      ? await GoalDetails.find({ goalId: { $in: allGoals.goals.map(goal => goal.id) } }, { 'progress.breakdown.subGoals': 1 }).lean()
+      : [];
+    const completedSubGoalsToday = goalDetails.reduce((total, detail) => total + (detail.progress?.breakdown?.subGoals || []).filter(subGoal =>
+      subGoal.completedAt && getDateKeyInTimezone(subGoal.completedAt, user.timezone || 'UTC') === todayUTC
+    ).length, 0);
+    const todayCompletions = completedGoalsToday + todayHabitLogs + completedSubGoalsToday;
+    const activePeriodStart = new Date(`${todayUTC}T12:00:00Z`);
+    activePeriodStart.setUTCDate(activePeriodStart.getUTCDate() - 6);
+    const activePeriodStartKey = activePeriodStart.toISOString().slice(0, 10);
+    const completedGoalDates = allGoals.goals.filter(goal => goal.completed_at).map(goal => getDateKeyInTimezone(goal.completed_at, user.timezone || 'UTC'));
+    const completedSubGoalDates = goalDetails.flatMap(detail => (detail.progress?.breakdown?.subGoals || []).filter(subGoal => subGoal.completedAt).map(subGoal => getDateKeyInTimezone(subGoal.completedAt, user.timezone || 'UTC')));
+    const activeDays = new Set([...Object.keys(logsMap).filter(date => logsMap[date] > 0), ...completedGoalDates, ...completedSubGoalDates].filter(date => date >= activePeriodStartKey && date <= todayUTC)).size;
 
     return {
       // Goals
-      totalGoals:     user.total_goals     || 0,
-      completedGoals: user.completed_goals || 0,
+      totalGoals: yearlyGoals.pagination.total || 0,
+      completedGoals: (yearlyGoals.goals || []).filter(goal => goal.completed_at).length,
+      goalProgress,
+      selectedYear,
       todayCompletions,
+      activeDays,
+      activeDaysPeriod: 7,
       currentStreak:  user.current_streak  || 0,
       longestStreak:  user.longest_streak  || 0,
       // Habits
@@ -386,6 +435,7 @@ class UserService {
       // Retained for existing clients; it now uses the consistency formula.
       weekMomentum: weekConsistency,
       weekConsistency,
+      consistencyTrendPoints,
     };
   }
   

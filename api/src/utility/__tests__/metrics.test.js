@@ -3,8 +3,8 @@ const { getDateKeyInTimezone } = require('../timezone');
 
 describe('metrics', () => {
   test('habit completion includes skipped and missed occurrences in its denominator', () => {
-    expect(habitCompletion({ expected: 10, done: 5, skipped: 5 })).toMatchObject({ missed: 0, percentage: 50 });
-    expect(habitCompletion({ expected: 10, done: 5, skipped: 2, missed: 3 })).toMatchObject({ percentage: 50 });
+    expect(habitCompletion({ expected: 10, done: 5, skipped: 5 })).toMatchObject({ missed: 0, percentage: 50, followThroughRate: 100 });
+    expect(habitCompletion({ expected: 10, done: 5, skipped: 2, missed: 3 })).toMatchObject({ percentage: 50, followThroughRate: 62.5 });
   });
   test('returns a safe zero percentage without expected occurrences', () => {
     expect(habitCompletion({ expected: 0, done: 0 })).toMatchObject({ percentage: 0 });

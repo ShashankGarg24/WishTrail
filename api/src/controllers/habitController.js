@@ -6,7 +6,7 @@ const pgUserService = require('../services/pgUserService');
 const pgFollowService = require('../services/pgFollowService');
 const { sanitizeHabit, sanitizeHabitForProfile } = require('../utility/sanitizer');
 const { getCurrentDateInTimezone, getDateRangeInTimezone } = require('../utility/timezone');
-const { habitCompletion } = require('../utility/metrics');
+const { habitCompletion, scheduledOccurrences, percentagePointTrend } = require('../utility/metrics');
 const { validateHabitCreation, handleValidationResponse } = require('../utility/premiumEnforcement');
 const UserPreferences = require('../models/extended/UserPreferences');
 
@@ -955,6 +955,21 @@ exports.getHabitAnalytics = async (req, res, next) => {
 
     const periodCompletion = habitCompletion({ expected: totalExpectedDays, done: completions, skipped: skips });
     const consistency = periodCompletion.percentage;
+    const periodLength = Math.max(1, Math.round((new Date(`${endDateKey}T12:00:00Z`) - new Date(`${startDateKey}T12:00:00Z`)) / 86400000) + 1);
+    const previousEnd = new Date(`${startDateKey}T12:00:00Z`);
+    previousEnd.setUTCDate(previousEnd.getUTCDate() - 1);
+    const previousStart = new Date(previousEnd);
+    previousStart.setUTCDate(previousStart.getUTCDate() - (periodLength - 1));
+    const previousStartKey = previousStart.toISOString().slice(0, 10);
+    const previousEndKey = previousEnd.toISOString().slice(0, 10);
+    const previousResult = await query(
+      `SELECT status, COUNT(*) AS count FROM habit_logs WHERE habit_id = $1 AND user_id = $2 AND date_key >= $3 AND date_key <= $4 GROUP BY status`,
+      [habitId, userId, previousStartKey, previousEndKey]
+    );
+    const previousCounts = previousResult.rows.reduce((counts, row) => ({ ...counts, [row.status]: parseInt(row.count, 10) || 0 }), {});
+    const previousExpected = scheduledOccurrences(sanitizedHabit, previousStartKey, previousEndKey);
+    const previousCompletion = habitCompletion({ expected: previousExpected, done: previousCounts.done, skipped: previousCounts.skipped });
+    const trendPoints = previousExpected > 0 ? percentagePointTrend(consistency, previousCompletion.percentage) : null;
 
     // Format response to match previous MongoDB implementation
     const analytics = {
@@ -972,6 +987,8 @@ exports.getHabitAnalytics = async (req, res, next) => {
       },
       stats,
       consistency,
+      trendPoints,
+      followThroughRate: periodCompletion.followThroughRate,
       statusCounts: {
         done: periodCompletion.done,
         missed: periodCompletion.missed,

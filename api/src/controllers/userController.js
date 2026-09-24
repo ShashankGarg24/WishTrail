@@ -118,7 +118,7 @@ const getUser = async (req, res, next) => {
 const getDashboardStats = async (req, res, next) => {
   try {
     const today = req.query.today; // YYYY-MM-DD in user's local timezone (optional)
-    const stats = await userService.getDashboardStats(req.user.id, today);
+    const stats = await userService.getDashboardStats(req.user.id, today, req.query.year);
 
     res.status(200).json({
       success: true,
@@ -653,6 +653,7 @@ const getAnalytics = async (req, res, next) => {
         missed: habitAnalytics.totals?.missed || 0,
         expected: habitAnalytics.totals?.expected || 0,
         consistency: habitAnalytics.totals?.percentage || 0,
+        followThroughRate: habitAnalytics.totals?.followThroughRate || 0,
         activeDays: periodActivity.activeDays,
         periodDays: periodActivity.periodDays,
         trendPoints: periodActivity.trendPoints
@@ -735,6 +736,7 @@ const getUserAnalytics = async (req, res, next) => {
         missed: habitAnalytics.totals?.missed || 0,
         expected: habitAnalytics.totals?.expected || 0,
         consistency: habitAnalytics.totals?.percentage || 0,
+        followThroughRate: habitAnalytics.totals?.followThroughRate || 0,
         activeDays: periodActivity.activeDays,
         periodDays: periodActivity.periodDays,
         trendPoints: periodActivity.trendPoints

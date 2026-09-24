@@ -435,10 +435,10 @@ const GoalAnalyticsPage = () => {
               <div className="p-1.5 sm:p-2 rounded-lg" style={{ background: THEME_COLOR }}>
                 <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
               </div>
-              <span className="text-xs sm:text-sm font-medium" style={{ color: THEME_COLOR }}>Active Days</span>
+              <span className="text-xs sm:text-sm font-medium" style={{ color: THEME_COLOR }}>Days Since Creation</span>
             </div>
             <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white">{analytics?.daysSinceCreation || 0}</p>
-            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">days this month</p>
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">days on this goal</p>
           </motion.div>
 
           <motion.div
@@ -452,7 +452,7 @@ const GoalAnalyticsPage = () => {
               <div className="p-1.5 sm:p-2 rounded-lg" style={{ background: THEME_COLOR }}>
                 <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
               </div>
-              <span className="text-xs sm:text-sm font-medium" style={{ color: THEME_COLOR }}>Completion Rate</span>
+              <span className="text-xs sm:text-sm font-medium" style={{ color: THEME_COLOR }}>Deadline</span>
             </div>
             <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white">{analytics?.daysUntilDeadline !== null 
                 ? analytics.daysUntilDeadline >= 0 

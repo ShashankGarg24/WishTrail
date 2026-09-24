@@ -1202,9 +1202,9 @@ const ProfilePage = () => {
                             {l7.trendPoints === null || l7.trendPoints === undefined ? (
                               <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-2">No previous-period comparison</p>
                             ) : (
-                              <p className={`text-[10px] sm:text-xs mt-2 ${l7.trendPoints > 0 ? 'text-green-600 dark:text-green-400' : l7.trendPoints < 0 ? 'text-amber-600 dark:text-amber-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                              <button type="button" onClick={() => setMetricInfo({ title: 'Consistency Trend', description: 'How your habit completion rate changed compared with the previous seven days.', note: 'The change is shown in percentage points.' })} className={`text-[10px] sm:text-xs mt-2 ${l7.trendPoints > 0 ? 'text-green-600 dark:text-green-400' : l7.trendPoints < 0 ? 'text-amber-600 dark:text-amber-400' : 'text-gray-500 dark:text-gray-400'}`}>
                                 {l7.trendPoints > 0 ? '↑' : l7.trendPoints < 0 ? '↓' : '→'} {Math.abs(l7.trendPoints)} pts vs previous 7 days
-                              </p>
+                              </button>
                             )}
                           </div>
                           <div className="flex gap-2 sm:gap-3 w-full">

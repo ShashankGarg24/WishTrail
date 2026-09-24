@@ -92,7 +92,7 @@ const DashboardPageNew = () => {
     const fetchDashboardData = async () => {
       try {
         await Promise.all([
-          getDashboardStats(),
+          getDashboardStats({ year: selectedYear }),
           getGoals({ year: selectedYear, page: 1, limit: 1000 }),
           loadHabits({ page: 1 })
         ])
@@ -165,7 +165,7 @@ const DashboardPageNew = () => {
       useApiStore.getState().appendHabit?.(habit)
     }
     loadHabits({ page: 1 })
-    getDashboardStats({ force: true })
+    getDashboardStats({ force: true, year: selectedYear })
   }
 
   const handleHabitLog = async (status, mood = 'neutral') => {
@@ -191,7 +191,7 @@ const DashboardPageNew = () => {
         )
         // Refresh dashboard stats and habits so UI reflects skip/done immediately
         await Promise.all([
-          getDashboardStats({ force: true }),
+          getDashboardStats({ force: true, year: selectedYear }),
           loadHabits({ page: 1, force: true })
         ])
         window.dispatchEvent(new CustomEvent('wt_toast', { detail: { message: status === 'done' ? 'Habit logged!' : 'Habit skipped', type: 'success' } }))
@@ -228,13 +228,6 @@ const DashboardPageNew = () => {
     setSearchParams({ tab })
     setActiveTab(tab)
   }
-
-  // Calculate yearly progress
-  const yearlyProgress = useMemo(() => {
-    if (!goals || goals.length === 0) return 0
-    const completedGoals = goals.filter(g => g?.completedAt).length
-    return Math.round((completedGoals / goals.length) * 100)
-  }, [goals])
 
   // Filter and sort data
   const filteredGoals = useMemo(() => {
@@ -344,16 +337,15 @@ const DashboardPageNew = () => {
             <button type="button" onClick={() => setMetricInfo(activeTab === 'goals' ? { title: 'Goal Completion', description: 'This tells you how many of your selected-year goals are finished.' } : { title: '7-Day Consistency', description: 'This shows how often you completed habit occurrences that were scheduled in the last seven days.', note: 'Days a habit is not scheduled do not count against you.' })} className="flex items-center gap-3 sm:gap-4 lg:gap-5 bg-white dark:bg-gray-800 rounded-xl px-4 sm:px-6 lg:px-8 py-4 sm:py-5 shadow-sm border border-gray-100 dark:border-gray-700 w-full lg:w-auto text-left hover:border-blue-300 dark:hover:border-blue-700 transition-colors">
               <div className="text-left flex-1">
                 <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 font-manrope uppercase tracking-wide mb-2">
-                  {activeTab === 'goals' ? 'Goal Completion' : '7-Day Consistency'}
+                  {activeTab === 'goals' ? 'Goal Progress' : '7-Day Consistency'}
                 </div>
                 <div className="text-sm sm:text-base font-manrope font-medium">
                   {activeTab === 'goals' 
-                    ? <span className="text-gray-600 dark:text-gray-300">{`${goals?.filter(g => g?.completedAt).length || 0} / ${goals?.length || 0} completed`}</span>
+                    ? <span className="text-gray-600 dark:text-gray-300">Progress across your selected-year goals</span>
                     : (() => {
-                        const m = dashboardStats?.weekMomentum ?? 0
-                        if (m >= 70) return <span className="text-green-500 dark:text-green-400">Strong</span>
-                        if (m >= 40) return <span className="text-yellow-500 dark:text-yellow-400">Moderate</span>
-                        return <span className="text-red-500 dark:text-red-400">Dropping</span>
+                        const trend = dashboardStats?.consistencyTrendPoints
+                        if (trend === null || trend === undefined) return <span className="text-gray-500 dark:text-gray-400">No previous-period comparison</span>
+                        return <span className={trend > 0 ? 'text-green-500 dark:text-green-400' : trend < 0 ? 'text-amber-600 dark:text-amber-400' : 'text-gray-500 dark:text-gray-400'}>{trend > 0 ? '↑' : trend < 0 ? '↓' : '→'} {Math.abs(trend)} pts vs previous 7 days</span>
                       })()
                   }
                 </div>
@@ -377,7 +369,7 @@ const DashboardPageNew = () => {
                     strokeWidth="6"
                     fill="transparent"
                     strokeDasharray={`${2 * Math.PI * 38}`}
-                    strokeDashoffset={`${2 * Math.PI * 38 * (1 - (activeTab === 'goals' ? yearlyProgress : (dashboardStats?.weekConsistency ?? dashboardStats?.weekMomentum ?? 0)) / 100)}`}
+                    strokeDashoffset={`${2 * Math.PI * 38 * (1 - (activeTab === 'goals' ? (dashboardStats?.goalProgress ?? 0) : (dashboardStats?.weekConsistency ?? dashboardStats?.weekMomentum ?? 0)) / 100)}`}
                     className="transition-all duration-1000 ease-out"
                     strokeLinecap="round"
                     transform="rotate(-90 48 48)"
@@ -385,7 +377,7 @@ const DashboardPageNew = () => {
                 </svg>
                 <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
                   <span className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white font-manrope">
-                    {activeTab === 'goals' ? yearlyProgress : (dashboardStats?.weekConsistency ?? dashboardStats?.weekMomentum ?? 0)}%
+                    {activeTab === 'goals' ? (dashboardStats?.goalProgress ?? 0) : (dashboardStats?.weekConsistency ?? dashboardStats?.weekMomentum ?? 0)}%
                   </span>
                 </div>
               </div>
@@ -547,10 +539,10 @@ const DashboardPageNew = () => {
                   </div>
                 </div>
                 <div className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1 font-manrope">
-                  {dashboardStats?.completedGoals || 0}
+                  {(dashboardStats?.completedGoals || 0) + ' / ' + (dashboardStats?.totalGoals || 0)}
                 </div>
                 <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 font-manrope uppercase tracking-wide">
-                  Completed
+                  Completed Goals
                 </div>
               </button>
 
@@ -614,6 +606,11 @@ const DashboardPageNew = () => {
                 <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 font-manrope uppercase tracking-wide">
                   Today's Habit Progress
                 </div>
+              </button>
+              <button type="button" onClick={() => setMetricInfo({ title: 'Active Days', description: 'Days in the last seven days when you completed at least one meaningful goal, sub-goal, or habit action.' })} className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-5 shadow-sm border border-gray-100 dark:border-gray-700 text-left hover:border-blue-300 dark:hover:border-blue-700 transition-colors">
+                <div className="flex items-center justify-between mb-3"><div className="p-2 bg-gray-50 dark:bg-gray-700 rounded-lg"><Calendar className="w-5 h-5 text-[#4c99e6]" /></div></div>
+                <div className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1 font-manrope">{(dashboardStats?.activeDays ?? 0) + ' / ' + (dashboardStats?.activeDaysPeriod ?? 7)}</div>
+                <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 font-manrope uppercase tracking-wide">Active Days</div>
               </button>
 
             </>
@@ -1123,7 +1120,7 @@ const DashboardPageNew = () => {
               if (!res?.success) return
               await Promise.all([
                 loadHabits({ page: 1, force: true }),
-                getDashboardStats({ force: true })
+                getDashboardStats({ force: true, year: selectedYear })
               ])
               setIsEditHabitOpen(false)
               setSelectedHabit(null)
@@ -1171,7 +1168,7 @@ const DashboardPageNew = () => {
                   setHabitDependencies([])
                   if (selectedHabit?.id === habitToDelete.id) setSelectedHabit(null)
                   loadHabits({ page: 1 })
-                  getDashboardStats({ force: true })
+                  getDashboardStats({ force: true, year: selectedYear })
                 }
               } finally {
                 setIsDeletingHabit(false)
@@ -1242,7 +1239,7 @@ const DashboardPageNew = () => {
             onSaved={async () => {
               await Promise.all([
                 getGoals({ year: selectedYear, page: currentPage }, { force: true }),
-                getDashboardStats({ force: true })
+                getDashboardStats({ force: true, year: selectedYear })
               ])
             }}
             year={goalToEdit.year}
@@ -1274,7 +1271,7 @@ const DashboardPageNew = () => {
                 if (result?.success) {
                   await Promise.all([
                     getGoals({ year: selectedYear, page: currentPage, force: true }),
-                    getDashboardStats({ force: true })
+                    getDashboardStats({ force: true, year: selectedYear })
                   ])
                   setIsEditCompletionModalOpen(false)
                   setGoalToEdit(null)

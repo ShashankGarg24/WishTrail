@@ -32,7 +32,11 @@ function habitCompletion({ expected = 0, done = 0, skipped = 0, missed } = {}) {
   const safeDone = Math.min(safeExpected, Math.max(0, Number(done) || 0));
   const safeSkipped = Math.min(safeExpected - safeDone, Math.max(0, Number(skipped) || 0));
   const safeMissed = missed === undefined ? Math.max(0, safeExpected - safeDone - safeSkipped) : Math.min(safeExpected - safeDone - safeSkipped, Math.max(0, Number(missed) || 0));
-  return { expected: safeExpected, done: safeDone, skipped: safeSkipped, missed: safeMissed, percentage: percentage(safeDone, safeExpected) };
+  const followThroughDenominator = safeExpected - safeSkipped;
+  const followThroughRate = followThroughDenominator > 0
+    ? Math.max(0, Math.min(100, Math.round((safeDone / followThroughDenominator) * 1000) / 10))
+    : 0;
+  return { expected: safeExpected, done: safeDone, skipped: safeSkipped, missed: safeMissed, percentage: percentage(safeDone, safeExpected), followThroughRate };
 }
 
 function activeDays(dateKeys = [], endDateKey) {

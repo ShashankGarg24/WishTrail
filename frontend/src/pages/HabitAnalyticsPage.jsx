@@ -166,7 +166,7 @@ export default function HabitAnalyticsPage() {
     );
   }
 
-  const { habit, stats, consistency, statusCounts, timeline, weeklyData, rangeStart, rangeEnd } = analytics;
+  const { habit, stats, consistency, statusCounts, timeline, weeklyData, rangeStart, rangeEnd, trendPoints, followThroughRate } = analytics;
 
   const formatShortDate = (dateKey) => {
     if (!dateKey || typeof dateKey !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) return '';
@@ -808,7 +808,20 @@ export default function HabitAnalyticsPage() {
               <button type="button" onClick={() => setMetricInfo({ title: 'Completion Rate', description: 'How often you completed this habit when it was scheduled during the selected period.', note: 'Skipped and missed scheduled occurrences are included. Unscheduled days are not.' })} className="text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide hover:text-[#4c99e6]">Completion Rate</button>
             </div>
             <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{completionRate}%</p>
-            <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-1">avg. consistency</p>
+            {trendPoints === null || trendPoints === undefined ? (
+              <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-1">No previous-period comparison</p>
+            ) : (
+              <p className={`text-[10px] sm:text-xs mt-1 ${trendPoints > 0 ? 'text-green-600 dark:text-green-400' : trendPoints < 0 ? 'text-amber-600 dark:text-amber-400' : 'text-gray-500 dark:text-gray-400'}`}>{trendPoints > 0 ? '↑' : trendPoints < 0 ? '↓' : '→'} {Math.abs(trendPoints)} pts vs previous period</p>
+            )}
+          </motion.div>
+
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 shadow-sm border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="p-1 sm:p-1.5 rounded-lg text-white" style={{ backgroundColor: THEME_COLOR }}><SkipForward className="w-3.5 h-3.5 sm:w-4 sm:h-4" /></div>
+              <button type="button" onClick={() => setMetricInfo({ title: 'Follow-through Rate', description: 'How often you completed this habit after excluding occurrences you deliberately skipped.', note: 'This is a secondary metric. Completion Rate remains the clearest view of all scheduled occurrences.' })} className="text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide hover:text-[#4c99e6]">Follow-through Rate</button>
+            </div>
+            <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{followThroughRate ?? 0}%</p>
+            <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-1">excluding intentional skips</p>
           </motion.div>
 
           <motion.div

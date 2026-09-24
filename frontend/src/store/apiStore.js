@@ -607,13 +607,13 @@ const useApiStore = create(
           // Cached
           const ttl = get().cacheTTLs.dashboardStats;
           const cached = get().cacheDashboardStats;
-          if (!force && cached && get()._isFresh(cached.ts, ttl)) {
+          if (!force && cached && cached.data?.selectedYear === opts.year && get()._isFresh(cached.ts, ttl)) {
             const stats = cached.data;
             set({ dashboardStats: stats });
             return { success: true, stats };
           }
           set({ loading: true, error: null });
-          const response = await usersAPI.getDashboardStats({ today: getCurrentDateKey() });
+          const response = await usersAPI.getDashboardStats({ today: getCurrentDateKey(), year: opts.year });
           const stats = response.data.data; // Stats is now directly in data, not nested
           set({ dashboardStats: stats, loading: false });
           set({ cacheDashboardStats: { data: stats, ts: Date.now() } });
@@ -2069,4 +2069,4 @@ const useApiStore = create(
   )
 );
 
-export default useApiStore; 
+export default useApiStore;
