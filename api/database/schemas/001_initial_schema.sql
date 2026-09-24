@@ -212,7 +212,9 @@ CREATE TABLE IF NOT EXISTS habit_logs (
   id BIGSERIAL PRIMARY KEY,
   user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   habit_id BIGINT NOT NULL REFERENCES habits(id) ON DELETE CASCADE,
-  date_key DATE NOT NULL, -- YYYY-MM-DD for daily tracking
+  date_key DATE NOT NULL, -- Derived local calendar day; occurred_at is canonical UTC time
+  occurred_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  legacy_date_key DATE,
   status VARCHAR(20) DEFAULT 'done' CHECK (status IN ('done', 'missed', 'skipped')),
   value NUMERIC DEFAULT 1, -- Actual value (reps, minutes, etc.)
   note VARCHAR(400) DEFAULT '',
@@ -230,6 +232,8 @@ CREATE TABLE IF NOT EXISTS habit_logs (
 CREATE INDEX idx_habit_logs_user_id ON habit_logs(user_id);
 CREATE INDEX idx_habit_logs_habit_id ON habit_logs(habit_id);
 CREATE INDEX idx_habit_logs_date_key ON habit_logs(date_key DESC);
+CREATE INDEX idx_habit_logs_user_occurred_at ON habit_logs(user_id, occurred_at DESC);
+CREATE INDEX idx_habit_logs_habit_occurred_at ON habit_logs(habit_id, occurred_at DESC);
 CREATE INDEX idx_habit_logs_habit_date ON habit_logs(habit_id, date_key DESC);
 CREATE INDEX idx_habit_logs_user_date ON habit_logs(user_id, date_key DESC);
 CREATE INDEX idx_habit_logs_status ON habit_logs(status);

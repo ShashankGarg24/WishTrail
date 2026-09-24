@@ -88,7 +88,13 @@ export default function HabitDetailModal({ habit, isOpen, onClose, onLog, onEdit
   if (!isOpen || !habit) return null;
   
   const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  const habitTimezone = habit.timezone || getUserTimezone();
+  // Completion date keys are tied to the account's calendar day. A habit may
+  // have a separate timezone for reminders/scheduling, but it must not change
+  // which completed logs belong to the user's "today".
+  const accountTimezone = getUserTimezone();
+  const habitTimezone = habit.timezone && habit.timezone !== 'UTC'
+    ? habit.timezone
+    : accountTimezone;
   const schedule = habit.frequency === 'daily' ? 'Daily habit' : (habit.daysOfWeek || []).sort().map(d => days[d]).join(', ') || 'Custom';
   const isScheduledToday = (() => {
     if (!habit) return false;
@@ -99,7 +105,7 @@ export default function HabitDetailModal({ habit, isOpen, onClose, onLog, onEdit
   })();
 
   const getTodayDateKey = () => {
-    return getCurrentDateKey(habitTimezone);
+    return getCurrentDateKey(accountTimezone);
   };
 
   const toTimeValue = (timestamp) => {
