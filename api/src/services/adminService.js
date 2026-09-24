@@ -398,11 +398,28 @@ const resolveEmailRecipients = async ({ mode, userIds, inactiveDays }) => {
   return res.rows;
 };
 
-const sendBroadcastEmail = async ({ mode, userIds, inactiveDays, subject, title, subtitle, body, ending }) => {
+const normalizeWishTrailUrl = (value) => {
+  const raw = sanitizePlainText(value);
+  if (!raw) return null;
+  const baseUrl = process.env.FRONTEND_URL || 'https://wishtrail.in';
+  let url;
+  try {
+    url = new URL(raw, baseUrl);
+    const trustedHost = new URL(baseUrl).hostname;
+    if (!['wishtrail.in', 'www.wishtrail.in', trustedHost].includes(url.hostname)) return null;
+  } catch {
+    return null;
+  }
+  return url.toString();
+};
+
+const sendBroadcastEmail = async ({ mode, userIds, inactiveDays, subject, title, subtitle, body, ending, ctaLabel, ctaUrl }) => {
   const cleanSubject = sanitizePlainText(subject).slice(0, 180);
   const cleanTitle = sanitizePlainText(title).slice(0, 180);
   const cleanSubtitle = sanitizePlainText(subtitle).slice(0, 220);
   const cleanBody = sanitizePlainText(body).slice(0, 5000);
+  const cleanCtaLabel = sanitizePlainText(ctaLabel || 'Open WishTrail').slice(0, 80) || 'Open WishTrail';
+  const cleanCtaUrl = normalizeWishTrailUrl(ctaUrl) || null;
 
   if (!cleanSubject || !cleanTitle || !cleanBody) {
     throw new Error('Subject, title and body are required');
@@ -427,7 +444,9 @@ const sendBroadcastEmail = async ({ mode, userIds, inactiveDays, subject, title,
           recipientName: user.name,
           title: cleanTitle,
           subtitle: cleanSubtitle,
-          body: cleanBody
+          body: cleanBody,
+          ctaLabel: cleanCtaLabel,
+          ctaUrl: cleanCtaUrl
         }
       })
     )

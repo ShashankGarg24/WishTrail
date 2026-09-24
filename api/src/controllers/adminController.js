@@ -110,7 +110,7 @@ module.exports = {
 
   async sendEmail(req, res, next) {
     try {
-      const { mode, userIds, inactiveDays, subject, title, subtitle, body, ending } = req.body || {};
+      const { mode, userIds, inactiveDays, subject, title, subtitle, body, ending, ctaLabel, ctaUrl } = req.body || {};
       const result = await adminService.sendBroadcastEmail({
         mode,
         userIds,
@@ -119,7 +119,9 @@ module.exports = {
         title,
         subtitle,
         body,
-        ending
+        ending,
+        ctaLabel,
+        ctaUrl
       });
 
       return res.status(200).json({
@@ -128,7 +130,7 @@ module.exports = {
         data: result
       });
     } catch (error) {
-      if (error.message === 'Subject, title, body and ending are required') {
+      if (error.message === 'Subject, title and body are required') {
         return res.status(400).json({ success: false, message: error.message });
       }
       return next(error);

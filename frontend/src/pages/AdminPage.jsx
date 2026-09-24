@@ -128,7 +128,10 @@ function AdminPage() {
     title: '',
     subtitle: '',
     body: '',
-    ending: ''
+    ending: '',
+    linkedReleaseVersion: '',
+    ctaLabel: 'Open WishTrail',
+    ctaUrl: 'https://wishtrail.in/dashboard'
   });
   const [emailLoading, setEmailLoading] = useState(false);
   const [emailError, setEmailError] = useState('');
@@ -259,7 +262,7 @@ function AdminPage() {
   }, [habitsQuery.page, habitsQuery.limit, habitsQuery.status]);
 
   useEffect(() => {
-    if (token && activeTab === 'Release Notes') loadReleaseNotes();
+    if (token && (activeTab === 'Release Notes' || activeTab === 'Email')) loadReleaseNotes();
   }, [token, activeTab]);
 
   const toggleSelectUser = (id) => {
@@ -277,7 +280,10 @@ function AdminPage() {
       title: preset.title,
       subtitle: preset.subtitle,
       body: preset.body,
-      ending: preset.ending
+      ending: preset.ending,
+      linkedReleaseVersion: '',
+      ctaLabel: 'Open WishTrail',
+      ctaUrl: 'https://wishtrail.in/dashboard'
     }));
   };
 
@@ -295,7 +301,9 @@ function AdminPage() {
         title: emailForm.title,
         subtitle: emailForm.subtitle,
         body: emailForm.body,
-        ending: emailForm.ending
+        ending: emailForm.ending,
+        ctaLabel: emailForm.ctaLabel,
+        ctaUrl: emailForm.ctaUrl
       };
 
       const res = await adminAPI.sendEmail(payload);
@@ -343,6 +351,20 @@ function AdminPage() {
       resetReleaseNoteForm();
       await loadReleaseNotes();
     } catch (error) {
+      if (error?.response?.status === 409) {
+        try {
+          const res = await adminAPI.getProductUpdates({ page: 1, limit: 100 });
+          const existing = (res?.data?.data?.updates || []).find((update) => update.version === releaseNoteForm.version.trim());
+          if (existing) {
+            setReleaseNotesData(res.data.data);
+            editReleaseNote(existing);
+            setReleaseNotesSuccess(`Version ${existing.version} already exists, so it has been opened for editing.`);
+            return;
+          }
+        } catch {
+          // Preserve the original API error below if refresh also fails.
+        }
+      }
       setReleaseNotesError(error?.response?.data?.message || 'Failed to save release note');
     } finally {
       setReleaseNotesSaving(false);
@@ -360,6 +382,22 @@ function AdminPage() {
     } catch (error) {
       setReleaseNotesError(error?.response?.data?.message || 'Failed to delete release note');
     }
+  };
+
+  const linkReleaseToEmail = (version) => {
+    const update = releaseNotesData.updates.find((item) => item.version === version);
+    if (!update) return;
+    setEmailForm((prev) => ({
+      ...prev,
+      preset: 'featureRelease',
+      linkedReleaseVersion: update.version,
+      subject: `New in WishTrail: ${update.title}`,
+      title: update.title,
+      subtitle: `Version ${update.version} is now available.`,
+      body: update.description,
+      ctaLabel: 'View release notes',
+      ctaUrl: 'https://wishtrail.in/whats-new'
+    }));
   };
 
   if (!token) {
@@ -669,98 +707,40 @@ function AdminPage() {
         )}
 
         {activeTab === 'Email' && (
-          <SectionCard title="Email">
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">Audience</label>
-                <select
-                  value={emailForm.mode}
-                  onChange={(e) => setEmailForm((prev) => ({ ...prev, mode: e.target.value }))}
-                  className="w-full sm:w-80 border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-900"
-                >
-                  <option value="selected">Selected users</option>
-                  <option value="all">All users</option>
-                  <option value="inactive">Inactive users</option>
-                </select>
-              </div>
-
-              {emailForm.mode === 'inactive' && (
-                <div>
-                  <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">Inactive more than (days)</label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={emailForm.inactiveDays}
-                    onChange={(e) => setEmailForm((prev) => ({ ...prev, inactiveDays: e.target.value }))}
-                    className="w-full sm:w-80 border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-900"
-                  />
+          <SectionCard title="Email Composer">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div><label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">Audience</label><select value={emailForm.mode} onChange={(e) => setEmailForm((prev) => ({ ...prev, mode: e.target.value }))} className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-900"><option value="selected">Selected users</option><option value="all">All users</option><option value="inactive">Inactive users</option></select></div>
+                  <div><label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">Writing preset</label><select value={emailForm.preset} onChange={(e) => applyEmailPreset(e.target.value)} className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-900"><option value="custom">Custom</option><option value="inactivity">Inactivity</option><option value="noGoals">Users With No Goals</option><option value="comeback">Comebacks</option><option value="featureRelease">Feature Release</option><option value="motivation">Motivation</option><option value="feedback">Feedback</option></select></div>
                 </div>
-              )}
 
-              <div>
-                <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">Preset</label>
-                <select
-                  value={emailForm.preset}
-                  onChange={(e) => applyEmailPreset(e.target.value)}
-                  className="w-full sm:w-80 border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-900"
-                >
-                  <option value="custom">Custom</option>
-                  <option value="inactivity">Inactivity</option>
-                  <option value="noGoals">Users With No Goals</option>
-                  <option value="comeback">Comebacks</option>
-                  <option value="featureRelease">Feature Releases</option>
-                  <option value="motivation">Motivation Quotes</option>
-                  <option value="feedback">Feedbacks</option>
-                </select>
+                {emailForm.mode === 'inactive' && <div><label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">Inactive more than (days)</label><input type="number" min="1" value={emailForm.inactiveDays} onChange={(e) => setEmailForm((prev) => ({ ...prev, inactiveDays: e.target.value }))} className="w-full sm:w-80 border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-900" /></div>}
+
+                <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-4 dark:border-blue-900/50 dark:bg-blue-950/20">
+                  <label className="block text-sm font-medium text-gray-800 dark:text-gray-100 mb-1">Link a published release note</label>
+                  <select value={emailForm.linkedReleaseVersion} onChange={(e) => linkReleaseToEmail(e.target.value)} className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-900"><option value="">No linked release</option>{releaseNotesData.updates.map((update) => <option key={update.id || update.version} value={update.version}>v{update.version} — {update.title}</option>)}</select>
+                  <p className="mt-2 text-xs text-gray-500">Choosing one fills the email with the release title and note, and links recipients to What’s New.</p>
+                </div>
+
+                <div><label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">Subject line</label><input value={emailForm.subject} onChange={(e) => setEmailForm((prev) => ({ ...prev, subject: e.target.value, preset: 'custom' }))} className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-900" /></div>
+                <div><label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">Email heading</label><input value={emailForm.title} onChange={(e) => setEmailForm((prev) => ({ ...prev, title: e.target.value, preset: 'custom' }))} className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-900" /></div>
+                <div><label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">Supporting line <span className="text-gray-400">(optional)</span></label><input value={emailForm.subtitle} onChange={(e) => setEmailForm((prev) => ({ ...prev, subtitle: e.target.value, preset: 'custom' }))} className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-900" /></div>
+                <div><label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">Message</label><textarea rows={9} value={emailForm.body} onChange={(e) => setEmailForm((prev) => ({ ...prev, body: e.target.value, preset: 'custom' }))} className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 leading-6 bg-white dark:bg-gray-900" /></div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3"><div><label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">Button label</label><input value={emailForm.ctaLabel} onChange={(e) => setEmailForm((prev) => ({ ...prev, ctaLabel: e.target.value }))} className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-900" /></div><div><label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">WishTrail link</label><input value={emailForm.ctaUrl} onChange={(e) => setEmailForm((prev) => ({ ...prev, ctaUrl: e.target.value }))} placeholder="https://wishtrail.in/whats-new" className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-900" /></div></div>
+                <p className="text-xs text-gray-500">For safety, the email only accepts WishTrail links.</p>
+                <div className="flex flex-wrap items-center gap-3"><button onClick={sendEmail} disabled={!canSendEmail || emailLoading} className="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50">{emailLoading ? 'Sending…' : 'Send Email'}</button>{emailError ? <p className="text-sm text-red-600">{emailError}</p> : null}{emailSuccess ? <p className="text-sm text-green-600">{emailSuccess}</p> : null}</div>
               </div>
 
-              <div>
-                <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">Subject</label>
-                <input
-                  value={emailForm.subject}
-                  onChange={(e) => setEmailForm((prev) => ({ ...prev, subject: e.target.value, preset: 'custom' }))}
-                  className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-900"
-                />
+              <div className="rounded-xl border border-gray-200 bg-gray-100 p-4 dark:border-gray-700 dark:bg-gray-900/50">
+                <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-[#4c99e6]">Live email preview</p>
+                <div className="mx-auto max-w-[600px] overflow-hidden rounded-xl bg-white shadow-lg dark:bg-white">
+                  <div className="bg-gradient-to-br from-[#667eea] to-[#764ba2] px-6 py-7 text-center text-white"><p className="text-xl font-bold">WishTrail</p><h3 className="mt-4 text-2xl font-bold">{emailForm.title || 'Your email heading'}</h3>{emailForm.subtitle && <p className="mt-2 text-sm text-white/90">{emailForm.subtitle}</p>}</div>
+                  <div className="p-6 text-gray-800"><h4 className="text-lg font-semibold">{emailForm.subject || 'Your subject line'}</h4><div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm leading-6"><p>Hi Alex,</p><p className="mt-3 whitespace-pre-line">{emailForm.body || 'Your message will appear here.'}</p></div><div className="py-5 text-center"><span className="inline-block rounded-md bg-[#667eea] px-5 py-3 text-sm font-bold text-white">{emailForm.ctaLabel || 'Open WishTrail'}</span></div></div>
+                  <div className="border-t border-gray-100 px-6 py-4 text-center text-xs text-gray-500">© 2026 WishTrail. All rights reserved.<br />Dreams. Goals. Progress.</div>
+                </div>
+                <p className="mt-3 break-all text-xs text-gray-500">Button destination: {emailForm.ctaUrl || 'https://wishtrail.in/dashboard'}</p>
               </div>
-
-              <div>
-                <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">Title</label>
-                <input
-                  value={emailForm.title}
-                  onChange={(e) => setEmailForm((prev) => ({ ...prev, title: e.target.value, preset: 'custom' }))}
-                  className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-900"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">Subtitle</label>
-                <input
-                  value={emailForm.subtitle}
-                  onChange={(e) => setEmailForm((prev) => ({ ...prev, subtitle: e.target.value, preset: 'custom' }))}
-                  className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-900"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">Body</label>
-                <textarea
-                  rows={8}
-                  value={emailForm.body}
-                  onChange={(e) => setEmailForm((prev) => ({ ...prev, body: e.target.value, preset: 'custom' }))}
-                  className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-900"
-                />
-              </div>
-
-              <button
-                onClick={sendEmail}
-                disabled={!canSendEmail || emailLoading}
-                className="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50"
-              >
-                {emailLoading ? 'Sending...' : 'Send Email'}
-              </button>
-
-              {emailError ? <p className="text-sm text-red-600">{emailError}</p> : null}
-              {emailSuccess ? <p className="text-sm text-green-600">{emailSuccess}</p> : null}
             </div>
           </SectionCard>
         )}

@@ -602,13 +602,17 @@ class EmailService {
     const subtitle = text?.subtitle || '';
     const body = text?.body || text?.message || text || '';
     const recipientName = text?.recipientName || 'there';
+    const ctaLabel = text?.ctaLabel || 'Open WishTrail';
+    const ctaUrl = text?.ctaUrl || null;
 
     const campaignHtml = this.getAdminCampaignTemplate({
       recipientName,
       subject,
       title,
       subtitle,
-      body
+      body,
+      ctaLabel,
+      ctaUrl
     });
 
     const campaignText = this.getAdminCampaignText({
@@ -616,7 +620,9 @@ class EmailService {
       subject,
       title,
       subtitle,
-      body
+      body,
+      ctaLabel,
+      ctaUrl
     });
 
     const mailOptions = {
@@ -634,7 +640,7 @@ class EmailService {
     };
   }
 
-  getAdminCampaignTemplate({ recipientName, subject, title, subtitle, body }) {
+  getAdminCampaignTemplate({ recipientName, subject, title, subtitle, body, ctaLabel, ctaUrl }) {
     const safeName = this.escapeHtml(String(recipientName || 'there'));
     const safeSubject = this.escapeHtml(String(subject || 'WishTrail Update'));
     const safeTitle = this.escapeHtml(String(title || safeSubject));
@@ -644,8 +650,9 @@ class EmailService {
     const safeBaseUrl = /^https?:\/\//i.test(baseFrontEndUrl)
       ? baseFrontEndUrl.replace(/\/+$/, '')
       : `https://${String(baseFrontEndUrl).replace(/\/+$/, '')}`;
-    const dashboardUrl = `${safeBaseUrl}/dashboard`;
-    const safeDashboardUrl = this.escapeHtml(dashboardUrl);
+    const destinationUrl = ctaUrl || `${safeBaseUrl}/dashboard`;
+    const safeDestinationUrl = this.escapeHtml(destinationUrl);
+    const safeCtaLabel = this.escapeHtml(String(ctaLabel || 'Open WishTrail'));
 
     return `
     <!DOCTYPE html>
@@ -725,7 +732,7 @@ class EmailService {
         ${safeBody}
         </div>
         <div style="text-align:center;">
-          <a href="${safeDashboardUrl}" class="cta-button" style="display:inline-block;background:#667eea;color:#ffffff !important;padding:12px 28px;text-decoration:none;border-radius:6px;font-weight:bold;margin:20px 0;">Open WishTrail</a>
+          <a href="${safeDestinationUrl}" class="cta-button" style="display:inline-block;background:#667eea;color:#ffffff !important;padding:12px 28px;text-decoration:none;border-radius:6px;font-weight:bold;margin:20px 0;">${safeCtaLabel}</a>
         </div>
       </div>
 
@@ -738,7 +745,7 @@ class EmailService {
     `;
   }
 
-  getAdminCampaignText({ recipientName, subject, title, subtitle, body }) {
+  getAdminCampaignText({ recipientName, subject, title, subtitle, body, ctaLabel, ctaUrl }) {
     const greeting = `Hi ${recipientName || 'there'},`;
     const safeTitle = String(title || subject || 'WishTrail Update').trim();
     const safeSubtitle = String(subtitle || '').trim();
@@ -747,9 +754,10 @@ class EmailService {
     const safeBaseUrl = /^https?:\/\//i.test(baseFrontEndUrl)
       ? baseFrontEndUrl.replace(/\/+$/, '')
       : `https://${String(baseFrontEndUrl).replace(/\/+$/, '')}`;
-    const dashboardUrl = `${safeBaseUrl}/dashboard`;
+    const destinationUrl = ctaUrl || `${safeBaseUrl}/dashboard`;
+    const linkLabel = String(ctaLabel || 'Open WishTrail').trim() || 'Open WishTrail';
 
-    return `${greeting}\n\n${safeTitle}${safeSubtitle ? `\n${safeSubtitle}` : ''}\n\n${safeBody}\n\nOpen WishTrail: ${dashboardUrl}\n\n- Team WishTrail`;
+    return `${greeting}\n\n${safeTitle}${safeSubtitle ? `\n${safeSubtitle}` : ''}\n\n${safeBody}\n\n${linkLabel}: ${destinationUrl}\n\n- Team WishTrail`;
   }
 
   escapeHtml(value = '') {
