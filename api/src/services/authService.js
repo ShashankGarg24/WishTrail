@@ -684,16 +684,11 @@ class AuthService {
 
     const normalizedDeviceType = deviceType === 'app' ? 'app' : 'web';
 
-    // Validate token against stored token (try declared device first, then fallback)
-    const primaryToken = await pgUserService.getRefreshToken(user.id, normalizedDeviceType);
-    const fallbackDeviceType = normalizedDeviceType === 'app' ? 'web' : 'app';
-    const fallbackToken = await pgUserService.getRefreshToken(user.id, fallbackDeviceType);
-
-    const tokenMatchesPrimary = primaryToken && primaryToken === refreshToken;
-    const tokenMatchesFallback = fallbackToken && fallbackToken === refreshToken;
-
-    if (!tokenMatchesPrimary && !tokenMatchesFallback) {
-      throw createHttpError('Invalid refresh token', 401, 'REFRESH_TOKEN_MISMATCH');
+    // There is exactly one active session per platform. A newer login replaces
+    // only its own platform's token, leaving an app and web session independent.
+    const activeToken = await pgUserService.getRefreshToken(user.id, normalizedDeviceType);
+    if (!activeToken || activeToken !== refreshToken) {
+      throw createHttpError('This session was replaced by a newer login. Please sign in again.', 401, 'REFRESH_TOKEN_SESSION_REPLACED');
     }
 
     // Keep refresh token stable to avoid race-condition logouts from concurrent refresh calls.
@@ -1133,4 +1128,4 @@ class AuthService {
   }
 }
 
-module.exports = new AuthService(); 
+module.exports = new AuthService();
