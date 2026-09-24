@@ -6,6 +6,7 @@ const { logger } = require('./../config/observability');
 
 const { query, getClient, transaction } = require('../config/supabase');
 const pgHabitService = require('./pgHabitService');
+const { getCurrentDateInTimezone } = require('../utility/timezone');
 
 class PgHabitLogService {
   /**
@@ -297,7 +298,11 @@ class PgHabitLogService {
       // completion that is being skipped, which leaves stale current/best
       // streaks. Exact aggregate queries also avoid decrementing a day twice.
       if (updates.status === 'skipped' || updates.status === 'missed') {
-        const todayDateKey = new Date().toISOString().split('T')[0];
+        // The caller supplies the user's local current date when available.
+        // Falling back to UTC keeps this service safe for older call sites.
+        const todayDateKey = /^\d{4}-\d{2}-\d{2}$/.test(updates.currentDateKey || '')
+          ? updates.currentDateKey
+          : new Date().toISOString().split('T')[0];
         const updatedDateKey = new Date(currentLog.date_key).toISOString().split('T')[0];
         const streakInfo = await pgHabitService.calculateStreak(
           currentLog.habit_id,
@@ -478,11 +483,9 @@ class PgHabitLogService {
       if (log.status === 'done') {
         // Calculate through this transaction so the just-deleted completion is
         // excluded from both the current and best streaks.
-        const streakInfo = await pgHabitService.calculateStreak(
-          log.habit_id,
-          new Date().toISOString().split('T')[0],
-          client
-        );
+        const userResult = await client.query('SELECT timezone FROM users WHERE id = $1', [log.user_id]);
+        const todayDateKey = getCurrentDateInTimezone(userResult.rows[0]?.timezone || 'UTC');
+        const streakInfo = await pgHabitService.calculateStreak(log.habit_id, todayDateKey, client);
 
         await client.query(`
           UPDATE habits

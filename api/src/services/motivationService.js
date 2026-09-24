@@ -3,6 +3,7 @@ const UserPreferences = require('../models/extended/UserPreferences');
 const pgUserService = require('./pgUserService');
 const redis = require('../config/redis');
 const axios = require('axios');
+const { getCurrentDateInTimezone } = require('../utility/timezone');
 
 function nowInTimezoneHHmmAndWeekday(timezone) {
   try {
@@ -89,8 +90,8 @@ async function sendMorningQuotes(windowMinutes = 30) {
     
     // Idempotency: one per day per user
     try {
-      const dayKey = new Date(); dayKey.setHours(0,0,0,0);
-      const sentKey = `motivation:sent:${dayKey.toISOString().slice(0,10)}:${String(u.id)}`;
+      const localDateKey = getCurrentDateInTimezone(u.timezone || 'UTC');
+      const sentKey = `motivation:sent:${localDateKey}:${String(u.id)}`;
       const sent = await redis.get(sentKey);
       if (sent) continue;
       await redis.set(sentKey, '1', { ex: 36 * 60 * 60 });

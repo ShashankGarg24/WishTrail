@@ -1,4 +1,5 @@
 /** Shared, bounded metric helpers. Date keys use the user's local calendar. */
+const { getDateKeyInTimezone } = require('./timezone');
 function percentage(numerator, denominator) {
   const top = Number(numerator) || 0;
   const bottom = Number(denominator) || 0;
@@ -18,7 +19,9 @@ function isScheduledOccurrence(habit, dateKey) {
 
 function scheduledOccurrences(habit, startDateKey, endDateKey) {
   if (!habit || !startDateKey || !endDateKey || startDateKey > endDateKey) return 0;
-  const createdKey = habit.createdAt ? new Date(habit.createdAt).toISOString().slice(0, 10) : startDateKey;
+  const createdKey = habit.createdAt
+    ? getDateKeyInTimezone(habit.createdAt, habit.timezone || 'UTC')
+    : startDateKey;
   const start = startDateKey > createdKey ? startDateKey : createdKey;
   let count = 0;
   for (let date = dateKeyToUtcDate(start); date <= dateKeyToUtcDate(endDateKey); date.setUTCDate(date.getUTCDate() + 1)) {

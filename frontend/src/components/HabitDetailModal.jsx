@@ -4,6 +4,7 @@ import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock';
 import { useNavigate } from 'react-router-dom';
 import { habitsAPI } from '../services/api';
 import ConfirmActionModal from './ConfirmActionModal';
+import { getCurrentDateKey, getUserTimezone } from '../utils/timezoneUtils';
 
 const THEME_COLOR = '#4c99e6';
 const EMOTIONS = [
@@ -87,20 +88,18 @@ export default function HabitDetailModal({ habit, isOpen, onClose, onLog, onEdit
   if (!isOpen || !habit) return null;
   
   const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const habitTimezone = habit.timezone || getUserTimezone();
   const schedule = habit.frequency === 'daily' ? 'Daily habit' : (habit.daysOfWeek || []).sort().map(d => days[d]).join(', ') || 'Custom';
   const isScheduledToday = (() => {
     if (!habit) return false;
     if (habit.frequency === 'daily') return true;
-    const day = new Date().getDay();
+    const weekday = new Intl.DateTimeFormat('en-US', { timeZone: habitTimezone, weekday: 'short' }).format(new Date());
+    const day = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(weekday);
     return Array.isArray(habit.daysOfWeek) && habit.daysOfWeek.includes(day);
   })();
 
   const getTodayDateKey = () => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+    return getCurrentDateKey(habitTimezone);
   };
 
   const toTimeValue = (timestamp) => {

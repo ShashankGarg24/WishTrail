@@ -10,6 +10,41 @@ function formatDateKey(date, timezone) {
   const value = Object.fromEntries(parts.filter(part => part.type !== 'literal').map(part => [part.type, part.value]));
   return `${value.year}-${value.month}-${value.day}`;
 }
+
+function dateKeyParts(dateKey) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(dateKey || ''));
+  if (!match) throw new Error('Invalid date key');
+  return { year: Number(match[1]), month: Number(match[2]), day: Number(match[3]) };
+}
+
+function shiftDateKey(dateKey, days) {
+  const { year, month, day } = dateKeyParts(dateKey);
+  const value = new Date(Date.UTC(year, month - 1, day + Number(days || 0), 12));
+  return value.toISOString().slice(0, 10);
+}
+
+// Convert a local wall-clock time to UTC without relying on the server's own
+// timezone. Iteration accounts for the timezone offset on the requested date.
+function zonedDateTimeToUtc(dateKey, timezone, hour = 0, minute = 0, second = 0) {
+  const { year, month, day } = dateKeyParts(dateKey);
+  const desired = Date.UTC(year, month - 1, day, hour, minute, second);
+  let candidate = desired;
+
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23'
+    }).formatToParts(new Date(candidate));
+    const value = Object.fromEntries(parts.filter(part => part.type !== 'literal').map(part => [part.type, part.value]));
+    const observed = Date.UTC(Number(value.year), Number(value.month) - 1, Number(value.day), Number(value.hour), Number(value.minute), Number(value.second));
+    const next = desired - (observed - candidate);
+    if (next === candidate) break;
+    candidate = next;
+  }
+
+  return new Date(candidate);
+}
 /**
  * Timezone utility functions for WishTrail
  * All times are stored in UTC in the database
@@ -83,21 +118,7 @@ function getDateKeyInTimezone(date, timezone = 'UTC') {
  */
 function getStartOfDayInTimezone(dateKey, timezone = 'UTC') {
   try {
-    // Parse the date key in the user's timezone
-    const [year, month, day] = dateKey.split('-').map(Number);
-    
-    // Create a date string in the format: "2025-12-31T00:00:00"
-    const dateString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T00:00:00`;
-    
-    // Create a formatter that can parse the date in the user's timezone
-    const date = new Date(dateString);
-    
-    // Get the offset for this timezone at this specific date
-    const utcDate = new Date(date.toLocaleString('en-US', { timeZone: 'UTC' }));
-    const tzDate = new Date(date.toLocaleString('en-US', { timeZone: timezone }));
-    const offset = utcDate.getTime() - tzDate.getTime();
-    
-    return new Date(date.getTime() + offset);
+    return zonedDateTimeToUtc(dateKey, timezone);
   } catch (error) {
     logger.error('Error getting start of day in timezone:', error);
     return new Date(dateKey + 'T00:00:00Z');
@@ -112,8 +133,8 @@ function getStartOfDayInTimezone(dateKey, timezone = 'UTC') {
  */
 function getEndOfDayInTimezone(dateKey, timezone = 'UTC') {
   try {
-    const startOfDay = getStartOfDayInTimezone(dateKey, timezone);
-    return new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000 - 1);
+    const nextStart = getStartOfDayInTimezone(shiftDateKey(dateKey, 1), timezone);
+    return new Date(nextStart.getTime() - 1);
   } catch (error) {
     logger.error('Error getting end of day in timezone:', error);
     return new Date(dateKey + 'T23:59:59.999Z');
@@ -169,14 +190,8 @@ function isToday(date, timezone = 'UTC') {
  */
 function getDateRangeInTimezone(days, timezone = 'UTC') {
   try {
-    const now = new Date();
     const endDate = getCurrentDateInTimezone(timezone);
-    
-    // Calculate start date
-    const startDateObj = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
-    const startDate = getDateKeyInTimezone(startDateObj, timezone);
-    
-    return { startDate, endDate };
+    return { startDate: shiftDateKey(endDate, -Math.max(0, Number(days) || 0)), endDate };
   } catch (error) {
     logger.error('Error getting date range:', error);
     const end = new Date().toISOString().split('T')[0];
@@ -226,6 +241,7 @@ module.exports = {
   formatDateInTimezone,
   getCurrentDateInTimezone,
   getDateKeyInTimezone,
+  shiftDateKey,
   getStartOfDayInTimezone,
   getEndOfDayInTimezone,
   localToUTC,

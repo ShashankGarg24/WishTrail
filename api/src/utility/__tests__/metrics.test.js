@@ -1,5 +1,5 @@
 const { percentage, scheduledOccurrences, habitCompletion, activeDays, percentagePointTrend, quantitativeProgress, milestoneProgress } = require('../metrics');
-const { getDateKeyInTimezone } = require('../timezone');
+const { getDateKeyInTimezone, getStartOfDayInTimezone, getEndOfDayInTimezone, getDateRangeInTimezone } = require('../timezone');
 
 describe('metrics', () => {
   test('habit completion includes skipped and missed occurrences in its denominator', () => {
@@ -21,6 +21,19 @@ describe('metrics', () => {
   });
   test('uses stable ISO-like local date keys across timezones', () => {
     expect(getDateKeyInTimezone('2026-09-24T00:30:00.000Z', 'America/Los_Angeles')).toBe('2026-09-23');
+  });
+
+  test('uses DST-correct local day boundaries', () => {
+    expect(getStartOfDayInTimezone('2026-03-08', 'America/New_York').toISOString()).toBe('2026-03-08T05:00:00.000Z');
+    expect(getEndOfDayInTimezone('2026-03-08', 'America/New_York').toISOString()).toBe('2026-03-09T03:59:59.999Z');
+    expect(getStartOfDayInTimezone('2026-11-01', 'America/New_York').toISOString()).toBe('2026-11-01T04:00:00.000Z');
+    expect(getEndOfDayInTimezone('2026-11-01', 'America/New_York').toISOString()).toBe('2026-11-02T04:59:59.999Z');
+  });
+
+  test('moves local date ranges by calendar days', () => {
+    const range = getDateRangeInTimezone(6, 'UTC');
+    expect(range.startDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(range.endDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
   test('uses percentage-point trends without inventing a previous value', () => {
     expect(percentagePointTrend(76, 58)).toBe(18);

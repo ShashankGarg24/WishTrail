@@ -11,7 +11,7 @@ const UserPreferences = require('../models/extended/UserPreferences');
 const Activity = require('../models/Activity');
 const Notification = require('../models/Notification');
 const GoalDetails = require('../models/extended/GoalDetails');
-const { getDateKeyInTimezone } = require('../utility/timezone');
+const { getDateKeyInTimezone, getCurrentDateInTimezone, shiftDateKey } = require('../utility/timezone');
 
 class UserService {
   /**
@@ -257,10 +257,9 @@ class UserService {
 
     await pgUserService.updateLastActive(userId);
 
-    // Use client-supplied local date (matches what the log stored) or fall back to UTC
-    const todayUTC  = todayParam && /^\d{4}-\d{2}-\d{2}$/.test(todayParam)
-      ? todayParam
-      : new Date().toISOString().split('T')[0];
+    // Calendar-based metrics belong to the account's saved timezone. Do not
+    // trust a browser-supplied date: it may be stale after travel or altered.
+    const todayUTC = getCurrentDateInTimezone(user.timezone || 'UTC');
     const selectedYear = Number.isInteger(Number(yearParam)) ? Number(yearParam) : new Date().getFullYear();
     // Run all queries in parallel for a single round-trip budget
     const [
@@ -408,9 +407,7 @@ class UserService {
       subGoal.completedAt && getDateKeyInTimezone(subGoal.completedAt, user.timezone || 'UTC') === todayUTC
     ).length, 0);
     const todayCompletions = completedGoalsToday + todayHabitLogs + completedSubGoalsToday;
-    const activePeriodStart = new Date(`${todayUTC}T12:00:00Z`);
-    activePeriodStart.setUTCDate(activePeriodStart.getUTCDate() - 6);
-    const activePeriodStartKey = activePeriodStart.toISOString().slice(0, 10);
+    const activePeriodStartKey = shiftDateKey(todayUTC, -6);
     const completedGoalDates = allGoals.goals.filter(goal => goal.completed_at).map(goal => getDateKeyInTimezone(goal.completed_at, user.timezone || 'UTC'));
     const completedSubGoalDates = goalDetails.flatMap(detail => (detail.progress?.breakdown?.subGoals || []).filter(subGoal => subGoal.completedAt).map(subGoal => getDateKeyInTimezone(subGoal.completedAt, user.timezone || 'UTC')));
     const activeDays = new Set([...Object.keys(logsMap).filter(date => logsMap[date] > 0), ...completedGoalDates, ...completedSubGoalDates].filter(date => date >= activePeriodStartKey && date <= todayUTC)).size;

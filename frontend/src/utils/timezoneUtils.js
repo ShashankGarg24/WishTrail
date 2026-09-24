@@ -60,20 +60,18 @@ export function addTimezoneAndLocale(data = {}) {
  * Get current date in user's timezone as YYYY-MM-DD
  * @returns {string} Date in YYYY-MM-DD format
  */
-export function getCurrentDateKey() {
+function formatDateKey(date, timezone) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    year: 'numeric', month: '2-digit', day: '2-digit'
+  }).formatToParts(date);
+  const value = Object.fromEntries(parts.filter((part) => part.type !== 'literal').map((part) => [part.type, part.value]));
+  return `${value.year}-${value.month}-${value.day}`;
+}
+
+export function getCurrentDateKey(timezone = getUserTimezone()) {
   try {
-    const timezone = getUserTimezone();
-    const now = new Date();
-    
-    // Format date in user's timezone
-    const formatter = new Intl.DateTimeFormat('en-CA', {
-      timeZone: timezone,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit'
-    });
-    
-    return formatter.format(now); // Returns YYYY-MM-DD
+    return formatDateKey(new Date(), timezone);
   } catch (error) {
     console.error('Error getting current date key:', error);
     return new Date().toISOString().split('T')[0];
@@ -85,19 +83,10 @@ export function getCurrentDateKey() {
  * @param {Date|string} date - Date to convert
  * @returns {string} Date in YYYY-MM-DD format
  */
-export function getDateKeyInTimezone(date) {
+export function getDateKeyInTimezone(date, timezone = getUserTimezone()) {
   try {
-    const timezone = getUserTimezone();
     const dateObj = typeof date === 'string' ? new Date(date) : date;
-    
-    const formatter = new Intl.DateTimeFormat('en-CA', {
-      timeZone: timezone,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit'
-    });
-    
-    return formatter.format(dateObj);
+    return formatDateKey(dateObj, timezone);
   } catch (error) {
     console.error('Error getting date key:', error);
     return new Date(date).toISOString().split('T')[0];

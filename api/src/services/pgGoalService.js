@@ -1,4 +1,6 @@
 const { pool, query, getClient, transaction } = require('../config/supabase');
+const pgUserService = require('./pgUserService');
+const { getCurrentDateInTimezone, getStartOfDayInTimezone } = require('../utility/timezone');
 
 /**
  * PostgreSQL Service Layer for Goal operations
@@ -383,8 +385,9 @@ class GoalService {
    * Check daily goal creation limit
    */
   async checkDailyLimit(userId, limit = 5) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const user = await pgUserService.getUserById(userId);
+    const timezone = user?.timezone || 'UTC';
+    const today = getStartOfDayInTimezone(getCurrentDateInTimezone(timezone), timezone);
     
     const queryText = `
       SELECT COUNT(*) as count

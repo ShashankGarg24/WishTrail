@@ -7,7 +7,7 @@ const pgHabitLogService = require('./pgHabitLogService');
 const pgUserService = require('./pgUserService');
 const UserPreferences = require('../models/extended/UserPreferences');
 const redis = require('../config/redis');
-const { getCurrentDateInTimezone } = require('../utility/timezone');
+const { getCurrentDateInTimezone, shiftDateKey } = require('../utility/timezone');
 const { scheduledOccurrences, habitCompletion } = require('../utility/metrics');
 
 function toDateKeyUTC(date = new Date()) {
@@ -246,7 +246,10 @@ async function toggleLog(userId, habitId, { status = 'done', note = '', mood = '
   if (habit.isArchived) throw Object.assign(new Error('Habit is archived'), { statusCode: 400 });
 
   const dateKey = toDateKeyUTC(date);
-  const todayKey = toDateKeyUTC(new Date());
+  // date_key represents the user's calendar day, so do not compare it with
+  // the server's UTC day when deciding whether a skip breaks today's streak.
+  const user = await pgUserService.getUserById(userId);
+  const todayKey = getCurrentDateInTimezone(user?.timezone || 'UTC');
   
   let log;
   
@@ -256,7 +259,10 @@ async function toggleLog(userId, habitId, { status = 'done', note = '', mood = '
   if (status === 'skipped' || status === 'missed') {
     // If marking as skipped/missed, update existing log or create new one
     if (existingLog) {
-      log = await pgHabitLogService.updateHabitLog(existingLog.id, userId, { status });
+      log = await pgHabitLogService.updateHabitLog(existingLog.id, userId, {
+        status,
+        currentDateKey: todayKey
+      });
     } else {
       // Create a new log with skipped/missed status (no completions)
       const { query } = require('../config/supabase');
@@ -539,13 +545,13 @@ async function sendReminderNotifications({ windowMinutes = 10 } = {}) {
       // Skip if already done today (default true)
       const skipIfDone = true;
       if (skipIfDone) {
-        const todayKey = toDateKeyUTC(new Date());
+        const todayKey = getCurrentDateInTimezone(u.timezone || 'UTC');
         const done = await pgHabitLogService.isLoggedToday(h.id, todayKey);
         if (done) continue;
       }
       // Idempotency guard (10-min window key)
       try {
-        const dateKey = toDateKeyUTC(new Date());
+        const dateKey = getCurrentDateInTimezone(u.timezone || 'UTC');
         const key = `habit:reminder:${String(u.id)}:${String(h.id)}:${dateKey}:${job.matchedMinutes}`;
         const exists = await redis.get(key);
         if (!exists) {
@@ -568,9 +574,7 @@ async function sendReminderNotifications({ windowMinutes = 10 } = {}) {
 async function analytics(userId, { days = 7, userTimezone = 'UTC', endDateKey } = {}) {
   const { query: pgQuery } = require('../config/supabase');
   const endKey = endDateKey || getCurrentDateInTimezone(userTimezone);
-  const from = new Date(`${endKey}T12:00:00.000Z`);
-  from.setUTCDate(from.getUTCDate() - Math.max(0, days - 1));
-  const fromKey = from.toISOString().slice(0, 10);
+  const fromKey = shiftDateKey(endKey, -Math.max(0, days - 1));
 
   // Count only this local-calendar range; future client date keys are excluded.
   const countResult = await pgQuery(
@@ -631,15 +635,9 @@ async function getHabitAnalytics(userId, habitId, { days = 90, userTimezone = 'U
   const habit = await pgHabitService.getHabitById(habitId, userId);
   if (!habit) throw Object.assign(new Error('Habit not found'), { statusCode: 404 });
   
-  const from = new Date();
-  from.setUTCDate(from.getUTCDate() - Math.max(1, days));
-  const fromKey = toDateKeyUTC(from);
-  
-  // Get all logs for this habit in the timeframe
-  // Add 1 day to ensure we include today's logs regardless of timezone
-  const toDate = new Date();
-  toDate.setUTCDate(toDate.getUTCDate() + 1);
-  const logs = await pgHabitLogService.getLogsByDateRange(habitId, fromKey, toDateKeyUTC(toDate));
+  const endKey = getCurrentDateInTimezone(userTimezone);
+  const fromKey = shiftDateKey(endKey, -Math.max(0, days - 1));
+  const logs = await pgHabitLogService.getLogsByDateRange(habitId, fromKey, endKey);
   
   // Calculate stats
   const stats = {
