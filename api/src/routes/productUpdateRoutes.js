@@ -1,6 +1,7 @@
 const express = require('express');
 const productUpdateController = require('../controllers/productUpdateController');
 const { protect } = require('../middleware/auth');
+const { requireAdminAuth } = require('../middleware/adminAuth');
 
 const router = express.Router();
 
@@ -12,9 +13,8 @@ router.get('/type/:type', productUpdateController.getUpdatesByType);
 router.get('/latest', protect, productUpdateController.getLatestMajorUpdate);
 router.post('/seen', protect, productUpdateController.markUpdateAsSeen);
 
-// Admin routes (would need admin middleware in production)
-// For now, using protect middleware - in production add admin check
-router.post('/', protect, productUpdateController.createUpdate);
-router.delete('/:version', protect, productUpdateController.deleteUpdate);
+// Administrative write routes. The Admin Panel uses its separate admin token.
+router.post('/', requireAdminAuth, productUpdateController.createUpdate);
+router.delete('/:version', requireAdminAuth, productUpdateController.deleteUpdate);
 
 module.exports = router;

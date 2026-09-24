@@ -19,6 +19,25 @@ class ProductUpdateService {
     return result.rows[0];
   }
 
+  /** Update an existing release note, identified by its original version. */
+  async updateUpdate(originalVersion, { title, description, version, isMajor = false, type = 'feature' }) {
+    const queryText = `
+      UPDATE product_updates
+      SET title = $1,
+          description = $2,
+          version = $3,
+          is_major = $4,
+          type = $5,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE version = $6
+      RETURNING id, title, description, version, is_major as "isMajor", type,
+        created_at as "createdAt", updated_at as "updatedAt"
+    `;
+
+    const result = await query(queryText, [title, description, version, isMajor, type, originalVersion]);
+    return result.rows[0] || null;
+  }
+
   /**
    * Get all product updates (sorted by created_at DESC)
    */

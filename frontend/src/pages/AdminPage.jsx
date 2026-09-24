@@ -1,7 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
 import { adminAPI, adminAuth } from '../services/adminApi';
 
-const TABS = ['Users', 'Goals', 'Habits', 'Email', 'Analytics'];
+const TABS = ['Users', 'Goals', 'Habits', 'Email', 'Release Notes', 'Analytics'];
+
+const EMPTY_RELEASE_NOTE = {
+  title: '',
+  version: '',
+  type: 'feature',
+  isMajor: true,
+  description: ''
+};
+
+const RELEASE_NOTE_TEMPLATE = `What’s new\n\n• Describe the most valuable improvement in one clear sentence.\n• Add one or two details people will notice.\n\nImprovements\n\n• Mention reliability, performance, or usability improvements.\n\nBug fixes\n\n• Briefly note meaningful fixes without technical jargon.`;
 
 const EMAIL_PRESETS = {
   custom: {
@@ -101,6 +111,14 @@ function AdminPage() {
   const [analytics, setAnalytics] = useState({ totalUsers: 0, activeToday: 0, inactiveUsers: 0, totalGoals: 0 });
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [analyticsError, setAnalyticsError] = useState('');
+
+  const [releaseNotesData, setReleaseNotesData] = useState({ updates: [], pagination: { page: 1, pages: 1, total: 0 } });
+  const [releaseNotesLoading, setReleaseNotesLoading] = useState(false);
+  const [releaseNotesError, setReleaseNotesError] = useState('');
+  const [releaseNotesSuccess, setReleaseNotesSuccess] = useState('');
+  const [releaseNoteForm, setReleaseNoteForm] = useState(EMPTY_RELEASE_NOTE);
+  const [editingReleaseVersion, setEditingReleaseVersion] = useState(null);
+  const [releaseNotesSaving, setReleaseNotesSaving] = useState(false);
 
   const [emailForm, setEmailForm] = useState({
     mode: 'selected',
@@ -204,6 +222,19 @@ function AdminPage() {
     }
   };
 
+  const loadReleaseNotes = async () => {
+    setReleaseNotesLoading(true);
+    setReleaseNotesError('');
+    try {
+      const res = await adminAPI.getProductUpdates({ page: 1, limit: 100 });
+      setReleaseNotesData(res?.data?.data || { updates: [], pagination: { page: 1, pages: 1, total: 0 } });
+    } catch (error) {
+      setReleaseNotesError(error?.response?.data?.message || 'Failed to load release notes');
+    } finally {
+      setReleaseNotesLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!token) return;
     loadUsers();
@@ -226,6 +257,10 @@ function AdminPage() {
     if (!token) return;
     loadHabits();
   }, [habitsQuery.page, habitsQuery.limit, habitsQuery.status]);
+
+  useEffect(() => {
+    if (token && activeTab === 'Release Notes') loadReleaseNotes();
+  }, [token, activeTab]);
 
   const toggleSelectUser = (id) => {
     setSelectedUsers((prev) =>
@@ -270,6 +305,60 @@ function AdminPage() {
       setEmailError(error?.response?.data?.message || 'Failed to send email');
     } finally {
       setEmailLoading(false);
+    }
+  };
+
+  const resetReleaseNoteForm = () => {
+    setReleaseNoteForm(EMPTY_RELEASE_NOTE);
+    setEditingReleaseVersion(null);
+    setReleaseNotesError('');
+  };
+
+  const editReleaseNote = (update) => {
+    setEditingReleaseVersion(update.version);
+    setReleaseNoteForm({
+      title: update.title || '',
+      version: update.version || '',
+      type: String(update.type || 'feature').split(',')[0],
+      isMajor: Boolean(update.isMajor),
+      description: update.description || ''
+    });
+    setReleaseNotesSuccess('');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const saveReleaseNote = async () => {
+    setReleaseNotesSaving(true);
+    setReleaseNotesError('');
+    setReleaseNotesSuccess('');
+    try {
+      const payload = { ...releaseNoteForm, title: releaseNoteForm.title.trim(), version: releaseNoteForm.version.trim(), description: releaseNoteForm.description.trim() };
+      if (editingReleaseVersion) {
+        await adminAPI.updateProductUpdate(editingReleaseVersion, payload);
+        setReleaseNotesSuccess('Release note updated.');
+      } else {
+        await adminAPI.createProductUpdate(payload);
+        setReleaseNotesSuccess('Release note published.');
+      }
+      resetReleaseNoteForm();
+      await loadReleaseNotes();
+    } catch (error) {
+      setReleaseNotesError(error?.response?.data?.message || 'Failed to save release note');
+    } finally {
+      setReleaseNotesSaving(false);
+    }
+  };
+
+  const deleteReleaseNote = async (version) => {
+    if (!window.confirm(`Delete release note v${version}? This cannot be undone.`)) return;
+    setReleaseNotesError('');
+    try {
+      await adminAPI.deleteProductUpdate(version);
+      if (editingReleaseVersion === version) resetReleaseNoteForm();
+      setReleaseNotesSuccess('Release note deleted.');
+      await loadReleaseNotes();
+    } catch (error) {
+      setReleaseNotesError(error?.response?.data?.message || 'Failed to delete release note');
     }
   };
 
@@ -672,6 +761,88 @@ function AdminPage() {
 
               {emailError ? <p className="text-sm text-red-600">{emailError}</p> : null}
               {emailSuccess ? <p className="text-sm text-green-600">{emailSuccess}</p> : null}
+            </div>
+          </SectionCard>
+        )}
+
+        {activeTab === 'Release Notes' && (
+          <SectionCard title="Release Notes">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-300">Create polished, user-friendly notes for What’s New. Use short headings, plain language, and bullet points.</p>
+                  </div>
+                  <button type="button" onClick={() => setReleaseNoteForm((prev) => ({ ...prev, description: RELEASE_NOTE_TEMPLATE }))} className="px-3 py-2 text-sm border border-blue-200 text-blue-700 dark:text-blue-300 dark:border-blue-800 rounded hover:bg-blue-50 dark:hover:bg-blue-950/30">Use writing guide</button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">Release title</label>
+                    <input value={releaseNoteForm.title} onChange={(e) => setReleaseNoteForm((prev) => ({ ...prev, title: e.target.value }))} placeholder="Smarter Progress & Better Conversations" className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-900" />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">Version</label>
+                    <input value={releaseNoteForm.version} onChange={(e) => setReleaseNoteForm((prev) => ({ ...prev, version: e.target.value }))} placeholder="1.3.0" className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-900" />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">Primary category</label>
+                    <select value={releaseNoteForm.type} onChange={(e) => setReleaseNoteForm((prev) => ({ ...prev, type: e.target.value }))} className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-900">
+                      <option value="feature">Feature</option>
+                      <option value="enhancement">Improvement</option>
+                      <option value="bug_fix">Bug fix</option>
+                    </select>
+                  </div>
+                  <label className="flex items-center gap-2 pt-6 text-sm text-gray-700 dark:text-gray-200">
+                    <input type="checkbox" checked={releaseNoteForm.isMajor} onChange={(e) => setReleaseNoteForm((prev) => ({ ...prev, isMajor: e.target.checked }))} />
+                    Show as a major release popup
+                  </label>
+                </div>
+
+                <div>
+                  <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">Release note</label>
+                  <textarea rows={13} value={releaseNoteForm.description} onChange={(e) => setReleaseNoteForm((prev) => ({ ...prev, description: e.target.value }))} placeholder="What’s new\n\n• Add a clear customer benefit.\n• Keep each point easy to scan." className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-900 leading-6" />
+                  <p className="mt-1 text-xs text-gray-500">This is plain text. Line breaks and bullet characters are preserved on the website; Markdown is not rendered.</p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3">
+                  <button type="button" onClick={saveReleaseNote} disabled={releaseNotesSaving || !releaseNoteForm.title.trim() || !releaseNoteForm.version.trim() || !releaseNoteForm.description.trim()} className="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50">{releaseNotesSaving ? 'Saving…' : editingReleaseVersion ? 'Save Changes' : 'Publish Release Note'}</button>
+                  {editingReleaseVersion && <button type="button" onClick={resetReleaseNoteForm} className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded">Cancel editing</button>}
+                  {releaseNotesError && <p className="text-sm text-red-600">{releaseNotesError}</p>}
+                  {releaseNotesSuccess && <p className="text-sm text-green-600">{releaseNotesSuccess}</p>}
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 p-4 sm:p-5">
+                <p className="text-xs font-semibold uppercase tracking-wide text-[#4c99e6]">Website preview</p>
+                <div className="mt-3 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{releaseNoteForm.title || 'Your release title'}</h3>
+                      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">v{releaseNoteForm.version || '0.0.0'}</p>
+                    </div>
+                    <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-950/50 dark:text-blue-300">{releaseNoteForm.isMajor ? 'Major' : 'Minor'} · {releaseNoteForm.type.replace('_', ' ')}</span>
+                  </div>
+                  <p className="mt-4 whitespace-pre-line text-sm leading-7 text-gray-700 dark:text-gray-300">{releaseNoteForm.description || 'Write a short, useful note that explains what changed and why it matters.'}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-8 border-t border-gray-200 pt-6 dark:border-gray-700">
+              <div className="flex items-center justify-between gap-3 mb-4">
+                <div><h3 className="font-semibold text-gray-900 dark:text-white">Published release notes</h3><p className="text-sm text-gray-500">Select a note to edit it, or remove an outdated one.</p></div>
+                <button type="button" onClick={loadReleaseNotes} className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded">Refresh</button>
+              </div>
+              {releaseNotesLoading ? <p>Loading release notes…</p> : null}
+              {!releaseNotesLoading && releaseNotesData.updates.length === 0 ? <p className="text-sm text-gray-500">No release notes yet.</p> : null}
+              <div className="space-y-3">
+                {releaseNotesData.updates.map((update) => (
+                  <article key={update.id || update.version} className="flex flex-col gap-3 rounded-xl border border-gray-200 p-4 dark:border-gray-700 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h4 className="font-semibold text-gray-900 dark:text-white">{update.title}</h4><span className="text-xs text-gray-500">v{update.version}</span>{update.isMajor && <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-950/50 dark:text-blue-300">Major</span>}</div><p className="mt-1 line-clamp-2 whitespace-pre-line text-sm text-gray-600 dark:text-gray-300">{update.description}</p><p className="mt-2 text-xs text-gray-400">{update.createdAt ? new Date(update.createdAt).toLocaleDateString() : ''} · {String(update.type || 'feature').replace('_', ' ')}</p></div>
+                    <div className="flex shrink-0 gap-2"><button type="button" onClick={() => editReleaseNote(update)} className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded">Edit</button><button type="button" onClick={() => deleteReleaseNote(update.version)} className="px-3 py-2 text-sm border border-red-200 text-red-600 rounded dark:border-red-900">Delete</button></div>
+                  </article>
+                ))}
+              </div>
             </div>
           </SectionCard>
         )}

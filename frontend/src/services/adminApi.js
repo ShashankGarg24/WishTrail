@@ -36,5 +36,9 @@ export const adminAPI = {
   getGoals: (params) => adminApi.get(`${ADMIN_BASE_PATH}/goals`, { params }),
   getHabits: (params) => adminApi.get(`${ADMIN_BASE_PATH}/habits`, { params }),
   getAnalytics: (params) => adminApi.get(`${ADMIN_BASE_PATH}/analytics`, { params }),
-  sendEmail: (payload) => adminApi.post(`${ADMIN_BASE_PATH}/email/send`, payload)
+  sendEmail: (payload) => adminApi.post(`${ADMIN_BASE_PATH}/email/send`, payload),
+  getProductUpdates: (params) => adminApi.get(`${ADMIN_BASE_PATH}/product-updates`, { params }),
+  createProductUpdate: (payload) => adminApi.post(`${ADMIN_BASE_PATH}/product-updates`, payload),
+  updateProductUpdate: (version, payload) => adminApi.put(`${ADMIN_BASE_PATH}/product-updates/${encodeURIComponent(version)}`, payload),
+  deleteProductUpdate: (version) => adminApi.delete(`${ADMIN_BASE_PATH}/product-updates/${encodeURIComponent(version)}`)
 };
