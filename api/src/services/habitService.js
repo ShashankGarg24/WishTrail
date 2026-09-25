@@ -16,9 +16,10 @@ function toDateKeyUTC(date = new Date()) {
   return d.toISOString().split('T')[0];
 }
 
-function isScheduledForDay(habit, jsDate) {
+function isScheduledForDay(habit, jsDate, timezone) {
   if (habit.frequency === 'daily') return true;
-  const day = new Date(jsDate).getDay(); // 0..6
+  const weekday = new Intl.DateTimeFormat('en-US', { timeZone: timezone, weekday: 'short' }).format(jsDate);
+  const day = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(weekday);
   const days = habit.daysOfWeek || [];
   return days.includes(day);
 }
@@ -42,9 +43,6 @@ async function createHabit(userId, payload) {
     );
   }
   
-  // Default timezone to user's stored timezone if available, else UTC
-  const user = await pgUserService.getUserById(userId);
-  
   // Create habit using PostgreSQL service
   const habit = await pgHabitService.createHabit({
     userId,
@@ -52,7 +50,6 @@ async function createHabit(userId, payload) {
     description: payload.description || '',
     frequency: normalizeHabitFrequency(payload.frequency),
     daysOfWeek: Array.isArray(payload.daysOfWeek) ? payload.daysOfWeek : null,
-    timezone: (payload.timezone || user?.timezone || 'UTC'),
     // reminders: Array.isArray(payload.reminders) ? payload.reminders : [],
     goalId: payload.goalId || null,
     isPublic: payload.isPublic !== undefined ? !!payload.isPublic : true,
@@ -136,7 +133,7 @@ async function updateHabit(userId, habitId, payload) {
   if (h.isArchived) throw Object.assign(new Error('Habit is archived'), { statusCode: 400 });
   
   const updates = {};
-  ['name','description','timezone'].forEach(k => { if (payload[k] !== undefined) updates[k] = payload[k]; });
+  ['name','description'].forEach(k => { if (payload[k] !== undefined) updates[k] = payload[k]; });
   if (payload.frequency !== undefined) updates.frequency = normalizeHabitFrequency(payload.frequency);
   if (Array.isArray(payload.daysOfWeek)) updates.daysOfWeek = payload.daysOfWeek;
   if (Array.isArray(payload.reminders)) updates.reminders = payload.reminders;
@@ -153,16 +150,6 @@ async function updateHabit(userId, habitId, payload) {
       new Error('Only one target type is allowed: either targetCompletions or targetDays, not both'), 
       { statusCode: 400 }
     );
-  }
-  
-  // Ensure timezone is set when editing reminders if habit has no meaningful timezone
-  if (Array.isArray(payload.reminders) && (updates.timezone === undefined)) {
-    try {
-      if (!h.timezone || h.timezone === 'UTC') {
-        const u = await pgUserService.findById(userId);
-        if (u?.timezone) updates.timezone = u.timezone; else if (!h.timezone) updates.timezone = 'UTC';
-      }
-    } catch (_) {}
   }
   
   const updated = await pgHabitService.updateHabit(habitId, userId, updates);
@@ -449,7 +436,7 @@ async function getStats(userId) {
   };
 }
 
-// Timezone-aware reminder: build local time from habit.timezone and compare to current UTC
+// Timezone-aware reminder: build local time from the user's timezone.
 function nowInTimezoneHHmm(timezone) {
   try {
     const fmt = new Intl.DateTimeFormat('en-GB', { hour12: false, timeZone: timezone, hour: '2-digit', minute: '2-digit' });
@@ -502,11 +489,10 @@ async function dueHabitsForReminder(userId, userTimezone, windowMinutes = 10) {
   });
   
   const todayUTC = new Date();
+  const tz = userTimezone || 'UTC';
   const jobs = [];
   for (const h of habits) {
-    if (!isScheduledForDay(h, todayUTC)) continue;
-    // Prefer user's timezone when habit timezone is empty or left at default 'UTC'
-    const tz = (h.timezone && h.timezone !== 'UTC') ? h.timezone : (userTimezone || 'UTC');
+    if (!isScheduledForDay(h, todayUTC, tz)) continue;
     const localNowMin = minutesOfDayInTimezone(tz);
     const times = (h.reminders || []).map(r => (typeof r === 'string' ? r : (r?.time))).filter(Boolean);
     for (const t of times) {
@@ -539,7 +525,7 @@ async function sendReminderNotifications({ windowMinutes = 10 } = {}) {
     if (ns?.inApp?.habitReminders === false) continue;
     
     // Quiet hours removed
-    const due = await dueHabitsForReminder(u.id, u.timezone || 'Asia/Kolkata', windowMinutes);
+    const due = await dueHabitsForReminder(u.id, u.timezone || 'UTC', windowMinutes);
     for (const job of due) {
       const h = job.habit;
       // Skip if already done today (default true)
@@ -615,7 +601,7 @@ async function analytics(userId, { days = 7, userTimezone = 'UTC', endDateKey } 
     limit: 1000 
   });
   const habits = habitsResult || []; // getUserHabits returns array directly, not wrapped
-  const expected = habits.reduce((total, habit) => total + scheduledOccurrences(habit, fromKey, endKey), 0);
+  const expected = habits.reduce((total, habit) => total + scheduledOccurrences(habit, fromKey, endKey, userTimezone), 0);
   const totals = habitCompletion({ expected, ...loggedTotals });
   const top = habits
     .sort((a,b) => (b.currentStreak||0) - (a.currentStreak||0) || (b.longestStreak||0) - (a.longestStreak||0) || new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0))

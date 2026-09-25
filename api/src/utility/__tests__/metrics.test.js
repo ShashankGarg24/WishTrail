@@ -2,6 +2,11 @@ const { percentage, scheduledOccurrences, habitCompletion, activeDays, percentag
 const { getDateKeyInTimezone, getStartOfDayInTimezone, getEndOfDayInTimezone, getDateRangeInTimezone } = require('../timezone');
 
 describe('metrics', () => {
+  test('uses the user timezone for the habit creation day, ignoring a legacy habit timezone', () => {
+    const habit = { frequency: 'daily', createdAt: '2026-09-25T21:32:00Z', timezone: 'America/New_York' };
+    expect(scheduledOccurrences(habit, '2026-09-25', '2026-09-26', 'Asia/Kolkata')).toBe(1);
+    expect(scheduledOccurrences(habit, '2026-09-25', '2026-09-26', 'UTC')).toBe(2);
+  });
   test('habit completion includes skipped and missed occurrences in its denominator', () => {
     expect(habitCompletion({ expected: 10, done: 5, skipped: 5 })).toMatchObject({ missed: 0, percentage: 50, followThroughRate: 100 });
     expect(habitCompletion({ expected: 10, done: 5, skipped: 2, missed: 3 })).toMatchObject({ percentage: 50, followThroughRate: 62.5 });

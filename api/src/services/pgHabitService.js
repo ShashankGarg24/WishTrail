@@ -18,7 +18,6 @@ class PgHabitService {
       description = '',
       frequency = 'daily',
       daysOfWeek = null,
-      timezone = 'UTC',
       reminders = [],
       targetCompletions = null,
       targetDays = null,
@@ -27,16 +26,15 @@ class PgHabitService {
 
     const sql = `
       INSERT INTO habits (
-        user_id, name, description, frequency, days_of_week, timezone,
+        user_id, name, description, frequency, days_of_week,
         reminders, target_completions, target_days, is_public
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
       RETURNING *
     `;
 
     const values = [
       userId, name, description, frequency,
       daysOfWeek ? `{${daysOfWeek.join(',')}}` : null,
-      timezone,
       JSON.stringify(reminders),
       targetCompletions,
       targetDays,
@@ -137,7 +135,7 @@ class PgHabitService {
    */
   async updateHabit(id, userId, updates) {
     const allowedFields = [
-      'name', 'description', 'frequency', 'days_of_week', 'timezone',
+      'name', 'description', 'frequency', 'days_of_week',
       'reminders', 'target_completions', 'target_days',
       'is_public'
     ];
@@ -495,7 +493,6 @@ class PgHabitService {
       description: row.description,
       frequency: row.frequency,
       daysOfWeek: row.days_of_week,
-      timezone: row.timezone || 'UTC',
       // reminders: typeof row.reminders === 'string' ? JSON.parse(row.reminders) : row.reminders,
       currentStreak: row.current_streak,
       longestStreak: row.longest_streak,

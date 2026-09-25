@@ -300,7 +300,6 @@ const sanitizeHabitForProfile = (habit) => {
     description: obj.description || '',
     frequency: obj.frequency,
     daysOfWeek: obj.daysOfWeek || obj.days_of_week || [],
-    timezone: obj.timezone,
     // reminders: (obj.reminders || []).map(r => ({
     //   time: r.time
     // })),

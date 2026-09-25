@@ -4,7 +4,8 @@ import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock';
 import { useNavigate } from 'react-router-dom';
 import { habitsAPI } from '../services/api';
 import ConfirmActionModal from './ConfirmActionModal';
-import { getCurrentDateKey, getUserTimezone } from '../utils/timezoneUtils';
+import { getCurrentDateKey } from '../utils/timezoneUtils';
+import useApiStore from '../store/apiStore';
 
 const THEME_COLOR = '#4c99e6';
 const EMOTIONS = [
@@ -17,6 +18,7 @@ const EMOTIONS = [
 
 export default function HabitDetailModal({ habit, isOpen, onClose, onLog, onEdit, onDelete, onHabitStatsChanged }) {
   const navigate = useNavigate();
+  const accountTimezone = useApiStore(state => state.user?.timezone) || 'UTC';
   const [selectedEmotion, setSelectedEmotion] = useState(null);
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState(null);
@@ -88,18 +90,12 @@ export default function HabitDetailModal({ habit, isOpen, onClose, onLog, onEdit
   if (!isOpen || !habit) return null;
   
   const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  // Completion date keys are tied to the account's calendar day. A habit may
-  // have a separate timezone for reminders/scheduling, but it must not change
-  // which completed logs belong to the user's "today".
-  const accountTimezone = getUserTimezone();
-  const habitTimezone = habit.timezone && habit.timezone !== 'UTC'
-    ? habit.timezone
-    : accountTimezone;
+  // Scheduling and completion dates both follow the account's timezone.
   const schedule = habit.frequency === 'daily' ? 'Daily habit' : (habit.daysOfWeek || []).sort().map(d => days[d]).join(', ') || 'Custom';
   const isScheduledToday = (() => {
     if (!habit) return false;
     if (habit.frequency === 'daily') return true;
-    const weekday = new Intl.DateTimeFormat('en-US', { timeZone: habitTimezone, weekday: 'short' }).format(new Date());
+    const weekday = new Intl.DateTimeFormat('en-US', { timeZone: accountTimezone, weekday: 'short' }).format(new Date());
     const day = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(weekday);
     return Array.isArray(habit.daysOfWeek) && habit.daysOfWeek.includes(day);
   })();

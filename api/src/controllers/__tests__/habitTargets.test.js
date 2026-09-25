@@ -46,12 +46,13 @@ describe('habit target persistence', () => {
   ])('POST /habits persists and returns targets %j', async (targets, count, days) => {
     query.mockImplementation(async (sql, values) => {
       expect(sql).toContain('INSERT INTO habits');
-      expect(values[7]).toBe(count);
-      expect(values[8]).toBe(days);
+      expect(sql).not.toMatch(/\btimezone\b/);
+      expect(values[6]).toBe(count);
+      expect(values[7]).toBe(days);
       return { rows: [{ id: 5, user_id: values[0], name: values[1],
-        target_completions: values[7], target_days: values[8] }] };
+        target_completions: values[6], target_days: values[7] }] };
     });
-    const response = await request(app).post('/habits').send({ name: 'Read', ...targets });
+    const response = await request(app).post('/habits').send({ name: 'Read', timezone: 'America/New_York', ...targets });
     expect(response.status).toBe(201);
     expect(query).toHaveBeenCalledTimes(1);
     expect(response.body.data.habit).toMatchObject({ targetCompletions: count, targetDays: days });
@@ -65,9 +66,10 @@ describe('habit target persistence', () => {
       expect(sql).toContain('target_days = $2');
       expect(sql).toContain('WHERE id = $3 AND user_id = $4');
       expect(values).toEqual([count, days, 5, 7]);
+      expect(sql).not.toMatch(/\btimezone\b/);
       return { rows: [{ id: 5, user_id: 7, target_completions: values[0], target_days: values[1] }] };
     });
-    const response = await request(app).put('/habits/5').send({ targetCompletions: count, targetDays: days });
+    const response = await request(app).put('/habits/5').send({ targetCompletions: count, targetDays: days, timezone: 'America/New_York' });
     expect(response.status).toBe(200);
     expect(response.body.data.habit).toMatchObject({ targetCompletions: count, targetDays: days });
   });

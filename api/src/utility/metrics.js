@@ -17,10 +17,10 @@ function isScheduledOccurrence(habit, dateKey) {
   return days.includes(dateKeyToUtcDate(dateKey).getUTCDay());
 }
 
-function scheduledOccurrences(habit, startDateKey, endDateKey) {
+function scheduledOccurrences(habit, startDateKey, endDateKey, userTimezone = 'UTC') {
   if (!habit || !startDateKey || !endDateKey || startDateKey > endDateKey) return 0;
   const createdKey = habit.createdAt
-    ? getDateKeyInTimezone(habit.createdAt, habit.timezone || 'UTC')
+    ? getDateKeyInTimezone(habit.createdAt, userTimezone || 'UTC')
     : startDateKey;
   const start = startDateKey > createdKey ? startDateKey : createdKey;
   let count = 0;
