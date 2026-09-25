@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Mail, Lock, Eye, EyeOff, Shield, Check, User } from "lucide-react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import useApiStore from "../store/apiStore";
 import toast from 'react-hot-toast';
 import MultiStepSignup from "../components/MultiStepSignup";
@@ -25,10 +25,9 @@ const AuthPage = () => {
 
   const { login, googleLogin, loading, error, isAuthenticated } = useApiStore();
   const navigate = useNavigate();
-  const location = useLocation();
   
-  // Get the page user was trying to access, or default to dashboard
-  const from = location.state?.from?.pathname || "/dashboard";
+  // Use the same landing page for web and native sign-in.
+  const from = "/dashboard";
 
   // Redirect if already authenticated
   useEffect(() => {

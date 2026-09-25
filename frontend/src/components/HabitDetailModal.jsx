@@ -81,8 +81,8 @@ export default function HabitDetailModal({ habit, isOpen, onClose, onLog, onEdit
       }
     };
 
-    document.addEventListener('mousedown', handleOutsideClick);
-    return () => document.removeEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('pointerdown', handleOutsideClick);
+    return () => document.removeEventListener('pointerdown', handleOutsideClick);
   }, [isOpen]);
   
   if (!isOpen || !habit) return null;
@@ -444,13 +444,41 @@ export default function HabitDetailModal({ habit, isOpen, onClose, onLog, onEdit
             </button>
 
             <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setIsMoreMenuOpen((prev) => !prev)}
-                className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              <div
+                ref={moreMenuRef}
+                className="relative"
+                onKeyDown={(event) => {
+                  if (event.key === 'Escape' && isMoreMenuOpen) {
+                    event.stopPropagation();
+                    setIsMoreMenuOpen(false);
+                    moreMenuRef.current?.querySelector('button')?.focus();
+                  }
+                }}
+                onBlur={(event) => {
+                  if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget)) setIsMoreMenuOpen(false);
+                }}
               >
-                More <ChevronDown className="h-4 w-4" />
-              </button>
+                <button
+                  type="button"
+                  aria-expanded={isMoreMenuOpen}
+                  aria-controls="habit-detail-more-actions"
+                  onClick={() => setIsMoreMenuOpen((prev) => !prev)}
+                  className="inline-flex min-h-[44px] items-center gap-1.5 px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
+                  More <ChevronDown className={`h-4 w-4 transition-transform ${isMoreMenuOpen ? 'rotate-180' : ''}`} />
+                </button>
+                {isMoreMenuOpen && (
+                  <div id="habit-detail-more-actions" className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 z-10 w-48 sm:w-56 max-w-[calc(100vw-3rem)] p-1.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={handleAnalyticsClick}
+                      className="w-full min-h-[48px] rounded-lg px-3 py-3 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 focus-visible:outline-none focus-visible:bg-blue-50 dark:focus-visible:bg-gray-700 inline-flex items-center gap-2"
+                    >
+                      <BarChart3 className="h-4 w-4" /> Analytics
+                    </button>
+                  </div>
+                )}
+              </div>
               <button
                 type="button"
                 onClick={isUpdateAction ? handleUpdateEditedEntries : handleMarkDone}
@@ -470,18 +498,6 @@ export default function HabitDetailModal({ habit, isOpen, onClose, onLog, onEdit
           {showLoggedTooltip && (
             <div className="mt-2 inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium text-[#4c99e6] bg-[#4c99e6]/10 border border-[#4c99e6]/20">
               Logged! You can log again anytime today
-            </div>
-          )}
-
-          {isMoreMenuOpen && (
-            <div ref={moreMenuRef} className="absolute right-6 bottom-20 w-48 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg overflow-hidden">
-              <button
-                type="button"
-                onClick={handleAnalyticsClick}
-                className="w-full px-3 py-2.5 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 inline-flex items-center gap-2"
-              >
-                <BarChart3 className="h-4 w-4" /> Analytics
-              </button>
             </div>
           )}
         </div>

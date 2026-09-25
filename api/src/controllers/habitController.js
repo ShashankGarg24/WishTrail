@@ -103,6 +103,8 @@ exports.listHabits = async (req, res, next) => {
     } else if (sort === 'completion') {
       sortBy = 'total_completions';
       sortOrder = 'DESC';
+    } else if (sort === 'recent_logged') {
+      sortBy = 'recent_logged';
     }
 
     const offset = (page - 1) * limit;
@@ -120,6 +122,7 @@ exports.listHabits = async (req, res, next) => {
       SELECT COUNT(*) as total
       FROM habits
       WHERE user_id = $1
+      ${sort === 'recent_logged' ? 'AND EXISTS (SELECT 1 FROM habit_logs hl WHERE hl.habit_id = habits.id AND hl.user_id = habits.user_id)' : ''}
     `;
     const countResult = await query(countSql, [targetUserId]);
     const total = parseInt(countResult.rows[0].total);
@@ -157,6 +160,7 @@ exports.listHabits = async (req, res, next) => {
 
         return {
           ...sh,
+          ...(sort === 'recent_logged' ? { lastLoggedAt: h.lastLoggedAt } : {}),
           todayStatus: todayStatusMap[h.id] || null,
           todayCompletionCount: todayCompletionCountMap[h.id] || 0
         };

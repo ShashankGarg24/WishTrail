@@ -98,12 +98,27 @@ class PgHabitService {
     const sortField = allowedSortFields.includes(sortBy) ? sortBy : 'created_at';
     const order = sortOrder.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
 
+    // Rank actual log activity before pagination, including repeated logs in a day.
+    const recentLogsJoin = sortBy === 'recent_logged' ? `
+      INNER JOIN LATERAL (
+        SELECT MAX(COALESCE((entry->>'timestamp')::timestamptz, hl.created_at)) AS last_logged_at
+        FROM habit_logs hl
+        LEFT JOIN LATERAL unnest(hl.completion_times_mood) AS entry ON true
+        WHERE hl.habit_id = h.id AND hl.user_id = h.user_id
+      ) recent_log ON recent_log.last_logged_at IS NOT NULL
+    ` : '';
+    const orderBy = sortBy === 'recent_logged'
+      ? 'recent_log.last_logged_at DESC, h.id DESC'
+      : `h.${sortField} ${order}`;
+
     const sql = `
       SELECT h.*, u.username, u.name as user_name, u.avatar_url
+        ${sortBy === 'recent_logged' ? ', recent_log.last_logged_at' : ''}
       FROM habits h
       INNER JOIN users u ON h.user_id = u.id
+      ${recentLogsJoin}
       WHERE ${conditions.join(' AND ')}
-      ORDER BY h.${sortField} ${order}
+      ORDER BY ${orderBy}
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
 
@@ -485,6 +500,7 @@ class PgHabitService {
       currentStreak: row.current_streak,
       longestStreak: row.longest_streak,
       lastLoggedDateKey: row.last_logged_date_key,
+      lastLoggedAt: row.last_logged_at || null,
       totalCompletions: row.total_completions,
       totalDays: row.total_days,
       targetCompletions: row.target_completions,

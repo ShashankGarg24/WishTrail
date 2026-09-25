@@ -116,6 +116,7 @@ const ProfilePage = () => {
   const [exportOpen, setExportOpen] = useState(false);
   const [myHabits, setMyHabits] = useState([]);
   const [userHabits, setUserHabits] = useState([]);
+  const [recentHabits, setRecentHabits] = useState([]);
   const [habitsPage, setHabitsPage] = useState(1);
   const [hasMoreHabits, setHasMoreHabits] = useState(false);
   const [loadingMoreHabits, setLoadingMoreHabits] = useState(false);
@@ -460,7 +461,11 @@ const ProfilePage = () => {
         ? { page: 1, limit: HABITS_PER_PAGE }
         : { username: targetUserName, page: 1, limit: HABITS_PER_PAGE };
         
-      const result = await habitsAPI.list(params);
+      const [result, historyResult] = await Promise.all([
+        habitsAPI.list(params),
+        habitsAPI.list({ ...params, limit: 5, sort: 'recent_logged' })
+      ]);
+      setRecentHabits(historyResult.data.success ? historyResult.data.data.habits || [] : []);
       if (result.data.success) {
         setUserHabits(result.data.data.habits || []);
         const totalPages = result.data.data.pagination?.pages || 1;
@@ -1466,6 +1471,7 @@ const ProfilePage = () => {
                       <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500" />
                       Habit History
                     </h3>
+                    <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-4">The five most recently logged habits.</p>
                     <div className="overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0">
                       <table className="w-full text-xs sm:text-sm min-w-[500px]">
                         <thead>
@@ -1476,14 +1482,8 @@ const ProfilePage = () => {
                           </tr>
                         </thead>
                         <tbody>
-                          {userHabits.length > 0 ? (
-                            [...userHabits].sort((a, b) => {
-                              const archived = Number(Boolean(a.archived || a.isArchived)) - Number(Boolean(b.archived || b.isArchived));
-                              if (archived) return archived;
-                              const streak = (b.currentStreak || 0) - (a.currentStreak || 0);
-                              if (streak) return streak;
-                              return new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0);
-                            }).slice(0, 5).map((h) => (
+                          {recentHabits.length > 0 ? (
+                            recentHabits.map((h) => (
                               <tr key={h.id} className="border-b border-gray-100 dark:border-gray-700/50">
                                 <td className="py-3 flex items-center gap-2">
                                   <span className="text-gray-400">•</span>
@@ -1499,7 +1499,7 @@ const ProfilePage = () => {
                             ))
                           ) : (
                             <tr>
-                              <td colSpan={4} className="py-8 text-center text-gray-500 dark:text-gray-400 text-sm">
+                              <td colSpan={3} className="py-8 text-center text-gray-500 dark:text-gray-400 text-sm">
                                 No habit history yet
                               </td>
                             </tr>
@@ -1540,17 +1540,17 @@ const ProfilePage = () => {
                   {isOwnProfile && (
                     <div className="space-y-5">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                        <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-900/40 p-5">
-                          <p className="text-xs uppercase tracking-[0.2em] text-gray-500 dark:text-gray-400">Last 7 Days</p>
-                          <p className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white mt-2">{loggedDaysCount} / 7 days logged</p>
-                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Keep the streak going.</p>
+                        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-900/40 p-4">
+                          <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Last 7 days</p>
+                          <p className="text-base font-semibold text-gray-900 dark:text-white mt-1.5">{loggedDaysCount} of 7 days logged</p>
+                          <p className="text-xs leading-relaxed text-gray-500 dark:text-gray-400 mt-1">A little reflection, every day.</p>
                         </div>
-                        <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-900/40 p-5">
-                          <p className="text-xs uppercase tracking-[0.2em] text-gray-500 dark:text-gray-400">Mood Trend</p>
-                          <p className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white mt-2">
+                        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-900/40 p-4">
+                          <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Mood trend</p>
+                          <p className="text-base font-semibold text-gray-900 dark:text-white mt-1.5">
                             {averageMood ? DAILY_LOG_MOOD_META[averageMood].label : 'No mood data yet'}
                           </p>
-                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">{averageMood ? `Based on ${moodSampleCount} mood-tagged logs` : 'Add a log to start tracking patterns.'}</p>
+                          <p className="text-xs leading-relaxed text-gray-500 dark:text-gray-400 mt-1">{averageMood ? `From ${moodSampleCount} ${moodSampleCount === 1 ? 'log' : 'logs'} with a mood` : 'Log your mood to see a trend.'}</p>
                         </div>
                       </div>
 
@@ -1916,10 +1916,13 @@ const ProfilePage = () => {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ duration: 0.2 }}
-            className="relative"
+            className="relative w-full max-w-md min-w-0"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Mood and quote"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full border border-gray-200 dark:border-gray-700">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-h-[calc(100dvh-2rem)] overflow-y-auto border border-gray-200 dark:border-gray-700">
               {/* Mood Header */}
               <div className="flex items-center justify-center pt-8 pb-4">
                 <div 
@@ -1941,15 +1944,15 @@ const ProfilePage = () => {
               {displayUser.quote ? (
                 <div className="px-6 pb-6">
                   <div 
-                    className="p-5 rounded-xl border-l-4"
+                    className="min-h-[7rem] p-5 rounded-xl border-l-4 flex items-center"
                     style={{ 
                       backgroundColor: 'rgba(76, 153, 230, 0.08)',
                       borderLeftColor: '#4c99e6'
                     }}
                   >
-                    <div className="flex items-start gap-3">
-                      <div className="flex-1">
-                        <p className="text-gray-800 dark:text-gray-200 leading-relaxed italic">
+                    <div className="flex min-w-0 w-full items-start gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm sm:text-base text-gray-800 dark:text-gray-200 leading-relaxed italic whitespace-pre-wrap [overflow-wrap:anywhere]">
                           &ldquo;{displayUser.quote}&rdquo;
                         </p>
                       </div>
@@ -1958,7 +1961,7 @@ const ProfilePage = () => {
                 </div>
               ) : (
                 <div className="px-6 pb-6">
-                  <div className="p-5 rounded-xl bg-gray-50 dark:bg-gray-700/30 text-center">
+                  <div className="min-h-[7rem] p-5 rounded-xl bg-gray-50 dark:bg-gray-700/30 flex items-center justify-center text-center">
                     <p className="text-sm text-gray-500 dark:text-gray-400 italic">
                       No quote shared yet
                     </p>
