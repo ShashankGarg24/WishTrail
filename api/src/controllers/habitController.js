@@ -15,7 +15,7 @@ const MAX_HABIT_DESC_CHARS = 200;
 
 exports.createHabit = async (req, res, next) => {
   try {
-    const { name, description, frequency, daysOfWeek, timezone, reminders, goalId, isPublic } = req.body;
+    const { name, description, frequency, daysOfWeek, timezone, reminders, goalId, isPublic, targetCompletions, targetDays } = req.body;
     const normalizedName = typeof name === 'string' ? name.trim() : '';
     const normalizedDescription = typeof description === 'string' ? description.trimEnd() : '';
     if (!normalizedName) {
@@ -34,7 +34,7 @@ exports.createHabit = async (req, res, next) => {
     const errorResponse = handleValidationResponse(res, validation);
     if (errorResponse) return errorResponse;
 
-    const habit = await pgHabitService.createHabit({ userId: req.user.id, name: normalizedName, description: normalizedDescription, frequency, daysOfWeek, timezone, reminders, goalId, isPublic });
+    const habit = await pgHabitService.createHabit({ userId: req.user.id, name: normalizedName, description: normalizedDescription, frequency, daysOfWeek, timezone, reminders, goalId, isPublic, targetCompletions, targetDays });
     res.status(201).json({ success: true, data: { habit } });
   } catch (error) { next(error); }
 };

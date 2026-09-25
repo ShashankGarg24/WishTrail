@@ -53,28 +53,28 @@ function computeTargetCount(habitDoc, startDate, endDate) {
  * otherwise falls back to scheduled days calculation.
  */
 async function computeHabitLinkProgress(userId, link, goal) {
-  const habit = await pgHabitService.getHabit(link.habitId, userId);
+  const habit = await pgHabitService.getHabitById(link.habitId, userId);
   if (!habit) return { ratio: 0, targetCount: 0, doneCount: 0 };
 
-  // Priority 1: Use habit's target_completions if available
-  if (habit.target_completions && habit.target_completions > 0) {
-    const currentCompletions = habit.total_completions || 0;
-    const ratio = clamp01(currentCompletions / habit.target_completions);
+  // Priority 1: Use habit's completion target if available
+  if (habit.targetCompletions && habit.targetCompletions > 0) {
+    const currentCompletions = habit.totalCompletions || 0;
+    const ratio = clamp01(currentCompletions / habit.targetCompletions);
     return { 
       ratio, 
-      targetCount: habit.target_completions, 
+      targetCount: habit.targetCompletions,
       doneCount: currentCompletions,
       targetType: 'completions'
     };
   }
 
-  // Priority 2: Use habit's target_days if available
-  if (habit.target_days && habit.target_days > 0) {
-    const currentDays = habit.total_days || 0;
-    const ratio = clamp01(currentDays / habit.target_days);
+  // Priority 2: Use habit's day target if available
+  if (habit.targetDays && habit.targetDays > 0) {
+    const currentDays = habit.totalDays || 0;
+    const ratio = clamp01(currentDays / habit.targetDays);
     return { 
       ratio, 
-      targetCount: habit.target_days, 
+      targetCount: habit.targetDays,
       doneCount: currentDays,
       targetType: 'days'
     };
@@ -468,11 +468,11 @@ async function setHabitLinks(goalId, userId, links) {
   for (const l of (Array.isArray(links) ? links : [])) {
     const id = l.habitId ? Number(l.habitId) : null;
     if (!id) continue;
-    const exists = await pgHabitService.getHabit(id, goal.user_id);
+    const exists = await pgHabitService.getHabitById(id, goal.user_id);
     if (!exists) continue;
     
     // Validate that habit has at least one target set
-    if (!exists.target_days && !exists.target_completions) {
+    if (!exists.targetDays && !exists.targetCompletions) {
       throw Object.assign(
         new Error(`Habit "${exists.name || 'Unknown'}" must have either target days or target completions set before being linked to a goal.`), 
         { statusCode: 400 }
