@@ -95,37 +95,9 @@ const InspirationPage = () => {
     return category?.label || categoryId;
   };
 
-  const GOAL_ACTIVITY_TYPES = new Set([
-    'goal_completed',
-    'goal_created',
-    'goal_activity',
-    'subgoal_completed',
-    'subgoal_added',
-    'subgoal_removed',
-    'subgoal_uncompleted',
-    'habit_added',
-    'habit_removed',
-    'habit_target_achieved'
-  ]);
-
-  const getActivityEffectiveDate = (activity) => {
-    const createdAt = activity?.createdAt;
-    const isGoalActivity = GOAL_ACTIVITY_TYPES.has(activity?.type);
-
-    if (!isGoalActivity) return createdAt;
-
-    const isCompleted =
-      activity?.type === 'goal_completed' ||
-      activity?.data?.lastUpdateType === 'completed' ||
-      !!activity?.data?.completedAt ||
-      !!activity?.data?.goal?.completedAt;
-
-    if (isCompleted) {
-      return activity?.data?.completionMarkedAt || activity?.data?.completedAt || activity?.data?.goal?.completedAt || createdAt;
-    }
-
-    return createdAt;
-  };
+  // Public activity timing always comes from the activity record itself. A
+  // goal's completion date is a separate, user-editable calendar value.
+  const getActivityEffectiveDate = (activity) => activity?.createdAt;
   
   const handleOpenGoal = (goalId) => {
     setSelectedGoalId(goalId);

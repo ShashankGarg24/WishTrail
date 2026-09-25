@@ -34,7 +34,10 @@ const ActivityDetailModal = ({ isOpen, onClose, activity, onOpenComments, onRepo
   }
 
   // Determine completion/creation time for header and info row
-  const activityTime = activity?.data?.completionMarkedAt || activity?.data?.metadata?.completedAt || activity?.data?.completedAt || activity?.completedAt || activity?.createdAt
+  const isCompletedGoalActivity = activity?.type === 'goal_completed' || activity?.data?.lastUpdateType === 'completed'
+  const activityTime = isCompletedGoalActivity
+    ? (activity?.data?.completionMarkedAt || activity?.createdAt)
+    : (activity?.createdAt || activity?.data?.metadata?.completedAt || activity?.data?.completedAt || activity?.completedAt)
   const totalComments = activity?.commentCount || 0
 
   useEffect(() => {
