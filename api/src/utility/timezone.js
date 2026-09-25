@@ -242,6 +242,7 @@ module.exports = {
   getCurrentDateInTimezone,
   getDateKeyInTimezone,
   shiftDateKey,
+  zonedDateTimeToUtc,
   getStartOfDayInTimezone,
   getEndOfDayInTimezone,
   localToUTC,

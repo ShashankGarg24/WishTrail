@@ -10,9 +10,32 @@ const { transaction: pgTransaction, query: pgQuery } = require('../config/supaba
 const mongoose = require('mongoose');
 const { sanitizeGoalsForProfile } = require('../utility/sanitizer');
 const GoalDetails = require('../models/extended/GoalDetails');
-const { getCurrentDateInTimezone } = require('../utility/timezone');
+const { getCurrentDateInTimezone, zonedDateTimeToUtc } = require('../utility/timezone');
 
 const ALLOWED_GOAL_UPDATE_EMOTIONS = new Set(['great', 'good', 'okay', 'challenging', 'neutral']);
+
+// A completion date is a calendar date in the user's timezone. Store it at
+// local noon in UTC so timezone conversion cannot move it to an adjacent day.
+const getCompletionTimestamp = (completionDate, userTimezone, { defaultToToday = false } = {}) => {
+  const dateKey = typeof completionDate === 'string' ? completionDate.trim() : '';
+  if (!dateKey && !defaultToToday) return null;
+
+  const effectiveDateKey = dateKey || getCurrentDateInTimezone(userTimezone);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(effectiveDateKey)) {
+    throw Object.assign(new Error('Completion date must be a valid date'), { statusCode: 400 });
+  }
+
+  const parsed = new Date(`${effectiveDateKey}T12:00:00.000Z`);
+  if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== effectiveDateKey) {
+    throw Object.assign(new Error('Completion date must be a valid date'), { statusCode: 400 });
+  }
+
+  if (effectiveDateKey > getCurrentDateInTimezone(userTimezone)) {
+    throw Object.assign(new Error('Completion date cannot be in the future'), { statusCode: 400 });
+  }
+
+  return zonedDateTimeToUtc(effectiveDateKey, userTimezone, 12);
+};
 // @desc    Search goals (completed, discoverable, public users)
 // @route   GET /api/v1/goals/search?q=&category=&interest=&page=&limit=
 // @access  Private
@@ -1255,7 +1278,7 @@ const toggleGoalCompletion = async (req, res, next) => {
         errors: errors.array(),
       })
     }
-    const { completionNote, attachmentUrl, isPublic, completionFeeling } = req.body
+    const { completionNote, attachmentUrl, isPublic, completionFeeling, completionDate } = req.body
     const normalizedCompletionNote = typeof completionNote === 'string' ? completionNote.trimEnd() : '';
     if (normalizedCompletionNote.length > MAX_COMPLETION_NOTE_CHARS) {
       return res.status(400).json({
@@ -1284,7 +1307,7 @@ const toggleGoalCompletion = async (req, res, next) => {
       // Get user's timezone to calculate correct "today"
       const pgUser = await pgUserService.getUserById(req.user.id);
       const userTimezone = pgUser?.timezone || 'UTC';
-      const todayKey = getCurrentDateInTimezone(userTimezone);
+      const completionTimestamp = getCompletionTimestamp(completionDate, userTimezone, { defaultToToday: true });
 
       // Daily completions tracking is deprecated (was in MongoDB User model)
       // TODO: Implement daily completions tracking in a separate collection or PostgreSQL
@@ -1304,7 +1327,7 @@ const toggleGoalCompletion = async (req, res, next) => {
         resultGoal = await pgGoalService.getGoalById(goal.id);
       } else {
         // Complete goal in PostgreSQL and update isPublic if changed
-        const updated = await pgGoalService.completeGoal(goal.id, req.user.id);
+        const updated = await pgGoalService.completeGoal(goal.id, req.user.id, completionTimestamp);
         logger.info('[toggleGoalCompletion] Updated goal from pgGoalService:', JSON.stringify(updated, null, 2));
         if (!updated) {
           throw Object.assign(new Error('Goal state changed, please retry'), { statusCode: 409 });
@@ -1451,7 +1474,7 @@ const toggleGoalCompletion = async (req, res, next) => {
 // @access  Private
 const updateGoalCompletion = async (req, res, next) => {
   try {
-    const { completionNote, attachmentUrl, isPublic, completionFeeling } = req.body
+    const { completionNote, attachmentUrl, isPublic, completionFeeling, completionDate } = req.body
     const normalizedCompletionNote = typeof completionNote === 'string' ? completionNote.trimEnd() : '';
     if (normalizedCompletionNote.length > MAX_COMPLETION_NOTE_CHARS) {
       return res.status(400).json({
@@ -1470,10 +1493,18 @@ const updateGoalCompletion = async (req, res, next) => {
       return res.status(403).json({ success: false, message: 'Access denied' });
     }
     
+    const pgUser = await pgUserService.getUserById(req.user.id);
+    const userTimezone = pgUser?.timezone || 'UTC';
+    const hasCompletionDate = typeof completionDate === 'string' && completionDate.trim().length > 0;
+
     // If endpoint is called directly for an incomplete goal,
     // complete it first and continue updating completion payload.
     if (!goal.completed_at) {
-      const completedGoal = await pgGoalService.completeGoal(goal.id, req.user.id);
+      const completedGoal = await pgGoalService.completeGoal(
+        goal.id,
+        req.user.id,
+        getCompletionTimestamp(completionDate, userTimezone, { defaultToToday: true })
+      );
       if (!completedGoal) {
         return res.status(409).json({ success: false, message: 'Goal state changed, please retry' });
       }
@@ -1482,6 +1513,16 @@ const updateGoalCompletion = async (req, res, next) => {
         ...completedGoal,
         completed_at: completedGoal.completed_at
       };
+    } else if (hasCompletionDate) {
+      const updatedCompletionDate = await pgGoalService.updateCompletionDate(
+        goal.id,
+        req.user.id,
+        getCompletionTimestamp(completionDate, userTimezone)
+      );
+      if (!updatedCompletionDate) {
+        return res.status(409).json({ success: false, message: 'Goal state changed, please retry' });
+      }
+      goal = { ...goal, ...updatedCompletionDate, completed_at: updatedCompletionDate.completed_at };
     }
     
     const session = await mongoose.startSession();
@@ -1508,7 +1549,6 @@ const updateGoalCompletion = async (req, res, next) => {
       );
       
       // Get user details for activity update
-      const pgUser = await pgUserService.getUserById(req.user.id);
       const goalDetails = await GoalDetails.findOne({ goalId: goal.id }).session(session);
       
       // Update activity with new completion data

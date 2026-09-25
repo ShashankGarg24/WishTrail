@@ -345,7 +345,8 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, onEditCom
           existingData={{
             completionNote: wish.completionNote || '',
             completionAttachmentUrl: wish.completionAttachmentUrl || '',
-            completionFeeling: wish.completionFeeling || 'neutral'
+            completionFeeling: wish.completionFeeling || 'neutral',
+            completedAt: wish.completedAt
           }}
         /></Suspense>,
         document.body
@@ -406,4 +407,4 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, onEditCom
   )
 }
 
-export default WishCard 
+export default WishCard

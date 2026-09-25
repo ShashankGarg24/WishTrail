@@ -1294,7 +1294,8 @@ const DashboardPageNew = () => {
             existingData={{
               completionNote: goalToEdit.completionNote || '',
               completionAttachmentUrl: goalToEdit.completionAttachmentUrl || '',
-              completionFeeling: goalToEdit.completionFeeling || 'neutral'
+              completionFeeling: goalToEdit.completionFeeling || 'neutral',
+              completedAt: goalToEdit.completedAt
             }}
           />
         )}

@@ -187,16 +187,16 @@ class GoalService {
   /**
    * Toggle goal completion
    */
-  async completeGoal(id, userId) {
+  async completeGoal(id, userId, completedAt = null) {
     const queryText = `
       UPDATE goals
-      SET completed_at = CURRENT_TIMESTAMP,
+      SET completed_at = COALESCE($3::timestamptz, CURRENT_TIMESTAMP),
           updated_at = CURRENT_TIMESTAMP
       WHERE id = $1 AND user_id = $2 AND completed_at IS NULL
       RETURNING id, user_id, title, category, year, completed_at, created_at, updated_at
     `;
     
-    const result = await query(queryText, [id, userId]);
+    const result = await query(queryText, [id, userId, completedAt]);
     if (!result.rows[0]) return null;
 
     // Keep users.completed_goals in sync
@@ -209,6 +209,20 @@ class GoalService {
     );
 
     return result.rows[0];
+  }
+
+  /** Update the calendar date on an already completed goal. */
+  async updateCompletionDate(id, userId, completedAt) {
+    const queryText = `
+      UPDATE goals
+      SET completed_at = $3::timestamptz,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = $1 AND user_id = $2 AND completed_at IS NOT NULL
+      RETURNING id, user_id, title, category, year, completed_at, created_at, updated_at
+    `;
+
+    const result = await query(queryText, [id, userId, completedAt]);
+    return result.rows[0] || null;
   }
   
   /**

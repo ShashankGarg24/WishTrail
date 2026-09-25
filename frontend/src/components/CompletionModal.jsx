@@ -2,6 +2,7 @@ import { useState, useEffect, lazy, Suspense } from 'react'
 import { motion } from 'framer-motion'
 import { X, CheckCircle, AlertCircle, FileText, Share2, Lock, Globe, Image as ImageIcon, Smile, Meh, Frown } from 'lucide-react'
 import useApiStore from '../store/apiStore'
+import { getCurrentDateKey, getDateKeyInTimezone } from '../utils/timezoneUtils'
 const CelebrationModal = lazy(() => import('./CelebrationModal'));
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
 
@@ -17,6 +18,7 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal, isEditM
   const [existingAttachmentUrl, setExistingAttachmentUrl] = useState(existingData?.completionAttachmentUrl || '')
   const [removeExistingImage, setRemoveExistingImage] = useState(false)
   const [completionFeeling, setCompletionFeeling] = useState(existingData?.completionFeeling || 'neutral')
+  const [completionDate, setCompletionDate] = useState('')
   const { loading } = useApiStore()
   const [isSubmitting, setIsSubmitting] = useState(false)
   
@@ -31,6 +33,9 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal, isEditM
       setExistingAttachmentUrl(existingData.completionAttachmentUrl || '')
       setAttachmentPreview(existingData.completionAttachmentUrl || '')
       setIsPublic(goal?.isPublic ?? true)
+      setCompletionDate(existingData.completedAt ? getDateKeyInTimezone(existingData.completedAt) : '')
+    } else if (!isEditMode) {
+      setCompletionDate('')
     }
   }, [isEditMode, existingData, goal])
 
@@ -106,6 +111,7 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal, isEditM
       form.append('completionNote', normalizedCompletionNote)
       form.append('isPublic', String(isPublic))
       form.append('completionFeeling', completionFeeling)
+      if (completionDate) form.append('completionDate', completionDate)
       
       // Handle image update logic
       if (attachmentFile) {
@@ -125,6 +131,7 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal, isEditM
         setCompletionNote('')
         setIsPublic(goal?.isPublic ?? true)
         setCompletionFeeling('neutral')
+        setCompletionDate('')
         setAttachmentFile(null)
         setAttachmentError('')
         if (attachmentPreview && !existingAttachmentUrl) URL.revokeObjectURL(attachmentPreview)
@@ -160,6 +167,7 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal, isEditM
     setCompletionNote('')
     setIsPublic(goal?.isPublic ?? true)
     setCompletionFeeling('neutral')
+    setCompletionDate('')
     setAttachmentFile(null)
     setAttachmentError('')
     if (attachmentPreview) URL.revokeObjectURL(attachmentPreview)
@@ -244,7 +252,7 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal, isEditM
           {/* What did you achieve */}
           <div>
             <label htmlFor="completionNote" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" style={{ fontFamily: 'Manrope' }}>
-              What did you achieve today?
+              What did you achieve?
             </label>
             <textarea
               id="completionNote"
@@ -261,6 +269,24 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal, isEditM
                 {charCount}/{MAX_NOTE_CHARS} chars
               </span>
             </div>
+          </div>
+
+          <div>
+            <label htmlFor="completionDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" style={{ fontFamily: 'Manrope' }}>
+              Completion date <span className="text-gray-500 text-xs">(optional)</span>
+            </label>
+            <input
+              id="completionDate"
+              type="date"
+              value={completionDate}
+              max={getCurrentDateKey()}
+              onChange={(e) => setCompletionDate(e.target.value)}
+              className="w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-primary-500/20 bg-white dark:bg-gray-800 dark:text-white text-gray-900 transition-colors border-gray-300 dark:border-gray-700"
+              style={{ fontFamily: 'Manrope', borderColor: THEME_COLOR + '4d' }}
+            />
+            <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+              {isEditMode ? 'Change this to correct when you completed the goal.' : 'Leave blank to use today in your timezone.'}
+            </p>
           </div>
 
           {/* How did it feel */}
@@ -402,4 +428,4 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal, isEditM
   )
 }
 
-export default CompletionModal 
+export default CompletionModal
