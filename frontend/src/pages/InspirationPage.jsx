@@ -121,7 +121,7 @@ const InspirationPage = () => {
       !!activity?.data?.goal?.completedAt;
 
     if (isCompleted) {
-      return activity?.data?.completedAt || activity?.data?.goal?.completedAt || createdAt;
+      return activity?.data?.completionMarkedAt || activity?.data?.completedAt || activity?.data?.goal?.completedAt || createdAt;
     }
 
     return createdAt;

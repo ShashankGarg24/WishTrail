@@ -23,9 +23,21 @@ import { createPortal } from 'react-dom'
 import { goalsAPI } from '../services/api'
 import ExpandableText from '../components/ExpandableText'
 import MetricInfoModal from '../components/MetricInfoModal'
+import { getDateKeyInTimezone } from '../utils/timezoneUtils'
 
 const THEME_COLOR = '#4c99e6'
 const GOAL_UPDATES_PAGE_SIZE = 10
+
+const getCalendarDaysBetween = (start, end) => {
+  if (!start || !end) return null
+
+  const startKey = getDateKeyInTimezone(start)
+  const endKey = getDateKeyInTimezone(end)
+  const startDay = new Date(`${startKey}T00:00:00.000Z`)
+  const endDay = new Date(`${endKey}T00:00:00.000Z`)
+
+  return Math.max(0, Math.round((endDay - startDay) / (1000 * 60 * 60 * 24)))
+}
 
 const CompletionModal = lazy(() => import('../components/CompletionModal'));
 
@@ -217,8 +229,9 @@ const GoalAnalyticsPage = () => {
     const targetDate = goal.targetDate ? new Date(goal.targetDate) : null
     const completedDate = goal.completedAt ? new Date(goal.completedAt) : null
     
-    // Days calculations
-    const daysSinceCreation = Math.floor((now - createdDate) / (1000 * 60 * 60 * 24))
+    // Completion duration uses calendar days in the user's timezone, rather
+    // than elapsed 24-hour blocks, so it matches the selected completion date.
+    const daysToComplete = completedDate ? getCalendarDaysBetween(createdDate, completedDate) : null
     const daysUntilDeadline = targetDate ? Math.floor((targetDate - now) / (1000 * 60 * 60 * 24)) : null
     
     // The API owns goal-progress calculation so weighted components stay consistent.
@@ -286,7 +299,7 @@ const GoalAnalyticsPage = () => {
     }
     
     return {
-      daysSinceCreation,
+      daysToComplete,
       daysUntilDeadline,
       progressPercent,
       subGoalsTotal,
@@ -425,7 +438,7 @@ const GoalAnalyticsPage = () => {
           </motion.div>
 
           <motion.div
-            onClick={() => setMetricInfo({ title: 'Days Since Creation', description: 'How many calendar days have passed since you created this goal.' })}
+            onClick={() => setMetricInfo({ title: 'Time to Complete', description: 'The number of calendar days from creating this goal to marking it complete. It appears once the goal reaches 100% completion.', note: 'If you correct the completion date, this metric updates to match it.' })}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.15 }}
@@ -435,10 +448,12 @@ const GoalAnalyticsPage = () => {
               <div className="p-1.5 sm:p-2 rounded-lg" style={{ background: THEME_COLOR }}>
                 <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
               </div>
-              <span className="text-xs sm:text-sm font-medium" style={{ color: THEME_COLOR }}>Days Since Creation</span>
+              <span className="text-xs sm:text-sm font-medium" style={{ color: THEME_COLOR }}>Time to Complete</span>
             </div>
-            <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white">{analytics?.daysSinceCreation || 0}</p>
-            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">days on this goal</p>
+            <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white">{analytics?.daysToComplete ?? '—'}</p>
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+              {analytics?.daysToComplete !== null && analytics?.daysToComplete !== undefined ? 'days to complete' : 'Complete the goal to measure'}
+            </p>
           </motion.div>
 
           <motion.div

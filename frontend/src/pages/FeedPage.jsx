@@ -106,7 +106,7 @@ const FeedPage = () => {
       },
       type: activityType,
       action,
-      timestamp: formatTimeAgo(createdAt),
+      timestamp: formatTimeAgo(data?.completionMarkedAt || createdAt),
       content,
       completionNote,
       completionImage,

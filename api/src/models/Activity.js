@@ -49,6 +49,9 @@ const activitySchema = new mongoose.Schema({
       type: Number
     },
     lastUpdateType: String, // 'created', 'completed', 'subgoal_added', 'subgoal_completed', etc.
+    // The actual moment a goal was marked complete. This is intentionally
+    // separate from the goal's user-selected completion calendar date.
+    completionMarkedAt: Date,
     
     // Timeline updates for goal_activity type
     updates: [{
@@ -189,7 +192,7 @@ activitySchema.statics.createActivity = async function(userId, name, username, a
 // Static method to create or update goal activity (consolidated)
 activitySchema.statics.createOrUpdateGoalActivity = async function(userId, name, username, avatar, updateType, goalData, options = {}) {
   try {
-    const { goalId, updates } = goalData;
+    const { goalId, updates, completionMarkedAt } = goalData;
 
     // If createNew option is set, always create a new standalone activity
     if (options.createNew) {
@@ -197,6 +200,9 @@ activitySchema.statics.createOrUpdateGoalActivity = async function(userId, name,
         goalId,
         lastUpdateType: updateType
       };
+      if (updateType === 'completed' && completionMarkedAt) {
+        activityData.completionMarkedAt = completionMarkedAt;
+      }
       
       // Add updates array if provided
       if (updates) {
@@ -240,6 +246,9 @@ activitySchema.statics.createOrUpdateGoalActivity = async function(userId, name,
       activity.username = username; // Update in case username changed
       activity.avatar = avatar; // Update in case avatar changed
       activity.data.lastUpdateType = updateType;
+      if (updateType === 'completed' && completionMarkedAt && !activity.data.completionMarkedAt) {
+        activity.data.completionMarkedAt = completionMarkedAt;
+      }
       
       // Update updates array if provided
       if (updates) {
@@ -273,6 +282,9 @@ activitySchema.statics.createOrUpdateGoalActivity = async function(userId, name,
         goalId,
         lastUpdateType: updateType
       };
+      if (updateType === 'completed' && completionMarkedAt) {
+        activityData.completionMarkedAt = completionMarkedAt;
+      }
       
       // Add updates array if provided
       if (updates) {

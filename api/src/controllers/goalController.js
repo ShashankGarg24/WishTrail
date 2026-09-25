@@ -1366,6 +1366,7 @@ const toggleGoalCompletion = async (req, res, next) => {
             goalCategory: goal.category,
             completionNote: shareCompletion ? normalizedCompletionNote : '',
             completionAttachmentUrl: shareCompletion ? (attachmentUrl || '') : '',
+            completionMarkedAt: new Date(),
             subGoalsCount: goalDetails?.subGoals?.length || 0,
             completedSubGoalsCount: (goalDetails?.subGoals || []).filter(sg => sg.completed).length
           },
@@ -1496,6 +1497,7 @@ const updateGoalCompletion = async (req, res, next) => {
     const pgUser = await pgUserService.getUserById(req.user.id);
     const userTimezone = pgUser?.timezone || 'UTC';
     const hasCompletionDate = typeof completionDate === 'string' && completionDate.trim().length > 0;
+    const wasIncomplete = !goal.completed_at;
 
     // If endpoint is called directly for an incomplete goal,
     // complete it first and continue updating completion payload.
@@ -1564,6 +1566,7 @@ const updateGoalCompletion = async (req, res, next) => {
           goalCategory: goal.category,
           completionNote: shareCompletion ? normalizedCompletionNote : '',
           completionAttachmentUrl: shareCompletion ? (attachmentUrl || '') : '',
+          ...(wasIncomplete ? { completionMarkedAt: new Date() } : {}),
           subGoalsCount: goalDetails?.subGoals?.length || 0,
           completedSubGoalsCount: (goalDetails?.subGoals || []).filter(sg => sg.completed).length
         },
