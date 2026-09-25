@@ -12,6 +12,7 @@ router.get('/', userController.getUsers);
 router.get('/dashboard', userController.getDashboardStats);
 router.get('/profile', userController.getProfileSummary);
 router.get('/analytics', userController.getAnalytics);
+router.delete('/account', userController.deleteAccount);
 router.post('/timezone', userController.updateTimezone);
 router.get('/dashboard/years', userController.getDashboardYears);
 router.post('/dashboard/years', userController.addDashboardYear);
@@ -28,4 +29,4 @@ router.put('/privacy', userController.updatePrivacy);
 // Block status helper
 router.get('/:userId/block-status', userController.getBlockStatus);
 
-module.exports = router; 
+module.exports = router;

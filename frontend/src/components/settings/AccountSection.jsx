@@ -2,10 +2,10 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Crown, Lock, Download, AlertTriangle, ExternalLink, UserX, AlertCircle, CheckCircle, Loader2, Sun, Moon } from 'lucide-react';
 import { motion } from 'framer-motion';
 import useApiStore from '../../store/apiStore';
-import { settingsAPI } from '../../services/api';
+import { settingsAPI, usersAPI } from '../../services/api';
 
 const AccountSection = () => {
-  const { user, isDarkMode, setThemeMode, syncThemeFromServer } = useApiStore();
+  const { user, isDarkMode, setThemeMode, syncThemeFromServer, logout } = useApiStore();
   const [privateAccount, setPrivateAccount] = useState(false);
   const [showHabits, setShowHabits] = useState(false);
   const [blocked, setBlocked] = useState([]);
@@ -18,6 +18,11 @@ const AccountSection = () => {
   const [initialLoading, setInitialLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] = useState('');
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteError, setDeleteError] = useState('');
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const blockedListRef = useRef(null);
   const observerTarget = useRef(null);
 
@@ -171,10 +176,32 @@ const AccountSection = () => {
   //   console.log('Deactivate account');
   // };
 
-  // const handleDeleteAccount = () => {
-  //   // TODO: Implement account deletion
-  //   console.log('Delete account');
-  // };
+  const closeDeleteDialog = () => {
+    if (isDeletingAccount) return;
+    setIsDeleteDialogOpen(false);
+    setDeleteConfirmation('');
+    setDeletePassword('');
+    setDeleteError('');
+  };
+
+  const handleDeleteAccount = async (event) => {
+    event.preventDefault();
+    if (deleteConfirmation !== 'DELETE') {
+      setDeleteError('Type DELETE exactly to confirm.');
+      return;
+    }
+
+    try {
+      setIsDeletingAccount(true);
+      setDeleteError('');
+      await usersAPI.deleteAccount({ confirmation: deleteConfirmation, currentPassword: deletePassword });
+      await logout();
+      window.location.replace('/auth?accountDeleted=1');
+    } catch (error) {
+      setDeleteError(error.response?.data?.message || 'We could not delete your account. Please try again.');
+      setIsDeletingAccount(false);
+    }
+  };
 
   // Mock subscription data - replace with actual data from API
   const subscriptionPlan = {
@@ -448,49 +475,49 @@ const AccountSection = () => {
             </div>
           </div>
 
-          {/* Danger Zone */}
-          {/* <div>
+          <div>
             <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
-              <div className="p-1.5 sm:p-2 rounded-lg bg-red-100 dark:bg-red-900/20">
-                <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-red-600 dark:text-red-400" />
-              </div>
-              <div>
-                <h3 className="text-sm sm:text-base font-semibold text-red-600 dark:text-red-400">Danger Zone</h3>
-              </div>
+              <div className="p-1.5 sm:p-2 rounded-lg bg-red-100 dark:bg-red-900/20"><AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-red-600 dark:text-red-400" /></div>
+              <h3 className="text-sm sm:text-base font-semibold text-red-600 dark:text-red-400">Danger Zone</h3>
             </div>
-
-            <div className="ml-0 sm:ml-11 space-y-2 sm:space-y-3">
-              <div className="p-3 sm:p-4 border-2 border-red-200 dark:border-red-900/30 rounded-lg">
-                <div className="mb-2 sm:mb-3">
-                  <p className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white mb-0.5 sm:mb-1">ACCOUNT TERMINATION</p>
-                </div>
-                
-                <div className="mb-3 sm:mb-4 pb-3 sm:pb-4 border-b border-red-200 dark:border-red-900/30">
-                  <button
-                    onClick={handleDeactivateAccount}
-                    className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-medium text-xs sm:text-sm"
-                  >
-                    Deactivate Account
-                  </button>
-                  <p className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400 mt-0.5 sm:mt-1">
-                    Temporarily disable your account. You can reactivate anytime.
-                  </p>
-                </div>
-
+            <div className="ml-0 sm:ml-11 rounded-lg border-2 border-red-200 p-3 sm:p-4 dark:border-red-900/30">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <button
-                    onClick={handleDeleteAccount}
-                    className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-medium text-xs sm:text-sm"
-                  >
-                    Delete Account
-                  </button>
-                  <p className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400 mt-0.5 sm:mt-1">
-                    Permanently remove your account and all associated data. This action cannot be undone.
-                  </p>
+                  <p className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white mb-1">Delete account</p>
+                  <p className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400">Permanently erase your profile, goals, habits, logs, activity, comments, sessions, and related data. This cannot be undone.</p>
                 </div>
+                <button type="button" onClick={() => setIsDeleteDialogOpen(true)} className="shrink-0 rounded-lg border border-red-300 px-3 py-2 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950/30">Delete account</button>
               </div>
             </div>
-          </div> */}
+          </div>
+        </div>
+      )}
+
+      {isDeleteDialogOpen && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/55 p-4" role="dialog" aria-modal="true" aria-labelledby="delete-account-title">
+          <motion.form
+            initial={{ opacity: 0, scale: 0.96, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            onSubmit={handleDeleteAccount}
+            className="w-full max-w-md rounded-2xl border border-red-200 bg-white p-5 shadow-2xl dark:border-red-900/50 dark:bg-gray-900 sm:p-6"
+          >
+            <div className="mb-4 flex items-start gap-3">
+              <div className="rounded-xl bg-red-100 p-2.5 dark:bg-red-950/50"><AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" /></div>
+              <div><h3 id="delete-account-title" className="text-lg font-bold text-gray-900 dark:text-white">Permanently delete account?</h3><p className="mt-1 text-sm text-gray-600 dark:text-gray-400">This action is immediate and cannot be reversed.</p></div>
+            </div>
+            <div className="mb-4 rounded-xl border border-red-100 bg-red-50 p-3 text-xs leading-5 text-red-900 dark:border-red-900/40 dark:bg-red-950/20 dark:text-red-200">We will erase your profile, goals, habits, logs, public activity, comments, preferences, notifications, device sessions, and related media.</div>
+            {deleteError && <p className="mb-3 rounded-lg bg-red-50 p-2.5 text-xs text-red-700 dark:bg-red-950/30 dark:text-red-300">{deleteError}</p>}
+            <label className="mb-3 block text-sm font-medium text-gray-800 dark:text-gray-200">Type <span className="font-bold">DELETE</span> to confirm
+              <input value={deleteConfirmation} onChange={(event) => setDeleteConfirmation(event.target.value)} autoComplete="off" disabled={isDeletingAccount} className="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm uppercase outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/15 dark:border-gray-700 dark:bg-gray-800 dark:text-white" />
+            </label>
+            <label className="block text-sm font-medium text-gray-800 dark:text-gray-200">Current password <span className="font-normal text-gray-500">(required for password login)</span>
+              <input type="password" value={deletePassword} onChange={(event) => setDeletePassword(event.target.value)} autoComplete="current-password" disabled={isDeletingAccount} className="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/15 dark:border-gray-700 dark:bg-gray-800 dark:text-white" />
+            </label>
+            <div className="mt-5 flex gap-3">
+              <button type="button" onClick={closeDeleteDialog} disabled={isDeletingAccount} className="flex-1 rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800">Cancel</button>
+              <button type="submit" disabled={isDeletingAccount || deleteConfirmation !== 'DELETE'} className="flex-1 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50">{isDeletingAccount ? 'Deleting…' : 'Delete forever'}</button>
+            </div>
+          </motion.form>
         </div>
       )}
     </div>

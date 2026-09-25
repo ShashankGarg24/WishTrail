@@ -773,6 +773,7 @@ module.exports = {
   updateUser,
   updatePrivacy,
   deleteUser,
+  deleteAccount,
   listInterests,
   updateTimezone,
   getDashboardYears,
@@ -781,3 +782,28 @@ module.exports = {
   getAnalytics,
   getUserAnalytics
 };
+
+// @desc    Permanently delete the authenticated user's account and all data
+// @route   DELETE /api/v1/users/account
+// @access  Private
+async function deleteAccount(req, res, next) {
+  try {
+    const { confirmation, currentPassword } = req.body || {};
+    if (confirmation !== 'DELETE') {
+      return res.status(400).json({ success: false, message: 'Type DELETE to confirm account deletion' });
+    }
+
+    const user = await pgUserService.getUserById(req.user.id, true);
+    if (!user) return res.status(404).json({ success: false, message: 'Account not found' });
+
+    if (user.password && (!currentPassword || !(await pgUserService.verifyPassword(req.user.id, currentPassword)))) {
+      return res.status(401).json({ success: false, message: 'Your current password is incorrect' });
+    }
+
+    const { permanentlyDeleteAccount } = require('../services/accountDeletionService');
+    await permanentlyDeleteAccount({ userId: user.id, email: user.email, avatarUrl: user.avatar_url });
+    return res.status(200).json({ success: true, message: 'Your account and data have been permanently deleted' });
+  } catch (error) {
+    next(error);
+  }
+}
