@@ -216,7 +216,10 @@ async function permanentlyDeleteAccount({ userId, email, avatarUrl }) {
     CommunityMember.collection.deleteMany({ userId: { $in: [numericUserId, String(numericUserId)] } }),
     ...(ownedCommunityIds.length ? [CommunityMember.collection.deleteMany({ communityId: { $in: ownedCommunityIds } })] : []),
     ...(ownedCommunityIds.length ? [Community.collection.deleteMany({ _id: { $in: ownedCommunityIds } })] : []),
-    UserAchievement.deleteMany({ userId: numericUserId })
+    // UserAchievement has the same legacy ObjectId declaration even though
+    // it stores PostgreSQL user IDs. Keep this raw to remove both historic
+    // numeric and string representations without Mongoose casting either.
+    UserAchievement.collection.deleteMany({ userId: { $in: [numericUserId, String(numericUserId)] } })
   ]);
 
   // Do not simply decrement a denormalized total: it may already be stale or
