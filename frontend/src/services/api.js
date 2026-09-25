@@ -309,6 +309,7 @@ export const usersAPI = {
   getUserYearlyGoals: (id, year, params) => api.get(`/users/${id}/goals/yearly/${year}`, { params }),
   getUserActivities: (id, params) => api.get(`/users/${id}/activities`, { params }),
   updatePrivacy: (data) => api.put('/users/privacy', data),
+  requestAccountDeletionOTP: () => api.post('/users/account/deletion-otp'),
   deleteAccount: (data) => api.delete('/users/account', { data }),
   getDashboardYears: () => api.get('/users/dashboard/years'),
   addDashboardYear: (year) => api.post('/users/dashboard/years', { year }),

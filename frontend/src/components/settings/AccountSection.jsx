@@ -19,9 +19,10 @@ const AccountSection = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [deleteConfirmation, setDeleteConfirmation] = useState('');
-  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteStep, setDeleteStep] = useState('request');
+  const [deletionOtp, setDeletionOtp] = useState('');
   const [deleteError, setDeleteError] = useState('');
+  const [isSendingDeletionCode, setIsSendingDeletionCode] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const blockedListRef = useRef(null);
   const observerTarget = useRef(null);
@@ -179,24 +180,40 @@ const AccountSection = () => {
   const closeDeleteDialog = () => {
     if (isDeletingAccount) return;
     setIsDeleteDialogOpen(false);
-    setDeleteConfirmation('');
-    setDeletePassword('');
+    setDeleteStep('request');
+    setDeletionOtp('');
     setDeleteError('');
+  };
+
+  const handleRequestDeletionCode = async () => {
+    try {
+      setIsSendingDeletionCode(true);
+      setDeleteError('');
+      await usersAPI.requestAccountDeletionOTP();
+      setDeleteStep('verify');
+    } catch (error) {
+      setDeleteError(error.response?.data?.message || 'We could not send a verification code. Please try again.');
+    } finally {
+      setIsSendingDeletionCode(false);
+    }
   };
 
   const handleDeleteAccount = async (event) => {
     event.preventDefault();
-    if (deleteConfirmation !== 'DELETE') {
-      setDeleteError('Type DELETE exactly to confirm.');
+    if (!/^\d{6}$/.test(deletionOtp)) {
+      setDeleteError('Enter the 6-digit code from your email.');
       return;
     }
 
     try {
       setIsDeletingAccount(true);
       setDeleteError('');
-      await usersAPI.deleteAccount({ confirmation: deleteConfirmation, currentPassword: deletePassword });
-      await logout();
-      window.location.replace('/auth?accountDeleted=1');
+      await usersAPI.deleteAccount({ otp: deletionOtp });
+      setDeleteStep('complete');
+      window.setTimeout(async () => {
+        await logout();
+        window.location.replace('/');
+      }, 2500);
     } catch (error) {
       setDeleteError(error.response?.data?.message || 'We could not delete your account. Please try again.');
       setIsDeletingAccount(false);
@@ -495,29 +512,41 @@ const AccountSection = () => {
 
       {isDeleteDialogOpen && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/55 p-4" role="dialog" aria-modal="true" aria-labelledby="delete-account-title">
-          <motion.form
+          <motion.div
             initial={{ opacity: 0, scale: 0.96, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            onSubmit={handleDeleteAccount}
             className="w-full max-w-md rounded-2xl border border-red-200 bg-white p-5 shadow-2xl dark:border-red-900/50 dark:bg-gray-900 sm:p-6"
           >
+            {deleteStep === 'complete' ? <>
+              <div className="mb-4 flex justify-center"><div className="rounded-full bg-emerald-100 p-3 dark:bg-emerald-950/40"><CheckCircle className="h-8 w-8 text-emerald-600 dark:text-emerald-400" /></div></div>
+              <h3 id="delete-account-title" className="text-center text-lg font-bold text-gray-900 dark:text-white">Your account has been deleted</h3>
+              <p className="mt-2 text-center text-sm leading-6 text-gray-600 dark:text-gray-400">Your WishTrail profile and associated app data have been permanently removed. Taking you back to the home page…</p>
+              <button type="button" onClick={async () => { await logout(); window.location.replace('/'); }} className="mt-5 w-full rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-gray-800 dark:bg-white dark:text-gray-900">Return to home</button>
+            </> : <>
             <div className="mb-4 flex items-start gap-3">
               <div className="rounded-xl bg-red-100 p-2.5 dark:bg-red-950/50"><AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" /></div>
               <div><h3 id="delete-account-title" className="text-lg font-bold text-gray-900 dark:text-white">Permanently delete account?</h3><p className="mt-1 text-sm text-gray-600 dark:text-gray-400">This action is immediate and cannot be reversed.</p></div>
             </div>
             <div className="mb-4 rounded-xl border border-red-100 bg-red-50 p-3 text-xs leading-5 text-red-900 dark:border-red-900/40 dark:bg-red-950/20 dark:text-red-200">We will erase your profile, goals, habits, logs, public activity, comments, preferences, notifications, device sessions, and related media.</div>
             {deleteError && <p className="mb-3 rounded-lg bg-red-50 p-2.5 text-xs text-red-700 dark:bg-red-950/30 dark:text-red-300">{deleteError}</p>}
-            <label className="mb-3 block text-sm font-medium text-gray-800 dark:text-gray-200">Type <span className="font-bold">DELETE</span> to confirm
-              <input value={deleteConfirmation} onChange={(event) => setDeleteConfirmation(event.target.value)} autoComplete="off" disabled={isDeletingAccount} className="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm uppercase outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/15 dark:border-gray-700 dark:bg-gray-800 dark:text-white" />
+            {deleteStep === 'request' && <p className="mb-4 text-sm leading-6 text-gray-600 dark:text-gray-400">For your security, we will email a one-time verification code to your account address. The code is the final confirmation to delete your account.</p>}
+            {deleteStep === 'verify' && <>
+            <label className="mb-3 block text-sm font-medium text-gray-800 dark:text-gray-200">Verification code
+              <input inputMode="numeric" pattern="[0-9]*" maxLength={6} value={deletionOtp} onChange={(event) => setDeletionOtp(event.target.value.replace(/\D/g, ''))} autoComplete="one-time-code" disabled={isDeletingAccount} className="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-center text-lg font-semibold tracking-[0.35em] outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/15 dark:border-gray-700 dark:bg-gray-800 dark:text-white" />
             </label>
-            <label className="block text-sm font-medium text-gray-800 dark:text-gray-200">Current password <span className="font-normal text-gray-500">(required for password login)</span>
-              <input type="password" value={deletePassword} onChange={(event) => setDeletePassword(event.target.value)} autoComplete="current-password" disabled={isDeletingAccount} className="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/15 dark:border-gray-700 dark:bg-gray-800 dark:text-white" />
-            </label>
+            <p className="text-xs leading-5 text-gray-600 dark:text-gray-400">Use the 6-digit code sent to your account email. It expires in 10 minutes and can only be used once.</p>
+            <button type="button" onClick={handleRequestDeletionCode} disabled={isSendingDeletionCode || isDeletingAccount} className="mt-2 text-xs font-semibold text-red-700 hover:text-red-800 disabled:opacity-50 dark:text-red-300">{isSendingDeletionCode ? 'Sending a new code…' : 'Send a new code'}</button>
+            </>}
             <div className="mt-5 flex gap-3">
               <button type="button" onClick={closeDeleteDialog} disabled={isDeletingAccount} className="flex-1 rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800">Cancel</button>
-              <button type="submit" disabled={isDeletingAccount || deleteConfirmation !== 'DELETE'} className="flex-1 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50">{isDeletingAccount ? 'Deleting…' : 'Delete forever'}</button>
+              {deleteStep === 'request' ? (
+                <button type="button" onClick={handleRequestDeletionCode} disabled={isSendingDeletionCode} className="flex-1 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50">{isSendingDeletionCode ? 'Sending…' : 'Send verification code'}</button>
+              ) : (
+                <button type="button" onClick={handleDeleteAccount} disabled={isDeletingAccount || deletionOtp.length !== 6} className="flex-1 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50">{isDeletingAccount ? 'Deleting…' : 'Delete forever'}</button>
+              )}
             </div>
-          </motion.form>
+            </>}
+          </motion.div>
         </div>
       )}
     </div>

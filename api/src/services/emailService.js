@@ -108,6 +108,11 @@ class EmailService {
         html: this.getPasswordSetupOTPTemplate(code),
         text: `Your password setup verification code is: ${code}. This code will expire in 10 minutes.`
       },
+      account_deletion: {
+        subject: 'Confirm your WishTrail account deletion',
+        html: this.getAccountDeletionOTPTemplate(code),
+        text: `Your WishTrail account deletion code is: ${code}. This code expires in 10 minutes. If you did not request this, do not share the code.`
+      },
     };
 
     const template = templates[purpose] || templates.signup;
@@ -225,6 +230,18 @@ class EmailService {
     </body>
     </html>
     `;
+  }
+
+  getAccountDeletionOTPTemplate(code) {
+    return `
+      <div style="margin:0;padding:32px 16px;background:#f8fafc;font-family:Arial,sans-serif;color:#172033">
+        <div style="max-width:520px;margin:auto;background:#ffffff;border:1px solid #fecaca;border-radius:16px;padding:32px">
+          <div style="font-size:22px;font-weight:700;color:#b91c1c">Confirm account deletion</div>
+          <p style="font-size:15px;line-height:1.55">We received a request to permanently delete your WishTrail account. Enter this verification code in the app to continue.</p>
+          <div style="margin:24px 0;padding:16px;background:#fef2f2;border-radius:12px;text-align:center;font-size:30px;font-weight:700;letter-spacing:8px;color:#991b1b">${code}</div>
+          <p style="font-size:14px;line-height:1.55;color:#475569">This code expires in 10 minutes and can only be used once. If you did not make this request, you can safely ignore this email—your account will remain unchanged.</p>
+        </div>
+      </div>`;
   }
 
   /**

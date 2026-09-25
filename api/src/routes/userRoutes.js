@@ -12,6 +12,7 @@ router.get('/', userController.getUsers);
 router.get('/dashboard', userController.getDashboardStats);
 router.get('/profile', userController.getProfileSummary);
 router.get('/analytics', userController.getAnalytics);
+router.post('/account/deletion-otp', userController.requestAccountDeletionOTP);
 router.delete('/account', userController.deleteAccount);
 router.post('/timezone', userController.updateTimezone);
 router.get('/dashboard/years', userController.getDashboardYears);

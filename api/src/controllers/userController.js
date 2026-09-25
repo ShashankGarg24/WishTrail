@@ -6,6 +6,8 @@ const pgUserService = require('../services/pgUserService');
 const pgGoalService = require('../services/pgGoalService');
 const { validationResult } = require('express-validator');
 const authService = require('../services/authService');
+const OTP = require('../models/Otp');
+const emailService = require('../services/emailService');
 const { sanitizeUser, sanitizeGoalsForProfile } = require('../utility/sanitizer');
 const GoalDetails = require('../models/extended/GoalDetails');
 const { getDateKeyInTimezone } = require('../utility/timezone');
@@ -773,6 +775,7 @@ module.exports = {
   updateUser,
   updatePrivacy,
   deleteUser,
+  requestAccountDeletionOTP,
   deleteAccount,
   listInterests,
   updateTimezone,
@@ -783,22 +786,46 @@ module.exports = {
   getUserAnalytics
 };
 
+// @desc    Send an email OTP before permanently deleting the authenticated account
+// @route   POST /api/v1/users/account/deletion-otp
+// @access  Private
+async function requestAccountDeletionOTP(req, res, next) {
+  try {
+    const user = await pgUserService.getUserById(req.user.id, true);
+    if (!user) return res.status(404).json({ success: false, message: 'Account not found' });
+
+    const eligibility = await OTP.canRequestNewOTP(user.email, 'account_deletion');
+    if (!eligibility.canRequest) {
+      return res.status(429).json({ success: false, message: `Please wait ${eligibility.waitTime} seconds before requesting another code.` });
+    }
+
+    const otp = await OTP.createOTP(user.email, 'account_deletion', 10);
+    try {
+      await emailService.sendOTPEmail(user.email, otp.code, 'account_deletion');
+    } catch (error) {
+      await OTP.deleteOne({ _id: otp._id });
+      throw error;
+    }
+    return res.status(200).json({ success: true, message: 'A verification code was sent to your email address.', data: { expiresAt: otp.expiresAt } });
+  } catch (error) {
+    next(error);
+  }
+}
+
 // @desc    Permanently delete the authenticated user's account and all data
 // @route   DELETE /api/v1/users/account
 // @access  Private
 async function deleteAccount(req, res, next) {
   try {
-    const { confirmation, currentPassword } = req.body || {};
-    if (confirmation !== 'DELETE') {
-      return res.status(400).json({ success: false, message: 'Type DELETE to confirm account deletion' });
+    const { otp } = req.body || {};
+    if (!/^\d{6}$/.test(String(otp || ''))) {
+      return res.status(400).json({ success: false, message: 'Enter the 6-digit verification code sent to your email.' });
     }
 
     const user = await pgUserService.getUserById(req.user.id, true);
     if (!user) return res.status(404).json({ success: false, message: 'Account not found' });
 
-    if (user.password && (!currentPassword || !(await pgUserService.verifyPassword(req.user.id, currentPassword)))) {
-      return res.status(401).json({ success: false, message: 'Your current password is incorrect' });
-    }
+    await OTP.verifyOTP(user.email, String(otp), 'account_deletion');
 
     const { permanentlyDeleteAccount } = require('../services/accountDeletionService');
     await permanentlyDeleteAccount({ userId: user.id, email: user.email, avatarUrl: user.avatar_url });

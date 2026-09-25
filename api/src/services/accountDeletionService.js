@@ -113,8 +113,11 @@ async function permanentlyDeleteAccount({ userId, email, avatarUrl }) {
     CommunityItem.find({ createdBy: numericUserId }).select('_id').lean(),
     // Use the model queries here so cleanup uses the same legacy ID casting as
     // the existing community read/write paths.
-    Community.find({ ownerId: numericUserId }).select('_id avatarUrl bannerUrl').lean(),
-    CommunityMember.find({ userId: numericUserId }).select('communityId status').lean()
+    // Community and CommunityMember still declare these legacy PostgreSQL IDs
+    // as ObjectIds in their Mongoose schemas. Use raw collection queries so a
+    // numeric account ID cannot be cast (and the deletion cannot be blocked).
+    Community.collection.find({ ownerId: { $in: [numericUserId, String(numericUserId)] } }, { projection: { avatarUrl: 1, bannerUrl: 1 } }).toArray(),
+    CommunityMember.collection.find({ userId: { $in: [numericUserId, String(numericUserId)] } }, { projection: { communityId: 1, status: 1 } }).toArray()
   ]);
 
   const goalIds = goalRows.map(({ id }) => id);
@@ -210,9 +213,9 @@ async function permanentlyDeleteAccount({ userId, email, avatarUrl }) {
     ] }),
     ...(ChatMessage ? [ChatMessage.deleteMany({ userId: numericUserId })] : []),
     ...(ChatMessage && ownedCommunityIds.length ? [ChatMessage.deleteMany({ communityId: { $in: ownedCommunityIds } })] : []),
-    CommunityMember.deleteMany({ userId: numericUserId }),
-    ...(ownedCommunityIds.length ? [CommunityMember.deleteMany({ communityId: { $in: ownedCommunityIds } })] : []),
-    ...(ownedCommunityIds.length ? [Community.deleteMany({ _id: { $in: ownedCommunityIds } })] : []),
+    CommunityMember.collection.deleteMany({ userId: { $in: [numericUserId, String(numericUserId)] } }),
+    ...(ownedCommunityIds.length ? [CommunityMember.collection.deleteMany({ communityId: { $in: ownedCommunityIds } })] : []),
+    ...(ownedCommunityIds.length ? [Community.collection.deleteMany({ _id: { $in: ownedCommunityIds } })] : []),
     UserAchievement.deleteMany({ userId: numericUserId })
   ]);
 
@@ -220,12 +223,12 @@ async function permanentlyDeleteAccount({ userId, email, avatarUrl }) {
   // contain a pending-member record. Rebuild it from the memberships that
   // remain after this account has been removed.
   if (activeMembershipCommunityIds.length) {
-    const remainingMemberships = await CommunityMember.aggregate([
+    const remainingMemberships = await CommunityMember.collection.aggregate([
       { $match: { communityId: { $in: activeMembershipCommunityIds }, status: 'active' } },
       { $group: { _id: '$communityId', count: { $sum: 1 } } }
     ]);
     const counts = new Map(remainingMemberships.map(({ _id, count }) => [String(_id), count]));
-    await Promise.all(activeMembershipCommunityIds.map((communityId) => Community.updateOne(
+    await Promise.all(activeMembershipCommunityIds.map((communityId) => Community.collection.updateOne(
       { _id: communityId },
       { $set: { 'stats.memberCount': counts.get(String(communityId)) || 0 } }
     )));
