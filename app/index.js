@@ -82,6 +82,20 @@ function App() {
     return () => clearTimeout(timer);
   }, []);
 
+  useEffect(() => {
+    let previous = AppState.currentState;
+    let timer;
+    const subscription = AppState.addEventListener('change', next => {
+      if (onboardingReady && !showOnboarding && previous === 'background' && next === 'active') {
+        setSplashMinimumElapsed(false);
+        clearTimeout(timer);
+        timer = setTimeout(() => setSplashMinimumElapsed(true), 1200);
+      }
+      previous = next;
+    });
+    return () => { subscription.remove(); clearTimeout(timer); };
+  }, [onboardingReady, showOnboarding]);
+
   // Deep link forwarding state
   const [webReady, setWebReady] = useState(false);
   const pendingDeepLinkRef = useRef('');
