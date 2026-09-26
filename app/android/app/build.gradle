@@ -90,7 +90,7 @@ android {
 
     namespace 'com.yourco.wishtrail'
     defaultConfig {
-        applicationId 'com.yourco.wishtrail'
+        applicationId 'com.wishtrail'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
@@ -100,7 +100,7 @@ android {
     def releaseKeystorePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
     def releaseKeyPassword = System.getenv("ANDROID_KEY_PASSWORD")
     def releaseKeyAlias = System.getenv("ANDROID_KEY_ALIAS")
-    def releaseKeystoreFile = rootProject.file("../../wishtrail.keystore")
+    def releaseKeystoreFile = file("wishtrail.keystore")
 
     signingConfigs {
         debug {

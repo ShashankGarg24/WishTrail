@@ -26,7 +26,7 @@
       "icon": "./assets/icon.png"
     },
     "android": {
-      "package": "com.yourco.wishtrail",
+      "package": "com.wishtrail",
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#11273c"
