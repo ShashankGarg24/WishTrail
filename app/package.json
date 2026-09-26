@@ -4,25 +4,32 @@
   "private": true,
   "main": "index.js",
   "scripts": {
+    "android:sync-branding": "node scripts/sync-android-branding.cjs",
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios"
   },
   "dependencies": {
-    "@react-native-async-storage/async-storage": "^1.24.0",
+    "@react-native-async-storage/async-storage": "2.1.2",
     "@react-native-firebase/app": "^20.5.0",
     "@react-native-firebase/messaging": "^20.5.0",
     "expo": "~53.0.27",
+    "expo-application": "~6.1.5",
+    "expo-asset": "~11.1.7",
     "expo-auth-session": "~6.2.1",
-    "expo-constants": "~17.1.7",
+    "expo-constants": "~17.1.8",
+    "expo-crypto": "~14.1.5",
     "expo-dev-client": "~5.2.4",
+    "expo-file-system": "~18.1.11",
+    "expo-font": "~13.3.2",
+    "expo-keep-awake": "~14.1.4",
     "expo-quick-actions": "^6.0.0",
-    "expo-secure-store": "^15.0.7",
+    "expo-secure-store": "~14.2.4",
     "expo-status-bar": "~2.2.3",
     "expo-web-browser": "~14.2.0",
     "react": "19.0.0",
     "react-devtools-core": "^6.1.5",
-    "react-native": "0.79.5",
+    "react-native": "0.79.6",
     "react-native-webview": "13.13.5"
   }
 }

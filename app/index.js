@@ -5,7 +5,9 @@ import Constants from 'expo-constants';
 import { registerRootComponent } from 'expo';
 import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
-import IndeterminateProgressBar from './components/IndeterminateProgressBar';
+import Onboarding from './components/Onboarding';
+import StartupSplash from './components/StartupSplash';
+import { getOnboardingState, completeOnboarding as saveOnboardingCompletion } from './onboardingState';
 // Push notifications removed (Expo). FCM to be integrated later.
 
 WebBrowser.maybeCompleteAuthSession();
@@ -71,23 +73,14 @@ function App() {
 
   // Onboarding state
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [onboardingIndex, setOnboardingIndex] = useState(0);
-  const onboardingScrollRef = useRef(null);
-  const appLogo = useMemo(() => require('./assets/icon.png'), []);
-  const slides = [
-    {
-      title: 'Define Your Path',
-      body: 'Turn your biggest dreams into actionable goals with our professional planning tools.'
-    },
-    {
-      title: 'Grow Together',
-      body: 'Find inspiration in the community feed and celebrate milestones with a supportive circle.'
-    },
-    {
-      title: 'Build Better Habits',
-      body: 'Stay consistent with daily logs and interactive heatmaps that keep you on track.'
-    }
-  ];
+  const [onboardingReady, setOnboardingReady] = useState(false);
+  const [splashMinimumElapsed, setSplashMinimumElapsed] = useState(false);
+  const onboardingKey = useRef(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setSplashMinimumElapsed(true), 1200);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Deep link forwarding state
   const [webReady, setWebReady] = useState(false);
@@ -223,34 +216,32 @@ function App() {
   }, []);
 
   useEffect(() => {
-    (async () => {
-      try {
-        if (!AsyncStorage) { setShowOnboarding(true); return; }
-        const seen = await AsyncStorage.getItem('wt_onboarding_seen');
-        if (!seen) setShowOnboarding(true);
-      } catch { setShowOnboarding(true); }
-    })();
+    let cancelled = false;
+    getOnboardingState().then(({ key, completed }) => {
+      if (cancelled) return;
+      onboardingKey.current = key;
+      setShowOnboarding(!completed);
+      setOnboardingReady(true);
+    }).catch(error => {
+      console.warn('Unable to read onboarding state', error);
+      if (!cancelled) { setShowOnboarding(true); setOnboardingReady(true); }
+    });
+    return () => { cancelled = true; };
   }, []);
 
-  // Always request notification permission on app startup.
-  // OS decides whether to show a dialog again based on current permission state.
-  useEffect(() => {
-    askPushPermissionOnce().catch(() => { });
-  }, [askPushPermissionOnce]);
-
-  const completeOnboarding = useCallback(async () => {
-    try { if (AsyncStorage) await AsyncStorage.setItem('wt_onboarding_seen', '1'); } catch { }
+  const finishOnboarding = useCallback(async (signIn = false) => {
+    try {
+      const key = onboardingKey.current || (await getOnboardingState()).key;
+      await saveOnboardingCompletion(key);
+    } catch (error) {
+      Alert.alert('Could not save your progress', 'Please try again.');
+      return;
+    }
+    if (signIn) {
+      setInitialUri(WEB_URL.replace(/\/$/, '') + '/auth');
+    }
     setShowOnboarding(false);
   }, []);
-
-  const finishOnboarding = useCallback(async () => {
-    await completeOnboarding();
-    try { await askPushPermissionOnce(); } catch { }
-    try {
-      const pathAfter = authToken ? '/dashboard' : '/';
-      webRef.current?.injectJavaScript(`try{ window.location.replace(${JSON.stringify(pathAfter)}); }catch(e){} true;`);
-    } catch { }
-  }, [completeOnboarding]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -277,11 +268,6 @@ function App() {
     }
   };
 
-  useEffect(() => {
-    if (showOnboarding) {
-      setOnboardingIndex(0);
-    }
-  }, [showOnboarding]);
 
   // FCM init + handlers (unchanged)
   const [fcmToken, setFcmToken] = useState(null);
@@ -293,6 +279,7 @@ function App() {
     webClientId: GOOGLE_WEB_CLIENT_ID || undefined
   });
   useEffect(() => {
+    if (!onboardingReady || showOnboarding) return;
     const disableFcm = !!(Constants?.expoConfig?.extra?.DISABLE_FCM || Constants?.manifest?.extra?.DISABLE_FCM);
     if (disableFcm) { try { console.log('FCM disabled via extra.DISABLE_FCM'); } catch { }; return; }
     (async () => {
@@ -365,7 +352,7 @@ function App() {
         try { console.log('FCM init error', e?.message || e); } catch { }
       }
     })();
-  }, [webReady, forwardDeepLinkToWeb]);
+  }, [webReady, forwardDeepLinkToWeb, onboardingReady, showOnboarding]);
 
   // Register device token (unchanged)
   useEffect(() => {
@@ -782,199 +769,10 @@ function App() {
   }, [initialResolved, hasLoadedDashboard]);
 
   useEffect(() => {
-    if (!showOnboarding) {
+    if (onboardingReady && !showOnboarding) {
       askPushPermissionOnce().catch(() => { });
     }
-  }, [showOnboarding, askPushPermissionOnce]);
-
-  // Full-screen onboarding carousel (design-aligned)
-  const renderOnboarding = () => {
-    if (!showOnboarding) return null;
-    const { width, height } = Dimensions.get('window');
-    const titleColor = '#073863';
-    const bodyColor = '#1a5a8d';
-    const titleSize = width < 380 ? 34 : 40;
-    const bodySize = width < 380 ? 16 : 18;
-
-    const moveTo = (nextIndex) => {
-      const i = Math.max(0, Math.min(nextIndex, slides.length - 1));
-      setOnboardingIndex(i);
-      try { onboardingScrollRef.current?.scrollTo({ x: i * width, animated: true }); } catch { }
-    };
-
-    const renderSlideArt = (idx) => {
-      if (idx === 0) {
-        return (
-          <View style={{ width: '100%', alignItems: 'center', marginBottom: 26 }}>
-            <View style={{ width: '92%', borderRadius: 28, padding: 14, backgroundColor: '#f5f7fb', shadowColor: '#0c3e66', shadowOpacity: 0.08, shadowRadius: 20, shadowOffset: { width: 0, height: 10 }, elevation: 2 }}>
-              <View style={{ width: 68, height: 68, borderRadius: 34, backgroundColor: '#d9e8f9', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
-                <Image source={appLogo} style={{ width: 38, height: 38 }} resizeMode="contain" />
-              </View>
-              <View style={{ height: 14, width: '62%', borderRadius: 7, backgroundColor: '#dbe8f6', marginBottom: 12 }} />
-              <View style={{ height: 16, width: '96%', borderRadius: 8, backgroundColor: '#dde8f5', marginBottom: 8 }} />
-              <View style={{ height: 16, width: '76%', borderRadius: 8, backgroundColor: '#dde8f5' }} />
-            </View>
-            <View style={{ width: '74%', marginTop: -20, borderRadius: 24, padding: 16, backgroundColor: '#0462a6' }}>
-              <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: '#91c5ef', marginBottom: 12 }} />
-              <View style={{ height: 20, borderRadius: 10, backgroundColor: '#e8f0fa', marginBottom: 12 }} />
-              <View style={{ height: 18, width: '72%', borderRadius: 9, backgroundColor: '#7fb0d8', marginBottom: 14 }} />
-              <View style={{ height: 12, borderRadius: 6, backgroundColor: '#7baed8' }}>
-                <View style={{ height: 12, width: '68%', borderRadius: 6, backgroundColor: '#f2f7ff' }} />
-              </View>
-            </View>
-          </View>
-        );
-      }
-
-      if (idx === 1) {
-        return (
-          <View style={{ width: '100%', marginBottom: 26 }}>
-            <View style={{ flexDirection: 'row', marginBottom: 22 }}>
-              {[0, 1, 2].map((dot) => (
-                <View key={dot} style={{ width: 58, height: 8, borderRadius: 4, marginRight: 8, backgroundColor: dot === 2 ? '#0462a6' : '#b7d4f0' }} />
-              ))}
-            </View>
-            <View style={{ borderRadius: 22, backgroundColor: '#ffffff', padding: 14, marginBottom: 14 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
-                <Image source={appLogo} style={{ width: 42, height: 42, borderRadius: 10, marginRight: 10 }} resizeMode="contain" />
-                <View>
-                  <Text style={{ color: '#073863', fontWeight: '700', fontSize: 18 }}>Elena S.</Text>
-                  <Text style={{ color: '#2f6ea1', fontSize: 14 }}>2m ago • Meditation Trail</Text>
-                </View>
-              </View>
-              <Text style={{ color: '#384a5e', fontSize: 15, lineHeight: 22 }}>
-                "Day 15 completed. The morning silence is becoming my favorite ritual."
-              </Text>
-              <View style={{ flexDirection: 'row', marginTop: 14 }}>
-                <Text style={{ color: '#0462a6', fontWeight: '700', marginRight: 18 }}>♥ 24</Text>
-                <Text style={{ color: '#2f6ea1' }}>💬 8</Text>
-              </View>
-            </View>
-            <View style={{ borderRadius: 20, backgroundColor: '#ffffff', padding: 14 }}>
-              <Text style={{ color: '#073863', fontWeight: '700', fontSize: 22, marginBottom: 6 }}>New Milestone!</Text>
-              <View style={{ height: 12, borderRadius: 6, backgroundColor: '#c9dff2', marginBottom: 10 }}>
-                <View style={{ width: '84%', height: 12, borderRadius: 6, backgroundColor: '#0462a6' }} />
-              </View>
-              <Text style={{ color: '#1a5a8d', fontSize: 16 }}>Marcus reached 85% of 'Marathon Prep'</Text>
-            </View>
-          </View>
-        );
-      }
-
-      return (
-        <View style={{ width: '100%', marginBottom: 24 }}>
-          <View style={{ borderRadius: 20, backgroundColor: '#ffffff', padding: 14, marginBottom: 14 }}>
-            <Text style={{ color: '#1a5a8d', fontSize: 14, letterSpacing: 1, marginBottom: 6 }}>CURRENT STREAK</Text>
-            <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' }}>
-              <Text style={{ color: '#0462a6', fontSize: 42, fontWeight: '700' }}>12 <Text style={{ fontSize: 28, color: '#1a5a8d' }}>Days</Text></Text>
-              <View style={{ width: 70, height: 70, borderRadius: 35, backgroundColor: '#b9d3ef', alignItems: 'center', justifyContent: 'center' }}>
-                <Text style={{ fontSize: 28, color: '#0462a6' }}>🔥</Text>
-              </View>
-            </View>
-          </View>
-          <View style={{ borderRadius: 20, backgroundColor: '#dce8f6', padding: 14 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
-              <Text style={{ color: '#073863', fontSize: 20, fontWeight: '700' }}>Activity Map</Text>
-              <Text style={{ color: '#2f6ea1', fontSize: 16 }}>May 2024</Text>
-            </View>
-            {[0, 1, 2, 3].map((row) => (
-              <View key={row} style={{ flexDirection: 'row', marginBottom: 8 }}>
-                {[0, 1, 2, 3, 4, 5, 6].map((col) => {
-                  const palette = ['#9fc1e8', '#75a4d7', '#0f69a6', '#085992'];
-                  const color = palette[(row + col + (row === 2 ? 1 : 0)) % palette.length];
-                  return <View key={`${row}-${col}`} style={{ width: 24, height: 24, borderRadius: 6, backgroundColor: color, marginRight: 6 }} />;
-                })}
-              </View>
-            ))}
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 }}>
-              <Text style={{ color: '#2f6ea1', fontSize: 14 }}>Less  ▪ ▪ ▪  More</Text>
-              <Text style={{ color: '#0f69a6', fontSize: 14 }}>● Target Met</Text>
-            </View>
-          </View>
-        </View>
-      );
-    };
-
-    return (
-      <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#e8edf5' }}>
-        <SafeAreaView style={{ flex: 1 }}>
-          {onboardingIndex < slides.length - 1 && (
-            <View style={{ position: 'absolute', top: 12, right: 22, zIndex: 10 }}>
-              <TouchableOpacity onPress={finishOnboarding}>
-                <Text style={{ color: '#1a5a8d', fontSize: 18, fontWeight: '600' }}>Skip</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-          <ScrollView
-            ref={onboardingScrollRef}
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            onMomentumScrollEnd={(e) => {
-              try {
-                const i = Math.round(e.nativeEvent.contentOffset.x / Math.max(width, 1));
-                if (i !== onboardingIndex) setOnboardingIndex(i);
-              } catch { }
-            }}
-            style={{ flex: 1 }}
-          >
-            {slides.map((s, i) => {
-              return (
-                <View key={i} style={{ width, minHeight: height, paddingHorizontal: 22, paddingTop: 28 }}>
-                  {renderSlideArt(i)}
-                  <Text style={{ color: titleColor, fontSize: titleSize, fontWeight: '800', marginBottom: 10 }}>{s.title}</Text>
-                  <Text style={{ color: bodyColor, fontSize: bodySize, lineHeight: bodySize * 1.5 }}>{s.body}</Text>
-                </View>
-              );
-            })}
-          </ScrollView>
-
-          <View style={{ position: 'absolute', bottom: 24, left: 24, right: 24 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
-              {slides.map((_, i) => {
-                return (
-                  <View
-                    key={i}
-                    style={{
-                      width: i === onboardingIndex ? 44 : 14,
-                      height: 10,
-                      borderRadius: 5,
-                      marginRight: 8,
-                      backgroundColor: i === onboardingIndex ? '#0462a6' : '#b7d4f0'
-                    }}
-                  />
-                );
-              })}
-            </View>
-
-            {onboardingIndex < slides.length - 1 ? (
-              <TouchableOpacity
-                onPress={() => moveTo(onboardingIndex + 1)}
-                style={{ height: 58, borderRadius: 29, backgroundColor: '#0462a6', alignItems: 'center', justifyContent: 'center' }}
-              >
-                <Text style={{ color: '#ffffff', fontSize: 18, fontWeight: '700' }}>Next</Text>
-              </TouchableOpacity>
-            ) : (
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                <TouchableOpacity
-                  onPress={() => moveTo(onboardingIndex - 1)}
-                  style={{ height: 56, width: '32%', borderRadius: 28, backgroundColor: '#b7d4f0', alignItems: 'center', justifyContent: 'center' }}
-                >
-                  <Text style={{ color: '#1a5a8d', fontSize: 16, fontWeight: '700' }}>Back</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={finishOnboarding}
-                  style={{ height: 56, width: '64%', borderRadius: 28, backgroundColor: '#0462a6', alignItems: 'center', justifyContent: 'center' }}
-                >
-                  <Text style={{ color: '#ffffff', fontSize: 17, fontWeight: '700' }}>Get Started</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-          </View>
-        </SafeAreaView>
-      </View>
-    );
-  };
+  }, [onboardingReady, showOnboarding, askPushPermissionOnce]);
 
   // PTR overlay (GitHub-like) — only on Feed and Notifications
   const renderPtrOverlay = () => {
@@ -992,31 +790,11 @@ function App() {
     );
   };
 
-  const renderStartupSplash = () => (
-    <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#e8edf5', zIndex: 20 }}>
-      <SafeAreaView style={{ flex: 1 }}>
-        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }}>
-          <View style={{ width: 126, height: 126, borderRadius: 30, backgroundColor: '#f5f7fb', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-            <View style={{ width: 84, height: 84, borderRadius: 22, overflow: 'hidden', backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center' }}>
-              <Image source={appLogo} style={{ width: 76, height: 76 }} resizeMode="contain" />
-            </View>
-          </View>
-          <Text style={{ color: '#4d5f6e', fontSize: 34, fontWeight: '600', marginBottom: 4 }}>WishTrail</Text>
-          <Text style={{ color: '#6f95b6', fontSize: 11, letterSpacing: 2.1 }}>FIND YOUR PATH</Text>
-        </View>
-        <View style={{ position: 'absolute', bottom: 64, left: 0, right: 0, alignItems: 'center' }}>
-          <IndeterminateProgressBar
-            width={86}
-            height={4}
-          />
-        </View>
-      </SafeAreaView>
-    </View>
-  );
+  const renderStartupSplash = () => <StartupSplash />;
 
-  if (!initialResolved) {
+  if (!initialResolved || !onboardingReady) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#e8edf5' }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#ffffff' }}>
         <StatusBar barStyle={'dark-content'} />
         {renderStartupSplash()}
       </SafeAreaView>
@@ -1024,8 +802,8 @@ function App() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#e8edf5' }}>
-      <StatusBar barStyle={Platform.OS === 'ios' ? 'light-content' : 'default'} />
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#ffffff' }}>
+      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
       <WebView
         ref={webRef}
         userAgent="WishTrailApp"
@@ -1041,12 +819,12 @@ function App() {
         scrollEnabled
         allowsBackForwardNavigationGestures
         startInLoadingState
-        renderLoading={() => <View style={{ flex: 1, backgroundColor: '#e8edf5' }} />}
+        renderLoading={() => <View style={{ flex: 1, backgroundColor: '#ffffff' }} />}
         refreshControl={undefined}
       />
-      {!hasLoadedDashboard && renderStartupSplash()}
+      {(!hasLoadedDashboard || !splashMinimumElapsed) && renderStartupSplash()}
       {renderPtrOverlay()}
-      {renderOnboarding()}
+      {showOnboarding && <Onboarding onFinish={finishOnboarding} />}
     </SafeAreaView>
   );
 }
