@@ -2,6 +2,14 @@ import React from 'react'
 import ErrorScreen from './ErrorScreen'
 
 function Fallback({ error, resetErrorBoundary }) {
+  React.useEffect(() => {
+    // A failed lazy route must reveal the mounted retry screen, not leave the
+    // native startup overlay covering it indefinitely.
+    const frame = requestAnimationFrame(() => {
+      window.ReactNativeWebView?.postMessage(JSON.stringify({ type: 'WT_STARTUP_READY' }));
+    });
+    return () => cancelAnimationFrame(frame);
+  }, []);
   return (
     <ErrorScreen 
       type="generic"

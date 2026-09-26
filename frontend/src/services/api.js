@@ -231,6 +231,7 @@ api.interceptors.response.use(
 
 // Auth API
 export const authAPI = {
+  refresh: refreshToken => api.post('/auth/refresh', null, { headers: { 'x-refresh-token': refreshToken }, timeout: 10000 }),
   register: (userData) => api.post('/auth/register', addTimezoneAndLocale(userData)),
   login: (credentials) => api.post('/auth/login', addTimezoneAndLocale(credentials)),
   logout: () => api.post('/auth/logout'),

@@ -10,6 +10,7 @@
     "ios": "expo run:ios"
   },
   "dependencies": {
+    "@expo-google-fonts/manrope": "^0.4.2",
     "@react-native-async-storage/async-storage": "2.1.2",
     "@react-native-firebase/app": "^20.5.0",
     "@react-native-firebase/messaging": "^20.5.0",
@@ -25,6 +26,7 @@
     "expo-keep-awake": "~14.1.4",
     "expo-quick-actions": "^6.0.0",
     "expo-secure-store": "~14.2.4",
+    "expo-splash-screen": "~0.30.10",
     "expo-status-bar": "~2.2.3",
     "expo-web-browser": "~14.2.0",
     "react": "19.0.0",

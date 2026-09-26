@@ -8,6 +8,8 @@ import ScrollMemory from './components/ScrollMemory'
 import BottomTabBar from './components/BottomTabBar'
 import Footer from './components/Footer'
 import PrivateRoute from './components/PrivateRoute'
+import StartupSkeleton from './components/StartupSkeleton'
+import NativeStartupReady from './components/NativeStartupReady'
 import { configService } from './services/configService'
 import { initializeWebPush } from './services/webPush'
 import { notificationsAPI } from './services/api'
@@ -52,17 +54,11 @@ const normalizeRoutePath = (value, fallback = '/admin') => {
 
 const ADMIN_UI_ROUTE_PATH = normalizeRoutePath(import.meta.env.VITE_ADMIN_UI_ROUTE, '/admin')
 
-const RouteLoadingScreen = () => (
-  <div className="flex min-h-[calc(100dvh-3.5rem)] sm:min-h-[calc(100dvh-4rem)] w-full items-center justify-center px-6 bg-white dark:bg-gray-900">
-    <div className="text-center">
-      <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-[#4c99e6]" />
-      <p className="text-gray-500 dark:text-gray-400">Loading...</p>
-    </div>
-  </div>
-)
+const RouteLoadingScreen = StartupSkeleton
 
 function App() {
   const { isDarkMode, initializeAuth, isAuthenticated} = useApiStore()
+  const [authReady, setAuthReady] = useState(false)
   const location = useLocation()
   const navigate = useNavigate()
   const [inNativeApp, setInNativeApp] = useState(false)
@@ -99,14 +95,14 @@ function App() {
   }, [])
 
   useEffect(() => {
-    // Initialize authentication state
-    initializeAuth();
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark')
-    } else {
-      document.documentElement.classList.remove('dark')
-    }
-  }, [isDarkMode, initializeAuth])
+    let cancelled = false;
+    Promise.resolve(initializeAuth()).catch(error => { console.error('Session bootstrap failed', error); }).finally(() => { if (!cancelled) setAuthReady(true); });
+    return () => { cancelled = true; };
+  }, [initializeAuth]);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', isDarkMode);
+  }, [isDarkMode]);
 
   // Deep link bootstrap: allow ?url=... to redirect (for push taps) and feedback=1 to open feedback modal
   useEffect(() => {
@@ -200,16 +196,14 @@ function App() {
   }, [isAuthenticated, inNativeApp])
 
   // Show coming soon / maintenance pages if enabled
-  if (maintenanceMode === null) {
-    // Still checking status
-    return null
-  }
+  if (!authReady) return <StartupSkeleton />
 
 
   if (maintenanceMode) {
     return (
       <Suspense fallback={null}>
         <MaintenancePage message={maintenanceMessage} />
+        <NativeStartupReady allowAnyRoute />
       </Suspense>
     )
   }
@@ -230,6 +224,7 @@ function App() {
           <main className={`flex-grow ${isAuthenticated ? 'pb-[calc(6.5rem+env(safe-area-inset-bottom,0px))] md:pb-0' : ''}`}>
             <Suspense fallback={<RouteLoadingScreen />}>
               <ScrollMemory />
+              <NativeStartupReady />
               <Routes>
               {/* Public routes */}
               <Route path="/" element={<HomePage />} />

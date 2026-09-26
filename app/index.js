@@ -7,7 +7,11 @@ import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
 import Onboarding from './components/Onboarding';
 import StartupSplash from './components/StartupSplash';
+import * as NativeSplash from 'expo-splash-screen';
+
 import { getOnboardingState, completeOnboarding as saveOnboardingCompletion } from './onboardingState';
+NativeSplash.preventAutoHideAsync().catch(() => {});
+NativeSplash.setOptions({ duration: 350, fade: true });
 // Push notifications removed (Expo). FCM to be integrated later.
 
 WebBrowser.maybeCompleteAuthSession();
@@ -66,35 +70,16 @@ function App() {
   const [isNativeGoogleLoading, setIsNativeGoogleLoading] = useState(false);
   const [initialUri, setInitialUri] = useState(WEB_URL);
   const [initialResolved, setInitialResolved] = useState(false);
-  const [hasLoadedDashboard, setHasLoadedDashboard] = useState(false);
+  const [destinationReady, setDestinationReady] = useState(false);
+  const [splashVisible, setSplashVisible] = useState(true);
+  const [initialRefreshToken, setInitialRefreshToken] = useState(null);
   // Expo push removed
   const authProbeTimer = useRef(null);
-  const splashFallbackTimer = useRef(null);
 
   // Onboarding state
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingReady, setOnboardingReady] = useState(false);
-  const [splashMinimumElapsed, setSplashMinimumElapsed] = useState(false);
   const onboardingKey = useRef(null);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setSplashMinimumElapsed(true), 1200);
-    return () => clearTimeout(timer);
-  }, []);
-
-  useEffect(() => {
-    let previous = AppState.currentState;
-    let timer;
-    const subscription = AppState.addEventListener('change', next => {
-      if (onboardingReady && !showOnboarding && previous === 'background' && next === 'active') {
-        setSplashMinimumElapsed(false);
-        clearTimeout(timer);
-        timer = setTimeout(() => setSplashMinimumElapsed(true), 1200);
-      }
-      previous = next;
-    });
-    return () => { subscription.remove(); clearTimeout(timer); };
-  }, [onboardingReady, showOnboarding]);
 
   // Deep link forwarding state
   const [webReady, setWebReady] = useState(false);
@@ -293,7 +278,7 @@ function App() {
     webClientId: GOOGLE_WEB_CLIENT_ID || undefined
   });
   useEffect(() => {
-    if (!onboardingReady || showOnboarding) return;
+    if (!onboardingReady || showOnboarding || splashVisible) return;
     const disableFcm = !!(Constants?.expoConfig?.extra?.DISABLE_FCM || Constants?.manifest?.extra?.DISABLE_FCM);
     if (disableFcm) { try { console.log('FCM disabled via extra.DISABLE_FCM'); } catch { }; return; }
     (async () => {
@@ -366,7 +351,7 @@ function App() {
         try { console.log('FCM init error', e?.message || e); } catch { }
       }
     })();
-  }, [webReady, forwardDeepLinkToWeb, onboardingReady, showOnboarding]);
+  }, [webReady, forwardDeepLinkToWeb, onboardingReady, showOnboarding, splashVisible]);
 
   // Register device token (unchanged)
   useEffect(() => {
@@ -541,9 +526,6 @@ function App() {
         try {
           const p = String(data.path || '/');
           setCurrentPath(p);
-          if (!p.startsWith('/dashboard')) {
-            setHasLoadedDashboard(true);
-          }
           const isPTR = p.startsWith('/feed') || p.startsWith('/notifications');
           setIsPTRPage(isPTR);
           // Immediately reset PTR state when navigating away from PTR pages
@@ -607,8 +589,8 @@ function App() {
           setPtrProgress(0);
           setPtrLoading(false);
         });
-      } else if (data?.type === 'WT_DASHBOARD_READY') {
-        setHasLoadedDashboard(true);
+      } else if (data?.type === 'WT_STARTUP_READY') {
+        setDestinationReady(true);
       }
     } catch { }
   }, [ptrAnim, promptGoogleSignIn, postNotificationPermissionState]);
@@ -760,33 +742,28 @@ function App() {
     } catch { }
   }, [WEB_URL, webReady, forwardDeepLinkToWeb]);
 
-  // Resolve initial URL: dashboard if authed, home otherwise; override with notification deeplink
+  // The web auth store remains the source of truth. Restore native hints in
+  // parallel with onboarding and animation; the web router resolves the session.
   useEffect(() => {
+    let cancelled = false;
     (async () => {
-      const target = `${WEB_URL.replace(/\/$/, '')}/dashboard`;
-      setInitialUri(target);
+      const [authed, refreshToken] = await Promise.all([
+        AsyncStorage?.getItem('wt_native_authed').catch(() => null),
+        SecureStore?.getItemAsync('wt_refresh_token').catch(() => null),
+      ]);
+      if (cancelled) return;
+      setInitialRefreshToken(refreshToken || null);
+      setInitialUri(WEB_URL.replace(/\/$/, '') + (authed === '1' || refreshToken ? '/dashboard' : '/auth'));
       setInitialResolved(true);
     })();
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
-    if (!initialResolved || hasLoadedDashboard) return;
-    splashFallbackTimer.current = setTimeout(() => {
-      setHasLoadedDashboard(true);
-    }, 8000);
-    return () => {
-      if (splashFallbackTimer.current) {
-        clearTimeout(splashFallbackTimer.current);
-        splashFallbackTimer.current = null;
-      }
-    };
-  }, [initialResolved, hasLoadedDashboard]);
-
-  useEffect(() => {
-    if (onboardingReady && !showOnboarding) {
+    if (onboardingReady && !showOnboarding && !splashVisible) {
       askPushPermissionOnce().catch(() => { });
     }
-  }, [onboardingReady, showOnboarding, askPushPermissionOnce]);
+  }, [onboardingReady, showOnboarding, splashVisible, askPushPermissionOnce]);
 
   // PTR overlay (GitHub-like) — only on Feed and Notifications
   const renderPtrOverlay = () => {
@@ -804,27 +781,22 @@ function App() {
     );
   };
 
-  const renderStartupSplash = () => <StartupSplash />;
-
-  if (!initialResolved || !onboardingReady) {
-    return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#ffffff' }}>
-        <StatusBar barStyle={'dark-content'} />
-        {renderStartupSplash()}
-      </SafeAreaView>
-    );
-  }
-
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#ffffff' }}>
-      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
-      <WebView
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#F8FAFC' }}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
+      <View style={{ flex: 1 }} accessibilityElementsHidden={splashVisible}
+        importantForAccessibility={splashVisible ? 'no-hide-descendants' : 'auto'}>
+      {initialResolved && onboardingReady && <WebView
         ref={webRef}
         userAgent="WishTrailApp"
         source={{ uri: initialUri }}
         originWhitelist={originWhitelist}
+        injectedJavaScriptObject={{ refreshToken: initialRefreshToken }}
+        injectedJavaScriptBeforeContentLoaded={`window.__WT_REFRESH_TOKEN = ${JSON.stringify(initialRefreshToken)}; true;`}
+        onError={() => setDestinationReady(true)}
+        onHttpError={event => { if (event.nativeEvent.url === initialUri) setDestinationReady(true); }}
         onLoadStart={() => { setLoading(true); if (ptrAnimRef.current) { try { ptrAnimRef.current.stop(); } catch { } } setPtrLoading(false); setPtrVisible(false); setPtrProgress(0); ptrAnim.setValue(0); }}
-        onLoadEnd={() => { setLoading(false); setWebReady(true); setHasLoadedDashboard(true); if (splashFallbackTimer.current) { clearTimeout(splashFallbackTimer.current); splashFallbackTimer.current = null; } if (pendingDeepLinkRef.current) { forwardDeepLinkToWeb(pendingDeepLinkRef.current); pendingDeepLinkRef.current = ''; } injectAuthProbe(); injectRefreshToken(); setTimeout(() => { postNotificationPermissionState().catch(() => { }); if (ptrAnimRef.current) { try { ptrAnimRef.current.stop(); } catch { } } setPtrLoading(false); setPtrVisible(false); setPtrProgress(0); ptrAnim.setValue(0); }, 400); }}
+        onLoadEnd={() => { setLoading(false); setWebReady(true); if (pendingDeepLinkRef.current) { forwardDeepLinkToWeb(pendingDeepLinkRef.current); pendingDeepLinkRef.current = ''; } injectAuthProbe(); injectRefreshToken(); setTimeout(() => { postNotificationPermissionState().catch(() => { }); if (ptrAnimRef.current) { try { ptrAnimRef.current.stop(); } catch { } } setPtrLoading(false); setPtrVisible(false); setPtrProgress(0); ptrAnim.setValue(0); }, 400); }}
         onShouldStartLoadWithRequest={onShouldStartLoadWithRequest}
         onMessage={onMessage}
         pullToRefreshEnabled={false}
@@ -832,13 +804,13 @@ function App() {
         overScrollMode="always"
         scrollEnabled
         allowsBackForwardNavigationGestures
-        startInLoadingState
-        renderLoading={() => <View style={{ flex: 1, backgroundColor: '#ffffff' }} />}
+        style={{ backgroundColor: '#F8FAFC' }}
         refreshControl={undefined}
-      />
-      {(!hasLoadedDashboard || !splashMinimumElapsed) && renderStartupSplash()}
+      />}
       {renderPtrOverlay()}
-      {showOnboarding && <Onboarding onFinish={finishOnboarding} />}
+      {onboardingReady && showOnboarding && <Onboarding onFinish={finishOnboarding} />}
+      </View>
+      {splashVisible && <StartupSplash destinationReady={onboardingReady && initialResolved && (showOnboarding || destinationReady)} onHidden={() => setSplashVisible(false)} />}
     </SafeAreaView>
   );
 }

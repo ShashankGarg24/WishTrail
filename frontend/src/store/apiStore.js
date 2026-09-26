@@ -1,3 +1,4 @@
+import { restoreStartupToken } from '../services/startupSession'
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
@@ -1973,8 +1974,19 @@ const useApiStore = create(
       setLoading: (loading) => set({ loading }),
 
       // Initialize auth state from localStorage
-      initializeAuth: () => {
-        const token = localStorage.getItem('token');
+      initializeAuth: async () => {
+        let token = localStorage.getItem('token');
+        if (typeof window !== 'undefined' && window.ReactNativeWebView) {
+          // Android's before-content script can race page scripts. The WebView
+          // injected object is available synchronously to the web bootstrap.
+          try {
+            const injected = window.ReactNativeWebView.injectedObjectJson?.();
+            if (injected) window.__WT_REFRESH_TOKEN = JSON.parse(injected).refreshToken || window.__WT_REFRESH_TOKEN;
+          } catch { }
+          token = await restoreStartupToken({ token, refreshToken: window.__WT_REFRESH_TOKEN, refresh: authAPI.refresh });
+          setAuthToken(token);
+          set({ token, isAuthenticated: !!token, ...(token ? {} : { user: null }) });
+        }
         if (token) {
           setAuthToken(token);
           set({ token, isAuthenticated: true });

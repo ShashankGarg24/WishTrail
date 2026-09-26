@@ -1,3 +1,4 @@
+import StartupSkeleton from '../components/StartupSkeleton'
 import { useState, useEffect, useMemo, lazy, Suspense, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import CategoryBadge from '../components/CategoryBadge'
@@ -116,16 +117,6 @@ const DashboardPageNew = () => {
     getLatestProductUpdate()
   }, [isAuthenticated, getLatestProductUpdate])
 
-  useEffect(() => {
-    if (!isAuthenticated || isInitialDashboardLoading) return
-    try {
-      window.ReactNativeWebView?.postMessage(
-        JSON.stringify({ type: 'WT_DASHBOARD_READY' })
-      )
-    } catch (_) {
-      // Non-native contexts do not provide the ReactNativeWebView bridge.
-    }
-  }, [isAuthenticated, isInitialDashboardLoading])
 
   useEffect(() => {
     const preloadActionModals = () => {
@@ -299,16 +290,7 @@ const DashboardPageNew = () => {
     }
   }
 
-  if (isAuthenticated && isInitialDashboardLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4c99e6] mx-auto mb-4"></div>
-          <p className="text-gray-500 dark:text-gray-400">Loading dashboard...</p>
-        </div>
-      </div>
-    )
-  }
+  if (isAuthenticated && isInitialDashboardLoading) return <StartupSkeleton />
 
   return (
     <div className="min-h-screen bg-[#f5f5f5] dark:bg-gray-900">

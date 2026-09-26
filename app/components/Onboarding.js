@@ -61,7 +61,8 @@ export default function Onboarding({ onFinish }) {
   const pager = useRef(null);
   const [index, setIndex] = useState(0);
   const [busy, setBusy] = useState(false);
-  const scale = Math.min((width - 40) / 350, height < 740 ? 0.83 : 1);
+  const illustrationScale = page => Math.min((width - 40) / 350,
+    Math.max(0.55, (height - (page === 2 ? 400 : 445) * Math.max(fontScale, 1)) / 420));
   const finish = async (signIn = false) => {
     if (busy) return;
     setBusy(true);
@@ -73,7 +74,7 @@ export default function Onboarding({ onFinish }) {
       {slides.map((slide, i) => <ScrollView key={i} style={{ width }} contentContainerStyle={s.page} showsVerticalScrollIndicator={false}>
         <Text accessibilityRole="header" style={[s.title, { fontSize: width < 380 ? 34 : 38 }]}>{slide.title}<Text style={s.accent}>{slide.accent}</Text></Text>
         <Text style={s.body}>{slide.body}</Text>
-        <View style={{ height: 380 * scale * Math.min(fontScale, 1.2), alignItems: 'center', marginTop: 25 }}><View style={{ width: 350, transform: [{ scale }], transformOrigin: 'top center' }}>{i === 0 ? <GoalCard /> : i === 1 ? <HabitsCard /> : <CommunityCard />}</View></View>
+        <View style={{ height: 420 * illustrationScale(i), alignItems: 'center', marginTop: 25 }}><View style={{ width: 350, transform: [{ scale: illustrationScale(i) }], transformOrigin: 'top center' }}>{i === 0 ? <GoalCard /> : i === 1 ? <HabitsCard /> : <CommunityCard />}</View></View>
       </ScrollView>)}
     </ScrollView>
     <View style={s.footer}>{index < 2 ? <View style={s.row}>
@@ -86,10 +87,12 @@ export default function Onboarding({ onFinish }) {
 const s = StyleSheet.create({
   screen: { ...StyleSheet.absoluteFillObject, backgroundColor: '#fafdff', zIndex: 30 },
   top: { height: 58, paddingHorizontal: 26, justifyContent: 'center', alignItems: 'flex-end' }, skip: { color: '#4c6788', fontSize: 16 },
-  page: { paddingHorizontal: 28, paddingBottom: 10 }, title: { color: '#0a1b2d', fontWeight: '700', letterSpacing: -1.1, lineHeight: 44 }, accent: { color: BLUE },
+  page: { paddingHorizontal: 28, paddingBottom: 10 }, title: { color: '#0a1b2d', fontWeight: '600', letterSpacing: -1.1, lineHeight: 44 }, accent: { color: BLUE },
   body: { color: '#56718f', fontSize: 17, lineHeight: 24, marginTop: 14 },
   footer: { paddingHorizontal: 26, paddingTop: 8, paddingBottom: 24, minHeight: 90 }, row: { flexDirection: 'row', alignItems: 'center' }, grow: { flex: 1 },
-  dot: { width: 11, height: 11, borderRadius: 6, backgroundColor: '#dce8f4', marginRight: 13 }, next: { width: 60, height: 60, borderRadius: 30, backgroundColor: '#d4e9ff', alignItems: 'center', justifyContent: 'center' }, arrow: { color: BLUE, fontSize: 34 },
+  dot: { width: 11, height: 11, borderRadius: 6, backgroundColor: '#dce8f4', marginRight: 13 }, next: { width: 60, height: 60, borderRadius: 30, backgroundColor: '#d4e9ff', alignItems: 'center', justifyContent: 'center' }, arrow: { color: BLUE, width: 26, height: 26, transform: [{ translateX: 13 }, { scale: 2.5 }] },
+  arrowShaft: { position: 'absolute', left: 1, top: 12, width: 24, height: 2, borderRadius: 1, backgroundColor: BLUE },
+  arrowHead: { position: 'absolute', right: 3, top: 7, width: 12, height: 12, borderTopWidth: 2, borderRightWidth: 2, borderColor: BLUE, transform: [{ rotate: '45deg' }] },
   start: { borderRadius: 30, height: 55, backgroundColor: BLUE, alignItems: 'center', justifyContent: 'center' }, startText: { fontSize: 18, fontWeight: '600', color: '#fff' }, signInText: { color: '#57718f', fontSize: 14 },
   art: { paddingHorizontal: 12, paddingTop: 18 }, backplate: { position: 'absolute', top: 60, left: 0, right: 0, height: 240, borderRadius: 25, backgroundColor: '#e5f1ff' },
   card: { backgroundColor: '#fff', borderRadius: 23, padding: 20, shadowColor: '#a6c8eb', shadowOpacity: 0.18, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 2 },
