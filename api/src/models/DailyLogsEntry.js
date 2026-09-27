@@ -34,6 +34,8 @@ const dailyLogsEntrySchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
+dailyLogsEntrySchema.index({ userId: 1, createdAt: 1 });
+
 dailyLogsEntrySchema.pre('save', function (next) {
   if (!this.dayKey) {
     const d = this.createdAt || new Date();

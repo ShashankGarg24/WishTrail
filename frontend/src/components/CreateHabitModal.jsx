@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { X, Calendar, Info, Clock, Crown, ChevronDown, ChevronRight } from 'lucide-react';
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock';
 
@@ -31,6 +31,15 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
   const [targetCompletions, setTargetCompletions] = useState('');
   const [targetDays, setTargetDays] = useState('');
   const [showAdditionalDetails, setShowAdditionalDetails] = useState(false);
+  const contentRef = useRef(null);
+  useEffect(() => {
+    if (!isOpen || !showAdditionalDetails) return;
+    const frame = requestAnimationFrame(() => {
+      const content = contentRef.current;
+      content?.scrollTo({ top: content.scrollHeight, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [isOpen, showAdditionalDetails]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -136,7 +145,7 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" style={{ fontFamily: 'Manrope, ui-sans-serif, system-ui' }}>
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-xl border border-gray-200 dark:border-gray-700 max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-xl border border-gray-200 dark:border-gray-700 max-h-[90dvh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-3">
@@ -155,7 +164,8 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
 
         {/* Content */}
         <form onSubmit={handleSubmit} className="flex-1 min-h-0 flex flex-col">
-          <fieldset disabled={!habitLimits.canCreate} className="border-0 p-0 m-0 min-w-0 flex-1 min-h-0 overflow-y-auto theme-scrollbar">
+          <div ref={contentRef} className="flex-1 min-h-0 overflow-y-auto overscroll-contain theme-scrollbar">
+          <fieldset disabled={!habitLimits.canCreate} className="border-0 p-0 m-0 min-w-0">
           <div className="px-4 sm:px-6 py-4 sm:py-5 space-y-4 sm:space-y-5">
             {error && (
               <div className="flex items-start gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-700 dark:text-red-300 text-sm">
@@ -249,6 +259,7 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
               <button
                 type="button"
                 onClick={() => setShowAdditionalDetails(prev => !prev)}
+                aria-expanded={showAdditionalDetails}
                 className="w-full px-4 py-3 flex items-center justify-between text-left"
               >
                 <div>
@@ -326,9 +337,10 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
             </div>
           </div>
           </fieldset>
+          </div>
 
           {/* Footer */}
-          <div className="bg-gray-50 dark:bg-gray-800/50 px-4 sm:px-6 lg:px-8 py-4 sm:py-5 border-t border-gray-200 dark:border-gray-700 flex items-center gap-2 sm:gap-3">
+          <div className="shrink-0 bg-gray-50 dark:bg-gray-800/50 px-4 sm:px-6 lg:px-8 py-4 sm:py-5 border-t border-gray-200 dark:border-gray-700 flex items-center gap-2 sm:gap-3">
             <button 
               type="button" 
               onClick={onClose} 

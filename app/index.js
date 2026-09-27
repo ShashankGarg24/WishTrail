@@ -1,3 +1,4 @@
+import { pullToRefreshScript } from './webViewGestures';
 import React, { useMemo, useRef, useState, useCallback, useEffect } from 'react';
 import { Platform, SafeAreaView, StatusBar, View, RefreshControl, Linking, AppState, Text, TouchableOpacity, Dimensions, ScrollView, ActivityIndicator, Animated, PermissionsAndroid, Alert, Image } from 'react-native';
 import { WebView } from 'react-native-webview';
@@ -12,7 +13,7 @@ import * as NativeSplash from 'expo-splash-screen';
 import { getOnboardingState, completeOnboarding as saveOnboardingCompletion } from './onboardingState';
 NativeSplash.preventAutoHideAsync().catch(() => {});
 NativeSplash.setOptions({ duration: 350, fade: true });
-// Push notifications removed (Expo). FCM to be integrated later.
+// Native push notifications use Firebase Cloud Messaging.
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -101,117 +102,50 @@ function App() {
   const lastProgressUpdate = useRef(0);
   const ptrAnimRef = useRef(null);
 
-  // Inject web-level pull-to-refresh gesture to control overlay and reload (enabled only on /feed and /notifications)
   const injectPullToRefreshJS = useCallback(() => {
-    try {
-      const js = `
-        (function(){
-          try {
-            function postPath(){ try{ window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'WT_PATH', path: (location && location.pathname) || '/' })); }catch(e){} }
-            postPath();
-            (function(){
-              var _push=history.pushState; history.pushState=function(){ var r=_push.apply(this, arguments); try{ postPath(); }catch(_e){}; return r; };
-              var _replace=history.replaceState; history.replaceState=function(){ var r=_replace.apply(this, arguments); try{ postPath(); }catch(_e){}; return r; };
-              window.addEventListener('popstate', postPath);
-            })();
-            if (window.__wtPullAttached) return; window.__wtPullAttached = true;
-            var startY = 0, pulling = false, progress = 0, threshold = 140;
-            function path() { try { return (window.location && window.location.pathname) || '/'; } catch(_) { return '/'; } }
-            function eligible(){ try { var p = String(path()||''); return p.startsWith('/feed') || p.startsWith('/notifications'); } catch(_) { return false; } }
-            window.addEventListener('touchstart', function(e){
-              try {
-                if (!eligible()) return;
-                var t = e.target;
-                var tag = (t && t.tagName) ? t.tagName.toLowerCase() : '';
-                var interactive = ['button','a','input','select','textarea','label'].includes(tag) || (t && t.closest && t.closest('button,a,[role="button"],[data-action]'));
-                if (interactive) { pulling = false; return; }
-                startY = (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
-                pulling = (window.scrollY <= 0);
-                progress = 0;
-                if (pulling) { window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'WT_PTR_VISIBLE', visible: true })); }
-              } catch(_){ }
-            }, { passive: true });
-            window.addEventListener('touchmove', function(e){
-              try {
-                if (!eligible() || !pulling) return;
-                var y = (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
-                var dy = y - startY;
-                if (dy <= 0) { progress = 0; window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'WT_PTR_PROGRESS', progress: 0 })); return; }
-                progress = Math.min(dy/threshold, 1);
-                window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'WT_PTR_PROGRESS', progress: progress }));
-              } catch(_){ }
-            }, { passive: true });
-            window.addEventListener('touchend', function(){
-              try {
-                if (!eligible()) return;
-                if (pulling && progress >= 1) {
-                  window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'WT_PTR_TRIGGER' }));
-                } else {
-                  window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'WT_PTR_HIDE' }));
-                }
-                pulling = false; progress = 0;
-              } catch(_){ }
-            }, { passive: true });
-          } catch(e){}
-        })(); true;
-      `;
-      webRef.current?.injectJavaScript(js);
-    } catch { }
+    webRef.current?.injectJavaScript(pullToRefreshScript);
   }, []);
 
-  // Ask for push notification permission once on first launch
-  const askPushPermissionOnce = useCallback(async () => {
+  const [pushAllowed, setPushAllowed] = useState(false);
+  const permissionRequest = useRef(null);
+  const postNotificationPermissionState = useCallback(async (requestId = null, request = false, automatic = false) => {
     try {
-      if (!AsyncStorage) return;
-      // Always request on app startup (don't check if already asked)
-      if (Platform.OS === 'android' && Platform.Version >= 33) {
-        try { await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS); } catch { }
-      } else if (Platform.OS === 'ios') {
-        try {
-          let messaging; try { const mod = require('@react-native-firebase/messaging'); messaging = mod?.default || mod; } catch { }
-          if (messaging) { try { await messaging().requestPermission(); } catch { } }
-        } catch { }
-      }
-      try { await AsyncStorage.setItem('wt_push_perm_asked', '1'); } catch { }
-    } catch { }
-  }, []);
-
-  const postNotificationPermissionState = useCallback(async () => {
-    try {
-      let granted = true;
-      let status = 'granted';
-
-      if (Platform.OS === 'android' && Platform.Version >= 33) {
-        const postNoti = PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS;
-        const hasPermission = await PermissionsAndroid.check(postNoti);
-        granted = !!hasPermission;
-        status = granted ? 'granted' : 'denied';
-      } else if (Platform.OS === 'ios') {
-        let messaging;
-        try {
-          const mod = require('@react-native-firebase/messaging');
-          messaging = mod?.default || mod;
-        } catch (_) { messaging = null; }
-        if (messaging) {
-          try {
-            const auth = await messaging().hasPermission();
-            granted = typeof auth === 'number' ? auth >= 1 : !!auth;
-            status = granted ? 'granted' : 'denied';
-          } catch (_) {
-            granted = false;
-            status = 'unknown';
-          }
+      const mod = require('@react-native-firebase/messaging');
+      const messaging = mod.default || mod;
+      const existingPermission = await messaging().hasPermission();
+      const alreadyAsked = await AsyncStorage?.getItem('wt_push_perm_asked');
+      if (request && existingPermission !== 1 && existingPermission !== 2 && (!automatic || alreadyAsked !== '1')) {
+        if (!permissionRequest.current) {
+          permissionRequest.current = (async () => {
+            if (Platform.OS === 'android' && Platform.Version >= 33) {
+              await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
+            } else if (Platform.OS === 'ios') {
+              await messaging().requestPermission();
+            }
+            await AsyncStorage?.setItem('wt_push_perm_asked', '1');
+          })().finally(() => { permissionRequest.current = null; });
         }
+        await permissionRequest.current;
       }
-
-      const payload = JSON.stringify({
-        type: 'WT_NOTIFICATION_PERMISSION_STATE',
-        granted,
-        status,
-        platform: Platform.OS
-      });
+      const auth = await messaging().hasPermission();
+      const granted = auth === 1 || auth === 2;
+      setPushAllowed(granted);
+      const payload = JSON.stringify({ type: 'WT_NOTIFICATION_PERMISSION_STATE', requestId, granted, status: granted ? 'granted' : 'denied', platform: Platform.OS });
       webRef.current?.injectJavaScript(`window.dispatchEvent(new MessageEvent('message', { data: ${JSON.stringify(payload)} })); true;`);
-    } catch (_) { }
+    } catch (_) {
+      const payload = JSON.stringify({ type: 'WT_NOTIFICATION_PERMISSION_STATE', requestId, granted: false, status: 'unknown' });
+      webRef.current?.injectJavaScript(`window.dispatchEvent(new MessageEvent('message', { data: ${JSON.stringify(payload)} })); true;`);
+    }
+  }, []);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', state => {
+      if (state === 'active' && appState.current !== 'active') {
+        webRef.current?.injectJavaScript("window.dispatchEvent(new Event('wt_native_resume')); true;");
+      }
+      appState.current = state;
+    });
+    return () => subscription.remove();
   }, []);
 
   useEffect(() => {
@@ -268,7 +202,7 @@ function App() {
   };
 
 
-  // FCM init + handlers (unchanged)
+  // Initialize FCM only after notification permission has been granted.
   const [fcmToken, setFcmToken] = useState(null);
   const lastRegisteredSignatureRef = useRef('');
 
@@ -278,9 +212,11 @@ function App() {
     webClientId: GOOGLE_WEB_CLIENT_ID || undefined
   });
   useEffect(() => {
-    if (!onboardingReady || showOnboarding || splashVisible) return;
+    if (!onboardingReady || showOnboarding || splashVisible || !pushAllowed) return;
     const disableFcm = !!(Constants?.expoConfig?.extra?.DISABLE_FCM || Constants?.manifest?.extra?.DISABLE_FCM);
     if (disableFcm) { try { console.log('FCM disabled via extra.DISABLE_FCM'); } catch { }; return; }
+    let cancelled = false;
+    const subscriptions = [];
     (async () => {
       try {
         try { console.log('[FCM] init start', { platform: Platform.OS }); } catch { }
@@ -291,54 +227,30 @@ function App() {
         } catch (_) { messaging = null; }
         if (!messaging) { try { console.log('FCM: messaging module not available; skipping'); } catch { }; return; }
 
-        let authStatus = null;
-        if (Platform.OS === 'ios') {
-          try { authStatus = await messaging().requestPermission(); } catch (_) { }
-          try { console.log('[FCM] permission status:', authStatus); } catch { }
-
-          const enabled = (typeof authStatus === 'number') ? (authStatus >= 1) : !!authStatus;
-          if (!enabled) {
-            try { console.log('[FCM] iOS permission not granted; skipping token'); } catch { }
-            return;
-          }
-        } else {
-          try { authStatus = await messaging().requestPermission(); } catch (_) { }
-          try { console.log('[FCM] permission status:', authStatus); } catch { }
-
-          // Android may report null here; still continue to fetch/register FCM token.
-          if (Platform.Version >= 33) {
-            try {
-              const postNoti = PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS;
-              const hasPermission = await PermissionsAndroid.check(postNoti);
-              if (!hasPermission) {
-                const req = await PermissionsAndroid.request(postNoti);
-                try { console.log('[FCM] POST_NOTIFICATIONS:', req); } catch { }
-              }
-            } catch (_) { }
-          }
-        }
         try { if (typeof messaging().registerDeviceForRemoteMessages === 'function') await messaging().registerDeviceForRemoteMessages(); } catch (_) { }
         const token = await messaging().getToken();
+        if (cancelled || unregisteringRef.current) return;
         setFcmToken(token);
+        subscriptions.push(messaging().onTokenRefresh(setFcmToken));
         try { console.log('FCM token:', token ? (token.slice(0, 12) + '...') : 'null'); } catch { }
 
-        messaging().onMessage(async (remoteMessage) => {
+        subscriptions.push(messaging().onMessage(async (remoteMessage) => {
           try {
             const data = remoteMessage?.data || {};
             const payload = { title: remoteMessage?.notification?.title || '', body: remoteMessage?.notification?.body || '', url: data?.url || '', type: data?.type || '', id: data?.id || '' };
             const js = `window.dispatchEvent(new CustomEvent('wt_push', { detail: ${JSON.stringify(payload)} })); true;`;
             webRef.current?.injectJavaScript(js);
           } catch { }
-        });
+        }));
 
-        messaging().onNotificationOpenedApp((remoteMessage) => {
+        subscriptions.push(messaging().onNotificationOpenedApp((remoteMessage) => {
           try {
             const url = remoteMessage?.data?.url || '';
             if (url) {
               if (webReady) forwardDeepLinkToWeb(url); else pendingDeepLinkRef.current = url;
             }
           } catch { }
-        });
+        }));
 
         try {
           const initial = await messaging().getInitialNotification();
@@ -351,16 +263,44 @@ function App() {
         try { console.log('FCM init error', e?.message || e); } catch { }
       }
     })();
-  }, [webReady, forwardDeepLinkToWeb, onboardingReady, showOnboarding, splashVisible]);
+    return () => { cancelled = true; subscriptions.forEach(unsubscribe => unsubscribe()); };
+  }, [webReady, forwardDeepLinkToWeb, onboardingReady, showOnboarding, splashVisible, pushAllowed]);
 
-  // Register device token (unchanged)
+  const unregisteringRef = useRef(false);
+  const flushPendingUnregister = useCallback(async () => {
+    const raw = await SecureStore?.getItemAsync('wt_pending_unregister');
+    if (!raw) return;
+    const pending = JSON.parse(raw);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8000);
+    let response;
+    try {
+      response = await fetch(`${API_BASE.replace(/\/$/, '')}/notifications/devices/unregister`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${pending.authToken}` },
+        body: JSON.stringify({ token: pending.token }), signal: controller.signal
+      });
+    } finally { clearTimeout(timer); }
+    // Expired credentials cannot unregister; logout also revokes the FCM token locally.
+    if (!response.ok && response.status !== 401 && response.status !== 403) throw new Error('unregister_pending');
+    await SecureStore?.deleteItemAsync('wt_pending_unregister');
+  }, []);
+  useEffect(() => {
+    flushPendingUnregister().catch(() => {});
+    const subscription = AppState.addEventListener('change', state => { if (state === 'active') flushPendingUnregister().catch(() => {}); });
+    return () => subscription.remove();
+  }, [flushPendingUnregister]);
+
+  // Register only after any pending logout cleanup has completed.
+
   useEffect(() => {
     (async () => {
       try {
+        if (unregisteringRef.current) return;
+        await flushPendingUnregister();
         const API = (API_BASE || '').replace(/\/$/, '');
         console.log('[FCM Register Debug] API:', API ? 'present' : 'MISSING', 'fcmToken:', fcmToken ? fcmToken.slice(0, 12) + '...' : 'MISSING', 'authToken:', authToken ? 'present' : 'MISSING', 'userId:', userId || 'MISSING');
         
-        if (!API || !fcmToken || !(authToken || userId)) {
+        if (!pushAllowed || !API || !fcmToken || !authToken) {
           console.log('[FCM Register] Skipping: missing API/token/auth');
           return;
         }
@@ -376,7 +316,7 @@ function App() {
         const response = await fetch(`${API}/notifications/devices/register`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}) },
-          body: JSON.stringify({ token: fcmToken, platform: Platform.OS, provider: 'fcm', userId: userId || undefined })
+          body: JSON.stringify({ token: fcmToken, platform: Platform.OS, provider: 'fcm', timezone: Intl.DateTimeFormat().resolvedOptions().timeZone })
         });
 
         if (response.ok) {
@@ -394,11 +334,11 @@ function App() {
         console.log('[FCM Register Error]:', e?.message || e);
       }
     })();
-  }, [authToken, userId, fcmToken]);
+  }, [authToken, userId, fcmToken, pushAllowed, flushPendingUnregister]);
 
   // Retry FCM token fetch when auth arrives but token is missing (helps recover from startup race)
   useEffect(() => {
-    if (!authToken || fcmToken) return;
+    if (!pushAllowed || !authToken || fcmToken || unregisteringRef.current) return;
     (async () => {
       try {
         let messaging;
@@ -416,7 +356,7 @@ function App() {
         try { console.log('[FCM] retry token failed:', e?.message || e); } catch { }
       }
     })();
-  }, [authToken, fcmToken]);
+  }, [authToken, fcmToken, pushAllowed]);
 
   // Inject auth + PTR gesture
   const injectAuthProbe = useCallback(() => {
@@ -490,7 +430,23 @@ function App() {
   const onMessage = useCallback((event) => {
     try {
       const data = JSON.parse(event?.nativeEvent?.data || '{}');
-      if (data?.type === 'WT_AUTH') {
+      if (data?.type === 'WT_UNREGISTER_DEVICE') {
+        unregisteringRef.current = true;
+        lastRegisteredSignatureRef.current = '';
+        (async () => {
+          try {
+            if (fcmToken && authToken) {
+              await SecureStore?.setItemAsync('wt_pending_unregister', JSON.stringify({ token: fcmToken, authToken }));
+              await flushPendingUnregister();
+            }
+          } catch { /* Retry securely stored unregister on next start/resume. */ }
+          finally {
+            try { const mod = require('@react-native-firebase/messaging'); await (mod.default || mod)().deleteToken(); setFcmToken(null); } catch {}
+            await SecureStore?.deleteItemAsync('wt_refresh_token');
+            webRef.current?.injectJavaScript(`window.dispatchEvent(new MessageEvent('message', { data: JSON.stringify({ type: 'WT_DEVICE_UNREGISTERED' }) })); true;`);
+          }
+        })();
+      } else if (data?.type === 'WT_AUTH') {
         const t = (data.token || '').trim();
         if (t && t.length > 0) {
           setAuthToken(t);
@@ -498,6 +454,8 @@ function App() {
         } else {
           setAuthToken(null);
           setUserId(null);
+          unregisteringRef.current = false;
+          lastRegisteredSignatureRef.current = "";
           try { AsyncStorage && AsyncStorage.removeItem('wt_native_authed'); } catch { }
         }
       } else if (data?.type === 'WT_USER') {
@@ -519,7 +477,7 @@ function App() {
           Alert.alert('Google Sign-In', 'Unable to open Google sign-in. Please try again.');
         });
       } else if (data?.type === 'WT_REQUEST_NOTIFICATION_PERMISSION_STATE') {
-        postNotificationPermissionState().catch(() => { });
+        postNotificationPermissionState(data.requestId, !!data.request, !!data.automatic).catch(() => { });
       } else if (data?.type === 'WT_OPEN_APP_NOTIFICATION_SETTINGS') {
         try { Linking.openSettings(); } catch { }
       } else if (data?.type === 'WT_PATH') {
@@ -548,8 +506,7 @@ function App() {
         setPtrLoading(false);
         setPtrVisible(!!data.visible);
         setPtrProgress(0);
-        ptrAnimRef.current = Animated.timing(ptrAnim, { toValue: !!data.visible ? 1 : 0, duration: 180, useNativeDriver: true });
-        ptrAnimRef.current.start();
+        ptrAnim.setValue(0);
       } else if (data?.type === 'WT_PTR_PROGRESS') {
         // Debounce rapid progress updates (max 60fps)
         const now = Date.now();
@@ -560,12 +517,8 @@ function App() {
         setPtrVisible(true);
         setPtrProgress(p);
 
-        // Stop previous animation
-        if (ptrAnimRef.current) {
-          try { ptrAnimRef.current.stop(); } catch { }
-        }
-        ptrAnimRef.current = Animated.timing(ptrAnim, { toValue: 1, duration: 100, useNativeDriver: true });
-        ptrAnimRef.current.start();
+        // Follow the finger directly; only release/hide uses a timed animation.
+        ptrAnim.setValue(p);
       } else if (data?.type === 'WT_PTR_TRIGGER') {
         // Stop previous animation
         if (ptrAnimRef.current) {
@@ -576,7 +529,12 @@ function App() {
         setPtrProgress(1);
         ptrAnimRef.current = Animated.timing(ptrAnim, { toValue: 1, duration: 100, useNativeDriver: true });
         ptrAnimRef.current.start();
-        try { webRef.current?.reload(); } catch { }
+        webRef.current?.injectJavaScript(`
+          if (location.pathname === '/feed' || location.pathname === '/feed/') {
+            window.dispatchEvent(new Event('wt_refresh'));
+          } else { location.reload(); }
+          true;
+        `);
       } else if (data?.type === 'WT_PTR_HIDE') {
         // Stop previous animation
         if (ptrAnimRef.current) {
@@ -593,7 +551,7 @@ function App() {
         setDestinationReady(true);
       }
     } catch { }
-  }, [ptrAnim, promptGoogleSignIn, postNotificationPermissionState]);
+  }, [ptrAnim, promptGoogleSignIn, postNotificationPermissionState, fcmToken, authToken, flushPendingUnregister]);
 
   const completeNativeGoogleLogin = useCallback(async (idToken) => {
     if (!idToken) return;
@@ -759,12 +717,6 @@ function App() {
     return () => { cancelled = true; };
   }, []);
 
-  useEffect(() => {
-    if (onboardingReady && !showOnboarding && !splashVisible) {
-      askPushPermissionOnce().catch(() => { });
-    }
-  }, [onboardingReady, showOnboarding, splashVisible, askPushPermissionOnce]);
-
   // PTR overlay (GitHub-like) — only on Feed and Notifications
   const renderPtrOverlay = () => {
     // Show overlay based on visibility state, not page type
@@ -796,12 +748,15 @@ function App() {
         onError={() => setDestinationReady(true)}
         onHttpError={event => { if (event.nativeEvent.url === initialUri) setDestinationReady(true); }}
         onLoadStart={() => { setLoading(true); if (ptrAnimRef.current) { try { ptrAnimRef.current.stop(); } catch { } } setPtrLoading(false); setPtrVisible(false); setPtrProgress(0); ptrAnim.setValue(0); }}
-        onLoadEnd={() => { setLoading(false); setWebReady(true); if (pendingDeepLinkRef.current) { forwardDeepLinkToWeb(pendingDeepLinkRef.current); pendingDeepLinkRef.current = ''; } injectAuthProbe(); injectRefreshToken(); setTimeout(() => { postNotificationPermissionState().catch(() => { }); if (ptrAnimRef.current) { try { ptrAnimRef.current.stop(); } catch { } } setPtrLoading(false); setPtrVisible(false); setPtrProgress(0); ptrAnim.setValue(0); }, 400); }}
+        onLoadEnd={() => { setLoading(false); setWebReady(true); if (pendingDeepLinkRef.current) { forwardDeepLinkToWeb(pendingDeepLinkRef.current); pendingDeepLinkRef.current = ''; } injectAuthProbe(); injectRefreshToken(); setTimeout(() => { if (ptrAnimRef.current) { try { ptrAnimRef.current.stop(); } catch { } } setPtrLoading(false); setPtrVisible(false); setPtrProgress(0); ptrAnim.setValue(0); }, 400); }}
         onShouldStartLoadWithRequest={onShouldStartLoadWithRequest}
         onMessage={onMessage}
         pullToRefreshEnabled={false}
-        bounces={Platform.OS === 'ios'}
-        overScrollMode="always"
+        setBuiltInZoomControls={false}
+        setDisplayZoomControls={false}
+        scalesPageToFit={false}
+        bounces={false}
+        overScrollMode="never"
         scrollEnabled
         allowsBackForwardNavigationGestures
         style={{ backgroundColor: '#F8FAFC' }}

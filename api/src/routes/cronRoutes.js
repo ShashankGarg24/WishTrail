@@ -32,10 +32,10 @@ router.post('/habit-reminders', verifyCronKey, async (req, res) => {
 router.post('/daily-logs-prompts', verifyCronKey, async (req, res) => {
   try {
     const startedAt = Date.now();
-    await notifyDailyPrompt();
+    const result = await notifyDailyPrompt();
     const durationMs = Date.now() - startedAt;
     try { logger.info('[cron] daily-logs-prompts', { durationMs }); } catch {}
-    res.json({ success: true, durationMs });
+    res.status(result.failed ? 503 : 200).json({ success: !result.failed, data: result, durationMs });
   } catch (e) {
     res.status(500).json({ success: false, error: e?.message || 'failed' });
   }
@@ -47,7 +47,7 @@ router.post('/morning-quotes', verifyCronKey, async (req, res) => {
     const r = await sendMorningQuotes();
     const durationMs = Date.now() - startedAt;
     try { logger.info('[cron] morning-quotes', { durationMs, count: r?.count }); } catch {}
-    res.json({ success: true, data: r, durationMs });
+    res.status(r.failed ? 503 : 200).json({ success: !r.failed, data: r, durationMs });
   } catch (e) {
     res.status(500).json({ success: false, error: e?.message || 'failed' });
   }
@@ -88,6 +88,13 @@ router.post('/delete-old-notifications', verifyCronKey, async (req, res) => {
   } catch (e) {
     res.status(500).json({ success: false, error: e?.message || 'failed' });
   }
+});
+
+router.post('/cleanup-notification-deliveries', verifyCronKey, async (req, res) => {
+  try {
+    const result = await require('../services/scheduledDeliveryService').cleanup();
+    res.json({ success: true, deletedCount: result.deletedCount });
+  } catch (error) { res.status(500).json({ success: false, error: 'delivery_cleanup_failed' }); }
 });
 
 module.exports = router;

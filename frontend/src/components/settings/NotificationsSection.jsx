@@ -1,17 +1,7 @@
+import { getNativeNotificationPermission, reconcileNativeNotifications } from '../../services/nativeNotifications';
 import { useState, useEffect } from 'react';
 import { Bell, CheckCircle, AlertCircle, Smartphone } from 'lucide-react';
 import { settingsAPI } from '../../services/api';
-
-const defaultSettings = {
-  email: { enabled: true },
-  inApp: {
-    enabled: true,
-    dailyLogReminder: true,
-    motivationReminder: true,
-    socialUpdates: true,
-    habitReminders: true
-  }
-};
 
 const NotificationsSection = () => {
   const isNativeApp = typeof window !== 'undefined' && !!window.ReactNativeWebView;
@@ -19,6 +9,7 @@ const NotificationsSection = () => {
   const [originalNotif, setOriginalNotif] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [checkingPermission, setCheckingPermission] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -31,42 +22,30 @@ const NotificationsSection = () => {
   useEffect(() => {
     if (!isNativeApp) return;
 
-    const onNativeMessage = (event) => {
-      try {
-        const payload = typeof event?.data === 'string' ? JSON.parse(event.data) : null;
-        if (!payload || payload.type !== 'WT_NOTIFICATION_PERMISSION_STATE') return;
-
-        const granted = !!payload.granted;
-        setDevicePermissionGranted(granted);
-
-        setNotif((prev) => {
-          if (!prev || granted) return prev;
-          return { ...prev, inApp: { ...(prev.inApp || {}), enabled: false } };
-        });
-      } catch (_) { }
+    const onSynced = ({ detail: { settings, granted } }) => {
+      setDevicePermissionGranted(granted);
+      setNotif(prev => prev ? { ...prev, inApp: { ...prev.inApp, enabled: settings.inApp.enabled } } : settings);
+      setOriginalNotif(prev => prev ? { ...prev, inApp: { ...prev.inApp, enabled: settings.inApp.enabled } } : settings);
     };
-
-    window.addEventListener('message', onNativeMessage);
-    try {
-      window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'WT_REQUEST_NOTIFICATION_PERMISSION_STATE' }));
-    } catch (_) { }
-
-    return () => {
-      window.removeEventListener('message', onNativeMessage);
-    };
+    window.addEventListener('wt_notification_settings', onSynced);
+    getNativeNotificationPermission().then(setDevicePermissionGranted).catch(err => setError(err.message));
+    return () => window.removeEventListener('wt_notification_settings', onSynced);
   }, [isNativeApp]);
+
+  useEffect(() => {
+    setHasChanges(JSON.stringify(notif) !== JSON.stringify(originalNotif));
+  }, [notif, originalNotif]);
 
   const fetchNotificationSettings = async () => {
     try {
-      const response = await settingsAPI.getNotificationSettings();
-      const data = response?.data?.data || {};
-      const settings = data.notifications || defaultSettings;
+      const settings = isNativeApp
+        ? (await reconcileNativeNotifications(true)).settings
+        : (await settingsAPI.getNotificationSettings()).data.data.notifications;
       setNotif(settings);
       setOriginalNotif(JSON.parse(JSON.stringify(settings)));
     } catch (err) {
       console.error('Failed to fetch notification settings:', err);
-      setNotif(defaultSettings);
-      setOriginalNotif(JSON.parse(JSON.stringify(defaultSettings)));
+      setError('Could not load notification preferences. Please retry.');
     } finally {
       setLoading(false);
     }
@@ -84,8 +63,15 @@ const NotificationsSection = () => {
     setError('');
     setSuccess('');
     try {
-      await settingsAPI.updateNotificationSettings({ notifications: notif });
-      setOriginalNotif(JSON.parse(JSON.stringify(notif)));
+      let next = notif;
+      if (isNativeApp && notif.inApp.enabled !== false) {
+        const granted = await getNativeNotificationPermission();
+        setDevicePermissionGranted(granted);
+        if (!granted) next = { ...notif, inApp: { ...notif.inApp, enabled: false } };
+      }
+      await settingsAPI.updateNotificationSettings({ notifications: next });
+      setNotif(next);
+      setOriginalNotif(JSON.parse(JSON.stringify(next)));
       setHasChanges(false);
       setSuccess('Notification preferences saved successfully');
       setTimeout(() => setSuccess(''), 3000);
@@ -104,24 +90,36 @@ const NotificationsSection = () => {
     setSuccess('');
   };
 
-  const handleMasterToggle = (checked) => {
-    if (checked && devicePermissionGranted === false) {
-      setError('Device notifications are disabled. Please enable them in app settings.');
-      try { window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'WT_OPEN_APP_NOTIFICATION_SETTINGS' })); } catch (_) { }
-      return;
-    }
-    updateNotifSettings({ ...notif, inApp: { ...(notif.inApp || {}), enabled: checked } });
+  const handleMasterToggle = async (checked) => {
+    setCheckingPermission(true);
+    setError('');
+    setSuccess('');
+    try {
+      const granted = checked ? await getNativeNotificationPermission(true) : devicePermissionGranted;
+      if (checked) setDevicePermissionGranted(granted);
+      const enabled = checked && granted;
+      // Save only the master switch immediately; other edits retain their Save/Discard flow.
+      const response = await settingsAPI.getNotificationSettings();
+      const saved = response.data.data.notifications;
+      await settingsAPI.updateNotificationSettings({ notifications: { ...saved, inApp: { ...saved.inApp, enabled } } });
+      setNotif(prev => ({ ...prev, inApp: { ...prev.inApp, enabled } }));
+      setOriginalNotif(prev => ({ ...prev, inApp: { ...prev.inApp, enabled } }));
+      if (checked && !granted) setError('Notifications are off. You can enable them later in your device settings.');
+    } catch (err) {
+      setError(err.message || 'Could not update notification preferences. Please try again.');
+    } finally { setCheckingPermission(false); }
   };
 
   if (loading || !notif) {
     return (
       <div className="p-6">
-        <div className="text-sm text-gray-500 dark:text-gray-400">Loading...</div>
+        <div className="text-sm text-gray-500 dark:text-gray-400">{loading ? 'Loading...' : error}</div>
+        {!loading && <button type="button" onClick={() => { setLoading(true); fetchNotificationSettings(); }} className="mt-3 text-blue-600">Retry</button>}
       </div>
     );
   }
 
-  const inAppEnabled = notif?.inApp?.enabled !== false;
+  const inAppEnabled = notif?.inApp?.enabled !== false && (!isNativeApp || devicePermissionGranted === true);
 
   return (
     <div className="p-6">
@@ -158,13 +156,14 @@ const NotificationsSection = () => {
                 </div>
                 <div>
                   <h3 className="text-base font-semibold text-gray-900 dark:text-white">App Notifications</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Synced with your device notification permission</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">{checkingPermission ? 'Updating notification preference...' : 'Choose whether WishTrail can send you notifications'}</p>
                 </div>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input
                   type="checkbox"
                   className="sr-only peer"
+                  disabled={checkingPermission || saving || devicePermissionGranted === null}
                   checked={inAppEnabled}
                   onChange={(e) => handleMasterToggle(e.target.checked)}
                 />
@@ -207,7 +206,7 @@ const NotificationsSection = () => {
           </div>
         </div>
 
-        {isNativeApp && (
+        {isNativeApp && inAppEnabled && (
           <div className={`border-b border-gray-200 dark:border-gray-700 pb-6 ${!inAppEnabled ? 'opacity-50' : ''}`}>
             <div className="flex items-center justify-between">
               <div>
@@ -218,7 +217,7 @@ const NotificationsSection = () => {
                 <input
                   type="checkbox"
                   className="sr-only peer"
-                  disabled={!inAppEnabled}
+                  disabled={!inAppEnabled || checkingPermission || saving}
                   checked={notif?.inApp?.dailyLogReminder !== false}
                   onChange={(e) => updateNotifSettings({
                     ...notif,
@@ -231,7 +230,7 @@ const NotificationsSection = () => {
           </div>
         )}
 
-        {isNativeApp && (
+        {isNativeApp && inAppEnabled && (
           <div className={`border-b border-gray-200 dark:border-gray-700 pb-6 ${!inAppEnabled ? 'opacity-50' : ''}`}>
             <div className="flex items-center justify-between">
               <div>
@@ -242,7 +241,7 @@ const NotificationsSection = () => {
                 <input
                   type="checkbox"
                   className="sr-only peer"
-                  disabled={!inAppEnabled}
+                  disabled={!inAppEnabled || checkingPermission || saving}
                   checked={notif?.inApp?.motivationReminder !== false}
                   onChange={(e) => updateNotifSettings({
                     ...notif,
@@ -255,7 +254,7 @@ const NotificationsSection = () => {
           </div>
         )}
 
-        {isNativeApp && (
+        {isNativeApp && inAppEnabled && (
           <div className={`${!inAppEnabled ? 'opacity-50' : ''}`}>
             <div className="flex items-center justify-between">
               <div>
@@ -266,7 +265,7 @@ const NotificationsSection = () => {
                 <input
                   type="checkbox"
                   className="sr-only peer"
-                  disabled={!inAppEnabled}
+                  disabled={!inAppEnabled || checkingPermission || saving}
                   checked={notif?.inApp?.socialUpdates !== false}
                   onChange={(e) => updateNotifSettings({
                     ...notif,
@@ -279,11 +278,35 @@ const NotificationsSection = () => {
           </div>
         )}
 
+        {isNativeApp && inAppEnabled && (
+          <div className={`${!inAppEnabled ? 'opacity-50' : ''}`}>
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-semibold text-gray-900 dark:text-white">Habit Reminders</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Reminders to complete your scheduled habits</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="sr-only peer"
+                  disabled={!inAppEnabled || checkingPermission || saving}
+                  checked={notif?.inApp?.habitReminders !== false}
+                  onChange={(e) => updateNotifSettings({
+                    ...notif,
+                    inApp: { ...(notif.inApp || {}), habitReminders: e.target.checked }
+                  })}
+                />
+                <div className={`w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600 ${!inAppEnabled ? 'cursor-not-allowed' : ''}`}></div>
+              </label>
+            </div>
+          </div>
+        )}
+
         <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
           <button
             type="button"
             onClick={handleDiscard}
-            disabled={!hasChanges || saving}
+            disabled={!hasChanges || saving || checkingPermission}
             className="px-6 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
           >
             Discard Changes
@@ -291,7 +314,7 @@ const NotificationsSection = () => {
           <button
             type="button"
             onClick={saveNotifSettings}
-            disabled={!hasChanges || saving}
+            disabled={!hasChanges || saving || checkingPermission}
             className="px-6 py-2.5 bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed text-white dark:text-gray-900 rounded-lg font-medium transition-colors"
           >
             {saving ? 'Saving...' : 'Save Preferences'}

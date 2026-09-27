@@ -1,5 +1,4 @@
 const { logger } = require('./../config/observability');
-const axios = require('axios');
 const admin = require('firebase-admin');
 const DeviceToken = require('../models/DeviceToken');
 
@@ -40,7 +39,7 @@ function buildDeepLink(notification) {
       if (actor) return `${base}/profile/${actor}`;
       return `${base}/notifications`;
     }
-    if (notification?.type === 'daily_logs_prompt') return `${base}/profile?tab=daily-logs`;
+    if (notification?.type === 'daily_logs_prompt') return `${base}/dashboard`;
     if (notification?.type === 'motivation_quote') return `${base}/dashboard`;
   } catch {}
   return `${base}/notifications`;
@@ -53,7 +52,7 @@ function ensureFirebaseInitialized() {
     const rawJson = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON || process.env.FIREBASE_SERVICE_ACCOUNT_JSON || '';
     const b64 = process.env.FIREBASE_SERVICE_ACCOUNT_B64 || '';
     let creds = null;
-    
+
     if (rawJson) {
       try {
         // First, try parsing as-is (might be already proper JSON)
@@ -73,7 +72,7 @@ function ensureFirebaseInitialized() {
             creds = JSON.parse(decoded);
           } catch (e3) {
             logger.error('[push] Firebase init error: SERVICE ACCOUNT in env is not valid JSON or base64 JSON');
-            logger.error('[push] Raw value starts with:', rawJson.substring(0, 50));
+
           }
         }
       }
@@ -95,8 +94,8 @@ function ensureFirebaseInitialized() {
         logger.error('[push] Has client_email:', !!creds.client_email);
         return;
       }
-      
-      admin.initializeApp({ 
+
+      admin.initializeApp({
         credential: admin.credential.cert(creds),
         projectId: creds.project_id // Explicitly set project ID
       });
@@ -110,277 +109,80 @@ function ensureFirebaseInitialized() {
   }
 }
 
-async function sendFcmToUser(userId, notification) {
+// No current type is designated critical. Non-critical pushes use normal, silent delivery.
+async function sendFcmToUser(userId, notification, options = {}) {
+  const { normalizeUserId, localContext, quietHours, preferenceReason, SOCIAL_TYPES } = require('./notificationPolicy');
+  const failure = (code, retryable = false) => ({ ok: false, queued: false, code, retryable });
   try {
+    userId = normalizeUserId(userId);
+    const prefs = await require('../models/extended/UserPreferences').findOne({ userId }).select('notifications').lean();
+    const reason = preferenceReason(prefs, notification.type);
+    if (reason) return failure(reason);
+    const user = await require('./pgUserService').findById(userId);
+    if (!user) return failure('user_not_found');
+    const context = localContext(user.timezone);
+    if (quietHours(context)) {
+      logger.info('[notification-push]', { userId, notificationType: notification.type, userTimezone: context.timezone, localDate: context.localDate, skipReason: 'quiet_hours' });
+      return failure('quiet_hours');
+    }
+    if (['motivation_quote', 'daily_logs_prompt'].includes(notification.type) && require('./notificationPolicy').scheduledReason(notification.type, context)) return failure('outside_time_window');
+    let tokens = await DeviceToken.find({ userId, isActive: true, provider: { $in: ['fcm', 'expo'] }, token: { $type: 'string', $ne: '', $not: /^(ExponentPushToken|ExpoPushToken)\[/ } }).select('token platform').lean();
+    if (SOCIAL_TYPES.has(notification.type) || ['motivation_quote', 'daily_logs_prompt'].includes(notification.type)) tokens = tokens.filter(t => t.platform !== 'web');
+    tokens = [...new Map(tokens.map(t => [t.token, t])).values()];
+    if (!tokens.length) return failure('no_active_device');
+    // Optional cap: disabled unless explicitly configured. Actionable requests bypass it.
+    const cap = Number(process.env.NOTIFICATION_DAILY_PUSH_CAP || 0);
+    if (Number.isInteger(cap) && cap > 0 && !['follow_request', 'community_join_request'].includes(notification.type)) {
+      const Budget = require('../models/NotificationPushBudget');
+      await Budget.init();
+      try {
+        await Budget.findOneAndUpdate({ userId, localDate: context.localDate, count: { $lt: cap } }, { $inc: { count: 1 }, $setOnInsert: { createdAt: new Date() } }, { upsert: true, new: true });
+      } catch (error) { if (error.code === 11000) { logger.info('[notification-push]', { userId, notificationType: notification.type, skipReason: 'rate_limited' }); return failure('rate_limited'); } throw error; }
+    }
     ensureFirebaseInitialized();
-    if (!admin.apps || admin.apps.length === 0) {
-      logger.error('[push] FCM send aborted: Firebase not initialized');
-      return { ok: false, queued: false, tokenCount: 0 };
-    }
-
-    const tokens = await DeviceToken.find({ userId, isActive: true, provider: { $in: ['fcm', 'expo'] } })
-      .select('token provider platform')
-      .lean();
-
-    if (!tokens.length) {
-      logger.info('[push] No active device tokens for user', userId);
-      return { ok: true, queued: false, tokenCount: 0 };
-    }
-
-    // Run actual send in background after token lookup.
+    if (!admin.apps?.length) return failure('provider_unavailable', true);
+    const send = () => sendFcmInternal(tokens, notification);
+    if (options.waitForDelivery) return await send();
     setImmediate(async () => {
       try {
-        await sendFcmInternal(tokens, notification);
-      } catch (error) {
-        logger.error('[push] Background FCM error:', error);
-      }
+        const result = await send();
+        if (result.ok) await require('../models/Notification').updateOne({ _id: notification._id }, { $set: { isDelivered: true, deliveredAt: new Date() } });
+      } catch { logger.warn('[notification-push]', { userId, notificationType: notification.type, code: 'send_failed' }); }
     });
-
     return { ok: true, queued: true, tokenCount: tokens.length };
-  } catch (error) {
-    logger.error('[push] sendFcmToUser setup error:', error?.message || error);
-    return { ok: false, queued: false, tokenCount: 0 };
-  }
+  } catch { return failure('provider_or_database_unavailable', true); }
 }
 
 async function sendFcmInternal(tokens, notification) {
-
-  const dataUrl = buildDeepLink(notification);
-  const type = String(notification?.type || '');
-  const mobileOnlyTypes = new Set([
-    'new_follower',
-    'follow_request',
-    'follow_request_accepted',
-    'activity_comment',
-    'comment_reply',
-    'mention',
-    'activity_liked',
-    'comment_liked',
-    'goal_liked',
-    'daily_logs_prompt',
-    'motivation_quote'
-  ]);
-  
-  // Deduplicate tokens first
-  const uniqueTokens = [];
-  const seenTokens = new Set();
-  for (const t of tokens) {
-    if (!seenTokens.has(t.token)) {
-      seenTokens.add(t.token);
-      uniqueTokens.push(t);
-    }
-  }
-  
-  
-  // Separate web and mobile tokens to avoid duplicates
-  let webTokens = uniqueTokens
-    .filter(t => t.platform === 'web' && t.provider === 'fcm')
-    .map(t => t.token);
-  
-  const mobileTokens = uniqueTokens
-    .filter(t => t.platform !== 'web' && (t.provider === 'fcm' || (t.token && !t.token.startsWith('ExponentPushToken'))))
-    .map(t => t.token);
-
-  if (mobileOnlyTypes.has(type)) {
-    webTokens = [];
-  }
-
-
-  const invalidFcm = [];
   let successCount = 0;
-
-  // Send to web browsers
-  if (webTokens.length) {
+  let retryable = false;
+  const invalid = [];
+  const transient = new Set(['messaging/internal-error', 'messaging/server-unavailable', 'messaging/quota-exceeded', 'messaging/unknown-error']);
+  for (let offset = 0; offset < tokens.length; offset += 500) {
+    const chunk = tokens.slice(offset, offset + 500);
     try {
-      await sendToWebPush(webTokens, notification, dataUrl, invalidFcm);
-      successCount += webTokens.length;
-    } catch (e) {
-      logger.error('[push] web push error:', e?.message);
-    }
-  }
-
-  // Send to mobile devices
-  if (mobileTokens.length) {
-    try {
-      // Compose notification title/body per new spec: "ActorName : action" and body shows truncated goal title when relevant
-      let title = notification.title || 'Notification';
-      let body = notification.message || '';
-      try {
-        // Fetch actor name dynamically from ID
-        let actorName = '';
-        const actorId = notification?.data?.actorId || notification?.data?.likerId || notification?.data?.followerId;
-        if (actorId) {
-          try {
-            const pgUserService = require('./pgUserService');
-            const actor = await pgUserService.findById(actorId);
-            actorName = actor?.name || '';
-          } catch (e) {
-            logger.error('[push] failed to fetch actor:', e?.message);
-          }
-        }
-        
-        const type = String(notification.type || '');
-        const actionMap = {
-          activity_liked: 'liked your activity',
-          comment_liked: 'liked your comment',
-          goal_liked: 'liked your goal',
-          activity_comment: 'commented on your activity',
-          comment_reply: 'replied to your comment',
-          mention: 'mentioned you',
-          new_follower: 'started following you',
-          follow_request: 'requested to follow you',
-          follow_request_accepted: 'accepted your follow request'
-        };
-        if (actorName && actionMap[type]) {
-          title = `${actorName} : ${actionMap[type]}`;
-        } else if (type === 'habit_reminder' || type === 'daily_logs_prompt' || type === 'motivation_quote' || type === 'inactivity_reminder') {
-          // keep system titles as-is
-          title = notification.title || title;
-        }
-        // If there's a goal title, prefer it as body (truncated). Otherwise keep original message.
-        const truncate = (s, n = 48) => {
-          try { const t = String(s || ''); return t.length > n ? (t.slice(0, n - 3) + '...') : t; } catch { return ''; }
-        };
-        let goalTitle = notification?.data?.goalTitle || '';
-        if (!goalTitle && notification?.data?.goalId) {
-          try {
-            const Goal = require('../models/Goal');
-            const g = await Goal.findById(notification.data.goalId).select('title').lean();
-            goalTitle = g?.title || '';
-          } catch {}
-        }
-        if (goalTitle && (type === 'goal_liked' || type === 'activity_liked' || type === 'activity_comment')) {
-          body = truncate(goalTitle, 64);
-        }
-      } catch (_) {}
-
-      const msg = {
-        tokens: mobileTokens,
-        notification: { title, body },
-        data: { url: dataUrl, type: String(notification.type || ''), id: String(notification._id || '') },
-        android: {
-          priority: 'high',
-          notification: {
-            sound: 'default'
-          }
-        }
-      };
-      const resp = await admin.messaging().sendEachForMulticast(msg);
-      successCount += resp.successCount || 0;
-      (resp.responses || []).forEach((r, idx) => {
-        if (!r.success) {
-          const code = r.error && r.error.code;
-          if (code && (code.includes('registration-token-not-registered') || code.includes('invalid-registration-token'))) {
-            invalidFcm.push(mobileTokens[idx]);
-          } else {
-            logger.warn('[push] mobile fcm send error', code || r.error?.message);
-          }
-        }
+      const result = await admin.messaging().sendEachForMulticast({
+        tokens: chunk.map(t => t.token),
+        notification: { title: notification.title || 'WishTrail', body: notification.message || '' },
+        data: { url: buildDeepLink(notification), type: String(notification.type), id: String(notification._id) },
+        android: { priority: 'normal', notification: { tag: String(notification._id) } },
+        apns: { headers: { 'apns-priority': '5' }, payload: { aps: {} } },
+        webpush: { headers: { Urgency: 'normal' }, notification: { tag: String(notification._id) } }
       });
-    } catch (e) {
-      logger.error('[push] mobile fcm multicast error', e?.message || e);
-    }
+      successCount += result.successCount;
+      result.responses.forEach((response, index) => {
+        const code = response.error?.code;
+        if (['messaging/registration-token-not-registered', 'messaging/invalid-registration-token'].includes(code)) invalid.push(chunk[index].token);
+        else if (code && transient.has(code)) retryable = true;
+      });
+    } catch (error) { retryable = retryable || !error.code || transient.has(error.code) || error.code.startsWith('app/network'); }
   }
-
-  if (invalidFcm.length) {
-    await DeviceToken.updateMany({ token: { $in: invalidFcm } }, { $set: { isActive: false } });
+  // Cleanup failures must not turn a provider-accepted submission into a retry.
+  if (invalid.length) {
+    try { await DeviceToken.updateMany({ token: { $in: invalid } }, { $set: { isActive: false } }); }
+    catch { logger.warn('[notification-push]', { code: 'invalid_token_cleanup_failed', count: invalid.length }); }
   }
-
-  return { ok: true, count: tokens.length, successCount };
+  // Partial acceptance is successful: do not resend to devices that already accepted it.
+  return { ok: successCount > 0, successCount, retryable: successCount === 0 && retryable, code: successCount ? null : (retryable ? 'provider_transient' : 'provider_rejected') };
 }
-
-async function sendToWebPush(webTokens, notification, dataUrl, invalidFcm) {
-  let title = notification.title || 'Notification';
-  let body = notification.message || '';
-  
-  try {
-    // Fetch actor name dynamically from ID
-    let actorName = '';
-    const actorId = notification?.data?.actorId || notification?.data?.likerId || notification?.data?.followerId;
-    if (actorId) {
-      try {
-        const pgUserService = require('./pgUserService');
-        const actor = await pgUserService.findById(actorId);
-        actorName = actor?.name || '';
-      } catch (e) {
-        logger.error('[push] failed to fetch actor:', e?.message);
-      }
-    }
-    
-    const type = String(notification.type || '');
-    const actionMap = {
-      activity_liked: 'liked your activity',
-      comment_liked: 'liked your comment',
-      goal_liked: 'liked your goal',
-      activity_comment: 'commented on your activity',
-      comment_reply: 'replied to your comment',
-      mention: 'mentioned you',
-      new_follower: 'started following you',
-      follow_request: 'requested to follow you',
-      follow_request_accepted: 'accepted your follow request'
-    };
-    
-    if (actorName && actionMap[type]) {
-      title = `${actorName} : ${actionMap[type]}`;
-    }
-    
-    const truncate = (s, n = 48) => {
-      try { const t = String(s || ''); return t.length > n ? (t.slice(0, n - 3) + '...') : t; } catch { return ''; }
-    };
-    
-    let goalTitle = notification?.data?.goalTitle || '';
-    if (!goalTitle && notification?.data?.goalId) {
-      try {
-        const Goal = require('../models/Goal');
-        const g = await Goal.findById(notification.data.goalId).select('title').lean();
-        goalTitle = g?.title || '';
-      } catch {}
-    }
-    
-    if (goalTitle && (type === 'goal_liked' || type === 'activity_liked' || type === 'activity_comment')) {
-      body = truncate(goalTitle, 64);
-    }
-  } catch {}
-
-  const msg = {
-    tokens: webTokens,
-    data: { 
-      title, 
-      body,
-      url: dataUrl, 
-      type: String(notification.type || ''), 
-      id: String(notification._id || ''),
-      icon: '/icons/icon-192.png',
-      badge: '/icons/badge-72.png'
-    },
-    webpush: {
-      fcmOptions: {
-        link: dataUrl
-      },
-      notification: {
-        title,
-        body,
-        icon: '/icons/icon-192.png',
-        badge: '/icons/badge-72.png',
-        requireInteraction: false,
-      }
-    }
-  };
-
-  const resp = await admin.messaging().sendEachForMulticast(msg);
-  
-  (resp.responses || []).forEach((r, idx) => {
-    if (!r.success) {
-      const code = r.error && r.error.code;
-      if (code && (code.includes('registration-token-not-registered') || code.includes('invalid-registration-token'))) {
-        invalidFcm.push(webTokens[idx]);
-      } else {
-        logger.warn('[push] web fcm send error', code || r.error?.message);
-      }
-    }
-  });
-}
-
-module.exports = { sendFcmToUser };
-
-
+module.exports = { sendFcmToUser, sendFcmInternal };

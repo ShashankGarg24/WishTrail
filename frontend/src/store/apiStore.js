@@ -1,3 +1,5 @@
+import { unregisterWebPush } from '../services/webPush';
+import { unregisterNativeDevice } from '../services/nativeNotifications';
 import { restoreStartupToken } from '../services/startupSession'
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
@@ -406,6 +408,8 @@ const useApiStore = create(
       },
 
       logout: async () => {
+        if (window.ReactNativeWebView) await unregisterNativeDevice();
+        else await unregisterWebPush(notificationsAPI.unregisterDevice);
         try {
           await authAPI.logout();
           setAuthToken(null);

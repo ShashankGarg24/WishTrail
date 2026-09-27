@@ -1,10 +1,6 @@
 const mongoose = require('mongoose');
 const DailyLogsEntry = require('../models/DailyLogsEntry');
-const Notification = require('../models/Notification');
-const UserPreferences = require('../models/extended/UserPreferences');
-const { query } = require('../config/supabase');
 const axios = require('axios');
-const redis = require('../config/redis');
 const pgUserService = require('./pgUserService');
 const { getDateKeyInTimezone, getStartOfDayInTimezone, getEndOfDayInTimezone } = require('../utility/timezone');
 
@@ -355,84 +351,9 @@ function endOfPeriod(period) {
 }
 
 
-function minutesOfDayInTimezone(timezone) {
-  try {
-    const fmt = new Intl.DateTimeFormat('en-GB', { hour12: false, timeZone: timezone || 'UTC', hour: '2-digit', minute: '2-digit' });
-    const parts = fmt.formatToParts(new Date());
-    const hh = Number(parts.find(p => p.type === 'hour')?.value || '0');
-    const mm = Number(parts.find(p => p.type === 'minute')?.value || '0');
-    return hh * 60 + mm;
-  } catch {
-    const d = new Date();
-    return d.getUTCHours() * 60 + d.getUTCMinutes();
-  }
-}
-
-function localDateKeyInTimezone(timezone) {
-  try {
-    // en-CA yields ISO-like YYYY-MM-DD
-    const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: timezone || 'UTC', year: 'numeric', month: '2-digit', day: '2-digit' });
-    return fmt.format(new Date());
-  } catch {
-    return new Date().toISOString().slice(0, 10);
-  }
-}
-
-function parseHHmmToMinutes(text) {
-  try {
-    const [hh, mm] = String(text || '').split(':');
-    const H = Number(hh), M = Number(mm);
-    if (Number.isNaN(H) || Number.isNaN(M)) return null;
-    if (H < 0 || H > 23 || M < 0 || M > 59) return null;
-    return H * 60 + M;
-  } catch { return null; }
-}
-
-async function notifyDailyPrompt(windowMinutes = 30, targetHHmm = '20:00') {
-  const prompt = getTodayPrompt();
-  // Query PostgreSQL for active users with timezone
-  const result = await query(
-    'SELECT id, timezone FROM users WHERE is_active = true',
-    []
-  );
-  const users = result.rows;
-  const userIds = users.map(u => Number(u.id)).filter(Boolean);
-  const prefDocs = await UserPreferences.find({ userId: { $in: userIds } })
-    .select('userId notifications')
-    .lean();
-  const prefMap = new Map(prefDocs.map((p) => [Number(p.userId), p.notifications || {}]));
-
-  const jobs = [];
-  const targetMin = parseHHmmToMinutes(targetHHmm) ?? 20 * 60;
-  for (const u of users) {
-    const ns = prefMap.get(Number(u.id)) || {};
-    if (ns?.inApp?.enabled === false) continue;
-    if (ns?.inApp?.dailyLogReminder === false) continue;
-
-    const tz = u.timezone || 'UTC';
-    const localMin = minutesOfDayInTimezone(tz);
-    // Send once any time after the target time (20:00) the same day
-    if (localMin < targetMin) continue;
-    // Idempotency: one per day per user
-    try {
-      const dateKey = localDateKeyInTimezone(tz);
-      const key = `dailyLogs:promptSent:${dateKey}:${String(u.id)}`;
-      const seen = await redis.get(key);
-      if (seen) continue;
-      // TTL until next local midnight + 1h buffer
-      const ttlSeconds = Math.max(60, ((24 * 60 - localMin) * 60) + 3600);
-      await redis.set(key, '1', { ex: ttlSeconds });
-    } catch { }
-    jobs.push(Notification.createNotification({
-      userId: u.id,
-      type: 'daily_logs_prompt',
-      title: 'Daily Log Reminder',
-      message: prompt.text,
-      data: { metadata: { promptKey: prompt.key } },
-      priority: 'low'
-    }));
-  }
-  await Promise.allSettled(jobs);
+async function notifyDailyPrompt() {
+  const { runScheduled } = require('./scheduledNotificationService');
+  return runScheduled('daily_logs_prompt', async () => ({ title: 'Daily Log Reminder', message: getTodayPrompt().text, priority: 'low' }));
 }
 
 module.exports = {

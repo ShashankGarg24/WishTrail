@@ -1,11 +1,11 @@
 const express = require('express');
-const { protect, optionalAuth } = require('../middleware/auth');
+const { protect } = require('../middleware/auth');
 const notificationController = require('../controllers/notificationController');
 
 const router = express.Router();
 
-// Allow device registration with optional auth (controller will validate body token if header missing)
-router.post('/devices/register', optionalAuth, notificationController.registerDevice);
+// Bind tokens only to the authenticated account.
+router.post('/devices/register', protect, notificationController.registerDevice);
 
 // Protected routes
 router.use(protect);

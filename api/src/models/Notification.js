@@ -106,6 +106,9 @@ const notificationSchema = new mongoose.Schema({
       ref: 'ActivityComment'
     }
   },
+  priority: { type: String, enum: ['low', 'normal', 'high'], default: 'normal' },
+  aggregationKey: String,
+  aggregateActors: [Number],
   // Community context
   communityId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -155,6 +158,8 @@ const notificationSchema = new mongoose.Schema({
   toJSON: { virtuals: true },
   toObject: { virtuals: true }
 });
+
+notificationSchema.index({ aggregationKey: 1 }, { unique: true, sparse: true, name: 'notification_like_group_unique' });
 
 // Virtual for notification age
 notificationSchema.virtual('age').get(function() {
@@ -206,44 +211,38 @@ notificationSchema.statics.createNotification = async function(notificationData)
     }
     notificationData.channels = channels;
 
-    const notification = new this(notificationData);
-    const saved = await notification.save();
-    try {
-      const UserPreferences = require('./extended/UserPreferences');
-      const prefs = await UserPreferences.findOne({ userId: saved.userId })
-        .select('notifications')
-        .lean();
-      const ns = prefs?.notifications || {};
-      const inApp = ns?.inApp || {};
-      const emailEnabled = ns?.email?.enabled !== false;
-      const inAppEnabled = inApp?.enabled !== false;
-
-      const socialTypes = new Set(['new_follower','follow_request','follow_request_accepted','activity_comment','comment_reply','mention','activity_liked','comment_liked','goal_liked']);
-      const isSocialType = socialTypes.has(saved.type);
-      const isDailyLogType = saved.type === 'daily_logs_prompt';
-      const isMotivationType = saved.type === 'motivation_quote';
-      const isHabitType = saved.type === 'habit_reminder';
-
-      let allowInAppTopic = inAppEnabled;
-      if (isSocialType && inApp.socialUpdates === false) allowInAppTopic = false;
-      if (isDailyLogType && inApp.dailyLogReminder === false) allowInAppTopic = false;
-      if (isMotivationType && inApp.motivationReminder === false) allowInAppTopic = false;
-      if (isHabitType && inApp.habitReminders === false) allowInAppTopic = false;
-
-      const channelPatch = {};
-      if (saved?.channels?.inApp && !allowInAppTopic) channelPatch['channels.inApp'] = false;
-      if (saved?.channels?.push && !allowInAppTopic) channelPatch['channels.push'] = false;
-      if (saved?.channels?.email && !emailEnabled) channelPatch['channels.email'] = false;
-
-      if (Object.keys(channelPatch).length) {
-        await this.updateOne({ _id: saved._id }, { $set: channelPatch });
+    let saved;
+    const { LIKE_TYPES, normalizeUserId, preferenceReason } = require('../services/notificationPolicy');
+    notificationData.userId = normalizeUserId(notificationData.userId);
+    const prefs = await require('./extended/UserPreferences').findOne({ userId: notificationData.userId }).select('notifications').lean();
+    const allowInAppTopic = !preferenceReason(prefs, notificationData.type);
+    const emailEnabled = prefs?.notifications?.email?.enabled !== false;
+    if (!allowInAppTopic) { channels.inApp = false; channels.push = false; }
+    if (!emailEnabled) channels.email = false;
+    if (LIKE_TYPES.has(notificationData.type) && allowInAppTopic) {
+      await this.init();
+      const target = notificationData.data.commentId || notificationData.data.activityId || notificationData.data.goalId;
+      const actor = normalizeUserId(notificationData.data.actorId || notificationData.data.likerId);
+      const aggregationKey = `${notificationData.userId}:${notificationData.type}:${target}:${Math.floor(Date.now() / 600000)}`;
+      try { saved = await this.create({ ...notificationData, aggregationKey, aggregateActors: [actor] }); }
+      catch (error) {
+        if (error.code !== 11000) throw error;
+        saved = await this.findOneAndUpdate({ aggregationKey }, { $addToSet: { aggregateActors: actor }, $set: { isRead: false, readAt: null } }, { new: true });
+        const count = saved.aggregateActors.length;
+        const targetLabel = notificationData.type === 'goal_liked' ? 'goal' : notificationData.type === 'comment_liked' ? 'comment' : 'activity';
+        // Conditional update prevents a slower concurrent worker overwriting a newer count.
+        await this.updateOne({ _id: saved._id, aggregateActors: { $size: count } }, { $set: { message: `${count} people liked your ${targetLabel}` } });
+        return saved;
       }
-
+    } else {
+      saved = await this.create(notificationData);
+    }
+    try {
       const pushAllowed = saved?.channels?.push && allowInAppTopic;
       if (pushAllowed) {
         const { sendFcmToUser } = require('../services/pushService');
         const dispatch = await sendFcmToUser(saved.userId, saved);
-        if (dispatch?.queued) {
+        if (dispatch?.ok && !dispatch?.queued) {
           await this.updateOne(
             { _id: saved._id },
             { $set: { isDelivered: true, deliveredAt: new Date() } }
@@ -534,9 +533,7 @@ notificationSchema.statics.createActivityLikeNotification = async function(liker
     const filter = { userId: activity.userId, type: 'activity_liked', 'data.activityId': activity._id, 'data.actorId': likerId };
     const existing = await this.findOne(filter).sort({ createdAt: -1 });
     if (existing) {
-      const ageMs = Date.now() - new Date(existing.createdAt).getTime();
-      if (ageMs < 60000) return existing; // suppress within 60s
-      await this.updateOne({ _id: existing._id }, { $set: { isRead: false, readAt: null, title: 'Activity liked', message: `${liker.name} liked your activity`, updatedAt: new Date(), createdAt: new Date() } });
+      // Repeated likes from the same actor do not reopen or re-alert old history.
       return existing;
     }
     return this.createNotification({
@@ -577,9 +574,7 @@ notificationSchema.statics.createCommentLikeNotification = async function(likerI
     const filter = { userId: comment.userId, type: 'comment_liked', 'data.commentId': comment._id, 'data.actorId': likerId };
     const existing = await this.findOne(filter).sort({ createdAt: -1 });
     if (existing) {
-      const ageMs = Date.now() - new Date(existing.createdAt).getTime();
-      if (ageMs < 60000) return existing;
-      await this.updateOne({ _id: existing._id }, { $set: { isRead: false, readAt: null, title: 'Comment liked', message: `${liker.name} liked your comment`, 'data.activityId': activityId || existing?.data?.activityId, 'data.goalId': goalId || existing?.data?.goalId, updatedAt: new Date(), createdAt: new Date() } });
+      // Repeated likes from the same actor do not reopen or re-alert old history.
       return existing;
     }
     return this.createNotification({
@@ -615,10 +610,8 @@ notificationSchema.statics.createGoalLikeNotification = async function(likerId, 
   const filter = { userId: goalUserId, type: 'goal_liked', 'data.goalId': goalId, 'data.likerId': likerId };
   const existing = await this.findOne(filter).sort({ createdAt: -1 });
   if (existing) {
-    const ageMs = Date.now() - new Date(existing.createdAt).getTime();
-    if (ageMs < 60000) return existing;
-    await this.updateOne({ _id: existing._id }, { $set: { isRead: false, readAt: null, title: 'Goal Liked', message: `${liker.name} liked your goal "${goal.title}"`, updatedAt: new Date(), createdAt: new Date() } });
-    return existing;
+      // Repeated likes from the same actor do not reopen or re-alert old history.
+      return existing;
   }
   return this.createNotification({
     userId: goalUserId,

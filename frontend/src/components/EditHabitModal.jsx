@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { X, Calendar, Info, ChevronDown, ChevronRight } from 'lucide-react';
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock';
 
@@ -26,6 +26,15 @@ export default function EditHabitModal({ isOpen, onClose, habit, onSave }) {
   const [targetCompletions, setTargetCompletions] = useState('');
   const [targetDays, setTargetDays] = useState('');
   const [showAdditionalDetails, setShowAdditionalDetails] = useState(false);
+  const contentRef = useRef(null);
+  useEffect(() => {
+    if (!isOpen || !showAdditionalDetails) return;
+    const frame = requestAnimationFrame(() => {
+      const content = contentRef.current;
+      content?.scrollTo({ top: content.scrollHeight, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [isOpen, showAdditionalDetails]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -43,12 +52,13 @@ export default function EditHabitModal({ isOpen, onClose, habit, onSave }) {
     setError('');
   }, [isOpen, habit]);
 
-  if (!isOpen || !habit) return null;
-
   useEffect(() => {
+    if (!isOpen || !habit) return;
     lockBodyScroll();
     return () => unlockBodyScroll();
-  }, []);
+  }, [isOpen, habit]);
+
+  if (!isOpen || !habit) return null;
 
   const toggleDay = (v) => {
     setDaysOfWeek(prev => prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v]);
@@ -110,7 +120,7 @@ export default function EditHabitModal({ isOpen, onClose, habit, onSave }) {
   return (
     <div className="fixed inset-0 z-[102] flex items-center justify-center p-4" style={{ fontFamily: 'Manrope, ui-sans-serif, system-ui' }}>
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-xl border border-gray-200 dark:border-gray-700 max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-xl border border-gray-200 dark:border-gray-700 max-h-[90dvh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-3">
@@ -129,7 +139,7 @@ export default function EditHabitModal({ isOpen, onClose, habit, onSave }) {
 
         {/* Content */}
         <form onSubmit={handleSubmit} className="flex-1 min-h-0 flex flex-col">
-          <div className="flex-1 min-h-0 overflow-y-auto theme-scrollbar px-6 py-5 space-y-5">
+          <div ref={contentRef} className="flex-1 min-h-0 overflow-y-auto overscroll-contain theme-scrollbar px-6 py-5 space-y-5">
             {error && (
               <div className="flex items-start gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-700 dark:text-red-300 text-sm">
                 <Info className="h-5 w-5 flex-shrink-0 mt-0.5" />
@@ -197,6 +207,7 @@ export default function EditHabitModal({ isOpen, onClose, habit, onSave }) {
               <button
                 type="button"
                 onClick={() => setShowAdditionalDetails(prev => !prev)}
+                aria-expanded={showAdditionalDetails}
                 className="w-full px-4 py-3 flex items-center justify-between text-left"
               >
                 <div>
@@ -314,7 +325,7 @@ export default function EditHabitModal({ isOpen, onClose, habit, onSave }) {
           </div>
 
           {/* Footer */}
-          <div className="bg-gray-50 dark:bg-gray-800/50 px-4 sm:px-6 lg:px-8 py-4 sm:py-5 border-t border-gray-200 dark:border-gray-700 flex items-center gap-2 sm:gap-3">
+          <div className="shrink-0 bg-gray-50 dark:bg-gray-800/50 px-4 sm:px-6 lg:px-8 py-4 sm:py-5 border-t border-gray-200 dark:border-gray-700 flex items-center gap-2 sm:gap-3">
             <button 
               type="button" 
               onClick={onClose} 

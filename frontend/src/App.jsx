@@ -1,3 +1,4 @@
+import { reconcileNativeNotifications } from './services/nativeNotifications'
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom'
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { GoogleOAuthProvider } from '@react-oauth/google'
@@ -141,6 +142,47 @@ function App() {
       }
     } catch { }
   }, [])
+
+  useEffect(() => {
+    if (!authReady || !isAuthenticated || !inNativeApp) return;
+    let busy = false;
+    const sync = async (request = false) => {
+      if (busy) return;
+      busy = true;
+      try { await reconcileNativeNotifications(request); }
+      catch (error) { toast.error(error.message || 'Could not sync notification preferences.'); }
+      finally { busy = false; }
+    };
+    sync(true);
+    const resume = () => sync(false);
+    window.addEventListener('wt_native_resume', resume);
+    window.addEventListener('online', resume);
+    return () => {
+      window.removeEventListener('wt_native_resume', resume);
+      window.removeEventListener('online', resume);
+    };
+  }, [authReady, isAuthenticated, inNativeApp]);
+
+  useEffect(() => {
+    if (!inNativeApp) return;
+    const viewport = document.querySelector('meta[name="viewport"]');
+    const previous = viewport?.getAttribute('content');
+    viewport?.setAttribute('content', 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover');
+    const preventZoom = event => { if (event.type === 'gesturestart' || event.touches?.length > 1) event.preventDefault(); };
+    document.documentElement.style.touchAction = 'pan-x pan-y';
+    const nativeStyle = document.createElement('style');
+    nativeStyle.textContent = 'input, select, textarea { font-size: max(16px, 1em) !important; }';
+    document.head.appendChild(nativeStyle);
+    document.addEventListener('gesturestart', preventZoom, { passive: false });
+    document.addEventListener('touchmove', preventZoom, { passive: false });
+    return () => {
+      if (previous) viewport?.setAttribute('content', previous);
+      document.documentElement.style.touchAction = '';
+      nativeStyle.remove();
+      document.removeEventListener('gesturestart', preventZoom);
+      document.removeEventListener('touchmove', preventZoom);
+    };
+  }, [inNativeApp]);
 
   // Initialize web push notifications for authenticated users
   useEffect(() => {

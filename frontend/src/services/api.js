@@ -380,7 +380,7 @@ export const notificationsAPI = {
   markAllAsRead: () => api.patch('/notifications/read-all'),
   deleteNotification: (id) => api.delete(`/notifications/${id}`),
   registerDevice: (payload) => api.post('/notifications/devices/register', payload),
-  unregisterDevice: (token) => api.post('/notifications/devices/unregister', { token })
+  unregisterDevice: (token) => api.post('/notifications/devices/unregister', { token }, { timeout: 8000 })
 };
 
 // Communities API

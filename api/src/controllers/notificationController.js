@@ -7,24 +7,9 @@ const pgFollowService = require('../services/pgFollowService');
 
 exports.registerDevice = async (req, res, next) => {
   try {
-    logger.info('registerDevice hit', req.body);
-    const { token, platform = 'unknown', provider = 'expo', timezone = '', timezoneOffsetMinutes = null } = req.body || {};
-    if (!token) return res.status(400).json({ success: false, message: 'token is required' });
-    try {
-      const masked = token.slice(0, 12) + '...';
-      logger.info('[notifications] registerDevice hit', {
-        headerAuth: !!(req.headers && req.headers.authorization),
-        userIdHeader: (req.user && (req.user.id || req.user._id)) || null,
-        userIdBody: req.body && req.body.userId ? req.body.userId : null,
-        platform,
-        provider,
-        token: masked
-      });
-    } catch {}
-    // If user is not authenticated yet, accept a userId in body for initial association (fallback)
-    const bodyUserId = (req.body && req.body.userId) || null;
-    const userId = (req.user && (req.user._id || req.user.id)) || bodyUserId;
-    if (!userId) return res.status(401).json({ success: false, message: 'Not authorized' });
+    const { token, platform = 'unknown', provider = 'fcm', timezone = '' } = req.body || {};
+    if (typeof token !== 'string' || !token.trim()) return res.status(400).json({ success: false, message: 'token is required' });
+    const userId = require('../services/notificationPolicy').normalizeUserId(req.user?.id || req.user?._id);
     let doc;
     try {
       // First, check for and remove any duplicate tokens for this user
@@ -38,25 +23,22 @@ exports.registerDevice = async (req, res, next) => {
       
       doc = await DeviceToken.findOneAndUpdate(
         { userId, token },
-        { $set: { platform, provider, lastSeenAt: new Date(), isActive: true, timezone: timezone || undefined, timezoneOffsetMinutes: timezoneOffsetMinutes ?? undefined } },
+        { $set: { platform, provider, lastSeenAt: new Date(), isActive: true } },
         { upsert: true, new: true }
       );
 
-      // ONE active token per user:
+      // A device token must not remain associated with a previous signed-in account:
       await DeviceToken.updateMany(
-        { userId, token: { $ne: token } },
+        { token, userId: { $ne: userId } },
         { $set: { isActive: false } }
       );
     } catch (e) {
       logger.error('[notifications] registerDevice DB error', e?.message);
       throw e;
     }
-    // Optionally update user's canonical timezone if provided and changed (debounced by device hits naturally)
-    try {
-      if (timezone && req.user && req.user.id) {
-        await User.updateOne({ _id: req.user.id }, { $set: { timezone, timezoneOffsetMinutes: typeof timezoneOffsetMinutes === 'number' ? timezoneOffsetMinutes : undefined } });
-      }
-    } catch {}
+    if (timezone && require('../utility/timezone').isValidTimezone(timezone)) {
+      await require('../config/supabase').query('UPDATE users SET timezone = $1 WHERE id = $2', [timezone, userId]);
+    }
     res.status(200).json({ success: true, data: { device: doc } });
   } catch (e) { next(e); }
 };
@@ -67,7 +49,7 @@ exports.unregisterDevice = async (req, res) => {
     const userId = req.user?._id || req.user?.id;
     if (!userId || !token) return res.status(400).json({ error: 'Missing userId or token' });
 
-    await DeviceToken.updateOne(
+    await DeviceToken.updateMany(
       { userId, token },
       { $set: { isActive: false, lastSeenAt: new Date() } }
     );

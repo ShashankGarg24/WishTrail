@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getMessaging, getToken, onMessage, isSupported } from 'firebase/messaging';
+import { getMessaging, getToken, deleteToken, onMessage, isSupported } from 'firebase/messaging';
 
 // Firebase config - will be loaded from environment variables
 const getFirebaseConfig = () => {
@@ -283,4 +283,16 @@ export const getNotificationPermission = () => {
     return 'unsupported';
   }
   return Notification.permission;
+};
+
+// Explicit logout must detach this browser before the authentication state is cleared.
+export const unregisterWebPush = async (unregisterDevice) => {
+  let token;
+  try { token = sessionStorage.getItem('webpush_registered_token'); } catch { /* Storage unavailable. */ }
+  try { if (token) await unregisterDevice(token); }
+  catch { /* Offline: revoke the local FCM registration where possible. */ }
+  finally {
+    try { if (messaging) await deleteToken(messaging); } catch { /* Provider unavailable. */ }
+    try { sessionStorage.removeItem('webpush_registered_token'); } catch { /* Storage unavailable. */ }
+  }
 };

@@ -1,33 +1,6 @@
-const Notification = require('../models/Notification');
 const UserPreferences = require('../models/extended/UserPreferences');
-const pgUserService = require('./pgUserService');
 const redis = require('../config/redis');
 const axios = require('axios');
-const { getCurrentDateInTimezone } = require('../utility/timezone');
-
-function nowInTimezoneHHmmAndWeekday(timezone) {
-  try {
-    const fmt = new Intl.DateTimeFormat('en-GB', {
-      hour12: false,
-      timeZone: timezone || 'UTC',
-      hour: '2-digit',
-      minute: '2-digit',
-      weekday: 'short'
-    });
-    const parts = fmt.formatToParts(new Date());
-    const hh = parts.find(p => p.type === 'hour')?.value || '00';
-    const mm = parts.find(p => p.type === 'minute')?.value || '00';
-    const wd = parts.find(p => p.type === 'weekday')?.value || 'Mon';
-    return { hhmm: `${hh}:${mm}`, weekday: wd };
-  } catch {
-    const d = new Date();
-    const hh = String(d.getUTCHours()).padStart(2, '0');
-    const mm = String(d.getUTCMinutes()).padStart(2, '0');
-    // get UTC weekday
-    const map = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-    return { hhmm: `${hh}:${mm}`, weekday: map[d.getUTCDay()] };
-  }
-}
 
 // Curated quotes (rotate by day)
 const QUOTES = [
@@ -56,73 +29,20 @@ function getDayOfYear(date = new Date()) {
   return Math.floor(diff / (24 * 60 * 60 * 1000));
 }
 
-async function sendMorningQuotes(windowMinutes = 30) {
-  // Get active users from PostgreSQL
-  const pgUsers = await pgUserService.getActiveUsers();
-  
-  // Get preferences for these users from MongoDB
-  const userIds = pgUsers.map(u => u.id);
-  const preferences = await UserPreferences.find({ 
-    userId: { $in: userIds } 
-  }).select('userId notifications interests').lean();
-  
-  // Create a map for quick lookup
-  const prefsMap = new Map();
-  preferences.forEach(p => {
-    prefsMap.set(p.userId, p);
-  });
-  
-  const jobs = [];
-  const targetH = 8, targetM = 0;
-  
-  for (const u of pgUsers) {
-    const prefs = prefsMap.get(u.id) || {};
-    const ns = prefs.notifications || {};
-    if (ns?.inApp?.enabled === false) continue;
-    if (ns?.inApp?.motivationReminder === false) continue;
-    
-    const { hhmm, weekday } = nowInTimezoneHHmmAndWeekday(u.timezone || 'UTC');
-    const [h, m] = hhmm.split(':').map(n => Number(n));
-    const nowMin = h * 60 + m;
-    const targetMin = targetH * 60 + targetM;
-    // Send once any time after the target time (08:00) the same day
-    if (nowMin < targetMin) continue;
-    
-    // Idempotency: one per day per user
+async function sendMorningQuotes() {
+  const { runScheduled } = require('./scheduledNotificationService');
+  const { normalizeUserId } = require('./notificationPolicy');
+  return runScheduled('motivation_quote', async (user, context) => {
+    const prefs = await UserPreferences.findOne({ userId: normalizeUserId(user.id) }).select('interests').lean();
+    const interests = prefs?.interests?.length ? prefs.interests : ['general'];
+    const interest = sanitizeInterestKey(interests[getDayOfYear() % interests.length]);
+    let quote;
     try {
-      const localDateKey = getCurrentDateInTimezone(u.timezone || 'UTC');
-      const sentKey = `motivation:sent:${localDateKey}:${String(u.id)}`;
-      const sent = await redis.get(sentKey);
-      if (sent) continue;
-      await redis.set(sentKey, '1', { ex: 36 * 60 * 60 });
-    } catch {}
-    
-    // Choose one interest deterministically; fallback to general
-    const interests = Array.isArray(prefs.interests) && prefs.interests.length ? prefs.interests : ['general'];
-    const doy = getDayOfYear(new Date());
-    const chosen = interests[doy % interests.length];
-    
-    // Prefer nightly generated quote for the chosen interest from Redis
-    const dayKey = new Date(); dayKey.setHours(0,0,0,0);
-    const interestKey = sanitizeInterestKey(chosen);
-    const key = `motivation:${dayKey.toISOString().slice(0,10)}:interest:${interestKey}`;
-    let quote = await redis.get(key);
-    if (!quote && interestKey !== 'general') {
-      const fallbackKey = `motivation:${dayKey.toISOString().slice(0,10)}:interest:general`;
-      quote = await redis.get(fallbackKey);
-    }
-    if (!quote) quote = pickQuote();
-    
-    jobs.push(Notification.createNotification({
-      userId: u.id,
-      type: 'motivation_quote',
-      title: 'Morning Motivation',
-      message: quote,
-      priority: 'low'
-    }));
-  }
-  await Promise.allSettled(jobs);
-  return { ok: true, count: jobs.length };
+      quote = await redis.get(`motivation:${context.localDate}:interest:${interest}`);
+      if (!quote) quote = await redis.get(`motivation:${context.localDate}:interest:general`);
+    } catch { /* Cached personalization is optional; delivery is persisted in MongoDB. */ }
+    return { title: 'Morning Motivation', message: quote || pickQuote(), priority: 'low' };
+  });
 }
 
 async function generateNightlyQuotes() {

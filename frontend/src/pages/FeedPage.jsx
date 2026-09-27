@@ -121,16 +121,17 @@ const FeedPage = () => {
   };
 
   // Load activity feed
-  const loadActivityFeed = async (pageNum = 1) => {
+  const loadActivityFeed = async (pageNum = 1, refresh = false) => {
     try {
-      setLoading(pageNum === 1);
+      if (!refresh) setLoading(pageNum === 1);
       setError(null);
       const response = await getActivityFeed({
         page: pageNum,
         limit: 10,
-      });
+      }, { force: refresh });
 
       if (!response) {
+        if (refresh) throw new Error('Missing feed response');
         setActivities([]);
         setHasMore(false);
         return;
@@ -139,6 +140,7 @@ const FeedPage = () => {
       const { activities: feedActivities, pagination } = response;
 
       if (!feedActivities || !Array.isArray(feedActivities)) {
+        if (refresh) throw new Error('Invalid feed response');
         setActivities([]);
         setHasMore(false);
         return;
@@ -154,14 +156,32 @@ const FeedPage = () => {
 
       setHasMore(pagination && pagination.page < pagination.pages);
     } catch (err) {
-      setError('Failed to load feed. Please try again.');
-      if (pageNum === 1) {
+      if (!refresh) setError('Failed to load feed. Please try again.');
+      if (refresh) toast.error('Could not refresh the feed. Please try again.');
+      if (pageNum === 1 && !refresh) {
         setActivities([]);
       }
     } finally {
       setLoading(false);
     }
   };
+
+  const refreshInFlight = useRef(false);
+  useEffect(() => {
+    const refresh = async () => {
+      if (refreshInFlight.current) return;
+      refreshInFlight.current = true;
+      try {
+        await Promise.all([loadActivityFeed(1, true), loadTrendingGoals()]);
+        setPage(1);
+      } finally {
+        refreshInFlight.current = false;
+        window.dispatchEvent(new Event('wt_refresh_complete'));
+      }
+    };
+    window.addEventListener('wt_refresh', refresh);
+    return () => window.removeEventListener('wt_refresh', refresh);
+  }, [user]);
 
   // Load initial feed on mount
   useEffect(() => {

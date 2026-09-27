@@ -9,6 +9,8 @@ const deviceTokenSchema = new mongoose.Schema({
   isActive: { type: Boolean, default: true },
 }, { timestamps: true });
 
+deviceTokenSchema.index({ userId: 1, isActive: 1, platform: 1 });
+
 module.exports = mongoose.model('DeviceToken', deviceTokenSchema);
 
 
