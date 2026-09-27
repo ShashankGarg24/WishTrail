@@ -68,7 +68,7 @@ const scheduleTokenRefresh = () => {
             }
           } catch { }
           
-          const res = await api.post('/auth/refresh', null, { withCredentials: true, headers });
+          const res = await api.post('/auth/refresh', null, { withCredentials: true, headers, timeout: API_CONFIG.TIMEOUT });
           const newToken = res?.data?.data?.token;
           
           if (newToken) {
@@ -190,7 +190,7 @@ api.interceptors.response.use(
           headers['x-refresh-token'] = window.__WT_REFRESH_TOKEN;
         }
       } catch { }
-      const res = await api.post('/auth/refresh', null, { withCredentials: true, headers });
+      const res = await api.post('/auth/refresh', null, { withCredentials: true, headers, timeout: API_CONFIG.TIMEOUT });
       const newToken = res?.data?.data?.token;
       if (!newToken) throw new Error('No access token in refresh response');
       localStorage.setItem('token', newToken);
@@ -336,7 +336,7 @@ export const socialAPI = {
   getFollowStats: (params) => api.get('/social/stats', { params }),
   getActivityFeed: (params) => api.get('/social/feed', { params }),
   getPopularUsers: (params) => api.get('/social/popular', { params }),
-  getFollowRequests: (params) => api.get('/notifications/follow-requests', { params }),
+  getFollowRequests: (params) => api.get('/notifications/follow-requests', { params, timeout: API_CONFIG.TIMEOUT }),
   acceptFollowRequest: (followerId) => {
     const id = (followerId && typeof followerId === 'object') ? (followerId._id || followerId.id) : followerId;
     return api.post(`/notifications/follow-requests/${id}/accept`);
@@ -375,7 +375,7 @@ export const leaderboardAPI = {
 
 // Notifications API
 export const notificationsAPI = {
-  getNotifications: (params) => api.get('/notifications', { params }),
+  getNotifications: (params) => api.get('/notifications', { params, timeout: API_CONFIG.TIMEOUT }),
   markAsRead: (id) => api.patch(`/notifications/${id}/read`),
   markAllAsRead: () => api.patch('/notifications/read-all'),
   deleteNotification: (id) => api.delete(`/notifications/${id}`),
@@ -488,8 +488,8 @@ export const settingsAPI = {
   unblockUser: (username) => api.delete(`/settings/blocked/${username}`),
   
   // Notification settings
-  getNotificationSettings: () => api.get('/settings/notifications'),
-  updateNotificationSettings: (data) => api.post('/settings/notifications', data),
+  getNotificationSettings: () => api.get('/settings/notifications', { timeout: API_CONFIG.TIMEOUT }),
+  updateNotificationSettings: (data) => api.post('/settings/notifications', data, { timeout: API_CONFIG.TIMEOUT }),
   
   // Password
   updatePassword: (data) => api.post('/settings/password', data)

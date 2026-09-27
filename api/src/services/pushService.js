@@ -111,8 +111,11 @@ function ensureFirebaseInitialized() {
 
 // No current type is designated critical. Non-critical pushes use normal, silent delivery.
 async function sendFcmToUser(userId, notification, options = {}) {
-  const { normalizeUserId, localContext, quietHours, preferenceReason, SOCIAL_TYPES } = require('./notificationPolicy');
-  const failure = (code, retryable = false) => ({ ok: false, queued: false, code, retryable });
+  const { normalizeUserId, localContext, preferenceReason, SOCIAL_TYPES } = require('./notificationPolicy');
+  const failure = (code, retryable = false) => {
+    logger.warn('[notification-push]', { userId, notificationType: notification.type, code, retryable });
+    return { ok: false, queued: false, code, retryable };
+  };
   try {
     userId = normalizeUserId(userId);
     const prefs = await require('../models/extended/UserPreferences').findOne({ userId }).select('notifications').lean();
@@ -121,10 +124,6 @@ async function sendFcmToUser(userId, notification, options = {}) {
     const user = await require('./pgUserService').findById(userId);
     if (!user) return failure('user_not_found');
     const context = localContext(user.timezone);
-    if (quietHours(context)) {
-      logger.info('[notification-push]', { userId, notificationType: notification.type, userTimezone: context.timezone, localDate: context.localDate, skipReason: 'quiet_hours' });
-      return failure('quiet_hours');
-    }
     if (['motivation_quote', 'daily_logs_prompt'].includes(notification.type) && require('./notificationPolicy').scheduledReason(notification.type, context)) return failure('outside_time_window');
     let tokens = await DeviceToken.find({ userId, isActive: true, provider: { $in: ['fcm', 'expo'] }, token: { $type: 'string', $ne: '', $not: /^(ExponentPushToken|ExpoPushToken)\[/ } }).select('token platform').lean();
     if (SOCIAL_TYPES.has(notification.type) || ['motivation_quote', 'daily_logs_prompt'].includes(notification.type)) tokens = tokens.filter(t => t.platform !== 'web');
@@ -172,10 +171,14 @@ async function sendFcmInternal(tokens, notification) {
       successCount += result.successCount;
       result.responses.forEach((response, index) => {
         const code = response.error?.code;
+        if (code) logger.warn('[notification-provider]', { notificationType: notification.type, code });
         if (['messaging/registration-token-not-registered', 'messaging/invalid-registration-token'].includes(code)) invalid.push(chunk[index].token);
         else if (code && transient.has(code)) retryable = true;
       });
-    } catch (error) { retryable = retryable || !error.code || transient.has(error.code) || error.code.startsWith('app/network'); }
+    } catch (error) {
+      logger.warn('[notification-provider]', { notificationType: notification.type, code: error.code || 'unknown_error' });
+      retryable = retryable || !error.code || transient.has(error.code) || error.code.startsWith('app/network');
+    }
   }
   // Cleanup failures must not turn a provider-accepted submission into a retry.
   if (invalid.length) {

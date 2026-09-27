@@ -84,10 +84,11 @@ test('seven-day cleanup deletes only expired internal records', async () => {
   assert.equal((await delivery.cleanup()).deletedCount, 1);
   assert.equal(await Delivery.countDocuments(), 1); assert.equal(await Notification.countDocuments(), 1); assert.equal(await DailyLog.countDocuments(), 1);
 });
-test('quiet-hours social history is retained while immediate push is suppressed', async () => {
+test('overnight social history and immediate push are both delivered', async () => {
   clock.setSystemTime(new Date('2026-09-27T22:00:00Z'));
   await Notification.createNotification({ userId: 7, type: 'follow_request', title: 'Request', message: 'Request', data: { actorId: 8 } });
-  assert.equal(await Notification.countDocuments({ 'channels.inApp': true }), 1); assert.equal(submitted.length, 0);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(await Notification.countDocuments({ 'channels.inApp': true }), 1); assert.equal(submitted.length, 1);
 });
 test('concurrent likes aggregate history; actionable requests stay separate', async () => {
   clock.setSystemTime(new Date('2026-09-27T23:00:00Z'));

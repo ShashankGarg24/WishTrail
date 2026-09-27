@@ -93,7 +93,7 @@ android {
         applicationId 'com.wishtrail'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 4
+        versionCode 6
         versionName "1.0.0"
     }
     def releaseBuildRequested = gradle.startParameter.taskNames.any { it.toLowerCase().contains("release") || it.toLowerCase().contains("bundle") }

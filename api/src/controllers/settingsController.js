@@ -344,7 +344,7 @@ const getNotificationSettings = async (req, res, next) => {
       data: {
         notifications: normalized,
         notificationSettings: toLegacyNotificationSettings(normalized),
-        preferences: prefs.preferences?.notifications || {}
+        preferences: prefs?.preferences?.notifications || {}
       }
     });
   } catch (error) {
@@ -397,7 +397,7 @@ const updateNotificationSettings = async (req, res, next) => {
       data: {
         notifications: normalizedNotifications,
         notificationSettings: toLegacyNotificationSettings(normalizedNotifications),
-        preferences: prefs.preferences?.notifications || {}
+        preferences: prefs?.preferences?.notifications || {}
       }
     });
   } catch (error) {

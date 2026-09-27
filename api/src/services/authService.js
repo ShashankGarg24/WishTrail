@@ -189,14 +189,14 @@ class AuthService {
     // Find user by email
     const user = await pgUserService.getUserByEmail(email, true); // true = include password
     
-    if (!user || !user.is_active) {
-      throw new Error('No user is registered with the given email.');
+    if (!user || !user.is_active || !user.password) {
+      throw createHttpError('Invalid credentials', 401, 'INVALID_CREDENTIALS');
     }
     
     // Check password
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      throw new Error('Invalid credentials');
+      throw createHttpError('Invalid credentials', 401, 'INVALID_CREDENTIALS');
     }
     
     // Generate tokens

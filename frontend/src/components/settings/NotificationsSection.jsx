@@ -37,15 +37,23 @@ const NotificationsSection = () => {
   }, [notif, originalNotif]);
 
   const fetchNotificationSettings = async () => {
+    setError('');
     try {
-      const settings = isNativeApp
-        ? (await reconcileNativeNotifications(true)).settings
-        : (await settingsAPI.getNotificationSettings()).data.data.notifications;
+      const settings = (await settingsAPI.getNotificationSettings()).data.data.notifications;
       setNotif(settings);
       setOriginalNotif(JSON.parse(JSON.stringify(settings)));
+      // Preferences remain usable even if the native bridge or permission sync fails.
+      setLoading(false);
+      if (isNativeApp) {
+        try {
+          await reconcileNativeNotifications(true);
+        } catch (err) {
+          setError(`Preferences loaded, but notification permission could not be synced: ${err?.response?.data?.message || err.message || 'Please try again.'}`);
+        }
+      }
     } catch (err) {
       console.error('Failed to fetch notification settings:', err);
-      setError('Could not load notification preferences. Please retry.');
+      setError(`Could not load notification preferences: ${err?.response?.data?.message || err.message || 'Please retry.'}`);
     } finally {
       setLoading(false);
     }

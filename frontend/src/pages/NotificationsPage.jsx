@@ -26,6 +26,7 @@ const NotificationsPageNew = () => {
 
   const [loading, setLoading] = useState(true);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [markingAllRead, setMarkingAllRead] = useState(false);
   const [openGoalId, setOpenGoalId] = useState(null);
@@ -52,13 +53,18 @@ const NotificationsPageNew = () => {
 
   const loadNotifications = async (force = false) => {
     setLoading(true);
+    setLoadError(null);
     try {
-      await Promise.all([
+      const results = await Promise.allSettled([
         getNotifications({ page: 1, limit: 15, scope: 'social' }, { force }),
         getFollowRequests({ page: 1, limit: 10 })
       ]);
+      if (results.some(result => result.status === 'rejected' || result.value?.success === false)) {
+        setLoadError('Some notifications could not be loaded. Please try again.');
+      }
     } catch (error) {
       console.error('Error fetching notifications:', error);
+      setLoadError('Notifications could not be loaded. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -127,17 +133,6 @@ const NotificationsPageNew = () => {
 
   const { today: todayNotifications, week: weekNotifications, month: monthNotifications } = groupNotifications();
 
-  if (isInitialLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center" style={{ fontFamily: 'Manrope, sans-serif' }}>
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4c99e6] mx-auto mb-4"></div>
-          <p className="text-gray-500 dark:text-gray-400">Loading notifications...</p>
-        </div>
-      </div>
-    );
-  }
-
   const hasNotifications = (notifications?.length > 0) || (followRequests?.length > 0);
 
   return (
@@ -149,7 +144,7 @@ const NotificationsPageNew = () => {
             <div>
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Notifications</h1>
               <p className="text-gray-600 dark:text-gray-400">
-                {unreadNotifications > 0 ? (
+                {loading ? 'Loading notifications...' : loadError ? 'Unable to load all notifications' : unreadNotifications > 0 ? (
                   <>You have <span className="font-semibold text-[#4c99e6]">{unreadNotifications} unread</span> alerts</>
                 ) : (
                   'All caught up!'
@@ -169,6 +164,7 @@ const NotificationsPageNew = () => {
               )}
               <button
                 onClick={handleRefresh}
+                aria-label="Refresh notifications"
                 disabled={loading}
                 className="p-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-600 dark:text-gray-300 hover:text-[#4c99e6] hover:border-[#4c99e6] transition-colors disabled:opacity-50"
               >
@@ -178,8 +174,15 @@ const NotificationsPageNew = () => {
           </div>
         </div>
 
+        {loadError && (
+          <div role="alert" className="mb-6 rounded-lg bg-red-50 dark:bg-red-900/20 p-4 text-red-700 dark:text-red-300">
+            <p>{loadError}</p>
+            <button onClick={handleRefresh} disabled={loading} className="mt-2 font-semibold underline disabled:opacity-50">Try again</button>
+          </div>
+        )}
+
         {/* Notifications List */}
-        {!hasNotifications ? (
+        {!hasNotifications ? (!isInitialLoading && !loadError && (
           <div className="text-center py-16 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700">
             <div className="w-16 h-16 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center mx-auto mb-4">
               <MessageCircle className="w-8 h-8 text-[#4c99e6]" />
@@ -187,7 +190,7 @@ const NotificationsPageNew = () => {
             <p className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-1">No notifications yet</p>
             <p className="text-sm text-gray-500 dark:text-gray-400">When people interact with you, you'll see updates here</p>
           </div>
-        ) : (
+        )) : (
           <div className="space-y-8">{/* Follow Requests Section */}
             {(followRequests?.length > 0) && (
               <div>

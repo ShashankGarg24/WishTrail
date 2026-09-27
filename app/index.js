@@ -1,4 +1,5 @@
 import { pullToRefreshScript } from './webViewGestures';
+import { startPushRegistration } from './pushRegistration';
 import React, { useMemo, useRef, useState, useCallback, useEffect } from 'react';
 import { Platform, SafeAreaView, StatusBar, View, RefreshControl, Linking, AppState, Text, TouchableOpacity, Dimensions, ScrollView, ActivityIndicator, Animated, PermissionsAndroid, Alert, Image } from 'react-native';
 import { WebView } from 'react-native-webview';
@@ -132,7 +133,8 @@ function App() {
       setPushAllowed(granted);
       const payload = JSON.stringify({ type: 'WT_NOTIFICATION_PERMISSION_STATE', requestId, granted, status: granted ? 'granted' : 'denied', platform: Platform.OS });
       webRef.current?.injectJavaScript(`window.dispatchEvent(new MessageEvent('message', { data: ${JSON.stringify(payload)} })); true;`);
-    } catch (_) {
+    } catch (error) {
+      console.warn('[FCM] Permission check failed:', error?.code || error?.message);
       const payload = JSON.stringify({ type: 'WT_NOTIFICATION_PERMISSION_STATE', requestId, granted: false, status: 'unknown' });
       webRef.current?.injectJavaScript(`window.dispatchEvent(new MessageEvent('message', { data: ${JSON.stringify(payload)} })); true;`);
     }
@@ -205,6 +207,21 @@ function App() {
   // Initialize FCM only after notification permission has been granted.
   const [fcmToken, setFcmToken] = useState(null);
   const lastRegisteredSignatureRef = useRef('');
+  const [pushResume, setPushResume] = useState(0);
+  const initialNotificationHandledRef = useRef(false);
+
+  useEffect(() => {
+    if (!onboardingReady || showOnboarding || splashVisible) return;
+    // Read existing OS permission without waiting for the website or prompting.
+    postNotificationPermissionState();
+    const subscription = AppState.addEventListener('change', state => {
+      if (state !== 'active') return;
+      postNotificationPermissionState();
+      lastRegisteredSignatureRef.current = '';
+      setPushResume(value => value + 1);
+    });
+    return () => subscription.remove();
+  }, [onboardingReady, showOnboarding, splashVisible, postNotificationPermissionState]);
 
   const [googleRequest, googleResponse, promptGoogleSignIn] = Google.useIdTokenAuthRequest({
     iosClientId: GOOGLE_IOS_CLIENT_ID || undefined,
@@ -253,7 +270,8 @@ function App() {
         }));
 
         try {
-          const initial = await messaging().getInitialNotification();
+          const initial = initialNotificationHandledRef.current ? null : await messaging().getInitialNotification();
+          initialNotificationHandledRef.current = true;
           const url = initial?.data?.url || '';
           if (url) {
             if (webReady) forwardDeepLinkToWeb(url); else pendingDeepLinkRef.current = url;
@@ -264,7 +282,7 @@ function App() {
       }
     })();
     return () => { cancelled = true; subscriptions.forEach(unsubscribe => unsubscribe()); };
-  }, [webReady, forwardDeepLinkToWeb, onboardingReady, showOnboarding, splashVisible, pushAllowed]);
+  }, [webReady, forwardDeepLinkToWeb, onboardingReady, showOnboarding, splashVisible, pushAllowed, pushResume]);
 
   const unregisteringRef = useRef(false);
   const flushPendingUnregister = useCallback(async () => {
@@ -291,50 +309,29 @@ function App() {
   }, [flushPendingUnregister]);
 
   // Register only after any pending logout cleanup has completed.
-
   useEffect(() => {
-    (async () => {
-      try {
-        if (unregisteringRef.current) return;
+    const API = (API_BASE || '').replace(/\/$/, '');
+    if (!pushAllowed || !API || !fcmToken || !authToken || unregisteringRef.current) return;
+    const signature = `${userId || ''}:${fcmToken}`;
+    if (lastRegisteredSignatureRef.current === signature) return;
+    return startPushRegistration({
+      register: async signal => {
         await flushPendingUnregister();
-        const API = (API_BASE || '').replace(/\/$/, '');
-        console.log('[FCM Register Debug] API:', API ? 'present' : 'MISSING', 'fcmToken:', fcmToken ? fcmToken.slice(0, 12) + '...' : 'MISSING', 'authToken:', authToken ? 'present' : 'MISSING', 'userId:', userId || 'MISSING');
-        
-        if (!pushAllowed || !API || !fcmToken || !authToken) {
-          console.log('[FCM Register] Skipping: missing API/token/auth');
-          return;
-        }
-
-        const currentUserId = userId || null;
-        const signature = `${String(currentUserId || '')}:${String(fcmToken || '')}`;
-        if (lastRegisteredSignatureRef.current === signature) {
-          console.log('[FCM Register] Skipping: already registered with same signature');
-          return;
-        }
-
-        console.log('[FCM Register] Attempting registration for user:', currentUserId);
+        if (signal.aborted || unregisteringRef.current) throw new Error('registration_cancelled');
         const response = await fetch(`${API}/notifications/devices/register`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}) },
+          method: 'POST', signal,
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
           body: JSON.stringify({ token: fcmToken, platform: Platform.OS, provider: 'fcm', timezone: Intl.DateTimeFormat().resolvedOptions().timeZone })
         });
-
-        if (response.ok) {
-          lastRegisteredSignatureRef.current = signature;
-          console.log('✓ FCM register SUCCESS for user:', currentUserId || 'auth-only');
-        } else {
-          try {
-            const txt = await response.text();
-            console.log('✗ FCM register FAILED:', response.status, txt?.slice?.(0, 300));
-          } catch (e) {
-            console.log('✗ FCM register FAILED:', response.status, response.statusText);
-          }
-        }
-      } catch (e) {
-        console.log('[FCM Register Error]:', e?.message || e);
-      }
-    })();
-  }, [authToken, userId, fcmToken, pushAllowed, flushPendingUnregister]);
+        if (!response.ok) throw Object.assign(new Error('device_registration_failed'), { status: response.status });
+      },
+      onSuccess: () => {
+        lastRegisteredSignatureRef.current = signature;
+        console.log('[FCM] Device registered');
+      },
+      onFailure: error => console.warn('[FCM] Registration failed:', error.status || error.message)
+    });
+  }, [authToken, userId, fcmToken, pushAllowed, pushResume, flushPendingUnregister]);
 
   // Retry FCM token fetch when auth arrives but token is missing (helps recover from startup race)
   useEffect(() => {

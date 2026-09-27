@@ -248,8 +248,8 @@ const testPush = async (req, res, next) => {
     const url = req.body?.url || '/notifications';
     const type = req.body?.type || 'test';
     const fake = { _id: new Date().getTime(), userId, type, title, message, data: { url } };
-    const result = await sendFcmToUser(userId, fake);
-    return res.status(200).json({ success: true, data: { result } });
+    const result = await sendFcmToUser(userId, fake, { waitForDelivery: true });
+    return res.status(200).json({ success: result.ok, data: { result } });
   } catch (e) { next(e); }
 };
 

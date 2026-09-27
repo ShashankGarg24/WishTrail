@@ -1625,7 +1625,7 @@ const useApiStore = create(
           return { success: true, notifications, pagination, unread };
         } catch (error) {
           const errorMessage = handleApiError(error);
-          set({ loading: false, error: errorMessage, notifications: [], notificationsPagination: null, unreadNotifications: 0 });
+          set({ loading: false, error: errorMessage });
           return { success: false, error: errorMessage };
         }
       },

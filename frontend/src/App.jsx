@@ -120,6 +120,28 @@ function App() {
     } catch { }
   }, [location.search, navigate])
 
+  // Handle native foreground notifications and notification taps.
+  useEffect(() => {
+    const onPush = ({ detail = {} }) => {
+      const { title, body, url } = detail;
+      // Foreground arrivals show a banner; notification taps contain only a URL.
+      if (title || body) {
+        toast([title, body].filter(Boolean).join(': '));
+        if (useApiStore.getState().isAuthenticated) {
+          useApiStore.getState().getNotifications({ page: 1, limit: 15, scope: 'social' }, { force: true });
+          useApiStore.getState().getFollowRequests({ page: 1, limit: 10 });
+        }
+      } else if (url) {
+        try {
+          const target = new URL(url, window.location.origin);
+          if (target.origin === window.location.origin) navigate(target.pathname + target.search + target.hash);
+        } catch { /* Ignore malformed notification links. */ }
+      }
+    };
+    window.addEventListener('wt_push', onPush);
+    return () => window.removeEventListener('wt_push', onPush);
+  }, [navigate]);
+
   // Bridge wt_toast custom events to react-hot-toast
   useEffect(() => {
     const handler = (e) => {

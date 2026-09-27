@@ -25,9 +25,8 @@ function scheduledReason(type, context) {
   const [start, end] = type === 'motivation_quote' ? [480, 630] : [1200, 1320];
   return context.minute < start || context.minute >= end ? 'outside_time_window' : null;
 }
-function quietHours(context) { return context.minute < 480 || context.minute >= 1320; }
 // Current mobile clients use FCM. Legacy Expo-format tokens are not FCM-capable.
 function activeDeviceFilter(userId) {
   return { userId: normalizeUserId(userId), isActive: true, platform: { $in: ['android', 'ios', 'unknown'] }, provider: { $in: ['fcm', 'expo'] }, token: { $type: 'string', $ne: '', $not: /^(ExponentPushToken|ExpoPushToken)\[/ } };
 }
-module.exports = { normalizeUserId, localContext, preferenceReason, scheduledReason, quietHours, activeDeviceFilter, SOCIAL_TYPES, LIKE_TYPES };
+module.exports = { normalizeUserId, localContext, preferenceReason, scheduledReason, activeDeviceFilter, SOCIAL_TYPES, LIKE_TYPES };

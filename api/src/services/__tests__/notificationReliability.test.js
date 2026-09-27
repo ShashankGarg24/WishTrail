@@ -67,9 +67,6 @@ test('duplicate concurrent workers use the persistent claim dependency, never Re
   const f = fixture(); await Promise.all(Array.from({ length: 15 }, () => f.run('motivation_quote')));
   expect(f.deps.deliver).toHaveBeenCalledTimes(1);
 });
-test.each([['07:59', true], ['08:00', false], ['21:59', false], ['22:00', true]])('quiet hours at %s = %s', (time, quiet) => {
-  expect(policy.quietHours(policy.localContext('UTC', new Date(`2026-09-27T${time}:00Z`)))).toBe(quiet);
-});
 test('confirmed provider failure records retryability instead of marking sent', async () => {
   const f = fixture(); f.deps.deliver.mockResolvedValue({ ok: false, retryable: true, code: 'provider_transient' });
   const result = await f.run('motivation_quote');
