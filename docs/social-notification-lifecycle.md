@@ -54,20 +54,15 @@ MongoDB indexes added:
 There are no PostgreSQL schema changes. ScheduledNotificationDelivery and its
 seven-day retention are unchanged; social events never use that collection.
 
-Rollout is now automatic on the next API startup/deployment. A temporary hook in
-`api/src/server.js` runs after MongoDB connects and before routes/crons start. It
-creates the required indexes and reconciles historical notifications without pushes.
-Completion is recorded in MongoDB collection `deployment_migrations` with `_id`
-`social-notification-lifecycle-v1`. Later restarts skip the completed migration.
-An interrupted/failed run leaves no completion marker and retries on the next
-startup. A failed migration prevents that new API instance from serving traffic.
-Concurrent new instances can safely overlap the idempotent backfill.
+Production migration completed at `2026-09-28T15:40:25.590Z`, confirmed by the
+`migration.social_notifications.completed` log for `wishtrail-backend-prod`, with
+`recipients: 3` and migration ID `social-notification-lifecycle-v1`.
 
-Confirm the `migration.social_notifications.completed` deployment log (later
-startups log `migration.social_notifications.skipped`). After confirmation, remove
-the temporary startup call in `api/src/server.js`; keep the MongoDB completion
-marker. The migration module remains shared with the manual repair script.
-No production migration or deployment was performed during this work.
+The temporary startup hook has now been removed from `api/src/server.js`. Once
+this cleanup is deployed, API startup will no longer invoke the migration. Keep
+the completion marker in MongoDB collection `deployment_migrations`. The backfill
+module and regression tests remain available for manual repair. No database records
+were changed as part of removing the hook.
 
 Manual repair remains available from `api/` with the normal database environment:
 

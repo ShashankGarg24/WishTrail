@@ -30,8 +30,6 @@ const adminApiRouteSegment = normalizeRouteSegment(process.env.ADMIN_API_ROUTE_S
 const createApp = async () => {
 
   await connectDB();
-  // TEMPORARY next-deployment migration; remove after its completion is confirmed.
-  await require('./migrations/socialNotificationDeployment').runStartupMigration();
   await bloomFilter.init();
   require('./cron/bloomFilterJob');
   require('./cron/dailyLogsJobs');

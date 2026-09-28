@@ -1,5 +1,5 @@
-// TEMPORARY: remove the server.js startup call after confirming completion.
-// Keep the database marker so reintroducing the hook cannot replay the migration.
+// Startup hook retired after confirmed production completion on 2026-09-28.
+// Retained for manual repair and regression tests; preserve the database marker.
 const MIGRATION_ID = 'social-notification-lifecycle-v1';
 
 async function backfill() {
