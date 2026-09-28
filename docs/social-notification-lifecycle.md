@@ -63,11 +63,12 @@ Production migration completed at `2026-09-28T15:40:25.590Z`, confirmed by the
 `migration.social_notifications.completed` log for `wishtrail-backend-prod`, with
 `recipients: 3` and migration ID `social-notification-lifecycle-v1`.
 
-The original backfill startup hook remains retired. A temporary storage-cleanup hook
-now runs before the API serves requests. Remove it after observing
-`migration.notification_storage.completed` with migration ID
-`social-notification-storage-v2`. Keep both completion markers in MongoDB collection
-`deployment_migrations`.
+The storage cleanup completed in production at `2026-09-28T19:29:04.333Z` for seven
+documents and removed `notification_like_group_unique`,
+`userId_1_active_1_createdAt_-1`, and `sourceId_1_active_1`. Its temporary startup
+hook has been removed. Keep both completed migration markers in MongoDB collection
+`deployment_migrations`; the migration module and tests remain as an audit and
+manual recovery path.
 
 Manual repair remains available from `api/` with the normal database environment:
 
