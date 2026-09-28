@@ -14,12 +14,25 @@ const api = axios.create({
 let tokenRefreshTimer = null;
 let forceLogoutInProgress = false;
 
+const notifyNativeAccessToken = (token) => {
+  try {
+    if (typeof window !== 'undefined' && window.ReactNativeWebView) {
+      window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'WT_AUTH', token: token || '' }));
+    }
+  } catch { }
+};
+
+// Only a server rejection proves the refresh credential is no longer valid.
+// Timeouts, offline state and 5xx responses keep the local session so it can retry.
+export const isDefinitiveRefreshFailure = error => [401, 403].includes(error?.response?.status);
+
 const forceLogoutAndRedirectToAuth = () => {
   if (forceLogoutInProgress) return;
   forceLogoutInProgress = true;
 
   try { localStorage.removeItem('token'); } catch { }
   try { delete api.defaults.headers.common.Authorization; } catch { }
+  notifyNativeAccessToken(null);
 
   if (tokenRefreshTimer) {
     clearTimeout(tokenRefreshTimer);
@@ -74,6 +87,8 @@ const scheduleTokenRefresh = () => {
           if (newToken) {
             localStorage.setItem('token', newToken);
             api.defaults.headers.common.Authorization = `Bearer ${newToken}`;
+            forceLogoutInProgress = false;
+            notifyNativeAccessToken(newToken);
             
             if (typeof window !== 'undefined' && window.__updateAuthToken) {
               window.__updateAuthToken(newToken);
@@ -195,6 +210,8 @@ api.interceptors.response.use(
       if (!newToken) throw new Error('No access token in refresh response');
       localStorage.setItem('token', newToken);
       api.defaults.headers.common.Authorization = `Bearer ${newToken}`;
+      forceLogoutInProgress = false;
+      notifyNativeAccessToken(newToken);
       
       // 🔥 UPDATE: Sync the new token with Zustand store
       if (typeof window !== 'undefined' && window.__updateAuthToken) {
@@ -218,8 +235,9 @@ api.interceptors.response.use(
       originalRequest.headers.Authorization = `Bearer ${newToken}`;
       return api(originalRequest);
     } catch (refreshErr) {
-      // On refresh failure, clear auth state and avoid infinite loops
-      forceLogoutAndRedirectToAuth();
+      // Transient failures reject the current request but preserve the session.
+      // A later request/resume can refresh once connectivity returns.
+      if (isDefinitiveRefreshFailure(refreshErr)) forceLogoutAndRedirectToAuth();
       
       processQueue(refreshErr, null);
       return Promise.reject(refreshErr);
@@ -524,8 +542,10 @@ export const handleApiError = (error) => {
 
 export const setAuthToken = (token, updateStore = false) => {
   if (token) {
+    forceLogoutInProgress = false;
     localStorage.setItem('token', token);
     api.defaults.headers.common.Authorization = `Bearer ${token}`;
+    notifyNativeAccessToken(token);
     // Update Zustand store if requested (avoid circular imports by using window)
     if (updateStore && typeof window !== 'undefined' && window.__updateAuthToken) {
       window.__updateAuthToken(token);
@@ -535,6 +555,7 @@ export const setAuthToken = (token, updateStore = false) => {
   } else {
     localStorage.removeItem('token');
     delete api.defaults.headers.common.Authorization;
+    notifyNativeAccessToken(null);
     if (updateStore && typeof window !== 'undefined' && window.__updateAuthToken) {
       window.__updateAuthToken(null);
     }

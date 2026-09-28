@@ -155,8 +155,8 @@ const NotificationsPageNew = () => {
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-start justify-between mb-2">
-            <div>
+          <div className="flex flex-col items-stretch gap-3 mb-2 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Notifications</h1>
               <p className="text-gray-600 dark:text-gray-400">
                 {loading ? 'Loading notifications...' : loadError ? 'Unable to load all notifications' : unreadNotifications > 0 ? (
@@ -166,15 +166,15 @@ const NotificationsPageNew = () => {
                 )}
               </p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex shrink-0 items-center justify-end gap-2 sm:gap-3">
               {unreadNotifications > 0 && (
                 <button
                   onClick={handleMarkAllAsRead}
                   disabled={markingAllRead}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-[#4c99e6] text-white rounded-lg font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="inline-flex shrink-0 items-center gap-2 whitespace-nowrap px-3 sm:px-4 py-2.5 bg-[#4c99e6] text-white rounded-lg font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <CheckCheck className={`w-4 h-4 ${markingAllRead ? 'animate-spin' : ''}`} />
-                  {markingAllRead ? 'Marking...' : 'Mark all'}
+                  <CheckCheck className={`h-4 w-4 shrink-0 ${markingAllRead ? 'animate-spin' : ''}`} />
+                  <span>{markingAllRead ? 'Marking...' : 'Mark all'}</span>
                 </button>
               )}
               <button

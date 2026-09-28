@@ -58,6 +58,15 @@ test('no active mobile device means no claim and no reminder history', async () 
   const f = fixture({ active: false }); await f.run('motivation_quote');
   expect(f.deps.claim).not.toHaveBeenCalled(); expect(f.deps.deliver).not.toHaveBeenCalled();
 });
+test('device registration later in the morning window remains eligible', async () => {
+  const f = fixture({ now: '2026-09-27T08:30:00Z', active: false });
+  await f.run('motivation_quote');
+  expect(f.deps.claim).not.toHaveBeenCalled();
+  f.deps.activeDevice.mockResolvedValue(true);
+  await f.run('motivation_quote');
+  expect(f.deps.claim).toHaveBeenCalledTimes(1);
+  expect(f.deps.deliver).toHaveBeenCalledTimes(1);
+});
 test('Postgres string IDs normalize before Mongo preference lookup', async () => {
   const f = fixture(); await f.run('motivation_quote');
   expect(f.deps.preferences).toHaveBeenCalledWith(7);
