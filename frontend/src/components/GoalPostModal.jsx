@@ -85,6 +85,7 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
   const [goalUpdatesHasMore, setGoalUpdatesHasMore] = useState(false);
   const [goalUpdatesLoading, setGoalUpdatesLoading] = useState(false);
   const shareUrlRef = useRef('');
+  const goalLoadRequest = useRef(0);
   const desktopImageContainerRef = useRef(null);
   const descriptionTextRef = useRef(null);
   const completionNoteTextRef = useRef(null);
@@ -102,6 +103,7 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
     if (isOpen && goalId) {
       loadGoalData();
     }
+    return () => { goalLoadRequest.current += 1; };
   }, [isOpen, goalId]);
 
   // Separate effect to handle openWithComments changes without reloading data
@@ -173,13 +175,15 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
   ]);
 
   const loadGoalData = async () => {
+    const request = ++goalLoadRequest.current;
     setLoading(true);
     setGoalData(null);
     setTimeline(null);
     setIsTimelineExpanded(false);
     
     try {
-      const response = await useApiStore.getState().getGoalPost(goalId);
+      const response = await useApiStore.getState().getGoalPost(goalId, { force: true });
+      if (request !== goalLoadRequest.current) return;
       if (response?.success && response?.data) {
         setGoalData(response.data);
         setGoalUpdates([]);
@@ -187,11 +191,17 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
         setGoalUpdatesHasMore(false);
         setIsGoalUpdatesExpanded(false);
         setHasLoadedGoalUpdates(false);
+      } else {
+        toast.error(response?.error || 'This goal is no longer available.');
+        onClose();
       }
     } catch (error) {
+      if (request !== goalLoadRequest.current) return;
       console.error('Failed to load goal data:', error);
+      toast.error(error?.response?.status === 404 ? 'This goal is no longer available.' : 'Unable to load this goal. Please try again.');
+      onClose();
     } finally {
-      setLoading(false);
+      if (request === goalLoadRequest.current) setLoading(false);
     }
   };
 

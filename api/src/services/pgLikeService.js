@@ -27,6 +27,8 @@ class PgLikeService {
     }
 
     return await transaction(async (client) => {
+      // Serialize mutations of the same relationship across server processes.
+      await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [`like:${userId}:${targetType}:${targetId}`]);
       // Check if like already exists
       const existingSql = `
         SELECT * FROM likes
@@ -38,6 +40,7 @@ class PgLikeService {
       let action;
 
       if (existingResult.rows.length > 0) {
+        action = 'unliked';
         // Toggle active status
         const updateSql = `
           DELETE FROM likes
@@ -81,6 +84,8 @@ class PgLikeService {
     } = likeData;
 
     return await transaction(async (client) => {
+      // Serialize mutations of the same relationship across server processes.
+      await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [`like:${userId}:${targetType}:${targetId}`]);
       // Check if like already exists
       const existingSql = `
         SELECT * FROM likes
@@ -121,6 +126,7 @@ class PgLikeService {
     } = likeData;
 
     return await transaction(async (client) => {
+      await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [`like:${userId}:${targetType}:${targetId}`]);
       const sql = `
         DELETE FROM likes
         WHERE user_id = $1 AND target_type = $2 AND target_id = $3
@@ -177,6 +183,11 @@ class PgLikeService {
    * @param {number} id - Like ID
    * @returns {Promise<Object|null>} Like or null
    */
+  async getNotificationActors(targetType, targetId) {
+    const result = await query('SELECT user_id FROM likes WHERE target_type = $1 AND target_id = $2', [targetType, String(targetId)]);
+    return result.rows.map(row => Number(row.user_id));
+  }
+
   async getLikeById(id) {
     const sql = `
       SELECT l.*, u.username, u.name as user_name, u.avatar_url

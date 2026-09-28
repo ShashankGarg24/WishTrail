@@ -25,37 +25,13 @@ class PgFollowService {
     }
 
     return await transaction(async (client) => {
-      // Check if follow relationship already exists
-      const existingSql = `
-        SELECT * FROM follows
-        WHERE follower_id = $1 AND following_id = $2
-      `;
-      const existingResult = await client.query(existingSql, [followerId, followingId]);
-
-      let follow;
-      if (existingResult.rows.length > 0) {
-        // Reactivate existing follow
-        const updateSql = `
-          DELETE FROM follows
-          WHERE follower_id = $3 AND following_id = $4
-          RETURNING *
-        `;
-        const updateResult = await client.query(updateSql, [
-          status, followerId, followingId
-        ]);
-        follow = updateResult.rows[0];
-      } else {
-        // Create new follow
-        const insertSql = `
-          INSERT INTO follows (
-            follower_id, following_id, status
-          ) VALUES ($1, $2, $3)
-          RETURNING *
-        `;
-        const insertResult = await client.query(insertSql, [
-          followerId, followingId, status
-        ]);
-        follow = insertResult.rows[0];
+      // Repeated requests preserve an existing accepted relationship.
+      await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [`follow:${followerId}:${followingId}`]);
+      const existing = await client.query('SELECT * FROM follows WHERE follower_id = $1 AND following_id = $2', [followerId, followingId]);
+      let follow = existing.rows[0];
+      if (!follow) {
+        const result = await client.query('INSERT INTO follows (follower_id, following_id, status) VALUES ($1, $2, $3) RETURNING *', [followerId, followingId, status]);
+        follow = result.rows[0];
       }
 
       // Note: Follower counts are updated automatically by triggers
@@ -72,6 +48,7 @@ class PgFollowService {
    */
   async unfollowUser(followerId, followingId) {
     return await transaction(async (client) => {
+      await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [`follow:${followerId}:${followingId}`]);
       const sql = `
         DELETE FROM follows
         WHERE follower_id = $1 AND following_id = $2
@@ -451,6 +428,7 @@ class PgFollowService {
    */
   async acceptFollowRequest(followerId, followingId) {
     return await transaction(async (client) => {
+      await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [`follow:${followerId}:${followingId}`]);
       const sql = `
         UPDATE follows
         SET status = 'accepted', 
@@ -482,8 +460,11 @@ class PgFollowService {
       WHERE follower_id = $1 AND following_id = $2 AND status = 'pending';
     `;
 
-    const result = await query(sql, [followerId, followingId]);
-    return result.rowCount > 0;
+    return transaction(async client => {
+      await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [`follow:${followerId}:${followingId}`]);
+      const result = await client.query(sql, [followerId, followingId]);
+      return result.rowCount > 0;
+    });
   }
 
   /**

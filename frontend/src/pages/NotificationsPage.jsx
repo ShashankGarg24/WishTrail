@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from 'react';
+import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { motion } from 'framer-motion';
 import { CheckCheck, RefreshCw, Trophy, Heart, MessageCircle, UserPlus, Check, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -24,6 +24,7 @@ const NotificationsPageNew = () => {
     followRequests,
   } = useApiStore();
 
+  const lastForegroundRefresh = useRef(0);
   const [loading, setLoading] = useState(true);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
@@ -51,7 +52,7 @@ const NotificationsPageNew = () => {
     };
   }, [isAuthenticated]);
 
-  const loadNotifications = async (force = false) => {
+  const loadNotifications = async (force = true) => {
     setLoading(true);
     setLoadError(null);
     try {
@@ -69,6 +70,20 @@ const NotificationsPageNew = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const refresh = () => {
+      if (!isAuthenticated || document.hidden || Date.now() - lastForegroundRefresh.current < 1000) return;
+      lastForegroundRefresh.current = Date.now();
+      loadNotifications(true);
+    };
+    window.addEventListener('focus', refresh);
+    document.addEventListener('visibilitychange', refresh);
+    return () => {
+      window.removeEventListener('focus', refresh);
+      document.removeEventListener('visibilitychange', refresh);
+    };
+  }, [isAuthenticated]);
 
   const handleMarkAllAsRead = async () => {
     setMarkingAllRead(true);

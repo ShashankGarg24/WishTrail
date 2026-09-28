@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, lazy, Suspense } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Heart, MessageCircle, Share2, Trophy, Zap, Target, Flame, Star, UserPlus } from 'lucide-react';
 import useApiStore from '../store/apiStore';
@@ -15,6 +15,7 @@ const ShareSheet = lazy(() => import('../components/ShareSheet'));
 
 const FeedPage = () => {
   const navigate = useNavigate();
+  const { goalId: routeGoalId } = useParams();
   const { user, getActivityFeed, likeActivity, getTrendingGoals, report, blockUser, unfollowUser } = useApiStore();
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -352,7 +353,9 @@ const FeedPage = () => {
     setSelectedGoalId(null);
     setOpenWithComments(false);
     // Remove goalId param from URL without pushing a new history entry
-    if (searchParams.has('goalId')) {
+    if (routeGoalId) {
+      navigate('/feed', { replace: true });
+    } else if (searchParams.has('goalId')) {
       const next = new URLSearchParams(searchParams);
       next.delete('goalId');
       navigate({ search: next.toString() }, { replace: true });
@@ -360,9 +363,9 @@ const FeedPage = () => {
   };
   const [searchParams] = useSearchParams();
   useEffect(() => {
-    const goalId = searchParams.get('goalId');
+    const goalId = routeGoalId || searchParams.get('goalId');
     if (goalId) handleOpenGoal(goalId);
-  }, [searchParams]);
+  }, [searchParams, routeGoalId]);
 
   const handleOpenComments = (activityId, goalId) => {
     if (!activityId) return;

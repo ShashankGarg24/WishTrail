@@ -115,6 +115,15 @@ const notificationSchema = new mongoose.Schema({
     ref: 'Community'
   },
   
+  // Reversible social state; missing active on legacy records means visible.
+  active: { type: Boolean, default: true },
+  invalidatedAt: Date,
+  sourceId: { type: mongoose.Schema.Types.ObjectId, ref: 'ActivityComment' },
+  lifecycleKey: String,
+  lifecycleRevision: { type: Number, default: 0 },
+  sourceSignature: String,
+  lastPushAt: Date,
+  dismissed: { type: Boolean, default: false },
   // Notification status
   isRead: {
     type: Boolean,
@@ -158,6 +167,10 @@ const notificationSchema = new mongoose.Schema({
   toJSON: { virtuals: true },
   toObject: { virtuals: true }
 });
+
+notificationSchema.index({ lifecycleKey: 1 }, { unique: true, sparse: true, name: 'notification_lifecycle_unique' });
+notificationSchema.index({ userId: 1, active: 1, createdAt: -1 });
+notificationSchema.index({ sourceId: 1, active: 1 });
 
 notificationSchema.index({ aggregationKey: 1 }, { unique: true, sparse: true, name: 'notification_like_group_unique' });
 
@@ -212,30 +225,35 @@ notificationSchema.statics.createNotification = async function(notificationData)
     notificationData.channels = channels;
 
     let saved;
-    const { LIKE_TYPES, normalizeUserId, preferenceReason } = require('../services/notificationPolicy');
+    const { normalizeUserId, preferenceReason } = require('../services/notificationPolicy');
     notificationData.userId = normalizeUserId(notificationData.userId);
     const prefs = await require('./extended/UserPreferences').findOne({ userId: notificationData.userId }).select('notifications').lean();
     const allowInAppTopic = !preferenceReason(prefs, notificationData.type);
     const emailEnabled = prefs?.notifications?.email?.enabled !== false;
     if (!allowInAppTopic) { channels.inApp = false; channels.push = false; }
     if (!emailEnabled) channels.email = false;
-    if (LIKE_TYPES.has(notificationData.type) && allowInAppTopic) {
-      await this.init();
-      const target = notificationData.data.commentId || notificationData.data.activityId || notificationData.data.goalId;
-      const actor = normalizeUserId(notificationData.data.actorId || notificationData.data.likerId);
-      const aggregationKey = `${notificationData.userId}:${notificationData.type}:${target}:${Math.floor(Date.now() / 600000)}`;
-      try { saved = await this.create({ ...notificationData, aggregationKey, aggregateActors: [actor] }); }
-      catch (error) {
-        if (error.code !== 11000) throw error;
-        saved = await this.findOneAndUpdate({ aggregationKey }, { $addToSet: { aggregateActors: actor }, $set: { isRead: false, readAt: null } }, { new: true });
-        const count = saved.aggregateActors.length;
-        const targetLabel = notificationData.type === 'goal_liked' ? 'goal' : notificationData.type === 'comment_liked' ? 'comment' : 'activity';
-        // Conditional update prevents a slower concurrent worker overwriting a newer count.
-        await this.updateOne({ _id: saved._id, aggregateActors: { $size: count } }, { $set: { message: `${count} people liked your ${targetLabel}` } });
-        return saved;
+    const lifecycle = require('../services/socialNotificationLifecycle');
+    if (lifecycle.TYPES.includes(notificationData.type)) {
+      return lifecycle.synchronize(notificationData, { push: true });
+    }
+    if (notificationData.sourceId) {
+      await lifecycle.ensureIndexes();
+      const source = await require('./ActivityComment').findById(notificationData.sourceId).lean();
+      if (!source || (source.parentCommentId && !await require('./ActivityComment').exists({ _id: source.parentCommentId }))) return null;
+      notificationData.lifecycleKey = `${notificationData.userId}:${notificationData.type}:source:${notificationData.sourceId}`;
+    }
+    try { saved = await this.create(notificationData); }
+    catch (error) {
+      if (error.code !== 11000 || !notificationData.lifecycleKey) throw error;
+      return this.findOne({ lifecycleKey: notificationData.lifecycleKey });
+    }
+    if (notificationData.sourceId) {
+      const Comment = require('./ActivityComment');
+      const source = await Comment.findById(notificationData.sourceId).lean();
+      if (!source || (source.parentCommentId && !await Comment.exists({ _id: source.parentCommentId }))) {
+        await this.updateOne({ _id: saved._id }, { $set: { active: false, invalidatedAt: new Date() } });
+        return null;
       }
-    } else {
-      saved = await this.create(notificationData);
     }
     try {
       const pushAllowed = saved?.channels?.push && allowInAppTopic;
@@ -267,7 +285,7 @@ notificationSchema.statics.getUserNotifications = function(userId, options = {})
     skip = 0
   } = options;
   
-  const query = { userId, 'channels.inApp': { $ne: false } };
+  const query = { userId, ...require('../services/socialNotificationLifecycle').visibleQuery() };
   
   if (isRead !== null) {
     query.isRead = isRead;
@@ -288,7 +306,7 @@ notificationSchema.statics.getUserNotifications = function(userId, options = {})
 notificationSchema.statics.getUnreadCount = function(userId) {
   return this.countDocuments({
     userId,
-    'channels.inApp': { $ne: false },
+    ...require('../services/socialNotificationLifecycle').visibleQuery(),
     isRead: false
   });
 };
@@ -297,7 +315,7 @@ notificationSchema.statics.getUnreadCount = function(userId) {
 notificationSchema.statics.markAsRead = async function(notificationId, userId) {
   try {
     const notification = await this.findOneAndUpdate(
-      { _id: notificationId, userId },
+      { _id: notificationId, userId, active: { $ne: false } },
       { isRead: true, readAt: new Date() },
       { new: true }
     );
@@ -316,7 +334,7 @@ notificationSchema.statics.markAsRead = async function(notificationId, userId) {
 notificationSchema.statics.markAllAsRead = async function(userId) {
   try {
     const result = await this.updateMany(
-      { userId, isRead: false },
+      { userId, isRead: false, ...require('../services/socialNotificationLifecycle').visibleQuery() },
       { isRead: true, readAt: new Date() }
     );
     
@@ -329,10 +347,9 @@ notificationSchema.statics.markAllAsRead = async function(userId) {
 // Static method to delete notification
 notificationSchema.statics.deleteNotification = async function(notificationId, userId) {
   try {
-    const notification = await this.findOneAndDelete({
-      _id: notificationId,
-      userId
-    });
+    const notification = await this.findOneAndUpdate({
+      _id: notificationId, userId
+    }, { $set: { active: false, dismissed: true, invalidatedAt: new Date() }, $inc: { lifecycleRevision: 1 } }, { new: true });
     
     if (!notification) {
       throw new Error('Notification not found');
@@ -353,16 +370,6 @@ notificationSchema.statics.createFollowNotification = async function(followerId,
     return;
   }
 
-  // Check if notification already exists (dedup)
-  const existing = await this.findOne({ 
-    userId: followingId, 
-    type: 'new_follower', 
-    'data.followerId': followerId 
-  });
-  if (existing) {
-    return existing;
-  }
-
   return this.createNotification({
     userId: followingId,
     type: 'new_follower',
@@ -380,13 +387,6 @@ notificationSchema.statics.createFollowRequestNotification = async function(foll
   const pgUserService = require('../services/pgUserService');
   const follower = await pgUserService.findById(followerId);
   if (!follower) return;
-  // Upsert one pending request notification per follower/following
-  const existing = await this.findOne({ userId: followingId, type: 'follow_request', 'data.followerId': followerId });
-  if (existing) {
-    // Refresh timestamp and mark unread
-    await this.updateOne({ _id: existing._id }, { $set: { isRead: false, readAt: null, title: 'Follow Request', message: `${follower.name} requested to follow you`, updatedAt: new Date(), createdAt: new Date() } });
-    return existing;
-  }
   return this.createNotification({
     userId: followingId,
     type: 'follow_request',
@@ -401,34 +401,14 @@ notificationSchema.statics.createFollowRequestNotification = async function(foll
   });
 };
 
-// Delete a follow request notification when canceled or rejected
+// Re-read the relationship, so a delayed cancellation cannot erase a new request.
 notificationSchema.statics.deleteFollowRequestNotification = async function(followerId, followingId) {
-  try {
-    await this.findOneAndDelete({ userId: followingId, type: 'follow_request', 'data.followerId': followerId });
-  } catch (_) {}
+  const lifecycle = require('../services/socialNotificationLifecycle');
+  return lifecycle.safely(() => lifecycle.synchronize({ userId: Number(followingId), type: 'follow_request', title: 'Follow Request', message: 'Follow request', data: { followerId: Number(followerId), actorId: Number(followerId) } }));
 };
 
-// Convert an existing follow_request notification into new_follower after acceptance
 notificationSchema.statics.convertFollowRequestToNewFollower = async function(followerId, followingId) {
-  const pgUserService = require('../services/pgUserService');
-  const follower = await pgUserService.findById(followerId);
-  if (!follower) return null;
-  const updated = await this.findOneAndUpdate(
-    { userId: followingId, type: 'follow_request', 'data.followerId': followerId },
-    {
-      $set: {
-        type: 'new_follower',
-        title: 'New Follower',
-        message: `${follower.name} started following you`,
-        isRead: false,
-        readAt: null,
-        expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) // 1 year after acceptance
-      }
-    },
-    { new: true }
-  );
-  if (updated) return updated;
-  // Fallback: create if original request not found
+  await this.deleteFollowRequestNotification(followerId, followingId);
   return this.createFollowNotification(followerId, followingId);
 };
 
@@ -449,7 +429,7 @@ notificationSchema.statics.createFollowAcceptedNotification = async function(fol
 };
 
 // Activity comment notification
-notificationSchema.statics.createActivityCommentNotification = async function(commenterId, activity) {
+notificationSchema.statics.createActivityCommentNotification = async function(commenterId, activity, comment) {
   try {
     if (!activity) return;
     const pgUserService = require('../services/pgUserService');
@@ -459,10 +439,12 @@ notificationSchema.statics.createActivityCommentNotification = async function(co
     return this.createNotification({
       userId: activity.userId,
       type: 'activity_comment',
+      sourceId: comment?._id,
       title: 'New comment',
       message: `${commenter.name} commented on your activity`,
       data: {
         actorId: commenterId,
+        commentId: comment?._id,
         activityId: activity._id,
         goalId: activity?.data?.goalId || undefined
       }
@@ -473,7 +455,7 @@ notificationSchema.statics.createActivityCommentNotification = async function(co
 };
 
 // Comment reply notification
-notificationSchema.statics.createCommentReplyNotification = async function(replierId, parentComment, activity) {
+notificationSchema.statics.createCommentReplyNotification = async function(replierId, parentComment, activity, reply) {
   try {
     if (!parentComment) return;
     const pgUserService = require('../services/pgUserService');
@@ -483,12 +465,13 @@ notificationSchema.statics.createCommentReplyNotification = async function(repli
     return this.createNotification({
       userId: parentComment.userId,
       type: 'comment_reply',
+      sourceId: reply?._id,
       title: 'New reply',
       message: `${replier.name} replied to your comment`,
       data: {
         actorId: replierId,
         activityId: activity?._id,
-        commentId: parentComment._id,
+        commentId: reply?._id || parentComment._id,
         goalId: activity?.data?.goalId || undefined
       }
     });
@@ -507,6 +490,7 @@ notificationSchema.statics.createMentionNotification = async function(mentionerI
     return this.createNotification({
       userId: mentionedUserId,
       type: 'mention',
+      sourceId: context.commentId,
       title: 'You were mentioned',
       message: `${mentioner.name} mentioned you`,
       data: {
@@ -529,13 +513,6 @@ notificationSchema.statics.createActivityLikeNotification = async function(liker
     const pgUserService = require('../services/pgUserService');
     const liker = await pgUserService.findById(likerId);
     if (!liker) return;
-    // Dedup: one per actor per activity; cooldown 60s
-    const filter = { userId: activity.userId, type: 'activity_liked', 'data.activityId': activity._id, 'data.actorId': likerId };
-    const existing = await this.findOne(filter).sort({ createdAt: -1 });
-    if (existing) {
-      // Repeated likes from the same actor do not reopen or re-alert old history.
-      return existing;
-    }
     return this.createNotification({
       userId: activity.userId,
       type: 'activity_liked',
@@ -571,12 +548,6 @@ notificationSchema.statics.createCommentLikeNotification = async function(likerI
     if (activityId) {
       try { const act = await Activity.findById(activityId).select('data.goalId'); goalId = act?.data?.goalId; } catch (_) {}
     }
-    const filter = { userId: comment.userId, type: 'comment_liked', 'data.commentId': comment._id, 'data.actorId': likerId };
-    const existing = await this.findOne(filter).sort({ createdAt: -1 });
-    if (existing) {
-      // Repeated likes from the same actor do not reopen or re-alert old history.
-      return existing;
-    }
     return this.createNotification({
       userId: comment.userId,
       type: 'comment_liked',
@@ -606,13 +577,6 @@ notificationSchema.statics.createGoalLikeNotification = async function(likerId, 
   
   if (!liker || !goal) return;
 
-  // Dedup: one per actor per goal; cooldown 60s
-  const filter = { userId: goalUserId, type: 'goal_liked', 'data.goalId': goalId, 'data.likerId': likerId };
-  const existing = await this.findOne(filter).sort({ createdAt: -1 });
-  if (existing) {
-      // Repeated likes from the same actor do not reopen or re-alert old history.
-      return existing;
-  }
   return this.createNotification({
     userId: goalUserId,
     type: 'goal_liked',
@@ -721,4 +685,4 @@ notificationSchema.statics.cleanupExpiredNotifications = async function() {
   }
 };
 
-module.exports = mongoose.model('Notification', notificationSchema); 
+module.exports = mongoose.model('Notification', notificationSchema);

@@ -1,3 +1,4 @@
+const lifecycle = require('../services/socialNotificationLifecycle');
 const { logger } = require('./../config/observability');
 const DeviceToken = require('../models/DeviceToken');
 const Notification = require('../models/Notification');
@@ -79,7 +80,8 @@ const getNotifications = async (req, res, next) => {
     // Note: 'follow_request' is excluded - it's in a separate section via /follow-requests
 
     // Build base query
-    const baseQuery = { userId: req.user.id };
+    await lifecycle.reconcileUser(req.user.id);
+    const baseQuery = { userId: req.user.id, ...lifecycle.visibleQuery() };
     if (typeof isRead !== 'undefined') baseQuery.isRead = String(isRead) === 'true';
     if (type) {
       baseQuery.type = type;
@@ -97,7 +99,7 @@ const getNotifications = async (req, res, next) => {
         .lean(),
       Notification.countDocuments(baseQuery),
       // Unread count should reflect same scope/category
-      Notification.countDocuments({ userId: req.user.id, isRead: false, ...(type ? { type } : (scopeValue === 'social' ? { type: { $in: socialTypes } } : {})) })
+      Notification.countDocuments({ userId: req.user.id, ...lifecycle.visibleQuery(), isRead: false, ...(type ? { type } : (scopeValue === 'social' ? { type: { $in: socialTypes } } : {})) })
     ]);
 
     logger.info('[getNotifications] Query:', JSON.stringify(baseQuery));
@@ -264,7 +266,9 @@ const getFollowRequests = async (req, res, next) => {
     const parsedLimit = parseInt(limit);
     const skip = (parsedPage - 1) * parsedLimit;
 
+    await lifecycle.reconcileUser(req.user.id);
     const baseQuery = { 
+      ...lifecycle.visibleQuery(),
       userId: req.user.id, 
       type: 'follow_request'
     };
@@ -313,7 +317,8 @@ const acceptFollowRequest = async (req, res, next) => {
     const notification = await Notification.findOne({ 
       _id: notificationId, 
       userId, 
-      type: 'follow_request' 
+      type: 'follow_request',
+      active: { $ne: false }
     });
 
     if (!notification) {
@@ -325,17 +330,8 @@ const acceptFollowRequest = async (req, res, next) => {
     // Accept the follow request
     await pgFollowService.acceptFollowRequest(followerId, userId);
 
-    // Convert and notify asynchronously (non-blocking)
-    setImmediate(async () => {
-      try {
-        // Convert the notification from follow_request to new_follower
-        await Notification.convertFollowRequestToNewFollower(followerId, userId);
-        // Notify the requester that their request was accepted
-        await Notification.createFollowAcceptedNotification(userId, followerId);
-      } catch (err) {
-        logger.error('[acceptFollowRequest] Error with notifications:', err?.message);
-      }
-    });
+    await lifecycle.safely(() => Notification.convertFollowRequestToNewFollower(followerId, userId));
+    await lifecycle.safely(() => Notification.createFollowAcceptedNotification(userId, followerId));
 
     return res.status(200).json({ 
       success: true, 
@@ -358,7 +354,8 @@ const rejectFollowRequest = async (req, res, next) => {
     const notification = await Notification.findOne({ 
       _id: notificationId, 
       userId, 
-      type: 'follow_request' 
+      type: 'follow_request',
+      active: { $ne: false }
     });
 
     if (!notification) {
@@ -370,14 +367,7 @@ const rejectFollowRequest = async (req, res, next) => {
     // Reject the follow request
     await pgFollowService.rejectFollowRequest(followerId, userId);
 
-    // Delete notification asynchronously (non-blocking)
-    setImmediate(async () => {
-      try {
-        await Notification.deleteFollowRequestNotification(followerId, userId);
-      } catch (err) {
-        logger.error('[rejectFollowRequest] Error deleting notification:', err?.message);
-      }
-    });
+    await Notification.deleteFollowRequestNotification(followerId, userId);
 
     return res.status(200).json({ 
       success: true, 

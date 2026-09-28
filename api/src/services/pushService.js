@@ -1,6 +1,12 @@
 const { logger } = require('./../config/observability');
 const admin = require('firebase-admin');
 const DeviceToken = require('../models/DeviceToken');
+const pendingPushes = new Set();
+
+// Also useful for graceful shutdown and deterministic integration tests.
+async function drainPendingPushes() {
+  while (pendingPushes.size) await Promise.all([...pendingPushes]);
+}
 
 function getClientBaseUrl() {
   const envs = [process.env.CLIENT_URL, process.env.WEB_URL, process.env.FRONTEND_URL];
@@ -134,20 +140,41 @@ async function sendFcmToUser(userId, notification, options = {}) {
     if (Number.isInteger(cap) && cap > 0 && !['follow_request', 'community_join_request'].includes(notification.type)) {
       const Budget = require('../models/NotificationPushBudget');
       await Budget.init();
+      const budgetFilter = { userId, localDate: context.localDate, count: { $lt: cap } };
+      let claimed;
       try {
-        await Budget.findOneAndUpdate({ userId, localDate: context.localDate, count: { $lt: cap } }, { $inc: { count: 1 }, $setOnInsert: { createdAt: new Date() } }, { upsert: true, new: true });
-      } catch (error) { if (error.code === 11000) { logger.info('[notification-push]', { userId, notificationType: notification.type, skipReason: 'rate_limited' }); return failure('rate_limited'); } throw error; }
+        claimed = await Budget.findOneAndUpdate(budgetFilter, { $inc: { count: 1 }, $setOnInsert: { createdAt: new Date() } }, { upsert: true, new: true });
+      } catch (error) {
+        if (error.code !== 11000) throw error;
+        // Another sender may have just inserted count=1. A duplicate key does
+        // not mean the daily cap has been reached; retry without inserting.
+        claimed = await Budget.findOneAndUpdate(budgetFilter, { $inc: { count: 1 } }, { new: true });
+      }
+      if (!claimed) return failure('rate_limited');
     }
     ensureFirebaseInitialized();
     if (!admin.apps?.length) return failure('provider_unavailable', true);
-    const send = () => sendFcmInternal(tokens, notification);
+    const send = async () => {
+      if (notification.lifecycleKey && require('./socialNotificationLifecycle').TYPES.includes(notification.type)) {
+        notification = await require('./socialNotificationLifecycle').synchronize(notification);
+        if (!notification.active || !notification.channels.push) return failure('source_inactive');
+      } else if (notification.sourceId) {
+        const Comment = require('../models/ActivityComment');
+        const source = await Comment.findById(notification.sourceId).lean();
+        if (!source || (source.parentCommentId && !await Comment.exists({ _id: source.parentCommentId }))) return failure('source_deleted');
+      }
+      return sendFcmInternal(tokens, notification);
+    };
     if (options.waitForDelivery) return await send();
-    setImmediate(async () => {
+    const pending = new Promise(resolve => setImmediate(async () => {
       try {
         const result = await send();
         if (result.ok) await require('../models/Notification').updateOne({ _id: notification._id }, { $set: { isDelivered: true, deliveredAt: new Date() } });
       } catch { logger.warn('[notification-push]', { userId, notificationType: notification.type, code: 'send_failed' }); }
-    });
+      finally { resolve(); }
+    }));
+    pendingPushes.add(pending);
+    pending.finally(() => pendingPushes.delete(pending));
     return { ok: true, queued: true, tokenCount: tokens.length };
   } catch { return failure('provider_or_database_unavailable', true); }
 }
@@ -188,4 +215,4 @@ async function sendFcmInternal(tokens, notification) {
   // Partial acceptance is successful: do not resend to devices that already accepted it.
   return { ok: successCount > 0, successCount, retryable: successCount === 0 && retryable, code: successCount ? null : (retryable ? 'provider_transient' : 'provider_rejected') };
 }
-module.exports = { sendFcmToUser, sendFcmInternal };
+module.exports = { sendFcmToUser, sendFcmInternal, drainPendingPushes };

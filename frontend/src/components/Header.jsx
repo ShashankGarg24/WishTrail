@@ -68,7 +68,7 @@ const Header = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      getNotifications()
+      getNotifications({}, { force: true })
     }
   }, [isAuthenticated])
 

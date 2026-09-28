@@ -484,32 +484,14 @@ class ActivityService {
       throw new Error('Cannot like your own activity');
     }
     
-    const result = await pgLikeService.toggleLike(userId, 'activity', activityId);
-    // Fire push notification to the activity owner on like
-    try {
-      if (result && result.isLiked && String(activity.userId) !== String(userId)) {
-        const pgUserService = require('./pgUserService');
-        const Notification = require('../models/Notification');
-        const liker = await pgUserService.findById(userId);
-        await Notification.createNotification({
-          userId: activity.userId,
-          type: 'activity_liked',
-          title: 'Activity liked',
-          message: `${liker?.name || 'Someone'} liked your activity`,
-          data: {
-            actorId: userId,
-            activityId: activity._id,
-            goalId: activity?.data?.goalId || undefined
-          },
-          channels: { push: true, inApp: true }
-        });
-      }
-    } catch (e) { /* non-blocking */ }
-    
-    return {
-      isLiked: result.isLiked,
-      likeCount: result.likeCount
-    };
+    await pgLikeService.toggleLike({ userId, targetType: 'activity', targetId: String(activityId) });
+    const [isLiked, likeCount] = await Promise.all([
+      pgLikeService.hasUserLiked(userId, 'activity', String(activityId)),
+      pgLikeService.getLikeCount(String(activityId), 'activity')
+    ]);
+    await require('./socialNotificationLifecycle').safely(() =>
+      require('../models/Notification').createActivityLikeNotification(userId, activity));
+    return { isLiked, likeCount };
   }
   
   /**

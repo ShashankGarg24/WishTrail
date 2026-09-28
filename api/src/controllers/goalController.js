@@ -1621,19 +1621,15 @@ const toggleGoalLike = async (req, res, next) => {
       });
     }
 
-    const result = await pgLikeService.toggleLike(req.user.id, 'goal', goal.id);
+    await pgLikeService.toggleLike({ userId: req.user.id, targetType: 'goal', targetId: String(goal.id) });
+    const [isLiked, likeCount] = await Promise.all([
+      pgLikeService.hasUserLiked(req.user.id, 'goal', String(goal.id)),
+      pgLikeService.getLikeCount(String(goal.id), 'goal')
+    ]);
+    const result = { isLiked, likeCount };
 
-    // Send like notification asynchronously (non-blocking)
-    if (result.isLiked) {
-      setImmediate(async () => {
-        try {
-          const Notification = require('../models/Notification');
-          await Notification.createGoalLikeNotification(req.user.id, goal.id, goal.user_id);
-        } catch (err) {
-          logger.error('[toggleGoalLike] Error creating notification:', err?.message);
-        }
-      });
-    }
+    await require('../services/socialNotificationLifecycle').safely(() =>
+      require('../models/Notification').createGoalLikeNotification(req.user.id, goal.id, goal.user_id));
 
     res.status(200).json({
       success: true,

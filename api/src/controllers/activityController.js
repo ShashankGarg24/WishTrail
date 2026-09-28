@@ -337,33 +337,23 @@ const getUserActivities = async (req, res, next) => {
       }
 
       const likeFlag = typeof req.body?.like === 'boolean' ? req.body.like : null;
-      try {
-        if (likeFlag === true) {
-          await pgLikeService.likeTarget({ userId: req.user.id, targetType: 'activity', targetId: String(id) });
-        } else if (likeFlag === false) {
-          await pgLikeService.unlikeTarget({ userId: req.user.id, targetType: 'activity', targetId: String(id) });
-        } else {
-          // Toggle behaviour
-          await pgLikeService.toggleLike({ userId: req.user.id, targetType: 'activity', targetId: String(id) });
-        }
-      } catch (_) {}
+      if (likeFlag === true) {
+        await pgLikeService.likeTarget({ userId: req.user.id, targetType: 'activity', targetId: String(id) });
+      } else if (likeFlag === false) {
+        await pgLikeService.unlikeTarget({ userId: req.user.id, targetType: 'activity', targetId: String(id) });
+      } else {
+        // Toggle behaviour
+        await pgLikeService.toggleLike({ userId: req.user.id, targetType: 'activity', targetId: String(id) });
+      }
 
       const [likeCount, isLiked] = await Promise.all([
         pgLikeService.getLikeCount(String(id), 'activity'),
         pgLikeService.hasUserLiked(req.user.id, 'activity', String(id))
       ]);
       
-      // Send like notification asynchronously (non-blocking)
-      if (isLiked) {
-        setImmediate(async () => {
-          try {
-            await Notification.createActivityLikeNotification(req.user.id, activity);
-          } catch (err) {
-            logger.error('[toggleActivityLike] Error creating notification:', err?.message);
-          }
-        });
-      }
-      
+      await require('../services/socialNotificationLifecycle').safely(() =>
+        Notification.createActivityLikeNotification(req.user.id, activity));
+
       res.status(200).json({ success: true, data: { likeCount, isLiked } });
     } catch (error) {
       next(error);
@@ -675,7 +665,7 @@ const addActivityComment = async (req, res, next) => {
     // Send comment notification asynchronously (non-blocking)
     setImmediate(async () => {
       try {
-        await Notification.createActivityCommentNotification(req.user.id, activity);
+        await Notification.createActivityCommentNotification(req.user.id, activity, comment);
       } catch (err) {
         logger.error('[addActivityComment] Error creating comment notification:', err?.message);
       }
@@ -751,14 +741,14 @@ const replyToActivityComment = async (req, res, next) => {
     // Send reply and mention notifications asynchronously (non-blocking)
     setImmediate(async () => {
       try {
-        await Notification.createCommentReplyNotification(req.user.id, parent, activity);
+        await Notification.createCommentReplyNotification(req.user.id, parent, activity, reply);
       } catch (err) {
         logger.error('[replyToActivityComment] Error creating reply notification:', err?.message);
       }
       
       if (mentionUserId) {
         try {
-          await Notification.createMentionNotification(req.user.id, mentionUserId, { activityId: id, commentId });
+          await Notification.createMentionNotification(req.user.id, mentionUserId, { activityId: id, commentId: reply._id });
         } catch (err) {
           logger.error('[replyToActivityComment] Error creating mention notification:', err?.message);
         }
@@ -810,17 +800,9 @@ const toggleCommentLike = async (req, res, next) => {
       pgLikeService.hasUserLiked(req.user.id, 'activity_comment', targetId)
     ]);
     
-    // Send like notification asynchronously (non-blocking)
-    if (isLiked) {
-      setImmediate(async () => {
-        try {
-          await Notification.createCommentLikeNotification(req.user.id, comment);
-        } catch (err) {
-          logger.error('[toggleCommentLike] Error creating notification:', err?.message);
-        }
-      });
-    }
-    
+    await require('../services/socialNotificationLifecycle').safely(() =>
+      Notification.createCommentLikeNotification(req.user.id, comment));
+
     res.status(200).json({ success: true, data: { likeCount, isLiked } });
   } catch (err) {
     next(err);
