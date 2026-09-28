@@ -30,6 +30,9 @@ const adminApiRouteSegment = normalizeRouteSegment(process.env.ADMIN_API_ROUTE_S
 const createApp = async () => {
 
   await connectDB();
+  // One-deployment cleanup: removes redundant lifecycle fields and indexes.
+  // Remove this hook after migration.notification_storage.completed is observed.
+  await require('./migrations/notificationStorageCleanup').runStartupMigration();
   await bloomFilter.init();
   require('./cron/bloomFilterJob');
   require('./cron/dailyLogsJobs');

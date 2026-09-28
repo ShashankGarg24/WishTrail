@@ -10,8 +10,8 @@ from current likes; the last unlike deactivates the aggregate. Follow and reques
 notifications use recipient/type/actor identities. A sparse unique `lifecycleKey`
 index prevents competing writers from creating duplicate canonical records.
 
-Reconciliation reads the Mongo revision before reading source state and conditionally
-updates that revision. Conflicting writers retry with fresh source data. PostgreSQL
+Reconciliation reads Mongo's built-in `__v` before reading source state and
+conditionally increments it. Conflicting writers retry with fresh source data. PostgreSQL
 like/follow mutation transactions also serialize each relationship using advisory
 locks. Notification reads reconcile retained records to repair missed cleanup.
 Reactivation resets unread state and the display timestamp; actor removal alone
@@ -19,7 +19,8 @@ does neither. Dismissal is retained until source state changes.
 
 Cancelled/rejected requests are deactivated. Acceptance resolves the request,
 creates/reactivates the follower notification, and retains the separate acceptance
-event. New comments, replies and mentions carry the actual source comment ID.
+event. New comments, replies and mentions carry the actual source comment ID in
+the existing `data.commentId` field.
 Source identity deduplicates repeated creation, including duplicate mentions.
 Comment query-deletion middleware invalidates dependent notifications and replies;
 reads and push dispatch recheck source existence. Comment messages contain no text
@@ -40,16 +41,20 @@ navigation. Deleted comments still link to the parent goal or feed. The notifica
 page fetches fresh state on entry and foreground return instead of using its
 five-minute cache. This is refresh-based consistency, not a new realtime transport.
 
-MongoDB fields added to Notification:
+MongoDB lifecycle fields retained on Notification:
 
-- `active`, `invalidatedAt`, `sourceId`, `lifecycleKey`, `lifecycleRevision`
-- `sourceSignature`, `lastPushAt`, `dismissed`
+- `active`, `lifecycleKey`, `aggregateActors`, and `lastPushAt`
+- `dismissed` is stored only when a user explicitly dismisses a notification
 
-MongoDB indexes added:
+MongoDB lifecycle index retained:
 
 - `{ lifecycleKey: 1 }`, unique and sparse, named `notification_lifecycle_unique`
-- `{ userId: 1, active: 1, createdAt: -1 }`
-- `{ sourceId: 1, active: 1 }`
+
+The one-time `social-notification-storage-v2` deployment migration removes redundant
+`aggregationKey`, `invalidatedAt`, `sourceId`, `lifecycleRevision`, and
+`sourceSignature` values. Before removing `sourceId`, it copies any missing source
+into `data.commentId`. It also drops the old aggregation, source, and active-list
+indexes. Mongo's existing `__v` field provides compare-and-swap ordering.
 
 There are no PostgreSQL schema changes. ScheduledNotificationDelivery and its
 seven-day retention are unchanged; social events never use that collection.
@@ -58,11 +63,11 @@ Production migration completed at `2026-09-28T15:40:25.590Z`, confirmed by the
 `migration.social_notifications.completed` log for `wishtrail-backend-prod`, with
 `recipients: 3` and migration ID `social-notification-lifecycle-v1`.
 
-The temporary startup hook has now been removed from `api/src/server.js`. Once
-this cleanup is deployed, API startup will no longer invoke the migration. Keep
-the completion marker in MongoDB collection `deployment_migrations`. The backfill
-module and regression tests remain available for manual repair. No database records
-were changed as part of removing the hook.
+The original backfill startup hook remains retired. A temporary storage-cleanup hook
+now runs before the API serves requests. Remove it after observing
+`migration.notification_storage.completed` with migration ID
+`social-notification-storage-v2`. Keep both completion markers in MongoDB collection
+`deployment_migrations`.
 
 Manual repair remains available from `api/` with the normal database environment:
 
@@ -96,12 +101,12 @@ Verification performed:
 ```powershell
 # From api/
 npm test -- --runInBand
-# 9 suites, 67 tests passed.
+# 10 suites, 70 tests passed.
 
 # From the repository root; uses the existing isolated Mongo test dependency.
 $env:WT_MONGO_TEST_MODULE="$env:TEMP/wishtrail-notification-test/node_modules/mongodb-memory-server"
 node --test api/tests/notificationReliability.integration.cjs
-# 38 tests passed against an isolated real MongoDB instance.
+# 39 tests passed against an isolated real MongoDB instance.
 # PostgreSQL source state and FCM are stubbed; no live database/device E2E claim.
 
 node --test frontend/tests/notificationRequests.test.mjs
@@ -138,6 +143,8 @@ Changed files:
 - `api/src/controllers/socialController.js`
 - `api/src/server.js`
 - `api/src/migrations/socialNotificationDeployment.js`
+- `api/src/migrations/notificationStorageCleanup.js`
+- `api/src/services/__tests__/notificationStorageCleanup.test.js`
 - `api/src/services/__tests__/socialNotificationDeployment.test.js`
 - `api/src/models/ActivityComment.js`
 - `api/src/models/Notification.js`

@@ -36,7 +36,7 @@ The new daily cleanup deletes only internal delivery records older than seven da
 
 Additional schema/index changes:
 
-- Notification: sparse unique `aggregationKey`, `aggregateActors`, and persisted `priority`.
+- Notification: one sparse unique `lifecycleKey`, current `aggregateActors`, and persisted `priority`.
 - NotificationPushBudget: unique `(userId, localDate)` and seven-day `createdAt` TTL. Records are created only when the optional numeric cap is enabled.
 - DailyLogsEntry: `(userId, createdAt)` index.
 - DeviceToken: `(userId, isActive, platform)` index.

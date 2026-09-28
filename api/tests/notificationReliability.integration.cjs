@@ -371,7 +371,7 @@ test('comment/reply sources and dependent mentions are invalidated on deletion',
   await drainPendingPushes();
   const mention = await Notification.createMentionNotification(11, 7, { activityId: activity._id, commentId: reply._id });
   await drainPendingPushes();
-  assert.equal(String(replyNotice.sourceId), String(reply._id));
+  assert.equal(String(replyNotice.data.commentId), String(reply._id));
   await Comment.updateOne({ _id: parent._id }, { $set: { text: 'Edited' } });
   await Notification.createActivityCommentNotification(10, activity, parent);
   await drainPendingPushes();
@@ -399,10 +399,11 @@ test('parent deletion also invalidates surviving reply and mention dependencies'
   await drainPendingPushes();
 });
 
-test('lifecycle key has a unique index; source identity is indexed', async () => {
+test('lifecycle key is the only lifecycle index', async () => {
   const indexes = await Notification.collection.indexes();
   assert.ok(indexes.some(index => index.name === 'notification_lifecycle_unique' && index.unique));
-  assert.ok(indexes.some(index => index.key.sourceId === 1));
+  assert.equal(indexes.some(index => index.key.sourceId === 1), false);
+  assert.equal(indexes.some(index => index.key.aggregationKey === 1), false);
 });
 
 
@@ -458,7 +459,7 @@ test('activity and reply likes reconcile membership and never resurrect after pa
 test('an old comment push cannot be sent after its source was deleted', async () => {
   const Comment = require('../src/models/ActivityComment');
   const comment = await Comment.create({ activityId: new mongoose.Types.ObjectId(), userId: 10, text: 'Comment' });
-  const notice = await Notification.createNotification({ userId: 7, type: 'mention', title: 'Mention', message: 'Mention', sourceId: comment._id, data: { commentId: comment._id } });
+  const notice = await Notification.createNotification({ userId: 7, type: 'mention', title: 'Mention', message: 'Mention', data: { commentId: comment._id } });
   await drainPendingPushes();
   await new Promise(resolve => setTimeout(resolve, 30));
   await Comment.deleteOne({ _id: comment._id });
@@ -527,6 +528,33 @@ test('concurrent deployment hooks reconcile legacy data and persist a completion
   const before = executions;
   await runner();
   assert.equal(executions, before);
+});
+
+test('storage cleanup preserves source state while removing redundant fields and indexes', async () => {
+  const { cleanup } = require('../src/migrations/notificationStorageCleanup');
+  const source = new mongoose.Types.ObjectId();
+  const row = await Notification.create({
+    userId: 7, type: 'follow_request', title: 'Request', message: 'Request',
+    lifecycleKey: '7:follow_request:10', data: { followerId: 10 }, isRead: true
+  });
+  await Notification.collection.updateOne({ _id: row._id }, { $set: {
+    sourceId: source, sourceSignature: 'pending:old', lifecycleRevision: 4,
+    invalidatedAt: new Date(), aggregationKey: 'old', dismissed: false
+  } });
+  await Notification.collection.createIndex({ sourceId: 1, active: 1 });
+  await Notification.collection.createIndex({ userId: 1, active: 1, createdAt: -1 });
+  await Notification.collection.createIndex({ aggregationKey: 1 }, { unique: true, sparse: true, name: 'notification_like_group_unique' });
+
+  const result = await cleanup();
+  const compacted = await Notification.collection.findOne({ _id: row._id });
+  assert.deepEqual(compacted.aggregateActors, [10]);
+  assert.equal(String(compacted.data.commentId), String(source));
+  for (const field of ['sourceId', 'sourceSignature', 'lifecycleRevision', 'invalidatedAt', 'aggregationKey', 'dismissed']) {
+    assert.equal(Object.hasOwn(compacted, field), false);
+  }
+  assert.equal(result.removedIndexes.length, 3);
+  const indexes = await Notification.collection.indexes();
+  assert.ok(indexes.some(index => index.name === 'notification_lifecycle_unique'));
 });
 
 });

@@ -107,7 +107,6 @@ const notificationSchema = new mongoose.Schema({
     }
   },
   priority: { type: String, enum: ['low', 'normal', 'high'], default: 'normal' },
-  aggregationKey: String,
   aggregateActors: [Number],
   // Community context
   communityId: {
@@ -117,13 +116,10 @@ const notificationSchema = new mongoose.Schema({
   
   // Reversible social state; missing active on legacy records means visible.
   active: { type: Boolean, default: true },
-  invalidatedAt: Date,
-  sourceId: { type: mongoose.Schema.Types.ObjectId, ref: 'ActivityComment' },
   lifecycleKey: String,
-  lifecycleRevision: { type: Number, default: 0 },
-  sourceSignature: String,
   lastPushAt: Date,
-  dismissed: { type: Boolean, default: false },
+  // Stored only for the uncommon user-dismissed case.
+  dismissed: Boolean,
   // Notification status
   isRead: {
     type: Boolean,
@@ -169,10 +165,6 @@ const notificationSchema = new mongoose.Schema({
 });
 
 notificationSchema.index({ lifecycleKey: 1 }, { unique: true, sparse: true, name: 'notification_lifecycle_unique' });
-notificationSchema.index({ userId: 1, active: 1, createdAt: -1 });
-notificationSchema.index({ sourceId: 1, active: 1 });
-
-notificationSchema.index({ aggregationKey: 1 }, { unique: true, sparse: true, name: 'notification_like_group_unique' });
 
 // Virtual for notification age
 notificationSchema.virtual('age').get(function() {
@@ -236,22 +228,24 @@ notificationSchema.statics.createNotification = async function(notificationData)
     if (lifecycle.TYPES.includes(notificationData.type)) {
       return lifecycle.synchronize(notificationData, { push: true });
     }
-    if (notificationData.sourceId) {
+    const commentSourceTypes = new Set(['activity_comment', 'comment_reply', 'mention']);
+    const commentSourceId = commentSourceTypes.has(notificationData.type) ? notificationData.data?.commentId : null;
+    if (commentSourceId) {
       await lifecycle.ensureIndexes();
-      const source = await require('./ActivityComment').findById(notificationData.sourceId).lean();
+      const source = await require('./ActivityComment').findById(commentSourceId).lean();
       if (!source || (source.parentCommentId && !await require('./ActivityComment').exists({ _id: source.parentCommentId }))) return null;
-      notificationData.lifecycleKey = `${notificationData.userId}:${notificationData.type}:source:${notificationData.sourceId}`;
+      notificationData.lifecycleKey = `${notificationData.userId}:${notificationData.type}:source:${commentSourceId}`;
     }
     try { saved = await this.create(notificationData); }
     catch (error) {
       if (error.code !== 11000 || !notificationData.lifecycleKey) throw error;
       return this.findOne({ lifecycleKey: notificationData.lifecycleKey });
     }
-    if (notificationData.sourceId) {
+    if (commentSourceId) {
       const Comment = require('./ActivityComment');
-      const source = await Comment.findById(notificationData.sourceId).lean();
+      const source = await Comment.findById(commentSourceId).lean();
       if (!source || (source.parentCommentId && !await Comment.exists({ _id: source.parentCommentId }))) {
-        await this.updateOne({ _id: saved._id }, { $set: { active: false, invalidatedAt: new Date() } });
+        await this.updateOne({ _id: saved._id }, { $set: { active: false } });
         return null;
       }
     }
@@ -349,7 +343,7 @@ notificationSchema.statics.deleteNotification = async function(notificationId, u
   try {
     const notification = await this.findOneAndUpdate({
       _id: notificationId, userId
-    }, { $set: { active: false, dismissed: true, invalidatedAt: new Date() }, $inc: { lifecycleRevision: 1 } }, { new: true });
+    }, { $set: { active: false, dismissed: true }, $inc: { __v: 1 } }, { new: true });
     
     if (!notification) {
       throw new Error('Notification not found');
@@ -439,7 +433,6 @@ notificationSchema.statics.createActivityCommentNotification = async function(co
     return this.createNotification({
       userId: activity.userId,
       type: 'activity_comment',
-      sourceId: comment?._id,
       title: 'New comment',
       message: `${commenter.name} commented on your activity`,
       data: {
@@ -465,7 +458,6 @@ notificationSchema.statics.createCommentReplyNotification = async function(repli
     return this.createNotification({
       userId: parentComment.userId,
       type: 'comment_reply',
-      sourceId: reply?._id,
       title: 'New reply',
       message: `${replier.name} replied to your comment`,
       data: {
@@ -490,7 +482,6 @@ notificationSchema.statics.createMentionNotification = async function(mentionerI
     return this.createNotification({
       userId: mentionedUserId,
       type: 'mention',
-      sourceId: context.commentId,
       title: 'You were mentioned',
       message: `${mentioner.name} mentioned you`,
       data: {

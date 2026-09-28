@@ -33,28 +33,34 @@ async function snapshot(input, id) {
     }
     const actors = exists ? await require('./pgLikeService').getNotificationActors(id.targetType, id.target) : [];
     const unique = [...new Set(actors.map(normalizeUserId))].filter(actor => actor !== Number(input.userId)).sort((a, b) => a - b);
-    return { active: unique.length > 0, actors: unique, signature: JSON.stringify(unique) };
+    return { active: unique.length > 0, actors: unique };
   }
   const relationship = await require('./pgFollowService').getFollowRelationship(id.actor, input.userId);
   const active = relationship?.status === (input.type === 'follow_request' ? 'pending' : 'accepted');
-  return { active, actors: [], signature: active ? `${relationship.status}:${new Date(relationship.createdAt).toISOString()}` : 'inactive' };
+  // One actor also records source state independently from visible/dismissed state.
+  return { active, actors: active ? [id.actor] : [] };
 }
 
-// Each attempt reads the Mongo revision BEFORE reading authoritative source state.
+function sameActors(left = [], right = []) {
+  return left.length === right.length && left.every((actor, index) => actor === right[index]);
+}
+
+// Each attempt reads Mongo's built-in version BEFORE authoritative source state.
 // A competing reconciliation invalidates that revision, forcing a fresh source read.
 async function synchronize(input, { push = false } = {}) {
   const Notification = require('../models/Notification');
   const id = identity(input);
   await ensureIndexes();
   let row = await Notification.findOne({ lifecycleKey: id.key });
+  let migratedLegacy = false;
   if (!row) {
     const legacy = await Notification.find({ ...id.filter, lifecycleKey: { $exists: false } }).sort({ createdAt: -1 }).lean();
+    migratedLegacy = legacy.length > 0;
     try {
       row = await Notification.create({
         userId: input.userId, type: input.type, title: input.title, message: input.message,
         data: input.data, channels: input.channels, priority: input.priority,
-        lifecycleKey: id.key, active: false, lifecycleRevision: 0,
-        sourceSignature: legacy.length ? 'legacy' : undefined,
+        lifecycleKey: id.key, active: false,
         isRead: legacy.length ? legacy.every(item => item.isRead) : false,
         createdAt: legacy[0]?.createdAt || new Date(),
         lastPushAt: legacy[0]?.createdAt,
@@ -70,15 +76,17 @@ async function synchronize(input, { push = false } = {}) {
     const state = await snapshot(input, id);
     const prefs = await require('../models/extended/UserPreferences').findOne({ userId: input.userId }).select('notifications').lean();
     const allowed = !preferenceReason(prefs, input.type);
-    const changed = row.sourceSignature !== state.signature;
-    const dismissed = row.dismissed && !changed;
+    const previousActors = row.aggregateActors || [];
+    const changed = !sameActors(previousActors, state.actors);
+    const dismissed = row.dismissed === true && !changed;
     const active = state.active && !dismissed;
     const patch = {
-      active, invalidatedAt: active ? null : (row.invalidatedAt || new Date()),
-      sourceSignature: state.signature, aggregateActors: state.actors, dismissed,
+      active, aggregateActors: state.actors,
       'channels.inApp': allowed && input.channels?.inApp !== false,
       'channels.push': allowed && input.channels?.push !== false,
     };
+    const update = { $set: patch, $inc: { __v: 1 } };
+    if (changed && row.dismissed === true) update.$unset = { dismissed: 1 };
     if (LIKE_TYPES.has(input.type)) {
       const label = id.targetType === 'activity_comment' ? 'comment' : id.targetType;
       patch.message = `${state.actors.length} ${state.actors.length === 1 ? 'person' : 'people'} liked your ${label}`;
@@ -86,26 +94,26 @@ async function synchronize(input, { push = false } = {}) {
       patch['data.likerId'] = state.actors[0] || null;
     }
     // Removal alone should not reopen a read aggregate. A new actor/reactivation can.
-    const added = state.actors.some(actor => !row.aggregateActors.includes(actor));
-    if (active && changed && row.sourceSignature !== 'legacy' && (added || row.active === false)) {
+    const added = state.actors.some(actor => !previousActors.includes(actor));
+    if (active && changed && !migratedLegacy && (added || row.active === false)) {
       patch.isRead = false;
       patch.readAt = null;
       patch.createdAt = new Date();
       patch.expiresAt = new Date(Date.now() + (input.type === 'follow_request' ? 365 : 30) * 86400000);
     }
     const updated = await Notification.findOneAndUpdate(
-      { _id: row._id, lifecycleRevision: row.lifecycleRevision },
-      { $set: patch, $inc: { lifecycleRevision: 1 } },
+      { _id: row._id, __v: row.__v },
+      update,
       // Reactivation moves the existing notification to the top of the center.
       // All update fields above are server-owned; allow its event timestamp to move.
       { new: true, strict: false, timestamps: { createdAt: false } }
     );
     if (!updated) continue;
     // Retain legacy rows for diagnosis but never show duplicate logical state.
-    await Notification.updateMany({ ...id.filter, lifecycleKey: { $exists: false } }, { $set: { active: false, invalidatedAt: new Date() } });
+    await Notification.updateMany({ ...id.filter, lifecycleKey: { $exists: false } }, { $set: { active: false } });
     logger.info('[social-notification]', { notificationId: String(updated._id), notificationType: input.type, operation: active ? 'synchronize' : 'invalidate' });
     const newAction = LIKE_TYPES.has(input.type) ? added : changed;
-    if (push && active && updated.channels.push && newAction && row.sourceSignature !== 'legacy') await dispatch(updated);
+    if (push && active && updated.channels.push && newAction && !migratedLegacy) await dispatch(updated);
     return updated;
   }
   throw new Error('notification_reconciliation_conflict');
@@ -119,9 +127,9 @@ async function dispatch(row) {
   const Notification = require('../models/Notification');
   const now = new Date();
   const claimed = await Notification.findOneAndUpdate({
-    _id: row._id, active: true, sourceSignature: row.sourceSignature,
+    _id: row._id, active: true, __v: row.__v,
     $or: [{ lastPushAt: null }, { lastPushAt: { $lte: new Date(now - cooldownMs()) } }]
-  }, { $set: { lastPushAt: now } }, { new: true });
+  }, { $set: { lastPushAt: now }, $inc: { __v: 1 } }, { new: true });
   if (!claimed) return;
   // The cooldown claim is intentionally retained on provider errors: avoid retry spam.
   await require('./pushService').sendFcmToUser(claimed.userId, claimed);
@@ -134,7 +142,7 @@ async function reconcileUser(userId) {
   for (const row of rows) {
     try { unique.set(identity(row).key, row); }
     catch {
-      await Notification.updateOne({ _id: row._id }, { $set: { active: false, invalidatedAt: new Date() } });
+      await Notification.updateOne({ _id: row._id }, { $set: { active: false }, $inc: { __v: 1 } });
       logger.warn('[social-notification]', { notificationId: String(row._id), code: 'missing_source_identity' });
     }
   }
@@ -142,17 +150,15 @@ async function reconcileUser(userId) {
   for (let offset = 0; offset < inputs.length; offset += 8) {
     await Promise.all(inputs.slice(offset, offset + 8).map(row => synchronize(row)));
   }
-  // Older mentions already carried the exact comment ID. Older reply records
-  // only identify the parent, which can still be checked without inventing a source.
-  const sourced = await Notification.find({ userId, active: { $ne: false }, $or: [
-    { sourceId: { $ne: null } },
-    { type: { $in: ['mention', 'comment_reply'] }, 'data.commentId': { $ne: null } }
-  ] }).lean();
+  const sourced = await Notification.find({ userId, active: { $ne: false },
+    type: { $in: ['activity_comment', 'comment_reply', 'mention'] },
+    'data.commentId': { $ne: null }
+  }).lean();
   for (const row of sourced) {
     const Comment = require('../models/ActivityComment');
-    const source = await Comment.findById(row.sourceId || row.data.commentId).lean();
+    const source = await Comment.findById(row.data.commentId).lean();
     const parentExists = source?.parentCommentId ? await Comment.exists({ _id: source.parentCommentId }) : true;
-    if (!source || !parentExists) await Notification.updateOne({ _id: row._id }, { $set: { active: false, invalidatedAt: new Date() } });
+    if (!source || !parentExists) await Notification.updateOne({ _id: row._id }, { $set: { active: false }, $inc: { __v: 1 } });
   }
 }
 

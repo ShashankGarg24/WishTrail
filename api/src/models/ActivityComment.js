@@ -51,8 +51,8 @@ for (const operation of ['deleteOne', 'deleteMany', 'findOneAndDelete']) {
       const replies = await this.model.find({ parentCommentId: { $in: ids } }).session(session).select('_id').lean();
       const sources = [...ids, ...replies.map(row => row._id)];
       await require('./Notification').updateMany({
-        $or: [{ sourceId: { $in: sources } }, { 'data.commentId': { $in: sources } }]
-      }, { $set: { active: false, invalidatedAt: new Date() }, $inc: { lifecycleRevision: 1 } }, { session });
+        'data.commentId': { $in: sources }
+      }, { $set: { active: false }, $inc: { __v: 1 } }, { session });
     } catch (error) {
       require('../config/observability').logger.warn('[social-notification]', { operation: 'invalidate_source', code: error.code || error.name });
     }

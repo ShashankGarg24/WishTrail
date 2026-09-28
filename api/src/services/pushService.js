@@ -158,9 +158,9 @@ async function sendFcmToUser(userId, notification, options = {}) {
       if (notification.lifecycleKey && require('./socialNotificationLifecycle').TYPES.includes(notification.type)) {
         notification = await require('./socialNotificationLifecycle').synchronize(notification);
         if (!notification.active || !notification.channels.push) return failure('source_inactive');
-      } else if (notification.sourceId) {
+      } else if (['activity_comment', 'comment_reply', 'mention'].includes(notification.type) && notification.data?.commentId) {
         const Comment = require('../models/ActivityComment');
-        const source = await Comment.findById(notification.sourceId).lean();
+        const source = await Comment.findById(notification.data.commentId).lean();
         if (!source || (source.parentCommentId && !await Comment.exists({ _id: source.parentCommentId }))) return failure('source_deleted');
       }
       return sendFcmInternal(tokens, notification);
