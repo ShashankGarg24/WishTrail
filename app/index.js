@@ -1,5 +1,6 @@
 import { pullToRefreshScript } from './webViewGestures';
 import { startPushRegistration } from './pushRegistration';
+import { persistRefreshToken } from './refreshTokenStorage';
 import React, { useMemo, useRef, useState, useCallback, useEffect } from 'react';
 import { Platform, SafeAreaView, StatusBar, View, RefreshControl, Linking, AppState, Text, TouchableOpacity, Dimensions, ScrollView, ActivityIndicator, Animated, PermissionsAndroid, Alert, Image } from 'react-native';
 import { WebView } from 'react-native-webview';
@@ -461,8 +462,12 @@ function App() {
       } else if (data?.type === 'WT_REFRESH') {
         const rt = (data.refreshToken || '').trim();
         if (rt && rt.length > 0) {
-          try { SecureStore && SecureStore.setItemAsync && SecureStore.setItemAsync('wt_refresh_token', rt); } catch { }
-          try { webRef.current?.injectJavaScript(`window.__WT_REFRESH_TOKEN = ${JSON.stringify(rt)}; true;`); } catch { }
+          void persistRefreshToken(SecureStore, rt)
+            .then(() => {
+              console.log('[Auth] refresh credential persisted');
+              try { webRef.current?.injectJavaScript(`window.__WT_REFRESH_TOKEN = ${JSON.stringify(rt)}; true;`); } catch { }
+            })
+            .catch(error => console.warn('[Auth] refresh credential persistence failed:', error?.message || error));
         }
       } else if (data?.type === 'WT_NATIVE_GOOGLE_LOGIN') {
         const hasConfig = !!(GOOGLE_IOS_CLIENT_ID || GOOGLE_ANDROID_CLIENT_ID || GOOGLE_WEB_CLIENT_ID);
