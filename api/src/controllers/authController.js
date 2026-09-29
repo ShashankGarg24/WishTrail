@@ -2,6 +2,7 @@ const { logger } = require('./../config/observability');
 const DeviceToken = require('../models/DeviceToken');
 const authService = require('../services/authService');
 const productUpdateService = require('../services/productUpdateService');
+const { selectRefreshCredential } = require('../services/refreshCredential');
 const { validationResult } = require('express-validator');
 const { sanitizeAuthMe } = require('../utility/sanitizer');
 
@@ -277,11 +278,11 @@ const refreshToken = async (req, res, next) => {
   try {
     const deviceType = getDeviceType(req);
 
-    // Read refresh token: cookie (web) → x-refresh-token header → body (app/fallback)
+    // Web uses its HTTP-only cookie; app uses its secure-storage header.
     const cookieToken = (req.cookies && req.cookies.refreshToken) ? String(req.cookies.refreshToken).trim() : '';
     const headerToken = String(req.headers['x-refresh-token'] || '').trim();
     const bodyToken = (req.body && req.body.refreshToken) ? String(req.body.refreshToken).trim() : '';
-    const token = cookieToken || headerToken || bodyToken;
+    const token = selectRefreshCredential({ deviceType, cookieToken, headerToken, bodyToken });
 
     if (!token) {
       return res.status(401).json({
@@ -549,4 +550,4 @@ module.exports = {
   googleAuth,
   requestPasswordSetupOTP,
   setPasswordWithOTP
-}; 
+};

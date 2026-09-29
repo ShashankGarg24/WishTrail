@@ -456,7 +456,7 @@ function App() {
           try { AsyncStorage && AsyncStorage.removeItem('wt_native_authed'); } catch { }
         }
       } else if (data?.type === 'WT_USER') {
-        const uid = (data.userId || '').trim();
+        const uid = String(data.userId || '').trim();
         if (uid && uid.length > 0) setUserId(uid);
       } else if (data?.type === 'WT_REFRESH') {
         const rt = (data.refreshToken || '').trim();
