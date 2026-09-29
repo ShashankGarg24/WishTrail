@@ -13,6 +13,14 @@ test('native cold start validates an unexpired access token before mounting scre
 test('signed-out user resolves without network', async () => {
   assert.equal(await restoreStartupToken({ token: null, refresh: () => assert.fail('unexpected network') }), null);
 });
+test('missing refresh credential keeps only a still-valid access token', async () => {
+  assert.equal(await restoreStartupToken({ token: token(200), now: 100000,
+    refresh: () => assert.fail('unexpected network') }), token(200));
+  assert.equal(await restoreStartupToken({ token: token(50), now: 100000,
+    refresh: () => assert.fail('unexpected network') }), null);
+  assert.equal(await restoreStartupToken({ token: 'malformed', now: 100000,
+    refresh: () => assert.fail('unexpected network') }), null);
+});
 test('expired, missing and malformed access tokens restore native session', async () => {
   for (const access of [null, token(50), 'malformed']) {
     assert.equal(await restoreStartupToken({ token: access, refreshToken: 'refresh', now: 100000,
