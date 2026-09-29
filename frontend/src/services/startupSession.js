@@ -1,22 +1,25 @@
-﻿// Resolve local session state before the router commits. Only an absent/expired
-// native access token needs a refresh; profile and dashboard data stay separate.
-export async function restoreStartupToken({ token, refreshToken, refresh, now = Date.now() }) {
+﻿// Resolve native session state before the router commits. A cold launch validates
+// through the refresh credential before authenticated screens request their data.
+export async function restoreStartupToken({
+  token,
+  refreshToken,
+  refresh,
+  retryDelays = [300, 900],
+  wait = delay => new Promise(resolve => setTimeout(resolve, delay))
+}) {
   if (!refreshToken) return token;
-  let expired = !token;
-  if (token) {
+  for (let attempt = 0; attempt <= retryDelays.length; attempt++) {
     try {
-      const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
-      expired = typeof payload.exp === 'number' && payload.exp * 1000 <= now;
-    } catch { expired = true; }
+      const response = await refresh(refreshToken);
+      return response?.data?.data?.token || null;
+    } catch (error) {
+      // A server rejection is final. Transport and server availability failures
+      // often happen while Android is restoring its network after cold start.
+      const status = error?.response?.status;
+      if (status === 401 || status === 403) return null;
+      if (attempt === retryDelays.length) return token;
+      await wait(retryDelays[attempt]);
+    }
   }
-  if (!expired) return token;
-  try {
-    const response = await refresh(refreshToken);
-    return response?.data?.data?.token || null;
-  } catch (error) {
-    // A transport failure must not erase a returning user's local session.
-    // Server rejection does invalidate it; an offline home can show its shell.
-    const status = error?.response?.status;
-    return status === 401 || status === 403 ? null : token;
-  }
+  return token;
 }
