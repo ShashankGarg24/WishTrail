@@ -591,7 +591,7 @@ function App() {
       try { AsyncStorage && AsyncStorage.setItem('wt_native_authed', '1'); } catch { }
 
       if (refreshToken) {
-        try { SecureStore && SecureStore.setItemAsync && SecureStore.setItemAsync('wt_refresh_token', refreshToken); } catch { }
+        await persistRefreshToken(SecureStore, refreshToken);
       }
 
       const bridgeScript = `
@@ -615,12 +615,14 @@ function App() {
   useEffect(() => {
     if (!googleResponse) return;
     if (googleResponse.type === 'success') {
-      const idToken = googleResponse?.params?.id_token;
+      const idToken = googleResponse?.params?.id_token || googleResponse?.authentication?.idToken;
       if (idToken) {
         completeNativeGoogleLogin(idToken);
       } else {
         Alert.alert('Google Sign-In', 'Google did not return an ID token.');
       }
+    } else if (googleResponse.type === 'error') {
+      Alert.alert('Google Sign-In', googleResponse?.error?.message || 'Google sign-in failed. Please try again.');
     }
   }, [googleResponse, completeNativeGoogleLogin]);
 
