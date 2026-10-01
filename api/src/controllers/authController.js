@@ -15,9 +15,10 @@ const REFRESH_COOKIE_BASE_OPTIONS = isProd
   ? { httpOnly: true, secure: true, sameSite: 'none', path: '/', domain: process.env.COOKIE_DOMAIN || 'api.wishtrail.in' }
   : { httpOnly: true, secure: false, sameSite: 'lax', path: '/' };
 
+const cookieDays = Number(process.env.JWT_COOKIE_EXPIRES_IN || 7);
 const REFRESH_COOKIE_OPTIONS = {
   ...REFRESH_COOKIE_BASE_OPTIONS,
-  maxAge: 7 * 24 * 60 * 60 * 1000
+  maxAge: (Number.isFinite(cookieDays) && cookieDays > 0 ? cookieDays : 7) * 24 * 60 * 60 * 1000
 };
 
 const clearRefreshTokenCookie = (res) => {

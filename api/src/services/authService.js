@@ -144,7 +144,7 @@ class AuthService {
     });
 
     // Generate tokens
-    const { accessToken, refreshToken } = this.generateTokens(user.id);
+    const { accessToken, refreshToken } = this.generateTokens(user.id, deviceType);
     
     // Save refresh token (default to web if deviceType is unknown)
     const kind = deviceType === 'app' ? 'app' : 'web';
@@ -200,7 +200,7 @@ class AuthService {
     }
     
     // Generate tokens
-    const { accessToken, refreshToken } = this.generateTokens(user.id);
+    const { accessToken, refreshToken } = this.generateTokens(user.id, deviceType);
     
     // Update last login, timezone, locale, and save refresh token
     const kind = deviceType === 'app' ? 'app' : 'web';
@@ -636,7 +636,11 @@ class AuthService {
   /**
    * Generate access and refresh tokens
    */
-  generateTokens(userId) {
+  generateTokens(userId, deviceType) {
+    const kind = deviceType === 'app' ? 'app' : 'web';
+    const refreshExpiresIn = kind === 'app'
+      ? (process.env.JWT_REFRESH_EXPIRES_APP || process.env.JWT_REFRESH_EXPIRES || '7d')
+      : (process.env.JWT_REFRESH_EXPIRES_WEB || process.env.JWT_REFRESH_EXPIRES || '7d');
     const accessToken = jwt.sign(
       { userId },
       process.env.JWT_SECRET,
@@ -646,7 +650,7 @@ class AuthService {
     const refreshToken = jwt.sign(
       { userId, type: 'refresh' },
       process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_REFRESH_EXPIRES || '7d' }
+      { expiresIn: refreshExpiresIn }
     );
     
     return { accessToken, refreshToken };
@@ -1094,7 +1098,7 @@ class AuthService {
       }
 
       // Generate tokens
-      const { accessToken, refreshToken } = this.generateTokens(user.id);
+      const { accessToken, refreshToken } = this.generateTokens(user.id, deviceType);
       
       // Save refresh token
       const kind = deviceType === 'app' ? 'app' : 'web';
