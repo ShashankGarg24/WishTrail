@@ -174,7 +174,7 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
               </div>
             )}
 
-            {!habitLimits.canCreate && (
+            {!submitting && !habitLimits.canCreate && (
               <PremiumLimitIndicator
                 current={activeHabitsCount}
                 max={habitLimits.maxHabits}
