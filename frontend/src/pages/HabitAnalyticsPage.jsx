@@ -45,7 +45,7 @@ export default function HabitAnalyticsPage() {
   const maxDays = isPremium ? 365 : 30;
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [days, setDays] = useState(Math.min(90, maxDays));
+  const [days, setDays] = useState(30);
   const [selectedDay, setSelectedDay] = useState(null);
   const [metricInfo, setMetricInfo] = useState(null);
   const heatmapRef = useRef(null);
@@ -710,8 +710,9 @@ export default function HabitAnalyticsPage() {
                     onChange={(e) => setDays(Math.min(Number(e.target.value), maxDays))}
                     className="mt-0.5 px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#4c99e6]"
                   >
+                    <option value={7}>Last 7 days</option>
+                    <option value={15}>Last 15 days</option>
                     <option value={30}>Last 30 days</option>
-                    <option value={60}>Last 60 days</option>
                     {isPremium && <option value={90}>Last 90 days</option>}
                     {isPremium && <option value={180}>Last 6 months</option>}
                     {isPremium && <option value={365}>Last year</option>}

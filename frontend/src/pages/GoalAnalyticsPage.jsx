@@ -598,8 +598,8 @@ const GoalAnalyticsPage = () => {
           </motion.div>
         )}
 
-        {/* Goal Updates */}
-        {(goalUpdates.length > 0 || loadingGoalUpdates || hasMoreGoalUpdates) && (
+        {/* Goal Logs */}
+        {(goalUpdates.length > 0 || loadingGoalUpdates) && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -608,7 +608,7 @@ const GoalAnalyticsPage = () => {
           >
             <h2 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
               <MessageCircle className="h-4 w-4 sm:h-5 sm:w-5" style={{ color: THEME_COLOR }} />
-              Goal Updates
+              Goal Logs
             </h2>
 
             <div

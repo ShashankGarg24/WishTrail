@@ -280,7 +280,7 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
                   <Clock className="h-4 w-4 flex-shrink-0 mt-0.5" style={{ color: THEME_COLOR }} />
                   <div>
                     <p className="text-xs font-medium" style={{ color: THEME_COLOR, fontFamily: 'Manrope' }}>
-                      Free plan: up to {goalLimits.maxGoals} active goals, analytics limited to 60 days
+                      Free plan: up to {goalLimits.maxGoals} active goals, analytics limited to 30 days
                     </p>
                     <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 flex items-center gap-1" style={{ fontFamily: 'Manrope' }}>
                       <Crown className="h-3 w-3" style={{ color: '#f59e0b' }} />

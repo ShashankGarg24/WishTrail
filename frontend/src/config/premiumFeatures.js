@@ -10,12 +10,14 @@
 export const PREMIUM_FEATURES = {
   goals: {
     free: {
-      maxActiveGoals: 5,
-      maxSubgoalsPerGoal: 1
+      maxActiveGoals: 3,
+      maxSubgoalsPerGoal: 1,
+      maxSubHabitsPerGoal: 1
     },
     premium: {
       maxActiveGoals: 10,
-      maxSubgoalsPerGoal: 5
+      maxSubgoalsPerGoal: 5,
+      maxSubHabitsPerGoal: 5
     }
   },
 
@@ -23,7 +25,7 @@ export const PREMIUM_FEATURES = {
     free: {
       maxActiveHabits: 5,
       canTrackHistory: true,
-      historyRetentionDays: 60,
+      historyRetentionDays: -1,
       canSetReminders: false,
       maxRemindersPerHabit: 0
     },
@@ -40,12 +42,12 @@ export const PREMIUM_FEATURES = {
     free: {
       maxEntriesPerDay: 1,
       maxEntryLength: 300,
-      retentionDays: 60,
+      retentionDays: -1,
       canExportEntries: false
     },
     premium: {
-      maxEntriesPerDay: 5,
-      maxEntryLength: 300,
+      maxEntriesPerDay: 1,
+      maxEntryLength: 500,
       retentionDays: -1,
       canExportEntries: true
     }
@@ -69,13 +71,15 @@ export const PREMIUM_FEATURES = {
       basicStats: true,
       advancedInsights: false,
       customReports: false,
-      dataRetentionDays: 60
+      dataRetentionDays: -1,
+      maxHistoryDays: 30
     },
     premium: {
       basicStats: true,
       advancedInsights: true,
       customReports: true,
-      dataRetentionDays: -1
+      dataRetentionDays: -1,
+      maxHistoryDays: 365
     }
   },
 

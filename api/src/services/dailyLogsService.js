@@ -2,6 +2,8 @@ const mongoose = require('mongoose');
 const DailyLogsEntry = require('../models/DailyLogsEntry');
 const axios = require('axios');
 const pgUserService = require('./pgUserService');
+const { query } = require('../config/supabase');
+const { getFeatureLimits } = require('../config/premiumFeatures');
 const { getDateKeyInTimezone, getStartOfDayInTimezone, getEndOfDayInTimezone } = require('../utility/timezone');
 
 const ALLOWED_DAILY_LOG_MOODS = new Set(['happy', 'motivated', 'okay', 'stressed', 'sad', 'angry']);
@@ -133,6 +135,7 @@ async function createEntry(userId, { content, promptKey, mood, tags = [] }) {
   // Get user's timezone for proper day calculation
   const user = await pgUserService.findById(userId);
   const userTimezone = user?.timezone || 'UTC';
+  const contentCharLimit = getFeatureLimits('daily_logs', user?.premium_expires_at).maxEntryLength;
   
   // Calculate today's date key in user's timezone
   const dayKey = getDateKeyInTimezone(new Date(), userTimezone);
@@ -146,7 +149,6 @@ async function createEntry(userId, { content, promptKey, mood, tags = [] }) {
   }
 
   const trimmedContent = String(content || '').trim();
-  const contentCharLimit = 300;
   const hasContent = trimmedContent.length > 0;
 
   if (trimmedContent.length > contentCharLimit) {
@@ -208,7 +210,8 @@ async function updateEntry(userId, entryId, { content, mood, tags }) {
     throw err;
   }
 
-  const contentCharLimit = 300;
+  const user = await pgUserService.findById(userId);
+  const contentCharLimit = getFeatureLimits('daily_logs', user?.premium_expires_at).maxEntryLength;
   let nextContent = entry.content || '';
   if (content !== undefined) {
     const trimmed = String(content || '').trim();
@@ -262,6 +265,26 @@ async function updateEntry(userId, entryId, { content, mood, tags }) {
 async function clearEntry(userId, entryId) {
   await DailyLogsEntry.deleteDailyLogsEntry(entryId, userId);
   return true;
+}
+
+async function cleanupExpiredDailyLogs() {
+  const users = await query('SELECT id, premium_expires_at FROM users WHERE is_active = true');
+  let deleted = 0;
+
+  for (const user of users.rows) {
+    const retentionDays = getFeatureLimits('daily_logs', user.premium_expires_at).retentionDays;
+    if (retentionDays === -1) continue;
+
+    const cutoff = new Date();
+    cutoff.setUTCDate(cutoff.getUTCDate() - retentionDays);
+    const result = await DailyLogsEntry.deleteMany({
+      userId: user.id,
+      createdAt: { $lt: cutoff }
+    });
+    deleted += result.deletedCount || 0;
+  }
+
+  return deleted;
 }
 
 async function listMyEntries(userId, { limit = 20, skip = 0, todayOnly = false } = {}) {
@@ -361,6 +384,7 @@ module.exports = {
   createEntry,
   updateEntry,
   clearEntry,
+  cleanupExpiredDailyLogs,
   listMyEntries,
   getUserHighlights,
   notifyDailyPrompt

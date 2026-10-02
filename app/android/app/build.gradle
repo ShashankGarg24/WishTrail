@@ -97,10 +97,16 @@ android {
         versionName "1.0.0"
     }
     def releaseBuildRequested = gradle.startParameter.taskNames.any { it.toLowerCase().contains("release") || it.toLowerCase().contains("bundle") }
-    def releaseKeystorePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
-    def releaseKeyPassword = System.getenv("ANDROID_KEY_PASSWORD")
-    def releaseKeyAlias = System.getenv("ANDROID_KEY_ALIAS")
-    def releaseKeystoreFile = file("wishtrail.keystore")
+    def keystorePropertiesFile = rootProject.file("keystore.properties")
+    def keystoreProperties = new Properties()
+    if (keystorePropertiesFile.exists()) {
+        keystorePropertiesFile.withInputStream { keystoreProperties.load(it) }
+    }
+    def releaseKeystorePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD") ?: keystoreProperties["storePassword"]
+    def releaseKeyPassword = System.getenv("ANDROID_KEY_PASSWORD") ?: keystoreProperties["keyPassword"]
+    def releaseKeyAlias = System.getenv("ANDROID_KEY_ALIAS") ?: keystoreProperties["keyAlias"]
+    def releaseKeystorePath = System.getenv("ANDROID_KEYSTORE_FILE") ?: keystoreProperties["storeFile"] ?: "wishtrail.keystore"
+    def releaseKeystoreFile = file(releaseKeystorePath)
 
     signingConfigs {
         debug {
@@ -128,7 +134,7 @@ android {
             if (releaseKeystoreFile.exists() && releaseKeystorePassword && releaseKeyPassword && releaseKeyAlias) {
                 signingConfig signingConfigs.release
             } else if (releaseBuildRequested) {
-                throw new GradleException("Missing release signing configuration. Set ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_PASSWORD, and ANDROID_KEY_ALIAS, and ensure app/wishtrail.keystore exists.")
+                throw new GradleException("Missing release signing configuration. Add storeFile, storePassword, keyAlias, and keyPassword to android/keystore.properties, or set the ANDROID_KEYSTORE_FILE, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, and ANDROID_KEY_PASSWORD environment variables.")
             }
             shrinkResources (findProperty('android.enableShrinkResourcesInReleaseBuilds')?.toBoolean() ?: false)
             minifyEnabled enableProguardInReleaseBuilds

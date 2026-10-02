@@ -17,7 +17,7 @@ const PREMIUM_FEATURES = {
   // ============================================
   goals: {
     free: {
-      maxActiveGoals: 5,
+      maxActiveGoals: 3,
       maxSubgoalsPerGoal: 1,
       maxSubHabitsPerGoal: 1
     },
@@ -35,14 +35,14 @@ const PREMIUM_FEATURES = {
     free: {
       maxActiveHabits: 5,
       canTrackHistory: true,
-      historyRetentionDays: 60, // 2 months
+      historyRetentionDays: -1,
       canSetReminders: false,
       maxRemindersPerHabit: 0
     },
     premium: {
       maxActiveHabits: 10,
       canTrackHistory: true,
-      historyRetentionDays: -1, // unlimited
+      historyRetentionDays: -1,
       canSetReminders: true,
       maxRemindersPerHabit: 5
     }
@@ -55,7 +55,7 @@ const PREMIUM_FEATURES = {
     free: {
       maxEntriesPerDay: 1,
       maxEntryLength: 300,
-      retentionDays: 60, // 3 months
+      retentionDays: -1,
       canExportEntries: false
     },
     premium: {
@@ -90,15 +90,15 @@ const PREMIUM_FEATURES = {
       basicStats: true,
       advancedInsights: false,
       customReports: false,
-      dataRetentionDays: 60, // 2 months
-      maxHistoryDays: 60 // Analytics filter limited to 60 days
+      dataRetentionDays: -1,
+      maxHistoryDays: 30
     },
     premium: {
       basicStats: true,
       advancedInsights: true,
       customReports: true,
-      dataRetentionDays: -1, // unlimited
-      maxHistoryDays: 365 // Analytics filter up to 365 days
+      dataRetentionDays: -1,
+      maxHistoryDays: 365
     }
   },
 

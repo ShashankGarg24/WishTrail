@@ -51,7 +51,7 @@ async function validateGoalCreation(req, subGoalsCount = 0) {
 /**
  * Check if user can create a habit (premium limits)
  */
-async function validateHabitCreation(req, hasReminders = false) {
+async function validateHabitCreation(req, reminders = false) {
   const user = await pgUserService.findById(req.user.id);
   const activeHabitsCount = await pgHabitService.countActiveHabits(req.user.id);
   const limits = getFeatureLimits('habits', user.premium_expires_at);
@@ -67,13 +67,25 @@ async function validateHabitCreation(req, hasReminders = false) {
     };
   }
   
-  // Check reminders feature
-  if (hasReminders && !limits.canSetReminders) {
+  const reminderCount = Array.isArray(reminders) ? reminders.length : (reminders ? 1 : 0);
+
+  // Check reminders feature and per-habit reminder limit
+  if (reminderCount > 0 && !limits.canSetReminders) {
     return {
       allowed: false,
       error: 'PREMIUM_FEATURE_REQUIRED',
       message: 'Setting reminders is a premium feature.',
       feature: 'canSetReminders'
+    };
+  }
+
+  if (reminderCount > limits.maxRemindersPerHabit) {
+    return {
+      allowed: false,
+      error: 'REMINDER_LIMIT_REACHED',
+      message: `A habit can have up to ${limits.maxRemindersPerHabit} reminders.`,
+      limit: limits.maxRemindersPerHabit,
+      current: reminderCount
     };
   }
   
@@ -134,7 +146,7 @@ async function validateDailyLogsEntry(req) {
  */
 async function validateDailyLogsExport(req) {
   const user = await pgUserService.findById(req.user.id);
-  const limits = getFeatureLimits('dailyLogs', user.premium_expires_at);
+  const limits = getFeatureLimits('daily_logs', user.premium_expires_at);
   
   if (!limits.canExportEntries) {
     return {

@@ -29,8 +29,7 @@ exports.createHabit = async (req, res, next) => {
     }
 
     // ✅ PREMIUM CHECK: Validate habit creation limits
-    const hasReminders = Array.isArray(reminders) && reminders.length > 0;
-    const validation = await validateHabitCreation(req, hasReminders);
+    const validation = await validateHabitCreation(req, reminders);
     const errorResponse = handleValidationResponse(res, validation);
     if (errorResponse) return errorResponse;
 
@@ -298,6 +297,12 @@ exports.updateHabit = async (req, res, next) => {
       if (updates.description.length > MAX_HABIT_DESC_CHARS) {
         return res.status(400).json({ success: false, message: `Description cannot exceed ${MAX_HABIT_DESC_CHARS} characters` });
       }
+    }
+
+    if (Array.isArray(updates.reminders)) {
+      const validation = await validateHabitCreation(req, updates.reminders);
+      const errorResponse = handleValidationResponse(res, validation);
+      if (errorResponse) return errorResponse;
     }
 
     const habit = await pgHabitService.updateHabit(habitId, req.user.id, updates);

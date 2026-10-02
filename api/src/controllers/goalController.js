@@ -695,15 +695,6 @@ const createGoal = async (req, res, next) => {
       });
     }
 
-    // Check daily goal creation limit (max 5 per day)
-    const dailyCheck = await pgGoalService.checkActiveGoalsLimit(req.user.id, 5);
-    if (!dailyCheck.canCreate) {
-      return res.status(400).json({
-        success: false,
-        message: 'Active goal limit reached (5 active goals per user)'
-      });
-    }
-
     // Check year limit (max 50 goals per year)
     const currentYear = year || new Date().getFullYear();
     const yearCheck = await pgGoalService.checkYearlyLimit(req.user.id, currentYear, 50);

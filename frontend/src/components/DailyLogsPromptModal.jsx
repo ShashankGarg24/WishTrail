@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, CheckCircle, Smile, Meh, Frown, AlertTriangle, Sparkles, Angry, Send, History } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import useApiStore from '../store/apiStore';
+import { useDailyLogsLimits } from '../hooks/usePremium';
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock';
 import ConfirmActionModal from './ConfirmActionModal';
 
@@ -20,7 +21,7 @@ const moodOptions = [
 const DailyLogsPromptModal = ({ isOpen, onClose, onSubmitted, existingEntry = null }) => {
   const navigate = useNavigate();
   const { user, createDailyLogsEntry, updateDailyLogsEntry, clearDailyLogsEntry } = useApiStore();
-  const maxChars = 300;
+  const maxChars = useDailyLogsLimits().maxLength;
   const [content, setContent] = useState('');
   const [mood, setMood] = useState(null);
   const [submitting, setSubmitting] = useState(false);
