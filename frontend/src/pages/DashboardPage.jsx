@@ -1238,7 +1238,7 @@ const DashboardPageNew = () => {
               title: goalToEdit.title,
               description: goalToEdit.description,
               category: goalToEdit.category,
-              targetDate: goalToEdit.targetDate || '',
+              targetDate: goalToEdit.targetDate || goalToEdit.target_date || '',
               isPublic: goalToEdit.isPublic,
               subGoals: goalToEdit.subGoals || [],
               habitLinks: goalToEdit.habitLinks || []

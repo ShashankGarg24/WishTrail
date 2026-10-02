@@ -65,7 +65,7 @@ export default function HabitAnalyticsPage() {
   const loadLogs = async (page = 1) => {
     try {
       setLogsLoading(true);
-      const response = await habitsAPI.logs(id, { page, limit: 20 });
+      const response = await habitsAPI.logs(id, { page, limit: 20, days });
       if (response.data?.success) {
         if (page === 1) {
           setLogs(response.data.data.logs);

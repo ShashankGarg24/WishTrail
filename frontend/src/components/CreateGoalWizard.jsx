@@ -47,8 +47,9 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
 
       // Format target date for HTML date input if it exists
       let formattedTargetDate = ''
-      if (initialData?.targetDate) {
-        const date = new Date(initialData.targetDate)
+      const existingTargetDate = initialData?.targetDate || initialData?.target_date
+      if (existingTargetDate) {
+        const date = new Date(existingTargetDate)
         if (!isNaN(date.getTime())) {
           formattedTargetDate = date.toISOString().split('T')[0]
         }

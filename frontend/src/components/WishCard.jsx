@@ -364,7 +364,7 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, onEditCom
             title: wish.title,
             description: wish.description,
             category: wish.category,
-            targetDate: wish.targetDate || '',
+            targetDate: wish.targetDate || wish.target_date || '',
             isPublic: wish.isPublic,
             createdAt: wish.createdAt,
             subGoals: wish.subGoals || [],

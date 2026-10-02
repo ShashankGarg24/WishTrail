@@ -1065,6 +1065,14 @@ exports.getHabitLogs = async (req, res, next) => {
     // Get user timezone for proper date display
     const pgUser = await pgUserService.getUserById(userId);
     const userTimezone = pgUser?.timezone || 'UTC';
+    const { getFeatureLimits } = require('../config/premiumFeatures');
+    const maxHistoryDays = getFeatureLimits('analytics', pgUser?.premium_expires_at).maxHistoryDays;
+    const requestedDays = parseInt(req.query.days, 10);
+    const days = Math.min(
+      Math.max(Number.isFinite(requestedDays) && requestedDays > 0 ? requestedDays : 30, 1),
+      maxHistoryDays
+    );
+    const { startDate: startDateKey } = getDateRangeInTimezone(days - 1, userTimezone);
 
     const { query } = require('../config/supabase');
 
@@ -1072,9 +1080,9 @@ exports.getHabitLogs = async (req, res, next) => {
     const countSql = `
       SELECT COUNT(*) as total
       FROM habit_logs
-      WHERE habit_id = $1 AND user_id = $2
+      WHERE habit_id = $1 AND user_id = $2 AND date_key >= $3
     `;
-    const countResult = await query(countSql, [habitId, userId]);
+    const countResult = await query(countSql, [habitId, userId, startDateKey]);
     const total = parseInt(countResult.rows[0]?.total || 0);
 
     // Get paginated logs
@@ -1087,12 +1095,12 @@ exports.getHabitLogs = async (req, res, next) => {
         completion_times_mood,
         created_at
       FROM habit_logs
-      WHERE habit_id = $1 AND user_id = $2
+      WHERE habit_id = $1 AND user_id = $2 AND date_key >= $5
       ORDER BY date_key DESC
       LIMIT $3 OFFSET $4
     `;
 
-    const result = await query(sql, [habitId, userId, limit, offset]);
+    const result = await query(sql, [habitId, userId, limit, offset, startDateKey]);
 
     // Map mood values to numeric scores for averaging
     const moodScores = {
@@ -1162,7 +1170,8 @@ exports.getHabitLogs = async (req, res, next) => {
           limit,
           total,
           totalPages: Math.ceil(total / limit),
-          hasMore: offset + logs.length < total
+          hasMore: offset + logs.length < total,
+          days
         }
       }
     });
