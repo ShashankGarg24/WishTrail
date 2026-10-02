@@ -3,6 +3,7 @@ import { Camera, User, MapPin, Globe, Youtube, Instagram, AlertCircle, Loader2, 
 import toast from 'react-hot-toast';
 import useApiStore from '../../store/apiStore';
 import { uploadAPI } from '../../services/api';
+import AvatarCropModal from '../AvatarCropModal';
 
 const MOOD_EMOJIS = [
   '😊', '😄', '😃', '😁', '😆', '😅', '🤣', '😂', '🙂', '🙃',
@@ -70,6 +71,7 @@ const PersonalInfoSection = () => {
   const [locationQuery, setLocationQuery] = useState('');
   const [avatarError, setAvatarError] = useState('');
   const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarFile, setAvatarFile] = useState(null);
   const [urlErrors, setUrlErrors] = useState({
     youtube: '',
     instagram: ''
@@ -197,8 +199,9 @@ const PersonalInfoSection = () => {
     });
   };
 
-  const handleAvatarChange = async (e) => {
+  const handleAvatarChange = (e) => {
     const file = e.target.files[0];
+    e.target.value = '';
     setAvatarError('');
     if (!file) return;
     
@@ -212,6 +215,11 @@ const PersonalInfoSection = () => {
       return;
     }
     
+    setAvatarFile(file);
+  };
+
+  const handleCroppedAvatar = async (file) => {
+    setAvatarFile(null);
     try {
       setAvatarUploading(true);
       const form = new FormData();
@@ -219,10 +227,7 @@ const PersonalInfoSection = () => {
       const res = await uploadAPI.uploadAvatar(form);
       const url = res.data?.data?.url || res.data?.url;
       if (url) {
-        setFormData(prev => ({
-          ...prev,
-          avatar: url
-        }));
+        setFormData(prev => ({ ...prev, avatar: url }));
       }
     } catch (err) {
       console.error('Avatar upload failed', err);
@@ -287,6 +292,13 @@ const PersonalInfoSection = () => {
 
   return (
     <div className="p-3 sm:p-4 md:p-6">
+      {avatarFile && (
+        <AvatarCropModal
+          file={avatarFile}
+          onCancel={() => setAvatarFile(null)}
+          onComplete={handleCroppedAvatar}
+        />
+      )}
       {/* Header */}
       <div className="mb-4 sm:mb-6">
         <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">Personal Information</h2>
