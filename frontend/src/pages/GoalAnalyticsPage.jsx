@@ -226,7 +226,11 @@ const GoalAnalyticsPage = () => {
     const goal = goalData.goal
     const now = new Date()
     const createdDate = new Date(goal.createdAt)
-    const targetDate = goal.targetDate ? new Date(goal.targetDate) : null
+    const rawTargetDate = goal.targetDate
+    const parsedTargetDate = rawTargetDate ? new Date(rawTargetDate) : null
+    const targetDate = parsedTargetDate && !Number.isNaN(parsedTargetDate.getTime())
+      ? parsedTargetDate
+      : null
     const completedDate = goal.completedAt ? new Date(goal.completedAt) : null
     
     // Completion duration uses calendar days in the user's timezone, rather
@@ -309,7 +313,7 @@ const GoalAnalyticsPage = () => {
       totalComments,
       totalTimelineEvents: timelineEvents.length,
       isCompleted: goal.completedAt,
-      isOverdue: targetDate && targetDate < now && !goal.completedAt,
+      isOverdue: Boolean(targetDate && targetDate < now && !goal.completedAt),
       targetDate,
       createdDate,
       completedDate,
