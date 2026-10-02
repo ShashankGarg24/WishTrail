@@ -181,6 +181,7 @@ const sanitizeGoalForProfile = (goal) => {
     id: obj.id || (obj._id ? obj._id.toString() : undefined),
     title: obj.title,
     description: obj.description,
+    targetDate: obj.targetDate || obj.target_date,
     category: obj.category,
     year: obj.year,
     createdAt: obj.createdAt,
