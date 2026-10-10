@@ -3,6 +3,8 @@ const Activity = require('../models/Activity');
 const cacheService = require('../services/cacheService');
 const ActivityComment = require('../models/ActivityComment');
 const Notification = require('../models/Notification');
+const DailyLogsEntry = require('../models/DailyLogsEntry');
+const { query } = require('../config/supabase');
 
 // PostgreSQL Services
 const pgLikeService = require('../services/pgLikeService');
@@ -134,19 +136,19 @@ async function enrichActivities(activities) {
 // @access  Private
 const getRecentActivities = async (req, res, next) => {
   try {
-    const { page = 1, limit = 10, type = 'global' } = req.query;
+    const { page = 1, limit = 10, type = 'global', scope } = req.query;
     const includeRecentUsers = req.query.includeRecentUsers === true || req.query.includeRecentUsers === 'true' || req.query.includeRecentUsers === '1';
     const recentUsersDays = Math.max(1, parseInt(req.query.recentUsersDays) || 7);
     const recentUsersLimit = Math.max(1, Math.min(50, parseInt(req.query.recentUsersLimit) || 10));
     const parsedPage = parseInt(page);
     const parsedLimit = parseInt(limit);
-    const cacheParams = { page: parsedPage, limit: parsedLimit, type, includeRecentUsers, recentUsersDays, recentUsersLimit };
+    const cacheParams = { page: parsedPage, limit: parsedLimit, type, scope, includeRecentUsers, recentUsersDays, recentUsersLimit };
 
     let activities;
     let fromCache = false;
 
     if (type === 'personal') {
-      activities = await cacheService.getPersonalActivities(req.user.id, cacheParams);
+      activities = scope === 'overview' ? null : await cacheService.getPersonalActivities(req.user.id, cacheParams);
     } else {
       activities = await cacheService.getGlobalActivities(cacheParams);
     }
@@ -156,21 +158,88 @@ const getRecentActivities = async (req, res, next) => {
     } else {
       // Fetch from database
       if (type === 'personal') {
+        if (scope === 'overview') {
+          const sevenDaysAgo = new Date(Date.now() - (7 * 24 * 60 * 60 * 1000));
+          const overviewFilter = {
+            userId: Number(req.user.id),
+            type: { $in: ['goal_activity', 'goal_completed'] },
+            $or: [
+              { createdAt: { $gte: sevenDaysAgo } },
+              { type: 'goal_activity', updatedAt: { $gte: sevenDaysAgo } }
+            ]
+          };
+          const [activityList, relationalEvents, dailyLogEntries] = await Promise.all([
+            Activity.find(overviewFilter).sort({ updatedAt: -1 }).limit(50).lean(),
+            query(
+              `SELECT 'goal_created' AS event_type, g.id AS item_id, g.title AS item_name, g.created_at AS event_at, NULL::text AS status
+               FROM goals g WHERE g.user_id = $1 AND g.created_at >= $2
+               UNION ALL
+               SELECT 'habit_created', h.id, h.name, h.created_at, NULL::text
+               FROM habits h WHERE h.user_id = $1 AND h.created_at >= $2
+               UNION ALL
+               SELECT 'habit_logged', hl.id, h.name, hl.occurred_at, hl.status
+               FROM habit_logs hl JOIN habits h ON h.id = hl.habit_id
+               WHERE hl.user_id = $1 AND hl.occurred_at >= $2`,
+              [req.user.id, sevenDaysAgo]
+            ),
+            DailyLogsEntry.find({ userId: Number(req.user.id), createdAt: { $gte: sevenDaysAgo } })
+              .sort({ createdAt: -1 }).limit(50).lean()
+          ]);
+          const enrichedActivities = await enrichActivities(activityList);
+          const storedEvents = enrichedActivities
+            .filter(activity => !(activity.type === 'goal_activity' && activity.data?.lastUpdateType === 'created'))
+            .map(activity => ({
+              ...activity,
+              activityAt: activity.type === 'goal_activity' ? activity.updatedAt : activity.createdAt
+            }));
+          const postgresEvents = relationalEvents.rows.map(event => ({
+            _id: `${event.event_type}_${event.item_id}_${new Date(event.event_at).getTime()}`,
+            type: event.event_type,
+            userId: Number(req.user.id),
+            data: event.event_type.startsWith('habit_')
+              ? { habitName: event.item_name, habitStatus: event.status }
+              : { goalTitle: event.item_name },
+            createdAt: event.event_at,
+            activityAt: event.event_at
+          }));
+          const dailyLogEvents = dailyLogEntries.map(entry => ({
+            _id: `daily_log_created_${entry._id}`,
+            type: 'daily_log_created',
+            userId: Number(req.user.id),
+            data: { dailyLogId: String(entry._id) },
+            createdAt: entry.createdAt,
+            activityAt: entry.createdAt
+          }));
+          const combinedEvents = [...storedEvents, ...postgresEvents, ...dailyLogEvents]
+            .sort((a, b) => new Date(b.activityAt) - new Date(a.activityAt));
+          const pageStart = (parsedPage - 1) * parsedLimit;
+          activities = {
+            activities: combinedEvents.slice(pageStart, pageStart + parsedLimit),
+            pagination: {
+              page: parsedPage,
+              limit: parsedLimit,
+              total: combinedEvents.length,
+              pages: Math.ceil(combinedEvents.length / parsedLimit)
+            }
+          };
+        } else {
         // Get activities from users the current user follows
         const followingIds = await pgFollowService.getFollowingIds(req.user.id);
-        followingIds.push(req.user.id); // Include own activities
-        
-        const totalActivities = await Activity.countDocuments({
-          userId: { $in: followingIds },
+        const currentUserId = Number(req.user.id);
+        const followedUserIds = [...new Set(followingIds.map(Number))].filter(id => Number.isFinite(id) && id !== currentUserId);
+        // A personal home feed contains the user's own activity (including
+        // private goals) and only public activity from followed users.
+        const personalFilter = {
           isActive: true,
-          isPublic: true
-        });
+          $or: [
+            { userId: currentUserId },
+            { userId: { $in: followedUserIds }, isPublic: true }
+          ]
+        };
 
-        const activityList = await Activity.find({
-          userId: { $in: followingIds },
-          isActive: true,
-          isPublic: true
-        })
+        const totalActivities = await Activity.countDocuments(personalFilter);
+
+        const activityList = await Activity.find(personalFilter)
         .sort({ createdAt: -1 })
         .limit(parsedLimit)
         .skip((parsedPage - 1) * parsedLimit)
@@ -191,6 +260,7 @@ const getRecentActivities = async (req, res, next) => {
 
         // Cache the result
         await cacheService.setPersonalActivities(req.user.id, activities, cacheParams);
+        }
       } else {
         // Global activities
         const filter = {
@@ -820,4 +890,4 @@ module.exports = {
   addActivityComment,
   replyToActivityComment,
   toggleCommentLike
-}; 
+};

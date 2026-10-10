@@ -16,6 +16,10 @@ router.post('/privacy', settingsController.updatePrivacySettings);
 router.get('/theme', settingsController.getThemeSettings);
 router.post('/theme', settingsController.updateThemeSettings);
 
+// User-selected goal or habit highlighted on Overview
+router.get('/today-focus', settingsController.getTodayFocus);
+router.put('/today-focus', settingsController.updateTodayFocus);
+
 // Blocked users
 router.get('/blocked', settingsController.getBlockedUsers);
 router.post('/blocked', settingsController.blockUser);

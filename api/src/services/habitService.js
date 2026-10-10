@@ -35,14 +35,6 @@ function normalizeHabitFrequency(frequency) {
 }
 
 async function createHabit(userId, payload) {
-  // Validate that only one type of target is set
-  if (payload.targetCompletions && payload.targetDays) {
-    throw Object.assign(
-      new Error('Only one target type is allowed: either targetCompletions or targetDays, not both'), 
-      { statusCode: 400 }
-    );
-  }
-  
   // Create habit using PostgreSQL service
   const habit = await pgHabitService.createHabit({
     userId,
@@ -53,7 +45,7 @@ async function createHabit(userId, payload) {
     // reminders: Array.isArray(payload.reminders) ? payload.reminders : [],
     goalId: payload.goalId || null,
     isPublic: payload.isPublic !== undefined ? !!payload.isPublic : true,
-    targetCompletions: payload.targetCompletions || null,
+    dailyTargetCount: payload.dailyTargetCount || null,
     targetDays: payload.targetDays || null
   });
 
@@ -139,18 +131,8 @@ async function updateHabit(userId, habitId, payload) {
   if (Array.isArray(payload.reminders)) updates.reminders = payload.reminders;
   if (payload.goalId !== undefined) updates.goalId = payload.goalId || null;
   if (payload.isPublic !== undefined) updates.isPublic = !!payload.isPublic;
-  if (payload.targetCompletions !== undefined) updates.targetCompletions = payload.targetCompletions || null;
+  if (payload.dailyTargetCount !== undefined) updates.dailyTargetCount = payload.dailyTargetCount || null;
   if (payload.targetDays !== undefined) updates.targetDays = payload.targetDays || null;
-  
-  // Validate that only one type of target is set (check both new values and existing)
-  const finalTargetCompletions = updates.targetCompletions !== undefined ? updates.targetCompletions : h.targetCompletions;
-  const finalTargetDays = updates.targetDays !== undefined ? updates.targetDays : h.targetDays;
-  if (finalTargetCompletions && finalTargetDays) {
-    throw Object.assign(
-      new Error('Only one target type is allowed: either targetCompletions or targetDays, not both'), 
-      { statusCode: 400 }
-    );
-  }
   
   const updated = await pgHabitService.updateHabit(habitId, userId, updates);
   return updated;
@@ -304,14 +286,6 @@ async function toggleLog(userId, habitId, { status = 'done', note = '', mood = '
         
         let targetAchieved = false;
         let targetType = '';
-        
-        // Check if targetCompletions achieved
-        if (updatedHabit.targetCompletions && updatedHabit.targetCompletions > 0) {
-          if (updatedHabit.totalCompletions >= updatedHabit.targetCompletions) {
-            targetAchieved = true;
-            targetType = 'completions';
-          }
-        }
         
         // Check if targetDays achieved
         if (!targetAchieved && updatedHabit.targetDays && updatedHabit.targetDays > 0) {
@@ -631,14 +605,11 @@ async function getHabitAnalytics(userId, habitId, { days = 90, userTimezone = 'U
     totalDays: habit.totalDays || 0,
     currentStreak: habit.currentStreak || 0,
     longestStreak: habit.longestStreak || 0,
-    targetCompletions: habit.targetCompletions || null,
+    dailyTargetCount: habit.dailyTargetCount || null,
     targetDays: habit.targetDays || null
   };
   
-  // Calculate completion percentage
-  if (stats.targetCompletions) {
-    stats.completionPercentage = Math.min(100, Math.round((stats.totalCompletions / stats.targetCompletions) * 100));
-  }
+  // Target days is the duration goal. Daily target count is evaluated per day.
   if (stats.targetDays) {
     stats.daysPercentage = Math.min(100, Math.round((stats.totalDays / stats.targetDays) * 100));
   }
@@ -772,7 +743,7 @@ async function getHabitAnalytics(userId, habitId, { days = 90, userTimezone = 'U
       frequency: habit.frequency,
       daysOfWeek: habit.daysOfWeek,
       createdAt: habit.createdAt,
-      targetCompletions: habit.targetCompletions || null,
+      dailyTargetCount: habit.dailyTargetCount || null,
       targetDays: habit.targetDays || null
     },
     stats,

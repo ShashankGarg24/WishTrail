@@ -11,6 +11,8 @@ const mongoose = require('mongoose');
 const { sanitizeGoalsForProfile } = require('../utility/sanitizer');
 const GoalDetails = require('../models/extended/GoalDetails');
 const { getCurrentDateInTimezone, zonedDateTimeToUtc } = require('../utility/timezone');
+const goalHealthService = require('../services/goalHealthService');
+const goalMetricsService = require('../services/goalMetricsService');
 
 const ALLOWED_GOAL_UPDATE_EMOTIONS = new Set(['great', 'good', 'okay', 'challenging', 'neutral']);
 
@@ -201,6 +203,33 @@ async function buildGoalTimeline(goal, goalDetails) {
     logger.error('Error fetching activity timeline:', err);
   }
 
+  // Daily goal logs are the narrative events between start and completion.
+  // Emotion-only reflections are intentionally excluded from Journey.
+  try {
+    const updatesResult = await pgQuery(
+      `SELECT id, text, date_key::text AS date_key, created_at
+         FROM goal_updates
+        WHERE goal_id = $1 AND user_id = $2
+          AND NULLIF(BTRIM(text), '') IS NOT NULL
+        ORDER BY date_key ASC, created_at ASC`,
+      [goal.id, goal.user_id]
+    );
+    for (const update of updatesResult.rows || []) {
+      timeline.push({
+        id: `goal-update-${update.id}`,
+        type: 'progress_update',
+        timestamp: new Date(`${update.date_key}T12:00:00.000Z`),
+        dateKey: update.date_key,
+        title: 'Progress Update',
+        description: update.text,
+        icon: 'flag',
+        color: 'blue'
+      });
+    }
+  } catch (err) {
+    logger.error('Error fetching goal updates for timeline:', err);
+  }
+
   // 3. Goal completion event
   if (goal.completed_at) {
     timeline.push({
@@ -213,10 +242,12 @@ async function buildGoalTimeline(goal, goalDetails) {
     });
   }
 
-  // Sort timeline by date (ascending - oldest first)
-  timeline.sort((a, b) => a.timestamp - b.timestamp);
+  // Show the latest journey event first.
+  const journeyTypes = new Set(['goal_created', 'progress_update', 'goal_completed']);
+  const journey = timeline.filter(event => journeyTypes.has(event.type));
+  journey.sort((a, b) => b.timestamp - a.timestamp);
 
-  return timeline;
+  return journey;
 }
 
 // @desc    Get goal post details for modal (Instagram-like)
@@ -239,8 +270,9 @@ const getGoalPost = async (req, res, next) => {
     }
     logger.info(goalDetails)
     // Determine shareable content based on goal's public status
-    const shareNote = goal.is_public ? (goalDetails.completionNote || '') : '';
-    const shareImage = goal.is_public ? (goalDetails.completionAttachmentUrl || '') : '';
+    const canShowCompletion = isOwner || goal.is_public;
+    const shareNote = canShowCompletion ? (goalDetails?.completionNote || '') : '';
+    const shareImage = canShowCompletion ? (goalDetails?.completionAttachmentUrl || '') : '';
     logger.info(shareImage);
 
     // Find the activity for this goal
@@ -318,7 +350,9 @@ const getGoalPost = async (req, res, next) => {
           title: goal.title,
           description: goalDetails?.description || '',
           category: goal.category,
+          createdAt: goal.created_at,
           completedAt: goal.completed_at,
+          completionNote: shareNote,
           isUpdatesPublic: goal.is_updates_public,
           subGoals: enrichedSubGoals
         },
@@ -331,6 +365,11 @@ const getGoalPost = async (req, res, next) => {
         share: {
           note: shareNote,
           image: shareImage,
+        },
+        completion: {
+          completedAt: goal.completed_at,
+          note: shareNote,
+          attachmentUrl: shareImage,
         },
         social: {
           likeCount,
@@ -451,7 +490,9 @@ const getGoals = async (req, res, next) => {
       }
       
       const total = result.pagination.total;
-      const sanitizedGoals =sanitizeGoalsForProfile(goals);
+      const pgUser = await pgUserService.getUserById(req.user.id);
+      const goalsWithHealth = await goalHealthService.addGoalHealth(goals, { userId: req.user.id, timezone: pgUser?.timezone || 'UTC' });
+      const sanitizedGoals = sanitizeGoalsForProfile(goalsWithHealth);
       
       return res.status(200).json({
         success: true,
@@ -533,7 +574,9 @@ const getGoals = async (req, res, next) => {
     const total = result.pagination.total;
 
     // ✅ Sanitize goals - use minimal fields when not requesting progress (profile view)
-    const sanitizedGoals = sanitizeGoalsForProfile(goals);
+    const pgUser = await pgUserService.getUserById(req.user.id);
+    const goalsWithHealth = await goalHealthService.addGoalHealth(goals, { userId: req.user.id, timezone: pgUser?.timezone || 'UTC' });
+    const sanitizedGoals = sanitizeGoalsForProfile(goalsWithHealth);
 
     res.status(200).json({
       success: true,
@@ -602,7 +645,9 @@ const getGoal = async (req, res, next) => {
       completionAttachmentUrl: goalDetails?.completionAttachmentUrl || ''
     };
 
-    res.status(200).json({ success: true, data: { goal: combinedGoal } });
+    const pgUser = await pgUserService.getUserById(goal.user_id);
+    const goalWithHealth = await goalHealthService.addGoalHealth(combinedGoal, { userId: goal.user_id, timezone: pgUser?.timezone || 'UTC' });
+    res.status(200).json({ success: true, data: { goal: goalWithHealth } });
   } catch (error) {
     next(error);
   }
@@ -2148,8 +2193,8 @@ module.exports = {
       // Get engagement metrics
       // Note: Activities in MongoDB still have old ObjectId references for goalId
       // PostgreSQL goals won't have matching Activity documents until activities are migrated
-      const likeCount = await pgLikeService.getLikeCount(String(goalActivity._id), 'activity');
-      const commentCount = await ActivityComment.countDocuments({ activityId: goalActivity._id });
+      const likeCount = goalActivity ? await pgLikeService.getLikeCount(String(goalActivity._id), 'activity') : 0;
+      const commentCount = goalActivity ? await ActivityComment.countDocuments({ activityId: goalActivity._id }) : 0;
       
       
       // Skip Activity queries for now since data.goalId in Activity is ObjectId but goals are now BigInt in PostgreSQL
@@ -2204,15 +2249,7 @@ module.exports = {
           let currentCount = 0;
           
           if (habit) {
-            // Use targetCompletions if available
-            if (habit.targetCompletions && habit.targetCompletions > 0) {
-              targetType = 'completions';
-              targetCount = habit.targetCompletions;
-              currentCount = habit.totalCompletions || 0;
-              progressRatio = Math.min(1, currentCount / targetCount);
-            } 
-            // Otherwise use targetDays if available
-            else if (habit.targetDays && habit.targetDays > 0) {
+            if (habit.targetDays && habit.targetDays > 0) {
               targetType = 'days';
               targetCount = habit.targetDays;
               currentCount = habit.totalDays || 0;
@@ -2242,9 +2279,18 @@ module.exports = {
         logger.error('Error computing progress:', err);
       }
 
+      const analyticsUser = await pgUserService.getUserById(goal.user_id);
+      const analyticsDays = [7, 15, 30].includes(Number(req.query.days)) ? Number(req.query.days) : 30;
+      const metrics = await goalMetricsService.getGoalMetrics({ ...goal, progress: progressData }, {
+        userId: goal.user_id,
+        timezone: analyticsUser?.timezone || 'UTC',
+        days: analyticsDays
+      });
+
       return res.status(200).json({
         success: true,
         data: {
+          metrics,
           goal: {
             id: goal.id,
             title: goal.title,

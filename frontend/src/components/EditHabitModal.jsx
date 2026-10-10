@@ -23,7 +23,7 @@ export default function EditHabitModal({ isOpen, onClose, habit, onSave }) {
   const [frequency, setFrequency] = useState('daily');
   const [daysOfWeek, setDaysOfWeek] = useState([]);
   const [reminders, setReminders] = useState(['']);
-  const [targetCompletions, setTargetCompletions] = useState('');
+  const [dailyTargetCount, setDailyTargetCount] = useState('');
   const [targetDays, setTargetDays] = useState('');
   const [showAdditionalDetails, setShowAdditionalDetails] = useState(false);
   const contentRef = useRef(null);
@@ -45,7 +45,7 @@ export default function EditHabitModal({ isOpen, onClose, habit, onSave }) {
     setFrequency(habit.frequency === 'weekly' ? 'custom' : (habit.frequency || 'daily'));
     setDaysOfWeek(Array.isArray(habit.daysOfWeek) ? habit.daysOfWeek.slice() : []);
     setReminders(Array.isArray(habit.reminders) && habit.reminders.length > 0 ? habit.reminders.map(r => r.time || '') : ['']);
-    setTargetCompletions(habit.targetCompletions || '');
+    setDailyTargetCount(habit.dailyTargetCount || '');
     setTargetDays(habit.targetDays || '');
     setShowAdditionalDetails(false);
     setSubmitting(false);
@@ -93,10 +93,10 @@ export default function EditHabitModal({ isOpen, onClose, habit, onSave }) {
       };
       
       // Add targets if provided
-      if (targetCompletions && parseInt(targetCompletions) > 0) {
-        payload.targetCompletions = parseInt(targetCompletions);
+      if (dailyTargetCount && parseInt(dailyTargetCount) > 0) {
+        payload.dailyTargetCount = parseInt(dailyTargetCount);
       } else {
-        payload.targetCompletions = null;
+        payload.dailyTargetCount = null;
       }
       if (targetDays && parseInt(targetDays) > 0) {
         payload.targetDays = parseInt(targetDays);
@@ -118,9 +118,9 @@ export default function EditHabitModal({ isOpen, onClose, habit, onSave }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[102] flex items-center justify-center p-4" style={{ fontFamily: 'Manrope, ui-sans-serif, system-ui' }}>
+    <div className="habit-form-modal fixed inset-0 z-[102] flex items-center justify-center p-4" style={{ fontFamily: 'Manrope, ui-sans-serif, system-ui' }}>
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-xl border border-gray-200 dark:border-gray-700 max-h-[90dvh] overflow-hidden flex flex-col">
+      <div className="habit-form-dialog relative bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-xl border border-gray-200 dark:border-gray-700 max-h-[90dvh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-3">
@@ -242,25 +242,18 @@ export default function EditHabitModal({ isOpen, onClose, habit, onSave }) {
                       <Info className="h-4 w-4" style={{ color: THEME_COLOR }} />
                       Goals
                     </h4>
-                    <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200 text-xs">
-                      Choose either count-based OR days-based target (not both).
-                    </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Target Total Count</label>
+                        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Daily Target Count</label>
                         <input
                           type="number"
                           min="0"
-                          value={targetCompletions}
-                          onChange={(e) => {
-                            setTargetCompletions(e.target.value);
-                            if (e.target.value) setTargetDays('');
-                          }}
-                          placeholder="e.g., 100"
-                          disabled={targetDays && parseInt(targetDays) > 0}
+                          value={dailyTargetCount}
+                          onChange={(e) => setDailyTargetCount(e.target.value)}
+                          placeholder="e.g., 3"
                           className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#4c99e6] disabled:opacity-50 disabled:cursor-not-allowed"
                         />
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Total times to complete this habit</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Completions expected on each scheduled day</p>
                       </div>
                       <div>
                         <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Target Days</label>
@@ -268,12 +261,8 @@ export default function EditHabitModal({ isOpen, onClose, habit, onSave }) {
                           type="number"
                           min="0"
                           value={targetDays}
-                          onChange={(e) => {
-                            setTargetDays(e.target.value);
-                            if (e.target.value) setTargetCompletions('');
-                          }}
+                          onChange={(e) => setTargetDays(e.target.value)}
                           placeholder="e.g., 30"
-                          disabled={targetCompletions && parseInt(targetCompletions) > 0}
                           className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#4c99e6] disabled:opacity-50 disabled:cursor-not-allowed"
                         />
                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Number of unique days</p>

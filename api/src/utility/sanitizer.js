@@ -93,7 +93,8 @@ const sanitizeAuthMe = (user) => {
     youtube: obj.youtube || '',
     dashboardYears: obj.dashboardYears || [],
     isPremium: isPremium,
-    hasPassword: obj.hasPassword || false
+    hasPassword: obj.hasPassword || false,
+    googleConnected: Boolean(obj.google_id || obj.googleId)
   };
 };
 
@@ -189,7 +190,12 @@ const sanitizeGoalForProfile = (goal) => {
     isPublic: obj.isPublic,
     completionNote: obj.completionNote,
     completionAttachmentUrl: obj.completionAttachmentUrl,
-    completionFeeling: obj.completionFeeling
+    completionFeeling: obj.completionFeeling,
+    lifecycleStatus: obj.lifecycleStatus,
+    goalHealth: obj.goalHealth,
+    healthLabel: obj.healthLabel,
+    healthReason: obj.healthReason,
+    lastProgressAt: obj.lastProgressAt
   };
 };
 
@@ -273,7 +279,7 @@ const sanitizeHabit = (habit) => {
     longestStreak: obj.longestStreak || obj.longest_streak || 0,
     totalCompletions: obj.totalCompletions || obj.total_completions || 0,
     totalDays: obj.totalDays || obj.total_days || 0,
-    targetCompletions: obj.targetCompletions || obj.target_completions || null,
+    dailyTargetCount: obj.dailyTargetCount || obj.daily_target_count || null,
     targetDays: obj.targetDays || obj.target_days || null,
     goalId: obj.goalId || obj.goal_id || null,
     isPublic: obj.isPublic !== undefined ? obj.isPublic : (obj.is_public !== undefined ? obj.is_public : false),
@@ -308,7 +314,7 @@ const sanitizeHabitForProfile = (habit) => {
     longestStreak: obj.longestStreak || obj.longest_streak || 0,
     totalCompletions: obj.totalCompletions || obj.total_completions || 0,
     totalDays: obj.totalDays || obj.total_days || 0,
-    targetCompletions: obj.targetCompletions || obj.target_completions || null,
+    dailyTargetCount: obj.dailyTargetCount || obj.daily_target_count || null,
     targetDays: obj.targetDays || obj.target_days || null
     ,
     lastLoggedDateKey: obj.lastLoggedDateKey || obj.last_logged_date_key || null

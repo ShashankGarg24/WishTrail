@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence, useDragControls } from 'framer-motion'
 import { X, Send, Heart, MessageCircle } from 'lucide-react'
@@ -6,12 +7,13 @@ import { activitiesAPI } from '../services/api'
 import useApiStore from '../store/apiStore'
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
 
-const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embedded = false, hideInput = false, onCommentAdded }) => {
+const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embedded = false, hideInput = false, onCommentAdded, composerTargetId }) => {
   const [comments, setComments] = useState([])
   const [loading, setLoading] = useState(false)
   const [input, setInput] = useState('')
   const [replyTo, setReplyTo] = useState(null)
   const [expandedReplies, setExpandedReplies] = useState({})
+  const [composerTarget, setComposerTarget] = useState(null)
   const dragControls = useDragControls()
   const navigate = useNavigate()
 
@@ -44,6 +46,14 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
     }
     return undefined
   }, [embedded, inline, isOpen])
+
+  useEffect(() => {
+    if (!composerTargetId) {
+      setComposerTarget(null)
+      return
+    }
+    setComposerTarget(document.getElementById(composerTargetId))
+  }, [composerTargetId])
 
   const formatTimeAgo = (iso) => {
     const seconds = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 1000))
@@ -137,8 +147,8 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
   }
 
   const ReplyComposer = ({ commentId }) => {
-    if (replyTo?.commentId !== commentId) return null
-    return <div className="mt-3 flex items-center gap-2 rounded-xl border border-[#4c99e6]/30 bg-blue-50/50 p-2 dark:bg-blue-950/20"><input autoFocus value={input} onChange={(event) => setInput(event.target.value)} onKeyDown={handleKeyDown} placeholder={`Replying to @${replyTo.userName}`} className="min-w-0 flex-1 bg-transparent px-2 py-1.5 text-[16px] md:text-sm text-gray-900 outline-none placeholder:text-gray-500 dark:text-white" /><button type="button" onClick={handlePost} disabled={!input.trim()} aria-label="Post reply" className="rounded-lg bg-[#4c99e6] p-2 text-white hover:bg-[#3d88d5] disabled:cursor-not-allowed disabled:opacity-40"><Send className="h-4 w-4" /></button><button type="button" onClick={cancelReply} className="px-1 text-xs font-medium text-gray-500 hover:text-gray-800 dark:hover:text-gray-200">Cancel</button></div>
+    if (!hideInput || replyTo?.commentId !== commentId) return null
+    return <div className="mt-3 flex items-center gap-2 rounded-xl border border-[#4c99e6]/30 bg-blue-50/50 p-2 dark:bg-blue-950/20"><input autoFocus value={input} onChange={(event) => setInput(event.target.value)} onKeyDown={handleKeyDown} placeholder={`Replying to @${replyTo.userName}`} className="min-w-0 flex-1 bg-transparent px-2 py-1.5 text-[16px] text-gray-900 outline-none placeholder:text-gray-500 md:text-sm dark:text-white" /><button type="button" onClick={handlePost} disabled={!input.trim()} aria-label="Post reply" className="rounded-lg bg-[#4c99e6] p-2 text-white disabled:opacity-40"><Send className="h-4 w-4" /></button><button type="button" onClick={cancelReply} className="px-1 text-xs font-medium text-gray-500">Cancel</button></div>
   }
 
   const CommentItem = ({ comment, parentComment, isReply = false }) => {
@@ -152,12 +162,12 @@ const ActivityCommentsModal = ({ isOpen, onClose, activity, inline = false, embe
   const CommentList = () => <div className="space-y-4">{loading ? <p className="py-6 text-center text-sm text-gray-500">Loading comments…</p> : comments.length === 0 ? <p className="py-8 text-center text-sm text-gray-500 dark:text-gray-400">No comments yet. Start the conversation.</p> : comments.map((comment) => <CommentItem key={comment._id} comment={comment} />)}</div>
 
   const Composer = () => {
-    if (hideInput || replyTo) return null
-    return <div className="flex items-center gap-2 border-t border-gray-100 bg-white/95 px-4 py-3 backdrop-blur dark:border-gray-800 dark:bg-gray-900/95"><input value={input} onChange={(event) => setInput(event.target.value)} onKeyDown={handleKeyDown} placeholder="Add a comment…" className="min-w-0 flex-1 rounded-full bg-gray-100 px-4 py-2.5 text-[16px] md:text-sm text-gray-900 outline-none placeholder:text-gray-500 focus:ring-2 focus:ring-[#4c99e6]/40 dark:bg-gray-800 dark:text-white" /><button type="button" onClick={handlePost} disabled={!input.trim()} className="rounded-full p-2.5 text-[#4c99e6] hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-blue-950/30" aria-label="Post comment"><Send className="h-5 w-5" /></button></div>
+    if (hideInput) return null
+    return <div className="border-t border-gray-100 bg-white/95 px-4 py-2 backdrop-blur dark:border-gray-800 dark:bg-gray-900/95">{replyTo && <div className="mb-1 flex items-center justify-between px-2 text-xs text-gray-500"><span>Replying to @{replyTo.userName}</span><button type="button" onClick={cancelReply} className="font-semibold text-[#4c99e6]">Cancel</button></div>}<div className="flex items-center gap-2"><input autoFocus={Boolean(replyTo)} value={input} onChange={(event) => setInput(event.target.value)} onKeyDown={handleKeyDown} placeholder={replyTo ? `Reply to @${replyTo.userName}…` : 'Add a comment…'} className="min-w-0 flex-1 rounded-full bg-gray-100 px-4 py-2.5 text-[16px] md:text-sm text-gray-900 outline-none placeholder:text-gray-500 focus:ring-2 focus:ring-[#4c99e6]/40 dark:bg-gray-800 dark:text-white" /><button type="button" onClick={handlePost} disabled={!input.trim()} className="rounded-full p-2.5 text-[#4c99e6] hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-blue-950/30" aria-label={replyTo ? 'Post reply' : 'Post comment'}><Send className="h-5 w-5" /></button></div></div>
   }
 
   if (!inline && !embedded && !isOpen) return null
-  if (embedded) return <section className="w-full" style={{ fontFamily: 'Manrope, sans-serif' }}><div className="mb-3 flex items-center gap-2"><MessageCircle className="h-4 w-4 text-[#4c99e6]" /><h3 className="text-sm font-semibold text-gray-900 dark:text-white">Comments</h3>{comments.length > 0 && <span className="text-xs text-gray-500">{comments.length}</span>}</div><CommentList /><div className="mt-4"><Composer /></div></section>
+  if (embedded) return <section className="w-full" style={{ fontFamily: 'Manrope, sans-serif' }}><div className="mb-3 flex items-center gap-2"><MessageCircle className="h-4 w-4 text-[#4c99e6]" /><h3 className="text-sm font-semibold text-gray-900 dark:text-white">Comments</h3>{comments.length > 0 && <span className="text-xs text-gray-500">{comments.length}</span>}</div><CommentList />{composerTarget ? createPortal(<Composer />, composerTarget) : <div className="mt-4"><Composer /></div>}</section>
   if (inline) return <section className="flex h-full w-full flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900" style={{ fontFamily: 'Manrope, sans-serif' }}><header className="flex items-center justify-between border-b border-gray-100 px-4 py-3 dark:border-gray-800"><h2 className="font-semibold text-gray-900 dark:text-white">Comments</h2>{onClose && <button type="button" onClick={onClose} aria-label="Close comments" className="rounded-full p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"><X className="h-5 w-5" /></button>}</header><div className="min-h-0 flex-1 overflow-y-auto px-4 py-4"><CommentList /></div><Composer /></section>
   return (
     <AnimatePresence>

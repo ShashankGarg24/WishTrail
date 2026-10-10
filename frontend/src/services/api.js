@@ -302,7 +302,7 @@ export const goalsAPI = {
     return api.get(`/goals/${id}/post`);
   },
   getGoalTimeline: (id) => api.get(`/goals/${id}/timeline`),
-  getGoalAnalytics: (id) => api.get(`/goals/${id}/analytics`),
+  getGoalAnalytics: (id, params = {}) => api.get(`/goals/${id}/analytics`, { params }),
   getGoalUpdateToday: (id) => api.get(`/goals/${id}/updates/today`),
   getGoalUpdates: (id, params = {}) => api.get(`/goals/${id}/updates`, { params }),
   upsertGoalUpdateToday: (id, payload) => api.put(`/goals/${id}/updates/today`, payload),
@@ -457,7 +457,7 @@ export const habitsAPI = {
   create: (payload) => api.post('/habits', payload),
   get: (id) => api.get(`/habits/${id}`),
   update: (id, payload) => api.put(`/habits/${id}`, payload),
-  archive: (id) => api.patch(`/habits/${id}/archive`),
+  archive: (id, archived = true) => api.patch(`/habits/${id}/archive`, { archived }),
   checkDependencies: (id) => api.get(`/habits/${id}/dependencies`),
   remove: (id) => api.delete(`/habits/${id}`),
   stats: () => api.get('/habits/stats'),
@@ -508,6 +508,9 @@ export const settingsAPI = {
   // Notification settings
   getNotificationSettings: () => api.get('/settings/notifications', { timeout: API_CONFIG.TIMEOUT }),
   updateNotificationSettings: (data) => api.post('/settings/notifications', data, { timeout: API_CONFIG.TIMEOUT }),
+
+  getTodayFocus: () => api.get('/settings/today-focus'),
+  updateTodayFocus: (data) => api.put('/settings/today-focus', data),
   
   // Password
   updatePassword: (data) => api.post('/settings/password', data)

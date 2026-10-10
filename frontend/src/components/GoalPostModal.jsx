@@ -2,14 +2,16 @@ import { useState, useEffect, lazy, Suspense, useRef } from 'react';
 import CategoryBadge from './CategoryBadge';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Heart, MessageCircle, Share2, TrendingUp, Send, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
+import { X, ArrowLeft, Heart, MessageCircle, Share2, TrendingUp, ZoomIn, ZoomOut, RotateCcw, MoreVertical, Bell, UserPlus } from 'lucide-react';
 import useApiStore from '../store/apiStore';
-import { activitiesAPI, goalsAPI } from '../services/api';
+import { goalsAPI } from '../services/api';
 import toast from 'react-hot-toast';
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock';
+import GoalCategoryBanner from './GoalCategoryBanner';
 
 const ActivityCommentsModal = lazy(() => import('./ActivityCommentsModal'));
 const ShareSheet = lazy(() => import('./ShareSheet'));
+const ReportModal = lazy(() => import('./ReportModal'));
 const MIN_DESKTOP_IMAGE_ZOOM = 1;
 const MAX_DESKTOP_IMAGE_ZOOM = 3;
 const DESKTOP_IMAGE_ZOOM_STEP = 0.25;
@@ -17,57 +19,25 @@ const GOAL_POST_UPDATES_PAGE_SIZE = 5;
 const DESCRIPTION_CLAMP_CLASS = 'line-clamp-4';
 const COMPLETION_NOTE_CLAMP_CLASS = 'line-clamp-4';
 
-// Separate comment input component
-const CommentInput = ({ activityId }) => {
-  const [input, setInput] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-
-  const handlePost = async () => {
-    const text = input.trim();
-    if (!text || submitting) return;
-    setSubmitting(true);
-    try {
-      await activitiesAPI.addComment(activityId, { text });
-      setInput('');
-      // Trigger a refresh of comments - we'll need to add this
-      window.dispatchEvent(new CustomEvent('commentAdded', { detail: { activityId } }));
-    } catch (e) {
-      console.error('Failed to post comment:', e);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handlePost();
-    }
-  };
-
-  return (
-    <div className="flex items-center gap-2">
-      <input
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-        onKeyDown={handleKeyDown}
-        placeholder="Write a comment..."
-        className="flex-1 px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#4c99e6] focus:border-[#4c99e6] transition-all"
-        disabled={submitting}
-      />
-      <button
-        onClick={handlePost}
-        className="p-2.5 rounded-xl bg-gradient-to-r from-[#4c99e6] to-[#3d88d5] text-white disabled:opacity-50 disabled:cursor-not-allowed hover:from-[#3d88d5] hover:to-[#3479c3] transition-all shadow-lg hover:shadow-xl"
-        disabled={!input.trim() || submitting}
-      >
-        <Send className="h-5 w-5" />
-      </button>
-    </div>
-  );
+const formatPostAge = (value) => {
+  if (!value) return 'Recently';
+  const timestamp = new Date(value).getTime();
+  if (Number.isNaN(timestamp)) return 'Recently';
+  const seconds = Math.max(0, Math.floor((Date.now() - timestamp) / 1000));
+  if (seconds < 60) return 'Just now';
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+  if (seconds < 2592000) return `${Math.floor(seconds / 86400)}d ago`;
+  return new Date(timestamp).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    ...(new Date(timestamp).getFullYear() !== new Date().getFullYear() ? { year: 'numeric' } : {})
+  });
 };
 
 const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onToggleComments }) => {
   const navigate = useNavigate();
+  const currentUser = useApiStore(state => state.user);
   const [goalData, setGoalData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showComments, setShowComments] = useState(false);
@@ -80,6 +50,9 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
   const [hasLoadedGoalUpdates, setHasLoadedGoalUpdates] = useState(false);
   const [liking, setLiking] = useState(false);
   const [shareSheetOpen, setShareSheetOpen] = useState(false);
+  const [postMenuOpen, setPostMenuOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [imageViewerOpen, setImageViewerOpen] = useState(false);
   const [goalUpdates, setGoalUpdates] = useState([]);
   const [goalUpdatesOffset, setGoalUpdatesOffset] = useState(0);
   const [goalUpdatesHasMore, setGoalUpdatesHasMore] = useState(false);
@@ -110,6 +83,7 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
   useEffect(() => {
     if (isOpen) {
       setShowComments(openWithComments);
+      setPostMenuOpen(false);
     }
   }, [isOpen, openWithComments]);
 
@@ -378,7 +352,7 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
     const activityId = goalData?.social?.activityId;
     if (!activityId) return;
     if (isMobile) {
-      setCommentsOpenActivityId(activityId);
+      setShowComments(prev => !prev);
       return;
     }
     // Toggle comments in desktop mode
@@ -388,6 +362,17 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
     if (onToggleComments) {
       onToggleComments(newState);
     }
+  };
+
+  const copyPostLink = async () => {
+    const url = `${window.location.origin}/feed?goalId=${goalId}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success('Link copied to clipboard', { duration: 2000 });
+    } catch {
+      toast.error('Failed to copy link');
+    }
+    setPostMenuOpen(false);
   };
 
   const completionImageUrl = goalData?.completion?.attachmentUrl || goalData?.share?.attachmentUrl || goalData?.share?.image || '';
@@ -434,7 +419,7 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
   return (
     <AnimatePresence>
       {isOpen && (
-      <div key="goal-post-modal" className="fixed inset-0 z-[100] flex items-center justify-center p-4 overflow-hidden" style={{ fontFamily: 'Manrope, sans-serif' }}>
+      <div key="goal-post-modal" className="goal-post-modal fixed inset-0 z-[100] flex items-center justify-center overflow-hidden p-0 md:p-4" style={{ fontFamily: 'Manrope, sans-serif' }}>
         {/* Backdrop */}
         <motion.div
           initial={{ opacity: 0 }}
@@ -449,14 +434,127 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
-          className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-4xl w-full h-[90vh] flex flex-col overflow-hidden"
+          className="goal-post-dialog relative flex h-[100dvh] w-full max-w-4xl flex-col overflow-hidden bg-white shadow-2xl dark:bg-gray-800 md:h-[90vh] md:rounded-2xl"
         >
           {loading ? (
             <div className="flex items-center justify-center h-96">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4c99e6]"></div>
             </div>
           ) : goalData ? (
-            <div className={`flex ${hasCompletionImage ? 'flex-row' : 'flex-col'} h-full overflow-hidden`}>
+            isMobile ? (
+              <div className="flex h-full min-h-0 flex-col bg-white dark:bg-gray-900">
+                <header className="relative flex h-14 flex-shrink-0 items-center justify-between border-b border-gray-100 px-3 dark:border-gray-800">
+                  <button type="button" onClick={onClose} aria-label="Close post" className="rounded-full p-2 text-gray-700 dark:text-gray-200">
+                    <ArrowLeft className="h-6 w-6" />
+                  </button>
+                  <button type="button" onClick={() => setPostMenuOpen(prev => !prev)} aria-label="Post options" aria-expanded={postMenuOpen} className="rounded-full p-2 text-gray-700 dark:text-gray-200">
+                    <MoreVertical className="h-5 w-5" />
+                  </button>
+                </header>
+
+                <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+                  <section className="px-4 pb-3 pt-4">
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={goalData.user?.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=User'}
+                        alt={goalData.user?.name || 'User'}
+                        onClick={() => goalData.user?.username && navigate(`/profile/@${goalData.user.username}`)}
+                        className="h-11 w-11 flex-shrink-0 cursor-pointer rounded-full object-cover ring-1 ring-gray-200 dark:ring-gray-700"
+                      />
+                      <button type="button" onClick={() => goalData.user?.username && navigate(`/profile/@${goalData.user.username}`)} className="min-w-0 flex-1 text-left">
+                        <span className="block truncate text-sm font-bold text-gray-900 dark:text-white">{goalData.user?.name || 'User'}</span>
+                        <span className="block text-xs text-gray-500">{formatPostAge(goalData.completion?.completedAt || goalData.goal?.completedAt || goalData.goal?.createdAt)}</span>
+                      </button>
+                    </div>
+
+                    <div className="mt-4 py-2">
+                      {(goalData.goal?.isCompleted || goalData.goal?.completedAt) && (
+                        <p className="mb-1 text-xs font-medium text-gray-500 dark:text-gray-400">Completed a goal</p>
+                      )}
+                      <h2 className="text-[17px] font-extrabold leading-6 text-gray-950 dark:text-white">{goalData.goal?.title || 'Goal'} <span aria-hidden="true">🏃</span></h2>
+                      {goalData.goal?.description && (
+                        <div className="mt-5">
+                          <h4 className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">Description</h4>
+                          <div className="rounded-lg bg-gray-50 p-4 dark:bg-gray-700/50">
+                            <p ref={descriptionTextRef} className={`whitespace-pre-wrap text-sm leading-relaxed text-gray-700 dark:text-gray-300 ${expandedText.description ? '' : DESCRIPTION_CLAMP_CLASS}`}>{goalData.goal.description}</p>
+                            {textIsTruncatable.description && <button type="button" onClick={() => setExpandedText(prev => ({ ...prev, description: !prev.description }))} className="mt-2 text-xs font-semibold text-[#4c99e6]">{expandedText.description ? 'Less' : 'More'}</button>}
+                          </div>
+                        </div>
+                      )}
+                      {(goalData.completion?.note || goalData.share?.note || goalData.goal?.completionNote) && (
+                        <div className="mt-5">
+                          <h4 className="mb-2 text-sm font-semibold text-gray-900 dark:text-white">Completion Note</h4>
+                          <div className="rounded-lg border border-green-100 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
+                            <p ref={completionNoteTextRef} className={`whitespace-pre-wrap text-sm italic leading-relaxed text-gray-700 dark:text-gray-300 ${expandedText.completionNote ? '' : COMPLETION_NOTE_CLAMP_CLASS}`}>&quot;{goalData.completion?.note || goalData.share?.note || goalData.goal?.completionNote}&quot;</p>
+                            {textIsTruncatable.completionNote && <button type="button" onClick={() => setExpandedText(prev => ({ ...prev, completionNote: !prev.completionNote }))} className="mt-2 text-xs font-semibold text-[#4c99e6]">{expandedText.completionNote ? 'Less' : 'More'}</button>}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </section>
+
+                  {completionImageUrl && (
+                    <button type="button" onClick={() => setImageViewerOpen(true)} className="block w-full bg-gray-100 dark:bg-gray-950" aria-label="Open image full screen">
+                      <img src={completionImageUrl} alt="Goal completion" className="max-h-[52vh] w-full object-cover" />
+                    </button>
+                  )}
+
+                  <section className="border-b border-gray-200 px-4 py-3 dark:border-gray-800">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <TrendingUp className="h-4 w-4 text-[#4c99e6]" />
+                        <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Timeline</h3>
+                      </div>
+                      <button type="button" onClick={toggleTimeline} disabled={timelineLoading} className="text-xs font-semibold text-[#4c99e6] disabled:opacity-50">
+                        {timelineLoading ? 'Loading...' : isTimelineExpanded ? 'Hide' : 'Show All'}
+                      </button>
+                    </div>
+                    {isTimelineExpanded && (
+                      <div className="mt-4 space-y-4">
+                        {timeline?.length ? timeline.map((item, index, items) => (
+                          <div key={item._id || index} className="flex gap-3">
+                            <div className="flex flex-col items-center"><span className="h-3 w-3 rounded-full bg-[#4c99e6]" />{index < items.length - 1 && <span className="mt-1 min-h-8 w-0.5 flex-1 bg-gray-200 dark:bg-gray-700" />}</div>
+                            <div className="min-w-0 flex-1 pb-3"><div className="flex justify-between gap-3"><p className="text-sm font-semibold text-gray-900 dark:text-white">{getTimelineTitle(item)}</p><span className="whitespace-nowrap text-xs text-gray-500">{formatTimelineDate(item.timestamp || item.createdAt || item.date)}</span></div>{item.description && <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">{item.description}</p>}</div>
+                          </div>
+                        )) : <p className="py-3 text-center text-sm text-gray-500">No timeline events yet</p>}
+                      </div>
+                    )}
+                  </section>
+
+                  {showComments && <section className="px-4 py-4">
+                    {goalData?.social?.activityId ? (
+                      <Suspense fallback={<p className="py-5 text-center text-sm text-gray-500">Loading comments…</p>}>
+                        <ActivityCommentsModal
+                          embedded
+                          composerTargetId="goal-post-mobile-composer"
+                          activity={{ _id: goalData.social.activityId, commentCount: goalData?.social?.commentCount }}
+                        />
+                      </Suspense>
+                    ) : (
+                      <p className="py-5 text-center text-sm text-gray-500">Comments unavailable</p>
+                    )}
+                  </section>}
+                </div>
+
+                {showComments && goalData?.social?.activityId && (
+                  <div id="goal-post-mobile-composer" className="flex-shrink-0 bg-white dark:bg-gray-900" />
+                )}
+
+                <div className="flex h-14 flex-shrink-0 items-center border-t border-gray-200 bg-white px-4 dark:border-gray-800 dark:bg-gray-900">
+                  <div className="flex items-center gap-7">
+                    <button type="button" onClick={handleLike} disabled={liking} aria-label={goalData?.social?.isLiked ? 'Unlike post' : 'Like post'} className={`flex items-center gap-1.5 text-sm font-semibold ${goalData?.social?.isLiked ? 'text-red-500' : 'text-gray-700 dark:text-gray-200'}`}>
+                      <Heart className={`h-6 w-6 ${goalData?.social?.isLiked ? 'fill-current' : ''}`} /><span>{goalData?.social?.likeCount || 0}</span>
+                    </button>
+                    <button type="button" onClick={openComments} aria-label={showComments ? 'Close comments' : 'Open comments'} aria-expanded={showComments} className={`flex items-center gap-1.5 text-sm font-semibold ${showComments ? 'text-[#4c99e6]' : 'text-gray-700 dark:text-gray-200'}`}>
+                      <MessageCircle className="h-6 w-6" /><span>{goalData?.social?.commentCount || 0}</span>
+                    </button>
+                    <button type="button" onClick={() => { shareUrlRef.current = `${window.location.origin}/feed?goalId=${goalId}`; setShareSheetOpen(true); }} aria-label="Share post" className="text-gray-700 dark:text-gray-200"><Share2 className="h-6 w-6" /></button>
+                  </div>
+                </div>
+
+              </div>
+            ) : (
+            <div className={`goal-post-desktop flex ${hasCompletionImage ? 'flex-row' : 'flex-col'} h-full overflow-hidden`}>
               {hasCompletionImage && (
                 <div className="hidden md:flex w-1/2 bg-gray-100 dark:bg-gray-900 p-4 overflow-hidden relative">
                   <div className="absolute top-6 right-6 z-10 flex items-center gap-2 rounded-full border border-white/70 dark:border-gray-600 bg-white/90 dark:bg-gray-800/90 px-2 py-1.5 shadow-lg backdrop-blur-sm">
@@ -511,7 +609,7 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
               {/* Right Side - Content */}
               <div className={`${hasCompletionImage ? 'w-full md:w-1/2' : 'w-full'} flex flex-col h-full overflow-hidden`}>
                 {/* Header */}
-                <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex-shrink-0">
+                <div className="goal-post-header p-6 border-b border-gray-100 dark:border-gray-700 flex-shrink-0">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-3">
                       <img
@@ -544,10 +642,11 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
                       onClick={onClose}
                       className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                     >
-                      <X className="w-6 h-6" />
+                      <ArrowLeft className="w-6 h-6 md:hidden" /><X className="hidden w-6 h-6 md:block" />
                     </button>
                   </div>
 
+                  <GoalCategoryBanner category={goalData.goal?.category} variant="compact" className="mb-4" />
                   <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
                     {goalData.goal?.title || 'Goal'}
                   </h2>
@@ -572,7 +671,7 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
                 </div>
 
                 {/* Content */}
-                <div className={`flex-1 overflow-y-auto p-6 ${showComments ? 'pb-0' : 'space-y-6'}`}>
+                <div className={`goal-post-scroll flex-1 overflow-y-auto p-6 ${showComments ? 'pb-0' : 'space-y-6'}`}>
                   <div className="space-y-6">
                   {(() => {
                     const completionNote = goalData.completion?.note || goalData.share?.note;
@@ -639,17 +738,17 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
 
                   {/* Completion Image (inline for mobile or when left panel hidden) */}
                   {completionImageUrl && (isMobile || !hasCompletionImage) && (
-                    <div>
+                    <button type="button" onClick={() => setImageViewerOpen(true)} className="block w-full" aria-label="Open image full screen">
                       <img
                         src={completionImageUrl}
                         alt="Completion"
                         className="w-full rounded-lg"
                       />
-                    </div>
+                    </button>
                   )}
 
                   {/* Timeline */}
-                  <div>
+                  <div className="goal-post-timeline">
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-2">
                         <TrendingUp className="w-4 h-4 text-[#4c99e6]" />
@@ -704,7 +803,7 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
 
                   {/* Goal Updates */}
                   {goalData.goal?.isUpdatesPublic && (
-                    <div>
+                    <div className="goal-post-updates">
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-2">
                           <MessageCircle className="w-4 h-4 text-[#4c99e6]" />
@@ -781,13 +880,13 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
                   )}
 
                   {/* Comments */}
-                  {!isMobile && showComments && (
+                  {showComments && (
                     <div className="pb-4">
                       {goalData?.social?.activityId ? (
                         <Suspense fallback={null}>
                           <ActivityCommentsModal
                             embedded
-                            hideInput
+                            composerTargetId="goal-post-desktop-composer"
                             activity={{
                               _id: goalData.social.activityId,
                               commentCount: goalData?.social?.commentCount
@@ -802,11 +901,8 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
                   </div>
                 </div>
 
-                {/* Fixed Comment Input at Bottom - Only show when comments are open */}
-                {!isMobile && showComments && goalData?.social?.activityId && (
-                  <div className="border-t border-gray-100 dark:border-gray-700 px-6 py-4 flex-shrink-0 bg-white dark:bg-gray-800">
-                    <CommentInput activityId={goalData.social.activityId} />
-                  </div>
+                {showComments && goalData?.social?.activityId && (
+                  <div id="goal-post-desktop-composer" className="flex-shrink-0 bg-white dark:bg-gray-800" />
                 )}
 
                 {/* Footer */}
@@ -865,9 +961,27 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
                 </div>
               </div>
             </div>
+            )
           ) : null}
         </motion.div>
       </div>
+      )}
+      {postMenuOpen && goalData && (
+        <motion.div key="post-actions" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setPostMenuOpen(false)} className="fixed inset-0 z-[230] flex items-end justify-center bg-black/40 md:items-center">
+          <motion.div initial={{ y: 50 }} animate={{ y: 0 }} exit={{ y: 50 }} onClick={event => event.stopPropagation()} className="w-full rounded-t-3xl bg-white p-3 pb-[max(32px,env(safe-area-inset-bottom))] md:max-w-sm md:rounded-2xl dark:bg-gray-800">
+            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-slate-200 md:hidden" />
+            <button type="button" onClick={copyPostLink} className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold"><Share2 className="h-5 w-5" />Copy link</button>
+            {goalData.user?.id && String(goalData.user.id) !== String(currentUser?.id || currentUser?._id || currentUser?.userId || currentUser?.user_id) && (
+              <button type="button" onClick={async () => { await useApiStore.getState().unfollowUser(goalData.user.id); setPostMenuOpen(false); }} className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-red-500"><UserPlus className="h-5 w-5" />Unfollow {goalData.user.name || 'user'}</button>
+            )}
+            <button type="button" onClick={() => { setPostMenuOpen(false); setReportOpen(true); }} className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-red-500"><Bell className="h-5 w-5" />Report post</button>
+          </motion.div>
+        </motion.div>
+      )}
+      {reportOpen && goalData?.social?.activityId && (
+        <Suspense key="report-post" fallback={null}>
+          <ReportModal isOpen onClose={() => setReportOpen(false)} targetLabel="activity" onSubmit={async ({ reason, description }) => { await useApiStore.getState().report({ targetType: 'activity', targetId: goalData.social.activityId, reason, description }); setReportOpen(false); }} />
+        </Suspense>
       )}
       {commentsOpenActivityId && (
         <Suspense key="activity-comments" fallback={null}>
@@ -887,6 +1001,12 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
             title="WishTrail Goal"
           />
         </Suspense>
+      )}
+      {imageViewerOpen && completionImageUrl && (
+        <motion.div key="image-viewer" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[240] flex items-center justify-center bg-black" onClick={() => setImageViewerOpen(false)}>
+          <button type="button" onClick={() => setImageViewerOpen(false)} className="absolute right-4 top-[calc(16px+env(safe-area-inset-top,0px))] z-10 rounded-full bg-black/50 p-2 text-white" aria-label="Close image"><X className="h-6 w-6" /></button>
+          <img src={completionImageUrl} alt="Completion" className="max-h-full max-w-full object-contain" onClick={(event) => event.stopPropagation()} />
+        </motion.div>
       )}
     </AnimatePresence>
   );

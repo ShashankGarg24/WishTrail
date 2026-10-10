@@ -206,8 +206,8 @@ const CommunityGuidelines = () => {
         {/* Sidebar Navigation */}
         <aside className="hidden lg:block w-64 fixed left-0 top-0 h-screen bg-gray-50 dark:bg-gray-800/50 border-r border-gray-200 dark:border-gray-700 overflow-y-auto">
           <div className="p-6 sticky top-0 bg-gray-50 dark:bg-gray-800/50">
-            <Link to="/" className="text-sm text-[#4c99e6] hover:text-[#3a7bc8] transition-colors">
-              ← Back to Home
+            <Link to="/settings" className="text-sm text-[#4c99e6] hover:text-[#3a7bc8] transition-colors">
+              ← Back to Settings
             </Link>
           </div>
           <nav className="px-4 pb-6">
@@ -233,6 +233,7 @@ const CommunityGuidelines = () => {
         {/* Main Content */}
         <main className="flex-1 lg:ml-64">
           <div className="max-w-4xl mx-auto px-6 py-12">
+            <Link to="/settings" className="mb-8 inline-flex text-sm font-semibold text-[#4c99e6] hover:text-[#3a7bc8] lg:hidden">← Back to Settings</Link>
             {/* Header */}
             <div className="mb-12">
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#4c99e6]/10 mb-6">
@@ -305,10 +306,10 @@ const CommunityGuidelines = () => {
             {/* Mobile Back Link */}
             <div className="mt-12 lg:hidden text-center">
               <Link
-                to="/"
+                to="/settings"
                 className="inline-flex items-center text-[#4c99e6] hover:text-[#3a7bc8] transition-colors"
               >
-                ← Back to Home
+                ← Back to Settings
               </Link>
             </div>
           </div>

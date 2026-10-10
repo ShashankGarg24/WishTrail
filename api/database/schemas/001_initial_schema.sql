@@ -164,7 +164,7 @@ CREATE TABLE IF NOT EXISTS habits (
   target_type VARCHAR(20) DEFAULT 'count' CHECK (target_type IN ('count', 'duration', 'boolean')),
   target_value NUMERIC DEFAULT 1,
   target_unit VARCHAR(20) DEFAULT '',
-  target_completions INTEGER DEFAULT NULL CHECK (target_completions IS NULL OR target_completions >= 0),
+  daily_target_count INTEGER DEFAULT NULL CHECK (daily_target_count IS NULL OR daily_target_count > 0),
   target_days INTEGER DEFAULT NULL CHECK (target_days IS NULL OR target_days >= 0),
   
   -- Streaks and stats

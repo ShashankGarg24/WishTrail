@@ -1,14 +1,13 @@
-import { GOAL_CATEGORIES } from '../constants/goalCategories';
+import CategoryIcon from './CategoryIcon';
+import { getCategoryVisual } from '../utils/categoryIcons';
 
 const CategoryBadge = ({ category, className = '' }) => {
-  if (!category) return null;
-  
-  const cat = GOAL_CATEGORIES.find(c => c.id === category);
-  if (!cat) return null;
+  const visual = getCategoryVisual(category);
 
   return (
-    <span className={`inline-block px-3 py-1 bg-blue-50 text-[#4c99e6] text-xs font-semibold rounded-full tracking-wide ${className}`}>
-      {cat.label}
+    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold tracking-wide ${className}`} style={{ color: visual.accent, backgroundColor: visual.iconBackground }}>
+      <CategoryIcon category={category} size="sm" className="!h-4 !w-4 !bg-transparent" />
+      {visual.label}
     </span>
   );
 };

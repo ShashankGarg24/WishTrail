@@ -1,5 +1,5 @@
 import { reconcileNativeNotifications } from './services/nativeNotifications'
-import { Routes, Route, useLocation, useNavigate } from 'react-router-dom'
+import { Navigate, Routes, Route, useLocation, useNavigate } from 'react-router-dom'
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { GoogleOAuthProvider } from '@react-oauth/google'
 import { Toaster, toast } from 'react-hot-toast'
@@ -11,9 +11,11 @@ import Footer from './components/Footer'
 import PrivateRoute from './components/PrivateRoute'
 import StartupSkeleton from './components/StartupSkeleton'
 import NativeStartupReady from './components/NativeStartupReady'
+import ContextualSidebar from './components/navigation/ContextualSidebar'
 import { configService } from './services/configService'
 import { initializeWebPush } from './services/webPush'
 import { notificationsAPI } from './services/api'
+import { FEATURES } from './config/features'
 const HomePage = lazy(() => import('./pages/HomePage'))
 const AuthPage = lazy(() => import('./pages/AuthPage'))
 const DashboardPageNew = lazy(() => import('./pages/DashboardPage'))
@@ -35,8 +37,6 @@ const AuthExpiredPage = lazy(() => import('./pages/AuthExpiredPage'))
 import { SpeedInsights } from '@vercel/speed-insights/react';
 const FeedbackButton = lazy(() => import('./components/FeedbackButton'))
 const SettingsPageNew = lazy(() => import('./pages/SettingsPage'))
-const HabitAnalyticsPage = lazy(() => import('./pages/HabitAnalyticsPage'))
-const GoalAnalyticsPage = lazy(() => import('./pages/GoalAnalyticsPage'))
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'))
 const TermsOfService = lazy(() => import('./pages/TermsOfService'))
 const CommunityGuidelines = lazy(() => import('./pages/CommunityGuidelines'))
@@ -66,6 +66,7 @@ function App() {
   const [maintenanceMode, setMaintenanceMode] = useState(null)
   const [maintenanceMessage, setMaintenanceMessage] = useState('')
   const hideFooterOnRoute = isAuthenticated && (
+    location.pathname === '/home' ||
     location.pathname === '/dashboard' ||
     location.pathname === '/feed' ||
     location.pathname === '/discover' ||
@@ -285,6 +286,7 @@ function App() {
         {/* <div className="relative min-h-screen pb-16 sm:pb-16"> */}
         <div className="relative min-h-screen bg-[#f5f5f5] dark:bg-gray-900 flex flex-col">
           <Header />
+          {isAuthenticated && !inNativeApp && <ContextualSidebar />}
           <main className={`flex-grow ${isAuthenticated ? 'pb-[calc(6.5rem+env(safe-area-inset-bottom,0px))] md:pb-0' : ''}`}>
             <Suspense fallback={<RouteLoadingScreen />}>
               <ScrollMemory />
@@ -314,6 +316,7 @@ function App() {
               <Route path="/error/auth" element={<AuthExpiredPage />} />
               
               {/* Protected routes - Require authentication */}
+              <Route path="/home" element={<PrivateRoute><DashboardPageNew /></PrivateRoute>} />
               <Route path="/dashboard" element={<PrivateRoute><DashboardPageNew /></PrivateRoute>} />
               <Route path="/feed" element={<PrivateRoute><FeedPage /></PrivateRoute>} />
               <Route path="/discover" element={<PrivateRoute><DiscoverPageNew /></PrivateRoute>} />
@@ -321,10 +324,10 @@ function App() {
               <Route path="/profile/:username" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
               <Route path="/settings" element={<PrivateRoute><SettingsPageNew /></PrivateRoute>} />
               <Route path="/leaderboard" element={<PrivateRoute><LeaderboardPageNew /></PrivateRoute>} />
-              {/* <Route path="/communities" element={<PrivateRoute><Suspense fallback={null}><CommunitiesPage /></Suspense></PrivateRoute>} />
-              <Route path="/communities/:id" element={<PrivateRoute><Suspense fallback={null}><CommunityDetailPage /></Suspense></PrivateRoute>} /> */}
-              <Route path="/habits/:id/analytics" element={<PrivateRoute><HabitAnalyticsPage /></PrivateRoute>} />
-              <Route path="/goals/:goalId/analytics" element={<PrivateRoute><GoalAnalyticsPage /></PrivateRoute>} />
+              <Route path="/communities" element={<PrivateRoute>{FEATURES.communities ? <Suspense fallback={null}><CommunitiesPage /></Suspense> : <Navigate to="/discover" replace />}</PrivateRoute>} />
+              <Route path="/communities/:id" element={<PrivateRoute>{FEATURES.communities ? <Suspense fallback={null}><CommunityDetailPage /></Suspense> : <Navigate to="/discover" replace />}</PrivateRoute>} />
+              <Route path="/habits/:id/analytics" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/goals/:goalId/analytics" element={<Navigate to="/dashboard" replace />} />
               
               {/* Goal deeplink opens modal within feed/discover - Protected */}
               <Route path="/goal/:goalId" element={<PrivateRoute><FeedPage /></PrivateRoute>} />

@@ -19,7 +19,7 @@ class PgHabitService {
       frequency = 'daily',
       daysOfWeek = null,
       reminders = [],
-      targetCompletions = null,
+      dailyTargetCount = null,
       targetDays = null,
       isPublic = true
     } = habitData;
@@ -27,7 +27,7 @@ class PgHabitService {
     const sql = `
       INSERT INTO habits (
         user_id, name, description, frequency, days_of_week,
-        reminders, target_completions, target_days, is_public
+        reminders, daily_target_count, target_days, is_public
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
       RETURNING *
     `;
@@ -36,7 +36,7 @@ class PgHabitService {
       userId, name, description, frequency,
       daysOfWeek ? `{${daysOfWeek.join(',')}}` : null,
       JSON.stringify(reminders),
-      targetCompletions,
+      dailyTargetCount,
       targetDays,
       isPublic
     ];
@@ -136,7 +136,7 @@ class PgHabitService {
   async updateHabit(id, userId, updates) {
     const allowedFields = [
       'name', 'description', 'frequency', 'days_of_week',
-      'reminders', 'target_completions', 'target_days',
+      'reminders', 'daily_target_count', 'target_days',
       'is_public'
     ];
 
@@ -176,6 +176,17 @@ class PgHabitService {
     values.push(id, userId);
 
     const result = await query(sql, values);
+    return result.rows[0] ? this._formatHabit(result.rows[0]) : null;
+  }
+
+  async archiveHabit(id, userId, archived = true) {
+    const result = await query(
+      `UPDATE habits
+       SET is_archived = $1, updated_at = CURRENT_TIMESTAMP
+       WHERE id = $2 AND user_id = $3
+       RETURNING *`,
+      [Boolean(archived), id, userId]
+    );
     return result.rows[0] ? this._formatHabit(result.rows[0]) : null;
   }
 
@@ -359,11 +370,13 @@ class PgHabitService {
     const logSql = `
       SELECT date_key, status
       FROM habit_logs
-      WHERE habit_id = $1 AND status = 'done'
+      WHERE habit_id = $1
+        AND status = 'done'
+        AND completion_count >= COALESCE($2, 1)
       ORDER BY date_key DESC
     `;
 
-    const logResult = await q(logSql, [habitId]);
+    const logResult = await q(logSql, [habitId, habit.dailyTargetCount]);
     const logs = logResult.rows;
 
     if (logs.length === 0) {
@@ -500,9 +513,10 @@ class PgHabitService {
       lastLoggedAt: row.last_logged_at || null,
       totalCompletions: row.total_completions,
       totalDays: row.total_days,
-      targetCompletions: row.target_completions,
+      dailyTargetCount: row.daily_target_count,
       targetDays: row.target_days,
       isPublic: row.is_public,
+      isArchived: Boolean(row.is_archived),
       createdAt: row.created_at,
       updatedAt: row.updated_at,
       // User data if joined

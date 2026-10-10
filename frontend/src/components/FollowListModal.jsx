@@ -1,7 +1,7 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Users, Loader2 } from 'lucide-react'
+import { ArrowLeft, X, Users, Loader2, Search } from 'lucide-react'
 
 const THEME_COLOR = '#4c99e6'
 
@@ -55,6 +55,7 @@ const ListItem = ({ user, onOpenProfile, actionType, onFollowBack, onRemove }) =
 
 const FollowListModal = ({ isOpen, onClose, activeTab = 'followers', onTabChange, followers = [], following = [], followersCount = 0, followingCount = 0, loading = false, onOpenProfile, hasMore = false, onLoadMore, loadingMore = false, getIsFollowingBack, onFollowBack, onRemove }) => {
   const scrollRef = useRef(null)
+  const [query, setQuery] = useState('')
 
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape') onClose?.() }
@@ -100,12 +101,12 @@ const FollowListModal = ({ isOpen, onClose, activeTab = 'followers', onTabChange
 
   if (!isOpen) return null
 
-  const list = activeTab === 'followers' ? followers : following
+  const list = (activeTab === 'followers' ? followers : following).filter((item) => `${item?.name || ''} ${item?.username || ''}`.toLowerCase().includes(query.toLowerCase()))
 
   const modalContent = (
     <AnimatePresence mode="wait">
       {isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center sm:p-4">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -119,16 +120,16 @@ const FollowListModal = ({ isOpen, onClose, activeTab = 'followers', onTabChange
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.96, opacity: 0, y: 20 }}
             transition={{ duration: 0.2 }}
-            className="relative bg-white dark:bg-gray-900 w-full max-w-md rounded-2xl border border-gray-200 dark:border-gray-700 shadow-xl flex flex-col font-manrope"
-            style={{ height: '600px', maxHeight: '85vh', fontFamily: 'Manrope, ui-sans-serif, system-ui' }}
+            className="relative flex h-full w-full flex-col bg-white font-manrope dark:bg-gray-900 sm:h-[600px] sm:max-h-[85vh] sm:max-w-md sm:rounded-2xl sm:border sm:border-gray-200 sm:shadow-xl dark:sm:border-gray-700"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="px-5 pt-5 pb-3 flex items-center justify-between border-b border-gray-100 dark:border-gray-800">
+            <div className="flex h-14 items-center justify-between border-b border-gray-100 px-4 dark:border-gray-800 sm:h-auto sm:px-5 sm:pb-3 sm:pt-5">
               <div className="flex items-center gap-2">
-                <Users className="h-5 w-5" style={{ color: THEME_COLOR }} />
-                <span className="text-lg font-semibold text-gray-900 dark:text-white">Connections</span>
+                <button type="button" onClick={onClose} className="-ml-2 p-2 sm:hidden"><ArrowLeft className="h-5 w-5" /></button>
+                <Users className="hidden h-5 w-5 sm:block" style={{ color: THEME_COLOR }} />
+                <span className="text-base font-bold text-gray-900 dark:text-white sm:text-lg">{activeTab === 'followers' ? 'Followers' : 'Following'}</span>
               </div>
-              <button type="button" onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500" aria-label="Close">
+              <button type="button" onClick={onClose} className="hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 sm:block" aria-label="Close">
                 <X className="h-5 w-5" />
               </button>
             </div>
@@ -158,7 +159,11 @@ const FollowListModal = ({ isOpen, onClose, activeTab = 'followers', onTabChange
               </div>
             </div>
 
-            <div ref={scrollRef} className="flex-1 overflow-y-auto px-5">
+            <div className="px-4 py-3 sm:px-5">
+              <label className="flex items-center gap-2 rounded-lg bg-slate-100 px-3 py-2.5 dark:bg-gray-800"><Search className="h-4 w-4 text-slate-400" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={`Search ${activeTab}...`} className="w-full bg-transparent text-sm outline-none placeholder:text-slate-400 dark:text-white" /></label>
+            </div>
+
+            <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 sm:px-5">
               {loading && (
                 <div className="space-y-2 py-4">
                   {Array.from({ length: 5 }).map((_, i) => (

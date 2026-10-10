@@ -2,6 +2,7 @@ import { forwardRef, useState, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { Camera, Download, Copy } from 'lucide-react'
 import html2canvas from 'html2canvas'
+import GoalCategoryBanner from './GoalCategoryBanner'
 
 const ShareableGoalCard = forwardRef(({ goal, user, onClose }, ref) => {
   const MAX_TEXT_OVERLAY_LENGTH = 500
@@ -399,18 +400,7 @@ const ShareableGoalCard = forwardRef(({ goal, user, onClose }, ref) => {
                     draggable={false}
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <div className="text-center">
-                      {/* WishTrail Logo/Brand */}
-                      {/* WishTrail Text */}
-                      <div className="font-bold text-xl sm:text-2xl tracking-wider mb-1" style={{ color: 'rgba(255, 255, 255, 0.4)' }}>
-                        WishTrail
-                      </div>
-                      <div className="text-xs sm:text-sm font-medium" style={{ color: 'rgba(255, 255, 255, 0.2)' }}>
-                        Your Journey to Success
-                      </div>
-                    </div>
-                  </div>
+                  <GoalCategoryBanner category={goal.category} variant="share" className="h-full rounded-none" />
                 )}
               </div>
 

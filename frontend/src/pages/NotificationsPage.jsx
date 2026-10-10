@@ -31,6 +31,7 @@ const NotificationsPageNew = () => {
   const [loadingMore, setLoadingMore] = useState(false);
   const [markingAllRead, setMarkingAllRead] = useState(false);
   const [openGoalId, setOpenGoalId] = useState(null);
+  const [notificationFilter, setNotificationFilter] = useState('all');
 
   useEffect(() => {
     let isCancelled = false;
@@ -136,7 +137,14 @@ const NotificationsPageNew = () => {
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
     const groups = { today: [], week: [], month: [] };
-    (notifications || []).forEach((n) => {
+    (notifications || []).filter((n) => {
+      if (notificationFilter === 'all') return true;
+      const type = String(n.type || '').toLowerCase();
+      if (notificationFilter === 'goals') return type.includes('goal') || type.includes('milestone');
+      if (notificationFilter === 'habits') return type.includes('habit') || type.includes('streak');
+      if (notificationFilter === 'social') return ['follow', 'comment', 'like', 'mention'].some(value => type.includes(value));
+      return !['goal', 'habit', 'streak', 'follow', 'comment', 'like', 'mention'].some(value => type.includes(value));
+    }).forEach((n) => {
       const created = new Date(n.createdAt);
       if (created >= startOfToday) groups.today.push(n);
       else if (created >= sevenDaysAgo) groups.week.push(n);
@@ -152,12 +160,12 @@ const NotificationsPageNew = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900" style={{ fontFamily: 'Manrope, sans-serif' }}>
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-3xl mx-auto px-0 sm:px-6 lg:px-8 sm:py-8">
         {/* Header */}
-        <div className="mb-8">
+        <div className="sticky top-0 z-20 mb-0 border-b border-slate-100 bg-white/95 px-4 py-4 backdrop-blur dark:border-gray-800 dark:bg-gray-900/95 sm:static sm:mb-5 sm:rounded-xl sm:border">
           <div className="flex flex-col items-stretch gap-3 mb-2 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Notifications</h1>
+              <h1 className="text-xl font-extrabold text-gray-900 dark:text-white sm:mb-2 sm:text-3xl">Notifications</h1>
               <p className="text-gray-600 dark:text-gray-400">
                 {loading ? 'Loading notifications...' : loadError ? 'Unable to load all notifications' : unreadNotifications > 0 ? (
                   <>You have <span className="font-semibold text-[#4c99e6]">{unreadNotifications} unread</span> alerts</>
@@ -189,6 +197,10 @@ const NotificationsPageNew = () => {
           </div>
         </div>
 
+        <div className="flex overflow-x-auto border-b border-slate-100 bg-white px-3 dark:border-gray-800 dark:bg-gray-900 sm:mb-6 sm:rounded-xl sm:border">
+          {['all', 'social', 'goals', 'habits', 'system'].map(filter => <button key={filter} onClick={() => setNotificationFilter(filter)} className={`relative flex-1 px-4 py-3 text-xs font-bold capitalize ${notificationFilter === filter ? 'text-blue-600' : 'text-slate-500'}`}>{filter}{notificationFilter === filter && <span className="absolute bottom-0 left-2 right-2 h-0.5 rounded bg-blue-500" />}</button>)}
+        </div>
+
         {loadError && (
           <div role="alert" className="mb-6 rounded-lg bg-red-50 dark:bg-red-900/20 p-4 text-red-700 dark:text-red-300">
             <p>{loadError}</p>
@@ -206,7 +218,7 @@ const NotificationsPageNew = () => {
             <p className="text-sm text-gray-500 dark:text-gray-400">When people interact with you, you'll see updates here</p>
           </div>
         )) : (
-          <div className="space-y-8">{/* Follow Requests Section */}
+          <div className="space-y-8 px-4 py-5 sm:px-0 sm:py-0">{/* Follow Requests Section */}
             {(followRequests?.length > 0) && (
               <div>
                 <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">

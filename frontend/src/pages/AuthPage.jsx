@@ -27,7 +27,7 @@ const AuthPage = () => {
   const navigate = useNavigate();
   
   // Use the same landing page for web and native sign-in.
-  const from = "/dashboard";
+  const from = "/home";
 
   // Redirect if already authenticated
   useEffect(() => {

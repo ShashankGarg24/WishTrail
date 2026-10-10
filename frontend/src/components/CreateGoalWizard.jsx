@@ -34,7 +34,8 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
     description: '',
     category: '',
     targetDate: '',
-    isPublic: true
+    isPublic: true,
+    subGoals: []
   })
 
   const prevIsOpenRef = useRef(false)
@@ -60,9 +61,10 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
         description: initialData?.description || '',
         category: initialData?.category || '',
         targetDate: formattedTargetDate,
-        isPublic: initialData?.isPublic ?? true
+        isPublic: initialData?.isPublic ?? true,
+        subGoals: Array.isArray(initialData?.subGoals) ? initialData.subGoals.map(item => ({ ...item })) : []
       })
-      setShowAdditionalDetails(false)
+      setShowAdditionalDetails(true)
       setErrors({})
     }
     
@@ -155,7 +157,8 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
         category: formData.category,
         targetDate: formData.targetDate || null,
         year: year,
-        isPublic: !!formData.isPublic
+        isPublic: !!formData.isPublic,
+        subGoals: formData.subGoals.filter(item => item.title.trim()).map((item, index, items) => ({ ...item, title: item.title.trim(), weight: Math.floor(100 / items.length) + (index < (100 % items.length) ? 1 : 0) }))
       }
 
       let result
@@ -205,7 +208,7 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[9999]"
+        className="fixed inset-0 bg-slate-950/60 backdrop-blur-[2px] flex items-end justify-center sm:items-center sm:p-4 z-[9999]"
         style={{ fontFamily: 'Manrope, ui-sans-serif, system-ui' }}
         onClick={onClose}
       >
@@ -213,12 +216,12 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
-        className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-3xl max-h-[90vh] sm:h-[85vh] relative shadow-2xl border border-gray-200 dark:border-gray-800 overflow-hidden flex flex-col"
+        className="bg-[#f8fafc] dark:bg-gray-900 rounded-t-3xl sm:rounded-2xl w-full sm:max-w-[760px] h-[94dvh] sm:h-[min(84dvh,760px)] sm:max-h-[calc(100dvh-2rem)] relative shadow-2xl sm:border border-slate-200 dark:border-gray-800 overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
         style={{ fontFamily: 'Manrope, ui-sans-serif, system-ui' }}
       >
         {/* Header */}
-        <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 px-4 sm:px-6 lg:px-8 py-4 sm:py-6 border-b border-gray-200 dark:border-gray-700 relative">
+        <div className="bg-white dark:bg-gray-900 px-5 sm:px-8 py-4 sm:py-5 border-b border-slate-200 dark:border-gray-700 relative">
           <button 
             onClick={onClose} 
             className="absolute top-4 right-4 p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-gray-600 dark:text-gray-400"
@@ -226,7 +229,7 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
             <X className="h-5 w-5" />
           </button>
           
-          <div className="flex items-center gap-3 mb-4">
+          <div className="flex items-center gap-3 pr-10">
             <div className="p-2.5 rounded-xl" style={{ backgroundColor: `${THEME_COLOR}20` }}>
               <Target className="h-6 w-6" style={{ color: THEME_COLOR }} />
             </div>
@@ -234,7 +237,7 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
               <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white" style={{ fontFamily: 'Manrope' }}>
                 {editMode ? 'Edit Goal' : 'Create New Goal'}
               </h2>
-              <p className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400 mt-0.5" style={{ fontFamily: 'Manrope' }}>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5" style={{ fontFamily: 'Manrope' }}>
                 {editMode ? 'Update your goal details' : 'Define what you want to achieve'}
               </p>
             </div>
@@ -264,7 +267,7 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
         </div>
 
         <form onSubmit={(e) => { e.preventDefault(); if (validateStep1()) handleSave(); }} className="flex-1 min-h-0 flex flex-col">
-          <div className="flex-1 min-h-0 overflow-y-auto theme-scrollbar px-4 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6">
+          <div className="flex-1 min-h-0 overflow-y-auto theme-scrollbar px-4 sm:px-8 py-5 sm:py-6 space-y-4">
               {/* Premium Limit Indicator (only show when limit reached and for new goals) */}
               {!editMode && !saving && !goalLimits.canCreate && (
                 <PremiumLimitIndicator
@@ -302,7 +305,7 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
                   name="title"
                   value={formData.title}
                   onChange={handleInputChange}
-                  className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-colors ${errors.title ? 'border-red-500' : 'border-gray-300 dark:border-gray-700'}`}
+                  className={`w-full px-4 py-3 border rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 transition-colors ${errors.title ? 'border-red-500' : 'border-slate-200 dark:border-gray-700'}`}
                   style={{ fontFamily: 'Manrope', borderColor: errors.title ? '#ef4444' : (formData.title ? THEME_COLOR : undefined) }}
                   placeholder="e.g., Run a marathon, Learn Spanish, Start a business"
                   required
@@ -329,7 +332,7 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
                   name="category"
                   value={formData.category}
                   onChange={handleInputChange}
-                  className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-colors ${errors.category ? 'border-red-500' : 'border-gray-300 dark:border-gray-700'}`}
+                  className={`w-full px-4 py-3 border rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-colors ${errors.category ? 'border-red-500' : 'border-slate-200 dark:border-gray-700'}`}
                   style={{ fontFamily: 'Manrope', borderColor: errors.category ? '#ef4444' : (formData.category ? THEME_COLOR : undefined) }}
                   required
                   disabled={!editMode && !goalLimits.canCreate}
@@ -448,17 +451,27 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
                         </span>
                       </label>
                     </div>
+
+                    {/* Sub-goals are temporarily hidden from the frontend.
+                    <div>
+                      <div className="mb-2 flex items-center justify-between">
+                        <div><p className="text-sm font-medium text-gray-900 dark:text-white">Add Sub-goals <span className="font-normal text-gray-400">(optional)</span></p><p className="text-xs text-gray-500">Break the goal into smaller milestones.</p></div>
+                        <button type="button" onClick={() => setFormData(prev => ({ ...prev, subGoals: [...prev.subGoals, { title: '', description: '' }] }))} className="inline-flex items-center gap-1 rounded-lg bg-blue-50 px-2.5 py-2 text-xs font-semibold text-[#1683ed] dark:bg-blue-950/40"><Plus className="h-3.5 w-3.5"/> Add</button>
+                      </div>
+                      <div className="space-y-2">{formData.subGoals.map((subGoal, index) => <div key={index} className="flex items-center gap-2"><input value={subGoal.title} onChange={(event) => setFormData(prev => ({ ...prev, subGoals: prev.subGoals.map((item, itemIndex) => itemIndex === index ? { ...item, title: event.target.value.slice(0, 100) } : item) }))} placeholder={`Sub-goal ${index + 1}`} className="min-w-0 flex-1 rounded-xl border-2 border-gray-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#1683ed] dark:border-gray-700 dark:bg-gray-800 dark:text-white"/><button type="button" aria-label="Remove sub-goal" onClick={() => setFormData(prev => ({ ...prev, subGoals: prev.subGoals.filter((_, itemIndex) => itemIndex !== index) }))} className="rounded-lg p-2 text-gray-400 hover:bg-red-50 hover:text-red-500"><Trash2 className="h-4 w-4"/></button></div>)}</div>
+                    </div>
+                    */}
                   </div>
                 )}
               </div>
             </div>
 
             {/* Actions Footer */}
-            <div className="bg-gray-50 dark:bg-gray-800/50 px-4 sm:px-6 lg:px-8 py-4 sm:py-5 border-t border-gray-200 dark:border-gray-700 flex items-center gap-2 sm:gap-3">
+            <div className="bg-white dark:bg-gray-900 px-4 sm:px-8 py-4 sm:py-5 border-t border-slate-200 dark:border-gray-700 flex items-center gap-3">
               <button 
                 type="button" 
                 onClick={onClose}
-                className="flex-1 py-2.5 sm:py-3 px-3 sm:px-5 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 font-medium transition-all text-sm sm:text-base"
+                className="flex-1 py-3 px-5 border border-slate-300 dark:border-gray-600 bg-white text-slate-700 dark:bg-gray-800 dark:text-gray-300 rounded-xl hover:bg-slate-50 dark:hover:bg-gray-700 font-semibold transition-all text-sm"
                 style={{ fontFamily: 'Manrope' }}
               >
                 Cancel
@@ -466,7 +479,7 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
               <button 
                 type="submit" 
                 disabled={saving || (!editMode && !goalLimits.canCreate)} 
-                className="flex-1 py-3 px-5 text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-lg transition-all"
+                className="flex-1 py-3 px-5 text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed font-semibold shadow-sm transition-all hover:brightness-95 text-sm"
                 style={{ backgroundColor: THEME_COLOR, fontFamily: 'Manrope' }}
               >
                 {saving ? (editMode ? 'Updating…' : 'Creating…') : (!editMode && !goalLimits.canCreate ? 'Limit Reached' : (editMode ? 'Update' : 'Create'))}

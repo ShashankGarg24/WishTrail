@@ -1,6 +1,58 @@
 const pgUserService = require('../services/pgUserService');
 const pgBlockService = require('../services/pgBlockService');
+const pgGoalService = require('../services/pgGoalService');
+const pgHabitService = require('../services/pgHabitService');
 const UserPreferences = require('../models/extended/UserPreferences');
+
+const serializeTodayFocus = async (focus, userId) => {
+  if (!focus?.type || !focus?.itemId) return null;
+  if (focus.type === 'goal') {
+    const goal = await pgGoalService.getGoalById(focus.itemId);
+    if (!goal || Number(goal.user_id) !== Number(userId)) return null;
+    return { type: 'goal', itemId: Number(goal.id), item: { id: Number(goal.id), title: goal.title, category: goal.category, completedAt: goal.completed_at } };
+  }
+  const habit = await pgHabitService.getHabitById(focus.itemId, userId);
+  if (!habit) return null;
+  return { type: 'habit', itemId: Number(habit.id), item: habit };
+};
+
+const getTodayFocus = async (req, res, next) => {
+  try {
+    const prefs = await UserPreferences.findOne({ userId: req.user.id }).select('todayFocus').lean();
+    const saved = prefs?.todayFocus || {};
+    const legacyGoalId = saved.kind === 'goal' ? saved.itemId : null;
+    const legacyHabitId = saved.kind === 'habit' ? saved.itemId : null;
+    const [goal, habit] = await Promise.all([
+      serializeTodayFocus(saved.goalId || legacyGoalId ? { type: 'goal', itemId: saved.goalId || legacyGoalId } : null, req.user.id),
+      serializeTodayFocus(saved.habitId || legacyHabitId ? { type: 'habit', itemId: saved.habitId || legacyHabitId } : null, req.user.id)
+    ]);
+    res.status(200).json({ success: true, data: { focuses: { goal, habit }, focus: goal || habit } });
+  } catch (error) { next(error); }
+};
+
+const updateTodayFocus = async (req, res, next) => {
+  try {
+    const { type, itemId } = req.body || {};
+    if (type === null || itemId === null) {
+      await UserPreferences.findOneAndUpdate({ userId: req.user.id }, { $unset: { todayFocus: '' } }, { upsert: true });
+      return res.status(200).json({ success: true, data: { focus: null, focuses: { goal: null, habit: null } } });
+    }
+    if (!['goal', 'habit'].includes(type) || !Number.isInteger(Number(itemId)) || Number(itemId) <= 0) {
+      return res.status(400).json({ success: false, message: 'Choose a valid goal or habit.' });
+    }
+    const focus = await serializeTodayFocus({ type, itemId: Number(itemId) }, req.user.id);
+    if (!focus) return res.status(404).json({ success: false, message: 'That goal or habit was not found.' });
+    await UserPreferences.findOneAndUpdate(
+      { userId: req.user.id },
+      {
+        $set: { [`todayFocus.${type}Id`]: Number(itemId) },
+        $unset: { 'todayFocus.kind': '', 'todayFocus.itemId': '' }
+      },
+      { upsert: true, new: true, runValidators: true }
+    );
+    res.status(200).json({ success: true, data: { focus } });
+  } catch (error) { next(error); }
+};
 
 function normalizeNotifications(raw = {}, legacy = {}) {
   const dailyLogsRaw = legacy.dailyLogs || legacy.DailyLogs || {};
@@ -494,5 +546,7 @@ module.exports = {
   unblockUser,
   getNotificationSettings,
   updateNotificationSettings,
-  updatePassword
+  updatePassword,
+  getTodayFocus,
+  updateTodayFocus
 };

@@ -130,21 +130,21 @@ const DailyLogsPromptModal = ({ isOpen, onClose, onSubmitted, existingEntry = nu
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" style={{ zIndex: 1000 }}>
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-4" style={{ zIndex: 1000 }}>
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-950/60 backdrop-blur-[2px]" onClick={onClose} />
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="relative w-full max-w-xl max-h-[90vh] overflow-y-auto scrollbar-hide bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-xl border border-gray-200 dark:border-gray-700 font-manrope"
+          className="relative flex h-[94dvh] w-full flex-col overflow-hidden rounded-t-3xl bg-[#f8fafc] shadow-2xl dark:bg-gray-900 sm:h-[min(84dvh,760px)] sm:max-h-[calc(100dvh-2rem)] sm:max-w-[760px] sm:rounded-2xl sm:border sm:border-slate-200 dark:sm:border-gray-700 font-manrope"
           style={{ fontFamily: 'Manrope, ui-sans-serif, system-ui' }}
         >
-          <div className="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-gray-700">
+          <div className="flex shrink-0 items-center justify-between border-b border-slate-200 bg-white px-5 py-4 dark:border-gray-700 dark:bg-gray-900 sm:px-8 sm:py-5">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
               <span className="flex items-center justify-center w-9 h-9 rounded-lg" style={{ backgroundColor: 'rgba(76, 153, 230, 0.12)' }}>
                 <CheckCircle className="h-5 w-5" style={{ color: THEME_COLOR }} />
               </span>
-              Update Daily Log
+              {existingEntry ? 'Edit Journal Entry' : 'Add Journal Entry'}
             </h3>
             <button type="button" onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 transition-colors" aria-label="Close">
               <X className="h-5 w-5" />
@@ -152,7 +152,8 @@ const DailyLogsPromptModal = ({ isOpen, onClose, onSubmitted, existingEntry = nu
           </div>
           <>
 
-              <form onSubmit={handleSubmit} className="space-y-5 pt-2">
+              <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+                <div className="flex-1 space-y-5 overflow-y-auto px-5 py-5 sm:px-8 sm:py-6">
                 <div>
                   <label className="text-sm font-medium text-gray-900 dark:text-white mb-2 block">What did you accomplish today?</label>
                   <textarea
@@ -169,8 +170,8 @@ const DailyLogsPromptModal = ({ isOpen, onClose, onSubmitted, existingEntry = nu
                 </div>
 
                 <div>
-                  <p className="text-sm font-medium text-gray-900 dark:text-white text-center mb-3">How are you feeling about your progress?</p>
-                  <div className="grid grid-cols-6 sm:grid-cols-6 gap-2">
+                  <p className="mb-3 text-sm font-medium text-gray-900 dark:text-white">How are you feeling?</p>
+                  <div className="grid grid-cols-3 gap-3 sm:grid-cols-6 sm:gap-2">
                     {moodOptions.map((option) => {
                       const selected = mood === option.value;
                       const Icon = option.Icon;
@@ -194,7 +195,8 @@ const DailyLogsPromptModal = ({ isOpen, onClose, onSubmitted, existingEntry = nu
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-gray-700">
+                </div>
+                <div className="flex shrink-0 items-center justify-between gap-3 border-t border-slate-200 bg-white px-5 py-4 dark:border-gray-700 dark:bg-gray-900 sm:px-8 sm:py-5">
                   {existingEntry ? (
                     <button
                       type="button"
@@ -219,7 +221,7 @@ const DailyLogsPromptModal = ({ isOpen, onClose, onSubmitted, existingEntry = nu
                     className="inline-flex items-center gap-2 px-5 py-2.5 text-white rounded-xl hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-semibold transition-opacity"
                     style={{ backgroundColor: THEME_COLOR }}
                   >
-                    {submitting ? 'Saving...' : (existingEntry ? 'Save' : 'Update')}
+                    {submitting ? 'Saving...' : 'Save Entry'}
                   </button>
                 </div>
               </form>
@@ -233,7 +235,7 @@ const DailyLogsPromptModal = ({ isOpen, onClose, onSubmitted, existingEntry = nu
                   }
                   navigate('/dashboard');
                 }}
-                className="mt-4 w-full inline-flex items-center justify-center gap-2 border border-[#4c99e6]/35 text-[#4c99e6] rounded-xl py-2.5 text-sm font-semibold hover:bg-[#4c99e6]/5"
+                className="mx-5 mb-4 inline-flex w-[calc(100%-2.5rem)] items-center justify-center gap-2 rounded-xl border border-blue-200 bg-white py-2.5 text-sm font-semibold text-[#1683ed] hover:bg-blue-50 dark:border-blue-900 dark:bg-gray-900 dark:hover:bg-blue-950/30 sm:mx-8 sm:mb-5 sm:w-[calc(100%-4rem)]"
               >
                 <History className="h-4 w-4" />
                 See All History Logs

@@ -40,7 +40,8 @@ beforeEach(() => {
 
 describe('habit target persistence', () => {
   test.each([
-    [{ targetCompletions: 100 }, 100, null],
+    [{ dailyTargetCount: 3 }, 3, null],
+    [{ dailyTargetCount: 3, targetDays: 30 }, 3, 30],
     [{ targetDays: 30 }, null, 30],
     [{}, null, null]
   ])('POST /habits persists and returns targets %j', async (targets, count, days) => {
@@ -50,28 +51,28 @@ describe('habit target persistence', () => {
       expect(values[6]).toBe(count);
       expect(values[7]).toBe(days);
       return { rows: [{ id: 5, user_id: values[0], name: values[1],
-        target_completions: values[6], target_days: values[7] }] };
+        daily_target_count: values[6], target_days: values[7] }] };
     });
     const response = await request(app).post('/habits').send({ name: 'Read', timezone: 'America/New_York', ...targets });
     expect(response.status).toBe(201);
     expect(query).toHaveBeenCalledTimes(1);
-    expect(response.body.data.habit).toMatchObject({ targetCompletions: count, targetDays: days });
+    expect(response.body.data.habit).toMatchObject({ dailyTargetCount: count, targetDays: days });
   });
 
   test.each([
-    [100, null], [null, 30], [null, null]
+    [3, 30], [3, null], [null, 30], [null, null]
   ])('PUT /habits persists targets %s / %s, including clearing them', async (count, days) => {
     query.mockImplementation(async (sql, values) => {
-      expect(sql).toContain('target_completions = $1');
+      expect(sql).toContain('daily_target_count = $1');
       expect(sql).toContain('target_days = $2');
       expect(sql).toContain('WHERE id = $3 AND user_id = $4');
       expect(values).toEqual([count, days, 5, 7]);
       expect(sql).not.toMatch(/\btimezone\b/);
-      return { rows: [{ id: 5, user_id: 7, target_completions: values[0], target_days: values[1] }] };
+      return { rows: [{ id: 5, user_id: 7, daily_target_count: values[0], target_days: values[1] }] };
     });
-    const response = await request(app).put('/habits/5').send({ targetCompletions: count, targetDays: days, timezone: 'America/New_York' });
+    const response = await request(app).put('/habits/5').send({ dailyTargetCount: count, targetDays: days, timezone: 'America/New_York' });
     expect(response.status).toBe(200);
-    expect(response.body.data.habit).toMatchObject({ targetCompletions: count, targetDays: days });
+    expect(response.body.data.habit).toMatchObject({ dailyTargetCount: count, targetDays: days });
   });
 });
 
@@ -86,9 +87,8 @@ describe('linked habit targets', () => {
   }
 
   test.each([
-    [{ target_completions: 20, total_completions: 5 }, 25, 20, 5],
     [{ target_days: 10, total_days: 4, total_completions: 30 }, 40, 10, 4],
-    [{ target_completions: 20, total_completions: 25 }, 100, 20, 25]
+    [{ daily_target_count: 3, target_days: 10, total_days: 10, total_completions: 25 }, 100, 10, 10]
   ])('calculates progress from stored targets %j', async (row, percent, targetCount, doneCount) => {
     seedHabit(row);
     const result = await computeGoalProgress(12, 7);
@@ -97,7 +97,7 @@ describe('linked habit targets', () => {
     expect(query).toHaveBeenCalledWith(expect.stringContaining('AND h.user_id = $2'), [5, 7]);
   });
 
-  test.each([{ target_completions: 20 }, { target_days: 10 }])('allows linking a habit with target %j', async row => {
+  test.each([{ target_days: 10 }, { daily_target_count: 3, target_days: 10 }])('allows linking a habit with target %j', async row => {
     seedHabit(row);
     const result = await setHabitLinks(12, 7, [{ habitId: 5, weight: 100 }]);
     expect(result.habitLinks).toEqual([{ habitId: 5, weight: 100 }]);
@@ -110,7 +110,7 @@ describe('linked habit targets', () => {
   });
 
   test('rejects linking a habit without a target', async () => {
-    seedHabit({ target_completions: null, target_days: null });
+    seedHabit({ daily_target_count: 3, target_days: null });
     await expect(setHabitLinks(12, 7, [{ habitId: 5, weight: 100 }])).rejects.toMatchObject({ statusCode: 400 });
     expect(GoalDetails.findOneAndUpdate).not.toHaveBeenCalled();
   });

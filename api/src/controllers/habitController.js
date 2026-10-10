@@ -15,7 +15,7 @@ const MAX_HABIT_DESC_CHARS = 200;
 
 exports.createHabit = async (req, res, next) => {
   try {
-    const { name, description, frequency, daysOfWeek, reminders, goalId, isPublic, targetCompletions, targetDays } = req.body;
+    const { name, description, frequency, daysOfWeek, reminders, goalId, isPublic, dailyTargetCount, targetDays } = req.body;
     const normalizedName = typeof name === 'string' ? name.trim() : '';
     const normalizedDescription = typeof description === 'string' ? description.trimEnd() : '';
     if (!normalizedName) {
@@ -33,7 +33,7 @@ exports.createHabit = async (req, res, next) => {
     const errorResponse = handleValidationResponse(res, validation);
     if (errorResponse) return errorResponse;
 
-    const habit = await pgHabitService.createHabit({ userId: req.user.id, name: normalizedName, description: normalizedDescription, frequency, daysOfWeek, reminders, goalId, isPublic, targetCompletions, targetDays });
+    const habit = await pgHabitService.createHabit({ userId: req.user.id, name: normalizedName, description: normalizedDescription, frequency, daysOfWeek, reminders, goalId, isPublic, dailyTargetCount, targetDays });
     res.status(201).json({ success: true, data: { habit } });
   } catch (error) { next(error); }
 };
@@ -130,14 +130,34 @@ exports.listHabits = async (req, res, next) => {
     const today = req.query.today || new Date().toISOString().slice(0, 10);
     let todayStatusMap = {};
     let todayCompletionCountMap = {};
+    let weeklyCompletedDaysMap = {};
     if (habits.length > 0) {
-      const todayLogsResult = await query(
-        `SELECT habit_id, status, completion_count FROM habit_logs WHERE user_id = $1 AND date_key = $2`,
-        [targetUserId, today]
-      );
+      const todayDate = new Date(`${today}T12:00:00.000Z`);
+      const mondayOffset = (todayDate.getUTCDay() + 6) % 7;
+      todayDate.setUTCDate(todayDate.getUTCDate() - mondayOffset);
+      const weekStart = todayDate.toISOString().slice(0, 10);
+      const [todayLogsResult, weeklyLogsResult] = await Promise.all([
+        query(
+          `SELECT habit_id, status, completion_count FROM habit_logs WHERE user_id = $1 AND date_key = $2`,
+          [targetUserId, today]
+        ),
+        query(
+          `SELECT hl.habit_id, COUNT(DISTINCT hl.date_key)::int AS completed_days
+           FROM habit_logs hl
+           INNER JOIN habits h ON h.id = hl.habit_id
+           WHERE hl.user_id = $1 AND hl.date_key >= $2 AND hl.date_key <= $3
+             AND hl.status = 'done'
+             AND hl.completion_count >= COALESCE(h.daily_target_count, 1)
+           GROUP BY hl.habit_id`,
+          [targetUserId, weekStart, today]
+        )
+      ]);
       for (const row of todayLogsResult.rows) {
         todayStatusMap[row.habit_id] = row.status;
         todayCompletionCountMap[row.habit_id] = row.completion_count || 0;
+      }
+      for (const row of weeklyLogsResult.rows) {
+        weeklyCompletedDaysMap[row.habit_id] = Number(row.completed_days) || 0;
       }
     }
 
@@ -160,8 +180,11 @@ exports.listHabits = async (req, res, next) => {
         return {
           ...sh,
           ...(sort === 'recent_logged' ? { lastLoggedAt: h.lastLoggedAt } : {}),
-          todayStatus: todayStatusMap[h.id] || null,
-          todayCompletionCount: todayCompletionCountMap[h.id] || 0
+          todayStatus: todayStatusMap[h.id] === 'done' && (todayCompletionCountMap[h.id] || 0) < Math.max(1, Number(sh.dailyTargetCount || 1))
+            ? 'partial'
+            : (todayStatusMap[h.id] || null),
+          todayCompletionCount: todayCompletionCountMap[h.id] || 0,
+          weeklyCompletedDays: weeklyCompletedDaysMap[h.id] || 0
         };
       }),
       pagination: {
@@ -235,7 +258,9 @@ exports.searchHabits = async (req, res, next) => {
 
       return {
         ...sh,
-        todayStatus: todayStatusMap[h.id] || null,
+        todayStatus: todayStatusMap[h.id] === 'done' && (todayCompletionCountMap[h.id] || 0) < Math.max(1, Number(sh.dailyTargetCount || 1))
+          ? 'partial'
+          : (todayStatusMap[h.id] || null),
         todayCompletionCount: todayCompletionCountMap[h.id] || 0
       };
     });
@@ -322,7 +347,8 @@ exports.archiveHabit = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Invalid habit ID' });
     }
 
-    const habit = await pgHabitService.archiveHabit(habitId, req.user.id, true);
+    const archived = req.body?.archived !== false;
+    const habit = await pgHabitService.archiveHabit(habitId, req.user.id, archived);
 
     if (!habit) {
       return res.status(404).json({ success: false, message: 'Habit not found' });
@@ -420,7 +446,7 @@ exports.toggleLog = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Invalid habit ID' });
     }
 
-    const { status, mood, date } = req.body || {};
+    const { status, mood, note, date } = req.body || {};
     const userId = req.user.id;
 
     // Verify habit exists and belongs to user
@@ -450,11 +476,13 @@ exports.toggleLog = async (req, res, next) => {
     const result = await habitService.toggleLog(userId, habitId, {
       status: status || 'done',
       mood: mood || 'neutral',
+      note: typeof note === 'string' ? note.slice(0, 400) : '',
       date: new Date(dateKey)
     });
 
     const log = result.log;
     const updatedHabit = result.habit;
+
 
     res.status(200).json({
       success: true,
@@ -754,7 +782,8 @@ exports.getHabitAnalytics = async (req, res, next) => {
     const result = await query(sql, [habitId, userId, startDateKey, endDateKey]);
     // Calculate analytics matching previous MongoDB implementation
     const logs = result.rows;
-    const doneLogs = logs.filter(l => l.status === 'done');
+    const dailyTargetCount = Math.max(1, Number(habit.daily_target_count || habit.dailyTargetCount || 1));
+    const doneLogs = logs.filter(l => l.status === 'done' && Number(l.completion_count || 0) >= dailyTargetCount);
     const skippedLogs = logs.filter(l => l.status === 'skipped');
 
     const completions = doneLogs.length;
@@ -794,7 +823,7 @@ exports.getHabitAnalytics = async (req, res, next) => {
           if (!timelineMap[localDate]) {
             timelineMap[localDate] = {
               date: localDate,
-              status: l.status,
+              status: Number(l.completion_count || 0) >= dailyTargetCount ? 'done' : 'partial',
               completionCount: 0,
               completionTimesMood: []
             };
@@ -944,14 +973,11 @@ exports.getHabitAnalytics = async (req, res, next) => {
       totalDays: sanitizedHabit.totalDays,
       currentStreak: sanitizedHabit.currentStreak,
       longestStreak: sanitizedHabit.longestStreak,
-      targetCompletions: sanitizedHabit.targetCompletions,
+      dailyTargetCount: sanitizedHabit.dailyTargetCount,
       targetDays: sanitizedHabit.targetDays
     };
 
     // Add completion percentage if target is set
-    if (stats.targetCompletions) {
-      stats.completionPercentage = Math.min(100, Math.round((stats.totalCompletions / stats.targetCompletions) * 100));
-    }
     if (stats.targetDays) {
       stats.daysPercentage = Math.min(100, Math.round((stats.totalDays / stats.targetDays) * 100));
     }
@@ -991,7 +1017,7 @@ exports.getHabitAnalytics = async (req, res, next) => {
         frequency: sanitizedHabit.frequency,
         daysOfWeek: sanitizedHabit.daysOfWeek,
         createdAt: sanitizedHabit.createdAt,
-        targetCompletions: sanitizedHabit.targetCompletions,
+        dailyTargetCount: sanitizedHabit.dailyTargetCount,
         targetDays: sanitizedHabit.targetDays
       },
       stats,

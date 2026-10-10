@@ -28,7 +28,7 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
   const [frequency, setFrequency] = useState('daily');
   const [daysOfWeek, setDaysOfWeek] = useState([]);
   const [reminders, setReminders] = useState(['']);
-  const [targetCompletions, setTargetCompletions] = useState('');
+  const [dailyTargetCount, setDailyTargetCount] = useState('');
   const [targetDays, setTargetDays] = useState('');
   const [showAdditionalDetails, setShowAdditionalDetails] = useState(false);
   const contentRef = useRef(null);
@@ -113,8 +113,8 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
       };
       
       // Add targets if provided
-      if (targetCompletions && parseInt(targetCompletions) > 0) {
-        payload.targetCompletions = parseInt(targetCompletions);
+      if (dailyTargetCount && parseInt(dailyTargetCount) > 0) {
+        payload.dailyTargetCount = parseInt(dailyTargetCount);
       }
       if (targetDays && parseInt(targetDays) > 0) {
         payload.targetDays = parseInt(targetDays);
@@ -143,11 +143,11 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" style={{ fontFamily: 'Manrope, ui-sans-serif, system-ui' }}>
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-xl border border-gray-200 dark:border-gray-700 max-h-[90dvh] overflow-hidden flex flex-col">
+    <div className="habit-form-modal fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-4" style={{ fontFamily: 'Manrope, ui-sans-serif, system-ui' }}>
+      <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-[2px]" onClick={onClose} />
+      <div className="habit-form-dialog relative bg-[#f8fafc] dark:bg-gray-900 rounded-t-3xl sm:rounded-2xl shadow-2xl w-full sm:max-w-[760px] sm:border border-slate-200 dark:border-gray-700 h-[94dvh] sm:h-[min(84dvh,760px)] sm:max-h-[calc(100dvh-2rem)] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between flex-shrink-0">
+        <div className="bg-white dark:bg-gray-900 px-4 sm:px-8 py-4 sm:py-5 border-b border-slate-200 dark:border-gray-700 flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg text-white" style={{ backgroundColor: THEME_COLOR }}>
               <Calendar className="h-5 w-5" />
@@ -166,7 +166,7 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
         <form onSubmit={handleSubmit} className="flex-1 min-h-0 flex flex-col">
           <div ref={contentRef} className="flex-1 min-h-0 overflow-y-auto overscroll-contain theme-scrollbar">
           <fieldset disabled={!habitLimits.canCreate} className="border-0 p-0 m-0 min-w-0">
-          <div className="px-4 sm:px-6 py-4 sm:py-5 space-y-4 sm:space-y-5">
+          <div className="px-4 sm:px-8 py-5 sm:py-6 space-y-4 sm:space-y-5">
             {error && (
               <div className="flex items-start gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-700 dark:text-red-300 text-sm">
                 <Info className="h-5 w-5 flex-shrink-0 mt-0.5" />
@@ -294,25 +294,18 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
                       <Info className="h-3.5 w-3.5 sm:h-4 sm:w-4" style={{ color: THEME_COLOR }} />
                       Goals
                     </h4>
-                    <div className="p-2.5 sm:p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200 text-[10px] sm:text-xs">
-                      Choose either count-based OR days-based target.
-                    </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                       <div>
-                        <label className="block text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Target Total Count</label>
+                        <label className="block text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Daily Target Count</label>
                         <input
                           type="number"
                           min="0"
-                          value={targetCompletions}
-                          onChange={(e) => {
-                            setTargetCompletions(e.target.value);
-                            if (e.target.value) setTargetDays('');
-                          }}
-                          placeholder="e.g., 100"
-                          disabled={targetDays && parseInt(targetDays) > 0}
+                          value={dailyTargetCount}
+                          onChange={(e) => setDailyTargetCount(e.target.value)}
+                          placeholder="e.g., 3"
                           className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#4c99e6] disabled:opacity-50 disabled:cursor-not-allowed"
                         />
-                        <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-1">Total times to complete this habit</p>
+                        <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-1">Completions expected on each scheduled day</p>
                       </div>
                       <div>
                         <label className="block text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Target Days</label>
@@ -320,12 +313,8 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
                           type="number"
                           min="0"
                           value={targetDays}
-                          onChange={(e) => {
-                            setTargetDays(e.target.value);
-                            if (e.target.value) setTargetCompletions('');
-                          }}
+                          onChange={(e) => setTargetDays(e.target.value)}
                           placeholder="e.g., 30"
-                          disabled={targetCompletions && parseInt(targetCompletions) > 0}
                           className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#4c99e6] disabled:opacity-50 disabled:cursor-not-allowed"
                         />
                         <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-1">Number of unique days</p>
@@ -340,18 +329,18 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
           </div>
 
           {/* Footer */}
-          <div className="shrink-0 bg-gray-50 dark:bg-gray-800/50 px-4 sm:px-6 lg:px-8 py-4 sm:py-5 border-t border-gray-200 dark:border-gray-700 flex items-center gap-2 sm:gap-3">
+          <div className="shrink-0 bg-white dark:bg-gray-900 px-4 sm:px-8 py-4 sm:py-5 border-t border-slate-200 dark:border-gray-700 flex items-center gap-3">
             <button 
               type="button" 
               onClick={onClose} 
-              className="flex-1 py-2.5 sm:py-3 px-3 sm:px-5 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 font-medium transition-all text-sm sm:text-base"
+              className="flex-1 py-3 px-5 border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-slate-700 dark:text-gray-300 rounded-xl hover:bg-slate-50 dark:hover:bg-gray-700 font-semibold transition-all text-sm"
             >
               Cancel
             </button>
             <button 
               type="submit" 
               disabled={submitting || !habitLimits.canCreate} 
-              className="flex-1 py-3 px-5 text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-lg transition-all"
+              className="flex-1 py-3 px-5 text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed font-semibold shadow-sm transition-all hover:brightness-95 text-sm"
               style={{ backgroundColor: THEME_COLOR }}
             >
               {submitting ? 'Creating…' : !habitLimits.canCreate ? 'Limit Reached' : 'Create Habit'}

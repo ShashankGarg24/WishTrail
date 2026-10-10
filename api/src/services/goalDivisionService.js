@@ -49,26 +49,15 @@ function computeTargetCount(habitDoc, startDate, endDate) {
 
 /**
  * Compute habit progress ratio for a given linked habit and goal window.
- * Uses habit's own targets (targetCompletions or targetDays) if available,
+ * Uses the habit's target days if available,
  * otherwise falls back to scheduled days calculation.
  */
 async function computeHabitLinkProgress(userId, link, goal) {
   const habit = await pgHabitService.getHabitById(link.habitId, userId);
   if (!habit) return { ratio: 0, targetCount: 0, doneCount: 0 };
 
-  // Priority 1: Use habit's completion target if available
-  if (habit.targetCompletions && habit.targetCompletions > 0) {
-    const currentCompletions = habit.totalCompletions || 0;
-    const ratio = clamp01(currentCompletions / habit.targetCompletions);
-    return { 
-      ratio, 
-      targetCount: habit.targetCompletions,
-      doneCount: currentCompletions,
-      targetType: 'completions'
-    };
-  }
-
-  // Priority 2: Use habit's day target if available
+  // Daily target count controls completion within a day; target days controls
+  // the habit's duration progress.
   if (habit.targetDays && habit.targetDays > 0) {
     const currentDays = habit.totalDays || 0;
     const ratio = clamp01(currentDays / habit.targetDays);
@@ -80,7 +69,7 @@ async function computeHabitLinkProgress(userId, link, goal) {
     };
   }
 
-  // Priority 3: Fallback to scheduled days calculation within goal timeframe
+  // Fallback to scheduled days calculation within goal timeframe
   const startDate = goal.start_date || goal.created_at;
   const endDate = link.endDate || goal.target_date || new Date();
   
@@ -471,10 +460,10 @@ async function setHabitLinks(goalId, userId, links) {
     const exists = await pgHabitService.getHabitById(id, goal.user_id);
     if (!exists) continue;
     
-    // Validate that habit has at least one target set
-    if (!exists.targetDays && !exists.targetCompletions) {
+    // Linked-goal progress needs a duration target; daily count is not a lifetime goal.
+    if (!exists.targetDays) {
       throw Object.assign(
-        new Error(`Habit "${exists.name || 'Unknown'}" must have either target days or target completions set before being linked to a goal.`), 
+        new Error(`Habit "${exists.name || 'Unknown'}" must have target days set before being linked to a goal.`),
         { statusCode: 400 }
       );
     }

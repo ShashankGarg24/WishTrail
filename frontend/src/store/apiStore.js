@@ -691,7 +691,7 @@ const useApiStore = create(
         }));
       },
 
-      logHabit: async (id, status, mood = 'neutral') => {
+      logHabit: async (id, status, mood = 'neutral', note = '') => {
         try {
           // Get current date key in user's timezone
           const dateKey = getCurrentDateKey();
@@ -699,6 +699,7 @@ const useApiStore = create(
           const response = await habitsAPI.log(id, { 
             status, 
             mood,
+            note,
             date: dateKey  // Send date_key calculated in user's timezone
           });
           const data = response?.data?.data || response?.data;
@@ -1192,9 +1193,10 @@ const useApiStore = create(
       getGoalAnalytics: async (id, opts = {}) => {
         try {
           const force = !!opts.force;
+          const days = [7, 15, 30].includes(Number(opts.days)) ? Number(opts.days) : 30;
           const ttlMs = get().cacheTTLs?.goalAnalytics || 5 * 60 * 1000; // 5 minutes
           const bucket = get().cacheGoalAnalytics || {};
-          const key = `analytics:${String(id)}`;
+          const key = `analytics:${String(id)}:${days}`;
           
           if (!force) {
             const entry = bucket[key];
@@ -1203,7 +1205,7 @@ const useApiStore = create(
             }
           }
           
-          const response = await goalsAPI.getGoalAnalytics(id);
+          const response = await goalsAPI.getGoalAnalytics(id, { days });
           const resp = response?.data || {};
           
           // Cache the response

@@ -83,6 +83,7 @@ class PgHabitLogService {
                 SELECT COUNT(DISTINCT date_key)
                 FROM habit_logs
                 WHERE habit_id = $1 AND status = 'done'
+                  AND completion_count >= COALESCE((SELECT daily_target_count FROM habits WHERE id = $1), 1)
               ),
               updated_at = CURRENT_TIMESTAMP
           WHERE id = $1
@@ -329,6 +330,7 @@ class PgHabitLogService {
                 SELECT COUNT(DISTINCT date_key)
                 FROM habit_logs
                 WHERE habit_id = $3 AND status = 'done'
+                  AND completion_count >= COALESCE((SELECT daily_target_count FROM habits WHERE id = $3), 1)
               ),
               updated_at = CURRENT_TIMESTAMP
           WHERE id = $3
@@ -450,6 +452,7 @@ class PgHabitLogService {
             SELECT COUNT(DISTINCT date_key)
             FROM habit_logs
             WHERE habit_id = $1 AND status = 'done'
+              AND completion_count >= COALESCE((SELECT daily_target_count FROM habits WHERE id = $1), 1)
           ),
           updated_at = CURRENT_TIMESTAMP
       WHERE id = $1
@@ -505,6 +508,7 @@ class PgHabitLogService {
                 SELECT COUNT(DISTINCT date_key)
                 FROM habit_logs
                 WHERE habit_id = $3 AND status = 'done'
+                  AND completion_count >= COALESCE((SELECT daily_target_count FROM habits WHERE id = $3), 1)
               ),
               updated_at = CURRENT_TIMESTAMP
           WHERE id = $3

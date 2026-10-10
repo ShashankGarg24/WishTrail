@@ -390,8 +390,8 @@ export default function GoalDivisionEditor({ goal, goalId, habits, onClose, draf
                 const habitId = h.id;
                 if (hl.habitId && String(habitId) === String(hl.habitId)) return true;
                 
-                // Only show habits with targetDays or targetCompletions
-                return h.targetDays || h.targetCompletions;
+                // Linked-goal progress needs a duration target.
+                return h.targetDays;
               });
               
               return (

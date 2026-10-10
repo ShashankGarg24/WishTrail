@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Camera, User, MapPin, Globe, Youtube, Instagram, AlertCircle, Loader2, Heart, Smile, ExternalLink, Activity, Plane, Laptop, Palette } from 'lucide-react';
 import toast from 'react-hot-toast';
 import useApiStore from '../../store/apiStore';
@@ -48,6 +49,7 @@ const INTERESTS_OPTIONS = [
 ];
 
 const PersonalInfoSection = () => {
+  const [searchParams] = useSearchParams();
   const { user, updateProfile, locationSuggestions, searchCitySuggestions } = useApiStore();
   const [usernameError, setUsernameError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -78,6 +80,11 @@ const PersonalInfoSection = () => {
   });
   const [hasChanges, setHasChanges] = useState(false);
   const isReservedUsername = (value = '') => /wishtrail/i.test(String(value));
+
+  useEffect(() => {
+    if (searchParams.get('focus') !== 'interests') return;
+    requestAnimationFrame(() => document.getElementById('profile-interests')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  }, [searchParams]);
 
   // Sync form data when user data changes
   useEffect(() => {
@@ -563,6 +570,7 @@ const PersonalInfoSection = () => {
         </div>
 
         {/* Interests */}
+        <div id="profile-interests" className="scroll-mt-20" />
         <div>
           <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2">
             Your Interests
@@ -692,7 +700,7 @@ const PersonalInfoSection = () => {
             disabled={!hasChanges || loading}
             className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-2.5 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
           >
-            Discard Changes
+            Cancel
           </button>
           <button
             type="submit"

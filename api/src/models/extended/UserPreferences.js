@@ -98,6 +98,18 @@ const userPreferencesSchema = new mongoose.Schema({
     default: []
   },
 
+  // User-selected goal and habit highlighted on the Overview page.
+  // kind/itemId are retained for backwards compatibility with older records.
+  todayFocus: {
+    kind: {
+      type: String,
+      enum: ['goal', 'habit']
+    },
+    itemId: Number,
+    goalId: Number,
+    habitId: Number
+  },
+
   // Social links
   socialLinks: {
     website: {

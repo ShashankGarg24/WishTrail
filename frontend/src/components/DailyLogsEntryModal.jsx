@@ -20,23 +20,23 @@ const DailyLogsEntryModal = ({ isOpen, onClose, entry }) => {
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" style={{ zIndex: 1000 }}>
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-4" style={{ zIndex: 1000 }}>
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-950/60 backdrop-blur-[2px]" onClick={onClose} />
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto scrollbar-hide bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-xl border border-gray-200 dark:border-gray-700"
+          className="relative flex h-[94dvh] w-full flex-col overflow-hidden rounded-t-3xl bg-[#f8fafc] shadow-2xl dark:bg-gray-900 sm:h-[min(84dvh,760px)] sm:max-h-[calc(100dvh-2rem)] sm:max-w-[760px] sm:rounded-2xl sm:border sm:border-slate-200 dark:sm:border-gray-700"
           style={{ fontFamily: 'Manrope, ui-sans-serif, system-ui' }}
         >
-          <div className="flex items-center justify-between mb-5">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Daily Log Entry</h3>
+          <div className="flex shrink-0 items-center justify-between border-b border-slate-200 bg-white px-5 py-4 dark:border-gray-700 dark:bg-gray-900 sm:px-8 sm:py-5">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white">Journal Entry</h3>
             <button type="button" onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 transition-colors" aria-label="Close">
               <X className="h-5 w-5" />
             </button>
           </div>
 
-          <div className="space-y-4">
+          <div className="flex-1 space-y-4 overflow-y-auto px-5 py-5 sm:px-8 sm:py-6">
             <div className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
               {formatDate(entry.createdAt)}
             </div>

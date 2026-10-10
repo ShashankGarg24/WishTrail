@@ -725,32 +725,29 @@ export default function HabitAnalyticsPage() {
 
         {/* Key Stats Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
-          {habit.targetCompletions && (
+          {habit.dailyTargetCount && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               role="button"
               tabIndex={0}
-              onClick={() => setMetricInfo({ title: 'Target Progress', description: 'Your progress toward the total number of times you want to complete this habit.' })}
-              onKeyDown={(event) => event.key === 'Enter' && setMetricInfo({ title: 'Target Progress', description: 'Your progress toward the total number of times you want to complete this habit.' })}
+              onClick={() => setMetricInfo({ title: 'Daily Target', description: 'The number of completions expected on each scheduled day.' })}
+              onKeyDown={(event) => event.key === 'Enter' && setMetricInfo({ title: 'Daily Target', description: 'The number of completions expected on each scheduled day.' })}
               className="cursor-pointer bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 shadow-sm border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700 transition-colors"
             >
               <div className="flex items-center gap-2 mb-2">
                 <div className="p-1 sm:p-1.5 rounded-lg text-white" style={{ backgroundColor: THEME_COLOR }}>
                   <Target className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </div>
-                <span className="text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Target Progress</span>
+                <span className="text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Daily Target</span>
               </div>
               <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-                {stats?.totalCompletions || 0}/{habit.targetCompletions}
+                {habit.dailyTargetCount} per day
               </p>
-              <div className="mt-2 h-1 sm:h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-                <div className="h-full rounded-full" style={{ width: `${Math.min(100, ((stats?.totalCompletions || 0) / habit.targetCompletions) * 100)}%`, backgroundColor: THEME_COLOR }} />
-              </div>
-              <p className="text-[10px] sm:text-xs mt-1" style={{ color: THEME_COLOR }}>{Math.round(((stats?.totalCompletions || 0) / habit.targetCompletions) * 100)}%</p>
+              <p className="text-[10px] sm:text-xs mt-1" style={{ color: THEME_COLOR }}>on each scheduled day</p>
             </motion.div>
           )}
-          {habit.targetDays && !habit.targetCompletions && (
+          {habit.targetDays && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -939,15 +936,6 @@ export default function HabitAnalyticsPage() {
         </motion.div>
 
         <div className="relative mb-5">
-          {/* Blurred overlay for analytics - shows Coming Soon */}
-          <div style={{ position: 'relative' }}>
-            <div style={{ position: 'absolute', inset: 0, zIndex: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
-              <div style={{ padding: '10px 18px', borderRadius: 9999, background: 'linear-gradient(90deg, rgba(255,255,255,0.7), rgba(255,255,255,0.5))', boxShadow: '0 6px 20px rgba(0,0,0,0.08)', backdropFilter: 'blur(2px)', WebkitBackdropFilter: 'blur(2px)', color: '#111827', fontWeight: 600 }}>
-                Coming Soon
-              </div>
-            </div>
-            <div style={{ filter: 'blur(6px)', WebkitFilter: 'blur(6px)', pointerEvents: 'none' }} aria-hidden="true">
-        
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 mb-5">
           {/* Activity Trends */}
           <motion.div
@@ -1149,8 +1137,6 @@ export default function HabitAnalyticsPage() {
         </motion.div>
         </div>
 
-            </div>
-          </div>
         </div>
 
       </div>

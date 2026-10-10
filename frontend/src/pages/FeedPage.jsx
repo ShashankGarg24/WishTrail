@@ -1,833 +1,97 @@
-import { useState, useEffect, useRef, lazy, Suspense } from 'react';
-import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { Heart, MessageCircle, Share2, Trophy, Zap, Target, Flame, Star, UserPlus } from 'lucide-react';
-import useApiStore from '../store/apiStore';
-import GoalPostModal from '../components/GoalPostModal';
-import toast from 'react-hot-toast';
-import CategoryBadge from '../components/CategoryBadge';
-import DailyLogFab from '../components/DailyLogFab';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { Bell, Heart, MessageCircle, MoreHorizontal, Send, Share2, UserPlus } from 'lucide-react'
+import toast from 'react-hot-toast'
+import useApiStore from '../store/apiStore'
+import { socialAPI } from '../services/api'
+import GoalPostModal from '../components/GoalPostModal'
+import CategoryIcon from '../components/CategoryIcon'
 
-const ActivityCommentsModal = lazy(() => import('../components/ActivityCommentsModal'));
-const ReportModal = lazy(() => import('../components/ReportModal'));
-const BlockModal = lazy(() => import('../components/BlockModal'));
-const ShareSheet = lazy(() => import('../components/ShareSheet'));
+const ActivityCommentsModal = lazy(() => import('../components/ActivityCommentsModal'))
+const ReportModal = lazy(() => import('../components/ReportModal'))
+const ShareSheet = lazy(() => import('../components/ShareSheet'))
 
-const FeedPage = () => {
-  const navigate = useNavigate();
-  const { goalId: routeGoalId } = useParams();
-  const { user, getActivityFeed, likeActivity, getTrendingGoals, report, blockUser, unfollowUser } = useApiStore();
-  const [activities, setActivities] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [isInitialFeedLoading, setIsInitialFeedLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [selectedGoalId, setSelectedGoalId] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [openWithComments, setOpenWithComments] = useState(false);
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
-  const [commentsOpenActivityId, setCommentsOpenActivityId] = useState(null);
-  const [isMobile, setIsMobile] = useState(false);
-  const [trendingGoals, setTrendingGoals] = useState([]);
-  const [trendingLoading, setTrendingLoading] = useState(false);
+const ago = iso => {
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return 'Recently'
+  const elapsed = Math.max(0, Date.now() - date.getTime())
+  if (elapsed < 60000) return 'Just now'
+  if (elapsed < 3600000) return `${Math.floor(elapsed / 60000)}m ago`
+  if (elapsed < 86400000) return `${Math.floor(elapsed / 3600000)}h ago`
+  if (elapsed < 30 * 86400000) return `${Math.floor(elapsed / 86400000)}d ago`
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    ...(date.getFullYear() !== new Date().getFullYear() ? { year: 'numeric' } : {})
+  })
+}
+const Avatar = ({ src, name, size = 'h-10 w-10', onClick }) => <button type="button" onClick={onClick} className={`${size} shrink-0 overflow-hidden rounded-full bg-blue-100 text-sm font-extrabold text-blue-600`}>{src ? <img src={src} alt={name || ''} className="h-full w-full object-cover" /> : <span className="grid h-full w-full place-items-center">{name?.[0]?.toUpperCase() || 'U'}</span>}</button>
 
-  // Report and Block states
-  const [openActivityMenuId, setOpenActivityMenuId] = useState(null);
-  const [reportOpen, setReportOpen] = useState(false);
-  const [reportTarget, setReportTarget] = useState({ type: null, id: null, label: '', username: '', userId: null });
-  const [blockOpen, setBlockOpen] = useState(false);
-  const [blockUserId, setBlockUserId] = useState(null);
-  const [blockUsername, setBlockUsername] = useState('');
+export default function FeedPage() {
+  const navigate = useNavigate()
+  const { goalId: routeGoalId } = useParams()
+  const [searchParams] = useSearchParams()
+  const { user, getActivityFeed, likeActivity, getTrendingGoals, report, unfollowUser, followUser } = useApiStore()
+  const [activities, setActivities] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(true)
+  const [trending, setTrending] = useState([])
+  const [people, setPeople] = useState([])
+  const [goalId, setGoalId] = useState(null)
+  const [goalOpen, setGoalOpen] = useState(false)
+  const [commentsId, setCommentsId] = useState(null)
+  const [menuPost, setMenuPost] = useState(null)
+  const [shareOpen, setShareOpen] = useState(false)
+  const [reportPost, setReportPost] = useState(null)
+  const shareUrl = useRef('')
 
-  // Share state
-  const [shareSheetOpen, setShareSheetOpen] = useState(false);
-  const shareUrlRef = useRef('');
-
-  // Format timestamp to "time ago" format
-  const formatTimeAgo = (isoDate) => {
-    const now = new Date();
-    const date = new Date(isoDate);
-    const diffMs = now - date;
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffMins < 1) return 'just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    return `${diffDays}d ago`;
-  };
-
-  // Transform API activity to component format
-  const transformActivity = (apiActivity) => {
-    const {
-      _id,
-      name,
-      avatar,
-      type,
-      data,
-      createdAt,
-      likeCount = 0,
-      commentCount = 0,
-      isLiked = false
-    } = apiActivity;
-
-    const completionNote = data?.metadata?.completionNote || data?.completionNote || '';
-    const completionImage = data?.metadata?.completionAttachmentUrl || data?.completionAttachmentUrl || '';
-    const lastUpdatedType = data?.lastUpdateType;
-    const isCompleted = lastUpdatedType === 'completed' || data?.completedAt != null;
-    // Determine activity type and format
-    let activityType = 'goal_completed';
-    let action = 'Completed a goal';
-    let content = {
-      title: data?.goalTitle || 'Goal',
-      category: data?.goalCategory,
-    };
-
-    if (lastUpdatedType === 'created') {
-      action = 'Created a goal';
-    } else if (type === 'habit_target_achieved' || type === 'habit_streak_milestone') {
-      activityType = 'habit_streak';
-      action = 'Achieved a milestone';
-      content = {
-        title: data?.habitTitle || 'Habit',
-        description: data?.note || '',
-        days: data?.streakDays || 0,
-      };
-    } else if (type === 'habit_added') {
-      action = 'Started a habit';
-    }
-
-    return {
-      id: _id,
-      user: {
-        name: apiActivity.user.name || 'User',
-        avatar: apiActivity.user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${name}`,
-        username: apiActivity.user.username || ''
-      },
-      type: activityType,
-      action,
-      timestamp: formatTimeAgo(data?.completionMarkedAt || createdAt),
-      content,
-      completionNote,
-      completionImage,
-      isCompleted,
-      likes: likeCount,
-      comments: commentCount,
-      isLiked,
-      cheered: false,
-      originalId: data?.goalId,
-      originalType: type,
-    };
-  };
-
-  // Load activity feed
-  const loadActivityFeed = async (pageNum = 1, refresh = false) => {
-    try {
-      if (!refresh) setLoading(pageNum === 1);
-      setError(null);
-      const response = await getActivityFeed({
-        page: pageNum,
-        limit: 10,
-      }, { force: refresh });
-
-      if (!response) {
-        if (refresh) throw new Error('Missing feed response');
-        setActivities([]);
-        setHasMore(false);
-        return;
-      }
-
-      const { activities: feedActivities, pagination } = response;
-
-      if (!feedActivities || !Array.isArray(feedActivities)) {
-        if (refresh) throw new Error('Invalid feed response');
-        setActivities([]);
-        setHasMore(false);
-        return;
-      }
-
-      const transformed = feedActivities.map(transformActivity);
-
-      if (pageNum === 1) {
-        setActivities(transformed);
-      } else {
-        setActivities(prev => [...prev, ...transformed]);
-      }
-
-      setHasMore(pagination && pagination.page < pagination.pages);
-    } catch (err) {
-      if (!refresh) setError('Failed to load feed. Please try again.');
-      if (refresh) toast.error('Could not refresh the feed. Please try again.');
-      if (pageNum === 1 && !refresh) {
-        setActivities([]);
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const refreshInFlight = useRef(false);
-  useEffect(() => {
-    const refresh = async () => {
-      if (refreshInFlight.current) return;
-      refreshInFlight.current = true;
-      try {
-        await Promise.all([loadActivityFeed(1, true), loadTrendingGoals()]);
-        setPage(1);
-      } finally {
-        refreshInFlight.current = false;
-        window.dispatchEvent(new Event('wt_refresh_complete'));
-      }
-    };
-    window.addEventListener('wt_refresh', refresh);
-    return () => window.removeEventListener('wt_refresh', refresh);
-  }, [user]);
-
-  // Load initial feed on mount
-  useEffect(() => {
-    let isCancelled = false;
-
-    const loadInitialFeedData = async () => {
-      if (!user) return;
-      try {
-        await Promise.all([
-          loadActivityFeed(1),
-          loadTrendingGoals()
-        ]);
-      } finally {
-        if (!isCancelled) {
-          setIsInitialFeedLoading(false);
-        }
-      }
-    };
-
-    if (user) {
-      setIsInitialFeedLoading(true);
-      loadInitialFeedData();
-    }
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [user]);
-
-  useEffect(() => {
-    const compute = () => setIsMobile(typeof window !== 'undefined' && window.innerWidth < 768);
-    compute();
-    window.addEventListener('resize', compute);
-    return () => window.removeEventListener('resize', compute);
-  }, []);
-
-  // Close activity menu on outside click
-  useEffect(() => {
-    const onDocMouseDown = (e) => {
-      if (!openActivityMenuId) return;
-      const target = e.target;
-      const inside = target?.closest?.('[data-activity-menu="true"]') || target?.closest?.('[data-activity-menu-btn="true"]');
-      if (inside) return;
-      setOpenActivityMenuId(null);
-    };
-    document.addEventListener('mousedown', onDocMouseDown);
-    return () => document.removeEventListener('mousedown', onDocMouseDown);
-  }, [openActivityMenuId]);
-
-  // Load trending goals
-  const loadTrendingGoals = async () => {
-    try {
-      setTrendingLoading(true);
-      const interests = Array.isArray(user?.interests) ? user.interests : [];
-      const params = interests.length > 0
-        ? { strategy: 'personalized', page: 1, limit: 10 }
-        : { strategy: 'global', page: 1, limit: 10 };
-      const { goals } = await getTrendingGoals(params);
-      setTrendingGoals((goals || []).slice(0, 6));
-    } catch (err) {
-      setTrendingGoals([]);
-    } finally {
-      setTrendingLoading(false);
-    }
-  };
-
-  // Get category gradient for trending goals
-  const getCategoryGradient = (category) => {
-    switch (category) {
-      case 'Health & Fitness':
-        return 'from-emerald-400 via-teal-400 to-cyan-400';
-      case 'Education & Learning':
-        return 'from-amber-400 via-yellow-400 to-orange-400';
-      case 'Career & Business':
-        return 'from-blue-400 via-blue-500 to-cyan-400';
-      case 'Financial Goals':
-        return 'from-rose-400 via-pink-400 to-fuchsia-400';
-      case 'Creative Projects':
-        return 'from-blue-400 via-indigo-400 to-cyan-400';
-      case 'Travel & Adventure':
-        return 'from-orange-400 via-amber-400 to-yellow-400';
-      case 'Relationships':
-        return 'from-pink-400 via-rose-400 to-red-400';
-      case 'Family & Friends':
-        return 'from-indigo-400 via-violet-400 to-sky-400';
-      case 'Personal Development':
-        return 'from-green-400 via-lime-400 to-emerald-400';
-      default:
-        return 'from-blue-400 via-indigo-400 to-cyan-400';
-    }
-  };
-
-  const handleLike = async (activityId) => {
-    try {
-      const activity = activities.find(a => a.id === activityId);
-      if (!activity) return;
-
-      // Optimistic update
-      setActivities(prev =>
-        prev.map(a =>
-          a.id === activityId
-            ? {
-              ...a,
-              isLiked: !a.isLiked,
-              likes: a.isLiked ? a.likes - 1 : a.likes + 1,
-            }
-            : a
-        )
-      );
-
-      // Make API call
-      await likeActivity(activityId, !activity.isLiked);
-    } catch (err) {
-      // Revert optimistic update on error
-      setActivities(prev =>
-        prev.map(a =>
-          a.id === activityId
-            ? {
-              ...a,
-              isLiked: !a.isLiked,
-              likes: a.isLiked ? a.likes - 1 : a.likes + 1,
-            }
-            : a
-        )
-      );
-    }
-  };
-
-
-
-  // const suggestedFriends = [
-  //   {
-  //     id: 1,
-  //     name: 'Jordan Smith',
-  //     subtitle: '12 goals tracked',
-  //     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Jordan',
-  //     isFollowing: false,
-  //   },
-  //   {
-  //     id: 2,
-  //     name: 'Leo Vance',
-  //     subtitle: '8 habits active',
-  //     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Leo',
-  //     isFollowing: false,
-  //   },
-  // ];
-
-  // const [friends, setFriends] = useState(suggestedFriends);
-
-  // const handleFollow = (friendId) => {
-  //   setFriends(prev =>
-  //     prev.map(friend =>
-  //       friend.id === friendId
-  //         ? { ...friend, isFollowing: !friend.isFollowing }
-  //         : friend
-  //     )
-  //   );
-  // };
-
-  const handleOpenGoal = (goalId) => {
-    setSelectedGoalId(goalId);
-    setIsModalOpen(true);
-    setOpenWithComments(false);
-  };
-
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setSelectedGoalId(null);
-    setOpenWithComments(false);
-    // Remove goalId param from URL without pushing a new history entry
-    if (routeGoalId) {
-      navigate('/feed', { replace: true });
-    } else if (searchParams.has('goalId')) {
-      const next = new URLSearchParams(searchParams);
-      next.delete('goalId');
-      navigate({ search: next.toString() }, { replace: true });
-    }
-  };
-  const [searchParams] = useSearchParams();
-  useEffect(() => {
-    const goalId = routeGoalId || searchParams.get('goalId');
-    if (goalId) handleOpenGoal(goalId);
-  }, [searchParams, routeGoalId]);
-
-  const handleOpenComments = (activityId, goalId) => {
-    if (!activityId) return;
-    if (isMobile) {
-      setCommentsOpenActivityId(activityId);
-      return;
-    }
-
-    // Desktop behavior: if modal is already open for this goal, toggle comments
-    if (isModalOpen && selectedGoalId === goalId) {
-      setOpenWithComments(prev => !prev);
-    } else {
-      // Open modal with comments
-      setSelectedGoalId(goalId);
-      setIsModalOpen(true);
-      setOpenWithComments(true);
-    }
-  };
-
-  if (isInitialFeedLoading || (loading && activities.length === 0)) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4c99e6] mx-auto mb-4"></div>
-          <p className="text-gray-500 dark:text-gray-400">Loading your growth feed...</p>
-        </div>
-      </div>
-    );
+  const transform = item => {
+    const data = item.data || {}
+    const habit = ['habit_target_achieved', 'habit_streak_milestone', 'habit_added'].includes(item.type)
+    const action = habit ? (item.type === 'habit_added' ? 'Started a habit' : 'Completed a habit streak') : data.lastUpdateType === 'created' ? 'Started a new goal' : 'Completed a goal'
+    return { id: item._id, user: { id: item.user?._id || item.user?.id || item.userId || item.user_id, name: item.user?.name || item.name || 'WishTrail member', username: item.user?.username || '', avatar: item.user?.avatar || item.avatar }, timestamp: ago(data.completionMarkedAt || item.createdAt), title: habit ? data.habitTitle || 'Habit milestone' : data.goalTitle || 'Goal progress', category: data.goalCategory, note: data.metadata?.completionNote || data.completionNote || data.note || '', image: data.metadata?.completionAttachmentUrl || data.completionAttachmentUrl || '', days: data.streakDays || 0, progress: data.progress ?? data.progressPercentage, isHabit: habit, likes: item.likeCount || 0, comments: item.commentCount || 0, isLiked: Boolean(item.isLiked), originalId: data.goalId || data.habitId }
   }
+  const loadFeed = async (number = 1, refresh = false) => {
+    try { if (number === 1) setLoading(true); setError(''); const result = await getActivityFeed({ page: number, limit: 10 }, { force: refresh }); const next = Array.isArray(result?.activities) ? result.activities.map(transform) : []; setActivities(old => number === 1 ? next : [...old, ...next]); setHasMore(Boolean(result?.pagination && result.pagination.page < result.pagination.pages)) }
+    catch { setError('Could not load the feed. Please try again.') } finally { setLoading(false) }
+  }
+  useEffect(() => {
+    if (!user) return
+    let cancelled = false
+    Promise.allSettled([loadFeed(1), getTrendingGoals({ strategy: user?.interests?.length ? 'personalized' : 'global', page: 1, limit: 8 }).then(r => { if (!cancelled) setTrending(r?.goals || []) }), socialAPI.getSuggestedUsers({ limit: 5 }).then(r => { if (!cancelled) setPeople(r?.data?.data?.users || r?.data?.data || []) })])
+    return () => { cancelled = true }
+  }, [user])
+  useEffect(() => { const refresh = () => loadFeed(1, true).finally(() => window.dispatchEvent(new Event('wt_refresh_complete'))); window.addEventListener('wt_refresh', refresh); return () => window.removeEventListener('wt_refresh', refresh) }, [user])
+  useEffect(() => { const id = routeGoalId || searchParams.get('goalId'); if (id) { setGoalId(id); setGoalOpen(true) } }, [routeGoalId, searchParams])
+  const visible = useMemo(() => activities, [activities])
+  const profile = person => person?.username && navigate(`/profile/@${person.username}`)
+  const openGoal = id => { if (id) { setGoalId(id); setGoalOpen(true) } }
+  const like = async id => { const old = activities.find(x => x.id === id); if (!old) return; setActivities(xs => xs.map(x => x.id === id ? { ...x, isLiked: !x.isLiked, likes: x.likes + (x.isLiked ? -1 : 1) } : x)); try { await likeActivity(id, !old.isLiked) } catch { setActivities(xs => xs.map(x => x.id === id ? old : x)) } }
+  const share = post => { shareUrl.current = post.originalId ? `${window.location.origin}/feed?goalId=${post.originalId}` : window.location.href; if (window.innerWidth < 768) setShareOpen(true); else navigator.clipboard.writeText(shareUrl.current).then(() => toast.success('Link copied')) }
 
-  return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900" style={{ fontFamily: 'Manrope, sans-serif' }}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Feed - Left Side (2 columns width) */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Page Header */}
-            <div className="mb-6">
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Growth Feed</h1>
-              <p className="text-gray-600 dark:text-gray-400">Celebrate your community's progress.</p>
-            </div>
-
-            {/* Error Message */}
-            {error && (
-              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 text-red-700 dark:text-red-300 text-sm">
-                {error}
-              </div>
-            )}
-
-            {/* Activity Feed Cards */}
-            {activities.length === 0 && !loading && !error ? (
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-12 text-center">
-                <Trophy className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No activity yet</h3>
-                <p className="text-gray-600 dark:text-gray-400">Start following people to see their progress and achievements!</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {activities.map((activity) => (
-                  <motion.div
-                    key={activity.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6"
-                  >
-                    {/* User Info Header */}
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                        <img
-                          src={activity.user.avatar}
-                          alt={activity.user.name}
-                          width="40"
-                          height="40"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (activity.user?.username) {
-                              navigate(`/profile/@${activity.user.username}`);
-                            }
-                          }}
-                          className="w-10 h-10 rounded-full cursor-pointer hover:opacity-80 transition-opacity"
-                        />
-                        <div>
-                          <h3
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (activity.user?.username) {
-                                navigate(`/profile/@${activity.user.username}`);
-                              }
-                            }}
-                            className="font-semibold text-gray-900 dark:text-white cursor-pointer hover:text-[#4c99e6] transition-colors"
-                          >
-                            {activity.user.name}
-                          </h3>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">
-                            {activity.action} • {activity.timestamp}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="relative">
-                        <button
-                          data-activity-menu-btn="true"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setOpenActivityMenuId(prev => prev === activity.id ? null : activity.id);
-                          }}
-                          className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                        >
-                          <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-                            <circle cx="10" cy="4" r="1.5" />
-                            <circle cx="10" cy="10" r="1.5" />
-                            <circle cx="10" cy="16" r="1.5" />
-                          </svg>
-                        </button>
-                        {openActivityMenuId === activity.id && (
-                          <div
-                            data-activity-menu="true"
-                            onClick={(e) => e.stopPropagation()}
-                            className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-30 overflow-hidden"
-                          >
-                            <button
-                              className="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                              onClick={() => {
-                                setReportTarget({
-                                  type: 'activity',
-                                  id: activity.id,
-                                  label: 'activity',
-                                  username: activity.user?.username || '',
-                                  userId: activity.user?._id || activity.user?.id || null
-                                });
-                                setReportOpen(true);
-                                setOpenActivityMenuId(null);
-                              }}
-                            >
-                              Report Activity
-                            </button>
-                            {activity.user?._id && (
-                              <button
-                                className="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                                onClick={async () => {
-                                  try {
-                                    await unfollowUser(activity.user._id);
-                                  } catch (err) {
-                                    console.error('Failed to unfollow:', err);
-                                  }
-                                  setOpenActivityMenuId(null);
-                                }}
-                              >
-                                Unfollow User
-                              </button>
-                            )}
-                            {activity.user?._id && (
-                              <button
-                                className="w-full text-left px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
-                                onClick={() => {
-                                  setBlockUserId(activity.user._id);
-                                  setBlockUsername(activity.user?.username || activity.user?.name || '');
-                                  setBlockOpen(true);
-                                  setOpenActivityMenuId(null);
-                                }}
-                              >
-                                Block User
-                              </button>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Activity Content - Clickable */}
-                    <div
-                      onClick={() => handleOpenGoal(activity.originalId)}
-                      className="cursor-pointer"
-                    >
-                      {activity.type === 'habit_streak' ? (
-                        <div className="bg-gray-900 dark:bg-gray-800 rounded-lg p-6 mb-4">
-                          <div className="flex items-start justify-between">
-                            <div>
-                              <div className="flex items-center gap-2 mb-2">
-                                <Flame className="w-5 h-5 text-orange-400" />
-                                <h4 className="text-white font-semibold text-lg">
-                                  {activity.content.title}
-                                </h4>
-                              </div>
-                              <p className="text-gray-300 text-sm">
-                                {activity.content.description}
-                              </p>
-                            </div>
-                            <div className="text-right">
-                              <div className="text-4xl font-bold text-white">
-                                {activity.content.days}
-                              </div>
-                              <div className="text-xs text-gray-400 uppercase">Days</div>
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="mb-4">
-                          <h4 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">
-                            {activity.content.title}
-                          </h4>
-                          <CategoryBadge category={activity.content.category} />
-                          {(activity.completionNote || activity.completionImage) && (
-                            <div className="mt-4 space-y-3">
-                              {activity.completionImage && (
-                                <div className="overflow-hidden rounded-lg border border-gray-100 dark:border-gray-700 shadow-sm aspect-video bg-gray-100 dark:bg-gray-700">
-                                  <img
-                                    src={activity.completionImage}
-                                    alt="Activity image"
-                                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                                  />
-                                </div>
-                              )}
-                              {activity.completionNote && (
-                                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 border border-gray-100 dark:border-gray-700">
-                                  <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
-                                    {activity.completionNote}
-                                  </p>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Engagement Bar */}
-                    <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-gray-700">
-                      <div className="flex items-center gap-6">
-                        {/* Like Button */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleLike(activity.id);
-                          }}
-                          className="flex items-center gap-2 text-gray-600 dark:text-gray-300 hover:text-red-500 transition-colors"
-                        >
-                          <Heart
-                            className={`w-5 h-5 ${activity.isLiked ? 'fill-red-500 text-red-500' : ''
-                              }`}
-                          />
-                          <span className="text-sm font-medium">{activity.likes}</span>
-                        </button>
-
-                        {/* Comment Button */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleOpenComments(activity.id, activity.originalId);
-                          }}
-                          className="flex items-center gap-2 text-gray-600 dark:text-gray-300 hover:text-[#4c99e6] transition-colors"
-                        >
-                          <MessageCircle className="w-5 h-5" />
-                          <span className="text-sm font-medium">{activity.comments}</span>
-                        </button>
-
-                        {/* Share Button */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            try {
-                              const gid = activity.originalId;
-                              const url = gid ? `${window.location.origin}/feed?goalId=${gid}` : window.location.href;
-                              if (isMobile) {
-                                shareUrlRef.current = url;
-                                setShareSheetOpen(true);
-                              } else {
-                                navigator.clipboard.writeText(url)
-                                  .then(() => {
-                                    toast.success('Link copied to clipboard', { duration: 2000 });
-                                  })
-                                  .catch(() => {
-                                    toast.error('Failed to copy link');
-                                  });
-                              }
-                            } catch { }
-                          }}
-                          className="flex items-center gap-2 text-gray-600 dark:text-gray-300 hover:text-[#4c99e6] transition-colors"
-                        >
-                          <Share2 className="w-5 h-5" />
-                        </button>
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Right Sidebar */}
-          <div className="hidden lg:block space-y-6 lg:sticky lg:top-24 lg:self-start">
-            {/* Trending Goals */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <Zap className="w-5 h-5 text-[#4c99e6]" />
-                <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                  Trending Goals
-                </h3>
-              </div>
-
-              {trendingLoading ? (
-                <div className="space-y-3">
-                  {[...Array(3)].map((_, i) => (
-                      <div key={i} className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-full bg-gray-200 dark:bg-gray-700 animate-pulse" />
-                      <div className="flex-1">
-                        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-2" />
-                        <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-2/3 animate-pulse" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : trendingGoals.length > 0 ? (
-                <div className="space-y-3">
-                  {trendingGoals.map((goal) => (
-                    <button
-                      key={goal.id}
-                      onClick={() => handleOpenGoal(goal.id)}
-                      className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left group"
-                    >
-                      <div className={`relative h-12 w-12 rounded-full p-[2px] bg-gradient-to-br ${getCategoryGradient(goal.category)} flex-shrink-0 group-hover:scale-105 transition-transform`}>
-                        <div className="h-full w-full rounded-full bg-white dark:bg-gray-800 p-[2px]">
-                          <img
-                            src={goal?.user_avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${goal?.user_name}`}
-                            alt={goal?.user_name || 'User'}
-                            width="40"
-                            height="40"
-                            className="h-full w-full rounded-full object-cover"
-                          />
-                        </div>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-semibold text-gray-900 dark:text-white text-sm line-clamp-1 group-hover:text-[#4c99e6] transition-colors">
-                          {goal.title}
-                        </h4>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          by {goal?.user_name || 'User'}
-                        </p>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-6">
-                  <Target className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-                  <p className="text-sm text-gray-500 dark:text-gray-400">No trending goals yet</p>
-                </div>
-              )}
-            </div>
-
-            {/* Suggested Friends */}
-            {/* <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-4">
-                Suggested Friends
-              </h3>
-
-              <div className="space-y-4">
-                {friends.map((friend) => (
-                  <div key={friend.id} className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <img
-                        src={friend.avatar}
-                        alt={friend.name}
-                        className="w-10 h-10 rounded-full"
-                      />
-                      <div>
-                        <h4 className="font-semibold text-gray-900 text-sm">
-                          {friend.name}
-                        </h4>
-                        <p className="text-xs text-gray-500">{friend.subtitle}</p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => handleFollow(friend.id)}
-                      className={`p-2 rounded-lg transition-all ${
-                        friend.isFollowing
-                          ? 'bg-gray-100 text-gray-600'
-                          : 'bg-blue-50 text-[#4c99e6] hover:bg-blue-100'
-                      }`}
-                    >
-                      <UserPlus className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-
-              <button className="w-full mt-4 text-[#4c99e6] hover:text-blue-600 font-medium text-sm transition-colors">
-                Find People
-              </button>
-            </div> */}
-          </div>
-        </div>
-      </div>
-
-      {/* Goal Details Modal */}
-      <GoalPostModal
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-        goalId={selectedGoalId}
-        openWithComments={openWithComments}
-        onToggleComments={() => setOpenWithComments(prev => !prev)}
-      />
-
-      <Suspense fallback={null}>
-        <ActivityCommentsModal
-          isOpen={!!commentsOpenActivityId}
-          onClose={() => setCommentsOpenActivityId(null)}
-          activity={{ _id: commentsOpenActivityId }}
-        />
-      </Suspense>
-
-      <Suspense fallback={null}>
-        <ReportModal
-          isOpen={reportOpen}
-          onClose={() => setReportOpen(false)}
-          targetLabel={reportTarget.label}
-          onSubmit={async ({ reason, description }) => {
-            await report({ targetType: reportTarget.type, targetId: reportTarget.id, reason, description });
-            // After reporting, offer to block the user
-            const uid = reportTarget.userId || null;
-            if (uid) {
-              setBlockUserId(uid);
-              setBlockUsername(reportTarget.username || '');
-              setBlockOpen(true);
-            }
-            setReportOpen(false);
-          }}
-          onReportAndBlock={reportTarget.type === 'user' ? async () => {
-            if (reportTarget.id) {
-              await blockUser(reportTarget.id);
-            }
-          } : undefined}
-        />
-      </Suspense>
-
-      <Suspense fallback={null}>
-        <BlockModal
-          isOpen={blockOpen}
-          onClose={() => setBlockOpen(false)}
-          username={blockUsername || ''}
-          onConfirm={async () => {
-            if (blockUserId) {
-              await blockUser(blockUserId);
-              // Remove activities from this user
-              setActivities(prev => prev.filter(a => a.user?._id !== blockUserId));
-              setBlockOpen(false);
-            }
-          }}
-        />
-      </Suspense>
-
-      <Suspense fallback={null}>
-        <ShareSheet
-          isOpen={shareSheetOpen}
-          onClose={() => setShareSheetOpen(false)}
-          url={shareUrlRef.current}
-          title="WishTrail Goal"
-        />
-      </Suspense>
-
-      <DailyLogFab />
+  if (loading && !activities.length) return <div className="grid min-h-[70vh] place-items-center bg-[#f7f9fc] dark:bg-gray-900"><div className="text-center"><div className="mx-auto mb-3 h-10 w-10 animate-spin rounded-full border-2 border-blue-100 border-t-[#1683ed]" /><p className="text-sm text-slate-500">Loading your feed...</p></div></div>
+  return <div className="wt-feed-page min-h-screen bg-[#f7f9fc] text-[#101a3c] dark:bg-gray-900 dark:text-white">
+    <div className="mx-auto flex max-w-[1500px]">
+      <main className="wt-feed-main min-w-0 flex-1"><div className="wt-feed-grid mx-auto grid max-w-[1200px] grid-cols-1 gap-5 md:px-5 md:py-3 xl:grid-cols-[minmax(0,750px)_350px]">
+        <section className="min-w-0">
+          {error && <div className="m-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-600">{error}</div>}
+          {!visible.length ? <div className="m-4 rounded-2xl border border-slate-200 bg-white px-6 py-16 text-center dark:border-gray-700 dark:bg-gray-800"><div className="mx-auto mb-4 grid h-20 w-20 place-items-center rounded-full bg-blue-50"><Send className="h-9 w-9 -rotate-12 text-[#1683ed]" /></div><h2 className="text-lg font-extrabold">No posts yet</h2><p className="mx-auto mt-2 max-w-xs text-sm text-slate-500">Follow people to see their inspiring updates here.</p><button onClick={() => navigate('/discover?tab=people')} className="mt-6 w-full max-w-xs rounded-xl bg-[#1683ed] py-3 text-sm font-bold text-white">Discover People</button></div> : <div className="space-y-2 md:mt-2 md:space-y-3">{visible.map((post,index) => <motion.article key={post.id} initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} transition={{delay:Math.min(index*.035,.2)}} className="border-y border-slate-200 bg-white p-4 md:rounded-xl md:border dark:border-gray-700 dark:bg-gray-800">
+            <header className="flex items-start gap-3"><Avatar src={post.user.avatar} name={post.user.name} size="h-11 w-11" onClick={() => profile(post.user)} /><div className="min-w-0 flex-1"><button onClick={() => profile(post.user)} className="block truncate text-sm font-extrabold hover:text-[#1683ed]">{post.user.name}</button><p className="mt-0.5 text-[11px] text-slate-500">{post.timestamp}</p></div><button onClick={() => setMenuPost(post)} className="rounded-lg p-1.5 text-slate-500"><MoreHorizontal className="h-5 w-5" /></button></header>
+            <button onClick={() => openGoal(post.originalId)} className="mt-3 block w-full text-left"><div className="py-2"><p className="text-sm font-extrabold text-slate-900 dark:text-white">{post.title}</p><p className="mt-1 line-clamp-1 text-xs text-slate-500">{post.note || (post.isHabit && post.days ? `${post.days}-day streak — keep it going!` : post.action)}</p></div>{post.note && <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-600 dark:text-gray-300">{post.note}</p>}{post.image && <div className="mt-3 aspect-[16/8.5] overflow-hidden rounded-xl bg-slate-100"><img src={post.image} alt="Progress update" className="h-full w-full object-cover" /></div>}{typeof post.progress === 'number' && <div className="mt-3 flex items-center gap-3"><div className="h-1.5 flex-1 rounded-full bg-slate-100"><div className="h-full rounded-full bg-[#1683ed]" style={{width:`${Math.min(100,post.progress)}%`}} /></div><span className="text-xs font-bold text-slate-500">{post.progress}%</span></div>}</button>
+            <footer className="mt-3 flex items-center gap-7 text-slate-500"><button onClick={() => like(post.id)} className={`flex items-center gap-1.5 text-xs font-semibold ${post.isLiked ? 'text-red-500' : ''}`}><Heart className={`h-5 w-5 ${post.isLiked ? 'fill-current' : ''}`} />{post.likes}</button><button onClick={() => setCommentsId(post.id)} className="flex items-center gap-1.5 text-xs font-semibold"><MessageCircle className="h-5 w-5" />{post.comments}</button><button onClick={() => share(post)}><Share2 className="h-5 w-5" /></button></footer>
+          </motion.article>)}{hasMore && <button onClick={() => { const next=page+1; setPage(next); loadFeed(next) }} className="mx-auto block px-5 py-3 text-sm font-bold text-[#1683ed]">Load more</button>}</div>}
+        </section>
+        <aside className="hidden space-y-3 xl:block">
+          <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800"><div className="mb-3 flex justify-between"><h2 className="text-sm font-extrabold">Trending This Week</h2><button onClick={() => navigate('/discover')} className="text-xs font-bold text-[#1683ed]">See all</button></div>{trending.length ? <div className="space-y-2.5">{trending.slice(0,5).map((goal,i) => <button key={goal.id||goal._id} onClick={() => openGoal(goal.id||goal._id)} className="flex w-full items-center gap-3 text-left"><span className="w-5 text-xs font-bold text-slate-400">{i+1}</span><CategoryIcon category={goal.category} size="md" /><div className="min-w-0"><p className="truncate text-xs font-extrabold">{goal.title}</p><p className="text-[10px] text-slate-500">{goal.category||'Trending goal'}</p></div></button>)}</div> : <p className="py-5 text-center text-xs text-slate-500">No trending posts available right now.</p>}</div>
+          {!!people.length && <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800"><div className="mb-3 flex justify-between"><h2 className="text-sm font-extrabold">Suggested People</h2><button onClick={() => navigate('/discover?tab=people')} className="text-xs font-bold text-[#1683ed]">See all</button></div><div className="space-y-3">{people.slice(0,4).map(person => <div key={person._id||person.id} className="flex items-center gap-2.5"><Avatar src={person.avatar} name={person.name} size="h-9 w-9" onClick={() => profile(person)} /><button onClick={() => profile(person)} className="min-w-0 flex-1 text-left"><p className="truncate text-xs font-extrabold">{person.name}</p><p className="truncate text-[10px] text-slate-500">@{person.username}</p></button><button onClick={async () => { const r=await followUser(person._id||person.id); if(r?.success) setPeople(xs => xs.filter(x => (x._id||x.id)!==(person._id||person.id))) }} className="rounded-lg bg-blue-50 px-3 py-2 text-[11px] font-bold text-[#1683ed]">Follow</button></div>)}</div></div>}
+        </aside>
+      </div></main>
     </div>
-  );
-};
-
-export default FeedPage;
+    <AnimatePresence>{menuPost && <div className="fixed inset-0 z-[75] flex items-end justify-center bg-black/40 md:items-center" onClick={() => setMenuPost(null)}><motion.div initial={{y:50}} animate={{y:0}} exit={{y:50}} onClick={e => e.stopPropagation()} className="w-full rounded-t-3xl bg-white p-3 pb-8 md:max-w-sm md:rounded-2xl dark:bg-gray-800"><div className="mx-auto mb-3 h-1 w-10 rounded-full bg-slate-200 md:hidden" /><button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/feed?goalId=${menuPost.originalId||''}`); toast.success('Link copied'); setMenuPost(null) }} className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold"><Share2 className="h-5 w-5" />Copy link</button>{menuPost.user.id && String(menuPost.user.id) !== String(user?.id || user?._id || user?.userId || user?.user_id) && <button onClick={async () => { await unfollowUser(menuPost.user.id); setMenuPost(null) }} className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-red-500"><UserPlus className="h-5 w-5" />Unfollow {menuPost.user.name}</button>}<button onClick={() => { setReportPost(menuPost); setMenuPost(null) }} className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-red-500"><Bell className="h-5 w-5" />Report post</button></motion.div></div>}</AnimatePresence>
+    <GoalPostModal isOpen={goalOpen} onClose={() => { setGoalOpen(false); setGoalId(null); if(routeGoalId) navigate('/feed',{replace:true}) }} goalId={goalId} />
+    <Suspense fallback={null}><ActivityCommentsModal isOpen={Boolean(commentsId)} onClose={() => setCommentsId(null)} activity={{_id:commentsId}} /><ShareSheet isOpen={shareOpen} onClose={() => setShareOpen(false)} url={shareUrl.current} title="WishTrail progress" /><ReportModal isOpen={Boolean(reportPost)} onClose={() => setReportPost(null)} targetLabel="activity" onSubmit={async ({reason,description}) => { await report({targetType:'activity',targetId:reportPost.id,reason,description}); setReportPost(null) }} /></Suspense>
+  </div>
+}

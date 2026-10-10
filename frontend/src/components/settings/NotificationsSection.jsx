@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { Bell, CheckCircle, AlertCircle, Smartphone } from 'lucide-react';
 import { settingsAPI } from '../../services/api';
 
-const NotificationsSection = () => {
+const NotificationsSection = ({ channel = 'email' }) => {
   const isNativeApp = typeof window !== 'undefined' && !!window.ReactNativeWebView;
   const [notif, setNotif] = useState(null);
   const [originalNotif, setOriginalNotif] = useState(null);
@@ -132,11 +132,10 @@ const NotificationsSection = () => {
   return (
     <div className="p-6">
       <div className="mb-6">
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white">Notification Preferences</h2>
         <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-          {isNativeApp
+          {channel === 'push'
             ? 'Manage how and when you receive app notifications.'
-            : 'Manage how and when you receive email notifications.'}
+            : 'Manage whether important updates are sent to your email.'}
         </p>
       </div>
 
@@ -155,7 +154,7 @@ const NotificationsSection = () => {
       )}
 
       <div className="space-y-6">
-        {isNativeApp && (
+        {channel === 'push' && isNativeApp && (
           <div className="border-b border-gray-200 dark:border-gray-700 pb-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -193,7 +192,7 @@ const NotificationsSection = () => {
           </div>
         )}
 
-        <div className="border-b border-gray-200 dark:border-gray-700 pb-6">
+        {channel === 'email' && <div className="border-b border-gray-200 dark:border-gray-700 pb-6">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-base font-semibold text-gray-900 dark:text-white">Email Notifications</h3>
@@ -212,9 +211,9 @@ const NotificationsSection = () => {
               <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
             </label>
           </div>
-        </div>
+        </div>}
 
-        {isNativeApp && inAppEnabled && (
+        {channel === 'push' && isNativeApp && inAppEnabled && (
           <div className={`border-b border-gray-200 dark:border-gray-700 pb-6 ${!inAppEnabled ? 'opacity-50' : ''}`}>
             <div className="flex items-center justify-between">
               <div>
@@ -238,7 +237,7 @@ const NotificationsSection = () => {
           </div>
         )}
 
-        {isNativeApp && inAppEnabled && (
+        {channel === 'push' && isNativeApp && inAppEnabled && (
           <div className={`border-b border-gray-200 dark:border-gray-700 pb-6 ${!inAppEnabled ? 'opacity-50' : ''}`}>
             <div className="flex items-center justify-between">
               <div>
@@ -262,7 +261,7 @@ const NotificationsSection = () => {
           </div>
         )}
 
-        {isNativeApp && inAppEnabled && (
+        {channel === 'push' && isNativeApp && inAppEnabled && (
           <div className={`${!inAppEnabled ? 'opacity-50' : ''}`}>
             <div className="flex items-center justify-between">
               <div>
@@ -286,7 +285,7 @@ const NotificationsSection = () => {
           </div>
         )}
 
-        {isNativeApp && inAppEnabled && (
+        {channel === 'push' && isNativeApp && inAppEnabled && (
           <div className={`${!inAppEnabled ? 'opacity-50' : ''}`}>
             <div className="flex items-center justify-between">
               <div>
@@ -317,15 +316,15 @@ const NotificationsSection = () => {
             disabled={!hasChanges || saving || checkingPermission}
             className="px-6 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
           >
-            Discard Changes
+            Cancel
           </button>
           <button
             type="button"
             onClick={saveNotifSettings}
             disabled={!hasChanges || saving || checkingPermission}
-            className="px-6 py-2.5 bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed text-white dark:text-gray-900 rounded-lg font-medium transition-colors"
+            className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors"
           >
-            {saving ? 'Saving...' : 'Save Preferences'}
+            {saving ? 'Saving...' : 'Save Changes'}
           </button>
         </div>
       </div>
