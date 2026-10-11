@@ -185,9 +185,11 @@ class AuthService {
   /**
    * Login user
    */
-  async login(email, password, deviceType, timezone = 'UTC', locale = 'en-US') {
-    // Find user by email
-    const user = await pgUserService.getUserByEmail(email, true); // true = include password
+  async login(identifier, password, deviceType, timezone = 'UTC', locale = 'en-US') {
+    const normalizedIdentifier = String(identifier || '').trim().toLowerCase();
+    const user = normalizedIdentifier.includes('@') && !normalizedIdentifier.startsWith('@')
+      ? await pgUserService.getUserByEmail(normalizedIdentifier, true)
+      : await pgUserService.getUserByUsername(normalizedIdentifier.replace(/^@/, ''), true);
     
     if (!user || !user.is_active || !user.password) {
       throw createHttpError('Invalid credentials', 401, 'INVALID_CREDENTIALS');
@@ -859,14 +861,19 @@ class AuthService {
   /**
    * Request password reset
    */
-  async forgotPassword(email) {
+  async forgotPassword(identifier) {
+    const normalizedIdentifier = String(identifier || '').trim().toLowerCase();
+    const user = normalizedIdentifier.includes('@') && !normalizedIdentifier.startsWith('@')
+      ? await pgUserService.getUserByEmail(normalizedIdentifier)
+      : await pgUserService.getUserByUsername(normalizedIdentifier.replace(/^@/, ''));
+    const email = user?.email || normalizedIdentifier;
+
     // Check if user exists
-    const user = await pgUserService.getUserByEmail(email);
     if (!user || !user.is_active) {
       // Don't reveal if user exists or not for security
       return {
-        message: 'If an account with this email exists, you will receive a password reset link.',
-        email
+        message: 'If an account with that email or username exists, you will receive a password reset link.',
+        email: normalizedIdentifier
       };
     }
 
@@ -886,7 +893,7 @@ class AuthService {
       });
 
     return {
-      message: 'If an account with this email exists, you will receive a password reset link.',
+      message: 'If an account with that email or username exists, you will receive a password reset link.',
       email,
       expiresAt: resetData.expiresAt
     };

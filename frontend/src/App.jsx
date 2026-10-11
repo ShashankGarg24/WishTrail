@@ -19,6 +19,7 @@ import { FEATURES } from './config/features'
 const HomePage = lazy(() => import('./pages/HomePage'))
 const AuthPage = lazy(() => import('./pages/AuthPage'))
 const DashboardPageNew = lazy(() => import('./pages/DashboardPage'))
+const WeeklyTrailPage = lazy(() => import('./pages/WeeklyTrailPage'))
 const ProfilePage = lazy(() => import('./pages/ProfilePage'))
 const InspirationPage = lazy(() => import('./pages/InspirationPage'))
 const FeedPage = lazy(() => import('./pages/FeedPage'))
@@ -71,6 +72,7 @@ function App() {
     location.pathname === '/feed' ||
     location.pathname === '/discover' ||
     location.pathname === '/notifications' ||
+    location.pathname.startsWith('/weekly-trail') ||
     location.pathname === '/settings' ||
     location.pathname === '/leaderboard' ||
     location.pathname.startsWith('/profile/') ||
@@ -316,6 +318,7 @@ function App() {
               <Route path="/error/auth" element={<AuthExpiredPage />} />
               
               {/* Protected routes - Require authentication */}
+              <Route path="/weekly-trail/:periodKey?" element={<PrivateRoute><WeeklyTrailPage /></PrivateRoute>} />
               <Route path="/home" element={<PrivateRoute><DashboardPageNew /></PrivateRoute>} />
               <Route path="/dashboard" element={<PrivateRoute><DashboardPageNew /></PrivateRoute>} />
               <Route path="/feed" element={<PrivateRoute><FeedPage /></PrivateRoute>} />

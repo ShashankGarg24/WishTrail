@@ -265,7 +265,7 @@ export const authAPI = {
   setPasswordWithOTP: (data) => api.post('/auth/password-setup/verify', data),
 
   // Password reset API
-  forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
+  forgotPassword: (identifier) => api.post('/auth/forgot-password', { identifier }),
   resetPassword: (token, newPassword) => api.post('/auth/reset-password', { token, newPassword }),
 
   // Multi-step signup API

@@ -87,9 +87,10 @@ const login = async (req, res, next) => {
       });
     }
 
-    const { email, password, deviceToken, platform, timezone, locale } = req.body;
+    const { password, deviceToken, platform, timezone, locale } = req.body;
+    const identifier = req.body.identifier || req.body.email;
     const deviceType = getDeviceType(req);
-    const result = await authService.login(email, password, deviceType, timezone, locale);
+    const result = await authService.login(identifier, password, deviceType, timezone, locale);
 
     // Fetch unseen major product update for client modal
     let latestUpdate = null;
@@ -329,8 +330,8 @@ const forgotPassword = async (req, res, next) => {
         errors: errors.array()
       });
     }
-    const { email } = req.body;
-    const result = await authService.forgotPassword(email);
+    const identifier = req.body.identifier || req.body.email;
+    const result = await authService.forgotPassword(identifier);
 
 
     // In a real application, you would send this token via email

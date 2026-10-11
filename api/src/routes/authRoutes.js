@@ -20,9 +20,12 @@ const signupValidation = [
 ];
 
 const loginValidation = [
-  body('email')
-    .isEmail()
-    .withMessage('Please provide a valid email'),
+  body('identifier').custom((value, { req }) => {
+    const identifier = String(value || req.body.email || '').trim();
+    if (!identifier) throw new Error('Email or username is required');
+    if (identifier.length > 254) throw new Error('Email or username is too long');
+    return true;
+  }),
   body('password')
     .notEmpty()
     .withMessage('Password is required')
@@ -89,9 +92,12 @@ const completeProfileValidation = [
 ];
 
 const forgotPasswordValidation = [
-  body('email')
-    .isEmail()
-    .withMessage('Please provide a valid email')
+  body('identifier').custom((value, { req }) => {
+    const identifier = String(value || req.body.email || '').trim();
+    if (!identifier) throw new Error('Email or username is required');
+    if (identifier.length > 254) throw new Error('Email or username is too long');
+    return true;
+  })
 ];
 
 const resetPasswordValidation = [

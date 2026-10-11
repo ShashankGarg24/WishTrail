@@ -18,7 +18,7 @@ const getSection = pathname => {
   if (pathname === '/feed' || pathname.startsWith('/goal/')) return 'feed'
   if (pathname === '/discover') return 'discover'
   if (pathname === '/leaderboard') return 'leaderboard'
-  if (pathname.startsWith('/profile/') || pathname === '/settings' || pathname === '/notifications') return 'profile'
+  if (pathname.startsWith('/weekly-trail') || pathname.startsWith('/profile/') || pathname === '/settings' || pathname === '/notifications') return 'profile'
   return null
 }
 
@@ -43,7 +43,7 @@ export default function ContextualSidebar() {
     if (section === 'home') return [
       { label: 'Home', items: [item('Overview', Compass, '/home?tab=overview', () => queryValue(location.search, 'tab', 'overview') === 'overview'), item('Goals', Target, '/home?tab=goals', () => queryValue(location.search, 'tab', 'overview') === 'goals'), item('Habits', Zap, '/home?tab=habits', () => queryValue(location.search, 'tab', 'overview') === 'habits')] },
       { label: 'Quick actions', items: [item('New Goal', Plus, null, null, () => setOpenAction('goal')), item('New Habit', Plus, null, null, () => setOpenAction('habit')), item('Daily Check-in', CalendarCheck, null, null, () => setOpenAction('daily-log'))] },
-      { label: 'My activity', items: [item('Journal', BookOpen, `/profile/@${username}?tab=daily-logs`)] },
+      { label: 'My activity', items: [item('My Trail', Activity, `/profile/@${username}?tab=trail`), item('Journal', BookOpen, `/profile/@${username}?tab=daily-logs`)] },
       ...shared,
     ]
     if (section === 'feed') return [

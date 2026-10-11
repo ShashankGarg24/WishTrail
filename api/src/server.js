@@ -168,6 +168,7 @@ const createApp = async () => {
   apiRouter.use('/daily-logs', require('./routes/DailyLogsRoutes'));
   apiRouter.use('/feedback', require('./routes/feedbackRoutes'));
   apiRouter.use('/habits', require('./routes/habitRoutes'));
+  apiRouter.use('/weekly-trail', require('./routes/weeklyTrailRoutes'));
   apiRouter.use('/moderation', require('./routes/moderationRoutes'));
   apiRouter.use('/notifications', require('./routes/notificationRoutes'));
   apiRouter.use('/communities', require('./routes/communityRoutes'));

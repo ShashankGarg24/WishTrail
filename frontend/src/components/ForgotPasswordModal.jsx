@@ -1,17 +1,17 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Mail, AlertCircle, CheckCircle, Send } from 'lucide-react';
+import { X, AlertCircle, CheckCircle, Send } from 'lucide-react';
 import useApiStore from '../store/apiStore';
 
 const ForgotPasswordModal = ({ isOpen, onClose }) => {
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [errors, setErrors] = useState({});
   
   const { forgotPassword, loading, error } = useApiStore();
 
   const handleInputChange = (e) => {
-    setEmail(e.target.value);
+    setIdentifier(e.target.value);
     // Clear error when user starts typing
     if (errors.email) {
       setErrors(prev => ({ ...prev, email: '' }));
@@ -21,10 +21,8 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
   const validateEmail = () => {
     const newErrors = {};
     
-    if (!email.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(email)) {
-      newErrors.email = 'Please enter a valid email address';
+    if (!identifier.trim()) {
+      newErrors.email = 'Email or username is required';
     }
     
     setErrors(newErrors);
@@ -39,7 +37,7 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
     }
     
     try {
-      const result = await forgotPassword(email);
+      const result = await forgotPassword(identifier);
       
       if (result.success) {
         setIsSubmitted(true);
@@ -50,7 +48,7 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
   };
 
   const handleClose = () => {
-    setEmail('');
+    setIdentifier('');
     setIsSubmitted(false);
     setErrors({});
     onClose();
@@ -96,27 +94,27 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
           {!isSubmitted ? (
             <div>
               <p className="text-gray-600 dark:text-gray-400 mb-6">
-                Enter your email address and we'll send you a link to reset your password.
+                Enter your email or username and we'll send a reset link to your account email.
               </p>
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Email Address
-                  </label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                     <input
-                      id="email"
-                      type="email"
-                      value={email}
+                      id="forgot-identifier"
+                      type="text"
+                      autoCapitalize="none"
+                      autoComplete="username"
+                      value={identifier}
                       onChange={handleInputChange}
-                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-colors ${
+                      className={`peer w-full px-4 pt-6 pb-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors ${
                         errors.email ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                       }`}
-                      placeholder="Enter your email address"
                       disabled={loading}
                     />
+                    <label htmlFor="forgot-identifier" className={`pointer-events-none absolute left-4 origin-left transition-all duration-150 ${identifier ? 'top-1.5 text-xs' : 'top-1/2 -translate-y-1/2 text-base peer-focus:top-1.5 peer-focus:translate-y-0 peer-focus:text-xs'} text-gray-500 dark:text-gray-400 peer-focus:text-primary-500`}>
+                      Email or username
+                    </label>
                   </div>
                   {errors.email && (
                     <div className="flex items-center mt-2 text-red-500 text-sm">
@@ -169,7 +167,7 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
               </div>
               
               <p className="text-gray-600 dark:text-gray-400 mb-6">
-                We've sent a password reset link to <strong>{email}</strong>
+                If an account matches those details, we've sent a password reset link to its email address.
               </p>
               
               <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 mb-6">

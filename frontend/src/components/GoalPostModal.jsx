@@ -1,5 +1,4 @@
 import { useState, useEffect, lazy, Suspense, useRef } from 'react';
-import CategoryBadge from './CategoryBadge';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ArrowLeft, Heart, MessageCircle, Share2, TrendingUp, ZoomIn, ZoomOut, RotateCcw, MoreVertical, Bell, UserPlus } from 'lucide-react';
@@ -7,7 +6,7 @@ import useApiStore from '../store/apiStore';
 import { goalsAPI } from '../services/api';
 import toast from 'react-hot-toast';
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock';
-import GoalCategoryBanner from './GoalCategoryBanner';
+import GoalHero from './GoalHero';
 
 const ActivityCommentsModal = lazy(() => import('./ActivityCommentsModal'));
 const ShareSheet = lazy(() => import('./ShareSheet'));
@@ -646,22 +645,7 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
                     </button>
                   </div>
 
-                  <GoalCategoryBanner category={goalData.goal?.category} variant="compact" className="mb-4" />
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
-                    {goalData.goal?.title || 'Goal'}
-                  </h2>
-
-                  <div className="flex items-center gap-2 mb-3">
-                    <CategoryBadge category={goalData.goal?.category} />
-                    {(goalData.goal?.isCompleted || goalData.goal?.completedAt) && (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-green-50 text-green-600 text-xs font-semibold rounded-full">
-                        <svg className="w-3 h-3" viewBox="0 0 12 12" fill="currentColor">
-                          <path d="M10.28 2.28L3.989 8.575 1.695 6.28A1 1 0 00.28 7.695l3 3a1 1 0 001.414 0l7-7A1 1 0 0010.28 2.28z" />
-                        </svg>
-                        Completed
-                      </span>
-                    )}
-                  </div>
+                  <GoalHero goal={goalData.goal} className="mb-3" />
 
                   {(goalData.completion?.completedAt || goalData.goal?.completedAt) && (
                     <p className="text-sm text-gray-600 dark:text-gray-400">

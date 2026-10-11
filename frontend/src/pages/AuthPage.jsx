@@ -62,10 +62,8 @@ const AuthPage = () => {
   const validateForm = () => {
     const newErrors = {};
     
-    if (!formData.email) {
-      newErrors.email = "Email is required";
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = "Please enter a valid email";
+    if (!formData.email.trim()) {
+      newErrors.email = "Email or username is required";
     }
     
     if (!formData.password) {
@@ -319,29 +317,32 @@ const AuthPage = () => {
               </div>
               <div className="relative flex justify-center text-sm">
                 <span className="px-2 bg-white dark:bg-gray-900 text-gray-500 dark:text-gray-400 uppercase tracking-wide text-[10px] sm:text-xs font-medium">
-                  Or with email
+                  Or with email or username
                 </span>
               </div>
             </div>
 
             {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
-              {/* Email Field */}
+              {/* Email or username field */}
               <div>
-                <label htmlFor="email" className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2 uppercase tracking-wide">
-                  Email Address
-                </label>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-400 ${
-                    errors.email ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-                  }`}
-                  placeholder="name@company.com"
-                />
+                <div className="relative">
+                  <input
+                    id="email"
+                    name="email"
+                    type="text"
+                    autoCapitalize="none"
+                    autoComplete="username"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    className={`peer w-full px-3 sm:px-4 pt-5 pb-1.5 sm:pt-6 sm:pb-2 text-sm sm:text-base border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white ${
+                      errors.email ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+                    }`}
+                  />
+                  <label htmlFor="email" className={`pointer-events-none absolute left-3 sm:left-4 origin-left transition-all duration-150 ${formData.email ? 'top-1.5 text-[10px] sm:text-xs' : 'top-1/2 -translate-y-1/2 text-sm sm:text-base peer-focus:top-1.5 peer-focus:translate-y-0 peer-focus:text-[10px] sm:peer-focus:text-xs'} text-gray-500 dark:text-gray-400 peer-focus:text-blue-500`}>
+                    Email or username
+                  </label>
+                </div>
                 {errors.email && (
                   <p className="text-red-500 text-sm mt-1">{errors.email}</p>
                 )}
@@ -349,10 +350,7 @@ const AuthPage = () => {
 
               {/* Password Field */}
               <div>
-                <div className="flex items-center justify-between mb-1.5 sm:mb-2">
-                  <label htmlFor="password" className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wide">
-                    Password
-                  </label>
+                <div className="flex items-center justify-end mb-1.5 sm:mb-2">
                   <button
                     type="button"
                     onClick={() => setShowForgotPasswordModal(true)}
@@ -366,13 +364,16 @@ const AuthPage = () => {
                     id="password"
                     name="password"
                     type={showPassword ? "text" : "password"}
+                    autoComplete="current-password"
                     value={formData.password}
                     onChange={handleInputChange}
-                    className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 pr-10 text-sm sm:text-base border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-400 ${
+                    className={`peer w-full px-3 sm:px-4 pt-5 pb-1.5 sm:pt-6 sm:pb-2 pr-10 text-sm sm:text-base border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white ${
                       errors.password ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                     }`}
-                    placeholder="••••••••"
                   />
+                  <label htmlFor="password" className={`pointer-events-none absolute left-3 sm:left-4 origin-left transition-all duration-150 ${formData.password ? 'top-1.5 text-[10px] sm:text-xs' : 'top-1/2 -translate-y-1/2 text-sm sm:text-base peer-focus:top-1.5 peer-focus:translate-y-0 peer-focus:text-[10px] sm:peer-focus:text-xs'} text-gray-500 dark:text-gray-400 peer-focus:text-blue-500`}>
+                    Password
+                  </label>
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}

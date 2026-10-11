@@ -263,10 +263,10 @@ const useApiStore = create(
         }
       },
 
-      login: async (email, password) => {
+      login: async (identifier, password) => {
         try {
           set({ loading: true, error: null });
-          const response = await authAPI.login({ email, password });
+          const response = await authAPI.login({ identifier, password });
           const { user, token, latestUpdate } = response.data.data;
 
           setAuthToken(token);
@@ -319,10 +319,10 @@ const useApiStore = create(
       // PASSWORD RESET ACTIONS
       // =====================
 
-      forgotPassword: async (email) => {
+      forgotPassword: async (identifier) => {
         try {
           set({ loading: true, error: null });
-          const response = await authAPI.forgotPassword(email);
+          const response = await authAPI.forgotPassword(identifier);
           const result = response.data.data;
           set({ loading: false });
           return { success: true, data: result };

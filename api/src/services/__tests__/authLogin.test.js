@@ -6,7 +6,10 @@ jest.mock('../../models/Otp', () => ({}));
 jest.mock('../emailService', () => ({}));
 jest.mock('../../utility/BloomFilterService', () => ({}));
 jest.mock('../../utility/avatarGenerator', () => ({}));
-jest.mock('../pgUserService', () => ({ getUserByEmail: jest.fn() }));
+jest.mock('../pgUserService', () => ({
+  getUserByEmail: jest.fn(),
+  getUserByUsername: jest.fn()
+}));
 jest.mock('../pgFollowService', () => ({}));
 jest.mock('../productUpdateService', () => ({}));
 jest.mock('bcryptjs', () => ({ compare: jest.fn() }));
@@ -32,6 +35,15 @@ test('incorrect passwords reject with 401', async () => {
   users.getUserByEmail.mockResolvedValue({ is_active: true, password: 'hash' });
   bcrypt.compare.mockResolvedValue(false);
   await expect(authService.login('user@example.com', 'wrong', 'app')).rejects.toMatchObject({ statusCode: 401 });
+});
+
+test('username login looks up the user by username', async () => {
+  users.getUserByUsername.mockResolvedValue({ is_active: true, password: 'hash' });
+  bcrypt.compare.mockResolvedValue(false);
+
+  await expect(authService.login('@TestUser', 'wrong', 'web')).rejects.toMatchObject({ statusCode: 401 });
+  expect(users.getUserByUsername).toHaveBeenCalledWith('testuser', true);
+  expect(users.getUserByEmail).not.toHaveBeenCalled();
 });
 
 test('app and web refresh tokens use their platform-specific lifetimes', () => {
