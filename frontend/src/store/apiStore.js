@@ -1223,9 +1223,9 @@ const useApiStore = create(
         }
       },
 
-      getGoalTimeline: async (id) => {
+      getGoalTimeline: async (id, params = {}) => {
         try {
-          const response = await goalsAPI.getGoalTimeline(id);
+          const response = await goalsAPI.getGoalTimeline(id, params);
           return { success: true, ...response.data };
         } catch (error) {
           const errorMessage = handleApiError(error);

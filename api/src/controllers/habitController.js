@@ -9,13 +9,14 @@ const { getCurrentDateInTimezone, getDateRangeInTimezone } = require('../utility
 const { habitCompletion, scheduledOccurrences, percentagePointTrend } = require('../utility/metrics');
 const { validateHabitCreation, handleValidationResponse } = require('../utility/premiumEnforcement');
 const UserPreferences = require('../models/extended/UserPreferences');
+const { HABIT_CATEGORIES, normalizeHabitCategory } = require('../constants/habitCategories');
 
 const MAX_HABIT_TITLE_CHARS = 100;
 const MAX_HABIT_DESC_CHARS = 200;
 
 exports.createHabit = async (req, res, next) => {
   try {
-    const { name, description, frequency, daysOfWeek, reminders, goalId, isPublic, dailyTargetCount, targetDays } = req.body;
+    const { name, description, category, frequency, daysOfWeek, reminders, goalId, isPublic, dailyTargetCount, targetDays } = req.body;
     const normalizedName = typeof name === 'string' ? name.trim() : '';
     const normalizedDescription = typeof description === 'string' ? description.trimEnd() : '';
     if (!normalizedName) {
@@ -33,7 +34,10 @@ exports.createHabit = async (req, res, next) => {
     const errorResponse = handleValidationResponse(res, validation);
     if (errorResponse) return errorResponse;
 
-    const habit = await pgHabitService.createHabit({ userId: req.user.id, name: normalizedName, description: normalizedDescription, frequency, daysOfWeek, reminders, goalId, isPublic, dailyTargetCount, targetDays });
+    if (category != null && !HABIT_CATEGORIES.includes(String(category).trim().toUpperCase())) {
+      return res.status(400).json({ success: false, message: 'Invalid habit category' });
+    }
+    const habit = await pgHabitService.createHabit({ userId: req.user.id, name: normalizedName, description: normalizedDescription, category: normalizeHabitCategory(category), frequency, daysOfWeek, reminders, goalId, isPublic, dailyTargetCount, targetDays });
     res.status(201).json({ success: true, data: { habit } });
   } catch (error) { next(error); }
 };
@@ -131,6 +135,7 @@ exports.listHabits = async (req, res, next) => {
     let todayStatusMap = {};
     let todayCompletionCountMap = {};
     let weeklyCompletedDaysMap = {};
+    let weeklyCompletionsMap = {};
     if (habits.length > 0) {
       const todayDate = new Date(`${today}T12:00:00.000Z`);
       const mondayOffset = (todayDate.getUTCDay() + 6) % 7;
@@ -142,12 +147,14 @@ exports.listHabits = async (req, res, next) => {
           [targetUserId, today]
         ),
         query(
-          `SELECT hl.habit_id, COUNT(DISTINCT hl.date_key)::int AS completed_days
+          `SELECT hl.habit_id,
+                  COUNT(DISTINCT hl.date_key) FILTER (
+                    WHERE hl.status = 'done' AND hl.completion_count >= COALESCE(h.daily_target_count, 1)
+                  )::int AS completed_days,
+                  COALESCE(SUM(hl.completion_count) FILTER (WHERE hl.status = 'done'), 0)::int AS weekly_completions
            FROM habit_logs hl
            INNER JOIN habits h ON h.id = hl.habit_id
            WHERE hl.user_id = $1 AND hl.date_key >= $2 AND hl.date_key <= $3
-             AND hl.status = 'done'
-             AND hl.completion_count >= COALESCE(h.daily_target_count, 1)
            GROUP BY hl.habit_id`,
           [targetUserId, weekStart, today]
         )
@@ -158,6 +165,7 @@ exports.listHabits = async (req, res, next) => {
       }
       for (const row of weeklyLogsResult.rows) {
         weeklyCompletedDaysMap[row.habit_id] = Number(row.completed_days) || 0;
+        weeklyCompletionsMap[row.habit_id] = Number(row.weekly_completions) || 0;
       }
     }
 
@@ -184,7 +192,8 @@ exports.listHabits = async (req, res, next) => {
             ? 'partial'
             : (todayStatusMap[h.id] || null),
           todayCompletionCount: todayCompletionCountMap[h.id] || 0,
-          weeklyCompletedDays: weeklyCompletedDaysMap[h.id] || 0
+          weeklyCompletedDays: weeklyCompletedDaysMap[h.id] || 0,
+          weeklyCompletions: weeklyCompletionsMap[h.id] || 0
         };
       }),
       pagination: {
@@ -221,7 +230,7 @@ exports.searchHabits = async (req, res, next) => {
     const countSql = `
       SELECT COUNT(*) as total
       FROM habits
-      WHERE user_id = $1 AND (name ILIKE $2 OR description ILIKE $2)
+      WHERE user_id = $1 AND (name ILIKE $2 OR description ILIKE $2 OR category ILIKE $2)
     `;
     const countResult = await query(countSql, [userId, `%${q.trim()}%`]);
     const total = parseInt(countResult.rows[0].total);
@@ -322,6 +331,13 @@ exports.updateHabit = async (req, res, next) => {
       if (updates.description.length > MAX_HABIT_DESC_CHARS) {
         return res.status(400).json({ success: false, message: `Description cannot exceed ${MAX_HABIT_DESC_CHARS} characters` });
       }
+    }
+    if (updates.category !== undefined) {
+      const requestedCategory = String(updates.category || '').trim().toUpperCase();
+      if (!HABIT_CATEGORIES.includes(requestedCategory)) {
+        return res.status(400).json({ success: false, message: 'Invalid habit category' });
+      }
+      updates.category = requestedCategory;
     }
 
     if (Array.isArray(updates.reminders)) {
@@ -1091,13 +1107,10 @@ exports.getHabitLogs = async (req, res, next) => {
     // Get user timezone for proper date display
     const pgUser = await pgUserService.getUserById(userId);
     const userTimezone = pgUser?.timezone || 'UTC';
-    const { getFeatureLimits } = require('../config/premiumFeatures');
-    const maxHistoryDays = getFeatureLimits('analytics', pgUser?.premium_expires_at).maxHistoryDays;
     const requestedDays = parseInt(req.query.days, 10);
-    const days = Math.min(
-      Math.max(Number.isFinite(requestedDays) && requestedDays > 0 ? requestedDays : 30, 1),
-      maxHistoryDays
-    );
+    // Log history is independently paginated and is not constrained by the
+    // Analytics timeframe/retention selector.
+    const days = Math.min(Math.max(Number.isFinite(requestedDays) && requestedDays > 0 ? requestedDays : 36500, 1), 36500);
     const { startDate: startDateKey } = getDateRangeInTimezone(days - 1, userTimezone);
 
     const { query } = require('../config/supabase');

@@ -270,6 +270,7 @@ class AuthService {
     
     if (prefs) {
       userResponse.interests = prefs.interests || [];
+      userResponse.coverImage = prefs.profile?.coverImage || '';
       userResponse.currentMood = prefs.preferences?.currentMood || '';
       userResponse.quote = prefs.preferences?.quote || '';
       userResponse.theme = prefs.preferences?.theme || 'light';
@@ -476,6 +477,7 @@ class AuthService {
     
     if (prefs) {
       userResponse.interests = prefs.interests || [];
+      userResponse.coverImage = prefs.profile?.coverImage || '';
       userResponse.currentMood = prefs.preferences?.currentMood || '';
       userResponse.quote = prefs.preferences?.quote || '';
       userResponse.theme = prefs.preferences?.theme || 'light';

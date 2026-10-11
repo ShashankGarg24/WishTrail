@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState, useRef } from 'react'
-import { GOAL_CATEGORIES } from '../constants/goalCategories'
 import { motion } from 'framer-motion'
-import { X, Target, Calendar, Tag, AlertCircle, ChevronDown, ChevronRight } from 'lucide-react'
+import { X, Target, Calendar, AlertCircle, ChevronDown, ChevronRight } from 'lucide-react'
 import useApiStore from '../store/apiStore'
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
 import { useGoalLimits } from '../hooks/usePremium'
 import PremiumLimitIndicator from './PremiumLimitIndicator'
+import GoalCategorySelector from './GoalCategorySelector'
 
 const THEME_COLOR = '#4c99e6'
 
@@ -78,8 +78,6 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
   useEffect(() => { if (isOpen) { lockBodyScroll(); return () => unlockBodyScroll(); } }, [isOpen])
 
   // Canonical categories for dropdown
-  const categories = GOAL_CATEGORIES;
-
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target
     const v = type === 'checkbox' ? checked : value
@@ -208,7 +206,7 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-slate-950/60 backdrop-blur-[2px] flex items-end justify-center sm:items-center sm:p-4 z-[9999]"
+        className="goal-form-modal fixed inset-0 bg-slate-950/60 backdrop-blur-[2px] flex items-end justify-center sm:items-center sm:p-4 z-[9999]"
         style={{ fontFamily: 'Manrope, ui-sans-serif, system-ui' }}
         onClick={onClose}
       >
@@ -216,7 +214,7 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
-        className="bg-[#f8fafc] dark:bg-gray-900 rounded-t-3xl sm:rounded-2xl w-full sm:max-w-[760px] h-[94dvh] sm:h-[min(84dvh,760px)] sm:max-h-[calc(100dvh-2rem)] relative shadow-2xl sm:border border-slate-200 dark:border-gray-800 overflow-hidden flex flex-col"
+        className="goal-form-dialog bg-[#f8fafc] dark:bg-gray-900 rounded-t-3xl sm:rounded-2xl w-full sm:max-w-[760px] h-[94dvh] sm:h-[min(84dvh,760px)] sm:max-h-[calc(100dvh-2rem)] relative shadow-2xl sm:border border-slate-200 dark:border-gray-800 overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
         style={{ fontFamily: 'Manrope, ui-sans-serif, system-ui' }}
       >
@@ -323,25 +321,10 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
 
               {/* Category */}
               <div>
-                <label htmlFor="category" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" style={{ fontFamily: 'Manrope' }}>
-                  <Tag className="h-3.5 w-3.5 inline mr-1" />
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" style={{ fontFamily: 'Manrope' }}>
                   Category <span className="text-red-500">*</span>
                 </label>
-                <select
-                  id="category"
-                  name="category"
-                  value={formData.category}
-                  onChange={handleInputChange}
-                  className={`w-full px-4 py-3 border rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-colors ${errors.category ? 'border-red-500' : 'border-slate-200 dark:border-gray-700'}`}
-                  style={{ fontFamily: 'Manrope', borderColor: errors.category ? '#ef4444' : (formData.category ? THEME_COLOR : undefined) }}
-                  required
-                  disabled={!editMode && !goalLimits.canCreate}
-                >
-                  <option value="">Select a category</option>
-                  {categories.map(category => (
-                    <option key={category.id} value={category.id}>{category.label}</option>
-                  ))}
-                </select>
+                <GoalCategorySelector value={formData.category} onChange={category => setFormData(current => ({ ...current, category }))} disabled={!editMode && !goalLimits.canCreate}/>
                 {errors.category && (
                   <div className="flex items-center gap-2 mt-2 text-red-600 dark:text-red-400 text-xs" style={{ fontFamily: 'Manrope' }}>
                     <AlertCircle className="h-3 w-3 flex-shrink-0" />
@@ -376,7 +359,7 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
                   <div className="px-4 pb-4 space-y-4 border-t border-gray-200 dark:border-gray-700">
                     {/* Description */}
                     <div>
-                      <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" style={{ fontFamily: 'Manrope' }}>
+                      <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mt-2 mb-2" style={{ fontFamily: 'Manrope' }}>
                         Description
                       </label>
                       <textarea

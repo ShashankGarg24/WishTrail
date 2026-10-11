@@ -1,3 +1,5 @@
+import { HABIT_CATEGORIES, normalizeHabitCategory } from '../constants/habitCategories'
+
 export const INTEREST_TO_HABITS = {
   fitness: [
     { name: 'Morning jog', description: 'Run for 20 minutes right after waking up.', frequency: 'daily' },
@@ -77,7 +79,22 @@ export const INTEREST_TO_HABITS = {
   ],
 }
 
-export const ALL_HABIT_CATEGORIES = Object.keys(INTEREST_TO_HABITS)
+export const ALL_HABIT_CATEGORIES = HABIT_CATEGORIES
+
+const LEGACY_POOL_CATEGORY = {
+  fitness: 'FITNESS', health: 'SELF_CARE', productivity: 'PRODUCTIVITY', mindfulness: 'MINDFULNESS',
+  learning: 'LEARNING', nutrition: 'NUTRITION', finance: 'FINANCE', relationships: 'SOCIAL',
+  career: 'CAREER', creativity: 'CREATIVITY', wellness: 'SELF_CARE',
+}
+
+const TEMPLATE_CATEGORY_OVERRIDES = {
+  'Hydration check': 'NUTRITION', 'No sugar after lunch': 'NUTRITION', 'Fruit and veg': 'NUTRITION',
+  'Limit caffeine': 'NUTRITION', 'Home-cooked meal': 'NUTRITION', 'Meal prep': 'NUTRITION',
+  'Stretch before bed': 'FITNESS', 'Declutter desk': 'HOME', 'Digital sunset': 'SELF_CARE',
+  'Nature walk': 'MINDFULNESS', 'Posture check': 'FITNESS', 'Weekend sport': 'FITNESS',
+}
+
+const categoryFor = (pool, item) => normalizeHabitCategory(item.category || TEMPLATE_CATEGORY_OVERRIDES[item.name] || LEGACY_POOL_CATEGORY[pool])
 
 function shuffleArray(source) {
   const arr = [...source]
@@ -101,15 +118,16 @@ function uniqueByName(items) {
 
 export function discoverHabitIdeas(interests = [], limit = 6) {
   const normalized = Array.isArray(interests) ? interests.filter(Boolean) : []
-  let chosen = normalized.filter((c) => ALL_HABIT_CATEGORIES.includes(c))
+  const sourceCategories = Object.keys(INTEREST_TO_HABITS)
+  let chosen = normalized.map(value => String(value).toLowerCase()).filter((c) => sourceCategories.includes(c))
 
   if (chosen.length < 3) {
-    const remain = ALL_HABIT_CATEGORIES.filter((c) => !chosen.includes(c))
+    const remain = sourceCategories.filter((c) => !chosen.includes(c))
     const needed = Math.min(3 - chosen.length, remain.length)
     chosen = [...chosen, ...shuffleArray(remain).slice(0, needed)]
   }
 
-  const remaining = ALL_HABIT_CATEGORIES.filter((c) => !chosen.includes(c))
+  const remaining = sourceCategories.filter((c) => !chosen.includes(c))
   const extraCount = Math.min(remaining.length, Math.floor(Math.random() * 2) + 1)
   if (extraCount > 0) {
     chosen = [...chosen, ...shuffleArray(remaining).slice(0, extraCount)]
@@ -125,15 +143,15 @@ export function discoverHabitIdeas(interests = [], limit = 6) {
     const pool = pools[index % pools.length]
     if (pool.items.length > 0) {
       const item = pool.items.shift()
-      picked.push({ ...item, category: pool.category })
+      picked.push({ ...item, category: categoryFor(pool.category, item) })
     }
     index++
   }
 
   if (picked.length < limit) {
-    const remainCats = ALL_HABIT_CATEGORIES.filter((c) => !chosen.includes(c))
+    const remainCats = sourceCategories.filter((c) => !chosen.includes(c))
     const remainPool = shuffleArray(
-      remainCats.flatMap((c) => (INTEREST_TO_HABITS[c] || []).map((it) => ({ ...it, category: c })))
+      remainCats.flatMap((c) => (INTEREST_TO_HABITS[c] || []).map((it) => ({ ...it, category: categoryFor(c, it) })))
     )
     picked.push(...remainPool)
   }
@@ -142,8 +160,9 @@ export function discoverHabitIdeas(interests = [], limit = 6) {
 }
 
 export function discoverHabitIdeasForCategory(category, limit = 6) {
-  const key = String(category || '').toLowerCase()
-  return shuffleArray([...(INTEREST_TO_HABITS[key] || [])])
+  const key = normalizeHabitCategory(category)
+  return shuffleArray(Object.entries(INTEREST_TO_HABITS).flatMap(([pool, items]) => items
+    .filter(item => categoryFor(pool, item) === key)
+    .map(item => ({ ...item, category: key }))))
     .slice(0, limit)
-    .map((item) => ({ ...item, category: key }))
 }

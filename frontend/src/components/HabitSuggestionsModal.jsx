@@ -1,48 +1,12 @@
 import { useEffect, useState } from 'react'
-import { X, RefreshCw, Phone, Activity, Music, Moon, TreePine, Utensils, Heart, Briefcase, Lightbulb, DollarSign, BookOpen, Palette } from 'lucide-react'
+import { X, RefreshCw } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ALL_HABIT_CATEGORIES, discoverHabitIdeas, discoverHabitIdeasForCategory } from '../services/habitIdeas'
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
+import HabitCategoryIcon from './HabitCategoryIcon'
+import { getHabitCategoryLabel } from '../constants/habitCategories'
 
 const THEME_COLOR = '#4c99e6'
-
-const CATEGORY_ICONS = {
-  fitness: Activity,
-  health: Heart,
-  productivity: Briefcase,
-  mindfulness: Moon,
-  learning: BookOpen,
-  nutrition: Utensils,
-  finance: DollarSign,
-  relationships: Phone,
-  career: Briefcase,
-  creativity: Palette,
-  wellness: TreePine,
-}
-
-const CATEGORY_LABELS = {
-  fitness: 'ACTIVE',
-  health: 'WELLNESS',
-  productivity: 'PRODUCTIVITY',
-  mindfulness: 'MINDFULNESS',
-  learning: 'SKILLS',
-  nutrition: 'NUTRITION',
-  finance: 'FINANCE',
-  relationships: 'SOCIAL',
-  career: 'CAREER',
-  creativity: 'CREATIVE',
-  wellness: 'NATURE',
-}
-
-function getCategoryIcon(category) {
-  const c = (category || '').toLowerCase()
-  return CATEGORY_ICONS[c] || Lightbulb
-}
-
-function getCategoryLabel(category) {
-  const c = (category || '').toLowerCase()
-  return CATEGORY_LABELS[c] || (c ? c.toUpperCase() : 'HABIT')
-}
 
 const HabitSuggestionsModal = ({ isOpen, onClose, interests = [], onSelect, onCreate, limit = 6, title = 'Habit Suggestions' }) => {
   const [suggestions, setSuggestions] = useState([])
@@ -122,7 +86,7 @@ const HabitSuggestionsModal = ({ isOpen, onClose, interests = [], onSelect, onCr
             <div className="flex gap-2 overflow-x-auto pb-3 scrollbar-hide" aria-label="Habit categories">
               {['all', ...ALL_HABIT_CATEGORIES].map((category) => {
                 const active = selectedCategory === category
-                return <button key={category} type="button" onClick={() => setSelectedCategory(category)} className="flex-none px-3 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wide transition-colors" style={active ? { color: 'white', backgroundColor: THEME_COLOR } : { color: '#4b5563', backgroundColor: '#f3f4f6' }}>{category === 'all' ? 'All' : getCategoryLabel(category)}</button>
+                return <button key={category} type="button" onClick={() => setSelectedCategory(category)} className="flex-none px-3 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wide transition-colors" style={active ? { color: 'white', backgroundColor: THEME_COLOR } : { color: '#4b5563', backgroundColor: '#f3f4f6' }}>{category === 'all' ? 'All' : getHabitCategoryLabel(category)}</button>
               })}
             </div>
           </div>
@@ -131,8 +95,7 @@ const HabitSuggestionsModal = ({ isOpen, onClose, interests = [], onSelect, onCr
           <div className="flex-1 overflow-y-auto scrollbar-hide px-4 sm:px-6 py-4 sm:py-5">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
               {suggestions.map((h, idx) => {
-                const Icon = getCategoryIcon(h.category)
-                const categoryLabel = getCategoryLabel(h.category)
+                const categoryLabel = getHabitCategoryLabel(h.category)
                 return (
                   <motion.div
                     key={`${h.name}-${idx}-${shuffleVersion}`}
@@ -146,12 +109,7 @@ const HabitSuggestionsModal = ({ isOpen, onClose, interests = [], onSelect, onCr
                     className="bg-white dark:bg-gray-700/30 rounded-xl border border-gray-200 dark:border-gray-600 p-3 sm:p-4 flex flex-col cursor-pointer hover:border-[#4c99e6]/60 hover:shadow-md transition-all"
                   >
                     <div className="flex items-start gap-2 sm:gap-3 mb-2 sm:mb-3">
-                      <div
-                        className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                        style={{ backgroundColor: 'rgba(76, 153, 230, 0.15)' }}
-                      >
-                        <Icon className="h-4 w-4 sm:h-5 sm:w-5" style={{ color: THEME_COLOR }} />
-                      </div>
+                      <HabitCategoryIcon category={h.category} size="lg" />
                       <div className="min-w-0 flex-1">
                         <p className="text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
                           {categoryLabel}

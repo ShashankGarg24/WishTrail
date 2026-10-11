@@ -403,10 +403,16 @@ const getGoalTimeline = async (req, res, next) => {
 
     // Build timeline
     const timeline = await buildGoalTimeline(goal, goalDetails);
+    const limit = Math.max(1, Math.min(50, parseInt(req.query.limit, 10) || 10));
+    const offset = Math.max(0, parseInt(req.query.offset, 10) || 0);
+    const events = timeline.slice(offset, offset + limit);
 
     return res.status(200).json({
       success: true,
-      data: { timeline }
+      data: {
+        timeline: events,
+        pagination: { limit, offset, total: timeline.length, hasMore: offset + events.length < timeline.length }
+      }
     });
   } catch (error) {
     next(error);

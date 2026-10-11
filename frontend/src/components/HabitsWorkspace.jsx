@@ -1,33 +1,11 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
-  Apple, BarChart3, BookOpen, CheckCircle2, ChevronDown, ChevronLeft,
-  Code2, Copy, Dumbbell, Edit3, Flame, MoreVertical,
+  BarChart3, CheckCircle2, ChevronDown, ChevronLeft,
+  Copy, Edit3, Flame, MoreVertical,
   PauseCircle, Plus, Search, SlidersHorizontal, Sparkles, Trash2, TrendingDown, TrendingUp
 } from 'lucide-react'
-
-const ACCENTS = [
-  { bg: '#edf6ff', color: '#1683ed', bar: '#1d8cf8' },
-  { bg: '#fff4e8', color: '#ef6c24', bar: '#ff9c50' },
-  { bg: '#f2ecff', color: '#7c4dff', bar: '#8b5cf6' },
-  { bg: '#e8fbf3', color: '#0ca678', bar: '#20c997' },
-  { bg: '#fff0f3', color: '#ef476f', bar: '#fb5f7d' },
-]
-
-function habitVisual(habit, index) {
-  const name = String(habit?.name || '').toLowerCase()
-  if (/read|book|journal/.test(name)) return { Icon: BookOpen, emoji: '📖', ...ACCENTS[0] }
-  if (/run|walk|gym|exercise|fitness/.test(name)) return { Icon: Dumbbell, emoji: '🏃', ...ACCENTS[1] }
-  if (/meditat|mind|breath/.test(name)) return { Icon: Sparkles, emoji: '🔥', ...ACCENTS[2] }
-  if (/code|dsa|program/.test(name)) return { Icon: Code2, emoji: '</>', ...ACCENTS[3] }
-  if (/eat|food|diet|health/.test(name)) return { Icon: Apple, emoji: '🍎', ...ACCENTS[4] }
-  return { Icon: CheckCircle2, emoji: '✓', ...ACCENTS[index % ACCENTS.length] }
-}
-
-function getProgress(habit) {
-  if (Number.isFinite(Number(habit?.completionRate))) return Math.min(100, Math.max(0, Number(habit.completionRate)))
-  const done = Number(habit?.weeklyCompletions ?? habit?.totalCompletions ?? 0)
-  return Math.min(100, done ? Math.max(20, (done % 8) * 14) : 0)
-}
+import HabitCategoryIcon from './HabitCategoryIcon'
+import { HABIT_CATEGORIES, getHabitCategory, normalizeHabitCategory } from '../constants/habitCategories'
 
 export default function HabitsWorkspace({ habits = [], stats = {}, onCreate, onOpen, onEdit, onDelete, onLog, onAnalytics, onPause }) {
   const [query, setQuery] = useState('')
@@ -35,7 +13,23 @@ export default function HabitsWorkspace({ habits = [], stats = {}, onCreate, onO
   const [category, setCategory] = useState('all')
   const [frequency, setFrequency] = useState('all')
   const [filtersOpen, setFiltersOpen] = useState(false)
+  const [desktopFilterOpen, setDesktopFilterOpen] = useState(null)
   const [menuHabit, setMenuHabit] = useState(null)
+
+  useEffect(() => {
+    if (!desktopFilterOpen) return undefined
+    const closeDropdown = event => {
+      if (event.type === 'keydown' && event.key !== 'Escape') return
+      if (event.type === 'pointerdown' && event.target.closest('[data-habit-filter-dropdown]')) return
+      setDesktopFilterOpen(null)
+    }
+    document.addEventListener('pointerdown', closeDropdown)
+    document.addEventListener('keydown', closeDropdown)
+    return () => {
+      document.removeEventListener('pointerdown', closeDropdown)
+      document.removeEventListener('keydown', closeDropdown)
+    }
+  }, [desktopFilterOpen])
 
   const counts = useMemo(() => ({
     all: habits.length,
@@ -45,10 +39,10 @@ export default function HabitsWorkspace({ habits = [], stats = {}, onCreate, onO
   }), [habits])
 
   const visible = useMemo(() => habits.filter(habit => {
-    const matchesSearch = !query || `${habit.name || ''} ${habit.description || ''}`.toLowerCase().includes(query.toLowerCase())
+    const matchesSearch = !query || `${habit.name || ''} ${habit.description || ''} ${getHabitCategory(habit.category).label}`.toLowerCase().includes(query.toLowerCase())
     const isPaused = Boolean(habit.isArchived || habit.isActive === false)
     const matchesTab = tab === 'all' || (tab === 'active' ? !isPaused && !habit.completedAt : tab === 'paused' ? isPaused : Boolean(habit.completedAt))
-    const matchesCategory = category === 'all' || String(habit.category || '').toLowerCase() === category
+    const matchesCategory = category === 'all' || normalizeHabitCategory(habit.category) === category
     const matchesFrequency = frequency === 'all' || String(habit.frequency || 'daily').toLowerCase() === frequency
     return matchesSearch && matchesTab && matchesCategory && matchesFrequency
   }), [habits, query, tab, category, frequency])
@@ -67,9 +61,14 @@ export default function HabitsWorkspace({ habits = [], stats = {}, onCreate, onO
         </div>
         <div className="flex items-center justify-end gap-2">
           <label className="relative block"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#526392]"/><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search habits..." className="w-40 rounded-lg border border-[#dce5f4] bg-white py-2 pl-9 pr-3 text-xs text-[#0b1746] outline-none focus:border-[#1683ed] lg:w-48 dark:border-gray-700 dark:bg-gray-800 dark:text-white"/></label>
-          <label className="relative flex items-center gap-1.5 rounded-lg border border-[#dce5f4] bg-white px-3 py-2 text-xs font-medium text-[#253663] dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200">Category <ChevronDown className="h-3.5 w-3.5"/><select className="absolute inset-0 cursor-pointer opacity-0" aria-label="Category" value={category} onChange={e => setCategory(e.target.value)}><option value="all">All categories</option><option value="personal growth">Personal Growth</option><option value="health">Health</option><option value="fitness">Fitness</option></select></label>
-          <label className="relative flex items-center gap-1.5 rounded-lg border border-[#dce5f4] bg-white px-3 py-2 text-xs font-medium text-[#253663] dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200">Status <ChevronDown className="h-3.5 w-3.5"/><select className="absolute inset-0 cursor-pointer opacity-0" aria-label="Status" value={tab} onChange={e => setTab(e.target.value)}><option value="all">All</option><option value="active">Active</option><option value="paused">Paused</option><option value="completed">Completed</option></select></label>
-          <label className="relative flex items-center gap-1.5 rounded-lg border border-[#dce5f4] bg-white px-3 py-2 text-xs font-medium text-[#253663] dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200">Frequency <ChevronDown className="h-3.5 w-3.5"/><select className="absolute inset-0 cursor-pointer opacity-0" aria-label="Frequency" value={frequency} onChange={e => setFrequency(e.target.value)}><option value="all">All</option><option value="daily">Daily</option><option value="custom">Custom</option></select></label>
+          {[
+            { key: 'category', label: category === 'all' ? 'Category' : getHabitCategory(category).label, value: category, setValue: setCategory, options: [['all', 'All categories'], ...HABIT_CATEGORIES.map(key => [key, getHabitCategory(key).label])] },
+            { key: 'status', label: tab === 'all' ? 'Status' : tab.charAt(0).toUpperCase() + tab.slice(1), value: tab, setValue: setTab, options: [['all', `All habits (${counts.all})`], ['active', `Active (${counts.active})`], ['paused', `Paused (${counts.paused})`], ['completed', `Completed (${counts.completed})`]] },
+            { key: 'frequency', label: frequency === 'all' ? 'Frequency' : frequency.charAt(0).toUpperCase() + frequency.slice(1), value: frequency, setValue: setFrequency, options: [['all', 'All frequencies'], ['daily', 'Daily'], ['custom', 'Custom']] },
+          ].map(filter => <div key={filter.key} className="relative" data-habit-filter-dropdown>
+            <button type="button" aria-haspopup="listbox" aria-expanded={desktopFilterOpen === filter.key} onClick={() => setDesktopFilterOpen(open => open === filter.key ? null : filter.key)} className="flex items-center gap-1.5 rounded-lg border border-[#dce5f4] bg-white px-3 py-2 text-xs font-medium text-[#253663] dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200">{filter.label}<ChevronDown className={`h-3.5 w-3.5 transition-transform ${desktopFilterOpen === filter.key ? 'rotate-180' : ''}`}/></button>
+            {desktopFilterOpen === filter.key && <div role="listbox" className="absolute right-0 top-full z-30 mt-2 max-h-72 min-w-44 overflow-y-auto rounded-xl border border-[#dce5f4] bg-white p-1.5 shadow-xl dark:border-gray-700 dark:bg-gray-800">{filter.options.map(([value, label]) => <button key={value} type="button" role="option" aria-selected={filter.value === value} onClick={() => { filter.setValue(value); setDesktopFilterOpen(null) }} className={`block w-full whitespace-nowrap rounded-lg px-3 py-2 text-left text-xs transition-colors ${filter.value === value ? 'bg-blue-50 font-semibold text-[#1683ed] dark:bg-blue-950/40' : 'text-[#253663] hover:bg-slate-50 dark:text-gray-200 dark:hover:bg-gray-700'}`}>{label}</button>)}</div>}
+          </div>)}
           <button type="button" className="inline-flex items-center gap-1.5 rounded-lg bg-[#1683ed] px-4 py-2 text-xs font-semibold text-white shadow-sm" onClick={onCreate}><Plus className="h-4 w-4"/> Create Habit</button>
         </div>
       </header>
@@ -93,19 +92,23 @@ export default function HabitsWorkspace({ habits = [], stats = {}, onCreate, onO
       {filtersOpen && <><button type="button" className="habits-filter-backdrop" aria-label="Close filters" onClick={() => setFiltersOpen(false)} /><div className="habits-mobile-filters">
         <div className="habits-filter-title"><strong>Filter habits</strong><button type="button" onClick={() => setFiltersOpen(false)}>×</button></div>
         <label>Status<select value={tab} onChange={e => setTab(e.target.value)}><option value="all">All habits ({counts.all})</option><option value="active">Active ({counts.active})</option><option value="paused">Paused ({counts.paused})</option><option value="completed">Completed ({counts.completed})</option></select></label>
-        <label>Category<select value={category} onChange={e => setCategory(e.target.value)}><option value="all">All categories</option><option value="personal growth">Personal Growth</option><option value="health">Health</option><option value="fitness">Fitness</option></select></label>
+        <label>Category<select value={category} onChange={e => setCategory(e.target.value)}><option value="all">All categories</option>{HABIT_CATEGORIES.map(key => <option key={key} value={key}>{getHabitCategory(key).label}</option>)}</select></label>
         <label>Frequency<select value={frequency} onChange={e => setFrequency(e.target.value)}><option value="all">All frequencies</option><option value="daily">Daily</option><option value="custom">Custom</option></select></label>
         <div className="habits-filter-actions"><button type="button" onClick={() => { setTab('all'); setCategory('all'); setFrequency('all') }}>Clear</button><button type="button" onClick={() => setFiltersOpen(false)}>Apply</button></div>
       </div></>}
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {visible.map((habit, index) => {
+        {visible.map((habit) => {
           const id = habit.id || habit._id
-          const visual = habitVisual(habit, index)
-          const progress = getProgress(habit)
-          const weekly = Number(habit.weeklyCompletions ?? habit.todayCompletionCount ?? Math.min(habit.totalCompletions || 0, 7))
-          const target = Math.max(1, Number(habit.weeklyTarget || (habit.frequency === 'daily' ? 7 : habit.daysOfWeek?.length) || 7))
-          const schedule = habit.frequency === 'daily' ? 'Daily' : `${habit.daysOfWeek?.length || 3}x per week`
+          const visual = getHabitCategory(habit.category)
+          const dailyTarget = Math.max(1, Number(habit.dailyTargetCount) || 1)
+          const scheduledDays = habit.frequency === 'daily'
+            ? 7
+            : Math.max(1, new Set(Array.isArray(habit.daysOfWeek) ? habit.daysOfWeek : []).size)
+          const weekly = Math.max(0, Number(habit.weeklyCompletions ?? habit.todayCompletionCount) || 0)
+          const target = dailyTarget * scheduledDays
+          const progress = Math.min(100, Math.max(0, Math.round((weekly / target) * 100)))
+          const schedule = habit.frequency === 'daily' ? `${dailyTarget} daily` : `${dailyTarget} on ${scheduledDays} days/week`
           const isPaused = habit.isArchived || habit.isActive === false
           const status = habit.completedAt ? 'Completed' : isPaused ? 'Paused' : progress >= 60 ? 'Strong' : 'Active'
           const statusClass = habit.completedAt || progress >= 60
@@ -116,13 +119,13 @@ export default function HabitsWorkspace({ habits = [], stats = {}, onCreate, onO
           return <article key={id} role="button" tabIndex={0} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') onOpen?.(habit) }} className={`group relative cursor-pointer overflow-hidden rounded-xl border border-gray-200 bg-white text-left shadow-sm transition hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md dark:border-gray-700 dark:bg-gray-800 ${isPaused ? 'opacity-70' : ''}`} onClick={() => onOpen?.(habit)}>
             <div className="min-w-0 flex-1 p-4">
               <div className="flex items-start gap-3">
-                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl" style={{ background: visual.bg, color: visual.color }}><visual.Icon size={21}/></span>
-                <h3 className="min-w-0 flex-1 truncate pt-1 text-sm font-bold text-[#0b1746] dark:text-white sm:text-base">{habit.name}</h3>
+                <HabitCategoryIcon category={habit.category} size="lg"/>
+                <span className="min-w-0 flex-1"><h3 className="truncate text-sm font-bold text-[#0b1746] dark:text-white sm:text-base">{habit.name}</h3><span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: visual.accent }}>{visual.label}</span></span>
                 <button type="button" className="-mr-1 rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700" aria-label={`Actions for ${habit.name}`} onClick={e => { e.stopPropagation(); setMenuHabit(habit) }}><MoreVertical className="h-5 w-5"/></button>
               </div>
               <p className="mt-2 line-clamp-1 text-xs text-gray-500">{habit.description || 'Build consistency one day at a time'}</p>
               <div className="mt-2 flex items-center justify-between"><span className={`inline-flex rounded-full px-2 py-1 text-[10px] font-semibold ${statusClass}`}>{status}</span><span className="text-xs font-bold text-[#0b1746] dark:text-white">{progress}%</span></div>
-              <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-[#e9eef5] dark:bg-gray-700"><div className="h-full rounded-full" style={{ width: `${progress}%`, background: visual.bar }}/></div>
+              <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-[#e9eef5] dark:bg-gray-700"><div className="h-full rounded-full" style={{ width: `${progress}%`, background: visual.accent }}/></div>
               <div className="mt-3 flex items-center justify-between text-[11px] text-gray-500">
                 <span className="flex items-center gap-1"><Flame className="h-3.5 w-3.5 text-orange-500"/><b className="font-semibold text-gray-700 dark:text-gray-300">{habit.currentStreak || 0}</b> day streak</span>
                 <span>{weekly}/{target} this week · {schedule}</span>
@@ -132,10 +135,10 @@ export default function HabitsWorkspace({ habits = [], stats = {}, onCreate, onO
         })}
       </div>
       {!visible.length && <div className="col-span-full rounded-2xl border border-dashed border-gray-300 bg-white px-5 py-12 text-center dark:border-gray-700 dark:bg-gray-800"><Sparkles className="mx-auto h-9 w-9 text-blue-300"/><h3 className="mt-3 font-bold text-gray-900 dark:text-white">No habits found</h3><p className="mt-1 text-sm text-gray-500">Adjust your filters or create a new habit.</p><button type="button" onClick={onCreate} className="mt-4 rounded-lg bg-[#1683ed] px-4 py-2 text-sm font-semibold text-white">Create Habit</button></div>}
-      {menuHabit && (() => { const menuVisual = habitVisual(menuHabit, 0); return <div className="habit-actions-sheet fixed inset-0 z-[206] flex items-end justify-center sm:items-center sm:p-4">
+      {menuHabit && (() => { return <div className="habit-actions-sheet fixed inset-0 z-[206] flex items-end justify-center sm:items-center sm:p-4">
         <button type="button" aria-label="Close habit actions" onClick={() => setMenuHabit(null)} className="absolute inset-0 bg-black/40" />
         <div className="relative w-full rounded-t-3xl bg-white p-5 shadow-2xl dark:bg-gray-900 sm:max-w-md sm:rounded-2xl">
-          <div className="mb-4 flex items-center gap-3"><span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl" style={{background:menuVisual.bg,color:menuVisual.color}}><menuVisual.Icon size={22}/></span><div className="min-w-0"><h2 className="truncate text-base font-bold text-gray-900 dark:text-white">{menuHabit.name}</h2><p className="text-xs text-gray-500">Quick actions for this habit</p></div></div>
+          <div className="mb-4 flex items-center gap-3"><HabitCategoryIcon category={menuHabit.category} size="lg"/><div className="min-w-0"><h2 className="truncate text-base font-bold text-gray-900 dark:text-white">{menuHabit.name}</h2><p className="text-xs text-gray-500">{getHabitCategory(menuHabit.category).label} · Quick actions</p></div></div>
           <div className="space-y-1">
             <button type="button" onClick={() => { onLog?.({ ...menuHabit, _openLog: true }); setMenuHabit(null) }} className="habit-sheet-action"><CheckCircle2/> Log Habit</button>
             <button type="button" onClick={() => { onAnalytics?.(menuHabit); setMenuHabit(null) }} className="habit-sheet-action"><BarChart3/> View Analytics</button>

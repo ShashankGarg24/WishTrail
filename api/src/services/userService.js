@@ -224,6 +224,7 @@ class UserService {
       name: user.name,
       username: user.username,
       avatar: user.avatar_url,
+      coverImage: prefs?.profile?.coverImage || '',
       bio: user.bio || '',
       isPrivate: user.is_private || false,
       showHabits: prefs?.privacy?.showHabits ?? false,

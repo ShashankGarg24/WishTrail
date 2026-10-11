@@ -6,6 +6,9 @@ import useApiStore from '../store/apiStore'
 import toast from 'react-hot-toast';
 import ConfirmActionModal from './ConfirmActionModal';
 import GoalHero from './GoalHero';
+import AnalyticsRangeSelect from './AnalyticsRangeSelect';
+import ActivityCalendar from './ActivityCalendar';
+import { getDateKeyInTimezone } from '../utils/timezoneUtils';
 const ShareModal = lazy(() => import('./ShareModal'));
 
 const THEME_COLOR = '#4c99e6'
@@ -19,7 +22,7 @@ const EMOTIONS = [
 ]
 
 function GoalAnalyticsPanel({ data, fallbackGoal, loading, days, onDaysChange }) {
-  const rangePicker = <div className="flex items-center justify-between gap-3"><div><p className="text-sm font-extrabold text-[#0b1746] dark:text-white">Analytics</p><p className="text-[10px] text-slate-500">Metrics for the selected period</p></div><div className="flex rounded-xl bg-slate-100 p-1 dark:bg-gray-800" role="group" aria-label="Analytics date range">{[7,15,30].map(option=><button key={option} type="button" onClick={()=>onDaysChange?.(option)} aria-pressed={days===option} className={`min-w-11 rounded-lg px-2.5 py-1.5 text-[11px] font-bold transition-colors ${days===option?'bg-white text-[#1683ed] shadow-sm dark:bg-gray-700':'text-slate-500'}`}>{option}d</button>)}</div></div>
+  const rangePicker = <div className="flex items-end justify-between gap-3"><div><p className="text-sm font-extrabold text-[#0b1746] dark:text-white">Analytics</p><p className="text-[10px] text-slate-500">Metrics for the selected period</p></div><AnalyticsRangeSelect value={days} onChange={onDaysChange}/></div>
   if (loading) return <div>{rangePicker}<p className="py-12 text-center text-sm text-gray-500">Loading analytics…</p></div>
   const goal = data?.goal || fallbackGoal
   const updates = goal?.updates || []
@@ -55,7 +58,10 @@ export default function GoalDetailsModal({ goal, isOpen, onClose, onViewPost, in
   const [analyticsDays, setAnalyticsDays] = useState(30)
   const [timelineEvents, setTimelineEvents] = useState([])
   const [isLoadingView, setIsLoadingView] = useState(false)
+  const [journeyHasMore, setJourneyHasMore] = useState(false)
+  const [journeyLoadingMore, setJourneyLoadingMore] = useState(false)
   const moreMenuRef = useRef(null)
+  const journeyLoaderRef = useRef(null)
   const { user } = useApiStore()
 
   useEffect(() => {
@@ -121,14 +127,40 @@ export default function GoalDetailsModal({ goal, isOpen, onClose, onViewPost, in
         const response = await useApiStore.getState().getGoalAnalytics(id, { days: analyticsDays })
         if (mounted && response?.success) setAnalyticsData(response.data || null)
       } else {
-        const response = await useApiStore.getState().getGoalTimeline(id)
+        const response = await useApiStore.getState().getGoalTimeline(id, { limit: 50, offset: 0 })
         const data = response?.data || response
-        if (mounted && response?.success) setTimelineEvents(data?.timeline || data?.events || [])
+        if (mounted && response?.success) {
+          setTimelineEvents(data?.timeline || data?.events || [])
+          setJourneyHasMore(Boolean(data?.pagination?.hasMore))
+        }
       }
       if (mounted) setIsLoadingView(false)
     })()
     return () => { mounted = false }
   }, [activeView, analyticsDays, goal, isOpen])
+
+  useEffect(() => {
+    if (activeView !== 'journey' || !journeyHasMore || journeyLoadingMore || isLoadingView) return
+    const target = journeyLoaderRef.current
+    if (!target) return
+    const observer = new IntersectionObserver((entries) => {
+      if (!entries[0]?.isIntersecting) return
+      observer.disconnect()
+      setJourneyLoadingMore(true)
+      const id = goal?.id || goal?._id
+      useApiStore.getState().getGoalTimeline(id, { limit: 10, offset: timelineEvents.length }).then(response => {
+        const data = response?.data || response
+        if (!response?.success) { setJourneyHasMore(false); return }
+        setTimelineEvents(current => {
+          const known = new Set(current.map((event,index) => String(event.id || `${event.type}-${event.timestamp || event.dateKey}-${index}`)))
+          return [...current, ...(data?.timeline || []).filter((event,index) => !known.has(String(event.id || `${event.type}-${event.timestamp || event.dateKey}-${index + current.length}`)))]
+        })
+        setJourneyHasMore(Boolean(data?.pagination?.hasMore))
+      }).finally(() => setJourneyLoadingMore(false))
+    }, { root: null, rootMargin: '160px' })
+    observer.observe(target)
+    return () => observer.disconnect()
+  }, [activeView, goal, isLoadingView, journeyHasMore, journeyLoadingMore, timelineEvents.length])
 
   useEffect(() => {
     if (!isOpen) return
@@ -152,6 +184,18 @@ export default function GoalDetailsModal({ goal, isOpen, onClose, onViewPost, in
   const trimmedText = updateText.trim()
   const canSubmit = !isCompleted && !isSubmitting && (trimmedText.length > 0 || !!selectedEmotion)
   const isGoalLogBusy = isLoadingUpdate || isSubmitting
+  const goalCalendarMarks = (() => {
+    const marks = {}
+    timelineEvents.forEach(event => {
+      const rawDate = event.dateKey || event.date || event.createdAt || event.timestamp
+      if (!rawDate) return
+      const key = event.dateKey || getDateKeyInTimezone(rawDate)
+      marks[key] = { label: 'Progress logged', className: 'bg-sky-50 text-sky-700 dark:bg-sky-950/30 dark:text-sky-300', dotClassName: 'bg-sky-500' }
+    })
+    if (goal.createdAt) marks[getDateKeyInTimezone(goal.createdAt)] = { label: 'Goal started', className: 'bg-blue-100 text-blue-800 ring-1 ring-blue-400 dark:bg-blue-950/50 dark:text-blue-200', dotClassName: 'bg-blue-600' }
+    if (goal.completedAt) marks[getDateKeyInTimezone(goal.completedAt)] = { label: 'Goal completed', className: 'bg-emerald-100 text-emerald-800 ring-1 ring-emerald-400 dark:bg-emerald-950/50 dark:text-emerald-200', dotClassName: 'bg-emerald-600' }
+    return marks
+  })()
   
   const handleAnalytics = () => {
     setIsMoreMenuOpen(false)
@@ -273,7 +317,10 @@ export default function GoalDetailsModal({ goal, isOpen, onClose, onViewPost, in
               </div>
             )}
             {activeView === 'journey' && (
-              <div className="space-y-3"><div className="mb-4"><p className="text-sm font-semibold text-gray-700 dark:text-gray-200">Your goal journey</p><p className="mt-1 text-xs text-gray-500">From the first step to completion, with meaningful updates in between.</p></div>{isLoadingView && <p className="py-8 text-center text-sm text-gray-500">Loading journey...</p>}{!isLoadingView && (timelineEvents.length ? timelineEvents : [{ type: 'goal_created', title: 'Goal Started', timestamp: goal.createdAt }]).map((event, index, events) => { const isStart = event.type === 'goal_created'; const isDone = event.type === 'goal_completed'; const title = isStart ? 'Goal Started' : isDone ? 'Goal Completed' : event.title || 'Progress Update'; const date = event.dateKey ? `${event.dateKey}T12:00:00` : event.date || event.createdAt || event.timestamp; return <div key={event.id || `${event.type}-${date}-${index}`} className="flex gap-3"><div className="flex flex-col items-center"><span className={`flex h-9 w-9 items-center justify-center rounded-full ${isDone ? 'bg-emerald-50 text-emerald-600' : isStart ? 'bg-blue-50 text-[#1683ed]' : 'bg-sky-50 text-sky-600'}`}>{isDone ? <CheckCircle className="h-4 w-4"/> : isStart ? <Target className="h-4 w-4"/> : <Flag className="h-4 w-4"/>}</span>{index < events.length - 1 && <span className="my-1 min-h-9 w-px flex-1 bg-blue-200"/>}</div><div className="pb-5"><p className="text-xs text-gray-500">{date ? new Date(date).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' }) : ''}</p><p className="mt-0.5 text-sm font-semibold text-gray-900 dark:text-white">{title}</p>{event.description && <p className="mt-1 text-xs leading-relaxed text-gray-500">{event.description}</p>}</div></div>})}</div>
+              <>
+              <div className="mb-3"><ActivityCalendar title="Calendar view" subtitle="Start, progress logs, and completion" marks={goalCalendarMarks} initialDate={goal.completedAt ? getDateKeyInTimezone(goal.completedAt) : undefined} legend={[{label:'Started',dotClassName:'bg-blue-600'},{label:'Progress log',dotClassName:'bg-sky-500'},{label:'Completed',dotClassName:'bg-emerald-600'}]} /></div>
+              <div className="space-y-3"><div className="mb-4"><p className="text-sm font-semibold text-gray-700 dark:text-gray-200">Your goal journey</p><p className="mt-1 text-xs text-gray-500">From the first step to completion, with meaningful updates in between.</p></div>{isLoadingView && <p className="py-8 text-center text-sm text-gray-500">Loading journey...</p>}{!isLoadingView && (timelineEvents.length ? timelineEvents : [{ type: 'goal_created', title: 'Goal Started', timestamp: goal.createdAt }]).map((event, index, events) => { const isStart = event.type === 'goal_created'; const isDone = event.type === 'goal_completed'; const title = isStart ? 'Goal Started' : isDone ? 'Goal Completed' : event.title || 'Progress Update'; const date = event.dateKey ? `${event.dateKey}T12:00:00` : event.date || event.createdAt || event.timestamp; return <div key={event.id || `${event.type}-${date}-${index}`} className="flex gap-3"><div className="flex flex-col items-center"><span className={`flex h-9 w-9 items-center justify-center rounded-full ${isDone ? 'bg-emerald-50 text-emerald-600' : isStart ? 'bg-blue-50 text-[#1683ed]' : 'bg-sky-50 text-sky-600'}`}>{isDone ? <CheckCircle className="h-4 w-4"/> : isStart ? <Target className="h-4 w-4"/> : <Flag className="h-4 w-4"/>}</span>{index < events.length - 1 && <span className="my-1 min-h-9 w-px flex-1 bg-blue-200"/>}</div><div className="pb-5"><p className="text-xs text-gray-500">{date ? new Date(date).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' }) : ''}</p><p className="mt-0.5 text-sm font-semibold text-gray-900 dark:text-white">{title}</p>{event.description && <p className="mt-1 text-xs leading-relaxed text-gray-500">{event.description}</p>}</div></div>})}<div ref={journeyLoaderRef} className="flex min-h-10 items-center justify-center">{journeyLoadingMore&&<span className="h-5 w-5 animate-spin rounded-full border-2 border-blue-100 border-t-[#1683ed]"/>}{!journeyHasMore&&timelineEvents.length>0&&<span className="text-[10px] text-slate-400">You’ve reached the beginning.</span>}</div></div>
+              </>
             )}
             {activeView === 'analytics' && (
               <GoalAnalyticsPanel data={analyticsData} fallbackGoal={goal} loading={isLoadingView} days={analyticsDays} onDaysChange={setAnalyticsDays}/>

@@ -301,7 +301,7 @@ export const goalsAPI = {
   getGoalPost: (id) => {
     return api.get(`/goals/${id}/post`);
   },
-  getGoalTimeline: (id) => api.get(`/goals/${id}/timeline`),
+  getGoalTimeline: (id, params = {}) => api.get(`/goals/${id}/timeline`, { params }),
   getGoalAnalytics: (id, params = {}) => api.get(`/goals/${id}/analytics`, { params }),
   getGoalUpdateToday: (id) => api.get(`/goals/${id}/updates/today`),
   getGoalUpdates: (id, params = {}) => api.get(`/goals/${id}/updates`, { params }),
@@ -479,7 +479,8 @@ export const locationAPI = {
 
 // Upload API
 export const uploadAPI = {
-  uploadAvatar: (formData) => api.post('/upload/avatar', formData)
+  uploadAvatar: (formData) => api.post('/upload/avatar', formData),
+  uploadCover: (formData) => api.post('/upload/cover', formData)
 }
 export const communityUploadAPI = {
   uploadAvatar: (id, formData) => api.post(`/upload/community/${id}/avatar`, formData),

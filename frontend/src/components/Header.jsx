@@ -53,7 +53,7 @@ const Header = () => {
             <span className="-ml-2 font-manrope text-lg font-bold text-gray-900 dark:text-white sm:text-xl">ishTrail</span>
           </Link>
 
-          {isAuthenticated && <nav aria-label="Global navigation" className="hidden items-stretch self-stretch lg:flex">
+          {isAuthenticated && <nav aria-label="Global navigation" className="hidden items-stretch self-stretch lg:ml-8 lg:flex xl:ml-12">
             {mainNavigation.map(link => <Link key={link.name} to={link.href} aria-current={isActive(link.href) ? 'page' : undefined} className={`relative flex items-center px-3 text-sm font-semibold transition-colors ${isActive(link.href) ? 'text-[#4c99e6] after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:rounded-full after:bg-[#4c99e6]' : 'text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white'}`}>{link.name}</Link>)}
           </nav>}
           {isAuthenticated && <button type="button" onClick={() => navigate('/discover')} className="mx-4 hidden max-w-xs flex-1 items-center gap-2 rounded-xl border border-slate-100 bg-slate-50 px-4 py-2.5 text-left text-sm text-slate-400 transition hover:border-blue-200 md:flex dark:border-gray-700 dark:bg-gray-800"><Search className="h-4 w-4" />Search goals and people...</button>}

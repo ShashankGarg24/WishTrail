@@ -1,7 +1,9 @@
     import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Sparkles, Tag, Lightbulb, RefreshCw, Calendar, Activity, BookOpen, Compass, Code, Heart } from 'lucide-react'
+import { Sparkles, Lightbulb, RefreshCw } from 'lucide-react'
 import { discoverHabitIdeas } from '../services/habitIdeas'
+import HabitCategoryIcon from './HabitCategoryIcon'
+import { getHabitCategoryLabel } from '../constants/habitCategories'
 
 const THEME_COLOR = '#4c99e6'
 
@@ -10,18 +12,6 @@ const HabitSuggestions = ({ interests = [], onSelect, onCreate, variant = 'inlin
   const [expanded, setExpanded] = useState(forceExpanded || variant === 'empty')
   const [suggestions, setSuggestions] = useState([])
   const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-
-  const getCategoryIcon = (category) => {
-    const iconMap = {
-      'Health & Fitness': <Activity className="h-5 w-5" />,
-      'Education & Learning': <BookOpen className="h-5 w-5" />,
-      'Travel & Adventure': <Compass className="h-5 w-5" />,
-      'Career & Business': <Code className="h-5 w-5" />,
-      'Relationships': <Heart className="h-5 w-5" />,
-      'Creative Projects': <Lightbulb className="h-5 w-5" />,
-    }
-    return iconMap[category] || <Lightbulb className="h-5 w-5" />
-  }
 
   const regenerate = () => {
     setSuggestions(discoverHabitIdeas(interests, limit))
@@ -92,17 +82,10 @@ const HabitSuggestions = ({ interests = [], onSelect, onCreate, variant = 'inlin
               className="bg-white dark:bg-gray-700/30 rounded-xl border border-gray-200 dark:border-gray-600 p-4 flex flex-col hover:shadow-lg transition-all"
             >
               <div className="flex items-start gap-3 mb-3">
-                <div
-                  className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                  style={{ backgroundColor: `${THEME_COLOR}15` }}
-                >
-                  <div style={{ color: THEME_COLOR }}>
-                    {getCategoryIcon(h.category)}
-                  </div>
-                </div>
+                <HabitCategoryIcon category={h.category} size="lg" />
                 <div className="min-w-0 flex-1">
                   <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide" style={{ fontFamily: 'Manrope' }}>
-                    {h.frequency === 'daily' ? 'Daily' : 'Custom'}
+                    {getHabitCategoryLabel(h.category)} · {h.frequency === 'daily' ? 'Daily' : 'Custom'}
                   </p>
                   <h3 className="font-bold text-gray-900 dark:text-white mt-0.5" style={{ fontFamily: 'Manrope' }}>{h.name}</h3>
                 </div>

@@ -7,6 +7,8 @@ import { habitsAPI } from '../services/api';
 import useApiStore from '../store/apiStore';
 import { useHabitLimits, useFeatureLimits } from '../hooks/usePremium';
 import PremiumLimitIndicator from './PremiumLimitIndicator';
+import HabitCategorySelector from './HabitCategorySelector';
+import { normalizeHabitCategory } from '../constants/habitCategories';
 
 const dayOptions = [
   { label: 'Sun', value: 0 },
@@ -25,10 +27,11 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
   const { habits } = useApiStore();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [category, setCategory] = useState('OTHER');
   const [frequency, setFrequency] = useState('daily');
   const [daysOfWeek, setDaysOfWeek] = useState([]);
   const [reminders, setReminders] = useState(['']);
-  const [dailyTargetCount, setDailyTargetCount] = useState('');
+  const [dailyTargetCount, setDailyTargetCount] = useState('1');
   const [targetDays, setTargetDays] = useState('');
   const [showAdditionalDetails, setShowAdditionalDetails] = useState(false);
   const contentRef = useRef(null);
@@ -59,7 +62,10 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
   }, [isOpen]);
 
   useEffect(() => {
-    if (!isOpen || !initialData) return;
+    if (!isOpen) return;
+    setDailyTargetCount(initialData?.dailyTargetCount ? String(initialData.dailyTargetCount) : '1');
+    setCategory(normalizeHabitCategory(initialData?.category));
+    if (!initialData) return;
     if (typeof initialData.name === 'string') setName(initialData.name.slice(0, MAX_HABIT_TITLE_CHARS));
     if (typeof initialData.description === 'string') setDescription(initialData.description.slice(0, MAX_HABIT_DESC_CHARS));
     if (typeof initialData.frequency === 'string') setFrequency(initialData.frequency === 'weekly' ? 'custom' : initialData.frequency);
@@ -107,6 +113,7 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
       const payload = {
         name: normalizedName,
         description: normalizedDescription,
+        category,
         frequency: frequency === 'daily' ? 'daily' : 'custom',
         daysOfWeek: frequency === 'daily' ? [] : daysOfWeek.sort()
         // reminders: reminders.filter(Boolean).map(t => ({ time: t })),
@@ -219,6 +226,11 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
               </div>
 
               <div>
+                <label className="mb-2 block text-[10px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 sm:text-xs">Choose a category</label>
+                <HabitCategorySelector value={category} onChange={setCategory}/>
+              </div>
+
+              <div>
                 <label className="block text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">Frequency *</label>
                 <select
                   value={frequency}
@@ -276,7 +288,7 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
               {showAdditionalDetails && (
                 <div className="px-4 pb-4 space-y-4 border-t border-gray-200 dark:border-gray-700">
                   <div>
-                    <label className="block text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">Description</label>
+                    <label className="block text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mt-2 mb-1.5">Description</label>
                     <textarea
                       value={description}
                       onChange={(e) => setDescription(e.target.value.slice(0, MAX_HABIT_DESC_CHARS))}
@@ -299,10 +311,10 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
                         <label className="block text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Daily Target Count</label>
                         <input
                           type="number"
-                          min="0"
+                          min="1"
                           value={dailyTargetCount}
                           onChange={(e) => setDailyTargetCount(e.target.value)}
-                          placeholder="e.g., 3"
+                          placeholder="1"
                           className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#4c99e6] disabled:opacity-50 disabled:cursor-not-allowed"
                         />
                         <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-1">Completions expected on each scheduled day</p>

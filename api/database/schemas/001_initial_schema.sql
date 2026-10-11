@@ -153,6 +153,10 @@ CREATE TABLE IF NOT EXISTS habits (
   goal_id BIGINT REFERENCES goals(id) ON DELETE SET NULL,
   name VARCHAR(120) NOT NULL,
   description VARCHAR(500) DEFAULT '',
+  category VARCHAR(32) NOT NULL DEFAULT 'OTHER' CHECK (category IN (
+    'FITNESS', 'NUTRITION', 'MINDFULNESS', 'LEARNING', 'PRODUCTIVITY', 'CAREER',
+    'FINANCE', 'CREATIVITY', 'SELF_CARE', 'SOCIAL', 'HOME', 'OTHER'
+  )),
   
   -- Scheduling
   frequency VARCHAR(20) DEFAULT 'daily' CHECK (frequency IN ('daily', 'weekly', 'custom')),

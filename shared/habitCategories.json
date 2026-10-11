@@ -1,0 +1,14 @@
+[
+  { "key": "FITNESS", "label": "Fitness", "icon": "Dumbbell", "accent": "#1683ED", "background": "#EAF5FF" },
+  { "key": "NUTRITION", "label": "Nutrition", "icon": "Apple", "accent": "#20A464", "background": "#EAF8F0" },
+  { "key": "MINDFULNESS", "label": "Mindfulness", "icon": "Flower2", "accent": "#8064D9", "background": "#F2EFFC" },
+  { "key": "LEARNING", "label": "Learning", "icon": "BookOpen", "accent": "#397ED1", "background": "#EDF5FF" },
+  { "key": "PRODUCTIVITY", "label": "Productivity", "icon": "CheckCircle2", "accent": "#4C99E6", "background": "#EDF6FF" },
+  { "key": "CAREER", "label": "Career", "icon": "Briefcase", "accent": "#315F9E", "background": "#EDF2F8" },
+  { "key": "FINANCE", "label": "Finance", "icon": "WalletCards", "accent": "#15956A", "background": "#EAF8F3" },
+  { "key": "CREATIVITY", "label": "Creativity", "icon": "Sparkles", "accent": "#8A5BD6", "background": "#F4EFFC" },
+  { "key": "SELF_CARE", "label": "Self Care", "icon": "Heart", "accent": "#DF6685", "background": "#FFF0F4" },
+  { "key": "SOCIAL", "label": "Social", "icon": "UsersRound", "accent": "#E56D6F", "background": "#FFF0EF" },
+  { "key": "HOME", "label": "Home", "icon": "Home", "accent": "#C58425", "background": "#FFF5E6" },
+  { "key": "OTHER", "label": "Other", "icon": "Shapes", "accent": "#687A96", "background": "#F0F3F7" }
+]

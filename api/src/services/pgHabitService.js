@@ -16,6 +16,7 @@ class PgHabitService {
       userId,
       name,
       description = '',
+      category = 'OTHER',
       frequency = 'daily',
       daysOfWeek = null,
       reminders = [],
@@ -26,14 +27,14 @@ class PgHabitService {
 
     const sql = `
       INSERT INTO habits (
-        user_id, name, description, frequency, days_of_week,
+        user_id, name, description, category, frequency, days_of_week,
         reminders, daily_target_count, target_days, is_public
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       RETURNING *
     `;
 
     const values = [
-      userId, name, description, frequency,
+      userId, name, description, category, frequency,
       daysOfWeek ? `{${daysOfWeek.join(',')}}` : null,
       JSON.stringify(reminders),
       dailyTargetCount,
@@ -135,7 +136,7 @@ class PgHabitService {
    */
   async updateHabit(id, userId, updates) {
     const allowedFields = [
-      'name', 'description', 'frequency', 'days_of_week',
+      'name', 'description', 'category', 'frequency', 'days_of_week',
       'reminders', 'daily_target_count', 'target_days',
       'is_public'
     ];
@@ -465,7 +466,7 @@ class PgHabitService {
   async searchHabits({ searchQuery, userId = null, limit = 20, offset = 0 }) {
     let sql = `
       SELECT h.*, u.username, u.name as user_name, u.avatar_url,
-             ts_rank(to_tsvector('english', h.name || ' ' || COALESCE(h.description, '')), 
+             ts_rank(to_tsvector('english', h.name || ' ' || COALESCE(h.description, '') || ' ' || COALESCE(h.category, '')),
                      plainto_tsquery('english', $1)) as rank
       FROM habits h
       INNER JOIN users u ON h.user_id = u.id
@@ -473,6 +474,7 @@ class PgHabitService {
         AND (
           h.name ILIKE $2
           OR h.description ILIKE $2
+          OR h.category ILIKE $2
         )
     `;
 
@@ -504,6 +506,7 @@ class PgHabitService {
       userId: row.user_id,
       name: row.name,
       description: row.description,
+      category: row.category || 'OTHER',
       frequency: row.frequency,
       daysOfWeek: row.days_of_week,
       // reminders: typeof row.reminders === 'string' ? JSON.parse(row.reminders) : row.reminders,

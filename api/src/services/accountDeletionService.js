@@ -80,6 +80,7 @@ const removeReactionReferences = async (Model, userId) => {
 
 async function permanentlyDeleteAccount({ userId, email, avatarUrl }) {
   const numericUserId = Number(userId);
+  const userPreferences = await UserPreferences.findOne({ userId: numericUserId }).select('profile.coverImage').lean();
   // Community activity and chat use the optional feed database. Load them only
   // when it is configured so account deletion still works in installations
   // where that optional database has never been enabled.
@@ -144,6 +145,7 @@ async function permanentlyDeleteAccount({ userId, email, avatarUrl }) {
     .map((membership) => membership.communityId);
   const assetUrls = [
     avatarUrl,
+    userPreferences?.profile?.coverImage,
     ...goalDetails.map((detail) => detail.completionAttachmentUrl),
     ...feedback.map((item) => item.screenshotUrl),
     ...ownedCommunities.flatMap((community) => [community.avatarUrl, community.bannerUrl])

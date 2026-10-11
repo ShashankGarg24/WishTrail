@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import useApiStore from '../../store/apiStore';
 import { uploadAPI } from '../../services/api';
 import AvatarCropModal from '../AvatarCropModal';
+import CoverCropModal from '../CoverCropModal';
 
 const MOOD_EMOJIS = [
   '😊', '😄', '😃', '😁', '😆', '😅', '🤣', '😂', '🙂', '🙃',
@@ -63,6 +64,7 @@ const PersonalInfoSection = () => {
     youtube: user?.youtube || '',
     instagram: user?.instagram || '',
     avatar: user?.avatar || '',
+    coverImage: user?.coverImage || '',
     interests: user?.interests || [],
     currentMood: user?.currentMood || '',
     quote: user?.quote || ''
@@ -74,6 +76,9 @@ const PersonalInfoSection = () => {
   const [avatarError, setAvatarError] = useState('');
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarFile, setAvatarFile] = useState(null);
+  const [coverError, setCoverError] = useState('');
+  const [coverUploading, setCoverUploading] = useState(false);
+  const [coverFile, setCoverFile] = useState(null);
   const [urlErrors, setUrlErrors] = useState({
     youtube: '',
     instagram: ''
@@ -99,6 +104,7 @@ const PersonalInfoSection = () => {
         youtube: user.youtube || '',
         instagram: user.instagram || '',
         avatar: user.avatar || '',
+        coverImage: user.coverImage || '',
         interests: user.interests || [],
         currentMood: user.currentMood ?? '',
         quote: user.quote || ''
@@ -130,6 +136,7 @@ const PersonalInfoSection = () => {
       formData.youtube !== (user.youtube || '') ||
       formData.instagram !== (user.instagram || '') ||
       formData.avatar !== (user.avatar || '') ||
+      formData.coverImage !== (user.coverImage || '') ||
       formData.currentMood !== (user.currentMood ?? '') ||
       formData.quote !== (user.quote || '') ||
       JSON.stringify(formData.interests) !== JSON.stringify(user.interests || []);
@@ -244,6 +251,44 @@ const PersonalInfoSection = () => {
     }
   };
 
+  const handleCoverChange = (event) => {
+    const file = event.target.files[0];
+    event.target.value = '';
+    setCoverError('');
+    if (!file) return;
+    if (!['image/png', 'image/jpeg', 'image/jpg'].includes(file.type)) {
+      setCoverError('Only JPG/JPEG/PNG images are allowed');
+      return;
+    }
+    if (file.size > 1024 * 1024) {
+      setCoverError('Max image size is 1 MB');
+      return;
+    }
+    setCoverFile(file);
+  };
+
+  const handleCroppedCover = async (file) => {
+    setCoverFile(null);
+    if (file.size > 1024 * 1024) {
+      setCoverError('Compressed cover must be under 1 MB');
+      return;
+    }
+    try {
+      setCoverUploading(true);
+      const payload = new FormData();
+      payload.append('cover', file);
+      const response = await uploadAPI.uploadCover(payload);
+      const url = response.data?.data?.url;
+      if (!url) throw new Error('Cover URL missing from upload response');
+      setFormData((previous) => ({ ...previous, coverImage: url }));
+      toast.success('Cover photo updated');
+    } catch (error) {
+      setCoverError(error?.response?.data?.message || 'Failed to upload cover photo');
+    } finally {
+      setCoverUploading(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setUsernameError('');
@@ -287,6 +332,7 @@ const PersonalInfoSection = () => {
       youtube: user?.youtube || '',
       instagram: user?.instagram || '',
       avatar: user?.avatar || '',
+      coverImage: user?.coverImage || '',
       interests: user?.interests || [],
       currentMood: user?.currentMood ?? '',
       quote: user?.quote || ''
@@ -306,6 +352,7 @@ const PersonalInfoSection = () => {
           onComplete={handleCroppedAvatar}
         />
       )}
+      {coverFile && <CoverCropModal file={coverFile} onCancel={() => setCoverFile(null)} onComplete={handleCroppedCover} />}
       {/* Header */}
       <div className="mb-4 sm:mb-6">
         <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">Personal Information</h2>
@@ -361,6 +408,18 @@ const PersonalInfoSection = () => {
               )}
             </div>
           </div>
+        </div>
+
+        <div>
+          <label className="mb-2 block text-xs font-medium text-gray-700 dark:text-gray-300 sm:text-sm">COVER PHOTO</label>
+          <div className="relative aspect-[5/2] max-w-2xl overflow-hidden rounded-xl border border-gray-200 bg-gray-100 dark:border-gray-700 dark:bg-gray-800">
+            <img src={formData.coverImage || '/images/profile-mountain-cover.png'} alt="Profile cover" className="h-full w-full object-cover" />
+            {coverUploading && <div className="absolute inset-0 grid place-items-center bg-black/50"><Loader2 className="h-6 w-6 animate-spin text-white" /></div>}
+            <label htmlFor="cover-upload" className="absolute bottom-3 right-3 inline-flex cursor-pointer items-center gap-2 rounded-lg bg-black/60 px-3 py-2 text-xs font-semibold text-white backdrop-blur"><Camera className="h-4 w-4" />Change cover</label>
+            <input id="cover-upload" type="file" accept="image/png,image/jpeg,image/jpg" onChange={handleCoverChange} disabled={coverUploading} className="hidden" />
+          </div>
+          <p className="mt-2 text-[10px] text-gray-500 sm:text-xs">JPG, JPEG or PNG. Maximum 1 MB. Crop and magnify before saving.</p>
+          {coverError && <div className="mt-2 flex items-center gap-1 text-xs text-red-600 dark:text-red-400"><AlertCircle className="h-3.5 w-3.5" /><span>{coverError}</span></div>}
         </div>
 
         {/* Full Name and Username */}

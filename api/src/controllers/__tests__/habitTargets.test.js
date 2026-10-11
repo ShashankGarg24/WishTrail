@@ -48,15 +48,16 @@ describe('habit target persistence', () => {
     query.mockImplementation(async (sql, values) => {
       expect(sql).toContain('INSERT INTO habits');
       expect(sql).not.toMatch(/\btimezone\b/);
-      expect(values[6]).toBe(count);
-      expect(values[7]).toBe(days);
+      expect(values[3]).toBe('OTHER');
+      expect(values[7]).toBe(count);
+      expect(values[8]).toBe(days);
       return { rows: [{ id: 5, user_id: values[0], name: values[1],
-        daily_target_count: values[6], target_days: values[7] }] };
+        category: values[3], daily_target_count: values[7], target_days: values[8] }] };
     });
     const response = await request(app).post('/habits').send({ name: 'Read', timezone: 'America/New_York', ...targets });
     expect(response.status).toBe(201);
     expect(query).toHaveBeenCalledTimes(1);
-    expect(response.body.data.habit).toMatchObject({ dailyTargetCount: count, targetDays: days });
+    expect(response.body.data.habit).toMatchObject({ category: 'OTHER', dailyTargetCount: count, targetDays: days });
   });
 
   test.each([

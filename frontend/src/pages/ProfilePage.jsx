@@ -4,6 +4,8 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Target, TrendingUp, Star, Edit2, ExternalLink, Youtube, Instagram, MapPin, Globe, Trophy, BookOpen, Clock, CheckCircle, Circle, User, UserPlus, UserCheck, ArrowLeft, Lock, Download, Flame, Award, BarChart2, Activity, MoreVertical, Plus, Camera, CalendarDays, BadgeCheck, Search, SlidersHorizontal, ChevronRight, ChevronLeft, Home, Compass, Users, Newspaper, Settings } from "lucide-react";
 import CategoryIcon from '../components/CategoryIcon';
 import CategoryBadge from '../components/CategoryBadge';
+import HabitCategoryIcon from '../components/HabitCategoryIcon';
+import { getHabitCategoryLabel } from '../constants/habitCategories';
 const FollowListModal = lazy(() => import("../components/FollowListModal"));
 import { motion } from "framer-motion";
 import useApiStore from "../store/apiStore";
@@ -42,7 +44,7 @@ const ProfilePage = () => {
   const [profileUser, setProfileUser] = useState(null);
   
   // Pagination for goals
-  const GOALS_PER_PAGE = 9;
+  const GOALS_PER_PAGE = 10;
   const PROGRESS_GOALS_PER_PAGE = 6;
   const [goalsPage, setGoalsPage] = useState(1);
   const [hasMoreGoals, setHasMoreGoals] = useState(true);
@@ -134,9 +136,11 @@ const ProfilePage = () => {
   const [habitSearch, setHabitSearch] = useState('')
   const [profileFilterSheet, setProfileFilterSheet] = useState(null)
   const [journalMonth, setJournalMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1))
+  const [journalCalendarOpen, setJournalCalendarOpen] = useState(true)
   const [trailYear, setTrailYear] = useState(() => new Date().getFullYear())
   const previousTabRef = useRef(initialTab)
   const tabLoadRequestRef = useRef(0)
+  const trailLoaderRef = useRef(null)
 
   const THEME_COLOR = '#4c99e6'
 
@@ -396,6 +400,12 @@ const ProfilePage = () => {
   while (journalCalendarCells.length % 7) journalCalendarCells.push(null);
 
   const journalDayKey = (day) => `${journalMonthYear}-${String(journalMonthIndex + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  const journalChartDays = Array.from({ length: 10 }, (_, index) => {
+    const date = new Date()
+    date.setDate(date.getDate() - (9 - index))
+    const key = getDateKeyInTimezone(date)
+    return { key, logged: journalEntriesByDay.has(key), label: date.toLocaleDateString('en-US', { weekday: 'short' }) }
+  })
 
   const toggleDailyLogExpand = (logId) => {
     if (!logId) return;
@@ -655,6 +665,19 @@ const ProfilePage = () => {
     }
   };
 
+  useEffect(() => {
+    if (activeTab !== 'trail' || !hasMoreGoals || loadingMoreGoals || isTabLoading) return undefined;
+    const target = trailLoaderRef.current;
+    if (!target) return undefined;
+    const observer = new IntersectionObserver((entries) => {
+      if (!entries[0]?.isIntersecting) return;
+      observer.disconnect();
+      loadMoreGoals();
+    }, { root: null, rootMargin: '200px' });
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [activeTab, hasMoreGoals, loadingMoreGoals, isTabLoading, goalsPage]);
+
   const closeGoalModal = () => {
     setOpenGoalId(null)
     setScrollCommentsOnOpen(false)
@@ -833,14 +856,13 @@ const ProfilePage = () => {
           <div className="wt-profile-cover relative h-28 overflow-hidden bg-slate-800 sm:h-44">
             <img src={displayUser.coverImage || displayUser.coverPhoto || '/images/profile-mountain-cover.png'} alt="Mountain sunrise profile cover" className="absolute inset-0 h-full w-full object-cover" />
             <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-slate-950/25 to-transparent" />
-            {isOwnProfile && <button type="button" onClick={() => navigate('/settings?section=personal-info')} className="absolute bottom-3 right-3 hidden items-center gap-2 rounded-lg border border-white/50 bg-slate-950/55 px-3 py-2 text-xs font-semibold text-white backdrop-blur sm:flex"><Camera className="h-4 w-4" />Edit Cover</button>}
           </div>
           <div className="relative px-4 pb-4 sm:px-7 sm:pb-5">
             {/* Ellipsis menu - always top right */}
             <button
               data-profile-menu-btn="true"
               onClick={() => setProfileMenuOpen((v) => !v)}
-              className="absolute right-3 top-3 z-10 rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 sm:right-5 sm:top-4"
+              className="absolute right-3 top-8 z-10 rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 sm:right-5 sm:top-20"
               aria-label="More options"
             >
               <MoreVertical className="h-4 w-4 sm:h-5 sm:w-5" />
@@ -848,7 +870,7 @@ const ProfilePage = () => {
 
             {/* Action buttons - desktop */}
             {!isOwnProfile && isAuthenticated && (
-              <div className="absolute right-16 top-4 hidden items-center gap-2 md:flex">
+              <div className="absolute right-16 top-20 hidden items-center gap-2 md:flex">
                 {isFollowing ? (
                   <button
                     onClick={handleUnfollow}
@@ -900,21 +922,21 @@ const ProfilePage = () => {
               )}
             </div>
 
-            <div className="wt-profile-identity mt-3 min-w-0 sm:ml-36 sm:-mt-14 sm:pr-12">
+            <div className="wt-profile-identity mt-3 min-w-0 sm:ml-0 sm:mt-3 sm:pr-12">
               <div className="flex items-center gap-2">
                 <h1 className="truncate text-2xl font-extrabold tracking-tight text-slate-950 dark:text-white sm:text-3xl">{displayUser.name}</h1>
-                <BadgeCheck className="h-5 w-5 shrink-0 fill-blue-500 text-white" />
+                {displayUser.username === "wishtrail" && <BadgeCheck className="h-5 w-5 shrink-0 fill-blue-500 text-white" />}
               </div>
               <p className="text-sm font-medium text-slate-500 dark:text-gray-400">@{displayUser.username}</p>
-              {displayUser.bio && <p className="mt-2 max-w-xl text-sm font-medium leading-relaxed text-slate-700 dark:text-gray-300">{displayUser.bio}</p>}
+              {displayUser.bio && <p className="wt-profile-inline-detail mt-2 max-w-xl text-sm font-medium leading-relaxed text-slate-700 dark:text-gray-300">{displayUser.bio}</p>}
               <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-slate-500 dark:text-gray-400">
                 {displayUser.location && <span className="inline-flex items-center gap-1"><MapPin className="h-3.5 w-3.5" />{displayUser.location}</span>}
                 {displayUser.createdAt && <span className="inline-flex items-center gap-1"><CalendarDays className="h-3.5 w-3.5" />Joined {new Date(displayUser.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</span>}
               </div>
-              {(displayUser.interests || []).length > 0 && <div className="mt-3 hidden flex-wrap gap-2 sm:flex">{displayUser.interests.slice(0, 6).map((interest) => <span key={interest} className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-gray-700 dark:text-gray-200">{interest}</span>)}</div>}
+              {(displayUser.interests || []).length > 0 && <div className="wt-profile-inline-detail mt-3 flex flex-wrap gap-2">{displayUser.interests.slice(0, 6).map((interest) => <span key={interest} className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-gray-700 dark:text-gray-200">{interest}</span>)}</div>}
             </div>
 
-            <div className="wt-profile-stats mt-4 grid grid-cols-3 gap-2 border-y border-slate-100 py-3 dark:border-gray-700 sm:absolute sm:right-7 sm:top-1 sm:mt-0 sm:w-[330px] sm:border-0 sm:py-0">
+            <div className="wt-profile-stats mt-4 grid grid-cols-3 gap-2 border-y border-slate-100 py-3 dark:border-gray-700 sm:static sm:w-full sm:py-3">
                 <button
                   className="text-center"
                   onClick={() => {
@@ -976,7 +998,7 @@ const ProfilePage = () => {
                   <div className="text-[11px] text-gray-500 dark:text-gray-400">Following</div>
                 </button>
             </div>
-            <div className="mt-3 flex items-center gap-3 sm:ml-36 sm:mt-4">
+            <div className="mt-3 flex items-center gap-3 sm:ml-0 sm:mt-4">
               {(displayUser.website || displayUser.youtube || displayUser.instagram) && (
                 <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-sm text-gray-500 dark:text-gray-400">
                   {displayUser.website && (
@@ -1314,13 +1336,14 @@ const ProfilePage = () => {
                       <span className="text-xs font-semibold text-blue-500">View all</span>
                     </div>
                     <div className="mt-5 flex items-end gap-3">
-                      <div className="text-4xl font-extrabold text-slate-950 dark:text-white">{dailyLogsFeed.length || analytics?.dailyLogs?.entries || 0}</div>
-                      <div className="pb-1 text-xs text-slate-500">entries loaded</div>
+                      <div className="text-4xl font-extrabold text-slate-950 dark:text-white">{analytics?.dailyLogs?.entries ?? dailyLogsFeed.length ?? 0}</div>
+                      <div className="pb-1 text-xs text-slate-500">total entries</div>
                     </div>
-                    <div className="mt-5 flex h-16 items-end gap-2 border-b border-dashed border-slate-200 pb-1 dark:border-gray-700">
-                      {[35, 62, 48, 75, 56, 82, 68, 90, 52, 72].map((height, index) => <span key={index} className="flex-1 rounded-t bg-gradient-to-t from-blue-500 to-sky-300" style={{ height: `${height}%`, opacity: .55 + index / 30 }} />)}
+                    <div className="mt-5 flex h-16 items-end gap-2 border-b border-dashed border-slate-200 pb-1 dark:border-gray-700" aria-label="Journal entries over the last 10 days">
+                      {journalChartDays.map((day) => <span key={day.key} title={`${day.key}: ${day.logged ? 'Journal entry' : 'No entry'}`} className={`flex-1 rounded-t ${day.logged ? 'bg-gradient-to-t from-blue-600 to-sky-300' : 'bg-slate-100 dark:bg-gray-700'}`} style={{ height: day.logged ? '100%' : '10%' }} />)}
                     </div>
-                    <p className="mt-3 text-xs text-slate-500">Keep reflecting—small notes reveal big patterns.</p>
+                    <div className="mt-2 flex justify-between text-[9px] text-slate-400"><span>{journalChartDays[0]?.label}</span><span>Last 10 days</span><span>{journalChartDays[9]?.label}</span></div>
+                    <p className="mt-3 text-xs text-slate-500">{journalChartDays.filter(day => day.logged).length} of the last 10 days have a journal entry.</p>
                   </button>}
                   {/* Current Goals */}
                   <div className="lg:col-span-3">
@@ -1393,7 +1416,7 @@ const ProfilePage = () => {
                       const completed = habit.weeklyCompleted ?? habit.completionsThisWeek ?? 0;
                       const target = habit.weeklyTarget ?? habit.targetPerWeek ?? 7;
                       const percent = Math.min(100, Math.round((completed / Math.max(1, target)) * 100));
-                      return <button type="button" key={habit.id || habit._id} onClick={() => { setOpenHabitId(habit.id || habit._id); setHabitModalOpen(true); }} className="rounded-xl border border-slate-100 p-3 text-left hover:border-blue-200 dark:border-gray-700"><div className="flex items-center justify-between"><strong className="truncate text-sm text-slate-950 dark:text-white">{habit.name}</strong><span className="text-xs font-bold text-orange-500">🔥 {habit.currentStreak || 0}</span></div><p className="mt-1 text-[10px] text-slate-500">{completed}/{target} this week</p><div className="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-100 dark:bg-gray-700"><span className="block h-full rounded-full bg-emerald-500" style={{ width: `${percent}%` }} /></div></button>;
+                      return <button type="button" key={habit.id || habit._id} onClick={() => { setOpenHabitId(habit.id || habit._id); setHabitModalOpen(true); }} className="rounded-xl border border-slate-100 p-3 text-left hover:border-blue-200 dark:border-gray-700"><div className="flex items-center gap-2"><HabitCategoryIcon category={habit.category} size="sm"/><span className="min-w-0 flex-1"><strong className="block truncate text-sm text-slate-950 dark:text-white">{habit.name}</strong><small className="text-[9px] font-semibold uppercase text-slate-400">{getHabitCategoryLabel(habit.category)}</small></span><span className="text-xs font-bold text-orange-500">🔥 {habit.currentStreak || 0}</span></div><p className="mt-1 text-[10px] text-slate-500">{completed}/{target} this week</p><div className="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-100 dark:bg-gray-700"><span className="block h-full rounded-full bg-emerald-500" style={{ width: `${percent}%` }} /></div></button>;
                     })}</div> : <p className="py-5 text-center text-sm text-slate-500">Your recent habits will appear here.</p>}
                   </section>
                 </div>
@@ -1406,7 +1429,7 @@ const ProfilePage = () => {
                   </div>
                   {isProfileAccessible() ? (
                     Object.keys(trailMonthGroups).length > 0 ? (
-                      <div className="space-y-7">
+                      <><div className="space-y-7">
                         {Object.entries(trailMonthGroups).map(([month, items]) => <section key={month}>
                           <div className="mb-3 flex items-center gap-3"><span className="text-[10px] font-extrabold uppercase tracking-[.14em] text-slate-500 dark:text-gray-400">{month} {trailYear}</span><span className="h-px flex-1 bg-slate-100 dark:bg-gray-700" /></div>
                           <div className="relative space-y-3 pl-7"><span className="absolute bottom-4 left-[7px] top-4 w-px bg-blue-200 dark:bg-blue-900" />
@@ -1418,7 +1441,7 @@ const ProfilePage = () => {
                             })}
                           </div>
                         </section>)}
-                      </div>
+                      </div><div ref={trailLoaderRef} className="flex min-h-12 items-center justify-center">{loadingMoreGoals&&<span className="h-5 w-5 animate-spin rounded-full border-2 border-blue-100 border-t-blue-500"/>}{!hasMoreGoals&&trailItems.length>0&&<span className="text-[10px] text-slate-400">You’ve reached the start of your trail.</span>}</div></>
                     ) : <div className="py-12 text-center"><span className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-blue-50 text-blue-400 dark:bg-blue-950/30"><TrendingUp className="h-6 w-6" /></span><p className="mt-3 text-sm font-semibold text-slate-600 dark:text-gray-300">No trail activity in {trailYear}</p><p className="mt-1 text-xs text-slate-400">Choose another year or keep making progress.</p></div>
                   ) : <p className="py-10 text-center text-sm text-gray-500 dark:text-gray-400">This trail is private.</p>}
                 </div>
@@ -1565,12 +1588,10 @@ const ProfilePage = () => {
                             >
                               <div className="flex items-start justify-between gap-2 sm:gap-3 mb-2 sm:mb-3">
                                 <div className="flex items-start gap-2 sm:gap-3 min-w-0 flex-1">
-                                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: 'rgba(76, 153, 230, 0.2)' }}>
-                                    <BookOpen className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: THEME_COLOR }} />
-                                  </div>
+                                  <HabitCategoryIcon category={habit.category} size="lg" />
                                   <div className="min-w-0 flex-1">
                                     <h4 className="font-semibold text-gray-900 dark:text-white text-base sm:text-lg">{habit.name}</h4>
-                                    <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">{habit.durationMinutes ? `${habit.durationMinutes} mins / day` : (habit.targetValue || 'Daily')}</p>
+                                    <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">{getHabitCategoryLabel(habit.category)} · {habit.durationMinutes ? `${habit.durationMinutes} mins / day` : (habit.targetValue || 'Daily')}</p>
                                   </div>
                                 </div>
                                 <div className="flex-shrink-0 text-right">
@@ -1669,11 +1690,11 @@ const ProfilePage = () => {
                       </div>
                     )}
                   </div>
-                  {isOwnProfile && <button type="button" onClick={() => setIsDailyLogsOpen(true)} aria-label={hasTodayDailyLogs ? 'Update today’s journal entry' : 'Add journal entry'} className="fixed bottom-[92px] right-5 z-30 grid h-14 w-14 place-items-center rounded-full bg-[#1683ed] text-white shadow-[0_8px_24px_rgba(22,131,237,.35)] md:absolute md:bottom-6 md:right-6"><Plus className="h-7 w-7" /></button>}
                   {/* Daily Logs Feed (own profile) */}
                   {isOwnProfile && (
                     <div className="space-y-5">
-                      <div className="wt-journal-calendar rounded-xl border border-slate-100 p-4 dark:border-gray-700">
+                      <button type="button" onClick={() => setJournalCalendarOpen(value => !value)} aria-expanded={journalCalendarOpen} className="flex w-full items-center justify-between rounded-xl border border-slate-100 bg-white p-4 text-left text-sm font-bold text-slate-800 dark:border-gray-700 dark:bg-gray-800 dark:text-white"><span className="flex items-center gap-2"><CalendarDays className="h-4 w-4 text-[#1683ed]" />Calendar view</span><span className="flex items-center gap-1 text-[10px] text-slate-400">{journalCalendarOpen ? 'Hide' : 'Show'}<ChevronRight className={`h-4 w-4 transition-transform ${journalCalendarOpen ? 'rotate-90' : ''}`} /></span></button>
+                      <div className={`wt-journal-calendar rounded-xl border border-slate-100 p-4 dark:border-gray-700 ${journalCalendarOpen ? '' : 'hidden'}`}>
                         <div className="mb-3 flex items-center justify-between"><label className="relative"><span className="sr-only">Journal year</span><select value={journalMonthYear} onChange={(event) => setJournalMonth(new Date(Number(event.target.value), journalMonthIndex, 1))} className="appearance-none rounded-lg border border-slate-200 bg-white py-2 pl-3 pr-8 text-xs font-extrabold text-slate-800 outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white">{Array.from({ length: 7 }, (_, index) => new Date().getFullYear() + 2 - index).map((year) => <option key={year} value={year}>{year}</option>)}</select><ChevronRight className="pointer-events-none absolute right-2.5 top-2.5 h-3.5 w-3.5 rotate-90 text-slate-400" /></label><span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Journal calendar</span></div>
                         <div className="mb-5 grid grid-cols-[36px_1fr_36px] items-center">
                           <button type="button" aria-label="Previous month" onClick={() => setJournalMonth(new Date(journalMonthYear, journalMonthIndex - 1, 1))} className="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-gray-700 dark:text-gray-300"><ChevronLeft className="h-4 w-4" /></button>
@@ -1791,6 +1812,7 @@ const ProfilePage = () => {
         )}
           </main>
           <aside className="wt-profile-rail" aria-label="Profile highlights">
+            {/* Achievements are hidden until this section is ready.
             <section>
               <div className="wt-profile-rail-heading"><h2>Achievements</h2><button type="button">See all</button></div>
               <div className="wt-achievement-grid">
@@ -1803,7 +1825,7 @@ const ProfilePage = () => {
                   ['＋', 'More', 'To unlock']
                 ].map(([icon, title, detail]) => <div key={`${title}-${detail}`}><span>{icon}</span><strong>{title}</strong><small>{detail}</small></div>)}
               </div>
-            </section>
+            </section> */}
             <section>
               <div className="wt-profile-rail-heading"><h2>About</h2>{isOwnProfile && <button type="button" onClick={() => navigate('/settings?section=personal-info')}>Edit</button>}</div>
               <p>{displayUser.bio || 'Share a little about your journey and what inspires you.'}</p>

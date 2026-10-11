@@ -19,6 +19,14 @@ const userPreferencesSchema = new mongoose.Schema({
     validate: [arr => arr.length <= 5, 'Maximum 5 interests allowed']
   },
 
+  profile: {
+    coverImage: {
+      type: String,
+      trim: true,
+      default: ''
+    }
+  },
+
   // Privacy settings
   privacy: {
     showEmail: {

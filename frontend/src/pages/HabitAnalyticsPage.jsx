@@ -10,6 +10,8 @@ import { habitsAPI } from '../services/api';
 import { usePremiumStatus } from '../hooks/usePremium';
 import ExpandableText from '../components/ExpandableText';
 import MetricInfoModal from '../components/MetricInfoModal';
+import HabitCategoryIcon from '../components/HabitCategoryIcon';
+import { getHabitCategoryLabel } from '../constants/habitCategories';
 import { Line, Bar, Doughnut } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -693,9 +695,7 @@ export default function HabitAnalyticsPage() {
           <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-3 sm:p-4 md:p-5 rounded-xl shadow-sm">
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
               <div>
-                <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white mb-1">
-                  {habit.name}
-                </h1>
+                <div className="mb-1 flex items-center gap-2"><HabitCategoryIcon category={habit.category} size="sm"/><div><h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white">{habit.name}</h1><p className="text-[10px] font-bold uppercase tracking-wide text-[#4c99e6]">{getHabitCategoryLabel(habit.category)}</p></div></div>
                 {habit.description && (
                   <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">
                     <ExpandableText text={habit.description} maxLength={200} className="text-sm text-gray-600 dark:text-gray-400" />

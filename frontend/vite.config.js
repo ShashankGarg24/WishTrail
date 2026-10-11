@@ -19,7 +19,7 @@ export default defineConfig({
   base: '/',
   server: {
     fs: {
-      allow: ['.']
+      allow: [path.resolve(__dirname, '..')]
     }
   },
 });

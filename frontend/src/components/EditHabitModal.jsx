@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { X, Calendar, Info, ChevronDown, ChevronRight } from 'lucide-react';
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock';
+import HabitCategorySelector from './HabitCategorySelector';
+import { normalizeHabitCategory } from '../constants/habitCategories';
 
 const THEME_COLOR = '#4c99e6';
 
@@ -20,6 +22,7 @@ const MAX_HABIT_DESC_CHARS = 200;
 export default function EditHabitModal({ isOpen, onClose, habit, onSave }) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [category, setCategory] = useState('OTHER');
   const [frequency, setFrequency] = useState('daily');
   const [daysOfWeek, setDaysOfWeek] = useState([]);
   const [reminders, setReminders] = useState(['']);
@@ -42,10 +45,11 @@ export default function EditHabitModal({ isOpen, onClose, habit, onSave }) {
     if (!isOpen || !habit) return;
     setName((habit.name || '').slice(0, MAX_HABIT_TITLE_CHARS));
     setDescription((habit.description || '').slice(0, MAX_HABIT_DESC_CHARS));
+    setCategory(normalizeHabitCategory(habit.category));
     setFrequency(habit.frequency === 'weekly' ? 'custom' : (habit.frequency || 'daily'));
     setDaysOfWeek(Array.isArray(habit.daysOfWeek) ? habit.daysOfWeek.slice() : []);
     setReminders(Array.isArray(habit.reminders) && habit.reminders.length > 0 ? habit.reminders.map(r => r.time || '') : ['']);
-    setDailyTargetCount(habit.dailyTargetCount || '');
+    setDailyTargetCount(habit.dailyTargetCount || '1');
     setTargetDays(habit.targetDays || '');
     setShowAdditionalDetails(false);
     setSubmitting(false);
@@ -87,6 +91,7 @@ export default function EditHabitModal({ isOpen, onClose, habit, onSave }) {
       const payload = {
         name: normalizedName,
         description: normalizedDescription,
+        category,
         frequency: frequency === 'daily' ? 'daily' : 'custom',
         daysOfWeek: frequency === 'daily' ? [] : daysOfWeek.sort()
         // reminders: reminders.filter(Boolean).map(t => ({ time: t })),
@@ -164,6 +169,11 @@ export default function EditHabitModal({ isOpen, onClose, habit, onSave }) {
                   className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4c99e6] transition-colors"
                 />
                 <div className="mt-1 text-xs text-gray-500 dark:text-gray-400 text-right">{name.length}/{MAX_HABIT_TITLE_CHARS}</div>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Choose a category</label>
+                <HabitCategorySelector value={category} onChange={setCategory}/>
               </div>
 
               <div>
@@ -247,10 +257,10 @@ export default function EditHabitModal({ isOpen, onClose, habit, onSave }) {
                         <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Daily Target Count</label>
                         <input
                           type="number"
-                          min="0"
+                          min="1"
                           value={dailyTargetCount}
                           onChange={(e) => setDailyTargetCount(e.target.value)}
-                          placeholder="e.g., 3"
+                          placeholder="1"
                           className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#4c99e6] disabled:opacity-50 disabled:cursor-not-allowed"
                         />
                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Completions expected on each scheduled day</p>

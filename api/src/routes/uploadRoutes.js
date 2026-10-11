@@ -5,13 +5,36 @@ const multer = require('multer');
 const { protect } = require('../middleware/auth');
 const cloudinaryService = require('../services/cloudinaryService');
 const pgUserService = require('../services/pgUserService');
+const UserPreferences = require('../models/extended/UserPreferences');
 
 // Memory storage for serverless
 const storage = multer.memoryStorage();
 const upload = multer({ storage, limits: { fileSize: 1 * 1024 * 1024 } }); // 1MB limit
+const coverUpload = (req, res, next) => upload.single('cover')(req, res, (error) => {
+  if (error?.code === 'LIMIT_FILE_SIZE') return res.status(413).json({ success: false, message: 'Image must be under 1 MB' });
+  if (error) return next(error);
+  next();
+});
 
 const CLOUDINARY_PROFILE_UPLOAD_FOLDER = process.env.CLOUDINARY_PROFILE_UPLOAD_FOLDER || 'wishtrail/user/profile';
 const CLOUDINARY_COMMUNITY_UPLOAD_FOLDER = process.env.CLOUDINARY_COMMUNITY_UPLOAD_FOLDER || 'wishtrail/community';
+
+const cloudinaryPublicId = (url) => {
+  const uploadPath = String(url || '').split('/upload/')[1];
+  if (!uploadPath) return '';
+  return uploadPath.replace(/^(?:[^/]*,)*[^/]*\//, '').replace(/^v\d+\//, '').replace(/\.[^.]+$/, '');
+};
+
+const removeCloudinaryImage = async (url, context) => {
+  if (!String(url || '').includes('cloudinary.com')) return;
+  const publicId = cloudinaryPublicId(url);
+  if (!publicId) return;
+  try {
+    await cloudinaryService.destroy(publicId);
+  } catch (error) {
+    logger.error(`[${context}] Failed to delete image`, error);
+  }
+};
 
 
 // POST /api/v1/upload/avatar - upload profile picture
@@ -71,6 +94,34 @@ router.post('/avatar', protect, upload.single('avatar'), async (req, res, next) 
       return res.status(413).json({ success: false, message: 'Image must be under 1 MB' });
     }
     next(err);
+  }
+});
+
+router.post('/cover', protect, coverUpload, async (req, res, next) => {
+  let uploadedUrl = '';
+  try {
+    if (!req.file?.buffer) return res.status(400).json({ success: false, message: 'No image uploaded' });
+    if (!['image/jpeg', 'image/png'].includes(req.file.mimetype)) {
+      return res.status(415).json({ success: false, message: 'Only JPG/JPEG/PNG images are allowed' });
+    }
+    if (!cloudinaryService.isConfigured()) return res.status(500).json({ success: false, message: 'Image service is not configured' });
+
+    const preferences = await UserPreferences.findOne({ userId: req.user.id }).lean();
+    const oldUrl = preferences?.profile?.coverImage || '';
+    const uploadResult = await cloudinaryService.uploadBuffer(req.file.buffer, { folder: `${CLOUDINARY_PROFILE_UPLOAD_FOLDER}/covers` });
+    uploadedUrl = uploadResult?.url || '';
+    if (!uploadedUrl) return res.status(500).json({ success: false, message: 'Failed to upload image' });
+
+    await UserPreferences.findOneAndUpdate(
+      { userId: req.user.id },
+      { $set: { 'profile.coverImage': uploadedUrl } },
+      { upsert: true, new: true }
+    );
+    if (oldUrl && oldUrl !== uploadedUrl) await removeCloudinaryImage(oldUrl, 'uploadCover');
+    return res.status(200).json({ success: true, message: 'Cover updated', data: { url: uploadedUrl } });
+  } catch (error) {
+    if (uploadedUrl) await removeCloudinaryImage(uploadedUrl, 'uploadCoverRollback');
+    next(error);
   }
 });
 
