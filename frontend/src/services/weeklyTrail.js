@@ -1,16 +1,23 @@
 import api from './api'
 import { datadogRum } from '@datadog/browser-rum'
-let pendingTeaser
+
+let pendingCurrent
 export const weeklyTrailAPI = {
-  current: () => api.get('/weekly-trail/current').then(r => r.data.data),
-  teaser: () => {
-    if (!pendingTeaser) pendingTeaser = api.get('/weekly-trail/teaser').then(r => r.data.data).finally(() => { pendingTeaser = null })
-    return pendingTeaser
+  current: ({ includeSeen = false, dedupe = false } = {}) => {
+    const request = () => api.get('/weekly-trail/current', { params: includeSeen ? { includeSeen:true } : undefined }).then(r => r.data.data)
+    if (!dedupe) return request()
+    if (!pendingCurrent) pendingCurrent = request().finally(() => { pendingCurrent = null })
+    return pendingCurrent
   },
-  history: cursor => api.get('/weekly-trail/history', { params: { cursor } }).then(r => r.data.data),
-  week: key => api.get(`/weekly-trail/${encodeURIComponent(key)}`).then(r => r.data.data),
-  seen: key => api.post(`/weekly-trail/${encodeURIComponent(key)}/seen`),
+  seen: periodKey => api.post('/weekly-trail/current/seen', { periodKey }).then(r => r.data.data),
 }
-export function trailEvent(name, recap) {
-  datadogRum.addAction(name, { periodKey: recap?.periodKey, current: recap?.weekInProgress })
+
+export function trailEvent(name, data) {
+  const recap = data?.recap || data
+  datadogRum.addAction(name, {
+    periodKey:data?.periodKey || recap?.periodKey,
+    activeDays:recap?.activeDays,
+    goalsProgressed:recap?.goalsProgressed,
+    habitCompletions:recap?.habitCompletions
+  })
 }

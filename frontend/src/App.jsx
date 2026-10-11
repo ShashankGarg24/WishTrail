@@ -318,7 +318,7 @@ function App() {
               <Route path="/error/auth" element={<AuthExpiredPage />} />
               
               {/* Protected routes - Require authentication */}
-              <Route path="/weekly-trail/:periodKey?" element={<PrivateRoute><WeeklyTrailPage /></PrivateRoute>} />
+              <Route path="/weekly-trail" element={<PrivateRoute><WeeklyTrailPage /></PrivateRoute>} />
               <Route path="/home" element={<PrivateRoute><DashboardPageNew /></PrivateRoute>} />
               <Route path="/dashboard" element={<PrivateRoute><DashboardPageNew /></PrivateRoute>} />
               <Route path="/feed" element={<PrivateRoute><FeedPage /></PrivateRoute>} />

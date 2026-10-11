@@ -1,6 +1,4 @@
-﻿import { weeklyTrailAPI, trailEvent } from '../services/weeklyTrail'
-import { TrailRecapCard } from '../components/WeeklyTrail'
-import { GOAL_CATEGORIES } from '../constants/goalCategories'
+﻿import { GOAL_CATEGORIES } from '../constants/goalCategories'
 import { useState, useEffect, useRef, useMemo, lazy, Suspense } from "react";
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Target, TrendingUp, Star, Edit2, ExternalLink, Youtube, Instagram, MapPin, Globe, Trophy, BookOpen, Clock, CheckCircle, Circle, User, UserPlus, UserCheck, ArrowLeft, Lock, Download, Flame, Award, BarChart2, Activity, MoreVertical, Plus, Camera, CalendarDays, BadgeCheck, Search, SlidersHorizontal, ChevronRight, ChevronLeft, Home, Compass, Users, Newspaper, Settings } from "lucide-react";
@@ -139,27 +137,6 @@ const ProfilePage = () => {
   const [profileFilterSheet, setProfileFilterSheet] = useState(null)
   const [journalMonth, setJournalMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1))
   const [journalCalendarOpen, setJournalCalendarOpen] = useState(true)
-  const [trailFilter, setTrailFilter] = useState('all')
-  const [weeklyRecaps, setWeeklyRecaps] = useState([])
-  const [weeklyCursor, setWeeklyCursor] = useState(null)
-  const [weeklyError, setWeeklyError] = useState(false)
-  const [weeklyLoading, setWeeklyLoading] = useState(false)
-  const [weeklyRetry, setWeeklyRetry] = useState(0)
-  useEffect(() => {
-    setWeeklyRecaps([]); setWeeklyCursor(null); setWeeklyError(false)
-    if (!isOwnProfile || activeTab !== 'trail') return
-    let cancelled = false
-    setWeeklyLoading(true)
-    weeklyTrailAPI.history().then(data => { if (!cancelled) { setWeeklyRecaps(data.items); setWeeklyCursor(data.nextCursor) } }).catch(() => { if (!cancelled) setWeeklyError(true) }).finally(() => { if (!cancelled) setWeeklyLoading(false) })
-    trailEvent('weekly_trail_history_viewed')
-    return () => { cancelled = true }
-  }, [isOwnProfile, activeTab, currentUser?.id, weeklyRetry])
-  const loadOlderRecaps = async () => {
-    setWeeklyLoading(true)
-    try { const data = await weeklyTrailAPI.history(weeklyCursor); setWeeklyRecaps(old => [...old, ...data.items]); setWeeklyCursor(data.nextCursor); setWeeklyError(false) }
-    catch { setWeeklyError(true) }
-    finally { setWeeklyLoading(false) }
-  }
   const [trailYear, setTrailYear] = useState(() => new Date().getFullYear())
   const previousTabRef = useRef(initialTab)
   const tabLoadRequestRef = useRef(0)
@@ -815,13 +792,12 @@ const ProfilePage = () => {
   };
 
   const canAccessProfileContent = isProfileAccessible();
-  const trailItems = [...userGoals.map((goal) => ({ goal, date: new Date(goal.completedAt || goal.updatedAt || goal.createdAt) })),
-    ...(isOwnProfile ? weeklyRecaps.map(recap => ({ recap, date: new Date(`${recap.endLocalDate}T12:00:00`) })) : [])]
+  const trailItems = [...userGoals]
+    .map((goal) => ({ goal, date: new Date(goal.completedAt || goal.updatedAt || goal.createdAt) }))
     .filter((item) => !Number.isNaN(item.date.getTime()))
     .sort((a, b) => b.date - a.date);
   const trailYears = [...new Set([new Date().getFullYear(), ...trailItems.map((item) => item.date.getFullYear())])].sort((a, b) => b - a);
   const trailMonthGroups = trailItems
-    .filter(item => trailFilter === 'all' || (trailFilter === 'recaps' ? Boolean(item.recap) : Boolean(item.goal)))
     .filter((item) => item.date.getFullYear() === Number(trailYear))
     .reduce((groups, item) => {
       const key = item.date.toLocaleDateString('en-US', { month: 'long' });
@@ -1447,10 +1423,6 @@ const ProfilePage = () => {
               )}
               {activeTab === 'trail' && (
                 <div className="wt-trail-view rounded-xl border border-gray-100 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:p-5 md:p-6">
-                  {isOwnProfile && <div className="mb-4 flex items-center justify-between"><button className="text-sm font-bold text-blue-600" onClick={() => navigate('/weekly-trail')}>This week’s Trail →</button>{weeklyLoading && <span role="status" className="text-xs text-slate-500">Loading recaps…</span>}{weeklyCursor && <button disabled={weeklyLoading} className="text-xs text-blue-600" onClick={loadOlderRecaps}>Load older recaps</button>}</div>}
-                  <div className="mb-4 flex gap-2" aria-label="Trail filters">{['all','goals','recaps'].map(filter => <button key={filter} aria-pressed={trailFilter === filter} onClick={() => setTrailFilter(filter)} className={`rounded-lg px-4 py-2 text-xs font-bold capitalize ${trailFilter === filter ? 'bg-blue-50 text-blue-600' : 'text-slate-500'}`}>{filter}</button>)}</div>
-                  {weeklyError && <p role="alert" className="mb-3 text-sm text-slate-500">Weekly recaps couldn’t load. <button className="text-blue-600" onClick={() => setWeeklyRetry(v => v + 1)}>Retry</button></p>}
-
                   <div className="mb-5 flex items-center justify-between border-b border-slate-100 pb-4 dark:border-gray-700">
                     <label className="relative"><span className="sr-only">Trail year</span><select value={trailYear} onChange={(event) => setTrailYear(Number(event.target.value))} className="appearance-none rounded-lg border border-slate-200 bg-white py-2 pl-3 pr-8 text-xs font-extrabold text-slate-800 outline-none transition focus:border-blue-400 dark:border-gray-700 dark:bg-gray-800 dark:text-white">{trailYears.map((year) => <option key={year} value={year}>{year}</option>)}</select><ChevronRight className="pointer-events-none absolute right-2.5 top-2.5 h-3.5 w-3.5 rotate-90 text-slate-400" /></label>
                     <span className="rounded-full bg-blue-50 px-3 py-1.5 text-[10px] font-bold text-blue-600 dark:bg-blue-950/30 dark:text-blue-300">{trailItems.filter((item) => item.date.getFullYear() === Number(trailYear)).length} milestones</span>
@@ -1461,8 +1433,7 @@ const ProfilePage = () => {
                         {Object.entries(trailMonthGroups).map(([month, items]) => <section key={month}>
                           <div className="mb-3 flex items-center gap-3"><span className="text-[10px] font-extrabold uppercase tracking-[.14em] text-slate-500 dark:text-gray-400">{month} {trailYear}</span><span className="h-px flex-1 bg-slate-100 dark:bg-gray-700" /></div>
                           <div className="relative space-y-3 pl-7"><span className="absolute bottom-4 left-[7px] top-4 w-px bg-blue-200 dark:bg-blue-900" />
-                            {items.map(({ goal, date, recap }, index) => {
-                              if (recap) return <TrailRecapCard key={`weekly-${recap.periodKey}`} recap={recap} />
+                            {items.map(({ goal, date }, index) => {
                               const progress = goal.completedAt ? 100 : Math.round(Number(goal.progress ?? goal.progressPercentage ?? 0));
                               return <button key={goal.id || goal._id} type="button" onClick={() => setOpenGoalId(goal.id || goal._id)} className="group relative block w-full rounded-xl border border-slate-100 bg-white p-3.5 text-left shadow-[0_1px_3px_rgba(15,23,42,.04)] transition hover:border-blue-200 hover:shadow-md dark:border-gray-700 dark:bg-gray-800/70"><span className={`absolute -left-[27px] top-5 grid h-4 w-4 place-items-center rounded-full border-[3px] border-white shadow-sm dark:border-gray-900 ${goal.completedAt ? 'bg-amber-400' : 'bg-blue-500'}`} />
                                 <div className="flex items-start gap-3"><CategoryIcon category={goal.category} size="lg" /><span className="min-w-0 flex-1"><small className="block text-[10px] font-medium text-slate-400">{goal.completedAt ? 'Completed a goal' : progress > 0 ? `Reached ${progress}% progress` : 'Started a new goal'}</small><strong className="mt-0.5 block truncate text-sm font-extrabold text-slate-900 dark:text-white">{goal.title}</strong><small className="mt-1 block text-[10px] text-slate-400">{date.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })}</small></span><ChevronRight className="mt-3 h-4 w-4 text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-blue-500" /></div>

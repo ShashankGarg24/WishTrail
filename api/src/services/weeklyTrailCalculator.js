@@ -29,7 +29,7 @@ function calculateWeek({ period, goals = [], updates = [], habits = [], logs = [
   const inRange = key => key >= startLocalDate && key <= through;
   const local = value => value && !Number.isNaN(new Date(value).getTime()) ? getDateKeyInTimezone(new Date(value), timezone) : null;
   const progressed = new Set(); const completed = new Set(); const active = new Set(); const emotions = {};
-  const progressEvents = new Set();
+  let progressEvents = 0;
   const addEmotion = emotion => { if (['great','good','okay','challenging','neutral','happy','sad','amazing','motivated','stressed','angry'].includes(emotion)) emotions[emotion] = (emotions[emotion] || 0) + 1; };
   checkIns.forEach(entry => { if (inRange(local(entry.createdAt))) addEmotion(entry.mood); });
   const wins = [];
@@ -39,7 +39,7 @@ function calculateWeek({ period, goals = [], updates = [], habits = [], logs = [
     addEmotion(update.emotion);
     if (meaningfulGoalUpdate(update)) {
       progressed.add(String(update.goal_id)); active.add(date);
-      progressEvents.add(`${update.goal_id}:${date}`);
+      progressEvents += 1;
     }
   });
   goals.forEach(goal => {
@@ -49,6 +49,7 @@ function calculateWeek({ period, goals = [], updates = [], habits = [], logs = [
   });
   wins.sort((a,b) => b.at-a.at || a.entityId.localeCompare(b.entityId));
   const counts = new Map();
+  let habitCompletions = 0;
   for (const log of logs) {
     if (log.status !== 'done') continue;
     const entries = Array.isArray(log.completion_times_mood) ? log.completion_times_mood : [];
@@ -59,9 +60,11 @@ function calculateWeek({ period, goals = [], updates = [], habits = [], logs = [
       if (entry.emotion !== 'neutral') addEmotion(entry.emotion);
       const key = `${log.habit_id}:${entry.date}`;
       counts.set(key, (counts.get(key) || 0) + entry.count);
+      habitCompletions += entry.count;
+      if (entry.count > 0) active.add(entry.date);
     }
   }
-  let eligible = 0; let habitCompletions = 0; let unknownSchedule = false;
+  let eligible = 0; let scheduledCompletions = 0; let unknownSchedule = false;
   const rhythms = []; const habitAttention = [];
   for (const habit of habits) {
     // V1 uses the current Habit domain fields. Past schedule/status changes are
@@ -76,8 +79,6 @@ function calculateWeek({ period, goals = [], updates = [], habits = [], logs = [
       if (!knownSchedule) {
         unknownSchedule = true; hUnknown = true;
         // Retained successes are facts; adherence cannot be reconstructed before schedule history.
-        habitCompletions += count;
-        if (count) active.add(date);
         continue;
       }
       const scheduled = habit.frequency === 'daily' || (habit.days_of_week || []).includes(new Date(`${date}T12:00:00Z`).getUTCDay());
@@ -87,7 +88,7 @@ function calculateWeek({ period, goals = [], updates = [], habits = [], logs = [
       hEligible += target; hCompleted += successes;
       if (successes) active.add(date);
     }
-    eligible += hEligible; habitCompletions += hCompleted;
+    eligible += hEligible; scheduledCompletions += hCompleted;
     const summary = { habitId: String(habit.id), titleSnapshot: habit.name, completed: hCompleted, eligible: hEligible, adherencePercent: hEligible ? Math.round(100*hCompleted/hEligible) : null };
     if (!hUnknown && hEligible >= 2 && hCompleted > 0) rhythms.push(summary);
     if (!hUnknown && habit.is_active !== false && !habit.is_archived && hEligible >= 2 && hCompleted/hEligible < .5) habitAttention.push({ type: 'habit', entityId: String(habit.id), titleSnapshot: habit.name, reason: 'LOW_HABIT_ADHERENCE', adherencePercent: summary.adherencePercent });
@@ -99,9 +100,9 @@ function calculateWeek({ period, goals = [], updates = [], habits = [], logs = [
   }).filter(g => ['SLIPPING','STALLED'].includes(g.state)).sort((a,b) => b.days-a.days || a.entityId.localeCompare(b.entityId)).map(({state,...item}) => item);
   return {
     ...period, formulaVersion: FORMULA_VERSION, weekInProgress,
-    goalsProgressed: progressed.size, goalsCompleted: completed.size, goalProgressEvents: progressEvents.size, habitCompletions,
+    goalsProgressed: progressed.size, goalsCompleted: completed.size, goalProgressEvents: progressEvents, habitCompletions,
     eligibleScheduledOccurrences: unknownSchedule ? null : eligible,
-    habitConsistency: unknownSchedule || !eligible ? null : Math.round(100*habitCompletions/eligible),
+    habitConsistency: unknownSchedule || !eligible ? null : Math.round(100*scheduledCompletions/eligible),
     activeDays: active.size, activeDateKeys: [...active].sort(),
     biggestWin: wins.length ? (({at,...win}) => win)(wins[0]) : null,
     strongestRhythm: rhythms[0] || null,
