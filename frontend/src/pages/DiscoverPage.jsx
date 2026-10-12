@@ -3,15 +3,11 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import {
-  Bookmark,
   BookOpen,
-  ChevronDown,
   Clock3,
   Compass,
-  Heart,
   Home,
   LayoutGrid,
-  MessageCircle,
   Search,
   Settings,
   SlidersHorizontal,
@@ -46,6 +42,17 @@ const normalizedCategory = (value) =>
     .toUpperCase()
     .replace(/[^A-Z]+/g, "_");
 const categoryLabel = getCategoryLabel;
+const createdDate = (goal) => {
+  const value = goal?.createdAt || goal?.created_at;
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(date);
+};
 const goalImage = (goal) =>
   goal?.coverImage ||
   goal?.image ||
@@ -175,7 +182,8 @@ function DiscoverHero({
 
 function GoalCard({ goal, featured = false, onOpen }) {
   const owner = ownerOf(goal),
-    progress = progressOf(goal);
+    progress = progressOf(goal),
+    date = createdDate(goal);
   return (
     <button
       type="button"
@@ -186,12 +194,8 @@ function GoalCard({ goal, featured = false, onOpen }) {
         className={`${featured ? "h-28 md:h-32" : "h-24"} relative overflow-hidden bg-slate-100`}
       >
         {goalImage(goal) ? <img src={goalImage(goal)} alt="" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" /> : <GoalCategoryBanner category={goal.category} variant="compact" className="h-full rounded-none" />}
-        <span className="absolute bottom-[-19px] left-3 grid h-11 w-11 place-items-center rounded-full border-[5px] border-white bg-white text-[10px] font-extrabold shadow-sm dark:border-gray-800 dark:bg-gray-800">
-          {progress}%
-          <span className="absolute inset-0 rounded-full border-[3px] border-emerald-400 border-l-slate-100" />
-        </span>
       </div>
-      <div className="flex min-h-0 flex-1 flex-col px-3 pb-3 pt-6">
+      <div className="flex min-h-0 flex-1 flex-col px-3 pb-3 pt-3">
         <h3 className="truncate text-sm font-extrabold">
           {goal.title || "Untitled goal"}
         </h3>
@@ -204,23 +208,26 @@ function GoalCard({ goal, featured = false, onOpen }) {
             {categoryLabel(goal.category)}
           </span>
         </div>
-        <div className="mt-auto flex items-center gap-5 pt-3 text-[10px] text-slate-500">
-          <span className="flex items-center gap-1">
-            <Heart className="h-3.5 w-3.5 text-red-500" />
-            {goal.likeCount ?? goal.likes ?? 0}
+        <div className="mt-auto pt-3">
+          <div className="mb-1.5 flex items-center justify-between text-[10px]">
+            <span className="font-semibold text-slate-500">Progress</span>
+            <span className="font-extrabold text-emerald-600 dark:text-emerald-400">{progress}%</span>
+          </div>
+          <span className="block h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-gray-700">
+            <span
+              className="block h-full rounded-full bg-emerald-400 transition-[width]"
+              style={{ width: `${progress}%` }}
+            />
           </span>
-          <span className="flex items-center gap-1">
-            <MessageCircle className="h-3.5 w-3.5" />
-            {goal.commentCount ?? goal.comments ?? 0}
-          </span>
-          <Bookmark className="ml-auto h-4 w-4" />
+          {date && <p className="mt-2 text-[10px] text-slate-500">Created {date}</p>}
         </div>
       </div>
     </button>
   );
 }
 function GoalResult({ goal, onOpen }) {
-  const progress = progressOf(goal);
+  const progress = progressOf(goal),
+    date = createdDate(goal);
   return (
     <button
       type="button"
@@ -229,15 +236,13 @@ function GoalResult({ goal, onOpen }) {
     >
       {goalImage(goal) ? <div className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-xl bg-blue-50"><img src={goalImage(goal)} alt="" className="h-full w-full object-cover" /></div> : <CategoryIcon category={goal.category} size="lg" />}
       <div className="min-w-0 flex-1">
-        <div className="flex items-start">
-          <h3 className="min-w-0 flex-1 truncate text-sm font-extrabold">
-            {goal.title || "Untitled goal"}
-          </h3>
-          <Bookmark className="ml-2 h-4 w-4 shrink-0 text-slate-600" />
-        </div>
+        <h3 className="truncate text-sm font-extrabold">
+          {goal.title || "Untitled goal"}
+        </h3>
         <p className="mt-0.5 text-[10px] text-slate-500">
           {goal.followersCount ?? goal.userCount ?? 0} users ·{" "}
           {categoryLabel(goal.category)}
+          {date ? ` · Created ${date}` : ""}
         </p>
         {goal.description && (
           <p className="mt-1 line-clamp-1 text-[11px] text-slate-500">
@@ -304,7 +309,7 @@ function Filters({ open, onClose, value, onApply }) {
     [
       "Timeframe",
       "timeframe",
-      ["All", "Next 3 months", "Next 6 months", "This year"],
+      ["All", "3 months", "6 months", "This year"],
     ],
   ];
   return (
@@ -335,7 +340,6 @@ function Filters({ open, onClose, value, onApply }) {
                   setDraft({
                     category: "All",
                     timeframe: "All",
-                    sort: "Most Popular",
                   })
                 }
                 className="text-xs font-semibold text-[#0784f8]"
@@ -360,19 +364,6 @@ function Filters({ open, onClose, value, onApply }) {
                 </div>
               </fieldset>
             ))}
-            <label className="mb-6 block text-xs font-extrabold">
-              Sort by
-              <select
-                value={draft.sort}
-                onChange={(e) =>
-                  setDraft((d) => ({ ...d, sort: e.target.value }))
-                }
-                className="mt-2 w-full rounded-xl border border-slate-200 bg-white p-3 text-xs font-semibold dark:border-gray-700 dark:bg-gray-800"
-              >
-                <option>Most Popular</option>
-                <option>Newest</option>
-              </select>
-            </label>
             <button
               onClick={() => {
                 onApply(draft);
@@ -412,14 +403,19 @@ export default function DiscoverPage() {
   const [filters, setFilters] = useState({
       category: "All",
       timeframe: "All",
-      sort: "Most Popular",
     }),
-    searchRef = useRef(null),
-    isSearching = Boolean(query.trim());
+    searchRef = useRef(null);
+  const trimmedQuery = query.trim();
+  const isSearching = trimmedQuery.length >= 2;
+  const isShortQuery = trimmedQuery.length === 1;
   useEffect(() => {
-    const timer = setTimeout(() => setDebounced(query.trim()), 350);
+    if (trimmedQuery.length < 2) {
+      setDebounced("");
+      return undefined;
+    }
+    const timer = setTimeout(() => setDebounced(trimmedQuery), 350);
     return () => clearTimeout(timer);
-  }, [query]);
+  }, [trimmedQuery]);
   useEffect(() => {
     const interest = searchParams.get("interest");
     if (interest) {
@@ -430,29 +426,29 @@ export default function DiscoverPage() {
     }
   }, [searchParams]);
   useEffect(() => {
-    let active = true;
-    Promise.allSettled([searchUsers({ limit: 8 })]).then(([peopleResult]) => {
-      if (!active) return;
-      if (peopleResult.status === "fulfilled") {
-        setPeople((peopleResult.value?.users || []).map((person) => ({ ...person, following: Boolean(person.isFollowing) })));
-      }
-    });
-    return () => { active = false; };
-  }, [searchUsers]);
-  useEffect(() => {
     setSearchParams(
       (p) => {
         const next = new URLSearchParams(p);
-        if (query.trim()) next.set("q", query.trim());
+        if (trimmedQuery.length >= 2) next.set("q", trimmedQuery);
         else next.delete("q");
         return next;
       },
       { replace: true },
     );
-  }, [query, setSearchParams]);
+  }, [trimmedQuery, setSearchParams]);
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
+      if (isShortQuery) {
+        if (tab === "goals") setGoals([]);
+        else setPeople([]);
+        setLoading(false);
+        return;
+      }
+      if (isSearching && debounced !== trimmedQuery) {
+        setLoading(true);
+        return;
+      }
       setLoading(true);
       try {
         if (tab === "goals") {
@@ -498,6 +494,9 @@ export default function DiscoverPage() {
   }, [
     tab,
     debounced,
+    trimmedQuery,
+    isSearching,
+    isShortQuery,
     category,
     filters.category,
     getTrendingGoals,
@@ -509,9 +508,9 @@ export default function DiscoverPage() {
     let list = [...goals];
     const now = new Date(),
       deadline =
-        filters.timeframe === "Next 3 months"
+        filters.timeframe === "3 months"
           ? new Date(now.getFullYear(), now.getMonth() + 3, now.getDate())
-          : filters.timeframe === "Next 6 months"
+          : filters.timeframe === "6 months"
             ? new Date(now.getFullYear(), now.getMonth() + 6, now.getDate())
             : filters.timeframe === "This year"
               ? new Date(now.getFullYear(), 11, 31, 23, 59, 59)
@@ -522,10 +521,6 @@ export default function DiscoverPage() {
           x.targetDate &&
           new Date(x.targetDate) >= now &&
           new Date(x.targetDate) <= deadline,
-      );
-    if (filters.sort === "Newest")
-      list.sort(
-        (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0),
       );
     return list;
   }, [goals, filters]);
@@ -559,7 +554,7 @@ export default function DiscoverPage() {
     });
   };
   const activeFilters = Object.entries(filters).filter(
-    ([key, value]) => key !== "sort" && value !== "All",
+    ([, value]) => value !== "All",
   ).length;
   return (
     <div className="min-h-screen bg-[#f7f9fc] text-[#0d1740] dark:bg-gray-900 dark:text-white">
@@ -682,25 +677,34 @@ export default function DiscoverPage() {
                     onFilters={() => setFiltersOpen(true)}
                     activeFilters={activeFilters}
                   />
-                  {isSearching ? (
+                  {isShortQuery ? null : isSearching ? (
                     <div className="md:mt-3 md:overflow-hidden md:rounded-xl md:border md:border-slate-200">
-                      <div className="flex items-center justify-between bg-white px-4 py-3 text-[10px] text-slate-500 dark:bg-gray-900">
+                      <div className="bg-white px-4 py-3 text-[10px] text-slate-500 dark:bg-gray-900">
                         <span>{shownGoals.length} goals found</span>
-                        <button className="flex items-center gap-1 font-semibold">
-                          <Clock3 className="h-3.5 w-3.5" />
-                          Sort <ChevronDown className="h-3 w-3" />
-                        </button>
                       </div>
                       {loading ? (
                         <Loading />
                       ) : shownGoals.length ? (
-                        shownGoals.map((goal) => (
-                          <GoalResult
-                            key={idOf(goal)}
-                            goal={goal}
-                            onOpen={() => setGoalId(idOf(goal))}
-                          />
-                        ))
+                        <>
+                          <div className="md:hidden">
+                            {shownGoals.map((goal) => (
+                              <GoalResult
+                                key={idOf(goal)}
+                                goal={goal}
+                                onOpen={() => setGoalId(idOf(goal))}
+                              />
+                            ))}
+                          </div>
+                          <div className="hidden gap-3 bg-[#f7f9fc] p-3 md:grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 dark:bg-gray-900">
+                            {shownGoals.map((goal) => (
+                              <GoalCard
+                                key={idOf(goal)}
+                                goal={goal}
+                                onOpen={() => setGoalId(idOf(goal))}
+                              />
+                            ))}
+                          </div>
+                        </>
                       ) : (
                         <Empty label="No goals match your search." />
                       )}
@@ -726,45 +730,54 @@ export default function DiscoverPage() {
                           ))}
                         </div>
                       </div>
-                      <div className="p-4 md:px-3">
-                        <SectionTitle
-                          icon={TrendingUp}
-                          title="Trending Goals"
-                          subtitle="Popular goals people are working on right now."
-                        />
-                        <div className="flex gap-3 overflow-x-auto pb-2 md:grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                          {loading ? (
-                            <Loading />
-                          ) : (
-                            shownGoals
-                              .slice(0, 4)
-                              .map((goal) => (
+                      {loading ? (
+                        <div className="p-4 md:px-3"><Loading /></div>
+                      ) : shownGoals.length ? (
+                        <>
+                          <div className="p-4 md:px-3">
+                            <SectionTitle
+                              icon={TrendingUp}
+                              title="Trending Goals"
+                              subtitle="Popular goals people are working on right now."
+                            />
+                            <div className="flex gap-3 overflow-x-auto pb-2 md:grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                              {shownGoals.slice(0, 4).map((goal) => (
                                 <GoalCard
                                   key={idOf(goal)}
                                   goal={goal}
                                   featured
                                   onOpen={() => setGoalId(idOf(goal))}
                                 />
-                              ))
+                              ))}
+                            </div>
+                          </div>
+                          {shownGoals.length > 4 && (
+                            <div className="px-4 pb-5 md:px-3">
+                              <SectionTitle
+                                icon={Clock3}
+                                title="Latest Goals"
+                                subtitle="New goals shared by people on WishTrail."
+                              />
+                              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                                {shownGoals.slice(4, 8).map((goal) => (
+                                  <GoalCard
+                                    key={idOf(goal)}
+                                    goal={goal}
+                                    onOpen={() => setGoalId(idOf(goal))}
+                                  />
+                                ))}
+                              </div>
+                            </div>
                           )}
+                        </>
+                      ) : (
+                        <div className="p-4 md:px-3">
+                          <Empty
+                            label="Find a goal that inspires you"
+                            hint="Search by title or explore a category to get started."
+                          />
                         </div>
-                      </div>
-                      <div className="px-4 pb-5 md:px-3">
-                        <SectionTitle
-                          icon={Clock3}
-                          title="Latest Goals"
-                          subtitle="New goals shared by people on WishTrail."
-                        />
-                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                          {shownGoals.slice(4, 8).map((goal) => (
-                            <GoalCard
-                              key={idOf(goal)}
-                              goal={goal}
-                              onOpen={() => setGoalId(idOf(goal))}
-                            />
-                          ))}
-                        </div>
-                      </div>
+                      )}
                     </>
                   )}
                 </>
@@ -784,7 +797,7 @@ export default function DiscoverPage() {
                     onFilters={() => setFiltersOpen(true)}
                     activeFilters={activeFilters}
                   />
-                  <div className="md:mt-3 md:overflow-hidden md:rounded-xl md:border md:border-slate-200">
+                  {!isShortQuery && <div className="md:mt-3 md:overflow-hidden md:rounded-xl md:border md:border-slate-200">
                     <div className="bg-white px-4 py-3 text-[10px] text-slate-500 dark:bg-gray-900">
                       {people.length} people found
                     </div>
@@ -802,13 +815,18 @@ export default function DiscoverPage() {
                     ) : (
                       <Empty
                         label={
-                          query
+                          isSearching
                             ? "No people match your search."
-                            : "No people suggestions available right now."
+                            : "Find people to follow"
+                        }
+                        hint={
+                          isSearching
+                            ? "Try another name or username."
+                            : "Search by name or username to discover people on WishTrail."
                         }
                       />
                     )}
-                  </div>
+                  </div>}
                 </>
               )}
             </section>
@@ -841,15 +859,13 @@ function Loading() {
     </div>
   );
 }
-function Empty({ label }) {
+function Empty({ label, hint = "Try another keyword or category." }) {
   return (
     <div className="grid min-h-56 place-items-center bg-white px-6 text-center dark:bg-gray-900">
       <div>
         <Search className="mx-auto mb-3 h-9 w-9 text-blue-300" />
         <p className="text-sm font-bold">{label}</p>
-        <p className="mt-1 text-xs text-slate-500">
-          Try another keyword or category.
-        </p>
+        <p className="mt-1 text-xs text-slate-500">{hint}</p>
       </div>
     </div>
   );

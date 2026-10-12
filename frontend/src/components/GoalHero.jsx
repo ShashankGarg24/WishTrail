@@ -17,7 +17,7 @@ export default function GoalHero({ goal, className = '' }) {
   const hero = visual.hero
   const progress = clampProgress(goal)
   const health = healthOf(goal)
-  const isDark = Boolean(hero.dark)
+/*  */  const isDark = Boolean(hero.dark)
   const customCover = goal?.appearance?.bannerType === 'CUSTOM' && goal?.appearance?.bannerUrl
 
   return <section className={`relative isolate min-h-[270px] overflow-hidden rounded-2xl sm:min-h-[300px] sm:rounded-[26px] ${isDark ? 'text-white' : 'text-[#102b3f]'} ${className}`} style={{ background: customCover ? '#17324b' : isDark ? `linear-gradient(135deg,${hero.deep},${hero.base})` : `linear-gradient(135deg,#f8fcff 0%,${hero.glow} 145%)` }}>

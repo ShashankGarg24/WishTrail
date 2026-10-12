@@ -6,6 +6,7 @@ import useApiStore from '../../store/apiStore';
 import { uploadAPI } from '../../services/api';
 import AvatarCropModal from '../AvatarCropModal';
 import CoverCropModal from '../CoverCropModal';
+import CategoryIcon from '../CategoryIcon';
 
 const MOOD_EMOJIS = [
   '😊', '😄', '😃', '😁', '😆', '😅', '🤣', '😂', '🙂', '🙃',
@@ -49,6 +50,16 @@ const INTERESTS_OPTIONS = [
   { id: 'volunteering', label: 'Volunteering', icon: '🤝' }
 ];
 
+const INTEREST_CATEGORY = {
+  fitness: 'HEALTH_FITNESS', travel: 'TRAVEL_EXPERIENCES', technology: 'SIDE_PROJECTS',
+  hobbies: 'CREATIVE', health: 'HEALTH_FITNESS', education: 'EDUCATION_LEARNING',
+  career: 'CAREER_WORK', finance: 'FINANCE', relationships: 'RELATIONSHIPS',
+  personal_growth: 'PERSONAL_GROWTH', creativity: 'CREATIVE', business: 'SIDE_PROJECTS',
+  lifestyle: 'LIFESTYLE', spirituality: 'PERSONAL_GROWTH', sports: 'HEALTH_FITNESS',
+  music: 'CREATIVE', art: 'CREATIVE', reading: 'EDUCATION_LEARNING', cooking: 'LIFESTYLE',
+  gaming: 'SIDE_PROJECTS', nature: 'TRAVEL_EXPERIENCES', volunteering: 'RELATIONSHIPS'
+};
+
 const PersonalInfoSection = () => {
   const [searchParams] = useSearchParams();
   const { user, updateProfile, locationSuggestions, searchCitySuggestions } = useApiStore();
@@ -73,6 +84,7 @@ const PersonalInfoSection = () => {
   const [showMoodPicker, setShowMoodPicker] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [locationQuery, setLocationQuery] = useState('');
+  const locationInputRef = useRef(null);
   const [avatarError, setAvatarError] = useState('');
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarFile, setAvatarFile] = useState(null);
@@ -114,15 +126,24 @@ const PersonalInfoSection = () => {
 
   // Debounce location search
   useEffect(() => {
-    const debounce = setTimeout(() => {
-      if (locationQuery.trim().length > 1) {
-        searchCitySuggestions(locationQuery);
-      } else {
-        setShowSuggestions(false);
+    const query = locationQuery.trim();
+    if (query.length < 2) {
+      setShowSuggestions(false);
+      return undefined;
+    }
+
+    let active = true;
+    const debounce = setTimeout(async () => {
+      await searchCitySuggestions(query);
+      if (active && document.activeElement === locationInputRef.current) {
+        setShowSuggestions(true);
       }
     }, 400);
-    return () => clearTimeout(debounce);
-  }, [locationQuery]);
+    return () => {
+      active = false;
+      clearTimeout(debounce);
+    };
+  }, [locationQuery, searchCitySuggestions]);
 
   // Check for changes
   useEffect(() => {
@@ -166,6 +187,7 @@ const PersonalInfoSection = () => {
       location: value,
     }));
     setLocationQuery(value);
+    setShowSuggestions(false);
   };
 
   const formatLocation = (place) =>
@@ -510,13 +532,14 @@ const PersonalInfoSection = () => {
           <div className="relative">
             <MapPin className="absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
             <input
+              ref={locationInputRef}
               id="location"
               name="location"
               type="text"
               value={formData.location}
               onChange={handleLocationInputChange}
               autoComplete="off"
-              onFocus={() => setShowSuggestions(true)}
+              onFocus={() => setShowSuggestions(locationQuery.trim().length > 1 && locationSuggestions.length > 0)}
               onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
               className="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-2.5 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="Enter your city"
@@ -652,12 +675,8 @@ const PersonalInfoSection = () => {
                         : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 text-gray-700 dark:text-gray-300'
                     }`}
                   >
-                    <div className="flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 mb-1 sm:mb-2">
-                      {interest.Icon ? (
-                        <interest.Icon className={`h-4 w-4 sm:h-5 sm:w-5 ${selected ? 'text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'}`} />
-                      ) : (
-                        <span className="text-lg sm:text-2xl">{interest.icon}</span>
-                      )}
+                    <div className="mb-1 sm:mb-2">
+                      <CategoryIcon category={INTEREST_CATEGORY[interest.id]} size="sm" />
                     </div>
                     <div className="text-[10px] sm:text-xs font-medium text-center">{interest.label}</div>
                   </button>

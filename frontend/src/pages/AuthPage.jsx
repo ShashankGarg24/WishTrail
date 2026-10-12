@@ -25,7 +25,7 @@ const AuthPage = () => {
 
   const { login, googleLogin, loading, error, isAuthenticated } = useApiStore();
   const navigate = useNavigate();
-  
+
   // Use the same landing page for web and native sign-in.
   const from = "/home";
 
@@ -61,40 +61,40 @@ const AuthPage = () => {
 
   const validateForm = () => {
     const newErrors = {};
-    
+
     if (!formData.email.trim()) {
       newErrors.email = "Email or username is required";
     }
-    
+
     if (!formData.password) {
       newErrors.password = "Password is required";
     } else if (formData.password.length < 6) {
       newErrors.password = "Password must be at least 6 characters";
     }
-    
+
     if (!isLogin) {
       if (!formData.name) {
         newErrors.name = "Name is required";
       }
-      
+
       if (!formData.confirmPassword) {
         newErrors.confirmPassword = "Please confirm your password";
       } else if (formData.password !== formData.confirmPassword) {
         newErrors.confirmPassword = "Passwords do not match";
       }
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
-    
+
     try {
       if (isLogin) {
         await login(formData.email, formData.password);
@@ -164,7 +164,7 @@ const AuthPage = () => {
                                radial-gradient(circle at 80% 80%, rgba(74, 144, 226, 0.3), transparent 50%)`
             }}></div>
           </div>
-          
+
           <div className="relative z-10 max-w-md text-white space-y-8">
             {/* Logo */}
             <div className="flex items-center space-x-3">
@@ -230,20 +230,20 @@ const AuthPage = () => {
       </div>
     );
   }
-  
+
   // LOGIN PAGE - Split design
   return (
     <div className="min-h-screen flex flex-col lg:flex-row">
       {/* Left Side - Hero Image Section */}
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
         {/* Background Image with Overlay */}
-        <div 
+        <div
           className="absolute inset-0 bg-cover bg-center"
           style={{
             backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), url('https://images.unsplash.com/photo-1441974231531-c6227db76b6e?q=80&w=2071&auto=format&fit=crop')`,
           }}
         />
-        
+
         <div className="relative z-10 flex items-center justify-center p-12 text-white w-full">
           {/* Logo and Tagline - Centered */}
           <div className="space-y-6 max-w-md">
@@ -335,9 +335,8 @@ const AuthPage = () => {
                     autoComplete="username"
                     value={formData.email}
                     onChange={handleInputChange}
-                    className={`peer w-full px-3 sm:px-4 pt-5 pb-1.5 sm:pt-6 sm:pb-2 text-sm sm:text-base border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white ${
-                      errors.email ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-                    }`}
+                    className={`peer w-full px-3 sm:px-4 pt-5 pb-1.5 sm:pt-6 sm:pb-2 text-sm sm:text-base border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white ${errors.email ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+                      }`}
                   />
                   <label htmlFor="email" className={`pointer-events-none absolute left-3 sm:left-4 origin-left transition-all duration-150 ${formData.email ? 'top-1.5 text-[10px] sm:text-xs' : 'top-1/2 -translate-y-1/2 text-sm sm:text-base peer-focus:top-1.5 peer-focus:translate-y-0 peer-focus:text-[10px] sm:peer-focus:text-xs'} text-gray-500 dark:text-gray-400 peer-focus:text-blue-500`}>
                     Email or username
@@ -367,9 +366,8 @@ const AuthPage = () => {
                     autoComplete="current-password"
                     value={formData.password}
                     onChange={handleInputChange}
-                    className={`peer w-full px-3 sm:px-4 pt-5 pb-1.5 sm:pt-6 sm:pb-2 pr-10 text-sm sm:text-base border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white ${
-                      errors.password ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-                    }`}
+                    className={`peer w-full px-3 sm:px-4 pt-5 pb-1.5 sm:pt-6 sm:pb-2 pr-10 text-sm sm:text-base border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white ${errors.password ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+                      }`}
                   />
                   <label htmlFor="password" className={`pointer-events-none absolute left-3 sm:left-4 origin-left transition-all duration-150 ${formData.password ? 'top-1.5 text-[10px] sm:text-xs' : 'top-1/2 -translate-y-1/2 text-sm sm:text-base peer-focus:top-1.5 peer-focus:translate-y-0 peer-focus:text-[10px] sm:peer-focus:text-xs'} text-gray-500 dark:text-gray-400 peer-focus:text-blue-500`}>
                     Password
@@ -421,7 +419,7 @@ const AuthPage = () => {
       </div>
 
       {/* Forgot Password Modal */}
-      <ForgotPasswordModal 
+      <ForgotPasswordModal
         isOpen={showForgotPasswordModal}
         onClose={() => setShowForgotPasswordModal(false)}
       />
