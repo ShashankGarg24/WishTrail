@@ -242,8 +242,13 @@ async function buildGoalTimeline(goal, goalDetails) {
     });
   }
 
+  const journeyOwner = await pgUserService.getUserById(goal.user_id);
+  for (const event of require('../services/goalJourneyEvents').recordedMilestones(goal, goalDetails, journeyOwner?.timezone || 'UTC')) {
+    timeline.push({ id: event.id, type: 'milestone', title: event.label, dateKey: event.date, timestamp: new Date(`${event.date}T12:00:00.000Z`) });
+  }
+
   // Show the latest journey event first.
-  const journeyTypes = new Set(['goal_created', 'progress_update', 'goal_completed']);
+  const journeyTypes = new Set(['goal_created', 'progress_update', 'milestone', 'goal_completed']);
   const journey = timeline.filter(event => journeyTypes.has(event.type));
   journey.sort((a, b) => b.timestamp - a.timestamp);
 
@@ -263,17 +268,16 @@ const getGoalPost = async (req, res, next) => {
     
     // Visibility: owner or public share or follower-only if you add such logic later
     const isOwner = String(goal.user_id) === String(req.user.id);
+    if (!isOwner && !goal.is_public) return res.status(403).json({ success: false, message: 'Access denied' });
     if (!isOwner) {
       // Check if user is active (PostgreSQL)
       const user = await pgUserService.getUserById(goal.user_id);
       if (!user || !user.is_active) return res.status(403).json({ success: false, message: 'Access denied' });
     }
-    logger.info(goalDetails)
     // Determine shareable content based on goal's public status
     const canShowCompletion = isOwner || goal.is_public;
     const shareNote = canShowCompletion ? (goalDetails?.completionNote || '') : '';
     const shareImage = canShowCompletion ? (goalDetails?.completionAttachmentUrl || '') : '';
-    logger.info(shareImage);
 
     // Find the activity for this goal
     let activityId = null;
@@ -341,7 +345,6 @@ const getGoalPost = async (req, res, next) => {
       });
     }
 
-    logger.info(shareImage);
     return res.status(200).json({
       success: true,
       data: {
@@ -397,7 +400,7 @@ const getGoalTimeline = async (req, res, next) => {
     
     // Visibility: owner or public
     const isOwner = String(goal.user_id) === String(req.user.id);
-    if (!isOwner && !goal.is_public) {
+    if (!isOwner && (!goal.is_public || !goal.is_updates_public)) {
       return res.status(403).json({ success: false, message: 'Access denied' });
     }
 
@@ -615,16 +618,8 @@ const getGoal = async (req, res, next) => {
       });
     }
 
-    // Check if user owns goal or if goal is from followed user
-    if (goal.user_id.toString() !== req.user.id.toString()) {
-      // Check if user follows the goal owner
-      const isFollowing = await User.findById(req.user.id).select('following');
-      if (!isFollowing.following.includes(goal.user_id)) {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied'
-        });
-      }
+    if (String(goal.user_id) !== String(req.user.id) && !goal.is_public) {
+      return res.status(403).json({ success: false, message: 'Access denied' });
     }
 
     // Get extended details from MongoDB
@@ -638,7 +633,7 @@ const getGoal = async (req, res, next) => {
       category: goal.category,
       year: goal.year,
       targetDate: goal.target_date,
-      completed: goal.completed,
+      completed: Boolean(goal.completed_at),
       completedAt: goal.completed_at,
       isPublic: goal.is_public,
       isUpdatesPublic: goal.is_updates_public,
@@ -819,7 +814,7 @@ const createGoal = async (req, res, next) => {
         category: goal.category,
         year: goal.year,
         targetDate: goal.target_date,
-        completed: goal.completed,
+        completed: Boolean(goal.completed_at),
         isPublic: goal.is_public,
         isUpdatesPublic: goal.is_updates_public,
         description: normalizedDescription,
@@ -1750,7 +1745,7 @@ const getShareableGoal = async (req, res, next) => {
     }
 
     // Only share completed goals
-    if (!goal.completed) {
+    if (!goal.completed_at) {
       return res.status(403).json({
         success: false,
         message: 'Only completed goals can be shared'
@@ -1764,7 +1759,7 @@ const getShareableGoal = async (req, res, next) => {
         title: goal.title,
         description: goalDetails?.description || '',
         category: goal.category,
-        completed: goal.completed,
+        completed: Boolean(goal.completed_at),
         completedAt: goal.completed_at,
         completionNote: goal.is_public ? (goalDetails.completionNote || null) : null
       },

@@ -1605,6 +1605,17 @@ const useApiStore = create(
         }
       },
 
+      postGoalShare: async (id, payload) => {
+        const response = await goalsAPI.postShare(id, payload);
+        set({ cacheActivityFeed: {} });
+        return response.data.data;
+      },
+
+      deleteSharedPost: async (id) => {
+        await activitiesAPI.deleteSharedPost(id);
+        set({ cacheActivityFeed: {} });
+      },
+
       // =====================
       // NOTIFICATIONS ACTIONS
       // =====================

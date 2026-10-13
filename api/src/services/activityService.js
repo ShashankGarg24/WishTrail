@@ -20,7 +20,7 @@ class ActivityService {
     const achievementIds = new Set();
     
     activityArray.forEach(activity => {
-      if (activity.data?.goalId) goalIds.add(activity.data.goalId);
+      if (activity.type !== 'goal_shared' && activity.data?.goalId) goalIds.add(activity.data.goalId);
       if (activity.data?.targetUserId) userIds.add(activity.data.targetUserId);
       if (activity.data?.achievementId) achievementIds.add(activity.data.achievementId.toString());
       if (activity.userId) userIds.add(activity.userId);
@@ -37,7 +37,7 @@ class ActivityService {
     ]);
     
     // Create lookup maps
-    const goalMap = new Map(goals.map(g => [g.id, g]));
+    const goalMap = new Map(goals.map(g => [String(g.id), g]));
     const userMap = new Map(users.map(u => [u.id, u]));
     const achievementMap = new Map(achievements.map(a => [a._id.toString(), a]));
     const goalDetailsMap = new Map(goalDetails.map(gd => [gd.goalId?.toString(), gd]));
@@ -45,6 +45,7 @@ class ActivityService {
     // Enrich activities
     const enriched = activityArray.map(activity => {
       const enrichedActivity = { ...activity };
+      if (activity.type === 'goal_shared') return enrichedActivity;
       if (activity.data?.goalId) {
         const goal = goalMap.get(activity.data.goalId.toString());
         const details = goalDetailsMap.get(activity.data.goalId.toString());
@@ -125,6 +126,7 @@ class ActivityService {
       const base = typeof act.toObject === 'function' ? act.toObject() : act;
       const { userId: authorId, name, username, avatar, ...rest } = base;
       const user = {
+        id: authorId,
         name: name,
         username: username,
         avatar: avatar,
@@ -132,31 +134,25 @@ class ActivityService {
       return { ...rest, user };
     };
 
-    if (followingIds.length === 0) {
-      // Return empty feed when user isn't following anyone
-      return {
-        activities: [],
-        pagination: { page: parseInt(page), limit: parseInt(limit), total: 0, pages: 0 }
-      };
-    }
-  
     const query = {
-      isPublic: true,
       $or: [
-        { 
-          userId: { $in: followingIds }, 
-          type: { $in: [
-            'goal_activity',
-            'goal_completed',
-            'goal_created',
-            'subgoal_added',
-            'habit_added',
-            'subgoal_completed',
-            'habit_target_achieved'
-          ] } 
-        }
+        { userId: Number(userId), type: 'goal_shared' },
+        { userId: { $in: followingIds }, isPublic: true, type: { $in: [
+          'goal_shared', 'goal_activity', 'goal_completed', 'goal_created',
+          'subgoal_added', 'habit_added', 'subgoal_completed', 'habit_target_achieved'
+        ] } }
       ]
     };
+    // Suppress system completion cards only when this viewer can see the rich
+    // completion post. Resolve before pagination so page boundaries cannot duplicate it.
+    const sharedGoals = await Activity.distinct('data.goalId', {
+      type: 'goal_shared', 'data.share.shareType': 'COMPLETION',
+      $or: [{ userId: Number(userId) }, { userId: { $in: followingIds }, isPublic: true }]
+    });
+    if (sharedGoals.length) query.$nor = [
+      { 'data.goalId': { $in: sharedGoals }, type: 'goal_completed' },
+      { 'data.goalId': { $in: sharedGoals }, type: 'goal_activity', 'data.lastUpdateType': 'completed' }
+    ];
 
     if (blockedSet.length > 0) {
       query.userId = { $nin: blockedSet };
@@ -176,6 +172,7 @@ class ActivityService {
     
     // Filter out activities that reference private goals
     const filteredActivities = enrichedWithPg.filter(activity => {
+      if (activity.type === 'goal_shared') return true;
       // If activity references a goal, check if goal is public
       if (activity.data?.goalId) {
         // If goal wasn't found or is private, exclude this activity
@@ -266,6 +263,7 @@ class ActivityService {
       const { userId: authorId, name, username, avatar, ...rest } = act;
       const user = {
         _id: authorId,
+        id: authorId,
         name: name,
         username: username,
         avatar: avatar,
@@ -294,7 +292,8 @@ class ActivityService {
     }
     
     const activities = await Activity.find({ 
-      userId, 
+      userId,
+      ...(Number(userId) === Number(requestingUserId) ? {} : { $or: [{ type: { $ne: 'goal_shared' } }, { isPublic: true }] }),
       isActive: true 
     })
     .sort({ createdAt: -1 })
@@ -305,12 +304,13 @@ class ActivityService {
     // Enrich with PostgreSQL data
     const enrichedActivities = await this.enrichWithPostgresData(activities);
     
-    const total = await Activity.countDocuments({ userId, isActive: true });
+    const total = await Activity.countDocuments({ userId, isActive: true, ...(Number(userId) === Number(requestingUserId) ? {} : { $or: [{ type: { $ne: 'goal_shared' } }, { isPublic: true }] }) });
     
     // Normalize activities to include user object
     const normalized = enrichedActivities.map((act) => {
       const { userId: authorId, name, username, avatar, ...rest } = act;
       const user = {
+        id: authorId,
         name: name,
         username: username,
         avatar: avatar,
@@ -445,6 +445,7 @@ class ActivityService {
       throw new Error('Activity not found');
     }
     
+    await require('./goalShareAccess').assertShareAccess(activity, requestingUserId);
     // Enrich with PostgreSQL data
     const enrichedActivity = await this.enrichWithPostgresData(activity);
     
@@ -479,6 +480,7 @@ class ActivityService {
       throw new Error('Activity not found');
     }
     
+    await require('./goalShareAccess').assertShareAccess(activity, userId);
     // Don't allow liking own activities
     if (activity.userId.toString() === userId.toString()) {
       throw new Error('Cannot like your own activity');

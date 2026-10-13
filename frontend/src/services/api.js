@@ -277,6 +277,8 @@ export const authAPI = {
 
 // Goals API
 export const goalsAPI = {
+  getShareContext: (id, params = {}) => api.get(`/goals/${id}/share-context`, { params }),
+  postShare: (id, payload) => api.post(`/goals/${id}/shares`, payload),
   getGoals: (params) => api.get('/goals', { params }),
   getGoal: (id, params) => api.get(`/goals/${id}`, { params }),
   getTrendingGoals: (params) => api.get('/goals/trending', { params }),
@@ -374,6 +376,7 @@ export const activitiesAPI = {
   getActivityStats: (params) => api.get('/activities/stats', { params }),
   getUserActivities: (userId, params) => api.get(`/activities/user/${userId}`, { params }),
   getActivity: (id) => api.get(`/activities/${id}`),
+  deleteSharedPost: (id) => api.delete(`/activities/${id}`),
   likeActivity: (id, like) => api.patch(`/activities/${id}/like`, typeof like === 'boolean' ? { like } : {}),
   getComments: (activityId, params) => api.get(`/activities/${activityId}/comments`, { params }),
   addComment: (activityId, body) => api.post(`/activities/${activityId}/comments`, body),

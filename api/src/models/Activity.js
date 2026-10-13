@@ -1,6 +1,19 @@
 const { logger } = require('./../config/observability');
 const mongoose = require('mongoose');
 
+const shareSchema = new mongoose.Schema({
+  version: { type: Number, enum: [1], required: true },
+  shareType: { type: String, enum: ['GOAL', 'PROGRESS', 'MILESTONE', 'COMPLETION'], required: true },
+  title: { type: String, maxlength: 100, required: true },
+  category: String,
+  template: { type: String, enum: ['MINIMAL', 'JOURNEY', 'PHOTO', 'PROGRESS'], required: true },
+  format: { type: String, enum: ['STORY_9_16', 'SQUARE_1_1'], required: true },
+  progress: Number, completionDate: String, journeyDuration: Number,
+  progressUpdateCount: Number, activeDays: Number,
+  selectedJourneyEvents: { type: [new mongoose.Schema({ type: String, label: String, date: String }, { _id: false })], default: undefined },
+  photo: String, feeling: String, note: { type: String, maxlength: 120 }
+}, { _id: false });
+
 const activitySchema = new mongoose.Schema({
   // User who performed the activity (PostgreSQL user ID)
   userId: {
@@ -25,6 +38,7 @@ const activitySchema = new mongoose.Schema({
     type: String,
     required: [true, 'Activity type is required'],
     enum: [
+      'goal_shared',
       'goal_activity',
       'goal_completed',
       'goal_created',
@@ -44,6 +58,7 @@ const activitySchema = new mongoose.Schema({
   
   // Flexible data storage for different activity types (minimal storage)
   data: {
+    share: { type: shareSchema, default: undefined },
     // For goal-related activities (PostgreSQL goal ID)
     goalId: {
       type: Number
@@ -101,13 +116,19 @@ const activitySchema = new mongoose.Schema({
   },
 
   // Optional expiration support (set on write if you want TTL for updates)
-  expiresAt: { type: Date }
+  expiresAt: { type: Date },
+  shareKey: String,
+  shareRequestId: String,
+  shareRequestFingerprint: String
   
 }, {
   timestamps: true,
   toJSON: { virtuals: true },
   toObject: { virtuals: true }
 });
+
+activitySchema.index({ userId: 1, shareKey: 1 }, { unique: true, partialFilterExpression: { shareKey: { $type: 'string' } } });
+activitySchema.index({ userId: 1, shareRequestId: 1 }, { unique: true, partialFilterExpression: { shareRequestId: { $type: 'string' } } });
 
 // Virtual for activity message
 activitySchema.virtual('message').get(function() {
@@ -338,7 +359,7 @@ activitySchema.statics.getRecentActivities = function(limit = 15, userId = null)
 // Static method to get user's activity feed
 activitySchema.statics.getUserActivities = function(userId, options = {}) {
   const { page = 1, limit = 20 } = options;
-  return this.find({ userId, isActive: true })
+  return this.find({ userId, isActive: true, ...(options.includePrivateShares ? {} : { $or: [{ type: { $ne: 'goal_shared' } }, { isPublic: true }] }) })
     .sort({ createdAt: -1 })
     .limit(limit)
     .skip((page - 1) * limit)
@@ -359,6 +380,7 @@ activitySchema.statics.getFollowingActivities = function(followingIds, limit = 2
 // Mirror activities into per-community feed collection and let that model emit real-time events
 try {
   activitySchema.post('save', async function(doc) {
+    if (doc.type === 'goal_shared') return; // Explicit shares are never mirrored into communities.
     try {
       const CommunityItem = require('./CommunityItem');
       const CommunityActivity = require('./CommunityActivity');

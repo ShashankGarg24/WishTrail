@@ -1,256 +1,145 @@
-import { useState, useRef, useEffect, lazy, Suspense } from 'react'
-import { motion } from 'framer-motion'
-import { 
-  X, 
-  Share2, 
-  Download, 
-  Copy, 
-  Check,
-  Instagram,
-  Facebook,
-  Twitter,
-  Linkedin,
-  MessageCircle,
-  Link
-} from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import html2canvas from 'html2canvas'
-const ShareableGoalCard = lazy(() => import('./ShareableGoalCard'));
-import useApiStore from '../store/apiStore'
+import { X, Share2, ArrowLeft, Download, Check, Lock } from 'lucide-react'
+import toast from 'react-hot-toast'
+import { goalsAPI } from '../services/api'
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
+import { defaultShareOptions, shareSnapshot } from '../utils/goalShare'
+import { renderGoalImage, shareGoalImage, downloadGoalImage } from '../services/goalImageShare'
+import { trackGoalShare } from '../lib/observability/datadog'
+import GoalSharePreview from './GoalSharePreview'
+import useApiStore from '../store/apiStore'
 
-const ShareModal = ({ isOpen, onClose, goal, user }) => {
-  const [isGenerating, setIsGenerating] = useState(false)
-  const [copied, setCopied] = useState(false)
-  const [shareableData, setShareableData] = useState(null)
+const names = { MINIMAL: 'Minimal', JOURNEY: 'Journey', PHOTO: 'Photo', PROGRESS: 'Progress' }
+const button = 'min-h-[44px] rounded-xl border border-blue-100 px-4 py-3 text-sm font-semibold text-[#2369aa] transition hover:bg-blue-50 disabled:opacity-50'
+
+export default function ShareModal({ isOpen, onClose, goal, shareType, eventId }) {
+  const [context, setContext] = useState(null)
+  const [options, setOptions] = useState(null)
+  const [step, setStep] = useState('templates')
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [reload, setReload] = useState(0)
+  const [file, setFile] = useState(null)
+  const [visibility, setVisibility] = useState('PRIVATE')
+  const [posted, setPosted] = useState(false)
   const cardRef = useRef(null)
-  const { getShareableGoal, getOGImageUrl } = useApiStore()
-
-  // Load shareable data when modal opens
+  const dialogRef = useRef(null)
+  const requestId = useRef('')
+  const id = goal?.id || goal?._id
   useEffect(() => {
-    if (isOpen && goal._id) {
-      loadShareableData()
-    }
-  }, [isOpen, goal._id])
-
-  const loadShareableData = async () => {
-    try {
-      const result = await getShareableGoal(goal._id)
-      if (result.success) {
-        setShareableData(result.data)
+    if (!isOpen || !id) return
+    let active = true
+    setContext(null); setOptions(null); setError(''); setStep('templates'); setFile(null); setPosted(false)
+    requestId.current = globalThis.crypto?.randomUUID?.() || `share-${Date.now()}-${Math.random().toString(36).slice(2)}`
+    goalsAPI.getShareContext(id, { shareType, eventId }).then(async response => {
+      const data = response.data.data
+      if (data.photo) {
+        const loaded = await new Promise(resolve => {
+          const img = new Image(); img.crossOrigin = 'anonymous'
+          const timer = setTimeout(() => resolve(false), 8000)
+          img.onload = () => { clearTimeout(timer); resolve(true) }
+          img.onerror = () => { clearTimeout(timer); resolve(false) }
+          img.src = data.photo
+        })
+        if (!loaded) { delete data.photo; data.templates = data.templates.filter(item => item !== 'PHOTO') }
       }
-    } catch (error) {
-      console.error('Error loading shareable data:', error)
-    }
-  }
-
-  const shareText = shareableData ? `🎉 Just achieved my goal: "${shareableData.goal.title}"! 
-
-  ✨ ${shareableData.goal.category}
-  📅 Completed: ${new Date(shareableData.goal.completedAt).toLocaleDateString()}
-  ${shareableData.goal.completedAt ? `✅ Completed ${new Date(shareableData.goal.completedAt).toLocaleDateString()}` : ''}
-
-  Track your goals with WishTrail! 🚀` : `🎉 Just achieved my goal: "${goal.title}"!`
-
-  const shareUrl = shareableData?.shareUrl || `${window.location.origin}/goal/${goal._id}`
-
-  const generateImage = async () => {
-    if (!cardRef.current) return null
-    
-    setIsGenerating(true)
-    
-    try {
-      const rect = cardRef.current.getBoundingClientRect()
-      const targetWidth = Math.round(rect.width || cardRef.current.offsetWidth || 600)
-      const targetHeight = Math.round(rect.height || cardRef.current.offsetHeight || 800)
-
-      const canvas = await html2canvas(cardRef.current, {
-        backgroundColor: '#ffffff',
-        width: targetWidth,
-        height: targetHeight,
-        scale: 2,
-        allowTaint: true,
-        useCORS: true,
-        logging: false
-      })
-      
-      return canvas.toDataURL('image/png')
-    } catch (error) {
-      console.error('Error generating image:', error)
-      return null
-    } finally {
-      setIsGenerating(false)
-    }
-  }
-
-  const downloadImage = async () => {
-    const imageDataUrl = await generateImage()
-    if (imageDataUrl) {
-      const link = document.createElement('a')
-      link.download = `wishtrail-goal-${goal.title.replace(/\s+/g, '-').toLowerCase()}.png`
-      link.href = imageDataUrl
-      link.click()
-    }
-  }
-
-  const copyToClipboard = async () => {
-    try {
-      await navigator.clipboard.writeText(shareText)
-      setCopied(true)
-      try { window.dispatchEvent(new CustomEvent('wt_toast', { detail: { message: 'Copied to clipboard', type: 'success', duration: 2000 } })); } catch {}
-      setTimeout(() => setCopied(false), 2000)
-    } catch (error) {
-      console.error('Failed to copy to clipboard:', error)
-    }
-  }
-
-  const handleNativeShare = async () => {
-    if (navigator.share) {
-      try {
-        const imageDataUrl = await generateImage()
-        
-        if (imageDataUrl) {
-          // Convert data URL to blob
-          const response = await fetch(imageDataUrl)
-          const blob = await response.blob()
-          const file = new File([blob], `wishtrail-goal-${goal.title.replace(/\s+/g, '-').toLowerCase()}.png`, { type: 'image/png' })
-          
-          await navigator.share({
-            title: 'Goal Achievement - WishTrail',
-            text: shareText,
-            url: shareUrl,
-            files: [file]
-          })
-        } else {
-          await navigator.share({
-            title: 'Goal Achievement - WishTrail',
-            text: shareText,
-            url: shareUrl
-          })
-        }
-      } catch (error) {
-        console.error('Error sharing:', error)
-        copyToClipboard()
-      }
-    } else {
-      copyToClipboard()
-    }
-  }
-
-  const shareToWhatsApp = () => {
-    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText + '\n' + shareUrl)}`
-    window.open(whatsappUrl, '_blank')
-  }
-
-  const shareToInstagram = async () => {
-    const imageDataUrl = await generateImage()
-    if (imageDataUrl) {
-      // For Instagram, we'll download the image and show instructions
-      const link = document.createElement('a')
-      link.download = `wishtrail-goal-${goal.title.replace(/\s+/g, '-').toLowerCase()}.png`
-      link.href = imageDataUrl
-      link.click()
-      
-      alert('Image downloaded! You can now upload it to Instagram Stories or Posts.')
-    }
-  }
-
-  const shareToTwitter = () => {
-    const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`
-    window.open(twitterUrl, '_blank')
-  }
-
-  const shareToFacebook = () => {
-    const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(shareText)}`
-    window.open(facebookUrl, '_blank')
-  }
-
-  const shareToLinkedIn = () => {
-    const linkedinUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}&summary=${encodeURIComponent(shareText)}`
-    window.open(linkedinUrl, '_blank')
-  }
-
-  const sharingOptions = [
-    {
-      name: 'WhatsApp',
-      icon: MessageCircle,
-      color: 'bg-green-500 hover:bg-green-600',
-      action: shareToWhatsApp
-    },
-    {
-      name: 'Instagram',
-      icon: Instagram,
-      color: 'bg-pink-500 hover:bg-pink-600',
-      action: shareToInstagram
-    },
-    {
-      name: 'Twitter',
-      icon: Twitter,
-      color: 'bg-[#4c99e6] hover:bg-[#3d88d5]',
-      action: shareToTwitter
-    },
-    {
-      name: 'Facebook',
-      icon: Facebook,
-      color: 'bg-blue-700 hover:bg-blue-800',
-      action: shareToFacebook
-    },
-    {
-      name: 'LinkedIn',
-      icon: Linkedin,
-      color: 'bg-blue-600 hover:bg-blue-700',
-      action: shareToLinkedIn
-    }
-  ]
-
+      if (!active) return
+      setContext(data); setOptions(defaultShareOptions(data)); setVisibility(data.privacy)
+      trackGoalShare('goal_share_opened', { shareType: data.shareType })
+    }).catch(err => { if (active) setError(err.response?.data?.message || 'Unable to load the preview. Please retry.') })
+    return () => { active = false }
+  }, [isOpen, id, shareType, eventId, reload])
+  useEffect(() => {
+    if (!isOpen) return
+    const previous = document.activeElement
+    lockBodyScroll(); dialogRef.current?.focus()
+    return () => { unlockBodyScroll(); previous?.focus?.() }
+  }, [isOpen])
   if (!isOpen) return null
-
-  useEffect(() => { lockBodyScroll(); return () => unlockBodyScroll(); }, [])
-
-  return createPortal(
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 md:p-8"
-      style={{ zIndex: 10002 }}
-      onClick={onClose}
-    >
-      <motion.div
-        initial={{ scale: 0.95, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.95, opacity: 0 }}
-        transition={{ duration: 0.2 }}
-        className="bg-gray-50 dark:bg-gray-900 rounded-xl sm:rounded-2xl max-w-7xl w-full max-h-[90vh] sm:h-[85vh] overflow-y-auto scrollbar-hide shadow-2xl relative flex flex-col"
-        onClick={(e) => e.stopPropagation()}
-        style={{ zIndex: 10003 }}
-      >
-        {/* Close Button */}
-        <button
-          onClick={onClose}
-          className="absolute top-3 right-3 sm:top-4 sm:right-4 md:top-6 md:right-6 z-50 p-1.5 sm:p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors"
-        >
-          <X className="h-5 w-5 sm:h-6 sm:w-6 text-gray-500 dark:text-gray-400" />
-        </button>
-
-        {/* Content */}
-        <div className="p-3 sm:p-4 md:p-6 lg:p-8 flex-1 overflow-y-auto scrollbar-hide">
-          <Suspense fallback={
-            <div className="flex items-center justify-center h-96">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-            </div>
-          }>
-            <ShareableGoalCard
-              ref={cardRef}
-              goal={goal}
-              user={user}
-            />
-          </Suspense>
-        </div>
-      </motion.div>
-    </motion.div>,
-    document.body
-  )
+  const snapshot = context && options ? shareSnapshot(context, options) : null
+  const change = (key, value) => {
+    if (posted) requestId.current = globalThis.crypto?.randomUUID?.() || `share-${Date.now()}-${Math.random().toString(36).slice(2)}`
+    setOptions(previous => ({ ...previous, [key]: value })); setFile(null); setPosted(false); setError('')
+  }
+  const prepare = async () => {
+    setBusy(true); setError(''); setStep('destinations')
+    try { setFile(await renderGoalImage(cardRef.current)) }
+    catch (err) { setError(err.message) }
+    finally { setBusy(false) }
+  }
+  const post = async () => {
+    setBusy(true); setError('')
+    try {
+      await useApiStore.getState().postGoalShare(id, { shareType: context.shareType, eventId: context.eventId, revision: context.revision, options, visibility, requestId: requestId.current })
+      setPosted(true)
+      trackGoalShare('goal_share_internal', { shareType: context.shareType, template: options.template, format: options.format })
+      window.dispatchEvent(new Event('wt_refresh'))
+      toast.success('Posted to WishTrail')
+    } catch (err) { setError(err.response?.data?.message || 'Unable to post. Your preview is ready to retry.') }
+    finally { setBusy(false) }
+  }
+  const external = async () => {
+    setBusy(true); setError('')
+    trackGoalShare('goal_share_external', { shareType: context.shareType, template: options.template, format: options.format })
+    try {
+      const result = await shareGoalImage(file)
+      if (result === 'download') toast.success('Image downloaded')
+    } catch (err) { if (err.name !== 'AbortError') setError(err.message || 'Unable to share. Please retry or download the image.') }
+    finally { setBusy(false) }
+  }
+  const toggle = (key, label, available = true, hint) => available && <label key={key} className="flex min-h-[44px] cursor-pointer items-center justify-between gap-3 py-2 text-sm"><span>{label}{hint && <span className="mt-1 block text-xs font-normal text-slate-500">{hint}</span>}</span><input type="checkbox" checked={options[key]} onChange={event => change(key, event.target.checked)} className="h-5 w-5 accent-[#4c99e6]"/></label>
+  return createPortal(<div className="fixed inset-0 flex items-end justify-center bg-slate-950/60 sm:items-center sm:p-5" style={{ zIndex: 10020 }} onClick={() => !busy && onClose()}>
+    <section ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="share-studio-title" tabIndex={-1} data-dd-privacy="mask" onClick={event => event.stopPropagation()} onKeyDown={event => {
+      if (event.key === 'Escape' && !busy) { event.stopPropagation(); onClose() }
+      if (event.key === 'Tab') {
+        const nodes = [...dialogRef.current.querySelectorAll('button:not(:disabled), input:not(:disabled), textarea, select, [tabindex="0"]')]
+        const first = nodes[0], last = nodes[nodes.length - 1]
+        if (event.shiftKey && (document.activeElement === first || document.activeElement === dialogRef.current)) { event.preventDefault(); last?.focus() }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus() }
+      }
+    }} className="flex max-h-[96dvh] w-full flex-col overflow-hidden rounded-t-3xl bg-white text-[#102544] shadow-2xl sm:max-h-[90dvh] sm:max-w-4xl sm:rounded-3xl">
+      <header className="flex shrink-0 items-center gap-3 border-b border-slate-100 px-5 py-4 sm:px-7">
+        {step !== 'templates' && <button aria-label="Back" disabled={busy} onClick={() => { setStep(step === 'destinations' ? 'customize' : 'templates'); setError('') }} className="rounded-lg p-2"><ArrowLeft className="h-5 w-5"/></button>}
+        <div className="flex-1"><h2 id="share-studio-title" className="text-lg font-extrabold">{step === 'destinations' ? 'Share to' : 'Share your journey'}</h2><p className="mt-1 text-xs text-slate-500">{step === 'templates' ? 'Choose a template and make it yours.' : 'Only what you see in the preview is shared.'}</p></div>
+        <button aria-label="Close share studio" disabled={busy} onClick={onClose} className="rounded-xl p-2 hover:bg-slate-100"><X className="h-5 w-5"/></button>
+      </header>
+      <div className="overflow-y-auto p-5 sm:p-7">
+        {!snapshot && !error && <p role="status" className="py-16 text-center text-slate-500">Preparing your journey…</p>}
+        {snapshot && <div className="grid items-start gap-7 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+          <div className="rounded-3xl bg-gradient-to-b from-slate-100 to-blue-50 p-4 shadow-inner"><GoalSharePreview snapshot={snapshot} cardRef={cardRef} maxWidth={step === 'templates' ? 270 : 320}/></div>
+          <fieldset disabled={busy} className="min-w-0 space-y-5">
+            <span className="inline-flex rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-[#2369aa]">{context.shareType[0] + context.shareType.slice(1).toLowerCase()}</span>
+            {step === 'templates' && <>
+              <fieldset><legend className="mb-3 text-sm font-bold">Template</legend><div className="grid grid-cols-3 gap-2">{context.templates.map(template => <button key={template} onClick={() => { change('template', template); trackGoalShare('goal_share_template_selected', { shareType: context.shareType, template }) }} aria-pressed={options.template === template} className={`rounded-xl border-2 p-2 text-xs font-semibold ${options.template === template ? 'border-[#4c99e6] bg-blue-50 text-[#2369aa]' : 'border-slate-100'}`}><div className="pointer-events-none mb-2 overflow-hidden rounded-lg"><GoalSharePreview snapshot={shareSnapshot(context, { ...options, template })} maxWidth={86}/></div>{names[template]}</button>)}</div></fieldset>
+              <fieldset><legend className="mb-3 text-sm font-bold">Format</legend><div className="grid grid-cols-2 gap-3">{[['STORY_9_16', 'Story · 9:16'], ['SQUARE_1_1', 'Square · 1:1']].map(([format, label]) => <button key={format} aria-pressed={options.format === format} onClick={() => { change('format', format); trackGoalShare('goal_share_format_selected', { shareType: context.shareType, format }) }} className={`${button} ${options.format === format ? 'border-[#4c99e6] bg-blue-50' : ''}`}>{label}</button>)}</div></fieldset>
+              <button onClick={() => setStep('customize')} className="min-h-[48px] w-full rounded-xl bg-[#4c99e6] px-4 py-3 font-bold text-white">Next: Customize →</button>
+            </>}
+            {step === 'customize' && <>
+              <div className="divide-y divide-slate-100">
+                {toggle('showProgress', 'Show progress', context.progress !== undefined)}
+                {toggle('showJourneyDuration', 'Show journey duration', context.journeyDuration !== undefined, 'Calendar days, including start and end.')}
+                {toggle('showStats', 'Show updates and active days', context.progressUpdateCount !== undefined, 'Text updates; active days also include completion day.')}
+                {toggle('showMilestones', 'Show recorded journey events', options.template === 'JOURNEY' && context.selectedJourneyEvents.some(event => !['start', 'completion'].includes(event.type)))}
+                {toggle('showCompletionDate', 'Show completion date', Boolean(context.completionDate))}
+                {toggle('showFeeling', 'Show how I felt', Boolean(context.feeling))}
+                {toggle('showNote', 'Include a personal note')}
+              </div>
+              {options.showNote && <label className="block text-xs font-semibold">Personal note<textarea value={options.note} onChange={event => change('note', event.target.value)} maxLength={120} rows={3} placeholder="Dreams. Goals. Progress." className="mt-2 w-full resize-none rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm"/><span className="block text-right text-slate-400">{options.note.length}/120</span></label>}
+              <button disabled={busy} onClick={prepare} className="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-[#4c99e6] px-4 py-3 font-bold text-white disabled:opacity-50"><Share2 className="h-4 w-4"/>{busy ? 'Preparing image…' : 'Share'}</button>
+            </>}
+            {step === 'destinations' && <>
+              <label className="block text-sm font-semibold">Post visibility<select value={visibility} disabled={busy || posted} onChange={event => setVisibility(event.target.value)} className="mt-2 w-full rounded-xl border border-slate-200 bg-white p-3"><option value="PUBLIC">Public · visible to other members</option><option value="PRIVATE">Only me</option></select></label>
+              <button disabled={busy || posted} onClick={post} className={`${button} w-full text-left`}><span className="flex items-center gap-2">{posted && <Check className="h-4 w-4"/>}{posted ? 'Posted to WishTrail' : 'Post to WishTrail'}</span><span className="mt-1 block text-xs font-normal text-slate-500">Share this preview with your chosen audience.</span></button>
+              <button disabled={busy || !file} onClick={external} className={`${button} w-full text-left`}><span className="flex items-center gap-2"><Share2 className="h-4 w-4"/>Share elsewhere</span><span className="mt-1 block text-xs font-normal text-slate-500">Share the image to your apps, or save it.</span></button>
+              {!file && <button disabled={busy} onClick={prepare} className={button}>{busy ? 'Preparing image…' : 'Retry image export'}</button>}
+              {!window.ReactNativeWebView && <button disabled={busy || !file} onClick={() => { downloadGoalImage(file); trackGoalShare('goal_share_external', { shareType: context.shareType, template: options.template, format: options.format }) }} className="flex min-h-[44px] items-center gap-2 text-sm text-[#2369aa]"><Download className="h-4 w-4"/>Download image</button>}
+            </>}
+            {context.privacy === 'PRIVATE' && <p className="flex gap-2 rounded-xl bg-slate-50 p-3 text-xs leading-relaxed text-slate-600"><Lock className="mt-0.5 h-4 w-4 shrink-0"/>Your goal stays private. The shared image or post contains only what is visible in this preview.</p>}
+          </fieldset>
+        </div>}
+        {error && <div role="alert" className="mt-4 rounded-xl bg-red-50 p-4 text-sm text-red-700">{error}<button disabled={busy} onClick={() => setReload(value => value + 1)} className="ml-3 min-h-[44px] font-bold underline">Refresh preview</button></div>}
+      </div>
+    </section>
+  </div>, document.body)
 }
-
-export default ShareModal

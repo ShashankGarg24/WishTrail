@@ -1,3 +1,4 @@
+import { isRecentlyCompleted } from '../utils/goalShare'
 import { lazy, Suspense, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { motion } from 'framer-motion'
@@ -183,7 +184,7 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, onEditCom
             </button>
           )}
           {/* Removed wrench button; flow uses edit wizard */}
-          {isViewingOwnGoals && wish.completedAt && (
+          {isViewingOwnGoals && isRecentlyCompleted(wish) && (
             <button
               onClick={(e) => { e.stopPropagation(); handleShare(); }}
               className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"

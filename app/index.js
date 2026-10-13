@@ -1,6 +1,7 @@
 import { pullToRefreshScript } from './webViewGestures';
 import { startPushRegistration } from './pushRegistration';
 import { persistRefreshToken } from './refreshTokenStorage';
+import { shareGeneratedImage } from './goalImageSharing';
 import React, { useMemo, useRef, useState, useCallback, useEffect } from 'react';
 import { Platform, SafeAreaView, StatusBar, View, RefreshControl, Linking, AppState, Text, TouchableOpacity, Dimensions, ScrollView, ActivityIndicator, Animated, PermissionsAndroid, Alert, Image } from 'react-native';
 import { WebView } from 'react-native-webview';
@@ -64,6 +65,7 @@ const GOOGLE_IOS_CLIENT_ID = (APP_EXTRA.GOOGLE_IOS_CLIENT_ID || GOOGLE_WEB_CLIEN
 
 function App() {
   const webRef = useRef(null);
+  const sharingImageRef = useRef(false);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const appState = useRef(AppState.currentState);
@@ -428,6 +430,23 @@ function App() {
   const onMessage = useCallback((event) => {
     try {
       const data = JSON.parse(event?.nativeEvent?.data || '{}');
+      if (data?.type === 'WT_SHARE_IMAGE') {
+        if (new URL(event.nativeEvent.url).origin !== new URL(WEB_URL).origin) return;
+        const respond = error => {
+          const payload = JSON.stringify({ type: 'WT_SHARE_IMAGE_RESULT', requestId: data.requestId, ...(error ? { error } : {}) });
+          webRef.current?.injectJavaScript(`window.dispatchEvent(new MessageEvent('message', { data: ${JSON.stringify(payload)} })); true;`);
+        };
+        if (sharingImageRef.current) { respond('A share sheet is already open'); return; }
+        sharingImageRef.current = true;
+        (async () => {
+          try {
+            await shareGeneratedImage(data, require('expo-file-system'), require('expo-sharing'));
+            respond();
+          } catch { respond('Unable to share the image. Please retry with an updated app.'); }
+          finally { sharingImageRef.current = false; }
+        })();
+        return;
+      }
       if (data?.type === 'WT_UNREGISTER_DEVICE') {
         unregisteringRef.current = true;
         lastRegisteredSignatureRef.current = '';

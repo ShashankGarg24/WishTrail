@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState, lazy, Suspense } from 'react'
-import { Eye, BarChart3, X, Target, Heart, Smile, Meh, Frown, CircleSlash2, ChevronDown, CheckCircle, Calendar, ChevronRight, Flag } from 'lucide-react'
+import { Eye, BarChart3, X, Target, Heart, Smile, Meh, Frown, CircleSlash2, ChevronDown, CheckCircle, Calendar, ChevronRight, Flag, Share2 } from 'lucide-react'
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
 import { useNavigate } from 'react-router-dom'
 import useApiStore from '../store/apiStore'
 import toast from 'react-hot-toast';
 import ConfirmActionModal from './ConfirmActionModal';
 import GoalHero from './GoalHero';
+import { goalsAPI } from '../services/api';
 import AnalyticsRangeSelect from './AnalyticsRangeSelect';
 import ActivityCalendar from './ActivityCalendar';
 import { getDateKeyInTimezone } from '../utils/timezoneUtils';
@@ -47,6 +48,14 @@ export default function GoalDetailsModal({ goal, isOpen, onClose, onViewPost, in
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isLoadingUpdate, setIsLoadingUpdate] = useState(false)
   const [isShareModalOpen, setIsShareModalOpen] = useState(false)
+  const [shareMoment, setShareMoment] = useState(null)
+  const [completionSummary, setCompletionSummary] = useState(null)
+  useEffect(() => {
+    if (!isOpen || !goal?.completedAt) { setCompletionSummary(null); return }
+    let active = true
+    goalsAPI.getShareContext(goal.id || goal._id, { shareType: 'COMPLETION' }).then(response => { if (active) setCompletionSummary(response.data.data) }).catch(() => {})
+    return () => { active = false }
+  }, [isOpen, goal?.id, goal?._id, goal?.completedAt])
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false)
   const [updateText, setUpdateText] = useState('')
   const [selectedEmotion, setSelectedEmotion] = useState(null)
@@ -216,6 +225,7 @@ export default function GoalDetailsModal({ goal, isOpen, onClose, onViewPost, in
   const handleShare = (e) => {
     e?.stopPropagation()
     setIsMoreMenuOpen(false)
+    setShareMoment(null)
     setIsShareModalOpen(true)
   }
 
@@ -282,6 +292,10 @@ export default function GoalDetailsModal({ goal, isOpen, onClose, onViewPost, in
             <Target className="hidden h-4 w-4 text-[#1683ed] sm:block" />
             <span className="truncate text-sm">{activeView === 'log' ? 'Log Progress' : goal.title}</span>
           </div>
+          <div ref={moreMenuRef} className="absolute right-14 top-2.5 sm:right-16 sm:top-4">
+            <button type="button" aria-label="Goal actions" aria-expanded={isMoreMenuOpen} onClick={() => setIsMoreMenuOpen(value => !value)} className="min-h-[44px] rounded-xl px-3 text-xl text-slate-500">...</button>
+            {isMoreMenuOpen && <div className="absolute right-0 top-full z-30 w-48 rounded-xl border border-slate-200 bg-white p-2 shadow-xl dark:bg-gray-800"><button type="button" onClick={handleShare} className="flex min-h-[44px] w-full items-center gap-2 rounded-lg px-3 text-sm text-[#2369aa] hover:bg-blue-50"><Share2 className="h-4 w-4"/>{isCompleted ? 'Share Achievement' : 'Share Goal'}</button>{!isCompleted && <button type="button" onClick={() => { setShareMoment({ shareType: 'PROGRESS' }); setIsMoreMenuOpen(false); setIsShareModalOpen(true) }} className="min-h-[44px] w-full rounded-lg px-3 text-left text-sm text-[#2369aa] hover:bg-blue-50">Share Progress</button>}<button type="button" onClick={handleAnalytics} className="min-h-[44px] w-full rounded-lg px-3 text-left text-sm text-slate-600 hover:bg-blue-50">View Analytics</button><button type="button" onClick={handleViewPost} className="min-h-[44px] w-full rounded-lg px-3 text-left text-sm text-slate-600 hover:bg-blue-50">View Post</button></div>}
+          </div>
           <button
             type="button"
             onClick={onClose}
@@ -306,20 +320,20 @@ export default function GoalDetailsModal({ goal, isOpen, onClose, onViewPost, in
         </div>}
 
         {activeView !== 'log' && (
-          <div className={`min-h-0 flex-1 overflow-y-auto px-5 pt-5 sm:px-8 sm:pt-6 ${!isCompleted ? 'pb-24 sm:pb-28' : 'pb-5 sm:pb-6'}`}>
+          <div className={`min-h-0 flex-1 overflow-y-auto px-5 pt-5 sm:px-8 sm:pt-6 pb-24 sm:pb-28`}>
             {activeView === 'overview' && (
                 <div className="space-y-4">
                 <GoalHero goal={goal} />
                  {goal.description && <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-300">{goal.description}</p>}
                  <div className="grid grid-cols-2 gap-2"><MetricCard value={goal.targetDate ? new Date(goal.targetDate).toLocaleDateString(undefined,{day:'2-digit',month:'short',year:'numeric'}) : 'No date'} label="Target date"/><MetricCard value={new Date(goal.createdAt).toLocaleDateString(undefined,{day:'2-digit',month:'short',year:'numeric'})} label="Created"/></div>
-                 <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800"><div className="flex items-center justify-between"><h3 className="text-sm font-extrabold text-[#0b1746] dark:text-white">Goal Health</h3><span className="rounded-full bg-blue-50 px-2.5 py-1 text-[10px] font-bold text-[#1683ed] dark:bg-blue-950/40">{goal.healthLabel || 'Getting Started'}</span></div><p className="mt-3 text-xs text-slate-500">{goal.healthReason || 'Log meaningful progress to build your health insight.'}</p></div>
-                 <div className="grid grid-cols-3 gap-2"><MetricCard value={analyticsData?.metrics?.overdueDays ? `${analyticsData.metrics.overdueDays}d` : analyticsData?.metrics?.daysLeft ?? '—'} label={analyticsData?.metrics?.overdueDays ? 'Overdue' : 'Days left'}/><MetricCard value={analyticsData?.metrics?.progressUpdates ?? 0} label="Updates"/><MetricCard value={`${analyticsData?.metrics?.consistency ?? 0}%`} label="Consistency"/></div>
+                 {!isCompleted && <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800"><div className="flex items-center justify-between"><h3 className="text-sm font-extrabold text-[#0b1746] dark:text-white">Goal Health</h3><span className="rounded-full bg-blue-50 px-2.5 py-1 text-[10px] font-bold text-[#1683ed] dark:bg-blue-950/40">{goal.healthLabel || 'Getting Started'}</span></div><p className="mt-3 text-xs text-slate-500">{goal.healthReason || 'Log meaningful progress to build your health insight.'}</p></div>}
+                 {isCompleted ? <div className="grid grid-cols-3 gap-2">{completionSummary?.journeyDuration !== undefined && <MetricCard value={completionSummary.journeyDuration} label="Journey days"/>}{completionSummary?.progressUpdateCount !== undefined && <MetricCard value={completionSummary.progressUpdateCount} label="Progress updates"/>}{completionSummary?.activeDays !== undefined && <MetricCard value={completionSummary.activeDays} label="Active days"/>}</div> : <div className="grid grid-cols-3 gap-2"><MetricCard value={analyticsData?.metrics?.overdueDays ? `${analyticsData.metrics.overdueDays}d` : analyticsData?.metrics?.daysLeft ?? '—'} label={analyticsData?.metrics?.overdueDays ? 'Overdue' : 'Days left'}/><MetricCard value={analyticsData?.metrics?.progressUpdates ?? 0} label="Updates"/><MetricCard value={`${analyticsData?.metrics?.consistency ?? 0}%`} label="Recent consistency"/></div>}
               </div>
             )}
             {activeView === 'journey' && (
               <>
               <div className="mb-3"><ActivityCalendar title="Calendar view" subtitle="Start, progress logs, and completion" marks={goalCalendarMarks} initialDate={goal.completedAt ? getDateKeyInTimezone(goal.completedAt) : undefined} legend={[{label:'Started',dotClassName:'bg-blue-600'},{label:'Progress log',dotClassName:'bg-sky-500'},{label:'Completed',dotClassName:'bg-emerald-600'}]} /></div>
-              <div className="space-y-3"><div className="mb-4"><p className="text-sm font-semibold text-gray-700 dark:text-gray-200">Your goal journey</p><p className="mt-1 text-xs text-gray-500">From the first step to completion, with meaningful updates in between.</p></div>{isLoadingView && <p className="py-8 text-center text-sm text-gray-500">Loading journey...</p>}{!isLoadingView && (timelineEvents.length ? timelineEvents : [{ type: 'goal_created', title: 'Goal Started', timestamp: goal.createdAt }]).map((event, index, events) => { const isStart = event.type === 'goal_created'; const isDone = event.type === 'goal_completed'; const title = isStart ? 'Goal Started' : isDone ? 'Goal Completed' : event.title || 'Progress Update'; const date = event.dateKey ? `${event.dateKey}T12:00:00` : event.date || event.createdAt || event.timestamp; return <div key={event.id || `${event.type}-${date}-${index}`} className="flex gap-3"><div className="flex flex-col items-center"><span className={`flex h-9 w-9 items-center justify-center rounded-full ${isDone ? 'bg-emerald-50 text-emerald-600' : isStart ? 'bg-blue-50 text-[#1683ed]' : 'bg-sky-50 text-sky-600'}`}>{isDone ? <CheckCircle className="h-4 w-4"/> : isStart ? <Target className="h-4 w-4"/> : <Flag className="h-4 w-4"/>}</span>{index < events.length - 1 && <span className="my-1 min-h-9 w-px flex-1 bg-blue-200"/>}</div><div className="pb-5"><p className="text-xs text-gray-500">{date ? new Date(date).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' }) : ''}</p><p className="mt-0.5 text-sm font-semibold text-gray-900 dark:text-white">{title}</p>{event.description && <p className="mt-1 text-xs leading-relaxed text-gray-500">{event.description}</p>}</div></div>})}<div ref={journeyLoaderRef} className="flex min-h-10 items-center justify-center">{journeyLoadingMore&&<span className="h-5 w-5 animate-spin rounded-full border-2 border-blue-100 border-t-[#1683ed]"/>}{!journeyHasMore&&timelineEvents.length>0&&<span className="text-[10px] text-slate-400">You’ve reached the beginning.</span>}</div></div>
+              <div className="space-y-3"><div className="mb-4"><p className="text-sm font-semibold text-gray-700 dark:text-gray-200">Your goal journey</p><p className="mt-1 text-xs text-gray-500">From the first step to completion, with meaningful updates in between.</p></div>{isLoadingView && <p className="py-8 text-center text-sm text-gray-500">Loading journey...</p>}{!isLoadingView && (timelineEvents.length ? timelineEvents : [{ type: 'goal_created', title: 'Goal Started', timestamp: goal.createdAt }]).map((event, index, events) => { const isStart = event.type === 'goal_created'; const isDone = event.type === 'goal_completed'; const title = isStart ? 'Goal Started' : isDone ? 'Goal Completed' : event.title || 'Progress Update'; const date = event.dateKey ? `${event.dateKey}T12:00:00` : event.date || event.createdAt || event.timestamp; return <div key={event.id || `${event.type}-${date}-${index}`} className="flex gap-3"><div className="flex flex-col items-center"><span className={`flex h-9 w-9 items-center justify-center rounded-full ${isDone ? 'bg-emerald-50 text-emerald-600' : isStart ? 'bg-blue-50 text-[#1683ed]' : 'bg-sky-50 text-sky-600'}`}>{isDone ? <CheckCircle className="h-4 w-4"/> : isStart ? <Target className="h-4 w-4"/> : <Flag className="h-4 w-4"/>}</span>{index < events.length - 1 && <span className="my-1 min-h-9 w-px flex-1 bg-blue-200"/>}</div><div className="pb-5"><p className="text-xs text-gray-500">{date ? new Date(date).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' }) : ''}</p><p className="mt-0.5 text-sm font-semibold text-gray-900 dark:text-white">{title}</p>{event.description && <p className="mt-1 text-xs leading-relaxed text-gray-500">{event.description}</p>}{event.type === 'milestone' && <button type="button" onClick={() => { setShareMoment({ shareType: 'MILESTONE', eventId: event.id }); setIsShareModalOpen(true) }} className="mt-2 min-h-[44px] text-xs font-semibold text-[#2369aa]">Share milestone</button>}</div></div>})}<div ref={journeyLoaderRef} className="flex min-h-10 items-center justify-center">{journeyLoadingMore&&<span className="h-5 w-5 animate-spin rounded-full border-2 border-blue-100 border-t-[#1683ed]"/>}{!journeyHasMore&&timelineEvents.length>0&&<span className="text-[10px] text-slate-400">You’ve reached the beginning.</span>}</div></div>
               </>
             )}
             {activeView === 'analytics' && (
@@ -328,6 +342,7 @@ export default function GoalDetailsModal({ goal, isOpen, onClose, onViewPost, in
           </div>
         )}
 
+        {activeView !== 'log' && isCompleted && <div className="absolute inset-x-0 bottom-0 z-20 flex gap-3 border-t border-slate-200 bg-white px-5 py-4 dark:border-gray-700 dark:bg-gray-900 sm:px-8"><button type="button" onClick={() => setActiveView('journey')} className="min-h-[48px] flex-1 rounded-xl border border-blue-200 px-3 py-3 text-sm font-semibold text-[#2369aa]">View Journey</button><button type="button" onClick={handleShare} className="min-h-[48px] flex-1 rounded-xl bg-[#4c99e6] px-3 py-3 text-sm font-semibold text-white">Share Achievement</button></div>}
         {activeView !== 'log' && !isCompleted && <div className="absolute inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white px-5 py-4 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] dark:border-gray-700 dark:bg-gray-900 sm:px-8"><button type="button" onClick={() => setActiveView('log')} className="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-[#1683ed] px-4 py-3 text-sm font-semibold text-white shadow-sm"><Target className="h-4 w-4" /> Log Progress</button></div>}
 
         {activeView === 'log' && <div className="px-5 py-5 sm:px-8 sm:py-6 space-y-5 overflow-y-auto scrollbar-hide flex-1 min-h-0">
@@ -435,48 +450,6 @@ export default function GoalDetailsModal({ goal, isOpen, onClose, onViewPost, in
             )}
 
             <div className="flex items-center gap-2">
-              <div
-                ref={moreMenuRef}
-                className="relative"
-                onKeyDown={(event) => {
-                  if (event.key === 'Escape' && isMoreMenuOpen) {
-                    event.stopPropagation();
-                    setIsMoreMenuOpen(false);
-                    moreMenuRef.current?.querySelector('button')?.focus();
-                  }
-                }}
-                onBlur={(event) => {
-                  if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget)) setIsMoreMenuOpen(false);
-                }}
-              >
-                <button
-                  type="button"
-                  aria-expanded={isMoreMenuOpen}
-                  aria-controls="goal-detail-more-actions"
-                  onClick={() => setIsMoreMenuOpen(prev => !prev)}
-                  className="inline-flex min-h-[44px] items-center gap-1.5 px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                >
-                  More <ChevronDown className={`h-4 w-4 transition-transform ${isMoreMenuOpen ? 'rotate-180' : ''}`} />
-                </button>
-                {isMoreMenuOpen && (
-                  <div id="goal-detail-more-actions" className={`absolute ${isCompleted ? 'right-0' : 'left-1/2 -translate-x-1/2'} bottom-full mb-2 z-10 w-48 sm:w-56 max-w-[calc(100vw-3rem)] p-1.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg overflow-hidden`}>
-                    <button
-                      type="button"
-                      onClick={handleAnalytics}
-                      className="w-full min-h-[48px] rounded-lg px-3 py-3 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 focus-visible:outline-none focus-visible:bg-blue-50 dark:focus-visible:bg-gray-700 inline-flex items-center gap-2"
-                    >
-                      <BarChart3 className="h-4 w-4" /> Analytics
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleViewPost}
-                      className="w-full min-h-[48px] rounded-lg px-3 py-3 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 focus-visible:outline-none focus-visible:bg-blue-50 dark:focus-visible:bg-gray-700 inline-flex items-center gap-2"
-                    >
-                      <Eye className="h-4 w-4" /> View Post
-                    </button>
-                  </div>
-                )}
-              </div>
               {!isCompleted && (
                 <button
                   type="button"
@@ -497,6 +470,8 @@ export default function GoalDetailsModal({ goal, isOpen, onClose, onViewPost, in
       {isShareModalOpen && (
         <Suspense fallback={null}>
           <ShareModal
+            shareType={shareMoment?.shareType}
+            eventId={shareMoment?.eventId}
             isOpen={isShareModalOpen}
             onClose={() => setIsShareModalOpen(false)}
             goal={goal}

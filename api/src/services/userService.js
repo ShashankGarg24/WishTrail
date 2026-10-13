@@ -735,16 +735,17 @@ class UserService {
     }
     
     // Activities are still in MongoDB - fetch with lean()
-    const activities = await Activity.find({ userId })
+    const visibility = Number(userId) === Number(requestingUserId) ? {} : { $or: [{ type: { $ne: 'goal_shared' } }, { isPublic: true }] };
+    const activities = await Activity.find({ userId, ...visibility })
       .sort({ createdAt: -1 })
       .limit(limit * 1)
       .skip((page - 1) * limit)
       .lean();
     
-    const total = await Activity.countDocuments({ userId });
+    const total = await Activity.countDocuments({ userId, ...visibility });
     
     // Enrich activities with PostgreSQL data and achievements
-    const goalIds = [...new Set(activities.map(a => a.data?.goalId).filter(Boolean))];
+    const goalIds = [...new Set(activities.filter(a => a.type !== 'goal_shared').map(a => a.data?.goalId).filter(Boolean))];
     const userIds = [...new Set(activities.map(a => a.data?.targetUserId).filter(Boolean))];
     const achievementIds = [...new Set(activities.map(a => a.data?.achievementId).filter(Boolean))];
     
@@ -761,6 +762,7 @@ class UserService {
     
     const enrichedActivities = activities.map(activity => {
       const enriched = { ...activity };
+      if (activity.type === 'goal_shared') return enriched;
       if (activity.data?.goalId) {
         const goal = goalMap.get(activity.data.goalId);
         if (goal) {

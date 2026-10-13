@@ -1,479 +1,84 @@
-import { forwardRef, useState, useRef } from 'react'
-import { motion } from 'framer-motion'
-import { Camera, Download, Copy } from 'lucide-react'
-import html2canvas from 'html2canvas'
-import GoalCategoryBanner from './GoalCategoryBanner'
+import { forwardRef, useId } from 'react'
+import CategoryIcon from './CategoryIcon'
 
-const ShareableGoalCard = forwardRef(({ goal, user, onClose }, ref) => {
-  const MAX_TEXT_OVERLAY_LENGTH = 500
-  const [textOverlay, setTextOverlay] = useState((goal.completionNote || '').slice(0, MAX_TEXT_OVERLAY_LENGTH))
-  const [selectedImage, setSelectedImage] = useState(goal.completionAttachmentUrl || null)
-  const [imageZoom, setImageZoom] = useState(100)
-  const [imagePosition, setImagePosition] = useState({ x: 0, y: 0 })
-  const [isDragging, setIsDragging] = useState(false)
-  const [isGenerating, setIsGenerating] = useState(false)
-  const imageContainerRef = useRef(null)
-  const cardRef = useRef(null)
+const labels = { GOAL: 'A goal worth pursuing', PROGRESS: 'Keep going', MILESTONE: 'A meaningful step', COMPLETION: 'Goal completed' }
+const dateLabel = value => value ? new Date(`${value}T12:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''
 
-  const formatDate = (dateString) => {
-    if (!dateString) return null
-    const date = new Date(dateString)
-    return date.toLocaleDateString('en-US', {
-      month: 'long',
-      day: 'numeric',
-      year: 'numeric'
-    })
-  }
-
-  const handleImageUpload = (e) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setSelectedImage(reader.result)
-        setImageZoom(100)
-        setImagePosition({ x: 0, y: 0 })
-      }
-      reader.readAsDataURL(file)
+// Explicit lines/ellipsis render identically in browsers and html2canvas (CSS
+// line-clamp does not). Wide glyphs shrink within a line instead of clipping.
+function titleLines(title, square) {
+  const size = square ? 30 : 27
+  let remaining = String(title || '')
+  const lines = []
+  for (let index = 0; index < 3 && remaining; index++) {
+    let end = Math.min(size, remaining.length)
+    if (end < remaining.length && index < 2) {
+      const space = remaining.lastIndexOf(' ', end)
+      if (space > size / 2) end = space
     }
+    lines.push(remaining.slice(0, end).trim() + (index === 2 && remaining.length > end ? '…' : ''))
+    remaining = remaining.slice(end).trim()
   }
+  return lines
+}
 
-  const handleRemoveImage = () => {
-    setSelectedImage(null)
-    setImageZoom(100)
-    setImagePosition({ x: 0, y: 0 })
-  }
+const fittedFont = (line, base) => Math.min(base, 300 / [...line].reduce((sum, char) => sum + (/[MW@]/.test(char) ? 1 : /[A-Z]/.test(char) ? .78 : /\s/.test(char) ? .35 : /[^\u0000-\u00ff]/.test(char) ? 1 : .62), 0))
 
-  const handleMouseDown = (e) => {
-    if (!selectedImage || e.button !== 0) return
-    e.preventDefault()
-    setIsDragging(true)
-  }
+function Landscape() {
+  const id = useId().replace(/:/g, '')
+  return <svg viewBox="0 0 360 480" preserveAspectRatio="none" aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+    <defs><linearGradient id={id} x2="0" y2="1"><stop stopColor="#d6eaff"/><stop offset=".48" stopColor="#fbe5ee"/><stop offset="1" stopColor="#fff1d4"/></linearGradient></defs>
+    <path fill={`url(#${id})`} d="M0 0h360v480H0z"/><circle cx="65" cy="210" r="24" fill="#fff9ea"/>
+    <path fill="#d1c4ed" d="M0 270L55 245 95 263 153 222 200 250 266 226 320 252 360 236V480H0z"/>
+    <path fill="#94bdf0" d="M0 307L56 283 115 297 198 252 250 277 305 259 360 292V480H0z"/>
+    <path fill="#5296db" d="M0 347L77 303 135 328 212 280 278 314 360 288V480H0z"/>
+    <path fill="#2673b6" d="M0 390L78 344 133 356 221 314 290 339 360 306V480H0z"/>
+    <path fill="#18548d" d="M0 430L69 398 160 417 232 365 302 379 360 349V480H0z"/>
+  </svg>
+}
 
-  const handleMouseMove = (e) => {
-    if (!isDragging || !selectedImage) return
-    
-    setImagePosition(prev => ({
-      x: prev.x + e.movementX,
-      y: prev.y + e.movementY
-    }))
-  }
-
-  const handleMouseUp = () => {
-    setIsDragging(false)
-  }
-
-  const handleDoubleClick = () => {
-    if (!selectedImage) return
-    setImageZoom(100)
-    setImagePosition({ x: 0, y: 0 })
-  }
-
-  const generateImage = async () => {
-    if (!cardRef.current) return null
-    
-    setIsGenerating(true)
-    
-    try {
-      // Wait for all fonts to load
-      await document.fonts.ready
-      
-      const cardElement = cardRef.current
-      
-      // Store original border radius
-      const originalBorderRadius = cardElement.style.borderRadius
-      
-      // Ensure border radius is set for export
-      cardElement.style.borderRadius = '24px'
-      
-      // Temporarily disable overflow-hidden for text
-      const imageSection = cardElement.querySelector('.export-image-section')
-      const textSection = cardElement.querySelector('.export-text-section')
-      const badges = cardElement.querySelectorAll('.export-badge')
-      
-      // Store original styles
-      const originalStyles = {
-        achievedTextPadding: null
-      }
-      
-      if (imageSection) {
-        imageSection.style.overflow = 'visible'
-      }
-      if (textSection) {
-        textSection.style.transform = 'none'
-      }
-      
-      // Fix badge positions explicitly
-      badges.forEach((badge, index) => {
-        badge.style.position = 'absolute'
-        badge.style.zIndex = '1000'
-        if (index === 0) {
-          badge.style.top = '16px'
-          badge.style.left = '16px'
-          // Add padding to achieved text
-          const achievedText = badge.querySelector('.export-achieved-text')
-          if (achievedText) {
-            originalStyles.achievedTextPadding = achievedText.style.paddingBottom
-            achievedText.style.paddingBottom = '12px'
-          }
-        } else {
-          badge.style.top = '16px'
-          badge.style.right = '16px'
-        }
-      })
-      
-      // Small delay to ensure styles are applied
-      await new Promise(resolve => setTimeout(resolve, 150))
-      
-      const canvas = await html2canvas(cardElement, {
-        backgroundColor: 'transparent',
-        scale: 3,
-        allowTaint: true,
-        useCORS: true,
-        logging: false,
-        imageTimeout: 0,
-        removeContainer: true
-      })
-      
-      // Create a new canvas with rounded corners
-      const roundedCanvas = document.createElement('canvas')
-      const ctx = roundedCanvas.getContext('2d')
-      roundedCanvas.width = canvas.width
-      roundedCanvas.height = canvas.height
-      
-      // Draw rounded rectangle background
-      const radius = 72 // 24px * 3 (scale)
-      ctx.fillStyle = '#B5C4A0'
-      ctx.beginPath()
-      ctx.moveTo(radius, 0)
-      ctx.lineTo(canvas.width - radius, 0)
-      ctx.quadraticCurveTo(canvas.width, 0, canvas.width, radius)
-      ctx.lineTo(canvas.width, canvas.height - radius)
-      ctx.quadraticCurveTo(canvas.width, canvas.height, canvas.width - radius, canvas.height)
-      ctx.lineTo(radius, canvas.height)
-      ctx.quadraticCurveTo(0, canvas.height, 0, canvas.height - radius)
-      ctx.lineTo(0, radius)
-      ctx.quadraticCurveTo(0, 0, radius, 0)
-      ctx.closePath()
-      ctx.fill()
-      
-      // Clip to rounded rectangle and draw content
-      ctx.beginPath()
-      ctx.moveTo(radius, 0)
-      ctx.lineTo(canvas.width - radius, 0)
-      ctx.quadraticCurveTo(canvas.width, 0, canvas.width, radius)
-      ctx.lineTo(canvas.width, canvas.height - radius)
-      ctx.quadraticCurveTo(canvas.width, canvas.height, canvas.width - radius, canvas.height)
-      ctx.lineTo(radius, canvas.height)
-      ctx.quadraticCurveTo(0, canvas.height, 0, canvas.height - radius)
-      ctx.lineTo(0, radius)
-      ctx.quadraticCurveTo(0, 0, radius, 0)
-      ctx.closePath()
-      ctx.clip()
-      
-      ctx.drawImage(canvas, 0, 0)
-      
-      // Restore original styles
-      cardElement.style.borderRadius = originalBorderRadius
-      if (imageSection) {
-        imageSection.style.overflow = 'hidden'
-      }
-      
-      // Restore achieved text padding
-      const achievedText = badges[0]?.querySelector('.export-achieved-text')
-      if (achievedText) {
-        achievedText.style.paddingBottom = originalStyles.achievedTextPadding || ''
-      }
-      
-      return roundedCanvas.toDataURL('image/png')
-    } catch (error) {
-      console.error('Error generating image:', error)
-      return null
-    } finally {
-      setIsGenerating(false)
-    }
-  }
-
-  const handleDownload = async () => {
-    const imageDataUrl = await generateImage()
-    if (imageDataUrl) {
-      const link = document.createElement('a')
-      link.download = `wishtrail-${goal.title.replace(/\s+/g, '-').toLowerCase()}.png`
-      link.href = imageDataUrl
-      link.click()
-      try {
-        window.dispatchEvent(new CustomEvent('wt_toast', {
-          detail: { message: 'Image downloaded', type: 'success', duration: 2000 }
-        }))
-      } catch {}
-    }
-  }
-
-  const handleCopyLink = async () => {
-    const goalId = goal?.id || goal?._id
-    const shareUrl = `${window.location.origin}/feed?goalId=${goalId}`
-    try {
-      await navigator.clipboard.writeText(shareUrl)
-      try {
-        window.dispatchEvent(new CustomEvent('wt_toast', {
-          detail: { message: 'Goal link copied', type: 'success', duration: 2000 }
-        }))
-      } catch {}
-    } catch (error) {
-      console.error('Failed to copy link:', error)
-      try {
-        window.dispatchEvent(new CustomEvent('wt_toast', {
-          detail: { message: 'Failed to copy link', type: 'error', duration: 2200 }
-        }))
-      } catch {}
-    }
-  }
-
-  return (
-    <div className="w-full max-w-6xl mx-auto bg-gray-50 dark:bg-gray-900 p-3 sm:p-4 md:p-6 lg:p-8 rounded-xl">
-      {/* Header */}
-      <div className="mb-4 sm:mb-6 md:mb-8">
-        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-2">
-          Highlight Your Success
-        </h1>
-        <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
-          Choose how you want to showcase your completed milestone to the world.
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 md:gap-8">
-        {/* Left Panel - Visual Settings */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg sm:rounded-xl p-4 sm:p-5 md:p-6 shadow-sm">
-          <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-4 sm:mb-5 md:mb-6">
-            Visual Settings
-          </h2>
-
-          {/* Achievement Image */}
-          <div className="mb-4 sm:mb-5 md:mb-6">
-            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 sm:mb-3">
-              Achievement Image
-            </label>
-            <div className="relative">
-              {!selectedImage ? (
-                <>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    className="hidden"
-                    id="achievement-image"
-                  />
-                  <label
-                    htmlFor="achievement-image"
-                    className="flex flex-col items-center justify-center h-28 sm:h-32 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:border-blue-400 transition-colors"
-                  >
-                    <Camera className="h-6 w-6 sm:h-8 sm:w-8 text-gray-400 mb-2" />
-                    <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                      Click to add photo
-                    </span>
-                  </label>
-                </>
-              ) : (
-                <button
-                  onClick={handleRemoveImage}
-                  className="w-full flex flex-col items-center justify-center h-28 sm:h-32 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:border-red-400 transition-colors"
-                >
-                  <Camera className="h-6 w-6 sm:h-8 sm:w-8 text-gray-400 mb-2" />
-                  <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                    Click to remove
-                  </span>
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Image Instructions */}
-          {selectedImage && (
-            <div className="mb-4 sm:mb-5 md:mb-6 p-2.5 sm:p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-100 dark:border-blue-800">
-              <p className="text-[10px] sm:text-xs text-blue-800 dark:text-blue-300 leading-relaxed">
-                <span className="font-semibold">Adjust image in preview:</span><br />
-                • Click & drag to reposition<br />
-                • Double-click to reset
-              </p>
-            </div>
-          )}
-
-          {/* Text Overlay */}
-          <div className="mb-4 sm:mb-5 md:mb-6">
-            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 sm:mb-3">
-              Text Overlay
-            </label>
-            <input
-              type="text"
-              value={textOverlay}
-              onChange={(e) => setTextOverlay(e.target.value.slice(0, MAX_TEXT_OVERLAY_LENGTH))}
-              maxLength={MAX_TEXT_OVERLAY_LENGTH}
-              placeholder="Document your recipes"
-              className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <p className="mt-1 text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 text-right">
-              {textOverlay.length}/{MAX_TEXT_OVERLAY_LENGTH}
-            </p>
-          </div>
-        </div>
-
-        {/* Right Panel - Live Preview */}
-        <div>
-          <div className="mb-2 sm:mb-3 text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider text-center">
-            Live Preview
-          </div>
-          
-          {/* Preview Card */}
-          <div className="relative w-full">
-            {selectedImage && (
-              <div className="lg:hidden w-full flex items-center justify-center gap-3 mb-3 sm:mb-4">
-                <div className="text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 min-w-[46px] text-right">
-                  {imageZoom}%
-                </div>
-                <input
-                  type="range"
-                  min="50"
-                  max="300"
-                  value={imageZoom}
-                  onChange={(e) => setImageZoom(parseInt(e.target.value))}
-                  className="w-full max-w-[220px] h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
-                />
-              </div>
-            )}
-
-            <div className="lg:grid lg:grid-cols-[56px_minmax(0,1fr)_56px] lg:items-start">
-              <div className="hidden lg:block" />
-              <div className="relative w-full max-w-md mx-auto">
-              <div ref={cardRef} className="bg-[#B5C4A0] rounded-2xl sm:rounded-3xl overflow-hidden shadow-xl">
-              {/* Badge */}
-              <div className="export-badge absolute top-2 left-2 sm:top-3 sm:left-3 md:top-4 md:left-4 z-10">
-                <div className="bg-white rounded-full px-2 py-1 sm:px-2.5 sm:py-1.5 md:px-3 flex items-center gap-1 sm:gap-1.5 shadow-sm">
-                  <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-blue-500 rounded-full"></div>
-                  <span className="export-achieved-text text-[9px] sm:text-[10px] md:text-xs font-semibold text-gray-900 uppercase tracking-wide">
-                    Achieved
-                  </span>
-                </div>
-              </div>
-
-              {/* Logo */}
-              <div className="export-badge absolute top-2 right-2 sm:top-3 sm:right-3 md:top-4 md:right-4 z-10">
-                <div className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 bg-white rounded-md sm:rounded-lg p-1 sm:p-1.5 flex items-center justify-center shadow-sm ring-1 ring-[#4c99e6]/30">
-                  <img
-                    src="/logo-wo-bg.png"
-                    alt="WishTrail"
-                    width="24"
-                    height="24"
-                    className="w-full h-full object-contain"
-                  />
-                </div>
-              </div>
-
-              {/* Image Section */}
-              <div 
-                ref={imageContainerRef}
-                className="export-image-section relative h-48 sm:h-56 md:h-64 bg-[#B5C4A0] flex items-center justify-center overflow-hidden touch-none"
-                onMouseDown={handleMouseDown}
-                onMouseMove={handleMouseMove}
-                onMouseUp={handleMouseUp}
-                onMouseLeave={handleMouseUp}
-                onDoubleClick={handleDoubleClick}
-                style={{ 
-                  cursor: selectedImage ? (isDragging ? 'grabbing' : 'grab') : 'default',
-                  userSelect: 'none',
-                  WebkitUserSelect: 'none',
-                  MozUserSelect: 'none',
-                  msUserSelect: 'none'
-                }}
-              >
-                {selectedImage ? (
-                  <img
-                    src={selectedImage}
-                    alt="Achievement"
-                    className="absolute select-none pointer-events-none"
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'contain',
-                      transform: `scale(${imageZoom / 100}) translate(${imagePosition.x}px, ${imagePosition.y}px)`,
-                      transition: isDragging ? 'none' : 'transform 0.1s ease-out'
-                    }}
-                    draggable={false}
-                  />
-                ) : (
-                  <GoalCategoryBanner category={goal.category} variant="share" className="h-full rounded-none" />
-                )}
-              </div>
-
-              {/* Info Section */}
-              <div className="export-text-section bg-[#6B9BD1] p-4 pb-6 sm:p-5 sm:pb-7 md:p-6 md:pb-8">
-                <h3 className="text-white text-base sm:text-lg md:text-xl font-semibold mb-1.5 sm:mb-2" style={{ lineHeight: '1.3' }}>
-                  {textOverlay || goal.title}
-                </h3>
-                <div className="flex items-center justify-between text-white/90 text-xs sm:text-sm" style={{ lineHeight: '1.4' }}>
-                  <span>by {user.name}</span>
-                  <span className="text-[10px] sm:text-xs text-white/70">
-                    {formatDate(goal.completedAt)}
-                  </span>
-                </div>
-              </div>
-              </div>
-
-              {/* Social Share Icons */}
-              <div className="flex items-center justify-center gap-2 sm:gap-3 mt-4 sm:mt-6">
-                <button
-                  onClick={handleCopyLink}
-                  className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm"
-                >
-                  <Copy className="h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4 text-gray-600 dark:text-gray-400" />
-                </button>
-                <button
-                  onClick={handleDownload}
-                  className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm"
-                >
-                  <Download className="h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4 text-gray-600 dark:text-gray-400" />
-                </button>
-              </div>
-              </div>
-
-              {/* Desktop Side Zoom Slider */}
-              <div className="hidden lg:flex items-start justify-center pt-12">
-                {selectedImage ? (
-                  <div className="flex flex-col items-center gap-3">
-                    <div className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                      {imageZoom}%
-                    </div>
-                    <input
-                      type="range"
-                      min="50"
-                      max="300"
-                      value={imageZoom}
-                      onChange={(e) => setImageZoom(parseInt(e.target.value))}
-                      className="h-44 w-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500 slider-vertical"
-                      orient="vertical"
-                      style={{
-                        writingMode: 'bt-lr',
-                        WebkitAppearance: 'slider-vertical',
-                        width: '8px'
-                      }}
-                    />
-                  </div>
-                ) : (
-                  <div className="h-44 w-8" aria-hidden="true" />
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Footer Quote */}
-          <p className="text-center text-gray-500 dark:text-gray-400 text-xs sm:text-sm mt-6 sm:mt-8 italic">
-            "Success is personal. Your trail, your milestones."
-          </p>
-        </div>
-      </div>
+// One fixed canvas for Studio, Feed, and export. Only the allowlisted snapshot
+// enters this component; editor controls and raw goal objects never do.
+const ShareableGoalCard = forwardRef(function ShareableGoalCard({ snapshot }, ref) {
+  if (!snapshot) return null
+  const square = snapshot.format === 'SQUARE_1_1'
+  const journey = snapshot.template === 'JOURNEY'
+  const photo = snapshot.template === 'PHOTO' && snapshot.photo
+  const stats = [
+    snapshot.progressUpdateCount !== undefined && [snapshot.progressUpdateCount, 'Updates'],
+    snapshot.activeDays !== undefined && [snapshot.activeDays, 'Active days'],
+    snapshot.journeyDuration !== undefined && [snapshot.journeyDuration, 'Days']
+  ].filter(Boolean)
+  const events = snapshot.selectedJourneyEvents || []
+  const points = events.map((event, index) => ({ ...event, x: 46 + index * 268 / Math.max(1, events.length - 1), y: square ? 26 + (index % 2) * 9 : 210 - index * 155 / Math.max(1, events.length - 1) }))
+  return <div ref={ref} data-testid="goal-share-card" data-dd-privacy="mask" style={{ width: 360, height: square ? 360 : 640, position: 'relative', overflow: 'hidden', borderRadius: 20, background: '#edf6ff', color: '#102544', fontFamily: 'Manrope, Arial, sans-serif', boxSizing: 'border-box', flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
+    <Landscape />
+    {photo && <><img src={photo} crossOrigin="anonymous" alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}/><div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(255,255,255,.94),rgba(255,255,255,.55) 45%,rgba(10,32,57,.3))' }}/></>}
+    <div data-share-zone="header" style={{ position: 'relative', flexShrink: 0, textAlign: 'center', padding: square ? '12px 22px 0' : '28px 26px 0' }}>
+      <p style={{ fontSize: 12, lineHeight: '16px', margin: '0 0 6px', letterSpacing: .3 }}>{labels[snapshot.shareType]}</p>
+      <h2 style={{ fontWeight: 800, margin: 0 }}>{titleLines(snapshot.title, square).map((line, index) => <span key={index} style={{ display: 'block', whiteSpace: 'nowrap', lineHeight: square ? '22px' : '30px', fontSize: fittedFont(line, square ? 18 : 25) }}>{line}</span>)}</h2>
+      {!journey && snapshot.progress !== undefined && <div style={{ fontSize: square ? 23 : 34, fontWeight: 800, marginTop: 10 }}>{snapshot.progress}%</div>}
+      {snapshot.template === 'PROGRESS' && snapshot.progress !== undefined && <div style={{ height: 8, borderRadius: 20, background: '#dbe8f5', margin: '8px 12px' }}><div style={{ height: '100%', width: `${snapshot.progress}%`, borderRadius: 20, background: '#4c99e6' }}/></div>}
+      {journey && <p style={{ margin: '7px 0 0', fontSize: 11, lineHeight: '16px' }}>{[snapshot.journeyDuration !== undefined && `${snapshot.journeyDuration} day journey`, snapshot.progress !== undefined && `${snapshot.progress}% ${snapshot.shareType === 'COMPLETION' ? 'complete' : 'progress'}`].filter(Boolean).join(' · ')}</p>}
+      {!journey && snapshot.completionDate && <p style={{ margin: '7px 0 0', fontSize: 11 }}>{dateLabel(snapshot.completionDate)}</p>}
     </div>
-  )
+    {journey && <div data-share-zone="journey" style={{ position: 'relative', flex: '1 1 0', minHeight: 0, marginTop: square ? 4 : 12 }}>
+      <svg viewBox={`0 0 360 ${square ? 105 : 280}`} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} aria-label="Selected journey events">
+        <polyline points={points.map(point => `${point.x},${point.y}`).join(' ')} fill="none" stroke="white" strokeWidth="2" strokeDasharray="5 4"/>
+        {points.map((point, index) => <g key={index}><circle cx={point.x} cy={point.y} r={point.type === 'completion' ? 11 : 7} fill={point.type === 'completion' ? '#00ad7b' : '#fff'} stroke="white" strokeWidth="2"/>
+          <text x={point.x} y={point.y + 4} textAnchor="middle" fill={point.type === 'completion' ? 'white' : '#2673b6'} fontSize="11">✓</text>
+          <text x={point.x} y={point.y + 25} textAnchor="middle" fill={square ? '#102544' : 'white'} fontWeight="700" fontSize={square ? 8 : 10}>{point.label}</text>
+          {point.date && <text x={point.x} y={point.y + 39} textAnchor="middle" fill={square ? '#244c72' : 'white'} fontSize={square ? 8 : 9}>{dateLabel(point.date)}</text>}
+        </g>)}
+      </svg>
+    </div>}
+    {!journey && <div style={{ position: 'relative', flex: '1 1 0', minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{!photo && !square && snapshot.shareType === 'COMPLETION' && <div style={{ width: 70, height: 70, borderRadius: 35, background: '#4c99e6', border: '5px solid #fff', color: 'white', fontSize: 40, textAlign: 'center', lineHeight: '60px' }}>✓</div>}</div>}
+    <div data-share-zone="footer" style={{ position: 'relative', flexShrink: 0, padding: square ? '7px 16px 10px' : '16px 22px 18px', background: 'rgba(237,246,255,.96)', textAlign: 'center' }}>
+      {(snapshot.note || snapshot.feeling) && <p style={{ fontSize: square ? 10 : 12, lineHeight: 1.4, margin: '2px 0 7px', overflowWrap: 'anywhere' }}>{snapshot.note}{snapshot.note && snapshot.feeling ? ' · ' : ''}{snapshot.feeling ? `Feeling ${snapshot.feeling}` : ''}</p>}
+      {!!stats.length && <div style={{ display: 'flex', background: 'rgba(255,255,255,.92)', borderRadius: 12, padding: square ? '7px 5px' : '13px 5px', justifyContent: 'space-around' }}>{stats.map(([value, label]) => <div key={label}><div style={{ fontSize: square ? 16 : 20, fontWeight: 800 }}>{value}</div><div style={{ fontSize: 9, marginTop: 2, color: '#526887' }}>{label}</div></div>)}</div>}
+      <div aria-label="WishTrail" style={{ marginTop: square ? 7 : 17, fontWeight: 800, fontSize: 14, height: 24, lineHeight: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><img src="/logo-wo-bg.png" alt="" width="28" height="28" style={{ width: 28, height: 28, objectFit: 'contain' }}/><span style={{ marginLeft: -5, lineHeight: '24px' }}>ishTrail</span></div>
+      <div style={{ position: 'absolute', bottom: square ? 8 : 16, left: 12 }}><CategoryIcon category={snapshot.category} size="sm"/></div>
+    </div>
+  </div>
 })
-
-ShareableGoalCard.displayName = 'ShareableGoalCard'
-
 export default ShareableGoalCard

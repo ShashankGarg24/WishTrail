@@ -12,6 +12,7 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal, isEditM
   const MAX_NOTE_CHARS = 300
   const [completionNote, setCompletionNote] = useState(existingData?.completionNote || '')
   const [showCelebration, setShowCelebration] = useState(false)
+  const [savedGoal, setSavedGoal] = useState(null)
   const [attachmentFile, setAttachmentFile] = useState(null)
   const [attachmentError, setAttachmentError] = useState('')
   const [attachmentPreview, setAttachmentPreview] = useState(existingData?.completionAttachmentUrl || '')
@@ -140,9 +141,8 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal, isEditM
         setRemoveExistingImage(false)
         
         if (!isEditMode) {
-          setTimeout(() => {
-            setShowCelebration(true)
-          }, 500)
+          setSavedGoal(result.goal || goal)
+          setShowCelebration(true)
         } else {
           window.dispatchEvent(new CustomEvent('wt_toast', {
             detail: { message: 'Goal completion updated successfully', type: 'success' }
@@ -178,6 +178,7 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal, isEditM
   }
 
   const handleCelebrationClose = () => {
+    window.dispatchEvent(new CustomEvent('wt_goal_completed', { detail: savedGoal || goal }))
     setShowCelebration(false)
     onClose()
   }
@@ -186,16 +187,16 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal, isEditM
   const wordCount = normalizedPreviewNote.split(/\s+/).filter(word => word.length > 0).length
   const charCount = normalizedPreviewNote.length
 
-  if (!isOpen) return null
+  useEffect(() => { if (!isOpen) return; lockBodyScroll(); return () => unlockBodyScroll(); }, [isOpen])
 
-  useEffect(() => { lockBodyScroll(); return () => unlockBodyScroll(); }, [])
+  if (!isOpen) return null
 
   // Show celebration modal after completion
   if (showCelebration) {
     return (
       <Suspense fallback={null}>
         <CelebrationModal
-        wish={goal}
+        wish={savedGoal || goal}
         isOpen={showCelebration}
         onClose={handleCelebrationClose}
         goalTitle={goalTitle}

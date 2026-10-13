@@ -17,8 +17,13 @@ export default function GoalHero({ goal, className = '' }) {
   const hero = visual.hero
   const progress = clampProgress(goal)
   const health = healthOf(goal)
-/*  */  const isDark = Boolean(hero.dark)
+  const isDark = Boolean(hero.dark)
   const customCover = goal?.appearance?.bannerType === 'CUSTOM' && goal?.appearance?.bannerUrl
+
+  if (goal?.completedAt) return <section className={`relative overflow-hidden rounded-2xl border border-blue-100 bg-gradient-to-b from-blue-50 to-white text-center dark:from-gray-800 dark:to-gray-900 ${className}`}>
+    <div className="h-32 overflow-hidden opacity-80"><AbstractGoalArtwork category={goal.category} className="h-full w-full"/></div>
+    <div className="relative -mt-6 px-5 pb-6"><span className="mx-auto grid h-12 w-12 place-items-center rounded-full border-4 border-white bg-emerald-500 text-2xl text-white">✓</span><h2 className="mt-3 break-words text-xl font-extrabold text-[#102b3f] dark:text-white">{goal.title}</h2><p className="mt-1 text-xs text-slate-500">{visual.label}</p><span className="mt-3 inline-block rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">Completed</span><p className="mt-2 text-xs text-slate-500">Completed {new Date(goal.completedAt).toLocaleDateString()}</p></div>
+  </section>
 
   return <section className={`relative isolate min-h-[270px] overflow-hidden rounded-2xl sm:min-h-[300px] sm:rounded-[26px] ${isDark ? 'text-white' : 'text-[#102b3f]'} ${className}`} style={{ background: customCover ? '#17324b' : isDark ? `linear-gradient(135deg,${hero.deep},${hero.base})` : `linear-gradient(135deg,#f8fcff 0%,${hero.glow} 145%)` }}>
     {customCover ? <><img src={customCover} alt="" className="absolute inset-0 h-full w-full object-cover"/><div className="absolute inset-0 bg-gradient-to-r from-black/65 via-black/35 to-black/5"/></> : <><div className="absolute inset-y-0 right-0 w-[78%] opacity-95 sm:w-[56%]"><div className="absolute inset-0" style={{ background: `linear-gradient(135deg,transparent 4%,${hero.base}22 35%,${hero.base}72 100%)` }}/><AbstractGoalArtwork category={goal?.category} className="h-full w-full"/></div><div className="absolute inset-0 bg-gradient-to-r from-white/45 via-white/5 to-transparent sm:from-white/25"/></>}

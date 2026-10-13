@@ -4,6 +4,11 @@ import { datadogLogs } from '@datadog/browser-logs'
 let consoleForwardingInstalled = false
 let isForwardingConsole = false
 
+export const trackGoalShare = (event, { shareType, template, format } = {}) => {
+  if (!['goal_share_opened', 'goal_share_template_selected', 'goal_share_format_selected', 'goal_share_internal', 'goal_share_external', 'goal_completion_share_clicked'].includes(event)) return
+  try { datadogRum.addAction(event, { shareType, template, format }) } catch { /* Telemetry must not block sharing. */ }
+}
+
 const truthy = (value) => {
   if (value === true || value === false) return value
   if (value == null) return false

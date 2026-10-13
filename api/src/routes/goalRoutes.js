@@ -80,6 +80,19 @@ router.get('/:id/og-image', goalController.generateOGImage);
 // All routes are protected
 router.use(protect);
 
+router.get('/:id/share-context', async (req, res, next) => {
+  try {
+    const data = await require('../services/goalShareService').getContext(req.params.id, req.user.id, req.query);
+    res.json({ success: true, data });
+  } catch (error) { next(error); }
+});
+router.post('/:id/shares', async (req, res, next) => {
+  try {
+    const activity = await require('../services/goalShareService').postShare(req.params.id, req.user.id, req.body);
+    res.status(201).json({ success: true, data: { activityId: String(activity._id) } });
+  } catch (error) { next(error); }
+});
+
 // Goal routes
 router.get('/', goalController.getGoals);
 router.get('/trending', goalController.getTrendingGoals);
@@ -194,4 +207,4 @@ router.patch('/:id/completion', upload.single('attachment'), async (req, res, ne
   }
 });
 
-module.exports = router; 
+module.exports = router;

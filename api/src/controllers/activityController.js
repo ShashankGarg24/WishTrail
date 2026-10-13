@@ -24,7 +24,7 @@ async function enrichActivities(activities) {
   const achievementIds = new Set();
   
   activityArray.forEach(activity => {
-    if (activity.data?.goalId) goalIds.add(activity.data.goalId);
+    if (activity.type !== 'goal_shared' && activity.data?.goalId) goalIds.add(activity.data.goalId);
     if (activity.data?.targetUserId) userIds.add(activity.data.targetUserId);
     if (activity.data?.achievementId) achievementIds.add(activity.data.achievementId.toString());
     if (activity.userId) userIds.add(activity.userId);
@@ -45,6 +45,7 @@ async function enrichActivities(activities) {
   // Enrich activities
   const enriched = activityArray.map(activity => {
     const enrichedActivity = { ...activity };
+    if (activity.type === 'goal_shared') return enrichedActivity;
     
     // Enrich main user data (the person who created the activity)
     if (activity.userId) {
@@ -61,7 +62,7 @@ async function enrichActivities(activities) {
         };
       }
     }
-    if (activity.data?.goalId) {
+    if (activity.type !== 'goal_shared' && activity.data?.goalId) {
       const goal = goalMap.get(String(activity.data.goalId));
 
       if (goal) {
@@ -368,7 +369,7 @@ const getUserActivities = async (req, res, next) => {
     const { page = 1, limit = 10 } = req.query;
     
     // Check if user can view activities (either own activities or following the user)
-    const canViewActivities = userId === req.user.id || await pgFollowService.isFollowing(req.user.id, userId);
+    const canViewActivities = Number(userId) === Number(req.user.id) || await pgFollowService.isFollowing(req.user.id, userId);
     
     if (!canViewActivities) {
       return res.status(403).json({
@@ -378,6 +379,7 @@ const getUserActivities = async (req, res, next) => {
     }
     
     const activities = await Activity.getUserActivities(userId, {
+      includePrivateShares: Number(userId) === Number(req.user.id),
       page: parseInt(page),
       limit: parseInt(limit)
     });

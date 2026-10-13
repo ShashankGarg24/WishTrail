@@ -1,3 +1,4 @@
+import { isRecentlyCompleted } from '../utils/goalShare'
 import StartupSkeleton from '../components/StartupSkeleton'
 import { useState, useEffect, useMemo, lazy, Suspense, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -63,6 +64,12 @@ const DashboardPageNew = () => {
   const [goalFilter, setGoalFilter] = useState('all') // all, completed, in-progress
   const [goalCategoryFilter, setGoalCategoryFilter] = useState('all')
   const [goalActionMenu, setGoalActionMenu] = useState(null)
+  useEffect(() => {
+    const completed = event => setSelectedGoal(previous => previous && String(previous.id || previous._id) === String(event.detail?.id || event.detail?._id) ? { ...previous, ...event.detail, _openAnalytics: false } : previous)
+    window.addEventListener('wt_goal_completed', completed)
+    return () => window.removeEventListener('wt_goal_completed', completed)
+  }, [])
+
   const [goalSort, setGoalSort] = useState('newest') // newest, oldest
   const [goalView, setGoalView] = useState('grid')
   const [currentPage, setCurrentPage] = useState(1)
@@ -373,17 +380,6 @@ const DashboardPageNew = () => {
   ]
   const randomQuote = quotes[Math.floor(Math.random() * quotes.length)]
 
-  const handleShare = (goal, e) => {
-    e.stopPropagation()
-    // Share functionality
-    if (navigator.share) {
-      navigator.share({
-        title: goal.title,
-        text: goal.description,
-        url: window.location.href
-      })
-    }
-  }
 
   if (isAuthenticated && isInitialDashboardLoading) return <StartupSkeleton />
 
@@ -860,7 +856,7 @@ const DashboardPageNew = () => {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: (index + 1) * 0.05 }}
                       onClick={() => setSelectedGoal(goal)}
-                      onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') setSelectedGoal(goal) }}
+                      onKeyDown={(event) => { if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); setSelectedGoal(goal) } }}
                       role="button"
                       tabIndex={0}
                       className={`group relative cursor-pointer overflow-hidden rounded-xl border border-gray-200 bg-white text-left shadow-sm transition hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md dark:border-gray-700 dark:bg-gray-800 ${goalView === 'list' ? 'sm:flex sm:items-center' : ''} ${goalView === 'timeline' ? 'before:absolute before:-left-[27px] before:top-7 before:h-3 before:w-3 before:rounded-full before:bg-[#1683ed] before:ring-4 before:ring-blue-50' : ''}`}
@@ -870,6 +866,7 @@ const DashboardPageNew = () => {
                         <div className="mt-2 flex items-center justify-between"><span className={`inline-flex rounded-full px-2 py-1 text-[10px] font-semibold ${status.className}`}>{status.label}</span><span className="text-xs font-bold text-[#0b1746] dark:text-white">{goalProgress}%</span></div>
                         <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-[#e9eef5] dark:bg-gray-700"><div className={`h-full rounded-full ${status.label === 'Slipping' ? 'bg-rose-400' : status.label === 'Completed' || status.label === 'Strong' ? 'bg-emerald-500' : 'bg-[#1683ed]'}`} style={{ width: `${goalProgress}%` }}/></div>
                         <div className="mt-3 flex items-center justify-between text-[11px] text-gray-500"><span>{(goal.lastProgressAt || goal.progress?.lastUpdatedAt || goal.updatedAt) ? `Last progress: ${new Date(goal.lastProgressAt || goal.progress?.lastUpdatedAt || goal.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : 'No progress yet'}</span><span>{dueLabel}</span></div>
+                        {goal.completedAt && <div className="mt-4 flex gap-2"><button type="button" onClick={event => { event.stopPropagation(); setSelectedGoal({ ...goal, _openJourney: true }) }} className="min-h-[44px] flex-1 rounded-xl border border-blue-200 px-3 py-2 text-xs font-bold text-[#2369aa]">View Journey</button>{isRecentlyCompleted(goal) && <button type="button" onClick={event => { event.stopPropagation(); setGoalToShare(goal); setIsShareGoalModalOpen(true) }} className="min-h-[44px] flex-1 rounded-xl bg-[#4c99e6] px-3 py-2 text-xs font-bold text-white">Share</button>}</div>}
                       </div>
                     </motion.article>
                   )
@@ -1076,7 +1073,7 @@ const DashboardPageNew = () => {
           <GoalDetailsModal
             goal={selectedGoal}
             isOpen={!!selectedGoal}
-            initialView={selectedGoal?._openAnalytics ? 'analytics' : 'overview'}
+            initialView={selectedGoal?._openJourney ? 'journey' : selectedGoal?._openAnalytics ? 'analytics' : 'overview'}
             onClose={() => setSelectedGoal(null)}
             onViewPost={(goalId) => {
               setSelectedGoal(null);
@@ -1245,7 +1242,7 @@ const DashboardPageNew = () => {
                 {!goalActionMenu.completedAt && <button type="button" onClick={() => { setSelectedGoal(goalActionMenu); setGoalActionMenu(null) }} className="flex w-full items-center gap-3 rounded-xl p-3 text-left text-sm font-semibold text-gray-800 hover:bg-blue-50 dark:text-gray-200 dark:hover:bg-gray-800"><Target className="h-4 w-4 text-[#1683ed]" /> Log Progress</button>}
                 <button type="button" onClick={() => { setGoalToEdit(goalActionMenu); setGoalActionMenu(null); goalActionMenu.completedAt ? setIsEditCompletionModalOpen(true) : setIsEditGoalWizardOpen(true) }} className="flex w-full items-center gap-3 rounded-xl p-3 text-left text-sm font-semibold text-gray-800 hover:bg-blue-50 dark:text-gray-200 dark:hover:bg-gray-800"><Edit className="h-4 w-4 text-[#1683ed]" /> Edit Goal</button>
                 <button type="button" onClick={() => { setSelectedGoal({ ...goalActionMenu, _openAnalytics: true }); setGoalActionMenu(null) }} className="flex w-full items-center gap-3 rounded-xl p-3 text-left text-sm font-semibold text-gray-800 hover:bg-blue-50 dark:text-gray-200 dark:hover:bg-gray-800"><BarChart3 className="h-4 w-4 text-[#1683ed]" /> View Analytics</button>
-                <button type="button" onClick={() => { setOpenGoalPostId(goalActionMenu.id); setGoalActionMenu(null) }} className="flex w-full items-center gap-3 rounded-xl p-3 text-left text-sm font-semibold text-gray-800 hover:bg-blue-50 dark:text-gray-200 dark:hover:bg-gray-800"><Eye className="h-4 w-4 text-[#1683ed]" /> Post to Feed</button>
+                {(!goalActionMenu.completedAt || isRecentlyCompleted(goalActionMenu)) && <button type="button" onClick={() => { setGoalToShare(goalActionMenu); setIsShareGoalModalOpen(true); setGoalActionMenu(null) }} className="flex w-full items-center gap-3 rounded-xl p-3 text-left text-sm font-semibold text-gray-800 hover:bg-blue-50 dark:text-gray-200 dark:hover:bg-gray-800"><Share2 className="h-4 w-4 text-[#4c99e6]" /> Share Goal</button>}
                 <button type="button" onClick={() => { setGoalToDelete(goalActionMenu); setGoalActionMenu(null); setIsGoalDeleteModalOpen(true) }} className="flex w-full items-center gap-3 rounded-xl p-3 text-left text-sm font-semibold text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"><Trash2 className="h-4 w-4" /> Delete Goal</button>
               </div>
               <button type="button" onClick={() => setGoalActionMenu(null)} className="mt-4 w-full rounded-xl bg-gray-100 px-4 py-3 text-sm font-semibold text-gray-600 dark:bg-gray-800 dark:text-gray-300">Cancel</button>
