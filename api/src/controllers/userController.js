@@ -10,8 +10,19 @@ const OTP = require('../models/Otp');
 const emailService = require('../services/emailService');
 const { sanitizeUser, sanitizeGoalsForProfile } = require('../utility/sanitizer');
 const GoalDetails = require('../models/extended/GoalDetails');
-const { getDateKeyInTimezone } = require('../utility/timezone');
+const { getDateKeyInTimezone, getStartOfDayInTimezone } = require('../utility/timezone');
 const { activeDays, percentagePointTrend } = require('../utility/metrics');
+const dailyLogsService = require('../services/dailyLogsService');
+
+async function buildGoalStatusBreakdown(goals) {
+  const incompleteGoals = goals.filter(goal => !goal.completed_at);
+  const details = incompleteGoals.length
+    ? await GoalDetails.find({ goalId: { $in: incompleteGoals.map(goal => goal.id) } }).select('goalId progress.percent').lean()
+    : [];
+  const progressByGoal = new Map(details.map(detail => [String(detail.goalId), Number(detail.progress?.percent || 0)]));
+  const inProgress = incompleteGoals.filter(goal => (progressByGoal.get(String(goal.id)) || 0) > 0).length;
+  return { inProgress, notStarted: incompleteGoals.length - inProgress };
+}
 
 function previousDateKey(dateKey) {
   const date = new Date(`${dateKey}T12:00:00.000Z`);
@@ -642,10 +653,20 @@ const getAnalytics = async (req, res, next) => {
       requestingUserId: req.user.id // Filter private goals
     });
     const completedGoals = completedGoalsResult.pagination.total;
+    const allGoalsResult = await pgGoalService.getUserGoals({ userId: targetUserId, page: 1, limit: 1000, requestingUserId: req.user.id });
+    const goalStatus = await buildGoalStatusBreakdown(allGoalsResult.goals || []);
     
     // Get habits analytics (7 days by default)
     const habitAnalytics = await habitService.analytics(targetUserId, { days: 7, userTimezone: user.timezone || 'UTC' });
     const periodActivity = await buildPeriodActivity(targetUserId, req.user.id, user.timezone || 'UTC', habitAnalytics, habitService);
+    const currentDateKey = getDateKeyInTimezone(new Date(), user.timezone || 'UTC');
+    const [currentYear, currentMonth] = currentDateKey.split('-').map(Number);
+    const monthStartKey = `${currentYear}-${String(currentMonth).padStart(2, '0')}-01`;
+    const nextMonthDate = new Date(Date.UTC(currentYear, currentMonth, 1));
+    const nextMonthKey = `${nextMonthDate.getUTCFullYear()}-${String(nextMonthDate.getUTCMonth() + 1).padStart(2, '0')}-01`;
+    const monthStart = getStartOfDayInTimezone(monthStartKey, user.timezone || 'UTC');
+    const nextMonthStart = getStartOfDayInTimezone(nextMonthKey, user.timezone || 'UTC');
+    const dailyLogsEntries = isSelf ? await dailyLogsService.countEntries(targetUserId, { startDate: monthStart, endDate: nextMonthStart }) : 0;
     
     const analytics = {
       // Consistency is completed scheduled occurrences over all scheduled occurrences.
@@ -658,14 +679,18 @@ const getAnalytics = async (req, res, next) => {
         followThroughRate: habitAnalytics.totals?.followThroughRate || 0,
         activeDays: periodActivity.activeDays,
         periodDays: periodActivity.periodDays,
-        trendPoints: periodActivity.trendPoints
+        trendPoints: periodActivity.trendPoints,
+        completedDateKeys: habitAnalytics.activeDateKeys || []
       },
       goals: {
         totalGoals: totalGoals || 0,
         completedGoals: completedGoals || 0,
+        inProgressGoals: goalStatus.inProgress,
+        notStartedGoals: goalStatus.notStarted,
         currentStreak: user?.current_streak || 0,
         longestStreak: user?.longest_streak || 0
       },
+      ...(isSelf ? { dailyLogs: { entries: dailyLogsEntries } } : {}),
       topHabits: habitAnalytics.topHabits || []
     };
     
@@ -725,6 +750,8 @@ const getUserAnalytics = async (req, res, next) => {
       requestingUserId: req.user.id // Filter private goals
     });
     const completedGoals = completedGoalsResult.pagination.total;
+    const allGoalsResult = await pgGoalService.getUserGoals({ userId: targetUserId, page: 1, limit: 1000, requestingUserId: req.user.id });
+    const goalStatus = await buildGoalStatusBreakdown(allGoalsResult.goals || []);
     
     // Get habits analytics — last 7 days
     const habitAnalytics = await habitService.analytics(targetUserId, { days: 7, userTimezone: targetUser.timezone || 'UTC' });
@@ -741,11 +768,14 @@ const getUserAnalytics = async (req, res, next) => {
         followThroughRate: habitAnalytics.totals?.followThroughRate || 0,
         activeDays: periodActivity.activeDays,
         periodDays: periodActivity.periodDays,
-        trendPoints: periodActivity.trendPoints
+        trendPoints: periodActivity.trendPoints,
+        completedDateKeys: habitAnalytics.activeDateKeys || []
       },
       goals: {
         totalGoals: totalGoals || 0,
         completedGoals: completedGoals || 0,
+        inProgressGoals: goalStatus.inProgress,
+        notStartedGoals: goalStatus.notStarted,
         currentStreak: targetUser?.current_streak || 0,
         longestStreak: targetUser?.longest_streak || 0
       },

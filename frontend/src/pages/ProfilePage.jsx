@@ -436,6 +436,8 @@ const ProfilePage = () => {
       setDailyLogsFeed((prev) => prev.filter((entry) => String(entry?.id || entry?._id) !== String(pendingDeleteDailyLogId)));
       setExpandedDailyLogIds((prev) => prev.filter((id) => String(id) !== String(pendingDeleteDailyLogId)));
       setDailyLogsSkip((prev) => Math.max(0, prev - 1));
+      const analyticsResult = await getUserAnalytics(null);
+      if (analyticsResult.success) setAnalytics(analyticsResult.analytics);
       setIsDeleteDailyLogConfirmOpen(false);
       setPendingDeleteDailyLogId(null);
       toast.success('Daily log deleted');
@@ -998,7 +1000,7 @@ const ProfilePage = () => {
                   <div className="text-[11px] text-gray-500 dark:text-gray-400">Following</div>
                 </button>
             </div>
-            <div className="mt-3 flex items-center gap-3 sm:ml-0 sm:mt-4">
+            <div className="wt-profile-actions mt-3 flex items-center gap-3 sm:ml-0 sm:mt-4">
               {(displayUser.website || displayUser.youtube || displayUser.instagram) && (
                 <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-sm text-gray-500 dark:text-gray-400">
                   {displayUser.website && (
@@ -1013,7 +1015,7 @@ const ProfilePage = () => {
                 </div>
               )}
 
-              {isOwnProfile && <button type="button" onClick={() => navigate('/settings?section=personal-info')} className="ml-auto flex-1 rounded-lg bg-slate-100 px-4 py-2 text-sm font-bold text-blue-600 hover:bg-blue-50 dark:bg-gray-700 dark:text-blue-300 sm:max-w-[130px]">Edit Profile</button>}
+              {isOwnProfile && <button type="button" onClick={() => navigate('/settings?section=personal-info')} className="wt-edit-profile ml-auto flex-1 rounded-lg bg-slate-100 px-4 py-2 text-sm font-bold text-blue-600 hover:bg-blue-50 dark:bg-gray-700 dark:text-blue-300 sm:max-w-[130px]">Edit Profile</button>}
               {!isOwnProfile && isAuthenticated && (
                 <div className="flex flex-1 gap-2 md:hidden">
                   {isFollowing ? (
@@ -1165,13 +1167,13 @@ const ProfilePage = () => {
                   <button
                     key={tab}
                     onClick={() => handleTabChange(tab)}
-                    className={`relative inline-flex min-w-[78px] items-center justify-center gap-1.5 px-3 py-3 text-xs font-semibold transition-colors whitespace-nowrap sm:min-w-0 sm:px-5 sm:text-sm ${
+                    className={`relative inline-flex min-w-[78px] items-center justify-center gap-1.5 px-3 py-3 text-xs font-semibold transition-colors whitespace-nowrap sm:min-w-0 sm:px-7 sm:py-4 sm:text-base ${
                       activeTab === tab
                         ? "text-gray-900 dark:text-white"
                         : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
                     }`}
                   >
-                    {(() => { const TabIcon = tabMeta[tab]?.icon; return TabIcon ? <TabIcon className="h-4 w-4" /> : null })()}
+                    {(() => { const TabIcon = tabMeta[tab]?.icon; return TabIcon ? <TabIcon className="h-4 w-4 sm:h-5 sm:w-5" /> : null })()}
                     {tabMeta[tab]?.label || tab}
                     {activeTab === tab && (
                       <span
@@ -1191,7 +1193,7 @@ const ProfilePage = () => {
             >
               {activeTab === 'overview' && (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-5">
-                  <section className="wt-overview-progress lg:col-span-3 rounded-xl border border-blue-100 bg-gradient-to-r from-blue-50 to-sky-50 p-4 dark:border-blue-900/40 dark:from-blue-950/30 dark:to-sky-950/20 sm:p-5">
+                  <section className="hidden">
                     {(() => {
                       const totalGoals = analytics?.goals?.totalGoals ?? displayUser.totalGoals ?? 0;
                       const completedGoals = analytics?.goals?.completedGoals ?? 0;
@@ -1199,10 +1201,14 @@ const ProfilePage = () => {
                       const goalProgress = totalGoals ? Math.round((completedGoals / totalGoals) * 100) : 0;
                       const habitCompletions = analytics?.habits?.done || 0;
                       const activeDays = analytics?.habits?.activeDays || 0;
+                      const progressLabel = totalGoals === 0 ? 'No goals yet' : goalProgress === 100 ? 'All goals completed' : `${activeGoals} active ${activeGoals === 1 ? 'goal' : 'goals'}`;
+                      const progressMessage = totalGoals === 0
+                        ? 'Create a goal to start tracking your progress.'
+                        : `${completedGoals} of ${totalGoals} goals completed.`;
                       return <>
                         <div className="flex items-center gap-4">
                           <div className="relative grid h-20 w-20 shrink-0 place-items-center rounded-full" style={{ background: `conic-gradient(#1683ed ${goalProgress}%, #dcecff 0)` }}><div className="grid h-16 w-16 place-items-center rounded-full bg-white text-xl font-extrabold text-slate-950 dark:bg-gray-800 dark:text-white">{goalProgress}%</div></div>
-                          <div><h2 className="text-base font-extrabold text-slate-950 dark:text-white">Your {new Date().getFullYear()} Progress</h2><span className="mt-1 inline-flex rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-bold text-emerald-700">On track</span><p className="mt-2 text-xs font-semibold text-emerald-700 dark:text-emerald-300">Great progress! You&apos;re gaining momentum.</p></div>
+                          <div><h2 className="text-base font-extrabold text-slate-950 dark:text-white">Your Progress</h2><span className="mt-1 inline-flex rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-bold text-emerald-700">{progressLabel}</span><p className="mt-2 text-xs font-semibold text-emerald-700 dark:text-emerald-300">{progressMessage}</p></div>
                         </div>
                         <div className="mt-4 grid grid-cols-4 gap-2">
                           {[[activeGoals, 'Active Goals'], [completedGoals, 'Completed'], [habitCompletions, 'Habit Completions'], [activeDays, 'Active Days']].map(([value, label]) => <button type="button" key={label} onClick={() => label.includes('Goal') || label === 'Completed' ? handleTabChange('goals') : handleTabChange('habits')} className="rounded-lg border border-white/80 bg-white/80 px-2 py-3 text-center dark:border-gray-700 dark:bg-gray-800/80"><strong className="block text-base font-extrabold text-slate-950 dark:text-white">{value}</strong><span className="mt-1 block text-[9px] font-medium leading-tight text-slate-500">{label}</span></button>)}
@@ -1210,6 +1216,44 @@ const ProfilePage = () => {
                       </>;
                     })()}
                   </section>
+                  {isProfileAccessible() && (() => {
+                    const total = analytics?.goals?.totalGoals || 0;
+                    const completed = analytics?.goals?.completedGoals || 0;
+                    const inProgress = analytics?.goals?.inProgressGoals || 0;
+                    const notStarted = analytics?.goals?.notStartedGoals ?? Math.max(0, total - completed - inProgress);
+                    const pct = total ? Math.round((completed / total) * 100) : 0;
+                    const completedPct = total ? (completed / total) * 100 : 0;
+                    const progressPct = total ? (inProgress / total) * 100 : 0;
+                    return <section className="rounded-xl border border-[#dce5f4] bg-white p-4 shadow-[0_1px_4px_rgba(30,58,100,.035)] dark:border-gray-700 dark:bg-gray-800">
+                      <div className="flex items-center justify-between"><h3 className="flex items-center gap-2 text-sm font-extrabold text-[#0b1746] dark:text-white"><span className="grid h-5 w-5 place-items-center rounded-md bg-rose-50 text-rose-500"><Target className="h-3.5 w-3.5" /></span>Goals Progress</h3><button type="button" onClick={() => handleTabChange('goals')} className="text-[11px] font-bold text-[#087cec]">See all</button></div>
+                      <div className="mt-3 flex items-center justify-center gap-4">
+                        <div className="grid h-[78px] w-[78px] shrink-0 place-items-center rounded-full" style={{ background: `conic-gradient(#0bb978 0 ${completedPct}%, #1683ed ${completedPct}% ${completedPct + progressPct}%, #dce5ef ${completedPct + progressPct}% 100%)` }}><div className="grid h-[60px] w-[60px] place-items-center rounded-full bg-white text-lg font-extrabold text-[#0b1746] dark:bg-gray-800 dark:text-white">{pct}%</div></div>
+                        <div><p className="text-lg font-extrabold text-[#0b1746] dark:text-white">{completed} / {total} goals</p><p className="mt-1 text-xs text-[#63739c]">{total ? `${inProgress} currently in progress` : 'No goals added yet'}</p></div>
+                      </div>
+                      <div className="mt-3 flex items-center justify-between gap-2 text-[9px] font-medium text-[#526392]">
+                        {[["bg-[#0bb978]", `Completed ${completed}`], ["bg-[#1683ed]", `In Progress ${inProgress}`], ["bg-[#dce5ef]", `Not Started ${notStarted}`]].map(([color, label]) => <span key={label} className="flex items-center gap-1.5 whitespace-nowrap"><i className={`h-2.5 w-2.5 rounded-full ${color}`} />{label}</span>)}
+                      </div>
+                    </section>;
+                  })()}
+                  {isProfileAccessible() && (() => {
+                    const streak = Math.max(0, ...(analytics?.topHabits || []).map(habit => Number(habit.currentStreak || 0)));
+                    const completedKeys = new Set(analytics?.habits?.completedDateKeys || []);
+                    const today = new Date();
+                    const monday = new Date(today);
+                    monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+                    const week = Array.from({ length: 7 }, (_, index) => { const date = new Date(monday); date.setDate(monday.getDate() + index); const key = getDateKeyInTimezone(date); return { key, label: date.toLocaleDateString('en-US', { weekday: 'short' }), done: completedKeys.has(key) }; });
+                    return <section className="rounded-xl border border-[#dce5f4] bg-white p-4 shadow-[0_1px_4px_rgba(30,58,100,.035)] dark:border-gray-700 dark:bg-gray-800">
+                      <div className="flex items-center justify-between"><h3 className="flex items-center gap-2 text-sm font-extrabold text-[#0b1746] dark:text-white"><span className="grid h-5 w-5 place-items-center rounded-md bg-amber-50 text-amber-500"><Flame className="h-3.5 w-3.5" /></span>Habits Streak</h3><button type="button" onClick={() => handleTabChange('habits')} className="text-[11px] font-bold text-[#087cec]">See all</button></div>
+                      <div className="mt-4 flex items-center gap-3"><span className="text-4xl">🔥</span><div><p className="text-xl font-extrabold text-[#0b1746] dark:text-white">{streak} {streak === 1 ? 'day' : 'days'}</p><p className="text-xs text-[#63739c]">Current streak</p></div></div>
+                      <div className="mt-4 grid grid-cols-7 gap-2">{week.map(day => <div key={day.key} className="text-center"><span className={`mx-auto grid h-5 w-5 place-items-center rounded-full border text-[10px] font-black ${day.done ? 'border-[#0bb978] bg-[#0bb978] text-white' : 'border-[#cad6e8] text-transparent'}`}>{day.done ? '✓' : '·'}</span><small className="mt-1.5 block text-[9px] text-[#63739c]">{day.label}</small></div>)}</div>
+                    </section>;
+                  })()}
+                  {isOwnProfile && <section className="rounded-xl border border-[#dce5f4] bg-white p-4 shadow-[0_1px_4px_rgba(30,58,100,.035)] dark:border-gray-700 dark:bg-gray-800">
+                    <div className="flex items-center justify-between"><h3 className="flex items-center gap-2 text-sm font-extrabold text-[#0b1746] dark:text-white"><span className="grid h-5 w-5 place-items-center rounded-md bg-violet-50 text-violet-600"><BookOpen className="h-3.5 w-3.5" /></span>Journal Entries</h3><button type="button" onClick={() => handleTabChange('daily-logs')} className="text-[11px] font-bold text-[#087cec]">See all</button></div>
+                    <div className="mt-3 flex items-end gap-3"><span className="text-2xl font-extrabold text-[#0b1746] dark:text-white">{analytics?.dailyLogs?.entries ?? 0}</span><span className="pb-0.5 text-[10px] text-[#63739c]">Entries this month</span></div>
+                    <div className="mt-2 flex h-[54px] items-end gap-1.5 border-b border-dashed border-[#dce5ef] pb-0.5">{journalChartDays.map(day => <span key={day.key} title={`${day.key}: ${day.logged ? 'Journal entry' : 'No entry'}`} className={`flex-1 rounded-t-sm ${day.logged ? 'bg-gradient-to-t from-[#1683ed] to-[#62b8ff]' : 'bg-[#edf2f8] dark:bg-gray-700'}`} style={{ height: day.logged ? '82%' : '18%' }} />)}</div>
+                    <div className="mt-1.5 flex justify-between text-[8px] text-[#63739c]"><span>{journalChartDays[0]?.key.slice(5)}</span><span>Last 10 days</span><span>{journalChartDays[9]?.key.slice(5)}</span></div>
+                  </section>}
                   {/* Goal Statistics - circular progress */}
                   <button type="button" onClick={() => setMetricInfo({ title: 'Goal Completion', description: 'The share of goals that have been marked finished.' })} className="hidden">
                     <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white mb-4 sm:mb-5 flex items-center gap-2">
@@ -1230,7 +1274,7 @@ const ProfilePage = () => {
                               <path
                                 fill="none"
                                 strokeWidth="3"
-                                strokeDasharray={`${((isOwnProfile ? (analytics?.goals?.completedGoals || 0) : (analytics?.goals?.completedGoals || 0)) / Math.max(1, (isOwnProfile ? (displayUser.totalGoals || 0) : (userStats?.totalGoals || 0)))) * 100}, 100`}
+                                strokeDasharray={`${((analytics?.goals?.completedGoals || 0) / Math.max(1, analytics?.goals?.totalGoals || 0)) * 100}, 100`}
                                 strokeLinecap="round"
                                 d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                                 style={{ stroke: THEME_COLOR, transition: 'stroke-dasharray 0.5s' }}
@@ -1238,7 +1282,7 @@ const ProfilePage = () => {
                             </svg>
                             <div className="absolute inset-0 flex flex-col items-center justify-center">
                               <span className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-                                {Math.round(((isOwnProfile ? (analytics?.goals?.completedGoals || 0) : (analytics?.goals?.completedGoals || 0)) / Math.max(1, (isOwnProfile ? (displayUser.totalGoals || 0) : (userStats?.totalGoals || 0)))) * 100)}%
+                                {Math.round(((analytics?.goals?.completedGoals || 0) / Math.max(1, analytics?.goals?.totalGoals || 0)) * 100)}%
                               </span>
                               <span className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 uppercase">Completion</span>
                             </div>
@@ -1246,13 +1290,13 @@ const ProfilePage = () => {
                           <div className="flex gap-2 sm:gap-3 w-full mt-3 sm:mt-4">
                             <div className="flex-1 p-2 sm:p-3 rounded-lg sm:rounded-xl bg-gray-100 dark:bg-gray-700/50 text-center">
                               <div className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white">
-                                {isOwnProfile ? (displayUser.totalGoals || 0) : (userStats?.totalGoals || 0)}
+                                {analytics?.goals?.totalGoals || 0}
                               </div>
                               <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 uppercase">Total Goals</div>
                             </div>
                             <div className="flex-1 p-2 sm:p-3 rounded-lg sm:rounded-xl bg-green-50 dark:bg-green-900/20 text-center border border-green-200/50 dark:border-green-800/30">
                               <div className="text-xs sm:text-sm font-semibold text-green-800 dark:text-green-200">
-                                {isOwnProfile ? (analytics?.goals?.completedGoals || 0) : (analytics?.goals?.completedGoals || 0)}
+                                {analytics?.goals?.completedGoals || 0}
                               </div>
                               <div className="text-[10px] sm:text-xs text-green-600 dark:text-green-400 uppercase">Completed</div>
                             </div>
@@ -1270,7 +1314,7 @@ const ProfilePage = () => {
                   <button type="button" onClick={() => setMetricInfo({ title: 'Habit Consistency', description: 'How often you completed habit occurrences scheduled in the last seven days.', note: 'Skipped and missed occurrences count; unscheduled days do not.' })} className="hidden">
                     <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white mb-1.5 sm:mb-2 flex items-center gap-2">
                       <Activity className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: THEME_COLOR }} />
-                      Habits Streak
+                      Habit Consistency
                     </h3>
                     <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-3 sm:mb-4">Last 7 days</p>
                     {isProfileAccessible() ? (() => {
@@ -1330,13 +1374,13 @@ const ProfilePage = () => {
                     )}
                   </button>
                   {/* Journal summary */}
-                  {isOwnProfile && <button type="button" onClick={() => handleTabChange('daily-logs')} className="rounded-xl border border-gray-100 bg-white p-4 text-left shadow-sm transition-colors hover:border-blue-300 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-blue-700 sm:rounded-2xl sm:p-5 md:p-6">
+                  {isOwnProfile && <button type="button" onClick={() => handleTabChange('daily-logs')} className="hidden">
                     <div className="flex items-center justify-between">
                       <h3 className="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-white sm:text-xl"><BookOpen className="h-5 w-5 text-violet-500 sm:h-6 sm:w-6" />Journal Entries</h3>
                       <span className="text-xs font-semibold text-blue-500">View all</span>
                     </div>
                     <div className="mt-5 flex items-end gap-3">
-                      <div className="text-4xl font-extrabold text-slate-950 dark:text-white">{analytics?.dailyLogs?.entries ?? dailyLogsFeed.length ?? 0}</div>
+                      <div className="text-4xl font-extrabold text-slate-950 dark:text-white">{analytics?.dailyLogs?.entries ?? 0}</div>
                       <div className="pb-1 text-xs text-slate-500">total entries</div>
                     </div>
                     <div className="mt-5 flex h-16 items-end gap-2 border-b border-dashed border-slate-200 pb-1 dark:border-gray-700" aria-label="Journal entries over the last 10 days">
@@ -1860,6 +1904,8 @@ const ProfilePage = () => {
                   setDailyLogsFeed([]);
                   setDailyLogsSkip(0);
                 }
+                const analyticsResult = await getUserAnalytics(null);
+                if (analyticsResult.success) setAnalytics(analyticsResult.analytics);
               } catch { }
             }}
           /></Suspense>
@@ -1946,7 +1992,9 @@ const ProfilePage = () => {
               const response = await habitsAPI.log(openHabitId, { status, mood });
               const log = response?.data?.data?.log || response?.data?.log;
               toast.success(`Habit ${status === 'done' ? 'completed' : status}!`);
-              fetchUserHabits(); // Refresh the habits list
+              await fetchUserHabits();
+              const analyticsResult = await getUserAnalytics(null);
+              if (analyticsResult.success) setAnalytics(analyticsResult.analytics);
               return {
                 success: true,
                 todayCompletionCount: status === 'done'
@@ -1959,7 +2007,11 @@ const ProfilePage = () => {
               return { success: false, error };
             }
           } : undefined}
-          onHabitStatsChanged={isOwnProfile ? fetchUserHabits : undefined}
+          onHabitStatsChanged={isOwnProfile ? async () => {
+            await fetchUserHabits();
+            const analyticsResult = await getUserAnalytics(null);
+            if (analyticsResult.success) setAnalytics(analyticsResult.analytics);
+          } : undefined}
           onEdit={isOwnProfile ? () => {
             // Navigate to edit or open edit modal if needed
             toast.info('Edit functionality coming soon');

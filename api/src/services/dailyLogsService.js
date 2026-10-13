@@ -316,6 +316,13 @@ async function listMyEntries(userId, { limit = 20, skip = 0, todayOnly = false }
     .lean();
 }
 
+async function countEntries(userId, { startDate, endDate } = {}) {
+  await cleanupDeprecatedDailyLogsFields();
+  const filter = { userId };
+  if (startDate && endDate) filter.createdAt = { $gte: startDate, $lt: endDate };
+  return DailyLogsEntry.countDocuments(filter);
+}
+
 async function getUserHighlights(targetUserId, viewerUserId, { limit = 12 } = {}) {
   await cleanupDeprecatedDailyLogsFields();
 
@@ -386,6 +393,7 @@ module.exports = {
   clearEntry,
   cleanupExpiredDailyLogs,
   listMyEntries,
+  countEntries,
   getUserHighlights,
   notifyDailyPrompt
 };

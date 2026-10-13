@@ -609,7 +609,7 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
               <div className={`${hasCompletionImage ? 'w-full md:w-1/2' : 'w-full'} flex flex-col h-full overflow-hidden`}>
                 {/* Header */}
                 <div className="goal-post-header p-6 border-b border-gray-100 dark:border-gray-700 flex-shrink-0">
-                  <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
                       <img
                         src={goalData.user?.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=User'}
@@ -645,18 +645,19 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
                     </button>
                   </div>
 
-                  <GoalHero goal={goalData.goal} className="mb-3" />
-
-                  {(goalData.completion?.completedAt || goalData.goal?.completedAt) && (
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Completed: {new Date(goalData.completion?.completedAt || goalData.goal?.completedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                    </p>
-                  )}
                 </div>
 
                 {/* Content */}
-                <div className={`goal-post-scroll flex-1 overflow-y-auto p-6 ${showComments ? 'pb-0' : 'space-y-6'}`}>
+                <div className={`goal-post-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain p-6 ${showComments ? 'pb-0' : 'space-y-6'}`}>
                   <div className="space-y-6">
+                  <div>
+                    <GoalHero goal={goalData.goal} />
+                    {(goalData.completion?.completedAt || goalData.goal?.completedAt) && (
+                      <p className="mt-3 text-sm text-gray-600 dark:text-gray-400">
+                        Completed: {new Date(goalData.completion?.completedAt || goalData.goal?.completedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </p>
+                    )}
+                  </div>
                   {(() => {
                     const completionNote = goalData.completion?.note || goalData.share?.note;
 

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, lazy, Suspense } from 'react'
-import { Eye, BarChart3, X, Target, Heart, Smile, Meh, Frown, CircleSlash2, ChevronDown, CheckCircle, Calendar, ChevronRight, Flag, Share2 } from 'lucide-react'
+import { X, Target, Heart, Smile, Meh, Frown, CircleSlash2, CheckCircle, ChevronRight, Flag, Share2, MoreHorizontal } from 'lucide-react'
 import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLock'
 import { useNavigate } from 'react-router-dom'
 import useApiStore from '../store/apiStore'
@@ -206,11 +206,6 @@ export default function GoalDetailsModal({ goal, isOpen, onClose, onViewPost, in
     return marks
   })()
   
-  const handleAnalytics = () => {
-    setIsMoreMenuOpen(false)
-    setActiveView('analytics')
-  }
-
   const handleViewPost = () => {
     if (!goalId) return
     setIsMoreMenuOpen(false)
@@ -286,20 +281,43 @@ export default function GoalDetailsModal({ goal, isOpen, onClose, onViewPost, in
         style={{ fontFamily: 'Manrope, ui-sans-serif, system-ui', zIndex: 9999 }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="px-4 py-3 sm:px-8 sm:py-5 border-b border-slate-200 dark:border-gray-700 flex-shrink-0 relative bg-white dark:bg-gray-900">
-          <div className="flex items-center justify-center gap-2 px-10 text-gray-900 dark:text-white font-semibold sm:justify-start sm:px-0 sm:pr-10">
-            <button type="button" onClick={() => activeView === 'log' ? setActiveView('overview') : onClose?.()} aria-label={activeView === 'log' ? 'Back to goal overview' : 'Close goal details'} className="-ml-2 rounded-lg p-1 text-[#0b1746] dark:text-white sm:hidden"><ChevronRight className="h-5 w-5 rotate-180"/></button>
-            <Target className="hidden h-4 w-4 text-[#1683ed] sm:block" />
-            <span className="truncate text-sm">{activeView === 'log' ? 'Log Progress' : goal.title}</span>
+        <div className="relative flex flex-shrink-0 items-center gap-2 border-b border-slate-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-gray-900 sm:px-8 sm:py-4">
+          <div className="flex min-w-0 flex-1 items-center gap-2 font-semibold text-gray-900 dark:text-white">
+            <button type="button" onClick={() => activeView === 'log' ? setActiveView('overview') : onClose?.()} aria-label={activeView === 'log' ? 'Back to goal overview' : 'Close goal details'} className="-ml-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-[#0b1746] hover:bg-slate-100 dark:text-white dark:hover:bg-gray-800 sm:hidden"><ChevronRight className="h-5 w-5 rotate-180"/></button>
+            <Target className="hidden h-4 w-4 shrink-0 text-[#1683ed] sm:block" />
+            <span className="min-w-0 truncate text-sm">{activeView === 'log' ? 'Log Progress' : goal.title}</span>
           </div>
-          <div ref={moreMenuRef} className="absolute right-14 top-2.5 sm:right-16 sm:top-4">
-            <button type="button" aria-label="Goal actions" aria-expanded={isMoreMenuOpen} onClick={() => setIsMoreMenuOpen(value => !value)} className="min-h-[44px] rounded-xl px-3 text-xl text-slate-500">...</button>
-            {isMoreMenuOpen && <div className="absolute right-0 top-full z-30 w-48 rounded-xl border border-slate-200 bg-white p-2 shadow-xl dark:bg-gray-800"><button type="button" onClick={handleShare} className="flex min-h-[44px] w-full items-center gap-2 rounded-lg px-3 text-sm text-[#2369aa] hover:bg-blue-50"><Share2 className="h-4 w-4"/>{isCompleted ? 'Share Achievement' : 'Share Goal'}</button>{!isCompleted && <button type="button" onClick={() => { setShareMoment({ shareType: 'PROGRESS' }); setIsMoreMenuOpen(false); setIsShareModalOpen(true) }} className="min-h-[44px] w-full rounded-lg px-3 text-left text-sm text-[#2369aa] hover:bg-blue-50">Share Progress</button>}<button type="button" onClick={handleAnalytics} className="min-h-[44px] w-full rounded-lg px-3 text-left text-sm text-slate-600 hover:bg-blue-50">View Analytics</button><button type="button" onClick={handleViewPost} className="min-h-[44px] w-full rounded-lg px-3 text-left text-sm text-slate-600 hover:bg-blue-50">View Post</button></div>}
+          <div ref={moreMenuRef} className="relative shrink-0">
+            <button
+              type="button"
+              aria-label="Goal actions"
+              aria-expanded={isMoreMenuOpen}
+              onClick={() => setIsMoreMenuOpen(value => !value)}
+              className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100 text-slate-700 transition-colors hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1683ed] dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700"
+            >
+              <MoreHorizontal className="h-5 w-5" />
+            </button>
+            {isMoreMenuOpen && (
+              <div className="absolute right-0 top-full z-30 mt-2 w-48 rounded-xl border border-slate-200 bg-white p-2 shadow-xl dark:border-gray-700 dark:bg-gray-800">
+                <button type="button" onClick={handleShare} className="flex min-h-[44px] w-full items-center gap-2 rounded-lg px-3 text-sm text-[#2369aa] hover:bg-blue-50 dark:text-blue-300 dark:hover:bg-gray-700">
+                  <Share2 className="h-4 w-4" />
+                  {isCompleted ? 'Share Achievement' : 'Share Goal'}
+                </button>
+                {!isCompleted && (
+                  <button type="button" onClick={() => { setShareMoment({ shareType: 'PROGRESS' }); setIsMoreMenuOpen(false); setIsShareModalOpen(true) }} className="min-h-[44px] w-full rounded-lg px-3 text-left text-sm text-[#2369aa] hover:bg-blue-50 dark:text-blue-300 dark:hover:bg-gray-700">
+                    Share Progress
+                  </button>
+                )}
+                <button type="button" onClick={handleViewPost} className="min-h-[44px] w-full rounded-lg px-3 text-left text-sm text-slate-600 hover:bg-blue-50 dark:text-gray-200 dark:hover:bg-gray-700">
+                  View Post
+                </button>
+              </div>
+            )}
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="absolute top-3.5 right-4 hidden rounded-full bg-gray-100 p-2 text-gray-500 transition-colors hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 sm:block"
+            className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gray-100 text-gray-600 transition-colors hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700 sm:flex"
             aria-label="Close"
           >
             <X className="h-4 w-4" />
