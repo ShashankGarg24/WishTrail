@@ -62,9 +62,11 @@ async function postShare(goalId, userId, payload) {
 
 async function deleteShare(activityId, userId) {
   if (!/^[a-f0-9]{24}$/i.test(activityId)) throw Object.assign(new Error('Invalid post ID'), { statusCode: 400 });
-  // Scope the write itself to the owner and explicit shares, never system activity.
-  const removed = await Activity.findOneAndDelete({ _id: activityId, userId: Number(userId), type: 'goal_shared' });
-  if (!removed) throw Object.assign(new Error('Shared post not found or not owned by you'), { statusCode: 404 });
+  // Scope the write itself to the owner. Feed achievements and explicit goal
+  // shares are both Activity documents; deleting one must not delete the
+  // underlying goal, habit, or earned achievement.
+  const removed = await Activity.findOneAndDelete({ _id: activityId, userId: Number(userId) });
+  if (!removed) throw Object.assign(new Error('Post not found or not owned by you'), { statusCode: 404 });
   const cache = require('./cacheService');
   await Promise.all([cache.invalidateAllActivities(), cache.invalidateUserActivities(userId)]);
   try {
@@ -75,7 +77,8 @@ async function deleteShare(activityId, userId) {
       comments.deleteMany({ activityId }),
       likes.deleteLikesByTarget('activity', activityId),
       ...entries.map(entry => likes.deleteLikesByTarget('activity_comment', String(entry._id))),
-      require('../models/Notification').updateMany({ 'data.activityId': activityId }, { $set: { active: false }, $inc: { __v: 1 } })
+      require('../models/Notification').updateMany({ 'data.activityId': activityId }, { $set: { active: false }, $inc: { __v: 1 } }),
+      require('../models/CommunityActivity').deleteMany({ sourceActivityId: activityId })
     ]);
   } catch (error) {
     require('../config/observability').logger.warn('Shared post deleted; dependent cleanup failed', { code: error.code || error.name });

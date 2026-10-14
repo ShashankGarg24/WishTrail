@@ -7,6 +7,7 @@ jest.mock('../../models/Activity', () => ({ findOne: jest.fn(), findOneAndUpdate
 jest.mock('../../models/ActivityComment', () => ({ find: jest.fn(() => ({ select: () => ({ lean: async () => [{ _id: 'comment' }] }) })), deleteMany: jest.fn() }));
 jest.mock('../pgLikeService', () => ({ deleteLikesByTarget: jest.fn() }));
 jest.mock('../../models/Notification', () => ({ updateMany: jest.fn() }));
+jest.mock('../../models/CommunityActivity', () => ({ deleteMany: jest.fn() }));
 jest.mock('../cacheService', () => ({ invalidateAllActivities: jest.fn(), invalidateUserActivities: jest.fn() }));
 const service = require('../goalShareService');
 const goals = require('../pgGoalService');
@@ -28,19 +29,20 @@ beforeEach(() => {
 });
 const request = context => ({ shareType: 'COMPLETION', visibility: 'PUBLIC', revision: context.revision, requestId: 'test-request-000001', options: { template: 'JOURNEY', showStats: false } });
 
-test('deletion is scoped atomically to the owner and explicit post, and clears dependent data and caches', async () => {
+test('deletion is scoped atomically to the owner and clears dependent data and caches', async () => {
   const id = '012345678901234567890123';
   activity.findOneAndDelete.mockResolvedValue({ _id: id });
   await service.deleteShare(id, '2');
-  expect(activity.findOneAndDelete).toHaveBeenCalledWith({ _id: id, userId: 2, type: 'goal_shared' });
+  expect(activity.findOneAndDelete).toHaveBeenCalledWith({ _id: id, userId: 2 });
   expect(require('../../models/ActivityComment').deleteMany).toHaveBeenCalledWith({ activityId: id });
   expect(require('../pgLikeService').deleteLikesByTarget).toHaveBeenCalledWith('activity', id);
   expect(require('../pgLikeService').deleteLikesByTarget).toHaveBeenCalledWith('activity_comment', 'comment');
+  expect(require('../../models/CommunityActivity').deleteMany).toHaveBeenCalledWith({ sourceActivityId: id });
   expect(require('../cacheService').invalidateAllActivities).toHaveBeenCalled();
   expect(goals.getGoalById).not.toHaveBeenCalled();
 });
 
-test('missing, another owner, and system posts cannot be deleted through sharing', async () => {
+test('missing posts and posts owned by another user cannot be deleted', async () => {
   activity.findOneAndDelete.mockResolvedValue(null);
   await expect(service.deleteShare('012345678901234567890123', 9)).rejects.toMatchObject({ statusCode: 404 });
   expect(require('../../models/ActivityComment').deleteMany).not.toHaveBeenCalled();
