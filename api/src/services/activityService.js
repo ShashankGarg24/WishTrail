@@ -131,7 +131,7 @@ class ActivityService {
         username: username,
         avatar: avatar,
       };
-      return { ...rest, user };
+      return { ...rest, user, canDelete: Number(authorId) === Number(userId) };
     };
 
     const query = {
