@@ -137,7 +137,7 @@ async function enrichActivities(activities) {
 // @access  Private
 const getRecentActivities = async (req, res, next) => {
   try {
-    const { page = 1, limit = 10, type = 'global', scope } = req.query;
+    const { page = 1, limit = 10, type = 'global', scope, year } = req.query;
     const includeRecentUsers = req.query.includeRecentUsers === true || req.query.includeRecentUsers === 'true' || req.query.includeRecentUsers === '1';
     const recentUsersDays = Math.max(1, parseInt(req.query.recentUsersDays) || 7);
     const recentUsersLimit = Math.max(1, Math.min(50, parseInt(req.query.recentUsersLimit) || 10));
@@ -149,7 +149,7 @@ const getRecentActivities = async (req, res, next) => {
     let fromCache = false;
 
     if (type === 'personal') {
-      activities = scope === 'overview' ? null : await cacheService.getPersonalActivities(req.user.id, cacheParams);
+      activities = ['overview', 'trail'].includes(scope) ? null : await cacheService.getPersonalActivities(req.user.id, cacheParams);
     } else {
       activities = await cacheService.getGlobalActivities(cacheParams);
     }
@@ -222,6 +222,72 @@ const getRecentActivities = async (req, res, next) => {
               total: combinedEvents.length,
               pages: Math.ceil(combinedEvents.length / parsedLimit)
             }
+          };
+        } else if (scope === 'trail') {
+          const [relationalEvents, dailyLogEntries] = await Promise.all([
+            query(
+              `SELECT 'goal_created' AS event_type, g.id AS item_id, g.title AS item_name,
+                      g.category, g.created_at AS event_at, NULL::text AS status, NULL::integer AS event_count,
+                      NULL::text AS detail, NULL::text AS emotion
+                 FROM goals g WHERE g.user_id = $1
+               UNION ALL
+               SELECT 'goal_completed', g.id, g.title, g.category, g.completed_at, 'done', NULL::integer, NULL::text, NULL::text
+                 FROM goals g WHERE g.user_id = $1 AND g.completed_at IS NOT NULL
+               UNION ALL
+               SELECT 'goal_logged', g.id, g.title, g.category, gu.created_at, NULL::text, NULL::integer, gu.text, gu.emotion
+                 FROM goal_updates gu JOIN goals g ON g.id = gu.goal_id
+                WHERE gu.user_id = $1
+               UNION ALL
+               SELECT 'habit_created', h.id, h.name, h.category, h.created_at, NULL::text, NULL::integer, NULL::text, NULL::text
+                 FROM habits h WHERE h.user_id = $1
+               UNION ALL
+               SELECT 'habit_logged', h.id, h.name, h.category, hl.created_at, hl.status, hl.completion_count, NULL::text, NULL::text
+                 FROM habit_logs hl JOIN habits h ON h.id = hl.habit_id
+                WHERE hl.user_id = $1
+               ORDER BY event_at DESC
+               LIMIT 1000`,
+              [req.user.id]
+            ),
+            DailyLogsEntry.find({ userId: Number(req.user.id) })
+              .select('_id mood dayKey createdAt').sort({ createdAt: -1 }).limit(1000).lean()
+          ]);
+          const postgresEvents = relationalEvents.rows.map(event => ({
+            _id: `${event.event_type}_${event.item_id}_${new Date(event.event_at).getTime()}`,
+            type: event.event_type,
+            userId: Number(req.user.id),
+            data: {
+              itemId: Number(event.item_id),
+              itemName: event.item_name,
+              category: event.category,
+              status: event.status,
+              count: event.event_count == null ? null : Number(event.event_count),
+              detail: event.detail,
+              emotion: event.emotion
+            },
+            createdAt: event.event_at,
+            activityAt: event.event_at
+          }));
+          const journalEvents = dailyLogEntries.map(entry => ({
+            _id: `journal_logged_${entry._id}`,
+            type: 'journal_logged',
+            userId: Number(req.user.id),
+            data: { itemId: String(entry._id), mood: entry.mood, dayKey: entry.dayKey },
+            createdAt: entry.createdAt,
+            activityAt: entry.createdAt
+          }));
+          const combinedEvents = [...postgresEvents, ...journalEvents]
+            .filter(event => event.activityAt)
+            .sort((a, b) => new Date(b.activityAt) - new Date(a.activityAt));
+          const availableYears = [...new Set(combinedEvents.map(event => new Date(event.activityAt).getFullYear()))].sort((a, b) => b - a);
+          const requestedYear = Number.parseInt(year, 10);
+          const filteredEvents = Number.isFinite(requestedYear)
+            ? combinedEvents.filter(event => new Date(event.activityAt).getFullYear() === requestedYear)
+            : combinedEvents;
+          const pageStart = (parsedPage - 1) * parsedLimit;
+          activities = {
+            activities: filteredEvents.slice(pageStart, pageStart + parsedLimit),
+            years: availableYears,
+            pagination: { page: parsedPage, limit: parsedLimit, total: filteredEvents.length, pages: Math.ceil(filteredEvents.length / parsedLimit) }
           };
         } else {
         // Get activities from users the current user follows

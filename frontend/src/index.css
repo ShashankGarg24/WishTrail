@@ -707,8 +707,6 @@ body {
   .wt-profile-hero .wt-profile-stats{grid-column:3;grid-row:1;align-self:start;width:100%;margin:16px 0 0!important;border:0!important;padding:0!important}
   .wt-profile-hero .wt-profile-actions{grid-column:2 / 4;grid-row:2;align-self:start;min-height:40px;margin:12px 0 0!important}
   .wt-profile-hero .wt-edit-profile{width:130px;max-width:130px}
-  .wt-profile-hero .wt-profile-menu{top:-164px;color:white;background:rgba(15,23,42,.28)}
-  .wt-profile-hero .wt-profile-menu:hover{background:rgba(15,23,42,.45)}
 }
 
 @media(min-width:768px) and (max-width:1199px){.wt-profile-shell{grid-template-columns:minmax(0,1fr) 240px}.wt-profile-main{grid-column:1}.wt-profile-rail{display:grid;grid-column:2;grid-row:1}}
@@ -735,8 +733,8 @@ body {
   .wt-profile-stats{margin-top:12px!important;padding:9px 0!important;border-color:#edf0f5!important}
   .wt-profile-stats>button>div:first-child{font-size:15px!important}.wt-profile-stats>button>div:last-child{font-size:10px!important}
   .wt-profile-tabs{position:sticky!important;top:0!important;margin:0!important;border-left:0!important;border-right:0!important;border-radius:0!important;padding:0 12px!important}
-  .wt-profile-tabs>div{justify-content:space-between!important}
-  .wt-profile-tabs button{min-width:0!important;flex:1;padding:11px 4px!important;font-size:10px!important;gap:0!important}
+  .wt-profile-tabs>div{justify-content:flex-start!important}
+  .wt-profile-tabs button{min-width:82px!important;flex:0 0 auto!important;padding:12px 8px!important;font-size:12px!important;gap:0!important}
   .wt-profile-tabs button svg{display:none}
   .wt-profile-main>div:last-of-type{padding-left:12px;padding-right:12px}
   .wt-profile-page .rounded-2xl{border-radius:10px}

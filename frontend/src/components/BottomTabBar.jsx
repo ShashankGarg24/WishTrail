@@ -36,7 +36,6 @@ const BottomTabBar = () => {
   if (!isAuthenticated) return null
 
   const actions = [
-    ['daily-log', 'Daily Check-in', "Log today's progress and mood", CalendarCheck, null, 'bg-blue-100 text-blue-600'],
     ['goal', 'Create Goal', 'Set a new goal and plan your journey', Target, null, 'bg-rose-100 text-rose-500'],
     ['habit', 'Create Habit', 'Build a new habit', Zap, null, 'bg-amber-100 text-amber-500'],
     ['journal', 'Add Journal Entry', 'Write about your day', BookOpen, `/profile/@${currentUser?.username || ''}?tab=daily-logs`, 'bg-violet-100 text-violet-600'],

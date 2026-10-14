@@ -321,7 +321,11 @@ const sanitizeHabitForProfile = (habit) => {
     dailyTargetCount: obj.dailyTargetCount || obj.daily_target_count || null,
     targetDays: obj.targetDays || obj.target_days || null
     ,
-    lastLoggedDateKey: obj.lastLoggedDateKey || obj.last_logged_date_key || null
+    lastLoggedDateKey: obj.lastLoggedDateKey || obj.last_logged_date_key || null,
+    isActive: obj.isActive !== undefined ? obj.isActive : obj.is_active !== false,
+    isArchived: obj.isArchived !== undefined ? obj.isArchived : obj.is_archived === true,
+    createdAt: obj.createdAt || obj.created_at,
+    updatedAt: obj.updatedAt || obj.updated_at
   };
 };
 

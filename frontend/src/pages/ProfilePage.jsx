@@ -88,7 +88,8 @@ const ProfilePage = () => {
     dailyLogsEntries,
     getFollowers,
     getFollowing,
-    getUserAnalytics
+    getUserAnalytics,
+    getRecentActivities
   } = useApiStore();
 
   const [analytics, setAnalytics] = useState(null);
@@ -138,9 +139,15 @@ const ProfilePage = () => {
   const [journalMonth, setJournalMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1))
   const [journalCalendarOpen, setJournalCalendarOpen] = useState(true)
   const [trailYear, setTrailYear] = useState(() => new Date().getFullYear())
+  const [trailFilter, setTrailFilter] = useState('all')
+  const [trailActivities, setTrailActivities] = useState([])
+  const [trailLoading, setTrailLoading] = useState(false)
+  const [trailPage, setTrailPage] = useState(1)
+  const [trailHasMore, setTrailHasMore] = useState(true)
+  const [trailAvailableYears, setTrailAvailableYears] = useState([new Date().getFullYear()])
+  const trailLoaderRef = useRef(null)
   const previousTabRef = useRef(initialTab)
   const tabLoadRequestRef = useRef(0)
-  const trailLoaderRef = useRef(null)
 
   const THEME_COLOR = '#4c99e6'
 
@@ -260,7 +267,7 @@ const ProfilePage = () => {
         }
 
         // Load goals when goals tab is viewed
-        if ((activeTab === 'goals' || activeTab === 'trail') && userGoals.length === 0) {
+        if (activeTab === 'goals' && userGoals.length === 0) {
           // Own profile: always load
           // Other profile: only if public or following
           if (isOwnProfile || canViewContent) {
@@ -336,6 +343,54 @@ const ProfilePage = () => {
     fetchDailyLogs();
   }, [activeTab, profileUser?.username, currentUser?.username, isOwnProfile]);
 
+  useEffect(() => {
+    if (activeTab !== 'trail' || !isOwnProfile) return;
+    let cancelled = false;
+    setTrailLoading(true);
+    setTrailActivities([]);
+    setTrailPage(1);
+    getRecentActivities({ page: 1, limit: 20, type: 'personal', scope: 'trail', year: trailYear })
+      .then((result) => {
+        if (cancelled) return;
+        setTrailActivities(result?.activities || []);
+        setTrailAvailableYears(result?.years?.length ? result.years : [new Date().getFullYear()]);
+        setTrailHasMore(1 < (result?.pagination?.pages || 1));
+      })
+      .catch(() => {
+        if (!cancelled) setTrailActivities([]);
+      })
+      .finally(() => {
+        if (!cancelled) setTrailLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [activeTab, isOwnProfile, currentUser?.id, getRecentActivities, trailYear]);
+
+  useEffect(() => {
+    if (activeTab !== 'trail' || trailLoading || !trailHasMore) return undefined;
+    const target = trailLoaderRef.current;
+    if (!target) return undefined;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting) return;
+      observer.disconnect();
+      const nextPage = trailPage + 1;
+      setTrailLoading(true);
+      getRecentActivities({ page: nextPage, limit: 20, type: 'personal', scope: 'trail', year: trailYear })
+        .then((result) => {
+          const incoming = result?.activities || [];
+          setTrailActivities((current) => {
+            const known = new Set(current.map((item) => String(item._id)));
+            return [...current, ...incoming.filter((item) => !known.has(String(item._id)))];
+          });
+          setTrailPage(nextPage);
+          setTrailHasMore(nextPage < (result?.pagination?.pages || nextPage));
+        })
+        .catch(() => setTrailHasMore(false))
+        .finally(() => setTrailLoading(false));
+    }, { root: null, rootMargin: '240px' });
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [activeTab, trailLoading, trailHasMore, trailPage, trailYear, getRecentActivities]);
+
   const loadMoreDailyLogs = async () => {
     if (!isOwnProfile || dailyLogsLoading || !dailyLogsHasMore) return;
     try {
@@ -391,6 +446,10 @@ const ProfilePage = () => {
   ]));
   const journalMonthYear = journalMonth.getFullYear();
   const journalMonthIndex = journalMonth.getMonth();
+  const journalYears = [...new Set([
+    new Date().getFullYear(),
+    ...(dailyLogsFeed || []).map((entry) => new Date(entry?.createdAt || 0).getFullYear()).filter(Number.isFinite)
+  ])].sort((a, b) => b - a);
   const journalMonthDays = new Date(journalMonthYear, journalMonthIndex + 1, 0).getDate();
   const journalLeadingDays = (new Date(journalMonthYear, journalMonthIndex, 1).getDay() + 6) % 7;
   const journalCalendarCells = [
@@ -488,6 +547,32 @@ const ProfilePage = () => {
       }
     } catch (error) {
       console.error('Failed to load habits:', error);
+    }
+  };
+
+  const loadMoreHabits = async () => {
+    if (loadingMoreHabits || !hasMoreHabits) return;
+    setLoadingMoreHabits(true);
+    try {
+      const nextPage = habitsPage + 1;
+      const targetUserName = isOwnProfile ? currentUser?.username : profileUser?.username;
+      const params = isOwnProfile
+        ? { page: nextPage, limit: HABITS_PER_PAGE }
+        : { username: targetUserName, page: nextPage, limit: HABITS_PER_PAGE };
+      const result = await habitsAPI.list(params);
+      if (result.data.success) {
+        const incoming = result.data.data.habits || [];
+        setUserHabits((current) => {
+          const known = new Set(current.map((habit) => String(habit.id)));
+          return [...current, ...incoming.filter((habit) => !known.has(String(habit.id)))];
+        });
+        setHabitsPage(nextPage);
+        setHasMoreHabits(nextPage < (result.data.data.pagination?.pages || nextPage));
+      }
+    } catch (error) {
+      setHasMoreHabits(false);
+    } finally {
+      setLoadingMoreHabits(false);
     }
   };
 
@@ -667,22 +752,18 @@ const ProfilePage = () => {
     }
   };
 
-  useEffect(() => {
-    if (activeTab !== 'trail' || !hasMoreGoals || loadingMoreGoals || isTabLoading) return undefined;
-    const target = trailLoaderRef.current;
-    if (!target) return undefined;
-    const observer = new IntersectionObserver((entries) => {
-      if (!entries[0]?.isIntersecting) return;
-      observer.disconnect();
-      loadMoreGoals();
-    }, { root: null, rootMargin: '200px' });
-    observer.observe(target);
-    return () => observer.disconnect();
-  }, [activeTab, hasMoreGoals, loadingMoreGoals, isTabLoading, goalsPage]);
-
   const closeGoalModal = () => {
     setOpenGoalId(null)
     setScrollCommentsOnOpen(false)
+    const refreshGoals = isOwnProfile
+      ? getGoals({ page: 1, limit: GOALS_PER_PAGE }, { force: true })
+      : getUserGoals(profileUser?.username, { page: 1, limit: GOALS_PER_PAGE });
+    refreshGoals.then((result) => {
+      if (!result?.success) return;
+      setUserGoals(result.goals || []);
+      setGoalsPage(1);
+      setHasMoreGoals(1 < (result.pagination?.pages || 1));
+    }).catch(() => {});
     try {
       const params = new URLSearchParams(location.search)
       if (params.get('goalId')) navigate(-1)
@@ -794,13 +875,14 @@ const ProfilePage = () => {
   };
 
   const canAccessProfileContent = isProfileAccessible();
-  const trailItems = [...userGoals]
-    .map((goal) => ({ goal, date: new Date(goal.completedAt || goal.updatedAt || goal.createdAt) }))
+  const trailItems = trailActivities
+    .map((activity) => ({ ...activity, date: new Date(activity.activityAt || activity.createdAt) }))
     .filter((item) => !Number.isNaN(item.date.getTime()))
     .sort((a, b) => b.date - a.date);
-  const trailYears = [...new Set([new Date().getFullYear(), ...trailItems.map((item) => item.date.getFullYear())])].sort((a, b) => b - a);
+  const trailYears = [...new Set([new Date().getFullYear(), ...trailAvailableYears])].sort((a, b) => b - a);
   const trailMonthGroups = trailItems
     .filter((item) => item.date.getFullYear() === Number(trailYear))
+    .filter((item) => trailFilter === 'all' || (trailFilter === 'goals' && item.type.startsWith('goal_')) || (trailFilter === 'habits' && item.type.startsWith('habit_')) || (trailFilter === 'journals' && item.type === 'journal_logged'))
     .reduce((groups, item) => {
       const key = item.date.toLocaleDateString('en-US', { month: 'long' });
       if (!groups[key]) groups[key] = [];
@@ -858,16 +940,23 @@ const ProfilePage = () => {
           <div className="wt-profile-cover relative h-28 overflow-hidden bg-slate-800 sm:h-44">
             <img src={displayUser.coverImage || displayUser.coverPhoto || '/images/profile-mountain-cover.png'} alt="Mountain sunrise profile cover" className="absolute inset-0 h-full w-full object-cover" />
             <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-slate-950/25 to-transparent" />
-          </div>
-          <div className="relative px-4 pb-4 sm:px-7 sm:pb-5">
-            {/* Ellipsis menu - always top right */}
             <button
               data-profile-menu-btn="true"
               onClick={() => setProfileMenuOpen((v) => !v)}
-              className="absolute right-3 top-8 z-10 rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 sm:right-5 sm:top-20"
+              className="absolute right-5 top-5 z-10 hidden rounded-lg bg-slate-950/30 p-2 text-white transition-colors hover:bg-slate-950/50 md:block"
               aria-label="More options"
             >
               <MoreVertical className="h-4 w-4 sm:h-5 sm:w-5" />
+            </button>
+          </div>
+          <div className="relative px-4 pb-4 sm:px-7 sm:pb-5">
+            <button
+              data-profile-menu-btn="true"
+              onClick={() => setProfileMenuOpen((v) => !v)}
+              className="absolute right-3 top-8 z-10 rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 md:hidden"
+              aria-label="More options"
+            >
+              <MoreVertical className="h-4 w-4" />
             </button>
 
             {/* Action buttons - desktop */}
@@ -913,7 +1002,7 @@ const ProfilePage = () => {
               {displayUser.currentMood && (
                 <button
                   onClick={() => setQuoteModalOpen(true)}
-                  className="absolute bottom-1 right-1 grid h-9 w-9 place-items-center rounded-full border-[3px] border-white bg-blue-50 text-blue-600 shadow-md transition hover:scale-110 dark:border-gray-800 dark:bg-gray-700 sm:bottom-2 sm:right-2 sm:h-10 sm:w-10"
+                  className="absolute bottom-1 right-1 grid h-9 w-9 translate-x-1/4 translate-y-1/4 place-items-center rounded-full border-[3px] border-white bg-blue-50 text-blue-600 shadow-md transition hover:scale-110 dark:border-gray-800 dark:bg-gray-700 sm:h-10 sm:w-10"
                   title={displayUser.quote ? "View mood & quote" : "Current mood"}
                 >
                   <span className="text-sm leading-none sm:text-base">{displayUser.currentMood}</span>
@@ -1167,13 +1256,13 @@ const ProfilePage = () => {
                   <button
                     key={tab}
                     onClick={() => handleTabChange(tab)}
-                    className={`relative inline-flex min-w-[78px] items-center justify-center gap-1.5 px-3 py-3 text-xs font-semibold transition-colors whitespace-nowrap sm:min-w-0 sm:px-7 sm:py-4 sm:text-base ${
+                    className={`relative inline-flex min-w-[78px] items-center justify-center gap-1.5 px-3 py-3 text-xs font-semibold transition-colors whitespace-nowrap sm:min-w-0 sm:px-7 sm:py-4 sm:text-lg ${
                       activeTab === tab
                         ? "text-gray-900 dark:text-white"
                         : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
                     }`}
                   >
-                    {(() => { const TabIcon = tabMeta[tab]?.icon; return TabIcon ? <TabIcon className="h-4 w-4 sm:h-5 sm:w-5" /> : null })()}
+                    {(() => { const TabIcon = tabMeta[tab]?.icon; return TabIcon ? <TabIcon className="h-4 w-4 sm:h-6 sm:w-6" /> : null })()}
                     {tabMeta[tab]?.label || tab}
                     {activeTab === tab && (
                       <span
@@ -1467,27 +1556,42 @@ const ProfilePage = () => {
               )}
               {activeTab === 'trail' && (
                 <div className="wt-trail-view rounded-xl border border-gray-100 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:p-5 md:p-6">
-                  <div className="mb-5 flex items-center justify-between border-b border-slate-100 pb-4 dark:border-gray-700">
+                  <div className="mb-4 flex items-center justify-between">
+                    <div className="flex max-w-[calc(100%-80px)] overflow-x-auto rounded-xl bg-slate-100 p-1 dark:bg-gray-700/70">
+                      {[['all', 'All'], ['goals', 'Goals'], ['habits', 'Habits'], ['journals', 'Journals']].map(([value, label]) => <button key={value} type="button" onClick={() => setTrailFilter(value)} className={`shrink-0 rounded-lg px-3 py-2 text-xs font-bold transition sm:px-4 ${trailFilter === value ? 'bg-white text-blue-600 shadow-sm dark:bg-gray-800 dark:text-blue-300' : 'text-slate-500 hover:text-slate-800 dark:text-gray-400 dark:hover:text-white'}`}>{label}</button>)}
+                    </div>
                     <label className="relative"><span className="sr-only">Trail year</span><select value={trailYear} onChange={(event) => setTrailYear(Number(event.target.value))} className="appearance-none rounded-lg border border-slate-200 bg-white py-2 pl-3 pr-8 text-xs font-extrabold text-slate-800 outline-none transition focus:border-blue-400 dark:border-gray-700 dark:bg-gray-800 dark:text-white">{trailYears.map((year) => <option key={year} value={year}>{year}</option>)}</select><ChevronRight className="pointer-events-none absolute right-2.5 top-2.5 h-3.5 w-3.5 rotate-90 text-slate-400" /></label>
-                    <span className="rounded-full bg-blue-50 px-3 py-1.5 text-[10px] font-bold text-blue-600 dark:bg-blue-950/30 dark:text-blue-300">{trailItems.filter((item) => item.date.getFullYear() === Number(trailYear)).length} milestones</span>
                   </div>
+                  <div className="mb-5 flex items-center justify-between border-b border-slate-100 pb-3 dark:border-gray-700"><p className="text-xs font-semibold text-slate-500 dark:text-gray-400">Your creations, progress, and daily check-ins</p><span className="rounded-full bg-blue-50 px-3 py-1.5 text-[10px] font-bold text-blue-600 dark:bg-blue-950/30 dark:text-blue-300">{Object.values(trailMonthGroups).reduce((count, items) => count + items.length, 0)} activities</span></div>
                   {isProfileAccessible() ? (
-                    Object.keys(trailMonthGroups).length > 0 ? (
+                    trailLoading && trailActivities.length === 0 ? <div className="grid min-h-48 place-items-center"><span className="h-6 w-6 animate-spin rounded-full border-2 border-blue-100 border-t-blue-500" /></div> : Object.keys(trailMonthGroups).length > 0 ? (
                       <><div className="space-y-7">
                         {Object.entries(trailMonthGroups).map(([month, items]) => <section key={month}>
                           <div className="mb-3 flex items-center gap-3"><span className="text-[10px] font-extrabold uppercase tracking-[.14em] text-slate-500 dark:text-gray-400">{month} {trailYear}</span><span className="h-px flex-1 bg-slate-100 dark:bg-gray-700" /></div>
                           <div className="relative space-y-3 pl-7"><span className="absolute bottom-4 left-[7px] top-4 w-px bg-blue-200 dark:bg-blue-900" />
-                            {items.map(({ goal, date }, index) => {
-                              const progress = goal.completedAt ? 100 : Math.round(Number(goal.progress ?? goal.progressPercentage ?? 0));
-                              return <button key={goal.id || goal._id} type="button" onClick={() => setOpenGoalId(goal.id || goal._id)} className="group relative block w-full rounded-xl border border-slate-100 bg-white p-3.5 text-left shadow-[0_1px_3px_rgba(15,23,42,.04)] transition hover:border-blue-200 hover:shadow-md dark:border-gray-700 dark:bg-gray-800/70"><span className={`absolute -left-[27px] top-5 grid h-4 w-4 place-items-center rounded-full border-[3px] border-white shadow-sm dark:border-gray-900 ${goal.completedAt ? 'bg-amber-400' : 'bg-blue-500'}`} />
-                                <div className="flex items-start gap-3"><CategoryIcon category={goal.category} size="lg" /><span className="min-w-0 flex-1"><small className="block text-[10px] font-medium text-slate-400">{goal.completedAt ? 'Completed a goal' : progress > 0 ? `Reached ${progress}% progress` : 'Started a new goal'}</small><strong className="mt-0.5 block truncate text-sm font-extrabold text-slate-900 dark:text-white">{goal.title}</strong><small className="mt-1 block text-[10px] text-slate-400">{date.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })}</small></span><ChevronRight className="mt-3 h-4 w-4 text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-blue-500" /></div>
+                            {items.map((item) => {
+                              const isGoal = item.type.startsWith('goal_');
+                              const isHabit = item.type.startsWith('habit_');
+                              const isMilestone = item.type === 'goal_completed';
+                              const labels = { goal_created: 'Goal created', goal_completed: 'Goal completed', goal_logged: 'Progress logged', habit_created: 'Habit created', habit_logged: item.data?.status === 'skipped' ? 'Habit skipped' : 'Habit logged', journal_logged: 'Journal logged' };
+                              const Icon = isGoal ? Target : isHabit ? Flame : BookOpen;
+                              const itemName = item.data?.itemName || (item.data?.dayKey ? `Entry for ${item.data.dayKey}` : 'Daily journal');
+                              const logDetail = item.type === 'goal_logged'
+                                ? (item.data?.detail || (item.data?.emotion ? `Feeling ${item.data.emotion}` : 'Progress check-in'))
+                                : item.type === 'habit_logged'
+                                  ? (item.data?.detail || `${Math.max(1, item.data?.count || 1)} ${Math.max(1, item.data?.count || 1) === 1 ? 'completion' : 'completions'}`)
+                                  : item.type === 'journal_logged' && item.data?.mood ? `Mood: ${item.data.mood}` : null;
+                              const openItem = () => { if (isGoal) setOpenGoalId(item.data?.itemId); else if (isHabit) { setOpenHabitId(item.data?.itemId); setHabitModalOpen(true); } else handleTabChange('daily-logs'); };
+                              return <button key={item._id} type="button" onClick={openItem} className={`group relative block w-full rounded-xl border p-3.5 text-left shadow-[0_1px_3px_rgba(15,23,42,.04)] transition hover:shadow-md ${isMilestone ? 'border-amber-200 bg-gradient-to-r from-amber-50 to-yellow-50 hover:border-amber-300 dark:border-amber-800/60 dark:from-amber-950/30 dark:to-gray-800' : 'border-slate-100 bg-white hover:border-blue-200 dark:border-gray-700 dark:bg-gray-800/70'}`}><span className={`absolute -left-[27px] top-5 grid h-4 w-4 place-items-center rounded-full border-[3px] border-white shadow-sm dark:border-gray-900 ${isMilestone ? 'bg-amber-400' : isGoal ? 'bg-blue-500' : isHabit ? 'bg-orange-400' : 'bg-violet-500'}`} />
+                                <div className="flex items-start gap-3"><span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${isMilestone ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/40' : isGoal ? 'bg-blue-50 text-blue-600 dark:bg-blue-950/30' : isHabit ? 'bg-orange-50 text-orange-500 dark:bg-orange-950/30' : 'bg-violet-50 text-violet-600 dark:bg-violet-950/30'}`}><Icon className="h-5 w-5" /></span><span className="min-w-0 flex-1"><strong className={`block text-sm font-extrabold ${isMilestone ? 'text-amber-800 dark:text-amber-200' : 'text-slate-900 dark:text-white'}`}>{labels[item.type] || 'Trail activity'}</strong><small className="mt-1 block truncate font-semibold text-slate-500 dark:text-gray-400">{itemName}</small>{logDetail && <small className="mt-1 block truncate text-[10px] text-slate-400">{logDetail}</small>}<small className="mt-1.5 block text-[10px] text-slate-400">{item.date.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })}</small></span>{isMilestone && <span className="rounded-full bg-amber-200/70 px-2 py-1 text-[9px] font-extrabold uppercase tracking-wide text-amber-800 dark:bg-amber-900/50 dark:text-amber-200">Milestone</span>}<ChevronRight className="mt-3 h-4 w-4 text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-blue-500" /></div>
                               </button>;
                             })}
                           </div>
                         </section>)}
-                      </div><div ref={trailLoaderRef} className="flex min-h-12 items-center justify-center">{loadingMoreGoals&&<span className="h-5 w-5 animate-spin rounded-full border-2 border-blue-100 border-t-blue-500"/>}{!hasMoreGoals&&trailItems.length>0&&<span className="text-[10px] text-slate-400">You’ve reached the start of your trail.</span>}</div></>
-                    ) : <div className="py-12 text-center"><span className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-blue-50 text-blue-400 dark:bg-blue-950/30"><TrendingUp className="h-6 w-6" /></span><p className="mt-3 text-sm font-semibold text-slate-600 dark:text-gray-300">No trail activity in {trailYear}</p><p className="mt-1 text-xs text-slate-400">Choose another year or keep making progress.</p></div>
+                      </div></>
+                    ) : <div className="py-12 text-center"><span className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-blue-50 text-blue-400 dark:bg-blue-950/30"><TrendingUp className="h-6 w-6" /></span><p className="mt-3 text-sm font-semibold text-slate-600 dark:text-gray-300">No {trailFilter === 'all' ? '' : `${trailFilter} `}activity in {trailYear}</p><p className="mt-1 text-xs text-slate-400">Choose another filter or year.</p></div>
                   ) : <p className="py-10 text-center text-sm text-gray-500 dark:text-gray-400">This trail is private.</p>}
+                  {isProfileAccessible() && <div ref={trailLoaderRef} className="flex min-h-12 items-center justify-center">{trailLoading && trailActivities.length > 0 ? <span className="h-5 w-5 animate-spin rounded-full border-2 border-blue-100 border-t-blue-500" /> : !trailHasMore && trailActivities.length > 0 ? <span className="text-[10px] text-slate-400">You’ve reached the start of your trail.</span> : null}</div>}
                 </div>
               )}
               {activeTab === 'goals' && (
@@ -1523,10 +1627,9 @@ const ProfilePage = () => {
                           .filter((g) => {
                             if (goalSearch && !g.title?.toLowerCase().includes(goalSearch.toLowerCase())) return false;
                             if (goalFilter === 'all') return true;
-                            const progress = Number(g.progress ?? g.progressPercentage ?? 0);
-                            const status = String(g.status || '').toLowerCase();
-                            if (goalFilter === 'on_track') return !g.completedAt && !['stalled', 'paused', 'overdue'].includes(status) && progress >= 25;
-                            if (goalFilter === 'attention') return !g.completedAt && (['stalled', 'paused', 'overdue'].includes(status) || progress < 25);
+                            const health = String(g.goalHealth || '').toUpperCase();
+                            if (goalFilter === 'on_track') return !g.completedAt && ['GETTING_STARTED', 'STRONG', 'STABLE'].includes(health);
+                            if (goalFilter === 'attention') return !g.completedAt && ['SLIPPING', 'STALLED'].includes(health);
                             return true;
                           })
                           .map((goal, index) => (
@@ -1546,7 +1649,7 @@ const ProfilePage = () => {
                                 </div>
                                 <ChevronRight className="h-5 w-5 flex-shrink-0 text-slate-400" />
                               </div>
-                              <div className="mt-3 flex items-center gap-3"><div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100 dark:bg-gray-700"><div className={`h-full rounded-full ${goal.completedAt ? 'bg-emerald-500' : 'bg-blue-500'}`} style={{ width: `${goal.completedAt ? 100 : Math.max(8, goal.progress || goal.progressPercentage || 0)}%` }} /></div><span className="text-xs font-bold text-slate-600 dark:text-gray-300">{goal.completedAt ? 100 : Math.round(goal.progress || goal.progressPercentage || 0)}%</span></div>
+                              <div className="mt-3 flex items-center justify-between gap-3 border-t border-slate-100 pt-3 text-xs dark:border-gray-700"><span className={`rounded-full px-2.5 py-1 font-bold ${goal.completedAt ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300' : ['SLIPPING', 'STALLED'].includes(String(goal.goalHealth || '').toUpperCase()) ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-300' : 'bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-300'}`}>{goal.completedAt ? 'Completed' : (goal.healthLabel || 'Active')}</span><span className="truncate text-right text-slate-500 dark:text-gray-400">{goal.completedAt ? (goal.completedAt && new Date(goal.completedAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })) : (goal.healthReason || 'No progress logged yet')}</span></div>
                             </motion.div>
                           ))}
                       </div>
@@ -1603,7 +1706,7 @@ const ProfilePage = () => {
                       )}
                     </div>
                     <div className="hidden">
-                      {['all', 'active', 'paused'].map((filter) => (
+                      {['all', 'active', 'archived'].map((filter) => (
                         <button key={filter} type="button" onClick={() => setHabitFilter(filter)} className={`flex-1 rounded-lg px-3 py-2 text-xs font-bold capitalize transition-colors sm:text-sm ${habitFilter === filter ? 'bg-white text-blue-600 shadow-sm dark:bg-gray-700 dark:text-blue-300' : 'text-gray-500 dark:text-gray-400'}`}>
                           {filter === 'all' ? `All (${userHabits.length})` : filter}
                         </button>
@@ -1614,10 +1717,16 @@ const ProfilePage = () => {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                         {userHabits.filter((habit) => {
                           if (habitSearch && !habit.name?.toLowerCase().includes(habitSearch.toLowerCase())) return false;
-                          const paused = habit.paused || habit.isPaused || String(habit.status || '').toLowerCase() === 'paused';
-                          return habitFilter === 'all' || (habitFilter === 'paused' ? paused : !paused);
+                          return habitFilter === 'all' || (habitFilter === 'archived' ? habit.isArchived : habit.isActive && !habit.isArchived);
                         }).map((habit, index) => {
-                          const consistency = habit.consistencyPercent ?? Math.min(100, ((habit.totalCompletions || 0) / Math.max(1, habit.durationDays || 30)) * 100);
+                          const weeklyTarget = habit.frequency === 'custom'
+                            ? Math.max(1, habit.daysOfWeek?.length || 1)
+                            : habit.frequency === 'weekly' ? 1 : 7;
+                          const weeklyCompleted = Number(habit.weeklyCompletedDays || 0);
+                          const weeklyPercent = Math.min(100, Math.round((weeklyCompleted / weeklyTarget) * 100));
+                          const scheduleLabel = habit.frequency === 'custom'
+                            ? `${habit.daysOfWeek?.length || 0} days / week`
+                            : habit.frequency === 'weekly' ? 'Weekly' : 'Daily';
                           return (
                             <motion.div
                               key={habit.id}
@@ -1625,17 +1734,18 @@ const ProfilePage = () => {
                               animate={{ opacity: 1, y: 0 }}
                               transition={{ delay: index * 0.05 }}
                               onClick={() => {
+                                if (!isOwnProfile) return;
                                 setOpenHabitId(habit.id);
                                 setHabitModalOpen(true);
                               }}
-                              className="rounded-lg sm:rounded-xl p-3 sm:p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md cursor-pointer"
+                              className={`rounded-lg border border-gray-200 p-3 sm:rounded-xl sm:p-4 dark:border-gray-700 ${isOwnProfile ? 'cursor-pointer hover:shadow-md' : ''}`}
                             >
                               <div className="flex items-start justify-between gap-2 sm:gap-3 mb-2 sm:mb-3">
                                 <div className="flex items-start gap-2 sm:gap-3 min-w-0 flex-1">
                                   <HabitCategoryIcon category={habit.category} size="lg" />
                                   <div className="min-w-0 flex-1">
                                     <h4 className="font-semibold text-gray-900 dark:text-white text-base sm:text-lg">{habit.name}</h4>
-                                    <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">{getHabitCategoryLabel(habit.category)} · {habit.durationMinutes ? `${habit.durationMinutes} mins / day` : (habit.targetValue || 'Daily')}</p>
+                                    <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">{getHabitCategoryLabel(habit.category)} · {scheduleLabel}</p>
                                   </div>
                                 </div>
                                 <div className="flex-shrink-0 text-right">
@@ -1643,7 +1753,7 @@ const ProfilePage = () => {
                                   <span className="text-xs sm:text-sm" style={{ color: THEME_COLOR }}>DAY STREAK</span>
                                 </div>
                               </div>
-                              <div className="mt-3 flex items-center gap-3"><div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100 dark:bg-gray-700"><div className="h-full rounded-full bg-gradient-to-r from-blue-500 to-emerald-400" style={{ width: `${Math.max(4, Math.round(consistency))}%` }} /></div><span className="text-xs font-bold text-slate-600 dark:text-gray-300">{Math.round(consistency)}%</span><ChevronRight className="h-4 w-4 text-slate-400" /></div>
+                              <div className="mt-3"><div className="mb-1.5 flex items-center justify-between text-xs text-slate-500 dark:text-gray-400"><span>{weeklyCompleted}/{weeklyTarget} scheduled days this week</span><span className="font-bold">{weeklyPercent}%</span></div><div className="flex items-center gap-3"><div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100 dark:bg-gray-700"><div className="h-full rounded-full bg-gradient-to-r from-blue-500 to-emerald-400" style={{ width: `${weeklyPercent}%` }} /></div><ChevronRight className="h-4 w-4 text-slate-400" /></div></div>
                             </motion.div>
                           );
                         })}
@@ -1663,6 +1773,7 @@ const ProfilePage = () => {
                         )}
                       </div>
                     )}
+                    {hasMoreHabits && userHabits.length > 0 && <div className="mt-5 flex justify-center"><button type="button" onClick={loadMoreHabits} disabled={loadingMoreHabits} className="rounded-xl bg-slate-100 px-5 py-2.5 text-sm font-bold text-slate-700 disabled:opacity-50 dark:bg-gray-700 dark:text-gray-200">{loadingMoreHabits ? 'Loading…' : 'Load More'}</button></div>}
                   </div>
                   <div className="hidden">
                     <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-3 sm:mb-4 flex items-center gap-1.5 sm:gap-2">
@@ -1739,11 +1850,11 @@ const ProfilePage = () => {
                     <div className="space-y-5">
                       <button type="button" onClick={() => setJournalCalendarOpen(value => !value)} aria-expanded={journalCalendarOpen} className="flex w-full items-center justify-between rounded-xl border border-slate-100 bg-white p-4 text-left text-sm font-bold text-slate-800 dark:border-gray-700 dark:bg-gray-800 dark:text-white"><span className="flex items-center gap-2"><CalendarDays className="h-4 w-4 text-[#1683ed]" />Calendar view</span><span className="flex items-center gap-1 text-[10px] text-slate-400">{journalCalendarOpen ? 'Hide' : 'Show'}<ChevronRight className={`h-4 w-4 transition-transform ${journalCalendarOpen ? 'rotate-90' : ''}`} /></span></button>
                       <div className={`wt-journal-calendar rounded-xl border border-slate-100 p-4 dark:border-gray-700 ${journalCalendarOpen ? '' : 'hidden'}`}>
-                        <div className="mb-3 flex items-center justify-between"><label className="relative"><span className="sr-only">Journal year</span><select value={journalMonthYear} onChange={(event) => setJournalMonth(new Date(Number(event.target.value), journalMonthIndex, 1))} className="appearance-none rounded-lg border border-slate-200 bg-white py-2 pl-3 pr-8 text-xs font-extrabold text-slate-800 outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white">{Array.from({ length: 7 }, (_, index) => new Date().getFullYear() + 2 - index).map((year) => <option key={year} value={year}>{year}</option>)}</select><ChevronRight className="pointer-events-none absolute right-2.5 top-2.5 h-3.5 w-3.5 rotate-90 text-slate-400" /></label><span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Journal calendar</span></div>
+                        <div className="mb-3 flex items-center justify-between"><label className="relative"><span className="sr-only">Journal year</span><select value={journalMonthYear} onChange={(event) => setJournalMonth(new Date(Number(event.target.value), journalMonthIndex, 1))} className="appearance-none rounded-lg border border-slate-200 bg-white py-2 pl-3 pr-8 text-xs font-extrabold text-slate-800 outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white">{journalYears.map((year) => <option key={year} value={year}>{year}</option>)}</select><ChevronRight className="pointer-events-none absolute right-2.5 top-2.5 h-3.5 w-3.5 rotate-90 text-slate-400" /></label><span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Journal calendar</span></div>
                         <div className="mb-5 grid grid-cols-[36px_1fr_36px] items-center">
                           <button type="button" aria-label="Previous month" onClick={() => setJournalMonth(new Date(journalMonthYear, journalMonthIndex - 1, 1))} className="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-gray-700 dark:text-gray-300"><ChevronLeft className="h-4 w-4" /></button>
                           <div className="text-center"><h4 className="text-sm font-extrabold text-slate-950 dark:text-white">{journalMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</h4><p className="mt-0.5 text-[10px] font-medium text-slate-400">{Array.from(journalEntriesByDay.keys()).filter((key) => key.startsWith(`${journalMonthYear}-${String(journalMonthIndex + 1).padStart(2, '0')}`)).length} entries this month</p></div>
-                          <button type="button" aria-label="Next month" onClick={() => setJournalMonth(new Date(journalMonthYear, journalMonthIndex + 1, 1))} className="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-gray-700 dark:text-gray-300"><ChevronRight className="h-4 w-4" /></button>
+                          <button type="button" aria-label="Next month" disabled={journalMonthYear === new Date().getFullYear() && journalMonthIndex >= new Date().getMonth()} onClick={() => setJournalMonth(new Date(journalMonthYear, journalMonthIndex + 1, 1))} className="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-35 dark:border-gray-700 dark:text-gray-300"><ChevronRight className="h-4 w-4" /></button>
                         </div>
                         <div className="grid grid-cols-7 text-center">{['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(day => <span key={day} className="pb-3 text-[10px] font-bold uppercase tracking-wide text-slate-400">{day}</span>)}{journalCalendarCells.map((day, index) => {
                           if (!day) return <span key={`empty-${index}`} className="h-11 sm:h-14" />;
@@ -1920,7 +2031,7 @@ const ProfilePage = () => {
           <section className="relative w-full rounded-t-3xl bg-white p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-2xl dark:bg-gray-900 sm:max-w-md sm:rounded-2xl">
             <div className="mb-5 flex items-center justify-between"><div><p className="text-[10px] font-bold uppercase tracking-[.16em] text-blue-500">Filters</p><h2 className="mt-1 text-lg font-extrabold text-slate-950 dark:text-white">{profileFilterSheet === 'goals' ? 'Filter goals' : 'Filter habits'}</h2></div><button type="button" onClick={() => setProfileFilterSheet(null)} className="rounded-lg p-2 text-2xl leading-none text-slate-400">×</button></div>
             <div className="grid gap-2">
-              {(profileFilterSheet === 'goals' ? [['all','All goals'],['on_track','On Track'],['attention','Needs Attention']] : [['all','All habits'],['active','Active'],['paused','Paused']]).map(([value, label]) => {
+              {(profileFilterSheet === 'goals' ? [['all','All goals'],['on_track','On Track'],['attention','Needs Attention']] : [['all','All habits'],['active','Active'],['archived','Archived']]).map(([value, label]) => {
                 const selected = profileFilterSheet === 'goals' ? goalFilter === value : habitFilter === value;
                 return <button key={value} type="button" onClick={() => profileFilterSheet === 'goals' ? setGoalFilter(value) : setHabitFilter(value)} className={`flex items-center justify-between rounded-xl border px-4 py-3 text-left text-sm font-bold ${selected ? 'border-blue-500 bg-blue-50 text-blue-600 dark:bg-blue-950/30' : 'border-slate-200 text-slate-600 dark:border-gray-700 dark:text-gray-300'}`}><span>{label}</span><span className={`h-4 w-4 rounded-full border-2 ${selected ? 'border-blue-500 bg-blue-500 shadow-[inset_0_0_0_3px_white]' : 'border-slate-300'}`} /></button>;
               })}
@@ -1981,7 +2092,7 @@ const ProfilePage = () => {
       {/* Habit Detail Modal */}
       {isOwnProfile && habitModalOpen && openHabitId && (
         <Suspense fallback={null}><HabitDetailModal
-          habit={userHabits.find(h => (h.id) === openHabitId)}
+          habit={userHabits.find(h => String(h.id) === String(openHabitId))}
           isOpen={habitModalOpen}
           onClose={() => {
             setHabitModalOpen(false);
@@ -2011,10 +2122,6 @@ const ProfilePage = () => {
             await fetchUserHabits();
             const analyticsResult = await getUserAnalytics(null);
             if (analyticsResult.success) setAnalytics(analyticsResult.analytics);
-          } : undefined}
-          onEdit={isOwnProfile ? () => {
-            // Navigate to edit or open edit modal if needed
-            toast.info('Edit functionality coming soon');
           } : undefined}
           onDelete={isOwnProfile ? async () => {
             try {

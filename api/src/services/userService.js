@@ -363,6 +363,7 @@ class UserService {
     let scheduledOccurrences = 0;
     let completedOccurrences = 0;
     const momentumBaseDate = new Date(`${todayUTC}T12:00:00Z`);
+    const weeklyMomentum = [];
     for (let i = 0; i < 7; i++) {
       const d = new Date(momentumBaseDate);
       d.setUTCDate(d.getUTCDate() - i);
@@ -371,7 +372,14 @@ class UserService {
       const activeOnDay = activeMap[dateKey] || 0;
       scheduledOccurrences += activeOnDay;
       completedOccurrences += Math.min(done, activeOnDay);
+      weeklyMomentum.push({
+        date: dateKey,
+        value: activeOnDay > 0 ? percentage(Math.min(done, activeOnDay), activeOnDay) : 0,
+        completed: Math.min(done, activeOnDay),
+        scheduled: activeOnDay,
+      });
     }
+    weeklyMomentum.reverse();
     const weekConsistency = percentage(completedOccurrences, scheduledOccurrences);
     const [previousActiveRows, previousDoneRows] = await Promise.all([
       pgQuery(
@@ -432,6 +440,7 @@ class UserService {
       activeToday,
       // Retained for existing clients; it now uses the consistency formula.
       weekMomentum: weekConsistency,
+      weeklyMomentum,
       weekConsistency,
       consistencyTrendPoints,
     };
