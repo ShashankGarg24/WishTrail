@@ -73,7 +73,7 @@ const PremiumUpgradeModal = ({ isOpen, onClose, feature, currentLimit, premiumLi
         />
         
         {/* Modal */}
-        <div className="relative bg-gradient-to-br from-white to-blue-50 rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="relative bg-gradient-to-br from-white to-blue-50 rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto dark:from-gray-900 dark:to-slate-900 dark:text-gray-100">
           {/* Header */}
           <div className="relative bg-[#4c99e6] p-8 text-white">
             <button
@@ -94,7 +94,7 @@ const PremiumUpgradeModal = ({ isOpen, onClose, feature, currentLimit, premiumLi
 
           {/* Current Status */}
           {isPremium && (
-            <div className="mx-8 mt-6 p-4 bg-blue-50 border-2 border-blue-200 rounded-xl">
+            <div className="mx-8 mt-6 p-4 bg-blue-50 border-2 border-blue-200 rounded-xl dark:border-blue-900 dark:bg-blue-950/40">
               <p className="text-blue-800 font-medium">
                 ✨ You're currently premium with {daysRemaining} days remaining. Extend your membership below.
               </p>
@@ -103,7 +103,7 @@ const PremiumUpgradeModal = ({ isOpen, onClose, feature, currentLimit, premiumLi
 
           {/* Limit Reached Notice */}
           {context && (
-            <div className="mx-8 mt-6 p-4 bg-blue-50 border-2 border-blue-200 rounded-xl">
+            <div className="mx-8 mt-6 p-4 bg-blue-50 border-2 border-blue-200 rounded-xl dark:border-blue-900 dark:bg-blue-950/40">
               <p className="text-orange-900 font-medium">
                 {context}
               </p>
@@ -111,7 +111,7 @@ const PremiumUpgradeModal = ({ isOpen, onClose, feature, currentLimit, premiumLi
                 <div className="flex items-center justify-center gap-6 mt-3">
                   <div className="text-center">
                     <p className="text-xs text-gray-500 uppercase font-semibold">Free Plan</p>
-                    <p className="text-2xl font-bold text-gray-700">{currentLimit}</p>
+                    <p className="text-2xl font-bold text-gray-700 dark:text-gray-200">{currentLimit}</p>
                   </div>
                   <div className="text-2xl text-gray-400">→</div>
                   <div className="text-center">
@@ -127,7 +127,7 @@ const PremiumUpgradeModal = ({ isOpen, onClose, feature, currentLimit, premiumLi
 
           {/* Plans */}
           <div className="p-8">
-            <h3 className="text-xl font-bold text-gray-900 mb-4 text-center">Choose Your Plan</h3>
+            <h3 className="text-xl font-bold text-gray-900 mb-4 text-center dark:text-white">Choose Your Plan</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
               {plans.map((plan) => (
                 <button
@@ -135,8 +135,8 @@ const PremiumUpgradeModal = ({ isOpen, onClose, feature, currentLimit, premiumLi
                   onClick={() => setSelectedPlan(plan.id)}
                   className={`relative p-6 rounded-2xl border-2 transition-all transform hover:scale-105 ${
                     selectedPlan === plan.id
-                      ? 'border-[#4c99e6] bg-blue-50 shadow-xl'
-                      : 'border-gray-200 bg-white hover:border-[#4c99e6]'
+                      ? 'border-[#4c99e6] bg-blue-50 shadow-xl dark:bg-blue-950/40'
+                      : 'border-gray-200 bg-white hover:border-[#4c99e6] dark:border-gray-700 dark:bg-gray-800'
                   }`}
                 >
                   {plan.popular && (
@@ -148,10 +148,10 @@ const PremiumUpgradeModal = ({ isOpen, onClose, feature, currentLimit, premiumLi
                   )}
                   
                   <div className="text-center">
-                    <h4 className="text-lg font-bold text-gray-900 mb-2">{plan.name}</h4>
+                    <h4 className="text-lg font-bold text-gray-900 mb-2 dark:text-white">{plan.name}</h4>
                     <div className="mb-2">
-                      <span className="text-3xl font-bold text-gray-900">{plan.price}</span>
-                      <span className="text-gray-500 text-sm">{plan.period}</span>
+                      <span className="text-3xl font-bold text-gray-900 dark:text-white">{plan.price}</span>
+                      <span className="text-gray-500 text-sm dark:text-gray-400">{plan.period}</span>
                     </div>
                     {plan.savings && (
                       <span className="inline-block bg-green-100 text-green-800 text-xs font-semibold px-3 py-1 rounded-full">
@@ -168,20 +168,20 @@ const PremiumUpgradeModal = ({ isOpen, onClose, feature, currentLimit, premiumLi
             </div>
 
             {/* Features List */}
-            <div className="bg-white rounded-2xl p-6 shadow-inner mb-6">
-              <h4 className="font-bold text-gray-900 mb-4 text-center">Everything included:</h4>
+            <div className="bg-white rounded-2xl p-6 shadow-inner mb-6 dark:bg-gray-800">
+              <h4 className="font-bold text-gray-900 mb-4 text-center dark:text-white">Everything included:</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {features.map((item, idx) => (
                   <div
                     key={idx}
                     className={`flex items-start gap-3 p-3 rounded-lg transition-colors ${
-                      item.highlight ? 'bg-blue-100' : ''
+                      item.highlight ? 'bg-blue-100 dark:bg-blue-950/50' : ''
                     }`}
                   >
                     <div className={`flex-shrink-0 ${item.highlight ? 'text-[#4c99e6]' : 'text-green-600'}`}>
                       {item.highlight ? <Crown className="w-5 h-5" /> : <Check className="w-5 h-5" />}
                     </div>
-                    <span className={`text-sm ${item.highlight ? 'font-semibold text-gray-900' : 'text-gray-700'}`}>
+                    <span className={`text-sm ${item.highlight ? 'font-semibold text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-300'}`}>
                       {item.text}
                     </span>
                   </div>
@@ -193,7 +193,7 @@ const PremiumUpgradeModal = ({ isOpen, onClose, feature, currentLimit, premiumLi
             <div className="flex gap-3">
               <button
                 onClick={onClose}
-                className="flex-1 px-6 py-4 border-2 border-gray-300 rounded-xl text-gray-700 font-semibold hover:bg-gray-50 transition-colors"
+                className="flex-1 px-6 py-4 border-2 border-gray-300 rounded-xl text-gray-700 font-semibold hover:bg-gray-50 transition-colors dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800"
               >
                 Maybe Later
               </button>
@@ -217,7 +217,7 @@ const PremiumUpgradeModal = ({ isOpen, onClose, feature, currentLimit, premiumLi
             </div>
 
             {/* Trust Signals */}
-            <div className="mt-6 text-center space-y-1 text-sm text-gray-500">
+            <div className="mt-6 text-center space-y-1 text-sm text-gray-500 dark:text-gray-400">
               <p>🔒 Secure payment processing</p>
               <p>💯 30-day money-back guarantee</p>
               <p>⚡ Instant activation</p>

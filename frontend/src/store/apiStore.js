@@ -513,28 +513,13 @@ const useApiStore = create(
           const deletedGoals = res?.data?.data?.deletedGoals || 0;
           set({ dashboardYears: years });
           // Invalidate goals cache since we deleted goals
-          set({ cacheGoals: {}, cacheDashboardStats: null });
+          set({ cacheGoals: {}, cacheDashboardStats: null, cacheGoalAnalytics: {} });
           return { success: true, years, deletedGoals, message: res?.data?.message };
         } catch (error) {
           const errorMessage = handleApiError(error);
           return { success: false, error: errorMessage };
         }
       },
-
-      updateProfile: async (userData) => {
-        try {
-          set({ loading: true, error: null });
-          const response = await authAPI.updateProfile(userData);
-          const { user } = response.data.data;
-          set({ user, loading: false, cacheMeTs: Date.now() });
-          return { success: true, user };
-        } catch (error) {
-          const errorMessage = handleApiError(error);
-          set({ loading: false, error: errorMessage });
-          return { success: false, error: errorMessage };
-        }
-      },
-
 
       // Update user privacy setting
       updateUserPrivacy: async (isPrivate) => {
@@ -920,7 +905,7 @@ const useApiStore = create(
             // if year not known, clear all
             Object.keys(newCache).forEach(k => { delete newCache[k]; });
           }
-          set({ cacheGoals: newCache, cacheDashboardStats: null });
+          set({ cacheGoals: newCache, cacheDashboardStats: null, cacheGoalAnalytics: {} });
           // Invalidate goal post detail cache for this goal
           try { get().invalidateGoalPostByGoal?.(goal?._id); } catch { }
 
@@ -954,7 +939,7 @@ const useApiStore = create(
           if (yearToInvalidate !== undefined) {
             Object.keys(newCache).forEach(k => { if (k.includes(`year=${yearToInvalidate}`)) delete newCache[k]; });
           }
-          set({ cacheGoals: newCache, cacheDashboardStats: null });
+          set({ cacheGoals: newCache, cacheDashboardStats: null, cacheGoalAnalytics: {} });
           // Invalidate goal post detail cache for this goal
           try { get().invalidateGoalPostByGoal?.(id); } catch { }
           // Trigger a forced stats refresh since edits can change totals/points
@@ -990,7 +975,7 @@ const useApiStore = create(
           }));
 
           // Invalidate all goal caches (unknown year) and dashboard stats
-          set({ cacheGoals: {}, cacheDashboardStats: null });
+          set({ cacheGoals: {}, cacheDashboardStats: null, cacheGoalAnalytics: {} });
           // Invalidate goal post detail cache for this goal
           try { get().invalidateGoalPostByGoal?.(id); } catch { }
 
@@ -1020,7 +1005,7 @@ const useApiStore = create(
           if (yearToInvalidate !== undefined) {
             Object.keys(newCache).forEach(k => { if (k.includes(`year=${yearToInvalidate}`)) delete newCache[k]; });
           }
-          set({ cacheGoals: newCache, cacheDashboardStats: null });
+          set({ cacheGoals: newCache, cacheDashboardStats: null, cacheGoalAnalytics: {} });
           // Invalidate goal post detail cache for this goal
           try { get().invalidateGoalPostByGoal?.(id); } catch { }
           try { await get().getDashboardStats({ force: true }); } catch { }
@@ -1053,7 +1038,7 @@ const useApiStore = create(
           } else {
             newCache = {};
           }
-          set({ cacheGoals: newCache });
+          set({ cacheGoals: newCache, cacheGoalAnalytics: {} });
           // Invalidate goal post detail cache for this goal
           try { get().invalidateGoalPostByGoal?.(id); } catch { }
           try { await get().getDashboardStats({ force: true }); } catch { }
@@ -2014,12 +1999,7 @@ const useApiStore = create(
             const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
             const offset = -new Date().getTimezoneOffset();
             if (tz || typeof offset === 'number') {
-              fetch(`${API_CONFIG.BASE_URL}/users/timezone`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                credentials: 'include',
-                body: JSON.stringify({ timezone: tz || undefined, timezoneOffsetMinutes: offset })
-              }).catch(() => { });
+              usersAPI.updateTimezone({ timezone: tz || undefined, timezoneOffsetMinutes: offset }).catch(() => { });
             }
           } catch { }
         }

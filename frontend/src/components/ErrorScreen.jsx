@@ -24,14 +24,7 @@ const ErrorScreen = ({
   onRetry,
   customAction
 }) => {
-  // Safe navigation - check if we're inside Router context
-  let navigate = null;
-  try {
-    navigate = useNavigate();
-  } catch (e) {
-    // Not inside Router context, use fallback
-    navigate = null;
-  }
+  const navigate = useNavigate();
 
   // Error type configurations
   const errorConfigs = {

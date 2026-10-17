@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom'
 
 const SEO = ({ 
   title = 'WishTrail - Dreams. Goals. Progress.',
-  description = 'Transform your aspirations into achievable goals. Track your progress, get inspired, and make every year count with WishTrail. Join 5000+ users achieving their dreams.',
+  description = 'Transform your aspirations into achievable goals. Track your progress, build habits, and make every year count with WishTrail.',
   keywords = 'goals, goal tracking, goal sharing, communities, personal development, wishlist, dream tracking, habit tracker, productivity, self improvement, daily logs, mood tracking, achievement, progress tracking',
   ogImage = '/og-image.jpg',
   schema = null
@@ -114,7 +114,7 @@ export const HomePageSEO = () => {
   return (
     <SEO
       title="WishTrail - Transform Your Dreams Into Reality | Goal Tracking App"
-      description="The ultimate goal tracking platform. Set, track, and achieve your dreams with powerful analytics, community support, and daily inspiration. Join 5000+ users achieving their goals. Free forever!"
+      description="Set, track, and achieve your goals with analytics, community support, habit tracking, and daily inspiration."
       keywords="goal tracking app, dream tracker, personal development, goal setting, habit tracker, productivity app, achievement tracker, progress tracking, self improvement, goal planner, life goals, goal achievement, motivation app, wish list, bucket list app"
       schema={schema}
     />

@@ -1271,6 +1271,34 @@ exports.updateHabitLogCompletionEntry = async (req, res, next) => {
   }
 };
 
+exports.replaceHabitLog = async (req, res, next) => {
+  try {
+    const habitId = parseInt(req.params.id, 10);
+    const logId = parseInt(req.params.logId, 10);
+    if (!habitId || !logId) return res.status(400).json({ success: false, message: 'Invalid habit log' });
+
+    const habit = await pgHabitService.getHabitById(habitId, req.user.id);
+    if (!habit) return res.status(404).json({ success: false, message: 'Habit not found' });
+
+    const status = req.body?.status === 'skipped' ? 'skipped' : 'done';
+    const count = status === 'done' ? Math.min(100, Math.max(1, parseInt(req.body?.count, 10) || 1)) : 0;
+    const mood = ['great', 'good', 'okay', 'challenging', 'neutral'].includes(req.body?.mood) ? req.body.mood : 'neutral';
+    const sourceEntries = Array.isArray(req.body?.entries) ? req.body.entries : [];
+    const dateKey = String(req.body?.dateKey || '').slice(0, 10);
+    const entries = Array.from({ length: count }, (_, index) => ({
+      timestamp: !Number.isNaN(new Date(sourceEntries[index]?.timestamp).getTime())
+        ? sourceEntries[index].timestamp
+        : `${dateKey}T12:00:00.000Z`,
+      mood
+    }));
+    const user = await pgUserService.getUserById(req.user.id);
+    const currentDateKey = getCurrentDateInTimezone(user?.timezone || 'UTC');
+    const log = await pgHabitLogService.replaceHabitLog(habitId, logId, req.user.id, { status, entries, currentDateKey });
+    if (!log) return res.status(404).json({ success: false, message: 'Habit log entry not found' });
+    return res.json({ success: true, data: { log } });
+  } catch (error) { return next(error); }
+};
+
 /**
  * Delete one completion entry from a habit daily log
  */

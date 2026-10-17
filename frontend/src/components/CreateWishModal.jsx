@@ -158,9 +158,13 @@ const CreateWishModal = ({ isOpen, onClose, onSave, year, initialData }) => {
     onClose()
   }
 
-  if (!isOpen) return null
+  useEffect(() => {
+    if (!isOpen) return undefined
+    lockBodyScroll()
+    return () => unlockBodyScroll()
+  }, [isOpen])
 
-  useEffect(() => { lockBodyScroll(); return () => unlockBodyScroll(); }, [])
+  if (!isOpen) return null
 
   return (
     <motion.div

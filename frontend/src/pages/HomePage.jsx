@@ -125,14 +125,7 @@ const HomePage = () => {
     }
   ]
 
-  // Stats data
-  const stats = [
-    { value: '12,000+', label: 'explorers' },
-    { value: '94.2%', label: 'Consistency' },
-    { value: '84.2%', label: 'Total Engagement' }
-  ]
-
-  // Activity heatmap mock data
+  // Stable illustrative preview; these cells are not presented as user metrics.
   const generateHeatmapData = () => {
     const weeks = 7
     const daysPerWeek = 7
@@ -140,7 +133,7 @@ const HomePage = () => {
     
     for (let week = 0; week < weeks; week++) {
       for (let day = 0; day < daysPerWeek; day++) {
-        const intensity = Math.floor(Math.random() * 5)
+        const intensity = (week * 3 + day * 2 + (week + day) % 3) % 5
         data.push({ week, day, intensity })
       }
     }

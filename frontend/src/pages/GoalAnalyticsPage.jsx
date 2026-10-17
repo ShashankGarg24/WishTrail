@@ -124,7 +124,7 @@ const GoalAnalyticsPage = () => {
   const loadGoalData = async () => {
     try {
       setLoading(true)
-      const response = await getGoalAnalytics(goalId)
+      const response = await getGoalAnalytics(goalId, { force: true })
       
       if (response?.success && response?.data) {
         setGoalData(response.data)
@@ -205,13 +205,13 @@ const GoalAnalyticsPage = () => {
     
     if (result?.success) {
       // Reload goal data to reflect completion with full data
-      const response = await getGoalAnalytics(goalId)
+      const response = await getGoalAnalytics(goalId, { force: true })
       if (response?.success && response?.data) {
         setGoalData(response.data)
       }
     } else {
       // Revert the optimistic update if it failed
-      const response = await getGoalAnalytics(goalId)
+      const response = await getGoalAnalytics(goalId, { force: true })
       if (response?.success && response?.data) {
         setGoalData(response.data)
       }
@@ -236,7 +236,11 @@ const GoalAnalyticsPage = () => {
     // Completion duration uses calendar days in the user's timezone, rather
     // than elapsed 24-hour blocks, so it matches the selected completion date.
     const daysToComplete = completedDate ? getCalendarDaysBetween(createdDate, completedDate) : null
-    const daysUntilDeadline = targetDate ? Math.floor((targetDate - now) / (1000 * 60 * 60 * 24)) : null
+    const targetKey = targetDate ? getDateKeyInTimezone(targetDate) : null
+    const todayKey = getDateKeyInTimezone(now)
+    const daysUntilDeadline = targetDate
+      ? targetKey < todayKey ? -getCalendarDaysBetween(targetDate, now) : getCalendarDaysBetween(now, targetDate)
+      : null
     
     // The API owns goal-progress calculation so weighted components stay consistent.
     const subGoalsTotal = goal.subGoals?.length || 0

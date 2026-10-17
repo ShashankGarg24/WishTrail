@@ -110,7 +110,7 @@ export const LimitIndicator = ({
   const isAtLimit = percentage >= 100 && !isInfinite;
   
   let barColor = 'bg-blue-500';
-  let textColor = 'text-gray-700';
+  let textColor = 'text-gray-700 dark:text-gray-300';
   
   if (isAtLimit) {
     barColor = 'bg-red-500';
@@ -123,7 +123,7 @@ export const LimitIndicator = ({
   return (
     <div className={`${className}`}>
       <div className="flex items-center justify-between mb-1">
-        <span className="text-sm font-medium text-gray-700">{label}</span>
+        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{label}</span>
         <span className={`text-sm font-medium ${textColor}`}>
           {current} / {isInfinite ? '∞' : max}
           {showPercentage && !isInfinite && ` (${Math.round(percentage)}%)`}
@@ -162,22 +162,22 @@ export const UpgradePrompt = ({
   className = ''
 }) => {
   return (
-    <div className={`bg-white rounded-lg shadow-xl p-6 ${className}`}>
+    <div className={`bg-white rounded-lg shadow-xl p-6 dark:bg-gray-800 ${className}`}>
       <div className="text-center">
         <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-yellow-100 mb-4">
           <svg className="h-6 w-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
           </svg>
         </div>
-        <h3 className="text-lg font-medium text-gray-900 mb-2">{title}</h3>
-        <p className="text-sm text-gray-500 mb-4">{message}</p>
+        <h3 className="text-lg font-medium text-gray-900 mb-2 dark:text-white">{title}</h3>
+        <p className="text-sm text-gray-500 mb-4 dark:text-gray-400">{message}</p>
         
         {feature && (
-          <div className="bg-gray-50 rounded-lg p-4 mb-4">
+          <div className="bg-gray-50 rounded-lg p-4 mb-4 dark:bg-gray-900/60">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-gray-500 uppercase tracking-wide">Current Plan</p>
-                <p className="text-lg font-semibold text-gray-900">{currentLimit === -1 ? '∞' : currentLimit}</p>
+                <p className="text-lg font-semibold text-gray-900 dark:text-white">{currentLimit === -1 ? '∞' : currentLimit}</p>
               </div>
               <div>
                 <svg className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -196,7 +196,7 @@ export const UpgradePrompt = ({
           {onCancel && (
             <button
               onClick={onCancel}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium"
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
             >
               Maybe Later
             </button>
@@ -232,13 +232,13 @@ export const PremiumFeatureComparison = ({ className = '' }) => {
   ];
   
   return (
-    <div className={`bg-white rounded-lg shadow overflow-hidden ${className}`}>
+    <div className={`bg-white rounded-lg shadow overflow-hidden dark:bg-gray-800 ${className}`}>
       <div className="px-4 py-5 sm:px-6 bg-gradient-to-r from-yellow-400 to-orange-500">
         <h3 className="text-lg font-medium text-white">Feature Comparison</h3>
       </div>
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+          <thead className="bg-gray-50 dark:bg-gray-900/60">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Feature
@@ -251,10 +251,10 @@ export const PremiumFeatureComparison = ({ className = '' }) => {
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
             {features.map((feature, idx) => (
               <tr key={idx}>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                   {feature.name}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-500">

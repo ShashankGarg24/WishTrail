@@ -17,6 +17,7 @@ router.get('/analytics', habitController.getAnalytics);
 router.get('/:id', habitController.getHabit);
 router.get('/:id/analytics', habitController.getHabitAnalytics);
 router.get('/:id/logs', habitController.getHabitLogs);
+router.put('/:id/logs/:logId', habitController.replaceHabitLog);
 router.patch('/:id/logs/:logId/completions/:completionIndex', habitController.updateHabitLogCompletionEntry);
 router.delete('/:id/logs/:logId/completions/:completionIndex', habitController.deleteHabitLogCompletionEntry);
 router.get('/:id/dependencies', habitController.checkHabitDependencies);

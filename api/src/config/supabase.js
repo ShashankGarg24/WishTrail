@@ -44,8 +44,8 @@ pool.on('error', (err, client) => {
   process.exit(-1);
 });
 
-// Test connection on startup
-pool.query('SELECT NOW()', (err, res) => {
+// Do not create asynchronous database work merely by importing this module in tests.
+if (process.env.NODE_ENV !== 'test') pool.query('SELECT NOW()', (err, res) => {
   if (err) {
     logger.error('❌ PostgreSQL connection error:', err.message);
   } else {

@@ -530,9 +530,10 @@ const ProfilePage = () => {
     if (!targetUserName) return;
     
     try {
+      const today = getDateKeyInTimezone(new Date());
       const params = isOwnProfile 
-        ? { page: 1, limit: HABITS_PER_PAGE }
-        : { username: targetUserName, page: 1, limit: HABITS_PER_PAGE };
+        ? { page: 1, limit: HABITS_PER_PAGE, today }
+        : { username: targetUserName, page: 1, limit: HABITS_PER_PAGE, today };
         
       const [result, historyResult] = await Promise.all([
         habitsAPI.list(params),
@@ -556,9 +557,10 @@ const ProfilePage = () => {
     try {
       const nextPage = habitsPage + 1;
       const targetUserName = isOwnProfile ? currentUser?.username : profileUser?.username;
+      const today = getDateKeyInTimezone(new Date());
       const params = isOwnProfile
-        ? { page: nextPage, limit: HABITS_PER_PAGE }
-        : { username: targetUserName, page: nextPage, limit: HABITS_PER_PAGE };
+        ? { page: nextPage, limit: HABITS_PER_PAGE, today }
+        : { username: targetUserName, page: nextPage, limit: HABITS_PER_PAGE, today };
       const result = await habitsAPI.list(params);
       if (result.data.success) {
         const incoming = result.data.data.habits || [];
@@ -1546,8 +1548,10 @@ const ProfilePage = () => {
                   <section className="lg:col-span-3 rounded-xl border border-gray-100 bg-white p-4 dark:border-gray-700 dark:bg-gray-800 sm:p-5">
                     <div className="mb-4 flex items-center justify-between"><h3 className="text-lg font-semibold text-gray-900 dark:text-white">Recent Habits</h3><button type="button" onClick={() => handleTabChange('habits')} className="text-xs font-bold text-blue-500">See all</button></div>
                     {userHabits.length > 0 ? <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{userHabits.slice(0, 3).map((habit) => {
-                      const completed = habit.weeklyCompleted ?? habit.completionsThisWeek ?? 0;
-                      const target = habit.weeklyTarget ?? habit.targetPerWeek ?? 7;
+                      const completed = Number(habit.weeklyCompletedDays || 0);
+                      const target = habit.frequency === 'custom'
+                        ? Math.max(1, habit.daysOfWeek?.length || 1)
+                        : habit.frequency === 'weekly' ? 1 : 7;
                       const percent = Math.min(100, Math.round((completed / Math.max(1, target)) * 100));
                       return <button type="button" key={habit.id || habit._id} onClick={() => { setOpenHabitId(habit.id || habit._id); setHabitModalOpen(true); }} className="rounded-xl border border-slate-100 p-3 text-left hover:border-blue-200 dark:border-gray-700"><div className="flex items-center gap-2"><HabitCategoryIcon category={habit.category} size="sm"/><span className="min-w-0 flex-1"><strong className="block truncate text-sm text-slate-950 dark:text-white">{habit.name}</strong><small className="text-[9px] font-semibold uppercase text-slate-400">{getHabitCategoryLabel(habit.category)}</small></span><span className="text-xs font-bold text-orange-500">🔥 {habit.currentStreak || 0}</span></div><p className="mt-1 text-[10px] text-slate-500">{completed}/{target} this week</p><div className="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-100 dark:bg-gray-700"><span className="block h-full rounded-full bg-emerald-500" style={{ width: `${percent}%` }} /></div></button>;
                     })}</div> : <p className="py-5 text-center text-sm text-slate-500">Your recent habits will appear here.</p>}

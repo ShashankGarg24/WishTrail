@@ -119,7 +119,7 @@ export const isClientError = (error) => {
  * Log error to console in development
  */
 export const logError = (error, context = '') => {
-  if (process.env.NODE_ENV === 'development') {
+  if (import.meta.env.DEV) {
     console.error(`[Error${context ? ` - ${context}` : ''}]:`, {
       message: getErrorMessage(error),
       status: error.response?.status,

@@ -1112,6 +1112,8 @@ const DashboardPageNew = () => {
                 getDashboardStats({ force: true, year: selectedYear }),
                 loadHabits({ page: 1, force: true })
               ])
+              const refreshed = useApiStore.getState().habits.find(habit => String(habit.id || habit._id) === String(selectedHabit.id || selectedHabit._id))
+              if (refreshed) setSelectedHabit(refreshed)
             }}
             onEdit={() => setIsEditHabitOpen(true)}
             onDelete={() => {

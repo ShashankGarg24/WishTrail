@@ -72,7 +72,6 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
     if (!isOpen) {
       prevIsOpenRef.current = false
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen])
 
   useEffect(() => { if (isOpen) { lockBodyScroll(); return () => unlockBodyScroll(); } }, [isOpen])

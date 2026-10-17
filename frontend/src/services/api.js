@@ -335,6 +335,7 @@ export const usersAPI = {
   getDashboardYears: () => api.get('/users/dashboard/years'),
   addDashboardYear: (year) => api.post('/users/dashboard/years', { year }),
   deleteDashboardYear: (year) => api.delete(`/users/dashboard/years/${year}`),
+  updateTimezone: (data) => api.post('/users/timezone', data),
 };
 // Moderation API
 export const moderationAPI = {
@@ -468,6 +469,7 @@ export const habitsAPI = {
   heatmap: (id, params) => api.get(`/habits/${id}/heatmap`, { params }),
   analytics: (id, params) => api.get(`/habits/${id}/analytics`, { params }),
   logs: (id, params) => api.get(`/habits/${id}/logs`, { params }),
+  replaceLog: (habitId, logId, payload) => api.put(`/habits/${habitId}/logs/${logId}`, payload),
   updateLogCompletionEntry: (habitId, logId, completionIndex, payload) =>
     api.patch(`/habits/${habitId}/logs/${logId}/completions/${completionIndex}`, payload),
   deleteLogCompletionEntry: (habitId, logId, completionIndex) =>

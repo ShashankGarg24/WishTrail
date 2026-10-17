@@ -91,7 +91,6 @@ export default function HabitsPanel({ onCreate, onOpenHabit, scrollable = false,
 
   return (
     <div className="glass-card-hover p-6 rounded-xl">
-      {error && <div className="text-sm text-red-600 dark:text-red-400 mb-3">{error}</div>}
       {habits.length === 0 ? (
         <div className="text-center py-8 text-gray-600 dark:text-gray-400">No habits yet. Create your first habit!</div>
       ) : (

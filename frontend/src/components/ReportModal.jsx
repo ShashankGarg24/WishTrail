@@ -25,7 +25,7 @@ const ReportModal = ({ isOpen, onClose, onSubmit, targetLabel = 'content', onRep
       await onSubmit({ reason, description })
       if (onReportAndBlock) {
         // Ask if they also want to block
-        if (confirmBlock) {
+        if (window.confirm(`Also block the owner of this ${targetLabel}?`)) {
           await onReportAndBlock()
         }
       }

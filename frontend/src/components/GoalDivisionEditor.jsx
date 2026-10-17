@@ -75,7 +75,6 @@ export default function GoalDivisionEditor({ goal, goalId, habits, onClose, draf
     
     // Always fetch all goals when component mounts to ensure dropdown has complete list
     fetchAllGoals()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draftMode, goal?.id])
   
   // Sync local changes back to parent in draft mode (debounced to avoid API calls during sliding)
@@ -101,7 +100,6 @@ export default function GoalDivisionEditor({ goal, goalId, habits, onClose, draf
         clearTimeout(debounceTimerRef.current)
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [localSubGoals, localHabitLinks, draftMode])
 
   const totalWeight = useMemo(() => {
@@ -507,14 +505,6 @@ export default function GoalDivisionEditor({ goal, goalId, habits, onClose, draf
       )}
       </>
   )
-
-  // Sync upwards on change when in draft mode
-  useEffect(() => {
-    if (draftMode) {
-      onChange?.({ subGoals: localSubGoals.map(s => ({ ...s })), habitLinks: localHabitLinks.map(h => ({ ...h })) })
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [draftMode, localSubGoals, localHabitLinks])
 
   if (renderInline) {
     return content

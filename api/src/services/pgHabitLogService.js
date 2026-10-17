@@ -343,6 +343,40 @@ class PgHabitLogService {
     });
   }
 
+  /** Replace a daily log in one transaction and rebuild the habit aggregates. */
+  async replaceHabitLog(habitId, logId, userId, { status, entries = [], currentDateKey }) {
+    return transaction(async (client) => {
+      const normalizedStatus = status === 'skipped' ? 'skipped' : 'done';
+      const normalizedEntries = normalizedStatus === 'done' ? entries : [];
+      const result = await client.query(`
+        UPDATE habit_logs
+        SET status = $1,
+            completion_count = $2,
+            completion_times_mood = ARRAY(SELECT jsonb_array_elements($3::jsonb)),
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = $4 AND habit_id = $5 AND user_id = $6
+        RETURNING *
+      `, [normalizedStatus, normalizedEntries.length, JSON.stringify(normalizedEntries), logId, habitId, userId]);
+      if (!result.rows[0]) return null;
+
+      const todayKey = /^\d{4}-\d{2}-\d{2}$/.test(currentDateKey || '')
+        ? currentDateKey
+        : new Date().toISOString().slice(0, 10);
+      const streakInfo = await pgHabitService.calculateStreak(habitId, todayKey, client);
+      await client.query(`
+        UPDATE habits
+        SET current_streak = $1,
+            longest_streak = $2,
+            last_logged_date_key = (SELECT MAX(date_key) FROM habit_logs WHERE habit_id = $3 AND user_id = $4 AND status = 'done'),
+            total_completions = (SELECT COALESCE(SUM(completion_count), 0) FROM habit_logs WHERE habit_id = $3 AND user_id = $4 AND status = 'done'),
+            total_days = (SELECT COUNT(DISTINCT date_key) FROM habit_logs WHERE habit_id = $3 AND user_id = $4 AND status = 'done' AND completion_count >= COALESCE((SELECT daily_target_count FROM habits WHERE id = $3), 1)),
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = $3 AND user_id = $4
+      `, [streakInfo.currentStreak || 0, streakInfo.longestStreak || 0, habitId, userId]);
+      return this._formatHabitLog(result.rows[0]);
+    });
+  }
+
   /**
    * Update a specific completion entry (time + mood) inside habit log's completion_times_mood
    * @param {number} habitId - Habit ID
