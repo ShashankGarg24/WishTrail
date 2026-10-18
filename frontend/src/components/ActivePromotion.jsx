@@ -29,7 +29,7 @@ export default function ActivePromotion({ userId }) {
       document.removeEventListener('visibilitychange', refresh)
     }
   }, [userId])
-  const promotion = result?.userId === userId ? result.promotion : null
+  const promotion = result && result.userId === userId ? result.promotion : null
   let storage
   try { storage = window.localStorage } catch { /* Storage can be unavailable. */ }
   if (!promotion || dismissedId === promotion.id || isPromotionDismissed(promotion.id, storage)) return null

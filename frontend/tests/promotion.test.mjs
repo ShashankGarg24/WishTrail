@@ -25,7 +25,7 @@ const bundle = await build({
 })
 const offer = { id: 'offer-1', surface: 'announcement_card', title: 'Keep growing', subtitle: 'More support', offerCopy: 'An offer', ctaLabel: 'Explore', ctaUrl: 'https://wishtrail.in/premium?offer=1#plans' }
 
-async function mount(initial = offer, { storageBlocked = false, native = false } = {}) {
+async function mount(initial = offer, { storageBlocked = false, native = false, userId = 1 } = {}) {
   let value = initial
   const saved = new Map(), events = new Map(), timers = new Map()
   let requests = 0
@@ -51,7 +51,7 @@ async function mount(initial = offer, { storageBlocked = false, native = false }
   const { Home, Card } = module.exports
   let route = ''
   function Location() { const location = useLocation(); route = `${location.pathname}${location.search}${location.hash}`; return null }
-  const props = { user: { id: 1, name: 'Taylor' }, setQuickActionsOpen() {}, onTab() {}, navigate() {} }
+  const props = { user: userId == null ? null : { id: userId, name: 'Taylor' }, setQuickActionsOpen() {}, onTab() {}, navigate() {} }
   const tree = () => React.createElement(MemoryRouter, { initialEntries: ['/dashboard'] }, React.createElement(Home, props), React.createElement(Location))
   let view
   await act(async () => { view = renderer.create(tree()) })
@@ -64,6 +64,18 @@ async function mount(initial = offer, { storageBlocked = false, native = false }
   }
 }
 const cards = fixture => fixture.view.root.findAll(node => node.type === 'article' && node.props['aria-label'] === 'WishTrail announcement')
+
+test('Home remains usable before the current user has loaded', async () => {
+  const fixture = await mount(offer, { userId: null })
+  assert.equal(cards(fixture).length, 0)
+  assert.equal(fixture.requests, 0)
+  assert.match(JSON.stringify(fixture.view.toJSON()), /Your Momentum/)
+  fixture.props.user = { id: 1, name: 'Taylor' }
+  await fixture.remount()
+  assert.equal(cards(fixture).length, 1)
+  assert.equal(fixture.requests, 1)
+  await fixture.close()
+})
 
 test('Home renders normally with null or failed promotion fetch', async () => {
   for (const result of [null, new Error('offline')]) {
