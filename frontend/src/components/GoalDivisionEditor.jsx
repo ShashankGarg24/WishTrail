@@ -432,6 +432,7 @@ export default function GoalDivisionEditor({ goal, goalId, habits, onClose, draf
           <CreateHabitModal
           isOpen={isCreateHabitOpen}
           onClose={() => setIsCreateHabitOpen(false)}
+          year={goal?.year || new Date().getFullYear()}
           onCreated={(habit) => {
             try {
               const id = habit?.id

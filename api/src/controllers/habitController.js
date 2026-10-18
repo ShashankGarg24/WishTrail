@@ -13,10 +13,17 @@ const { HABIT_CATEGORIES, normalizeHabitCategory } = require('../constants/habit
 
 const MAX_HABIT_TITLE_CHARS = 100;
 const MAX_HABIT_DESC_CHARS = 200;
+const MIN_HABIT_YEAR = 2020;
+const MAX_HABIT_YEAR = 2100;
+
+const parseHabitYear = value => {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed >= MIN_HABIT_YEAR && parsed <= MAX_HABIT_YEAR ? parsed : null;
+};
 
 exports.createHabit = async (req, res, next) => {
   try {
-    const { name, description, category, frequency, daysOfWeek, reminders, goalId, isPublic, dailyTargetCount, targetDays } = req.body;
+    const { name, description, category, year, frequency, daysOfWeek, reminders, goalId, isPublic, dailyTargetCount, targetDays } = req.body;
     const normalizedName = typeof name === 'string' ? name.trim() : '';
     const normalizedDescription = typeof description === 'string' ? description.trimEnd() : '';
     if (!normalizedName) {
@@ -28,6 +35,10 @@ exports.createHabit = async (req, res, next) => {
     if (normalizedDescription.length > MAX_HABIT_DESC_CHARS) {
       return res.status(400).json({ success: false, message: `Description cannot exceed ${MAX_HABIT_DESC_CHARS} characters` });
     }
+    const normalizedYear = year == null ? new Date().getFullYear() : parseHabitYear(year);
+    if (!normalizedYear) {
+      return res.status(400).json({ success: false, message: `Year must be between ${MIN_HABIT_YEAR} and ${MAX_HABIT_YEAR}` });
+    }
 
     // ✅ PREMIUM CHECK: Validate habit creation limits
     const validation = await validateHabitCreation(req, reminders);
@@ -37,7 +48,7 @@ exports.createHabit = async (req, res, next) => {
     if (category != null && !HABIT_CATEGORIES.includes(String(category).trim().toUpperCase())) {
       return res.status(400).json({ success: false, message: 'Invalid habit category' });
     }
-    const habit = await pgHabitService.createHabit({ userId: req.user.id, name: normalizedName, description: normalizedDescription, category: normalizeHabitCategory(category), frequency, daysOfWeek, reminders, goalId, isPublic, dailyTargetCount, targetDays });
+    const habit = await pgHabitService.createHabit({ userId: req.user.id, name: normalizedName, description: normalizedDescription, category: normalizeHabitCategory(category), year: normalizedYear, frequency, daysOfWeek, reminders, goalId, isPublic, dailyTargetCount, targetDays });
     res.status(201).json({ success: true, data: { habit } });
   } catch (error) { next(error); }
 };
@@ -54,6 +65,10 @@ exports.listHabits = async (req, res, next) => {
     const page = parseInt(req.query.page, 10) || 1;
     const limit = parseInt(req.query.limit, 10) || 50;
     const sort = req.query.sort || 'newest';
+    const year = req.query.year == null ? null : parseHabitYear(req.query.year);
+    if (req.query.year != null && !year) {
+      return res.status(400).json({ success: false, message: `Year must be between ${MIN_HABIT_YEAR} and ${MAX_HABIT_YEAR}` });
+    }
 
     // Support viewing other users' habits via username query param
     const targetUsername = req.query.username;
@@ -113,6 +128,7 @@ exports.listHabits = async (req, res, next) => {
     const offset = (page - 1) * limit;
     const habits = await pgHabitService.getUserHabits({
       userId: targetUserId,
+      year,
       limit,
       offset,
       sortBy,
@@ -125,9 +141,10 @@ exports.listHabits = async (req, res, next) => {
       SELECT COUNT(*) as total
       FROM habits
       WHERE user_id = $1
+      ${year ? 'AND year = $2' : ''}
       ${sort === 'recent_logged' ? 'AND EXISTS (SELECT 1 FROM habit_logs hl WHERE hl.habit_id = habits.id AND hl.user_id = habits.user_id)' : ''}
     `;
-    const countResult = await query(countSql, [targetUserId]);
+    const countResult = await query(countSql, year ? [targetUserId, year] : [targetUserId]);
     const total = parseInt(countResult.rows[0].total);
 
     // Attach today's log status to each habit (use client-supplied local date if provided)
@@ -212,6 +229,10 @@ exports.searchHabits = async (req, res, next) => {
   try {
     const { q = '', page = 1, limit = 50 } = req.query;
     const userId = req.user.id;
+    const year = req.query.year == null ? null : parseHabitYear(req.query.year);
+    if (req.query.year != null && !year) {
+      return res.status(400).json({ success: false, message: `Year must be between ${MIN_HABIT_YEAR} and ${MAX_HABIT_YEAR}` });
+    }
 
     const pageNum = parseInt(page, 10);
     const limitNum = parseInt(limit, 10);
@@ -221,6 +242,7 @@ exports.searchHabits = async (req, res, next) => {
     const habits = await pgHabitService.searchHabits({
       searchQuery: q.trim(),
       userId,
+      year,
       limit: limitNum,
       offset
     });
@@ -231,8 +253,9 @@ exports.searchHabits = async (req, res, next) => {
       SELECT COUNT(*) as total
       FROM habits
       WHERE user_id = $1 AND (name ILIKE $2 OR description ILIKE $2 OR category ILIKE $2)
+      ${year ? 'AND year = $3' : ''}
     `;
-    const countResult = await query(countSql, [userId, `%${q.trim()}%`]);
+    const countResult = await query(countSql, year ? [userId, `%${q.trim()}%`, year] : [userId, `%${q.trim()}%`]);
     const total = parseInt(countResult.rows[0].total);
 
     // Attach today's log status
@@ -338,6 +361,13 @@ exports.updateHabit = async (req, res, next) => {
         return res.status(400).json({ success: false, message: 'Invalid habit category' });
       }
       updates.category = requestedCategory;
+    }
+    if (updates.year !== undefined) {
+      const normalizedYear = parseHabitYear(updates.year);
+      if (!normalizedYear) {
+        return res.status(400).json({ success: false, message: `Year must be between ${MIN_HABIT_YEAR} and ${MAX_HABIT_YEAR}` });
+      }
+      updates.year = normalizedYear;
     }
 
     if (Array.isArray(updates.reminders)) {

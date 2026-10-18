@@ -4,6 +4,7 @@ const pgBlockService = require('../services/pgBlockService');
 const userService = require('../services/userService');
 const pgUserService = require('../services/pgUserService');
 const pgGoalService = require('../services/pgGoalService');
+const pgHabitService = require('../services/pgHabitService');
 const { validationResult } = require('express-validator');
 const authService = require('../services/authService');
 const OTP = require('../models/Otp');
@@ -158,20 +159,23 @@ const getProfileSummary = async (req, res, next) => {
   }
 };
 
-// @desc    Get dashboard years (years with goals + manually added years)
+// @desc    Get dashboard years (years with goals or habits + manually added years)
 // @route   GET /api/v1/users/dashboard/years
 // @access  Private
 const getDashboardYears = async (req, res, next) => {
   try {
     // Get years where user has goals from PostgreSQL
-    const yearsWithGoals = await pgGoalService.getUserYearsWithGoals(req.user.id);
+    const [yearsWithGoals, yearsWithHabits] = await Promise.all([
+      pgGoalService.getUserYearsWithGoals(req.user.id),
+      pgHabitService.getUserYearsWithHabits(req.user.id)
+    ]);
     
     // Get manually added years from UserPreferences
     const prefs = await UserPreferences.findOne({ userId: req.user.id }).select('dashboardYears').lean();
     const manualYears = prefs?.dashboardYears || [];
     
     // Combine and deduplicate
-    const allYears = [...new Set([...yearsWithGoals, ...manualYears])];
+    const allYears = [...new Set([...yearsWithGoals, ...yearsWithHabits, ...manualYears])];
     allYears.sort((a, b) => b - a); // Sort descending (newest first)
     
     return res.status(200).json({ 
@@ -179,6 +183,7 @@ const getDashboardYears = async (req, res, next) => {
       data: { 
         years: allYears,
         yearsWithGoals,
+        yearsWithHabits,
         manualYears
       } 
     });
@@ -241,6 +246,13 @@ const deleteDashboardYear = async (req, res, next) => {
     const goalsToDelete = goalsResult.goals || [];
     const goalIds = goalsToDelete.map(g => g.id);
     const completedCount = goalsToDelete.filter(g => g.completed_at).length;
+    const habitsToDelete = await pgHabitService.getUserHabits({
+      userId: req.user.id,
+      year: y,
+      limit: 10000,
+      offset: 0
+    });
+    const habitIds = habitsToDelete.map(habit => habit.id);
     
     if (goalIds.length > 0) {
       // 1. Delete all activities related to these goals (MongoDB)
@@ -288,6 +300,20 @@ const deleteDashboardYear = async (req, res, next) => {
         await pgGoalService.deleteGoal(goalId, req.user.id);
       }
     }
+
+    if (habitIds.length > 0) {
+      await GoalDetails.updateMany(
+        { 'progress.breakdown.habits.habitId': { $in: habitIds.map(String) } },
+        { $pull: { 'progress.breakdown.habits': { habitId: { $in: habitIds.map(String) } } } }
+      );
+      await Promise.all([
+        Activity.deleteMany({ 'data.habitId': { $in: habitIds.map(String) } }),
+        Notification.deleteMany({ 'data.habitId': { $in: habitIds.map(String) } })
+      ]);
+      for (const habitId of habitIds) {
+        await pgHabitService.deleteHabit(habitId, req.user.id);
+      }
+    }
     
     // 7. Update user statistics in PostgreSQL
     if (goalIds.length > 0 || completedCount > 0) {
@@ -309,9 +335,10 @@ const deleteDashboardYear = async (req, res, next) => {
       data: { 
         years: prefs.dashboardYears || [],
         deletedGoals: goalIds.length,
-        deletedCompletedGoals: completedCount
+        deletedCompletedGoals: completedCount,
+        deletedHabits: habitIds.length
       },
-      message: `Year ${y} and ${goalIds.length} related goal(s) deleted successfully`
+      message: `Year ${y}, ${goalIds.length} related goal(s), and ${habitIds.length} habit(s) deleted successfully`
     });
   } catch (error) { 
     next(error);

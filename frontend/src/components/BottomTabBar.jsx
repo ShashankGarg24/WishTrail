@@ -132,9 +132,10 @@ const BottomTabBar = () => {
         <CreateHabitModal
           isOpen={openAction === 'habit'}
           onClose={() => setOpenAction(null)}
+          year={new Date().getFullYear()}
           onCreated={() => {
             setOpenAction(null)
-            useApiStore.getState().loadHabits?.({ page: 1, force: true })
+            useApiStore.getState().loadHabits?.({ page: 1, year: new Date().getFullYear(), force: true })
             useApiStore.getState().getDashboardStats?.({ force: true, year: new Date().getFullYear() })
           }}
         />

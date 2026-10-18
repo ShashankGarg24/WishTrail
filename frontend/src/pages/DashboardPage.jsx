@@ -126,10 +126,12 @@ const DashboardPageNew = () => {
     user,
     goals,
     habits,
+    dashboardYears,
     dashboardStats,
     getDashboardStats,
     getGoals,
     loadHabits,
+    getDashboardYears,
     getLatestProductUpdate,
     latestProductUpdate,
     recentActivities,
@@ -153,7 +155,8 @@ const DashboardPageNew = () => {
         await Promise.all([
           getDashboardStats({ year: selectedYear }),
           getGoals({ year: selectedYear, page: 1, limit: 1000 }),
-          loadHabits({ page: 1 }),
+          loadHabits({ page: 1, year: selectedYear }),
+          getDashboardYears(),
           getRecentActivities({ page: 1, limit: 12, type: 'personal', scope: 'overview' })
         ])
       } finally {
@@ -240,8 +243,9 @@ const DashboardPageNew = () => {
     if (habit?.id) {
       useApiStore.getState().appendHabit?.(habit)
     }
-    loadHabits({ page: 1 })
+    loadHabits({ page: 1, year: selectedYear })
     getDashboardStats({ force: true, year: selectedYear })
+    getDashboardYears()
   }
 
   const handleHabitLog = async (status, mood = 'neutral', note = '') => {
@@ -268,7 +272,7 @@ const DashboardPageNew = () => {
         // Refresh dashboard stats and habits so UI reflects skip/done immediately
         await Promise.all([
           getDashboardStats({ force: true, year: selectedYear }),
-          loadHabits({ page: 1, force: true })
+          loadHabits({ page: 1, year: selectedYear, force: true })
         ])
         window.dispatchEvent(new CustomEvent('wt_toast', { detail: { message: status === 'done' ? 'Habit logged!' : 'Habit skipped', type: 'success' } }))
         return { success: true, todayCompletionCount: nextTodayCount, log: res?.log }
@@ -379,8 +383,8 @@ const DashboardPageNew = () => {
   // Available years
   const availableYears = useMemo(() => {
     const currentYear = new Date().getFullYear()
-    return [currentYear - 1, currentYear, currentYear + 1]
-  }, [])
+    return [...new Set([...(dashboardYears || []), currentYear - 1, currentYear, currentYear + 1, selectedYear])].sort((a, b) => b - a)
+  }, [dashboardYears, selectedYear])
 
   // Inspirational quotes
   const quotes = [
@@ -817,13 +821,18 @@ const DashboardPageNew = () => {
                     <button type="button" aria-haspopup="listbox" aria-expanded={isYearDropdownOpen} onClick={() => { setIsYearDropdownOpen(value => !value); setIsFilterDropdownOpen(false) }} className="flex items-center gap-1.5 rounded-lg border border-[#dce5f4] bg-white px-3 py-2 text-xs font-medium text-[#253663] dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200">{selectedYear} <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isYearDropdownOpen ? 'rotate-180' : ''}`} /></button>
                     {isYearDropdownOpen && <div role="listbox" className="absolute right-0 top-full z-30 mt-2 w-28 overflow-hidden rounded-xl border border-[#dce5f4] bg-white p-1.5 shadow-xl dark:border-gray-700 dark:bg-gray-800">{availableYears.map(year => <button key={year} type="button" role="option" aria-selected={selectedYear === year} onClick={() => { setSelectedYear(year); setIsYearDropdownOpen(false) }} className={`block w-full rounded-lg px-3 py-2 text-left text-xs ${selectedYear === year ? 'bg-blue-50 font-semibold text-[#1683ed] dark:bg-blue-950/40' : 'text-[#253663] hover:bg-slate-50 dark:text-gray-200 dark:hover:bg-gray-700'}`}>{year}</button>)}</div>}
                   </div>
-                  <button type="button" onClick={() => setIsCreateModalOpen(true)} className="inline-flex items-center gap-1.5 rounded-lg bg-[#1683ed] px-3 py-2 text-xs font-semibold text-white shadow-sm sm:px-4"><Plus className="h-4 w-4" /><span className="hidden sm:inline">Create Goal</span></button>
+                  <button type="button" onClick={() => setIsGoalIdeasOpen(true)} aria-label="Discover goal ideas" title="Discover goal ideas" className="hidden h-9 w-9 items-center justify-center rounded-lg border border-[#dce5f4] bg-white text-[#526392] transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-[#1683ed] dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-blue-950/30 sm:inline-flex"><Compass className="h-4 w-4" /></button>
+                  <button type="button" onClick={() => setIsCreateModalOpen(true)} className="hidden items-center gap-1.5 rounded-lg bg-[#1683ed] px-3 py-2 text-xs font-semibold text-white shadow-sm sm:inline-flex sm:px-4"><Plus className="h-4 w-4" /><span>Create Goal</span></button>
                 </div>
               </div>
 
-              <div className="sm:hidden" data-goal-filter-dropdown>
+              <div className="relative flex items-center justify-between gap-2 sm:hidden" data-goal-filter-dropdown>
                 <button type="button" onClick={() => setIsYearDropdownOpen(value => !value)} className="flex items-center gap-2 rounded-lg border border-[#dce5f4] bg-white px-3 py-2 text-sm font-bold text-[#0b1746] dark:border-gray-700 dark:bg-gray-800 dark:text-white">{selectedYear}<ChevronDown className="h-4 w-4"/></button>
-                {isYearDropdownOpen && <div className="absolute z-30 mt-1 w-28 overflow-hidden rounded-lg border border-[#dce5f4] bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-800">{availableYears.map(year => <button key={year} type="button" onClick={() => { setSelectedYear(year); setIsYearDropdownOpen(false) }} className="block w-full px-3 py-2 text-left text-sm">{year}</button>)}</div>}
+                {isYearDropdownOpen && <div className="absolute left-0 top-full z-30 mt-1 w-28 overflow-hidden rounded-lg border border-[#dce5f4] bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-800">{availableYears.map(year => <button key={year} type="button" onClick={() => { setSelectedYear(year); setIsYearDropdownOpen(false) }} className="block w-full px-3 py-2 text-left text-sm">{year}</button>)}</div>}
+                <div className="flex items-center gap-2">
+                  <button type="button" onClick={() => setIsGoalIdeasOpen(true)} aria-label="Discover goal ideas" className="grid h-9 w-9 place-items-center rounded-lg border border-[#dce5f4] bg-white text-[#526392] transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-[#1683ed] dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"><Compass className="h-4 w-4" /></button>
+                  <button type="button" onClick={() => setIsCreateModalOpen(true)} aria-label="Create goal" className="grid h-9 w-9 place-items-center rounded-lg bg-[#1683ed] text-white shadow-sm"><Plus className="h-4 w-4" /></button>
+                </div>
               </div>
 
               <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-[#e5ecf6] dark:bg-gray-800 dark:ring-gray-700 sm:hidden">
@@ -890,6 +899,10 @@ const DashboardPageNew = () => {
             <HabitsWorkspace
               habits={habits || []}
               stats={dashboardStats || {}}
+              selectedYear={selectedYear}
+              availableYears={availableYears}
+              onYearChange={setSelectedYear}
+              onDiscover={() => setIsHabitIdeasOpen(true)}
               onCreate={(template) => {
                 setInitialHabitData(template?.name ? { ...template, name: `${template.name} copy` } : null)
                 setIsHabitModalOpen(true)
@@ -902,7 +915,7 @@ const DashboardPageNew = () => {
                 const id = habit.id || habit._id
                 if (!id) return
                 const res = await habitsAPI.archive(id, !habit.isArchived)
-                if (res?.data?.success) await loadHabits({ page: 1, force: true })
+                if (res?.data?.success) await loadHabits({ page: 1, year: selectedYear, force: true })
               }}
               onDelete={(habit) => {
                 setHabitDependencies([])
@@ -1077,6 +1090,7 @@ const DashboardPageNew = () => {
             onClose={() => { setIsHabitModalOpen(false); setInitialHabitData(null) }}
             onCreated={handleHabitCreated}
             initialData={initialHabitData}
+            year={selectedYear}
           />
         )}
 
@@ -1114,14 +1128,14 @@ const DashboardPageNew = () => {
               if (!habitId) return
               const res = await habitsAPI.archive(habitId, !selectedHabit.isArchived)
               if (res?.data?.success) {
-                await loadHabits({ page: 1, force: true })
+                await loadHabits({ page: 1, year: selectedYear, force: true })
                 setSelectedHabit(prev => prev ? { ...prev, isArchived: !prev.isArchived } : prev)
               }
             }}
             onHabitStatsChanged={async () => {
               await Promise.all([
                 getDashboardStats({ force: true, year: selectedYear }),
-                loadHabits({ page: 1, force: true })
+                loadHabits({ page: 1, year: selectedYear, force: true })
               ])
               const refreshed = useApiStore.getState().habits.find(habit => String(habit.id || habit._id) === String(selectedHabit.id || selectedHabit._id))
               if (refreshed) setSelectedHabit(refreshed)
@@ -1147,8 +1161,9 @@ const DashboardPageNew = () => {
               const res = await useApiStore.getState().updateHabit(habitId, payload)
               if (!res?.success) return
               await Promise.all([
-                loadHabits({ page: 1, force: true }),
-                getDashboardStats({ force: true, year: selectedYear })
+                loadHabits({ page: 1, year: selectedYear, force: true }),
+                getDashboardStats({ force: true, year: selectedYear }),
+                getDashboardYears()
               ])
               setIsEditHabitOpen(false)
               setSelectedHabit(null)
@@ -1195,7 +1210,7 @@ const DashboardPageNew = () => {
                   setHabitToDelete(null)
                   setHabitDependencies([])
                   if (selectedHabit?.id === habitToDelete.id) setSelectedHabit(null)
-                  loadHabits({ page: 1 })
+                  loadHabits({ page: 1, year: selectedYear })
                   getDashboardStats({ force: true, year: selectedYear })
                 }
               } finally {

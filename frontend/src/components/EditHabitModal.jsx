@@ -23,6 +23,7 @@ export default function EditHabitModal({ isOpen, onClose, habit, onSave }) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('OTHER');
+  const [year, setYear] = useState(new Date().getFullYear());
   const [frequency, setFrequency] = useState('daily');
   const [daysOfWeek, setDaysOfWeek] = useState([]);
   const [reminders, setReminders] = useState(['']);
@@ -46,6 +47,7 @@ export default function EditHabitModal({ isOpen, onClose, habit, onSave }) {
     setName((habit.name || '').slice(0, MAX_HABIT_TITLE_CHARS));
     setDescription((habit.description || '').slice(0, MAX_HABIT_DESC_CHARS));
     setCategory(normalizeHabitCategory(habit.category));
+    setYear(Number(habit.year) || new Date(habit.createdAt || Date.now()).getFullYear());
     setFrequency(habit.frequency === 'weekly' ? 'custom' : (habit.frequency || 'daily'));
     setDaysOfWeek(Array.isArray(habit.daysOfWeek) ? habit.daysOfWeek.slice() : []);
     setReminders(Array.isArray(habit.reminders) && habit.reminders.length > 0 ? habit.reminders.map(r => r.time || '') : ['']);
@@ -92,6 +94,7 @@ export default function EditHabitModal({ isOpen, onClose, habit, onSave }) {
         name: normalizedName,
         description: normalizedDescription,
         category,
+        year,
         frequency: frequency === 'daily' ? 'daily' : 'custom',
         daysOfWeek: frequency === 'daily' ? [] : daysOfWeek.sort()
         // reminders: reminders.filter(Boolean).map(t => ({ time: t })),
@@ -174,6 +177,13 @@ export default function EditHabitModal({ isOpen, onClose, habit, onSave }) {
               <div>
                 <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Choose a category</label>
                 <HabitCategorySelector value={category} onChange={setCategory}/>
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Year *</label>
+                <select value={year} onChange={(event) => setYear(Number(event.target.value))} className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#4c99e6] dark:border-gray-600 dark:bg-gray-800 dark:text-white">
+                  {[...new Set([year, ...Array.from({ length: 11 }, (_, index) => new Date().getFullYear() - 5 + index)])].sort((a, b) => b - a).map(optionYear => <option key={optionYear} value={optionYear}>{optionYear}</option>)}
+                </select>
               </div>
 
               <div>

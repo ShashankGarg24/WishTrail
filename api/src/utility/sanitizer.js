@@ -275,6 +275,7 @@ const sanitizeHabit = (habit) => {
     name: obj.name,
     description: obj.description || '',
     category: obj.category || 'OTHER',
+    year: obj.year,
     frequency: obj.frequency,
     daysOfWeek: obj.daysOfWeek || obj.days_of_week || [],
     // reminders: obj.reminders || [],
@@ -309,6 +310,7 @@ const sanitizeHabitForProfile = (habit) => {
     name: obj.name,
     description: obj.description || '',
     category: obj.category || 'OTHER',
+    year: obj.year,
     frequency: obj.frequency,
     daysOfWeek: obj.daysOfWeek || obj.days_of_week || [],
     // reminders: (obj.reminders || []).map(r => ({

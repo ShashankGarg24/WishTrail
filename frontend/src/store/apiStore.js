@@ -120,6 +120,7 @@ const useApiStore = create(
       habits: [],
       habitsPagination: null,
       cacheHabitsTs: 0,
+      cacheHabitsYear: null,
       habitAnalytics: null,
       cacheHabitAnalyticsTs: 0,
       habitStats: null,
@@ -626,20 +627,22 @@ const useApiStore = create(
           const limit = opts.limit || 50;
           const includeArchived = opts.includeArchived || false;
           const sort = opts.sort; // Pass sort parameter
+          const year = opts.year;
           
           const ts = get().cacheHabitsTs || 0;
           const ttl = get().cacheTTLs.habits;
-          if (!force && ts && Date.now() - ts < ttl && Array.isArray(get().habits) && get().habits.length > 0 && page === 1) {
+          if (!force && ts && Date.now() - ts < ttl && Array.isArray(get().habits) && get().habits.length > 0 && page === 1 && get().cacheHabitsYear === (year ?? null)) {
             set({ loading: false });
             return { success: true, habits: get().habits, pagination: get().habitsPagination };
           }
           
           const params = { page, limit, includeArchived, today: getCurrentDateKey() };
           if (sort) params.sort = sort;
+          if (year != null) params.year = year;
           const res = await habitsAPI.list(params);
           const habits = res?.data?.data?.habits || [];
           const pagination = res?.data?.data?.pagination || null;
-          set({ habits, habitsPagination: pagination, cacheHabitsTs: Date.now(), loading: false });
+          set({ habits, habitsPagination: pagination, cacheHabitsTs: Date.now(), cacheHabitsYear: year ?? null, loading: false });
           return { success: true, habits, pagination };
         } catch (error) {
           set({ loading: false, error: handleApiError(error) });

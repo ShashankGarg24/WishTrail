@@ -157,6 +157,7 @@ CREATE TABLE IF NOT EXISTS habits (
     'FITNESS', 'NUTRITION', 'MINDFULNESS', 'LEARNING', 'PRODUCTIVITY', 'CAREER',
     'FINANCE', 'CREATIVITY', 'SELF_CARE', 'SOCIAL', 'HOME', 'OTHER'
   )),
+  year INTEGER NOT NULL,
   
   -- Scheduling
   frequency VARCHAR(20) DEFAULT 'daily' CHECK (frequency IN ('daily', 'weekly', 'custom')),
@@ -195,7 +196,9 @@ CREATE TABLE IF NOT EXISTS habits (
   
   -- Timestamps
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+
+  CONSTRAINT habits_valid_year CHECK (year BETWEEN 2020 AND 2100)
 );
 
 -- Indexes for habits
@@ -204,6 +207,8 @@ CREATE INDEX idx_habits_goal_id ON habits(goal_id) WHERE goal_id IS NOT NULL;
 CREATE INDEX idx_habits_active ON habits(is_active) WHERE is_active = true;
 CREATE INDEX idx_habits_frequency ON habits(frequency);
 CREATE INDEX idx_habits_user_active ON habits(user_id, is_active);
+CREATE INDEX idx_habits_year ON habits(year);
+CREATE INDEX idx_habits_user_year ON habits(user_id, year);
 
 -- Updated at trigger for habits
 CREATE TRIGGER update_habits_updated_at BEFORE UPDATE ON habits

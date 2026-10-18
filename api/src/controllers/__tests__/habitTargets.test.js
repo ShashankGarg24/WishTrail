@@ -49,15 +49,16 @@ describe('habit target persistence', () => {
       expect(sql).toContain('INSERT INTO habits');
       expect(sql).not.toMatch(/\btimezone\b/);
       expect(values[3]).toBe('OTHER');
-      expect(values[7]).toBe(count);
-      expect(values[8]).toBe(days);
+      expect(values[4]).toBe(2026);
+      expect(values[8]).toBe(count);
+      expect(values[9]).toBe(days);
       return { rows: [{ id: 5, user_id: values[0], name: values[1],
-        category: values[3], daily_target_count: values[7], target_days: values[8] }] };
+        category: values[3], year: values[4], daily_target_count: values[8], target_days: values[9] }] };
     });
-    const response = await request(app).post('/habits').send({ name: 'Read', timezone: 'America/New_York', ...targets });
+    const response = await request(app).post('/habits').send({ name: 'Read', year: 2026, timezone: 'America/New_York', ...targets });
     expect(response.status).toBe(201);
     expect(query).toHaveBeenCalledTimes(1);
-    expect(response.body.data.habit).toMatchObject({ category: 'OTHER', dailyTargetCount: count, targetDays: days });
+    expect(response.body.data.habit).toMatchObject({ category: 'OTHER', year: 2026, dailyTargetCount: count, targetDays: days });
   });
 
   test.each([
@@ -74,6 +75,24 @@ describe('habit target persistence', () => {
     const response = await request(app).put('/habits/5').send({ dailyTargetCount: count, targetDays: days, timezone: 'America/New_York' });
     expect(response.status).toBe(200);
     expect(response.body.data.habit).toMatchObject({ dailyTargetCount: count, targetDays: days });
+  });
+
+  test('rejects an invalid habit year', async () => {
+    const response = await request(app).post('/habits').send({ name: 'Read', year: 2110 });
+    expect(response.status).toBe(400);
+    expect(response.body.message).toMatch(/Year must be between/);
+    expect(query).not.toHaveBeenCalled();
+  });
+
+  test('PUT /habits can move a habit to another year', async () => {
+    query.mockImplementation(async (sql, values) => {
+      expect(sql).toContain('year = $1');
+      expect(values).toEqual([2027, 5, 7]);
+      return { rows: [{ id: 5, user_id: 7, year: values[0] }] };
+    });
+    const response = await request(app).put('/habits/5').send({ year: 2027 });
+    expect(response.status).toBe(200);
+    expect(response.body.data.habit).toMatchObject({ year: 2027 });
   });
 });
 

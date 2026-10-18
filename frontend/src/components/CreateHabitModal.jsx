@@ -23,11 +23,12 @@ const dayOptions = [
 const MAX_HABIT_TITLE_CHARS = 100;
 const MAX_HABIT_DESC_CHARS = 200;
 
-export default function CreateHabitModal({ isOpen, onClose, onCreated, initialData }) {
+export default function CreateHabitModal({ isOpen, onClose, onCreated, initialData, year: selectedYear }) {
   const { habits } = useApiStore();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('OTHER');
+  const [year, setYear] = useState(new Date().getFullYear());
   const [frequency, setFrequency] = useState('daily');
   const [daysOfWeek, setDaysOfWeek] = useState([]);
   const [reminders, setReminders] = useState(['']);
@@ -65,12 +66,13 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
     if (!isOpen) return;
     setDailyTargetCount(initialData?.dailyTargetCount ? String(initialData.dailyTargetCount) : '1');
     setCategory(normalizeHabitCategory(initialData?.category));
+    setYear(Number(initialData?.year || selectedYear) || new Date().getFullYear());
     if (!initialData) return;
     if (typeof initialData.name === 'string') setName(initialData.name.slice(0, MAX_HABIT_TITLE_CHARS));
     if (typeof initialData.description === 'string') setDescription(initialData.description.slice(0, MAX_HABIT_DESC_CHARS));
     if (typeof initialData.frequency === 'string') setFrequency(initialData.frequency === 'weekly' ? 'custom' : initialData.frequency);
     if (Array.isArray(initialData.daysOfWeek)) setDaysOfWeek(initialData.daysOfWeek);
-  }, [isOpen, initialData]);
+  }, [isOpen, initialData, selectedYear]);
 
   if (!isOpen) return null;
 
@@ -114,6 +116,7 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
         name: normalizedName,
         description: normalizedDescription,
         category,
+        year,
         frequency: frequency === 'daily' ? 'daily' : 'custom',
         daysOfWeek: frequency === 'daily' ? [] : daysOfWeek.sort()
         // reminders: reminders.filter(Boolean).map(t => ({ time: t })),
@@ -228,6 +231,13 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
               <div>
                 <label className="mb-2 block text-[10px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 sm:text-xs">Choose a category</label>
                 <HabitCategorySelector value={category} onChange={setCategory}/>
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-[10px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 sm:text-xs">Year *</label>
+                <select value={year} onChange={(event) => setYear(Number(event.target.value))} className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#4c99e6] dark:border-gray-600 dark:bg-gray-800 dark:text-white sm:px-4 sm:py-2.5 sm:text-base">
+                  {[...new Set([year, ...Array.from({ length: 11 }, (_, index) => new Date().getFullYear() - 5 + index)])].sort((a, b) => b - a).map(optionYear => <option key={optionYear} value={optionYear}>{optionYear}</option>)}
+                </select>
               </div>
 
               <div>

@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   BarChart3, CheckCircle2, ChevronDown, ChevronLeft,
-  Copy, Edit3, Flame, MoreVertical,
+  Compass, Copy, Edit3, Flame, MoreVertical,
   PauseCircle, Plus, Search, SlidersHorizontal, Sparkles, Trash2, TrendingDown, TrendingUp
 } from 'lucide-react'
 import HabitCategoryIcon from './HabitCategoryIcon'
 import { HABIT_CATEGORIES, getHabitCategory, normalizeHabitCategory } from '../constants/habitCategories'
 
-export default function HabitsWorkspace({ habits = [], stats = {}, onCreate, onOpen, onEdit, onDelete, onLog, onAnalytics, onPause }) {
+export default function HabitsWorkspace({ habits = [], stats = {}, selectedYear, availableYears = [], onYearChange, onCreate, onDiscover, onOpen, onEdit, onDelete, onLog, onAnalytics, onPause }) {
   const [query, setQuery] = useState('')
   const [tab, setTab] = useState('all')
   const [category, setCategory] = useState('all')
@@ -69,11 +69,22 @@ export default function HabitsWorkspace({ habits = [], stats = {}, onCreate, onO
             <button type="button" aria-haspopup="listbox" aria-expanded={desktopFilterOpen === filter.key} onClick={() => setDesktopFilterOpen(open => open === filter.key ? null : filter.key)} className="flex items-center gap-1.5 rounded-lg border border-[#dce5f4] bg-white px-3 py-2 text-xs font-medium text-[#253663] dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200">{filter.label}<ChevronDown className={`h-3.5 w-3.5 transition-transform ${desktopFilterOpen === filter.key ? 'rotate-180' : ''}`}/></button>
             {desktopFilterOpen === filter.key && <div role="listbox" className="absolute right-0 top-full z-30 mt-2 max-h-72 min-w-44 overflow-y-auto rounded-xl border border-[#dce5f4] bg-white p-1.5 shadow-xl dark:border-gray-700 dark:bg-gray-800">{filter.options.map(([value, label]) => <button key={value} type="button" role="option" aria-selected={filter.value === value} onClick={() => { filter.setValue(value); setDesktopFilterOpen(null) }} className={`block w-full whitespace-nowrap rounded-lg px-3 py-2 text-left text-xs transition-colors ${filter.value === value ? 'bg-blue-50 font-semibold text-[#1683ed] dark:bg-blue-950/40' : 'text-[#253663] hover:bg-slate-50 dark:text-gray-200 dark:hover:bg-gray-700'}`}>{label}</button>)}</div>}
           </div>)}
+          <label className="sr-only" htmlFor="habit-year-filter">Habit year</label>
+          <select id="habit-year-filter" value={selectedYear} onChange={event => onYearChange?.(Number(event.target.value))} className="h-9 rounded-lg border border-[#dce5f4] bg-white px-3 text-xs font-semibold text-[#253663] outline-none focus:border-[#1683ed] dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200">
+            {availableYears.map(year => <option key={year} value={year}>{year}</option>)}
+          </select>
+          <button type="button" onClick={onDiscover} aria-label="Discover habit ideas" title="Discover habit ideas" className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#dce5f4] bg-white text-[#526392] transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-[#1683ed] dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-blue-950/30"><Compass className="h-4 w-4"/></button>
           <button type="button" className="inline-flex items-center gap-1.5 rounded-lg bg-[#1683ed] px-4 py-2 text-xs font-semibold text-white shadow-sm" onClick={onCreate}><Plus className="h-4 w-4"/> Create Habit</button>
         </div>
       </header>
 
-      <div className="habits-mobile-bar"><button aria-label="Back" onClick={() => window.history.back()}><ChevronLeft size={21}/></button><strong>My Habits</strong><button className="mobile-add" aria-label="Create Habit" onClick={onCreate}><Plus size={20}/></button></div>
+      <div className="habits-mobile-bar"><button aria-label="Back" onClick={() => window.history.back()}><ChevronLeft size={21}/></button><strong>My Habits</strong><span aria-hidden="true" /></div>
+      <div className="mb-3 flex items-center justify-between sm:hidden">
+        <select aria-label="Habit year" value={selectedYear} onChange={event => onYearChange?.(Number(event.target.value))} className="h-9 rounded-lg border border-[#dce5f4] bg-white px-3 text-sm font-bold text-[#0b1746] outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white">
+          {availableYears.map(year => <option key={year} value={year}>{year}</option>)}
+        </select>
+        <div className="flex items-center gap-2"><button className="grid h-9 w-9 place-items-center rounded-lg border border-[#dce5f4] bg-white text-[#526392]" aria-label="Discover habit ideas" onClick={onDiscover}><Compass size={16}/></button><button className="mobile-add" aria-label="Create Habit" onClick={onCreate}><Plus size={20}/></button></div>
+      </div>
       <div className="habit-consistency-card">
         <div className="habit-consistency-heading">
           <span>7-Day Consistency</span>
@@ -120,7 +131,7 @@ export default function HabitsWorkspace({ habits = [], stats = {}, onCreate, onO
             <div className="min-w-0 flex-1 p-4">
               <div className="flex items-start gap-3">
                 <HabitCategoryIcon category={habit.category} size="lg"/>
-                <span className="min-w-0 flex-1"><h3 className="truncate text-sm font-bold text-[#0b1746] dark:text-white sm:text-base">{habit.name}</h3><span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: visual.accent }}>{visual.label}</span></span>
+                <span className="min-w-0 flex-1"><h3 className="truncate text-sm font-bold text-[#0b1746] dark:text-white sm:text-base">{habit.name}</h3><span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: visual.accent }}>{visual.label} · {habit.year || new Date(habit.createdAt || Date.now()).getFullYear()}</span></span>
                 <button type="button" className="-mr-1 rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700" aria-label={`Actions for ${habit.name}`} onClick={e => { e.stopPropagation(); setMenuHabit(habit) }}><MoreVertical className="h-5 w-5"/></button>
               </div>
               <p className="mt-2 line-clamp-1 text-xs text-gray-500">{habit.description || 'Build consistency one day at a time'}</p>

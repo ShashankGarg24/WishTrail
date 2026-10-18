@@ -285,16 +285,17 @@ class UserService {
            COALESCE(MAX(current_streak), 0) AS current_habit_streak,
            COALESCE(MAX(longest_streak), 0) AS best_streak
          FROM habits
-         WHERE user_id = $1`,
-        [userId]
+         WHERE user_id = $1 AND year = $2`,
+        [userId, selectedYear]
       ),
 
       // Habit logs recorded today with status = 'done'
       pgQuery(
         `SELECT COUNT(*) AS today_habit_logs
-         FROM habit_logs
-         WHERE user_id = $1 AND status = 'done' AND date_key = $2::date`,
-        [userId, todayUTC]
+         FROM habit_logs hl
+         INNER JOIN habits h ON h.id = hl.habit_id
+         WHERE hl.user_id = $1 AND h.year = $3 AND hl.status = 'done' AND hl.date_key = $2::date`,
+        [userId, todayUTC, selectedYear]
       ),
 
       // Per-day active habit counts for last 7 days (considering each habit's creation date)
@@ -317,23 +318,26 @@ class UserService {
          FROM days
          LEFT JOIN habits h
            ON h.user_id = $1
+          AND h.year = $3
           AND h.created_at::date <= days.date_key
          GROUP BY days.date_key
          ORDER BY days.date_key`,
-        [userId, todayUTC]
+        [userId, todayUTC, selectedYear]
       ),
 
       // Per-day 'done' log counts for the last 7 days (today inclusive)
       pgQuery(
         `SELECT date_key::text, COUNT(*) AS done_count
-         FROM habit_logs
-         WHERE user_id = $1
-           AND status   = 'done'
-           AND date_key >= $2::date - INTERVAL '6 days'
-           AND date_key <= $2::date
-         GROUP BY date_key
-         ORDER BY date_key`,
-        [userId, todayUTC]
+         FROM habit_logs hl
+         INNER JOIN habits h ON h.id = hl.habit_id
+         WHERE hl.user_id = $1
+           AND h.year = $3
+           AND hl.status   = 'done'
+           AND hl.date_key >= $2::date - INTERVAL '6 days'
+           AND hl.date_key <= $2::date
+         GROUP BY hl.date_key
+         ORDER BY hl.date_key`,
+        [userId, todayUTC, selectedYear]
       ),
     ]);
 
@@ -385,15 +389,16 @@ class UserService {
       pgQuery(
         `WITH days AS (SELECT generate_series($2::date - INTERVAL '13 days', $2::date - INTERVAL '7 days', INTERVAL '1 day')::date AS date_key)
          SELECT days.date_key::text, COUNT(h.id) FILTER (WHERE h.id IS NOT NULL AND (h.frequency = 'daily' OR (h.frequency IN ('weekly', 'custom') AND h.days_of_week @> ARRAY[EXTRACT(DOW FROM days.date_key)::int]))) AS active_count
-         FROM days LEFT JOIN habits h ON h.user_id = $1 AND h.created_at::date <= days.date_key
+         FROM days LEFT JOIN habits h ON h.user_id = $1 AND h.year = $3 AND h.created_at::date <= days.date_key
          GROUP BY days.date_key ORDER BY days.date_key`,
-        [userId, todayUTC]
+        [userId, todayUTC, selectedYear]
       ),
       pgQuery(
-        `SELECT date_key::text, COUNT(*) AS done_count FROM habit_logs
-         WHERE user_id = $1 AND status = 'done' AND date_key >= $2::date - INTERVAL '13 days' AND date_key <= $2::date - INTERVAL '7 days'
-         GROUP BY date_key`,
-        [userId, todayUTC]
+        `SELECT hl.date_key::text, COUNT(*) AS done_count FROM habit_logs hl
+         INNER JOIN habits h ON h.id = hl.habit_id
+         WHERE hl.user_id = $1 AND h.year = $3 AND hl.status = 'done' AND hl.date_key >= $2::date - INTERVAL '13 days' AND hl.date_key <= $2::date - INTERVAL '7 days'
+         GROUP BY hl.date_key`,
+        [userId, todayUTC, selectedYear]
       )
     ]);
     const previousExpected = previousActiveRows.rows.reduce((sum, row) => sum + (parseInt(row.active_count) || 0), 0);

@@ -17,6 +17,7 @@ class PgHabitService {
       name,
       description = '',
       category = 'OTHER',
+      year = new Date().getFullYear(),
       frequency = 'daily',
       daysOfWeek = null,
       reminders = [],
@@ -27,14 +28,14 @@ class PgHabitService {
 
     const sql = `
       INSERT INTO habits (
-        user_id, name, description, category, frequency, days_of_week,
+        user_id, name, description, category, year, frequency, days_of_week,
         reminders, daily_target_count, target_days, is_public
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
       RETURNING *
     `;
 
     const values = [
-      userId, name, description, category, frequency,
+      userId, name, description, category, year, frequency,
       daysOfWeek ? `{${daysOfWeek.join(',')}}` : null,
       JSON.stringify(reminders),
       dailyTargetCount,
@@ -78,6 +79,7 @@ class PgHabitService {
    */
   async getUserHabits({
     userId,
+    year = null,
     frequency = null,
     limit = 50,
     offset = 0,
@@ -91,6 +93,11 @@ class PgHabitService {
     if (frequency) {
       conditions.push(`h.frequency = $${paramIndex++}`);
       values.push(frequency);
+    }
+
+    if (year != null) {
+      conditions.push(`h.year = $${paramIndex++}`);
+      values.push(year);
     }
 
     const allowedSortFields = ['created_at', 'name', 'current_streak', 'total_completions'];
@@ -136,7 +143,7 @@ class PgHabitService {
    */
   async updateHabit(id, userId, updates) {
     const allowedFields = [
-      'name', 'description', 'category', 'frequency', 'days_of_week',
+      'name', 'description', 'category', 'year', 'frequency', 'days_of_week',
       'reminders', 'daily_target_count', 'target_days',
       'is_public'
     ];
@@ -463,7 +470,7 @@ class PgHabitService {
    * @param {Object} params - Search parameters
    * @returns {Promise<Array>} Array of habits
    */
-  async searchHabits({ searchQuery, userId = null, limit = 20, offset = 0 }) {
+  async searchHabits({ searchQuery, userId = null, year = null, limit = 20, offset = 0 }) {
     let sql = `
       SELECT h.*, u.username, u.name as user_name, u.avatar_url,
              ts_rank(to_tsvector('english', h.name || ' ' || COALESCE(h.description, '') || ' ' || COALESCE(h.category, '')),
@@ -484,6 +491,11 @@ class PgHabitService {
     if (userId) {
       sql += ` AND h.user_id = $${paramIndex++}`;
       values.push(userId);
+    }
+
+    if (year != null) {
+      sql += ` AND h.year = $${paramIndex++}`;
+      values.push(year);
     }
 
     sql += ` ORDER BY rank DESC, h.created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
@@ -507,6 +519,7 @@ class PgHabitService {
       name: row.name,
       description: row.description,
       category: row.category || 'OTHER',
+      year: row.year,
       frequency: row.frequency,
       daysOfWeek: row.days_of_week,
       // reminders: typeof row.reminders === 'string' ? JSON.parse(row.reminders) : row.reminders,
@@ -542,6 +555,14 @@ class PgHabitService {
     `;
     const result = await query(queryText, [userId]);
     return parseInt(result.rows[0]?.count || 0);
+  }
+
+  async getUserYearsWithHabits(userId) {
+    const result = await query(
+      `SELECT DISTINCT year FROM habits WHERE user_id = $1 ORDER BY year DESC`,
+      [userId]
+    );
+    return result.rows.map(row => row.year);
   }
 }
 

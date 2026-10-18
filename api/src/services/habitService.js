@@ -40,6 +40,7 @@ async function createHabit(userId, payload) {
     userId,
     name: payload.name,
     description: payload.description || '',
+    year: payload.year || new Date().getFullYear(),
     frequency: normalizeHabitFrequency(payload.frequency),
     daysOfWeek: Array.isArray(payload.daysOfWeek) ? payload.daysOfWeek : null,
     // reminders: Array.isArray(payload.reminders) ? payload.reminders : [],
@@ -63,7 +64,7 @@ async function createHabit(userId, payload) {
   return habit;
 }
 
-async function listHabits(userId, { includeArchived = false, page = 1, limit = 50, sort = 'newest' } = {}) {
+async function listHabits(userId, { includeArchived = false, page = 1, limit = 50, sort = 'newest', year = null } = {}) {
   // Pagination
   const pageNum = Math.max(1, parseInt(page, 10));
   const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10)));
@@ -82,6 +83,7 @@ async function listHabits(userId, { includeArchived = false, page = 1, limit = 5
   // Get habits from PostgreSQL
   const habits = await pgHabitService.getUserHabits({
     userId,
+    year,
     limit: limitNum,
     offset,
     sortBy,

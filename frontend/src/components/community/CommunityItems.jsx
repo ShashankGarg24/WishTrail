@@ -157,6 +157,7 @@ export function AddItemModal({ open, onClose, communityId }) {
           <CreateHabitModal
           isOpen={showCreateHabitModal}
           onClose={() => setShowCreateHabitModal(false)}
+          year={new Date().getFullYear()}
           onCreated={async (habit) => {
             try {
               if (habit?._id) {
