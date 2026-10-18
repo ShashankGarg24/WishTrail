@@ -80,6 +80,21 @@ class ProductUpdateService {
     return result.rows;
   }
 
+  // Admin-only listing; public What's New queries retain their existing behavior.
+  async listForAdmin({ search = '', sortBy, sortOrder, limit = 20, offset = 0 }) {
+    const columns = { createdAt: 'created_at', version: 'version', title: 'title', type: 'type' };
+    const column = Object.prototype.hasOwnProperty.call(columns, sortBy) ? columns[sortBy] : 'created_at';
+    const direction = sortOrder === 'asc' ? 'ASC' : 'DESC';
+    const term = String(search).trim().slice(0, 200);
+    const where = "($1 = '' OR title ILIKE $2 OR version ILIKE $2 OR description ILIKE $2)";
+    const [rows, count] = await Promise.all([
+      query(`SELECT id, title, description, version, is_major AS "isMajor", type, created_at AS "createdAt"
+        FROM product_updates WHERE ${where} ORDER BY ${column} ${direction}, id DESC LIMIT $3 OFFSET $4`, [term, `%${term}%`, limit, offset]),
+      query(`SELECT COUNT(*) AS count FROM product_updates WHERE ${where}`, [term, `%${term}%`])
+    ]);
+    return { updates: rows.rows, total: Number(count.rows[0].count) };
+  }
+
   /**
    * Get latest major update that user hasn't seen yet
    */

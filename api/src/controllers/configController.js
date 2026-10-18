@@ -51,25 +51,16 @@ module.exports = {
     try {
       const { key, value, description } = req.body;
 
-      if (!key || value === undefined) {
-        return res.status(400).json({
-          success: false,
-          message: 'Key and value are required'
-        });
+      const product = require('../services/adminProductService');
+      if (key === 'maintenance_mode') {
+        await product.setMaintenance({ enabled: value, message: description });
+      } else if (key === 'promotion') {
+        await product.setPromotion(value);
+      } else {
+        return res.status(400).json({ success: false, message: 'Unsupported runtime setting' });
       }
-
-      const config = await Config.setValue(
-        key,
-        value,
-        req.user?._id,
-        description || ''
-      );
-
-      res.status(200).json({
-        success: true,
-        message: 'Config updated successfully',
-        data: { config }
-      });
+      const saved = await Config.findOne({ key });
+      return res.json({ success: true, data: { config: saved } });
     } catch (error) {
       next(error);
     }
@@ -81,6 +72,7 @@ module.exports = {
   async deleteConfig(req, res, next) {
     try {
       const { key } = req.params;
+      if (!['maintenance_mode', 'promotion'].includes(key)) return res.status(400).json({ success: false, message: 'Unsupported runtime setting' });
       const config = await Config.findOneAndDelete({ key: key.toLowerCase() });
 
       if (!config) {
@@ -125,13 +117,8 @@ module.exports = {
   async toggleMaintenanceMode(req, res, next) {
     try {
       const { enabled, message } = req.body;
-
-      const config = await Config.setValue(
-        'maintenance_mode',
-        enabled === true,
-        req.user?._id,
-        message || 'System maintenance in progress'
-      );
+      await require('../services/adminProductService').setMaintenance({ enabled, message });
+      const config = await Config.findOne({ key: 'maintenance_mode' });
 
       res.status(200).json({
         success: true,

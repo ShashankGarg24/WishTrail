@@ -17,9 +17,11 @@ const checkMaintenanceMode = async (req, res, next) => {
     ];
 
     // Check if current path is whitelisted
-    const isWhitelisted = whitelistedPaths.some(path => 
-      req.path.endsWith(path) || req.path.includes('/health')
-    );
+    const apiBase = `/api/${process.env.API_VERSION || 'v1'}`;
+    const adminSegment = String(process.env.ADMIN_API_ROUTE_SEGMENT || 'admin').trim().replace(/^\/+|\/+$/g, '').replace(/[^a-zA-Z0-9/_-]/g, '') || 'admin';
+    const adminBase = `${apiBase}/${adminSegment}`;
+    // The admin router still authenticates every operation; login must remain reachable.
+    const isWhitelisted = whitelistedPaths.includes(req.path) || req.path === adminBase || req.path.startsWith(`${adminBase}/`);
 
     if (isWhitelisted) {
       return next();

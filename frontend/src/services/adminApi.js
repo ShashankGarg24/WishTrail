@@ -23,6 +23,15 @@ adminApi.interceptors.request.use((config) => {
   return config;
 });
 
+adminApi.interceptors.response.use(response => response, error => {
+  const requestToken = error.config?.headers?.Authorization;
+  if (error.response?.status === 401 && requestToken && requestToken === `Bearer ${localStorage.getItem(ADMIN_TOKEN_KEY)}`) {
+    localStorage.removeItem(ADMIN_TOKEN_KEY);
+    window.dispatchEvent(new CustomEvent('wishtrail-admin-session-expired'));
+  }
+  return Promise.reject(error);
+});
+
 export const adminAuth = {
   tokenKey: ADMIN_TOKEN_KEY,
   getToken: () => localStorage.getItem(ADMIN_TOKEN_KEY),
@@ -31,6 +40,24 @@ export const adminAuth = {
 };
 
 export const adminAPI = {
+  campaignOptions: () => adminApi.get(`${ADMIN_BASE_PATH}/campaigns/options`),
+  reviewCampaign: (payload) => adminApi.post(`${ADMIN_BASE_PATH}/campaigns/review`, payload),
+  testCampaign: (payload) => adminApi.post(`${ADMIN_BASE_PATH}/campaigns/test`, payload),
+  sendCampaign: (payload) => adminApi.post(`${ADMIN_BASE_PATH}/campaigns/send`, payload),
+  getRelease: (version) => adminApi.get(`${ADMIN_BASE_PATH}/product-updates/${encodeURIComponent(version)}`),
+  getProductControl: () => adminApi.get(`${ADMIN_BASE_PATH}/product-control`),
+  setMaintenance: (payload) => adminApi.put(`${ADMIN_BASE_PATH}/product-control/maintenance`, payload),
+  setPromotion: (payload) => adminApi.put(`${ADMIN_BASE_PATH}/product-control/promotion`, payload),
+  getOverview: (params) => adminApi.get(`${ADMIN_BASE_PATH}/overview`, { params }),
+  getUser: (id) => adminApi.get(`${ADMIN_BASE_PATH}/users/${encodeURIComponent(id)}`),
+  setUserStatus: (id, active) => adminApi.patch(`${ADMIN_BASE_PATH}/users/${encodeURIComponent(id)}/status`, { active }),
+  grantPremium: (id, months) => adminApi.post(`${ADMIN_BASE_PATH}/users/${encodeURIComponent(id)}/premium`, { months }),
+  revokePremium: (id) => adminApi.delete(`${ADMIN_BASE_PATH}/users/${encodeURIComponent(id)}/premium`),
+  getGoal: (id) => adminApi.get(`${ADMIN_BASE_PATH}/goals/${encodeURIComponent(id)}`),
+  getHabit: (id) => adminApi.get(`${ADMIN_BASE_PATH}/habits/${encodeURIComponent(id)}`),
+  getReports: (params) => adminApi.get(`${ADMIN_BASE_PATH}/reports`, { params }),
+  getReport: (id) => adminApi.get(`${ADMIN_BASE_PATH}/reports/${encodeURIComponent(id)}`),
+  dismissReport: (id) => adminApi.patch(`${ADMIN_BASE_PATH}/reports/${encodeURIComponent(id)}/dismiss`),
   login: ({ email, password }) => adminApi.post(`${ADMIN_BASE_PATH}/login`, { email, password }),
   getUsers: (params) => adminApi.get(`${ADMIN_BASE_PATH}/users`, { params }),
   getGoals: (params) => adminApi.get(`${ADMIN_BASE_PATH}/goals`, { params }),

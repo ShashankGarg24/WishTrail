@@ -77,8 +77,7 @@ const getFeatureLimits = async (req, res, next) => {
  */
 const getPremiumStats = async (req, res, next) => {
   try {
-    // TODO: Add admin authorization check
-    // if (!req.user.isAdmin) { return res.status(403).json(...); }
+    // The mounted route requires the separate scoped admin token.
     
     const stats = await userService.getPremiumStats();
     const activePremiumUsers = await userService.getActivePremiumUsers();
@@ -116,8 +115,7 @@ const getPremiumStats = async (req, res, next) => {
  */
 const grantPremiumToUser = async (req, res, next) => {
   try {
-    // TODO: Add admin authorization check
-    // if (!req.user.isAdmin) { return res.status(403).json(...); }
+    // The mounted route requires the separate scoped admin token.
     
     const { userId, durationMonths } = req.body;
     
@@ -128,7 +126,7 @@ const grantPremiumToUser = async (req, res, next) => {
       });
     }
 
-    if (durationMonths < 1 || durationMonths > 120) {
+    if (!Number.isInteger(durationMonths) || durationMonths < 1 || durationMonths > 120) {
       return res.status(400).json({
         success: false,
         message: 'durationMonths must be between 1 and 120'
@@ -166,8 +164,7 @@ const grantPremiumToUser = async (req, res, next) => {
  */
 const revokePremiumFromUser = async (req, res, next) => {
   try {
-    // TODO: Add admin authorization check
-    // if (!req.user.isAdmin) { return res.status(403).json(...); }
+    // The mounted route requires the separate scoped admin token.
     
     const { userId } = req.body;
     
@@ -297,7 +294,7 @@ const cancelSubscription = async (req, res, next) => {
  */
 const getExpiringUsers = async (req, res, next) => {
   try {
-    // TODO: Add admin authorization check
+    // The mounted route requires the separate scoped admin token.
     
     const { days = 7 } = req.query;
     const expiringUsers = await userService.getUsersWithExpiringPremium(parseInt(days));
@@ -328,7 +325,7 @@ const getExpiringUsers = async (req, res, next) => {
  */
 const getExpiredUsers = async (req, res, next) => {
   try {
-    // TODO: Add admin authorization check
+    // The mounted route requires the separate scoped admin token.
     
     const { days = 30 } = req.query;
     const expiredUsers = await userService.getExpiredPremiumUsers(parseInt(days));

@@ -95,7 +95,7 @@ async function computeHabitLinkProgress(userId, link, goal) {
  * Compute weighted progress for a goal.
  * Returns percentage in 0..100 with breakdown.
  */
-async function computeGoalProgress(goalId, requestingUserId) {
+async function computeGoalProgress(goalId, requestingUserId, { details: preloadedDetails } = {}) {
   const goal = await pgGoalService.getGoalById(goalId);
   if (!goal) throw Object.assign(new Error('Goal not found'), { statusCode: 404 });
   if (Number(goal.user_id) !== Number(requestingUserId)) {
@@ -103,7 +103,11 @@ async function computeGoalProgress(goalId, requestingUserId) {
   }
 
   // Get extended data from MongoDB
-  const goalDetails = await GoalDetails.findOne({ goalId: goal.id, isActive: true }).lean();
+  // Admin inspection can supply a read-only record already loaded by goalId.
+  // Existing callers retain their current lookup behavior.
+  const goalDetails = preloadedDetails === undefined
+    ? await GoalDetails.findOne({ goalId: goal.id, isActive: true }).lean()
+    : preloadedDetails;
   const subGoals = Array.isArray(goalDetails?.progress?.breakdown?.subGoals) ? goalDetails.progress.breakdown.subGoals : [];
   const habitLinks = Array.isArray(goalDetails?.progress?.breakdown?.habits) ? goalDetails.progress.breakdown.habits : [];
 

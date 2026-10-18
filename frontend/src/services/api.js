@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { API_CONFIG } from '../config/api';
 import { addTimezoneAndLocale } from '../utils/timezoneUtils';
+import { ADMIN_BASE } from '../admin/config';
 
 const API_BASE_URL = API_CONFIG.BASE_URL;
 
@@ -48,7 +49,8 @@ const forceLogoutAndRedirectToAuth = () => {
   } catch { }
 
   try {
-    if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/auth')) {
+    const onAdminRoute = typeof window !== 'undefined' && (window.location.pathname === ADMIN_BASE || window.location.pathname.startsWith(`${ADMIN_BASE}/`));
+    if (typeof window !== 'undefined' && !onAdminRoute && !window.location.pathname.startsWith('/auth')) {
       window.location.assign('/auth');
     }
   } catch { }

@@ -1,5 +1,4 @@
 const { query } = require('../config/supabase');
-const emailService = require('./emailService');
 const DailyLogsEntry = require('../models/DailyLogsEntry');
 const UserPreferences = require('../models/extended/UserPreferences');
 
@@ -11,9 +10,19 @@ const sanitizePlainText = (value = '') => {
 
 const toPositiveInt = (value, fallback) => {
   const parsed = parseInt(value, 10);
-  if (Number.isNaN(parsed) || parsed < 1) return fallback;
-  return parsed;
+  if (!Number.isSafeInteger(parsed) || parsed < 1) return fallback;
+  return Math.min(parsed, 100000);
 };
+
+const validId = (value) => {
+  if (!/^[1-9]\d*$/.test(String(value)) || !Number.isSafeInteger(Number(value))) {
+    throw Object.assign(new Error('Invalid record ID'), { statusCode: 400 });
+  }
+  return Number(value);
+};
+
+const safeOrder = (key, direction, allowed, fallback) =>
+  `${Object.prototype.hasOwnProperty.call(allowed, key) ? allowed[key] : fallback} ${String(direction).toLowerCase() === 'asc' ? 'ASC' : 'DESC'} NULLS LAST`;
 
 const formatUserRow = (row, lastDailyUpdatedAt = null, emailNotificationsEnabled = true) => ({
   id: row.id,
@@ -28,6 +37,8 @@ const formatUserRow = (row, lastDailyUpdatedAt = null, emailNotificationsEnabled
   lastActiveAt: row.last_active_at,
   lastDailyUpdatedAt,
   accountActive: row.is_active,
+  isVerified: row.is_verified,
+  premiumExpiresAt: row.premium_expires_at,
   lastUpdateSeen: row.last_seen_update_version
 });
 
@@ -38,6 +49,7 @@ const formatGoalRow = (row) => ({
   year: row.year,
   completed: row.completed_at !== null,
   completedAt: row.completed_at,
+  targetDate: row.target_date,
   totalGoalUpdates: row.total_goal_updates,
   lastGoalUpdateAt: row.last_goal_update_at,
   isPublic: row.is_public,
@@ -55,7 +67,9 @@ const formatHabitRow = (row) => ({
   name: row.name,
   frequency: row.frequency,
   targetType: row.target_type,
-  status: row.last_log_at && new Date(row.last_log_at) >= new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) ? 'Active' : 'Inactive',
+  daysOfWeek: row.days_of_week,
+  isArchived: row.is_archived,
+  status: row.recently_active ? 'Active' : 'Inactive',
   totalLogs: row.total_logs,
   lastLogAt: row.last_log_at,
   currentStreak: row.current_streak,
@@ -69,12 +83,12 @@ const formatHabitRow = (row) => ({
   }
 });
 
-const getUsers = async ({ page, limit, search, inactiveDays, emailNotifications = 'all' }) => {
+const getUsers = async ({ page, limit, search, inactiveDays, emailNotifications = 'all', sortBy, sortOrder }) => {
   const pageNum = toPositiveInt(page, 1);
   const limitNum = Math.min(100, toPositiveInt(limit, 20));
   const offset = (pageNum - 1) * limitNum;
   const searchTerm = sanitizePlainText(search || '');
-  const inactiveDaysNum = Math.max(0, parseInt(inactiveDays, 10) || 0);
+  const inactiveDaysNum = Math.min(36500, Math.max(0, parseInt(inactiveDays, 10) || 0));
   const normalizedEmailFilter = ['all', 'enabled', 'disabled'].includes(String(emailNotifications || '').toLowerCase())
     ? String(emailNotifications).toLowerCase()
     : 'all';
@@ -98,6 +112,8 @@ const getUsers = async ({ page, limit, search, inactiveDays, emailNotifications 
       u.username,
       u.email,
       u.is_active,
+      u.is_verified,
+      u.premium_expires_at,
       u.total_goals,
       u.completed_goals,
       COALESCE(hc.total_habits, 0) AS total_habits,
@@ -118,7 +134,7 @@ const getUsers = async ({ page, limit, search, inactiveDays, emailNotifications 
         OR ($4 = 'disabled' AND u.id = ANY($5::bigint[]))
         OR ($4 = 'enabled' AND u.id <> ALL($5::bigint[]))
       )
-    ORDER BY u.created_at DESC
+    ORDER BY ${safeOrder(sortBy, sortOrder, { name: 'u.name', email: 'u.email', createdAt: 'u.created_at', lastActiveAt: 'u.last_active_at', totalGoals: 'u.total_goals' }, 'u.created_at')}, u.id DESC
     LIMIT $6 OFFSET $7
   `;
 
@@ -187,11 +203,12 @@ const getUsers = async ({ page, limit, search, inactiveDays, emailNotifications 
   };
 };
 
-const getGoals = async ({ page, limit, search, status }) => {
+const getGoals = async ({ page, limit, search, status, userId, sortBy, sortOrder }) => {
   const pageNum = toPositiveInt(page, 1);
   const limitNum = Math.min(100, toPositiveInt(limit, 20));
   const offset = (pageNum - 1) * limitNum;
   const searchTerm = sanitizePlainText(search || '');
+  const ownerId = userId ? validId(userId) : null;
   const wildcard = `%${searchTerm}%`;
 
   const normalizedStatus = ['completed', 'active', 'all'].includes(status) ? status : 'all';
@@ -203,6 +220,7 @@ const getGoals = async ({ page, limit, search, status }) => {
       g.title,
       g.category,
       g.year,
+      g.target_date,
       g.completed_at,
       g.is_public,
       COALESCE(gu.total_goal_updates, 0) AS total_goal_updates,
@@ -221,13 +239,14 @@ const getGoals = async ({ page, limit, search, status }) => {
       WHERE gu.goal_id = g.id
     ) gu ON true
     WHERE
-      ($1 = '' OR g.title ILIKE $2 OR u.username ILIKE $2 OR u.email ILIKE $2)
+      ($6::bigint IS NULL OR g.user_id = $6)
+      AND ($1 = '' OR g.title ILIKE $2 OR u.username ILIKE $2 OR u.email ILIKE $2)
       AND (
         $3 = 'all'
         OR ($3 = 'completed' AND g.completed_at IS NOT NULL)
         OR ($3 = 'active' AND g.completed_at IS NULL)
       )
-    ORDER BY g.created_at DESC
+    ORDER BY ${safeOrder(sortBy, sortOrder, { title: 'g.title', createdAt: 'g.created_at', category: 'g.category' }, 'g.created_at')}, g.id DESC
     LIMIT $4 OFFSET $5
   `;
 
@@ -236,7 +255,8 @@ const getGoals = async ({ page, limit, search, status }) => {
     FROM goals g
     INNER JOIN users u ON u.id = g.user_id
     WHERE
-      ($1 = '' OR g.title ILIKE $2 OR u.username ILIKE $2 OR u.email ILIKE $2)
+      ($4::bigint IS NULL OR g.user_id = $4)
+      AND ($1 = '' OR g.title ILIKE $2 OR u.username ILIKE $2 OR u.email ILIKE $2)
       AND (
         $3 = 'all'
         OR ($3 = 'completed' AND g.completed_at IS NOT NULL)
@@ -245,8 +265,8 @@ const getGoals = async ({ page, limit, search, status }) => {
   `;
 
   const [listResult, countResult] = await Promise.all([
-    query(listQuery, [searchTerm, wildcard, normalizedStatus, limitNum, offset]),
-    query(countQuery, [searchTerm, wildcard, normalizedStatus])
+    query(listQuery, [searchTerm, wildcard, normalizedStatus, limitNum, offset, ownerId]),
+    query(countQuery, [searchTerm, wildcard, normalizedStatus, ownerId])
   ]);
 
   const total = parseInt(countResult.rows[0]?.total || '0', 10);
@@ -262,11 +282,12 @@ const getGoals = async ({ page, limit, search, status }) => {
   };
 };
 
-const getHabits = async ({ page, limit, search, status }) => {
+const getHabits = async ({ page, limit, search, status, userId, sortBy, sortOrder }) => {
   const pageNum = toPositiveInt(page, 1);
   const limitNum = Math.min(100, toPositiveInt(limit, 20));
   const offset = (pageNum - 1) * limitNum;
   const searchTerm = sanitizePlainText(search || '');
+  const ownerId = userId ? validId(userId) : null;
   const wildcard = `%${searchTerm}%`;
 
   const normalizedStatus = ['all', 'active', 'inactive'].includes(status) ? status : 'all';
@@ -277,9 +298,16 @@ const getHabits = async ({ page, limit, search, status }) => {
       h.user_id,
       h.name,
       h.frequency,
+      h.days_of_week,
+      COALESCE(
+        (to_jsonb(h)->>'is_archived')::boolean,
+        NOT COALESCE((to_jsonb(h)->>'is_active')::boolean, true),
+        false
+      ) AS is_archived,
+      (hl.last_log_at >= NOW() - INTERVAL '7 days') AS recently_active,
       h.target_type,
       h.current_streak,
-      COALESCE(h.longest_streak, h.max_streak, 0) AS best_streak,
+      GREATEST(COALESCE(h.longest_streak, 0), COALESCE(h.max_streak, 0)) AS best_streak,
       COALESCE(hl.total_logs, 0) AS total_logs,
       hl.last_log_at,
       h.created_at,
@@ -291,18 +319,19 @@ const getHabits = async ({ page, limit, search, status }) => {
     LEFT JOIN LATERAL (
       SELECT
         COUNT(*)::int AS total_logs,
-        MAX(hl.date_key)::timestamp AS last_log_at
+        MAX(hl.occurred_at) AS last_log_at
       FROM habit_logs hl
       WHERE hl.habit_id = h.id
     ) hl ON true
     WHERE
-      ($1 = '' OR h.name ILIKE $2 OR u.username ILIKE $2 OR u.email ILIKE $2)
+      ($6::bigint IS NULL OR h.user_id = $6)
+      AND ($1 = '' OR h.name ILIKE $2 OR u.username ILIKE $2 OR u.email ILIKE $2)
       AND (
         $3 = 'all'
-        OR ($3 = 'active' AND COALESCE(hl.last_log_at::date, h.created_at::date) >= CURRENT_DATE - INTERVAL '7 days')
-        OR ($3 = 'inactive' AND COALESCE(hl.last_log_at::date, h.created_at::date) < CURRENT_DATE - INTERVAL '7 days')
+        OR ($3 = 'active' AND hl.last_log_at >= NOW() - INTERVAL '7 days')
+        OR ($3 = 'inactive' AND (hl.last_log_at IS NULL OR hl.last_log_at < NOW() - INTERVAL '7 days'))
       )
-    ORDER BY h.created_at DESC
+    ORDER BY ${safeOrder(sortBy, sortOrder, { name: 'h.name', createdAt: 'h.created_at', currentStreak: 'h.current_streak' }, 'h.created_at')}, h.id DESC
     LIMIT $4 OFFSET $5
   `;
 
@@ -311,22 +340,23 @@ const getHabits = async ({ page, limit, search, status }) => {
     FROM habits h
     INNER JOIN users u ON u.id = h.user_id
     LEFT JOIN LATERAL (
-      SELECT MAX(hl.date_key)::timestamp AS last_log_at
+      SELECT MAX(hl.occurred_at) AS last_log_at
       FROM habit_logs hl
       WHERE hl.habit_id = h.id
     ) hl ON true
     WHERE
-      ($1 = '' OR h.name ILIKE $2 OR u.username ILIKE $2 OR u.email ILIKE $2)
+      ($4::bigint IS NULL OR h.user_id = $4)
+      AND ($1 = '' OR h.name ILIKE $2 OR u.username ILIKE $2 OR u.email ILIKE $2)
       AND (
         $3 = 'all'
-        OR ($3 = 'active' AND COALESCE(hl.last_log_at::date, h.created_at::date) >= CURRENT_DATE - INTERVAL '7 days')
-        OR ($3 = 'inactive' AND COALESCE(hl.last_log_at::date, h.created_at::date) < CURRENT_DATE - INTERVAL '7 days')
+        OR ($3 = 'active' AND hl.last_log_at >= NOW() - INTERVAL '7 days')
+        OR ($3 = 'inactive' AND (hl.last_log_at IS NULL OR hl.last_log_at < NOW() - INTERVAL '7 days'))
       )
   `;
 
   const [listResult, countResult] = await Promise.all([
-    query(listQuery, [searchTerm, wildcard, normalizedStatus, limitNum, offset]),
-    query(countQuery, [searchTerm, wildcard, normalizedStatus])
+    query(listQuery, [searchTerm, wildcard, normalizedStatus, limitNum, offset, ownerId]),
+    query(countQuery, [searchTerm, wildcard, normalizedStatus, ownerId])
   ]);
 
   const total = parseInt(countResult.rows[0]?.total || '0', 10);
@@ -363,109 +393,13 @@ const getAnalytics = async ({ inactiveDays }) => {
   };
 };
 
-const resolveEmailRecipients = async ({ mode, userIds, inactiveDays }) => {
-  const normalizedMode = ['selected', 'all', 'inactive'].includes(mode) ? mode : 'all';
-
-  if (normalizedMode === 'selected') {
-    if (!Array.isArray(userIds) || userIds.length === 0) {
-      return [];
-    }
-    const numericIds = userIds
-      .map((id) => parseInt(id, 10))
-      .filter((id) => Number.isInteger(id) && id > 0);
-
-    if (numericIds.length === 0) {
-      return [];
-    }
-
-    const res = await query(
-      'SELECT id, name, email FROM users WHERE is_active = true AND id = ANY($1::bigint[])',
-      [numericIds]
-    );
-    return res.rows;
-  }
-
-  if (normalizedMode === 'inactive') {
-    const threshold = Math.max(1, parseInt(inactiveDays, 10) || 30);
-    const res = await query(
-      'SELECT id, name, email FROM users WHERE is_active = true AND COALESCE(last_active_at, created_at) < NOW() - make_interval(days => $1::int)',
-      [threshold]
-    );
-    return res.rows;
-  }
-
-  const res = await query('SELECT id, name, email FROM users WHERE is_active = true');
-  return res.rows;
-};
-
-const normalizeWishTrailUrl = (value) => {
-  const raw = sanitizePlainText(value);
-  if (!raw) return null;
-  const baseUrl = process.env.FRONTEND_URL || 'https://wishtrail.in';
-  let url;
-  try {
-    url = new URL(raw, baseUrl);
-    const trustedHost = new URL(baseUrl).hostname;
-    if (!['wishtrail.in', 'www.wishtrail.in', trustedHost].includes(url.hostname)) return null;
-  } catch {
-    return null;
-  }
-  return url.toString();
-};
-
-const sendBroadcastEmail = async ({ mode, userIds, inactiveDays, subject, title, subtitle, body, ending, ctaLabel, ctaUrl }) => {
-  const cleanSubject = sanitizePlainText(subject).slice(0, 180);
-  const cleanTitle = sanitizePlainText(title).slice(0, 180);
-  const cleanSubtitle = sanitizePlainText(subtitle).slice(0, 220);
-  const cleanBody = sanitizePlainText(body).slice(0, 5000);
-  const cleanCtaLabel = sanitizePlainText(ctaLabel || 'Open WishTrail').slice(0, 80) || 'Open WishTrail';
-  const cleanCtaUrl = normalizeWishTrailUrl(ctaUrl) || null;
-
-  if (!cleanSubject || !cleanTitle || !cleanBody) {
-    throw new Error('Subject, title and body are required');
-  }
-
-  const recipients = await resolveEmailRecipients({ mode, userIds, inactiveDays });
-
-  if (recipients.length === 0) {
-    return {
-      requested: 0,
-      sent: 0,
-      failed: 0
-    };
-  }
-
-  const results = await Promise.allSettled(
-    recipients.map((user) =>
-      emailService.sendAdminBroadcastEmail({
-        to: user.email,
-        subject: cleanSubject,
-        text: {
-          recipientName: user.name,
-          title: cleanTitle,
-          subtitle: cleanSubtitle,
-          body: cleanBody,
-          ctaLabel: cleanCtaLabel,
-          ctaUrl: cleanCtaUrl
-        }
-      })
-    )
-  );
-
-  const sent = results.filter((res) => res.status === 'fulfilled').length;
-
-  return {
-    requested: recipients.length,
-    sent,
-    failed: recipients.length - sent
-  };
-};
 
 module.exports = {
+  validId,
+  formatUserRow,
   getUsers,
   getGoals,
   getHabits,
   getAnalytics,
-  sendBroadcastEmail,
   sanitizePlainText
 };

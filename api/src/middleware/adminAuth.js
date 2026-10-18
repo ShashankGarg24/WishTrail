@@ -10,9 +10,8 @@ const normalizeIp = (value = '') => {
 };
 
 const getRequestIp = (req) => {
-  const forwardedFor = req.headers['x-forwarded-for'];
-  const xRealIp = req.headers['x-real-ip'];
-  return normalizeIp(forwardedFor || xRealIp || req.ip || req.socket?.remoteAddress || '');
+  // Let Express resolve the trusted proxy chain; never trust a caller's raw header.
+  return normalizeIp(req.ip || req.socket?.remoteAddress || '');
 };
 
 const getAllowedAdminIps = () => {
@@ -39,7 +38,15 @@ const signAdminToken = (payload) => {
   });
 };
 
+const isAllowedAdminIp = (req) => {
+  if (!(process.env.ADMIN_ALLOWED_IPS || '').trim()) return true;
+  return getAllowedAdminIps().has(getRequestIp(req));
+};
+
 const requireAdminAuth = (req, res, next) => {
+  if (!isAllowedAdminIp(req)) {
+    return res.status(403).json({ success: false, message: 'Admin access denied for this IP' });
+  }
   const authHeader = req.headers.authorization || '';
 
   if (!authHeader.startsWith('Bearer ')) {
@@ -85,6 +92,7 @@ const requireAdminAuth = (req, res, next) => {
 
 module.exports = {
   getRequestIp,
+  isAllowedAdminIp,
   signAdminToken,
   requireAdminAuth
 };

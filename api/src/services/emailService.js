@@ -688,7 +688,7 @@ class EmailService {
           padding: 20px;
         }
         .container {
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          background: linear-gradient(135deg, #4C99E6 0%, #236bad 100%);
           padding: 20px;
           border-radius: 10px;
           color: white;
@@ -707,12 +707,12 @@ class EmailService {
           color: #333;
         }
         .highlight {
-          color: #667eea;
+          color: #4C99E6;
           font-weight: bold;
         }
         .cta-button {
           display: inline-block;
-          background: #667eea;
+          background: #4C99E6;
           color: #ffffff !important;
           padding: 12px 28px;
           text-decoration: none;
@@ -749,7 +749,7 @@ class EmailService {
         ${safeBody}
         </div>
         <div style="text-align:center;">
-          <a href="${safeDestinationUrl}" class="cta-button" style="display:inline-block;background:#667eea;color:#ffffff !important;padding:12px 28px;text-decoration:none;border-radius:6px;font-weight:bold;margin:20px 0;">${safeCtaLabel}</a>
+          <a href="${safeDestinationUrl}" class="cta-button" style="display:inline-block;background:#4C99E6;color:#ffffff !important;padding:12px 28px;text-decoration:none;border-radius:6px;font-weight:bold;margin:20px 0;">${safeCtaLabel}</a>
         </div>
       </div>
 

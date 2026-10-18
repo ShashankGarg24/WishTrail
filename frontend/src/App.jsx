@@ -16,6 +16,7 @@ import { configService } from './services/configService'
 import { initializeWebPush } from './services/webPush'
 import { notificationsAPI } from './services/api'
 import { FEATURES } from './config/features'
+import { ADMIN_BASE } from './admin/config'
 const HomePage = lazy(() => import('./pages/HomePage'))
 const AuthPage = lazy(() => import('./pages/AuthPage'))
 const DashboardPageNew = lazy(() => import('./pages/DashboardPage'))
@@ -46,22 +47,13 @@ const LeaderboardPageNew = lazy(() => import('./pages/LeaderboardPage'))
 const WhatsNewPage = lazy(() => import('./pages/WhatsNewPage'))
 const AdminPage = lazy(() => import('./pages/AdminPage'))
 
-const normalizeRoutePath = (value, fallback = '/admin') => {
-  const raw = String(value || fallback).trim()
-  const withLeadingSlash = raw.startsWith('/') ? raw : `/${raw}`
-  const singleSlash = withLeadingSlash.replace(/\/+/g, '/')
-  const trimmed = singleSlash.replace(/\/+$/g, '')
-  return trimmed || fallback
-}
-
-const ADMIN_UI_ROUTE_PATH = normalizeRoutePath(import.meta.env.VITE_ADMIN_UI_ROUTE, '/admin')
-
 const RouteLoadingScreen = StartupSkeleton
 
 function App() {
   const { isDarkMode, initializeAuth, isAuthenticated} = useApiStore()
   const [authReady, setAuthReady] = useState(false)
   const location = useLocation()
+  const isAdminRoute = location.pathname === ADMIN_BASE || location.pathname.startsWith(`${ADMIN_BASE}/`)
   const navigate = useNavigate()
   const [inNativeApp, setInNativeApp] = useState(false)
   const [maintenanceMode, setMaintenanceMode] = useState(null)
@@ -99,10 +91,11 @@ function App() {
   }, [])
 
   useEffect(() => {
+    if (isAdminRoute) return;
     let cancelled = false;
     Promise.resolve(initializeAuth()).catch(error => { console.error('Session bootstrap failed', error); }).finally(() => { if (!cancelled) setAuthReady(true); });
     return () => { cancelled = true; };
-  }, [initializeAuth]);
+  }, [initializeAuth, isAdminRoute]);
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', isDarkMode);
@@ -262,6 +255,9 @@ function App() {
     };
   }, [isAuthenticated, inNativeApp])
 
+  // Admin has separate authentication and remains available during maintenance.
+  if (isAdminRoute) return <><Toaster position="top-right" containerStyle={{ zIndex: 99999 }} /><Suspense fallback={<RouteLoadingScreen />}><AdminPage /></Suspense></>;
+
   // Show coming soon / maintenance pages if enabled
   if (!authReady) return <StartupSkeleton />
 
@@ -308,7 +304,6 @@ function App() {
               
               {/* What's New page - Public */}
               <Route path="/whats-new" element={<WhatsNewPage />} />
-              <Route path={ADMIN_UI_ROUTE_PATH} element={<AdminPage />} />
               
               {/* Error pages - Public */}
               <Route path="/error/generic" element={<GenericErrorPage />} />
