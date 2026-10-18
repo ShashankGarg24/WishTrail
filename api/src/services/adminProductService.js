@@ -63,7 +63,7 @@ async function get() {
       message: maintenance?.description || "",
     },
     promotion: { ...emptyPromotion, ...(promotion || {}) },
-    promotionPlacementLive: false,
+    promotionPlacementLive: true,
     deploymentRequired: [
       "Premium limits",
       "Feature switches without runtime consumers",
@@ -93,7 +93,7 @@ async function setPromotion(input) {
     "promotion",
     validatePromotion(input),
     null,
-    "Predefined promotion contract; live placement deferred",
+    "Predefined Home Overview announcement card",
   );
   return get();
 }

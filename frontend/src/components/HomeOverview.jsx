@@ -1,3 +1,4 @@
+import ActivePromotion from './ActivePromotion'
 import { WeeklyTrailTeaser } from './WeeklyTrail'
 import { useEffect, useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
@@ -388,6 +389,12 @@ export default function HomeOverview({ user, goals = [], habits = [], stats = {}
             </h1>
             <p className="mt-0.5 text-sm text-slate-500">{greetingMessage}</p>
           </div>
+        </div>
+        <div className="hidden md:block">
+          <WeeklyTrailTeaser userId={user?.id} refreshKey={JSON.stringify(stats)} fallback={<WebGreetingBanner isMorning={isMorning} bannerImage={bannerImage} bannerOverlay={bannerOverlay} greeting={greeting} firstName={firstName} greetingEmoji={greetingEmoji} greetingMessage={greetingMessage} onNew={() => setQuickActionsOpen(true)} />} />
+        </div>
+        <ActivePromotion userId={user?.id} />
+        <div className="md:hidden">
           <div className="mb-4 flex rounded-xl bg-slate-100 p-1 dark:bg-gray-800">
             {['overview', 'goals', 'habits'].map((tab) => (
               <button key={tab} type="button" onClick={() => onTab(tab)} className={`flex-1 rounded-lg py-2 text-sm font-semibold capitalize ${tab === 'overview' ? 'bg-white text-blue-600 shadow-sm dark:bg-gray-700' : 'text-slate-500'}`}>
@@ -443,7 +450,6 @@ export default function HomeOverview({ user, goals = [], habits = [], stats = {}
         </div>
 
         <div className="hidden md:block">
-          <WeeklyTrailTeaser userId={user?.id} refreshKey={JSON.stringify(stats)} fallback={<WebGreetingBanner isMorning={isMorning} bannerImage={bannerImage} bannerOverlay={bannerOverlay} greeting={greeting} firstName={firstName} greetingEmoji={greetingEmoji} greetingMessage={greetingMessage} onNew={() => setQuickActionsOpen(true)} />} />
           <div className="mb-4 grid grid-cols-4 gap-3">
             {[
               [Target, 'Active Goals', stats?.activeGoals ?? activeGoals.length, 'bg-rose-50 text-rose-500'],

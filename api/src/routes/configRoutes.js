@@ -8,6 +8,9 @@ const router = express.Router();
 // Public route - Get maintenance status
 router.get('/maintenance', configController.getMaintenanceStatus);
 
+// Product users receive only the eligible rendering payload, never raw Config.
+router.get('/active-promotion', require('../middleware/auth').protect, configController.getActivePromotion);
+
 // Protected routes - Admin only (add admin check middleware if available)
 router.get('/', protect, configController.getAllConfigs);
 router.get('/:key', protect, configController.getConfigByKey);

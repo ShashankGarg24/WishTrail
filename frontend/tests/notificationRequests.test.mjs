@@ -8,6 +8,7 @@ import { pathToFileURL } from 'node:url';
 const source = (await readFile(new URL('../src/services/api.js', import.meta.url), 'utf8'))
   .replace("from 'axios'", `from '${pathToFileURL(createRequire(import.meta.url).resolve('axios')).href}'`)
   .replace("import { API_CONFIG } from '../config/api';", 'const API_CONFIG = { BASE_URL: "http://localhost/api/v1", TIMEOUT: 20 };')
+  .replace("import { ADMIN_BASE } from '../admin/config';", 'const ADMIN_BASE = "/admin";')
   .replace("import { addTimezoneAndLocale } from '../utils/timezoneUtils';", 'const addTimezoneAndLocale = value => value;');
 const storage = new Map();
 globalThis.localStorage = { getItem: key => storage.get(key), setItem: (key, value) => storage.set(key, value), removeItem: key => storage.delete(key) };

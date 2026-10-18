@@ -5,6 +5,15 @@ const Config = require('../models/Config');
  * Manages system-wide configuration settings
  */
 module.exports = {
+  async getActivePromotion(req, res, next) {
+    res.set('Cache-Control', 'private, no-store');
+    try {
+      const promotion = await require('../services/activePromotionService').getActivePromotion(req.user);
+      return res.status(200).json({ success: true, data: { promotion } });
+    } catch (error) {
+      next(error);
+    }
+  },
   /**
    * Get all config settings
    */

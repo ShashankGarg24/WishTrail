@@ -75,14 +75,13 @@ function ProductEditor({ data, refresh }) {
       <section className="admin-panel">
         <div className="admin-panel-heading">
           <h2>Promotions</h2>
-          <span className="admin-badge">Live placement deferred</span>
+          <span className="admin-badge">Live Home announcement</span>
         </div>
         <div className="admin-panel-body">
           <p className="admin-notice">
-            Content is saved in existing application configuration. The website
-            and app have no live promotion placement yet. Enabled, dates and
-            audience define the contract for that future deployment; saving does
-            not display an offer to users.
+            Enabled promotions appear on Home Overview for eligible users on web
+            and in the app. Start is inclusive and end is exclusive (UTC).
+            Updates appear on refresh or within one minute while Home is visible.
           </p>
           <div className="admin-editor-grid">
             <form
@@ -209,7 +208,7 @@ function ProductEditor({ data, refresh }) {
           description={
             action === "maintenance"
               ? `${maintenance.enabled ? "Enable" : "Disable"} maintenance mode for the product? Message: ${maintenance.message || "System maintenance in progress"}`
-              : "Save this predefined promotion configuration? Live placement remains deferred."
+              : "Save this promotion for eligible Home Overview users?"
           }
           confirmLabel="Apply change"
           danger={action === "maintenance" && maintenance.enabled}

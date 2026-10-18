@@ -257,5 +257,5 @@ test("absent remote config keeps maintenance and the promotion contract disabled
   const result = await product.get();
   expect(result.maintenance.enabled).toBe(false);
   expect(result.promotion).toMatchObject({ enabled: false, surface: 'announcement_card' });
-  expect(result.promotionPlacementLive).toBe(false);
+  expect(result.promotionPlacementLive).toBe(true);
 });
