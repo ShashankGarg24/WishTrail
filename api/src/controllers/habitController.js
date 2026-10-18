@@ -1299,6 +1299,21 @@ exports.replaceHabitLog = async (req, res, next) => {
   } catch (error) { return next(error); }
 };
 
+exports.deleteHabitLog = async (req, res, next) => {
+  try {
+    const habitId = parseInt(req.params.id, 10);
+    const logId = parseInt(req.params.logId, 10);
+    if (!habitId || !logId) return res.status(400).json({ success: false, message: 'Invalid habit log' });
+
+    const habit = await pgHabitService.getHabitById(habitId, req.user.id);
+    if (!habit) return res.status(404).json({ success: false, message: 'Habit not found' });
+
+    const deleted = await pgHabitLogService.deleteHabitLog(logId, req.user.id, habitId);
+    if (!deleted) return res.status(404).json({ success: false, message: 'Habit log entry not found' });
+    return res.json({ success: true, message: 'Habit log deleted successfully', data: { deleted: true } });
+  } catch (error) { return next(error); }
+};
+
 /**
  * Delete one completion entry from a habit daily log
  */

@@ -12,7 +12,10 @@ describe('Goal metrics', () => {
       { text: 'Progress', date_key: '2026-09-29' },
       { text: '', emotion: 'okay', date_key: '2026-10-07' }
     ] });
-    expect(metrics).toMatchObject({ progress: 40, progressUpdates: 3, activeDays: 2, activeWeeks: 2, eligibleWeeks: 4, consistency: 50, daysLeft: 10 });
+    expect(metrics).toMatchObject({ progress: 40, goalLogs: 4, checkInDays: 3, progressUpdates: 3, activeDays: 2, activeWeeks: 2, eligibleWeeks: 4, consistency: 50, daysLeft: 10, lastProgressDate: '2026-09-29', lastCheckInDate: '2026-10-07', daysSinceLastProgress: 11, daysSinceLastCheckIn: 3 });
+    expect(metrics.activityDays).toHaveLength(30);
+    expect(metrics.weeklyActivity).toHaveLength(4);
+    expect(metrics.activityDays.find(day => day.date === '2026-10-07')).toMatchObject({ logs: 1, progressUpdates: 0, moodSamples: 1 });
   });
 
   test('mood distribution uses only logs containing emotion, including reflection-only logs', () => {

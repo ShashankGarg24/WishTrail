@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
+import { CalendarDays, Check, ChevronDown, ChevronLeft, ChevronRight, Flag } from 'lucide-react'
 
 const keyForDay = (year, month, day) => `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
 
@@ -39,10 +39,20 @@ export default function ActivityCalendar({ title = 'Calendar view', subtitle, ma
         {cells.map((day, index) => {
           if (!day) return <span key={`empty-${index}`} className="h-10" />
           const mark = marks[keyForDay(year, monthIndex, day)]
-          return <span key={day} title={mark?.label || undefined} className={`relative mx-0.5 mb-1 grid h-9 place-items-center rounded-lg text-xs font-bold ${mark?.className || 'text-slate-500 dark:text-gray-400'}`}>{day}{mark && <i className={`absolute bottom-1 h-1.5 w-1.5 rounded-full ${mark.dotClassName || 'bg-[#1683ed]'}`} />}</span>
+          const indicators = mark?.indicators || []
+          const hasStart = indicators.includes('start')
+          const hasEnd = indicators.includes('end')
+          const hasLog = indicators.includes('log')
+          return <span key={day} title={mark?.label || undefined} className={`relative mx-0.5 mb-1 grid h-9 place-items-center rounded-lg text-xs font-bold ${mark?.className || 'text-slate-500 dark:text-gray-400'}`}>
+            {day}
+            {hasStart && <i className="absolute -left-1 -top-1 grid h-4 w-4 place-items-center rounded-full bg-blue-600 text-white ring-2 ring-white shadow-sm dark:ring-gray-800"><Flag className="h-2.5 w-2.5 fill-current" /></i>}
+            {hasEnd && <i className="absolute -right-1 -top-1 grid h-4 w-4 place-items-center rounded-full bg-emerald-500 text-white ring-2 ring-white shadow-sm dark:ring-gray-800"><Check className="h-2.5 w-2.5" strokeWidth={3} /></i>}
+            {hasLog && <i className="absolute bottom-1 h-1.5 w-4 rounded-full bg-sky-500" />}
+            {mark && indicators.length === 0 && <i className={`absolute bottom-1 h-1.5 w-1.5 rounded-full ${mark.dotClassName || 'bg-[#1683ed]'}`} />}
+          </span>
         })}
       </div>
-      {legend.length > 0 && <div className="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-2 border-t border-slate-100 pt-3 text-[10px] text-slate-500 dark:border-gray-700">{legend.map(item => <span key={item.label} className="flex items-center gap-1.5"><i className={`h-2 w-2 rounded-full ${item.dotClassName}`} />{item.label}</span>)}</div>}
+      {legend.length > 0 && <div className="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-2 border-t border-slate-100 pt-3 text-[10px] text-slate-500 dark:border-gray-700">{legend.map(item => <span key={item.label} className="flex items-center gap-1.5">{item.type === 'start' ? <i className="grid h-4 w-4 place-items-center rounded-full bg-blue-600 text-white"><Flag className="h-2.5 w-2.5 fill-current" /></i> : item.type === 'end' ? <i className="grid h-4 w-4 place-items-center rounded-full bg-emerald-500 text-white"><Check className="h-2.5 w-2.5" strokeWidth={3} /></i> : item.type === 'log' ? <i className="h-1.5 w-4 rounded-full bg-sky-500" /> : <i className={`h-2 w-2 rounded-full ${item.dotClassName}`} />}{item.label}</span>)}</div>}
     </div>}
   </section>
 }

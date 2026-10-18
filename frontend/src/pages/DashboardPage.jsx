@@ -27,6 +27,27 @@ const DependencyWarningModal = lazy(() => import('../components/DependencyWarnin
 const WhatsNewModal = lazy(() => import('../components/WhatsNewModal'))
 const DailyLogsPromptModal = lazy(() => import('../components/DailyLogsPromptModal'))
 
+const ATTENTION_GOAL_HEALTH = new Set(['SLIPPING', 'STALLED'])
+
+const getGoalHealthState = goal => String(goal?.goalHealth || '').toUpperCase()
+
+const getGoalStatus = goal => {
+  if (goal.completedAt) {
+    return { label: 'Completed', state: 'COMPLETED', className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300' }
+  }
+
+  const state = getGoalHealthState(goal) || 'GETTING_STARTED'
+  const statuses = {
+    GETTING_STARTED: { label: 'Getting Started', className: 'bg-sky-100 text-sky-700 dark:bg-sky-950/30 dark:text-sky-300' },
+    STRONG: { label: 'Strong', className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300' },
+    STABLE: { label: 'Stable', className: 'bg-blue-100 text-blue-700 dark:bg-blue-950/30 dark:text-blue-300' },
+    SLIPPING: { label: 'Slipping', className: 'bg-amber-100 text-amber-700 dark:bg-amber-950/30 dark:text-amber-300' },
+    STALLED: { label: 'Stalled', className: 'bg-rose-100 text-rose-700 dark:bg-rose-950/30 dark:text-rose-300' }
+  }
+
+  return { state, ...(statuses[state] || { label: goal.healthLabel || 'Active', className: 'bg-blue-100 text-blue-700 dark:bg-blue-950/30 dark:text-blue-300' }) }
+}
+
 const DashboardPageNew = () => {
   const [activeTab, setActiveTab] = useState('overview')
   const [searchParams, setSearchParams] = useSearchParams()
@@ -300,9 +321,9 @@ const DashboardPageNew = () => {
     if (goalFilter === 'completed') {
       filtered = filtered.filter(g => g.completedAt)
     } else if (goalFilter === 'in-progress') {
-      filtered = filtered.filter(g => !g.completedAt && (!g.targetDate || new Date(g.targetDate) >= new Date()))
+      filtered = filtered.filter(g => !g.completedAt && !ATTENTION_GOAL_HEALTH.has(getGoalHealthState(g)))
     } else if (goalFilter === 'needs-attention') {
-      filtered = filtered.filter(g => !g.completedAt && g.targetDate && new Date(g.targetDate) < new Date())
+      filtered = filtered.filter(g => !g.completedAt && ATTENTION_GOAL_HEALTH.has(getGoalHealthState(g)))
     }
 
     if (goalCategoryFilter !== 'all') {
@@ -337,17 +358,6 @@ const DashboardPageNew = () => {
 
     return { completed, active, overdue, percent }
   }, [goals])
-
-  const getGoalStatus = (goal) => {
-    if (goal.completedAt) {
-      return { label: 'Completed', className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300' }
-    }
-    if (goal.targetDate && new Date(goal.targetDate) < new Date()) {
-      return { label: 'Slipping', className: 'bg-rose-100 text-rose-700 dark:bg-rose-950/30 dark:text-rose-300' }
-    }
-    if (Number(goal.progress?.percent || 0) >= 60) return { label: 'Strong', className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300' }
-    return { label: 'Stable', className: 'bg-blue-100 text-blue-700 dark:bg-blue-950/30 dark:text-blue-300' }
-  }
 
   const goalCover = (goal) => {
     const category = String(goal?.category || '').toLowerCase()
@@ -847,6 +857,7 @@ const DashboardPageNew = () => {
                   const goalProgress = Math.min(100, Math.max(0, Number(goal.completedAt ? 100 : (goal.progress?.percent || 0))))
                   const targetDate = goal.targetDate ? new Date(goal.targetDate) : null
                   const dueLabel = targetDate ? targetDate.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : 'No target date'
+                  const isOverdue = !goal.completedAt && targetDate && targetDate < new Date()
                   const goalId = goal.id || goal._id
 
                   return (
@@ -864,8 +875,8 @@ const DashboardPageNew = () => {
                       <div className="min-w-0 flex-1 p-4">
                         <div className="flex items-start gap-3"><CategoryIcon category={goal.category} size="md" /><h3 className="min-w-0 flex-1 truncate pt-1 text-sm font-bold text-[#0b1746] dark:text-white sm:text-base">{goal.title}</h3><button type="button" aria-label={`Actions for ${goal.title}`} onClick={(event) => { event.stopPropagation(); setGoalActionMenu(goal) }} className="-mr-1 rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700"><MoreVertical className="h-5 w-5" /></button></div>
                         <div className="mt-2 flex items-center justify-between"><span className={`inline-flex rounded-full px-2 py-1 text-[10px] font-semibold ${status.className}`}>{status.label}</span><span className="text-xs font-bold text-[#0b1746] dark:text-white">{goalProgress}%</span></div>
-                        <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-[#e9eef5] dark:bg-gray-700"><div className={`h-full rounded-full ${status.label === 'Slipping' ? 'bg-rose-400' : status.label === 'Completed' || status.label === 'Strong' ? 'bg-emerald-500' : 'bg-[#1683ed]'}`} style={{ width: `${goalProgress}%` }}/></div>
-                        <div className="mt-3 flex items-center justify-between text-[11px] text-gray-500"><span>{(goal.lastProgressAt || goal.progress?.lastUpdatedAt || goal.updatedAt) ? `Last progress: ${new Date(goal.lastProgressAt || goal.progress?.lastUpdatedAt || goal.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : 'No progress yet'}</span><span>{dueLabel}</span></div>
+                        <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-[#e9eef5] dark:bg-gray-700"><div className={`h-full rounded-full ${status.state === 'STALLED' ? 'bg-rose-500' : status.state === 'SLIPPING' ? 'bg-amber-400' : status.state === 'COMPLETED' || status.state === 'STRONG' ? 'bg-emerald-500' : 'bg-[#1683ed]'}`} style={{ width: `${goalProgress}%` }}/></div>
+                        <div className="mt-3 flex items-center justify-between gap-3 text-[11px] text-gray-500"><span className="truncate">{goal.healthReason || 'No progress yet'}</span><span className={isOverdue ? 'shrink-0 font-semibold text-rose-600 dark:text-rose-300' : 'shrink-0'}>{isOverdue ? `Overdue · ${dueLabel}` : dueLabel}</span></div>
                         {goal.completedAt && <div className="mt-4 flex gap-2"><button type="button" onClick={event => { event.stopPropagation(); setSelectedGoal({ ...goal, _openJourney: true }) }} className="min-h-[44px] flex-1 rounded-xl border border-blue-200 px-3 py-2 text-xs font-bold text-[#2369aa]">View Journey</button>{isRecentlyCompleted(goal) && <button type="button" onClick={event => { event.stopPropagation(); setGoalToShare(goal); setIsShareGoalModalOpen(true) }} className="min-h-[44px] flex-1 rounded-xl bg-[#4c99e6] px-3 py-2 text-xs font-bold text-white">Share</button>}</div>}
                       </div>
                     </motion.article>

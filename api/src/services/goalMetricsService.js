@@ -30,6 +30,7 @@ function calculateGoalMetrics({ goal, updates = [], timezone = 'UTC', todayKey, 
     return key >= rangeStart && key <= today;
   });
   const meaningful = rangedUpdates.filter((item) => String(item.text || '').trim());
+  const checkInDateKeys = [...new Set(rangedUpdates.map((item) => String(item.dateKey || item.date_key || '').slice(0, 10)).filter(Boolean))].sort();
   const activeDateKeys = [...new Set(meaningful.map((item) => String(item.dateKey || item.date_key || '').slice(0, 10)).filter(Boolean))].sort();
   const completionKey = completedAt ? getDateKeyInTimezone(completedAt, timezone) : null;
   const completionInRange = completionKey && completionKey >= rangeStart && completionKey <= today;
@@ -57,18 +58,49 @@ function calculateGoalMetrics({ goal, updates = [], timezone = 'UTC', todayKey, 
   const targetDay = dateNumber(targetKey);
   const todayDay = dateNumber(today);
   const daysDelta = targetDay === null || todayDay === null ? null : targetDay - todayDay;
+  const lastMeaningful = [...updates].reverse().find((item) => String(item.text || '').trim());
+  const lastProgressDate = lastMeaningful ? String(lastMeaningful.dateKey || lastMeaningful.date_key || '').slice(0, 10) : null;
+  const lastCheckIn = updates.length ? String(updates[updates.length - 1].dateKey || updates[updates.length - 1].date_key || '').slice(0, 10) : null;
+  const activityDays = Array.from({ length: rangeDays }, (_, index) => {
+    const date = new Date((rangeStartNumber + index) * DAY_MS).toISOString().slice(0, 10);
+    const entries = rangedUpdates.filter((item) => String(item.dateKey || item.date_key || '').slice(0, 10) === date);
+    return {
+      date,
+      logs: entries.length,
+      progressUpdates: entries.filter((item) => String(item.text || '').trim()).length,
+      moodSamples: entries.filter((item) => String(item.emotion || '').trim()).length
+    };
+  });
+  const weeklyActivity = Array.from({ length: eligibleWeeks }, (_, index) => {
+    const weekNumber = earliestWeek + index * 7;
+    const entries = rangedUpdates.filter((item) => mondayOf(String(item.dateKey || item.date_key || '').slice(0, 10)) === weekNumber);
+    return {
+      weekStart: new Date(weekNumber * DAY_MS).toISOString().slice(0, 10),
+      logs: entries.length,
+      progressUpdates: entries.filter((item) => String(item.text || '').trim()).length,
+      activeDays: new Set(entries.map((item) => String(item.dateKey || item.date_key || '').slice(0, 10))).size
+    };
+  });
   return {
     progress,
     rangeDays,
     rangeStart,
     rangeEnd: today,
     progressUpdates: meaningful.length + (completionInRange && !meaningful.some((item) => String(item.dateKey || item.date_key).slice(0, 10) === completionKey) ? 1 : 0),
+    goalLogs: rangedUpdates.length,
+    checkInDays: checkInDateKeys.length,
     activeDays: activeDateKeys.length,
     consistency,
     activeWeeks,
     eligibleWeeks,
     daysLeft: daysDelta === null ? null : Math.max(0, daysDelta),
     overdueDays: daysDelta !== null && daysDelta < 0 ? Math.abs(daysDelta) : 0,
+    lastProgressDate,
+    lastCheckInDate: lastCheckIn,
+    daysSinceLastProgress: lastProgressDate ? Math.max(0, todayDay - dateNumber(lastProgressDate)) : null,
+    daysSinceLastCheckIn: lastCheckIn ? Math.max(0, todayDay - dateNumber(lastCheckIn)) : null,
+    activityDays,
+    weeklyActivity,
     moodSamples,
     moodDistribution,
     progressSeries: [

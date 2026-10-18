@@ -454,7 +454,7 @@ class PgHabitLogService {
     entries.splice(completionIndex, 1);
 
     if (entries.length === 0) {
-      const deleted = await this.deleteHabitLog(logId, userId);
+      const deleted = await this.deleteHabitLog(logId, userId, habitId);
       if (!deleted) return null;
       return { deleted: true, log: null };
     }
@@ -501,11 +501,11 @@ class PgHabitLogService {
    * @param {number} userId - User ID for ownership check
    * @returns {Promise<boolean>} Success status
    */
-  async deleteHabitLog(id, userId) {
+  async deleteHabitLog(id, userId, habitId) {
     return await transaction(async (client) => {
       // Get the log first
-      const logSql = `SELECT * FROM habit_logs WHERE id = $1 AND user_id = $2`;
-      const logResult = await client.query(logSql, [id, userId]);
+      const logSql = `SELECT * FROM habit_logs WHERE id = $1 AND user_id = $2 AND habit_id = $3`;
+      const logResult = await client.query(logSql, [id, userId, habitId]);
 
       if (logResult.rows.length === 0) {
         return false;

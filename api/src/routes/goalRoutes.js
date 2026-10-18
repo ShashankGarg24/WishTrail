@@ -105,6 +105,8 @@ router.get('/:id/updates', goalController.getGoalUpdates);
 router.get('/:id/updates/today', goalController.getTodayGoalUpdate);
 router.put('/:id/updates/today', goalController.upsertTodayGoalUpdate);
 router.delete('/:id/updates/today', goalController.deleteTodayGoalUpdate);
+router.patch('/:id/updates/:updateId', goalController.updateGoalUpdate);
+router.delete('/:id/updates/:updateId', goalController.deleteGoalUpdate);
 router.post('/', createGoalValidation, goalController.createGoal);
 router.get('/yearly/:year', goalController.getYearlyGoalsSummary);
 router.get('/:id', goalController.getGoal);

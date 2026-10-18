@@ -203,25 +203,26 @@ async function buildGoalTimeline(goal, goalDetails) {
     logger.error('Error fetching activity timeline:', err);
   }
 
-  // Daily goal logs are the narrative events between start and completion.
-  // Emotion-only reflections are intentionally excluded from Journey.
+  // Daily goal logs are the check-ins between start and completion. Include
+  // emotion-only logs as well so Journey matches what the user actually saved.
   try {
     const updatesResult = await pgQuery(
-      `SELECT id, text, date_key::text AS date_key, created_at
+      `SELECT id, text, emotion, date_key::text AS date_key, created_at
          FROM goal_updates
         WHERE goal_id = $1 AND user_id = $2
-          AND NULLIF(BTRIM(text), '') IS NOT NULL
         ORDER BY date_key ASC, created_at ASC`,
       [goal.id, goal.user_id]
     );
     for (const update of updatesResult.rows || []) {
       timeline.push({
         id: `goal-update-${update.id}`,
+        updateId: update.id,
         type: 'progress_update',
         timestamp: new Date(`${update.date_key}T12:00:00.000Z`),
         dateKey: update.date_key,
-        title: 'Progress Update',
-        description: update.text,
+        title: 'Goal Log',
+        description: String(update.text || '').trim() || null,
+        emotion: update.emotion || null,
         icon: 'flag',
         color: 'blue'
       });
@@ -414,6 +415,12 @@ const getGoalTimeline = async (req, res, next) => {
       success: true,
       data: {
         timeline: events,
+        calendarEvents: timeline.map(event => ({
+          id: event.id,
+          type: event.type,
+          dateKey: event.dateKey,
+          timestamp: event.timestamp
+        })),
         pagination: { limit, offset, total: timeline.length, hasMore: offset + events.length < timeline.length }
       }
     });
@@ -2033,6 +2040,68 @@ const deleteTodayGoalUpdate = async (req, res, next) => {
   }
 };
 
+// @desc    Update a historical goal log without changing its original date
+// @route   PATCH /api/v1/goals/:id/updates/:updateId
+// @access  Private (owner only)
+const updateGoalUpdate = async (req, res, next) => {
+  try {
+    const rawText = typeof req.body?.text === 'string' ? req.body.text.trim() : '';
+    const text = rawText.length > 0 ? rawText : null;
+    const emotion = typeof req.body?.emotion === 'string' && req.body.emotion.trim().length > 0
+      ? req.body.emotion.trim().toLowerCase()
+      : null;
+
+    if (!text && !emotion) {
+      return res.status(400).json({ success: false, message: 'Either text or emotion is required' });
+    }
+    if (text && text.length > 300) {
+      return res.status(400).json({ success: false, message: 'Text must be 300 characters or less' });
+    }
+    if (emotion && !ALLOWED_GOAL_UPDATE_EMOTIONS.has(emotion)) {
+      return res.status(400).json({ success: false, message: 'Invalid emotion' });
+    }
+
+    const goalUpdate = await pgGoalUpdateService.updateGoalUpdate({
+      goalId: req.params.id,
+      updateId: req.params.updateId,
+      userId: req.user.id,
+      text,
+      emotion
+    });
+
+    if (!goalUpdate) {
+      return res.status(404).json({ success: false, message: 'Goal log not found' });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Goal log updated successfully',
+      data: { goalUpdate }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Delete a historical goal log
+// @route   DELETE /api/v1/goals/:id/updates/:updateId
+// @access  Private (owner only)
+const deleteGoalUpdate = async (req, res, next) => {
+  try {
+    const deleted = await pgGoalUpdateService.deleteGoalUpdate({
+      goalId: req.params.id,
+      updateId: req.params.updateId,
+      userId: req.user.id
+    });
+    if (!deleted) {
+      return res.status(404).json({ success: false, message: 'Goal log not found' });
+    }
+    return res.status(200).json({ success: true, message: 'Goal log deleted successfully', data: { deleted: true } });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Get goal updates history
 // @route   GET /api/v1/goals/:id/updates
 // @access  Private
@@ -2092,6 +2161,8 @@ module.exports = {
   getTodayGoalUpdate,
   upsertTodayGoalUpdate,
   deleteTodayGoalUpdate,
+  updateGoalUpdate,
+  deleteGoalUpdate,
   // Goal Division: sub-goals and habit links
   async setSubGoals(req, res, next) {
     try {

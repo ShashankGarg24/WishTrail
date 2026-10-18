@@ -311,6 +311,8 @@ export const goalsAPI = {
   getGoalUpdates: (id, params = {}) => api.get(`/goals/${id}/updates`, { params }),
   upsertGoalUpdateToday: (id, payload) => api.put(`/goals/${id}/updates/today`, payload),
   clearGoalUpdateToday: (id) => api.delete(`/goals/${id}/updates/today`),
+  updateGoalUpdate: (id, updateId, payload) => api.patch(`/goals/${id}/updates/${updateId}`, payload),
+  deleteGoalUpdate: (id, updateId) => api.delete(`/goals/${id}/updates/${updateId}`),
   // Goal Division
   getProgress: (id) => api.get(`/goals/${id}/progress`),
   setSubGoals: (id, subGoals) => api.put(`/goals/${id}/subgoals`, { subGoals }),
@@ -472,6 +474,7 @@ export const habitsAPI = {
   analytics: (id, params) => api.get(`/habits/${id}/analytics`, { params }),
   logs: (id, params) => api.get(`/habits/${id}/logs`, { params }),
   replaceLog: (habitId, logId, payload) => api.put(`/habits/${habitId}/logs/${logId}`, payload),
+  deleteLog: (habitId, logId) => api.delete(`/habits/${habitId}/logs/${logId}`),
   updateLogCompletionEntry: (habitId, logId, completionIndex, payload) =>
     api.patch(`/habits/${habitId}/logs/${logId}/completions/${completionIndex}`, payload),
   deleteLogCompletionEntry: (habitId, logId, completionIndex) =>

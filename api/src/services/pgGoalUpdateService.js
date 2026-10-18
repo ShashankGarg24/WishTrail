@@ -82,6 +82,32 @@ class PgGoalUpdateService {
     return !!result.rows[0];
   }
 
+  async updateGoalUpdate({ goalId, updateId, userId, text, emotion }) {
+    const result = await query(
+      `
+        UPDATE goal_updates
+        SET text = $4,
+            emotion = $5,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = $1 AND goal_id = $2 AND user_id = $3
+        RETURNING id, goal_id, user_id, text, emotion, date_key, created_at
+      `,
+      [updateId, goalId, userId, text, emotion]
+    );
+
+    return this._formatRow(result.rows[0] || null);
+  }
+
+  async deleteGoalUpdate({ goalId, updateId, userId }) {
+    const result = await query(
+      `DELETE FROM goal_updates
+       WHERE id = $1 AND goal_id = $2 AND user_id = $3
+       RETURNING id`,
+      [updateId, goalId, userId]
+    );
+    return Boolean(result.rows[0]);
+  }
+
   async listGoalUpdates(goalId, userId, { limit = 10, offset = 0 } = {}) {
     const safeLimit = Math.max(1, Math.min(50, Number(limit) || 10));
     const safeOffset = Math.max(0, Number(offset) || 0);
