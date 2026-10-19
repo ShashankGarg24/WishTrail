@@ -8,11 +8,13 @@ const AccountSection = () => {
   const { user, isDarkMode, setThemeMode, syncThemeFromServer, logout } = useApiStore();
   const [privateAccount, setPrivateAccount] = useState(false);
   const [showHabits, setShowHabits] = useState(false);
+  const [showGoals, setShowGoals] = useState(true);
   const [blocked, setBlocked] = useState([]);
   const [blockedPage, setBlockedPage] = useState(1);
   const [hasMoreBlocked, setHasMoreBlocked] = useState(true);
   const [loading, setLoading] = useState(false);
   const [habitsLoading, setHabitsLoading] = useState(false);
+  const [goalsLoading, setGoalsLoading] = useState(false);
   const [blockedLoading, setBlockedLoading] = useState(true);
   const [loadingMoreBlocked, setLoadingMoreBlocked] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -60,6 +62,7 @@ const AccountSection = () => {
       const response = await settingsAPI.getPrivacySettings();
       setPrivateAccount(response.data.data.isPrivate);
       setShowHabits(response.data.data.showHabits ?? false);
+      setShowGoals(response.data.data.showGoals ?? true);
     } catch (error) {
       console.error('Failed to fetch privacy settings:', error);
       setError('Failed to load privacy settings');
@@ -127,6 +130,22 @@ const AccountSection = () => {
       setError(error.response?.data?.message || 'Failed to update habits privacy settings');
     } finally {
       setHabitsLoading(false);
+    }
+  };
+
+  const handleGoalsPrivacyToggle = async () => {
+    setGoalsLoading(true);
+    setError("");
+    setSuccess("");
+    try {
+      await settingsAPI.updatePrivacySettings({ showGoals: !showGoals });
+      setShowGoals((prev) => !prev);
+      setSuccess('Goals privacy updated successfully');
+    } catch (error) {
+      console.error('Failed to update goals privacy settings:', error);
+      setError(error.response?.data?.message || 'Failed to update goals privacy settings');
+    } finally {
+      setGoalsLoading(false);
     }
   };
 
@@ -337,14 +356,26 @@ const AccountSection = () => {
                 </label>
               </div>
 
+              {/* Goals Privacy */}
+              <div className="flex items-start sm:items-center justify-between gap-3">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">Show Goals on Profile</p>
+                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-0.5">
+                    Show your goals, goal progress, and recent goals to people who can view your profile.
+                  </p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
+                  <input type="checkbox" className="sr-only peer" checked={showGoals} disabled={goalsLoading} onChange={handleGoalsPrivacyToggle} />
+                  <div className={`w-10 h-5 sm:w-11 sm:h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 sm:after:h-5 sm:after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600 ${goalsLoading ? 'opacity-50 cursor-not-allowed' : ''}`}></div>
+                </label>
+              </div>
+
               {/* Habits Privacy */}
               <div className="flex items-start sm:items-center justify-between gap-3">
                 <div className="flex-1">
                   <p className="text-sm font-medium text-gray-900 dark:text-white">Show Habits on Profile</p>
                   <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-0.5">
-                    {showHabits
-                      ? "Your habits are visible."
-                      : "Your habits are private."}
+                    Show your habits, habit streak metrics, and recent habits to people who can view your profile.
                   </p>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
@@ -365,7 +396,7 @@ const AccountSection = () => {
                 <ul className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 space-y-0.5 sm:space-y-1">
                   <li>• {privateAccount ? "Private" : "Public"} profile visibility</li>
                   <li>• {privateAccount ? "Only followers" : "Everyone"} can see your activities</li>
-                  <li>• {privateAccount ? "Only followers" : "Everyone"} can see your goals</li>
+                  <li>• {showGoals ? (privateAccount ? "Only followers" : "Everyone") : "Only you"} can see your goals</li>
                   <li>• {showHabits ? (privateAccount ? "Only followers" : "Everyone") : "Only you"} can see your habits</li>
                 </ul>
               </div>

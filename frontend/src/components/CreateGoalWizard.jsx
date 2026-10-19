@@ -64,7 +64,7 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
         isPublic: initialData?.isPublic ?? true,
         subGoals: Array.isArray(initialData?.subGoals) ? initialData.subGoals.map(item => ({ ...item })) : []
       })
-      setShowAdditionalDetails(true)
+      setShowAdditionalDetails(false)
       setErrors({})
     }
     

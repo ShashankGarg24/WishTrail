@@ -31,6 +31,7 @@ const PUBLIC_USER_FIELDS = [
   'isPrivate',
   'is_private',
   'showHabits',
+  'showGoals',
   'socialLinks',
   'createdAt',
   'created_at',

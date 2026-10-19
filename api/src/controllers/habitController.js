@@ -90,7 +90,7 @@ exports.listHabits = async (req, res, next) => {
 
       // Get privacy settings from MongoDB UserPreferences
       const targetPreferences = await UserPreferences.findOne({ userId: targetUser.id });
-      const showHabits = targetPreferences?.showHabits ?? true; // Default to true if not set
+      const showHabits = targetPreferences?.privacy?.showHabits ?? false;
 
       // Check if habits are hidden (showHabits = false means private)
       if (!showHabits) {

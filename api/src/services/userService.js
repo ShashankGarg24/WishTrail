@@ -228,6 +228,7 @@ class UserService {
       bio: user.bio || '',
       isPrivate: user.is_private || false,
       showHabits: prefs?.privacy?.showHabits ?? false,
+      showGoals: prefs?.privacy?.showGoals ?? true,
       interests: prefs?.interests || [],
       currentMood: prefs?.preferences?.currentMood || '',
       quote: prefs?.preferences?.quote || '',
@@ -239,7 +240,7 @@ class UserService {
     
     // Basic stats only
     const stats = {
-      totalGoals: user.total_goals || 0,
+      totalGoals: (user.id === requestingUserId || (prefs?.privacy?.showGoals ?? true)) ? (user.total_goals || 0) : 0,
       followers: user.followers_count || 0,
       followings: user.following_count || 0
     };

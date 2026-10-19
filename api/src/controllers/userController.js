@@ -438,6 +438,14 @@ const getUserGoals = async (req, res, next) => {
           });
         }
       }
+
+      const targetPreferences = await UserPreferences.findOne({ userId: targetUser.id }).select('privacy.showGoals').lean();
+      if (!(targetPreferences?.privacy?.showGoals ?? true)) {
+        return res.status(403).json({
+          success: false,
+          message: 'This user\'s goals are private'
+        });
+      }
     }
 
     // Build query params for pgGoalService
@@ -663,6 +671,11 @@ const getAnalytics = async (req, res, next) => {
     if (!user || !user.is_active) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
+    const privacyPreferences = isSelf
+      ? null
+      : await UserPreferences.findOne({ userId: targetUserId }).select('privacy.showGoals privacy.showHabits').lean();
+    const canShowGoals = isSelf || (privacyPreferences?.privacy?.showGoals ?? true);
+    const canShowHabits = isSelf || (privacyPreferences?.privacy?.showHabits ?? false);
     
     // Get goals stats from PostgreSQL
     const goalsResult = await pgGoalService.getUserGoals({
@@ -697,7 +710,7 @@ const getAnalytics = async (req, res, next) => {
     
     const analytics = {
       // Consistency is completed scheduled occurrences over all scheduled occurrences.
-      habits: {
+      ...(canShowHabits ? { habits: {
         done: habitAnalytics.totals?.done || 0,
         skipped: habitAnalytics.totals?.skipped || 0,
         missed: habitAnalytics.totals?.missed || 0,
@@ -708,17 +721,17 @@ const getAnalytics = async (req, res, next) => {
         periodDays: periodActivity.periodDays,
         trendPoints: periodActivity.trendPoints,
         completedDateKeys: habitAnalytics.activeDateKeys || []
-      },
-      goals: {
+      } } : {}),
+      ...(canShowGoals ? { goals: {
         totalGoals: totalGoals || 0,
         completedGoals: completedGoals || 0,
         inProgressGoals: goalStatus.inProgress,
         notStartedGoals: goalStatus.notStarted,
         currentStreak: user?.current_streak || 0,
         longestStreak: user?.longest_streak || 0
-      },
+      } } : {}),
       ...(isSelf ? { dailyLogs: { entries: dailyLogsEntries } } : {}),
-      topHabits: habitAnalytics.topHabits || []
+      ...(canShowHabits ? { topHabits: habitAnalytics.topHabits || [] } : {})
     };
     
     res.status(200).json({
@@ -760,6 +773,11 @@ const getUserAnalytics = async (req, res, next) => {
         message: 'This profile is private' 
       });
     }
+    const privacyPreferences = isSelf
+      ? null
+      : await UserPreferences.findOne({ userId: targetUserId }).select('privacy.showGoals privacy.showHabits').lean();
+    const canShowGoals = isSelf || (privacyPreferences?.privacy?.showGoals ?? true);
+    const canShowHabits = isSelf || (privacyPreferences?.privacy?.showHabits ?? false);
     
     // Get goals stats from PostgreSQL
     const goalsResult = await pgGoalService.getUserGoals({
@@ -786,7 +804,7 @@ const getUserAnalytics = async (req, res, next) => {
     
     const analytics = {
       // Consistency is completed scheduled occurrences over all scheduled occurrences.
-      habits: {
+      ...(canShowHabits ? { habits: {
         done: habitAnalytics.totals?.done || 0,
         skipped: habitAnalytics.totals?.skipped || 0,
         missed: habitAnalytics.totals?.missed || 0,
@@ -797,16 +815,16 @@ const getUserAnalytics = async (req, res, next) => {
         periodDays: periodActivity.periodDays,
         trendPoints: periodActivity.trendPoints,
         completedDateKeys: habitAnalytics.activeDateKeys || []
-      },
-      goals: {
+      } } : {}),
+      ...(canShowGoals ? { goals: {
         totalGoals: totalGoals || 0,
         completedGoals: completedGoals || 0,
         inProgressGoals: goalStatus.inProgress,
         notStartedGoals: goalStatus.notStarted,
         currentStreak: targetUser?.current_streak || 0,
         longestStreak: targetUser?.longest_streak || 0
-      },
-      topHabits: habitAnalytics.topHabits || []
+      } } : {}),
+      ...(canShowHabits ? { topHabits: habitAnalytics.topHabits || [] } : {})
     };
     
     res.status(200).json({

@@ -1,7 +1,7 @@
 import { lazy, Suspense, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { BarChart3, BookOpen, CalendarCheck, Home, LayoutGrid, Plus, Search, Target, User, Zap } from 'lucide-react'
+import { BarChart3, BookOpen, CalendarCheck, Home, LayoutGrid, Plus, Trophy, Target, User, Zap } from 'lucide-react'
 import useApiStore from '../store/apiStore'
 import AccountMenuSheet from './account/AccountMenuSheet'
 
@@ -16,11 +16,12 @@ const TabButton = ({ active, label, Icon, onClick }) => (
     aria-label={label}
     aria-current={active ? 'page' : undefined}
     title={label}
-    className={`flex flex-1 items-center justify-center py-3 transition-colors duration-200 ${active ? 'text-[#1683ed]' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'}`}
+    className={`flex flex-1 flex-col items-center justify-center py-2 transition-colors duration-200 ${active ? 'text-[#1683ed]' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'}`}
   >
     <span className={`grid h-10 w-10 place-items-center rounded-xl transition-colors ${active ? 'bg-blue-50 dark:bg-blue-950/50' : ''}`}>
       <Icon className="h-[22px] w-[22px]" strokeWidth={active ? 2.5 : 2} />
     </span>
+    <span className="text-[10px] font-medium">{label}</span>
   </button>
 )
 
@@ -68,7 +69,7 @@ const BottomTabBar = () => {
               <TabButton active={path.startsWith('/home') || path.startsWith('/dashboard')} label="Home" Icon={Home} onClick={() => navigate('/home')} />
               <TabButton active={path.startsWith('/feed')} label="Feed" Icon={LayoutGrid} onClick={() => navigate('/feed')} />
               <div className="flex-1" />
-              <TabButton active={path.startsWith('/discover')} label="Discover" Icon={Search} onClick={() => navigate('/discover')} />
+              <TabButton active={path.startsWith('/leaderboard')} label="Leaderboard" Icon={Trophy} onClick={() => navigate('/leaderboard')} />
               <TabButton
                 active={path.startsWith('/profile')}
                 label="Profile"

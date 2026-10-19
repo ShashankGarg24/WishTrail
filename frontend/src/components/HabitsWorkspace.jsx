@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   BarChart3, CheckCircle2, ChevronDown, ChevronLeft,
-  Compass, Copy, Edit3, MoreVertical,
+  Copy, Edit3, Lightbulb, MoreVertical,
   PauseCircle, Plus, Search, SlidersHorizontal, Sparkles, Trash2, TrendingDown, TrendingUp
 } from 'lucide-react'
 import HabitCategoryIcon from './HabitCategoryIcon'
@@ -73,8 +73,8 @@ export default function HabitsWorkspace({ habits = [], stats = {}, selectedYear,
           <select id="habit-year-filter" value={selectedYear} onChange={event => onYearChange?.(Number(event.target.value))} className="h-9 rounded-lg border border-[#dce5f4] bg-white px-3 text-xs font-semibold text-[#253663] outline-none focus:border-[#1683ed] dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200">
             {availableYears.map(year => <option key={year} value={year}>{year}</option>)}
           </select>
-          <button type="button" onClick={onDiscover} aria-label="Discover habit ideas" title="Discover habit ideas" className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#dce5f4] bg-white text-[#526392] transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-[#1683ed] dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-blue-950/30"><Compass className="h-4 w-4"/></button>
-          <button type="button" className="inline-flex items-center gap-1.5 rounded-lg bg-[#1683ed] px-4 py-2 text-xs font-semibold text-white shadow-sm" onClick={onCreate}><Plus className="h-4 w-4"/> Create Habit</button>
+          <button type="button" onClick={onDiscover} className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-[#dce5f4] bg-white px-3 text-xs font-semibold text-[#526392] transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-[#1683ed] dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-blue-950/30"><Lightbulb className="h-4 w-4"/><span>Suggestions</span></button>
+          <button type="button" className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg bg-[#1683ed] px-4 py-2 text-xs font-semibold text-white shadow-sm" onClick={onCreate}><Plus className="h-4 w-4"/> Create Habit</button>
         </div>
       </header>
 
@@ -84,7 +84,7 @@ export default function HabitsWorkspace({ habits = [], stats = {}, selectedYear,
           {availableYears.map(year => <option key={year} value={year}>{year}</option>)}
         </select>
         <div className="flex items-center gap-2">
-          <button className="grid h-9 w-9 place-items-center rounded-lg border border-[#dce5f4] bg-white text-[#526392]" aria-label="Discover habit ideas" onClick={onDiscover}><Compass size={16}/></button>
+          <button type="button" className="grid h-9 w-9 place-items-center rounded-lg border border-[#dce5f4] bg-white text-[#526392]" aria-label="View habit suggestions" title="View habit suggestions" onClick={onDiscover}><Lightbulb size={16}/></button>
           <button type="button" onClick={onCreate} aria-label="Create Habit" className="grid h-9 w-9 place-items-center rounded-lg bg-[#1683ed] text-white shadow-sm"><Plus className="h-4 w-4" /></button>
         </div>
       </div>

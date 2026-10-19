@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Bell, Search } from 'lucide-react'
+import { Bell, Search, Compass } from 'lucide-react'
 import { useEffect } from 'react'
 import useApiStore from '../store/apiStore'
 
@@ -58,7 +58,8 @@ const Header = () => {
           </nav>}
           {isAuthenticated && <button type="button" onClick={() => navigate('/discover')} className="mx-4 hidden max-w-xs flex-1 items-center gap-2 rounded-xl border border-slate-100 bg-slate-50 px-4 py-2.5 text-left text-sm text-slate-400 transition hover:border-blue-200 md:flex dark:border-gray-700 dark:bg-gray-800"><Search className="h-4 w-4" />Search goals and people...</button>}
 
-          {isAuthenticated && <button type="button" onClick={() => navigate('/notifications')} className="relative ml-auto shrink-0 p-2 text-gray-500 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-white" aria-label="Notifications">
+          {isAuthenticated && <button type="button" onClick={() => navigate('/discover')} aria-label="Discover" className="ml-auto p-2 text-slate-500 md:hidden"><Compass className="h-5 w-5" /></button>}
+          {isAuthenticated && <button type="button" onClick={() => navigate('/notifications')} className="relative ml-1 md:ml-auto shrink-0 p-2 text-gray-500 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-white" aria-label="Notifications">
             <Bell className="h-5 w-5" />
             {unreadNotifications > 0 && <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-[#4c99e6]" />}
           </button>}

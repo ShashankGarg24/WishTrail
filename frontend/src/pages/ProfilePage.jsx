@@ -1,7 +1,7 @@
 ﻿import { GOAL_CATEGORIES } from '../constants/goalCategories'
 import { useState, useEffect, useRef, useMemo, lazy, Suspense } from "react";
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { Target, TrendingUp, Star, Edit2, ExternalLink, Youtube, Instagram, MapPin, Globe, Trophy, BookOpen, Clock, CheckCircle, Circle, User, UserPlus, UserCheck, ArrowLeft, Lock, Download, Flame, Award, BarChart2, Activity, MoreVertical, Plus, Camera, CalendarDays, BadgeCheck, Search, SlidersHorizontal, ChevronRight, ChevronLeft, Home, Compass, Users, Newspaper, Settings } from "lucide-react";
+import { Target, TrendingUp, Star, Edit2, ExternalLink, Youtube, Instagram, MapPin, Globe, Trophy, BookOpen, Clock, CheckCircle, Circle, User, UserPlus, UserCheck, Lock, Download, Flame, Award, BarChart2, Activity, MoreVertical, Plus, Camera, CalendarDays, BadgeCheck, Search, SlidersHorizontal, ChevronRight, ChevronLeft, Home, Compass, Users, Newspaper, Settings } from "lucide-react";
 import CategoryIcon from '../components/CategoryIcon';
 import CategoryBadge from '../components/CategoryBadge';
 import HabitCategoryIcon from '../components/HabitCategoryIcon';
@@ -190,6 +190,11 @@ const ProfilePage = () => {
     setFollowModalOpen(false);
     setFollowers([]);
     setFollowing([]);
+    setUserGoals([]);
+    setUserHabits([]);
+    setRecentHabits([]);
+    setAnalytics(null);
+    setUserStats(null);
     setFollowersPage(1);
     setFollowingPage(1);
     setHasMoreFollowers(false);
@@ -223,6 +228,16 @@ const ProfilePage = () => {
       setActiveTab(tabFromUrl);
     }
   }, [searchParams]);
+
+  useEffect(() => {
+    if (isOwnProfile || !profileUser) return;
+    const hiddenTabSelected = (activeTab === 'goals' && profileUser.showGoals === false)
+      || (activeTab === 'habits' && profileUser.showHabits !== true);
+    if (hiddenTabSelected) {
+      setActiveTab('overview');
+      setSearchParams({ tab: 'overview' }, { replace: true });
+    }
+  }, [activeTab, isOwnProfile, profileUser, setSearchParams]);
 
   useEffect(() => {
     if (previousTabRef.current !== activeTab) {
@@ -260,7 +275,7 @@ const ProfilePage = () => {
             } catch (error) {
               console.error('Failed to load analytics:', error);
             }
-            if (isOwnProfile && userHabits.length === 0) {
+            if (userHabits.length === 0 && (isOwnProfile || (canViewContent && profileUser?.showHabits))) {
               await fetchUserHabits();
             }
           }
@@ -270,7 +285,7 @@ const ProfilePage = () => {
         if (activeTab === 'goals' && userGoals.length === 0) {
           // Own profile: always load
           // Other profile: only if public or following
-          if (isOwnProfile || canViewContent) {
+          if (isOwnProfile || (canViewContent && profileUser?.showGoals !== false)) {
             try {
               const targetUsername = isOwnProfile ? currentUser?.username : profileUser?.username;
               const goalsResult = isOwnProfile 
@@ -309,7 +324,7 @@ const ProfilePage = () => {
     };
 
     loadTabContent();
-  }, [activeTab, isOwnProfile, profileUser?.username, isFollowing, userGoals.length, userHabits.length, currentUser?.id]);
+  }, [activeTab, isOwnProfile, profileUser?.username, profileUser?.showGoals, profileUser?.showHabits, isFollowing, userGoals.length, userHabits.length, currentUser?.id]);
 
   useEffect(() => {
     
@@ -591,7 +606,7 @@ const ProfilePage = () => {
         
         // Load goals initially if profile is public or following
         const canViewContent = !userResult.user.isPrivate || userResult.isFollowing;
-        if (canViewContent) {
+        if (canViewContent && userResult.user.showGoals !== false) {
           const goalsResult = await getUserGoals(userResult.user.username, { page: 1, limit: GOALS_PER_PAGE });
           if (goalsResult.success) {
             setUserGoals(goalsResult.goals || []);
@@ -862,7 +877,9 @@ const ProfilePage = () => {
   const backgroundClass = "min-h-screen bg-[#f6f9fd] dark:bg-gray-900";
   const containerClass = "max-w-[1320px]";
 
-  const profileTabs = ["overview", ...(isOwnProfile ? ["trail"] : []), "goals", ...(isOwnProfile ? ["habits"] : (profileUser?.showHabits && (isFollowing || !profileUser?.isPrivate) ? ["habits"] : [])), ...(isOwnProfile ? ["daily-logs"] : [])];
+  const canShowProfileGoals = isOwnProfile || profileUser?.showGoals !== false;
+  const canShowProfileHabits = isOwnProfile || profileUser?.showHabits === true;
+  const profileTabs = ["overview", ...(isOwnProfile ? ["trail"] : []), ...(canShowProfileGoals ? ["goals"] : []), ...(canShowProfileHabits && (isOwnProfile || isFollowing || !profileUser?.isPrivate) ? ["habits"] : []), ...(isOwnProfile ? ["daily-logs"] : [])];
   const tabMeta = {
     overview: { label: 'Overview', icon: Activity },
     trail: { label: 'Trail', icon: TrendingUp },
@@ -919,19 +936,6 @@ const ProfilePage = () => {
             </nav>
           </aside>
           <main className="wt-profile-main">
-        {!isOwnProfile && (
-          <motion.button
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.3 }}
-            onClick={() => navigate(-1)}
-            className="flex items-center space-x-1.5 sm:space-x-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors mb-3 sm:mb-4 md:mb-6"
-          >
-            <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" />
-            <span className="text-sm sm:text-base">Back</span>
-          </motion.button>
-        )}
-
         {/* Responsive profile hero: dashboard on web, compact identity card in the app. */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
@@ -960,38 +964,6 @@ const ProfilePage = () => {
             >
               <MoreVertical className="h-4 w-4" />
             </button>
-
-            {/* Action buttons - desktop */}
-            {!isOwnProfile && isAuthenticated && (
-              <div className="absolute right-16 top-20 hidden items-center gap-2 md:flex">
-                {isFollowing ? (
-                  <button
-                    onClick={handleUnfollow}
-                    className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-medium text-xs sm:text-sm transition-colors"
-                  >
-                    <UserCheck className="h-3.5 w-3.5 sm:h-4 sm:w-4 inline mr-1 sm:mr-1.5" />
-                    Following
-                  </button>
-                ) : isRequested ? (
-                  <button
-                    onClick={handleCancelRequest}
-                    className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-medium text-xs sm:text-sm transition-colors"
-                  >
-                    <UserCheck className="h-3.5 w-3.5 sm:h-4 sm:w-4 inline mr-1 sm:mr-1.5" />
-                    Requested
-                  </button>
-                ) : (
-                  <button
-                    onClick={handleFollow}
-                    className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-white font-medium text-xs sm:text-sm transition-opacity hover:opacity-90"
-                    style={{ backgroundColor: THEME_COLOR }}
-                  >
-                    <UserPlus className="h-3.5 w-3.5 sm:h-4 sm:w-4 inline mr-1 sm:mr-1.5" />
-                    Follow
-                  </button>
-                )}
-              </div>
-            )}
 
             <div className="wt-profile-avatar relative -mt-12 w-fit flex-shrink-0 sm:-mt-16">
               <img
@@ -1033,14 +1005,14 @@ const ProfilePage = () => {
                 <button
                   className="text-center"
                   onClick={() => {
-                    if (!canAccessProfileContent) return;
+                    if (!canAccessProfileContent || !canShowProfileGoals) return;
                     handleTabChange('goals');
                   }}
-                  disabled={!canAccessProfileContent}
-                  style={!canAccessProfileContent ? { pointerEvents: 'none', cursor: 'default' } : {}}
+                  disabled={!canAccessProfileContent || !canShowProfileGoals}
+                  style={!canAccessProfileContent || !canShowProfileGoals ? { pointerEvents: 'none', cursor: 'default' } : {}}
                 >
                   <div className="text-lg font-extrabold text-gray-900 dark:text-white">
-                    {isOwnProfile ? (displayUser.totalGoals ?? 0) : (userStats?.totalGoals ?? 0)}
+                    {canShowProfileGoals ? (isOwnProfile ? (displayUser.totalGoals ?? 0) : (userStats?.totalGoals ?? 0)) : '—'}
                   </div>
                   <div className="text-[11px] text-gray-500 dark:text-gray-400">Goals</div>
                 </button>
@@ -1107,6 +1079,26 @@ const ProfilePage = () => {
               )}
 
               {isOwnProfile && <button type="button" onClick={() => navigate('/settings?section=personal-info')} className="wt-edit-profile ml-auto flex-1 rounded-lg bg-slate-100 px-4 py-2 text-sm font-bold text-blue-600 hover:bg-blue-50 dark:bg-gray-700 dark:text-blue-300 sm:max-w-[130px]">Edit Profile</button>}
+              {!isOwnProfile && isAuthenticated && (
+                <div className="ml-auto hidden flex-1 md:flex md:max-w-[130px]">
+                  {isFollowing ? (
+                    <button type="button" onClick={handleUnfollow} className="w-full whitespace-nowrap rounded-lg bg-gray-100 px-4 py-2 text-sm font-bold text-gray-800 transition-colors hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600">
+                      <UserCheck className="mr-1.5 inline h-4 w-4" />
+                      Following
+                    </button>
+                  ) : isRequested ? (
+                    <button type="button" onClick={handleCancelRequest} className="w-full whitespace-nowrap rounded-lg bg-gray-100 px-4 py-2 text-sm font-bold text-gray-800 transition-colors hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600">
+                      <UserCheck className="mr-1.5 inline h-4 w-4" />
+                      Requested
+                    </button>
+                  ) : (
+                    <button type="button" onClick={handleFollow} className="w-full whitespace-nowrap rounded-lg px-4 py-2 text-sm font-bold text-white transition-opacity hover:opacity-90" style={{ backgroundColor: THEME_COLOR }}>
+                      <UserPlus className="mr-1.5 inline h-4 w-4" />
+                      Follow
+                    </button>
+                  )}
+                </div>
+              )}
               {!isOwnProfile && isAuthenticated && (
                 <div className="flex flex-1 gap-2 md:hidden">
                   {isFollowing ? (
@@ -1252,7 +1244,7 @@ const ProfilePage = () => {
           /* Full Profile Content */
           <>
             {/* Tabs - theme underline #4c99e6 */}
-            <div className="wt-profile-tabs sticky top-0 z-20 mb-3 border-b border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900 sm:static sm:mb-5 sm:rounded-xl sm:border sm:px-2 md:mb-6">
+            <div className={`wt-profile-tabs sticky top-0 z-20 mb-3 border-b border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900 sm:static sm:mb-5 sm:rounded-xl sm:border sm:px-2 md:mb-6 ${!isOwnProfile ? 'is-other-profile-tabs md:hidden' : ''}`}>
               <div className="flex overflow-x-auto scrollbar-hide sm:justify-around">
                 {profileTabs.map((tab) => (
                   <button
@@ -1307,7 +1299,7 @@ const ProfilePage = () => {
                       </>;
                     })()}
                   </section>
-                  {isProfileAccessible() && (() => {
+                  {isProfileAccessible() && canShowProfileGoals && (() => {
                     const total = analytics?.goals?.totalGoals || 0;
                     const completed = analytics?.goals?.completedGoals || 0;
                     const inProgress = analytics?.goals?.inProgressGoals || 0;
@@ -1326,7 +1318,7 @@ const ProfilePage = () => {
                       </div>
                     </section>;
                   })()}
-                  {isProfileAccessible() && (() => {
+                  {isProfileAccessible() && canShowProfileHabits && (() => {
                     const streak = Math.max(0, ...(analytics?.topHabits || []).map(habit => Number(habit.currentStreak || 0)));
                     const completedKeys = new Set(analytics?.habits?.completedDateKeys || []);
                     const today = new Date();
@@ -1481,10 +1473,10 @@ const ProfilePage = () => {
                     <p className="mt-3 text-xs text-slate-500">{journalChartDays.filter(day => day.logged).length} of the last 10 days have a journal entry.</p>
                   </button>}
                   {/* Current Goals */}
-                  <div className="lg:col-span-3">
+                  {canShowProfileGoals && <div className="lg:col-span-3">
                     <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 shadow-sm border border-gray-100 dark:border-gray-700">
                       <div className="flex items-center justify-between mb-4 sm:mb-5">
-                        <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">Current Goals</h3>
+                        <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">{isOwnProfile ? 'Current Goals' : `${displayUser.name}'s Current Goals`}</h3>
                         {userGoals.filter(g => !g.completedAt).length > 0 && (
                           <button
                             onClick={() => handleTabChange('goals')}
@@ -1522,9 +1514,9 @@ const ProfilePage = () => {
                             <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full bg-gray-100 dark:bg-gray-700 mx-auto mb-3 sm:mb-4 flex items-center justify-center">
                               <Target className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 text-gray-400" />
                             </div>
-                            <h4 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-1.5 sm:mb-2">Ready for a new adventure?</h4>
+                            <h4 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-1.5 sm:mb-2">{isOwnProfile ? 'Ready for a new adventure?' : 'No active goals yet'}</h4>
                             <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-4 sm:mb-5 md:mb-6 max-w-sm mx-auto">
-                              You don&apos;t have any active goals right now. Start your next journey and track your progress here.
+                              {isOwnProfile ? 'You don\'t have any active goals right now. Start your next journey and track your progress here.' : `${displayUser.name} doesn't have any active goals right now.`}
                             </p>
                             {isOwnProfile && (
                               <button
@@ -1544,9 +1536,9 @@ const ProfilePage = () => {
                         </div>
                       )}
                     </div>
-                  </div>
-                  <section className="lg:col-span-3 rounded-xl border border-gray-100 bg-white p-4 dark:border-gray-700 dark:bg-gray-800 sm:p-5">
-                    <div className="mb-4 flex items-center justify-between"><h3 className="text-lg font-semibold text-gray-900 dark:text-white">Recent Habits</h3><button type="button" onClick={() => handleTabChange('habits')} className="text-xs font-bold text-blue-500">See all</button></div>
+                  </div>}
+                  {canShowProfileHabits && <section className="lg:col-span-3 rounded-xl border border-gray-100 bg-white p-4 dark:border-gray-700 dark:bg-gray-800 sm:p-5">
+                    <div className="mb-4 flex items-center justify-between"><h3 className="text-lg font-semibold text-gray-900 dark:text-white">{isOwnProfile ? 'Recent Habits' : `${displayUser.name}'s Recent Habits`}</h3><button type="button" onClick={() => handleTabChange('habits')} className="text-xs font-bold text-blue-500">See all</button></div>
                     {userHabits.length > 0 ? <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{userHabits.slice(0, 3).map((habit) => {
                       const completed = Number(habit.weeklyCompletedDays || 0);
                       const target = habit.frequency === 'custom'
@@ -1555,8 +1547,8 @@ const ProfilePage = () => {
                       const percent = Math.min(100, Math.round(Number(habit.last7CompletionRate ?? ((completed / Math.max(1, target)) * 100))));
                       const trend = habit.last7TrendPoints;
                       return <button type="button" key={habit.id || habit._id} onClick={() => { setOpenHabitId(habit.id || habit._id); setHabitModalOpen(true); }} className="rounded-xl border border-slate-100 p-3 text-left hover:border-blue-200 dark:border-gray-700"><div className="flex items-center gap-2"><HabitCategoryIcon category={habit.category} size="sm"/><span className="min-w-0 flex-1"><strong className="block truncate text-sm text-slate-950 dark:text-white">{habit.name}</strong><small className="text-[9px] font-semibold uppercase text-slate-400">{getHabitCategoryLabel(habit.category)}</small></span><span className="text-xs font-bold text-[#1683ed]">{percent}%</span></div><p className="mt-1 text-[10px] text-slate-500">{trend == null ? 'Last 7 days' : `${trend > 0 ? '↑ ' : trend < 0 ? '↓ ' : '→ '}${Math.abs(trend)} pts vs previous 7 days`}</p><div className="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-100 dark:bg-gray-700"><span className="block h-full rounded-full bg-emerald-500" style={{ width: `${percent}%` }} /></div></button>;
-                    })}</div> : <p className="py-5 text-center text-sm text-slate-500">Your recent habits will appear here.</p>}
-                  </section>
+                    })}</div> : <p className="py-5 text-center text-sm text-slate-500">{isOwnProfile ? 'Your recent habits will appear here.' : `${displayUser.name} has no recent habits to show.`}</p>}
+                  </section>}
                 </div>
               )}
               {activeTab === 'trail' && (
@@ -1989,7 +1981,7 @@ const ProfilePage = () => {
             </section> */}
             <section>
               <div className="wt-profile-rail-heading"><h2>About</h2>{isOwnProfile && <button type="button" onClick={() => navigate('/settings?section=personal-info')}>Edit</button>}</div>
-              <p>{displayUser.bio || 'Share a little about your journey and what inspires you.'}</p>
+              <p>{displayUser.bio || (isOwnProfile ? 'Share a little about your journey and what inspires you.' : `${displayUser.name} hasn’t added a bio yet.`)}</p>
               <ul>
                 {displayUser.location && <li><MapPin />{displayUser.location}</li>}
                 {displayUser.createdAt && <li><CalendarDays />Joined {new Date(displayUser.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</li>}

@@ -6,12 +6,63 @@ const pgUserService = require('../services/pgUserService');
 const pgGoalService = require('../services/pgGoalService');
 const pgFollowService = require('../services/pgFollowService');
 
+const DEMO_LEADERBOARD = [
+  ['Aarav Mehta', 48, 56, 31], ['Maya Kapoor', 44, 52, 27], ['Rohan Shah', 41, 49, 24],
+  ['Ananya Rao', 38, 45, 22], ['Kabir Singh', 35, 43, 19], ['Isha Verma', 33, 40, 18],
+  ['Arjun Nair', 31, 39, 17], ['Zoya Khan', 29, 37, 15], ['Vihaan Patel', 27, 35, 14],
+  ['Meera Iyer', 25, 32, 13], ['Aditya Joshi', 23, 30, 12], ['Sara Thomas', 21, 28, 11],
+  ['Dev Malhotra', 19, 26, 10], ['Nisha Gupta', 18, 25, 9], ['Reyansh Bose', 16, 23, 8],
+  ['Tara Menon', 15, 22, 8], ['Kunal Das', 14, 20, 7], ['Aisha Roy', 13, 19, 6],
+  ['Neel Sinha', 12, 18, 5], ['Riya Chawla', 11, 17, 4]
+].map(([name, completedGoals, totalGoals, currentStreak], index) => ({
+  avatar: null,
+  completedGoals,
+  totalGoals,
+  currentStreak,
+  isFollowing: null,
+  name,
+  rank: index + 1,
+  username: null
+}));
+
+const demoLeaderboardPage = (page, limit) => {
+  const offset = (page - 1) * limit;
+  return DEMO_LEADERBOARD.slice(offset, offset + limit).map((entry, index) => ({
+    ...entry,
+    rank: offset + index + 1
+  }));
+};
+
 // @desc    Get global leaderboard
 // @route   GET /api/v1/leaderboard
 // @access  Public
 const getGlobalLeaderboard = async (req, res, next) => {
   try {
     const { type = 'goals', page = 1, limit = 50, timeframe = 'all', category } = req.query;
+    if (!category && ['goals', 'activeDays'].includes(type)) {
+      const data = await require('../services/leaderboardService').getDashboard({
+        type,
+        timeframe: ['all', 'week', 'month', 'year'].includes(timeframe) ? timeframe : 'all',
+        page: Math.max(1, parseInt(page, 10) || 1),
+        limit: Math.min(100, Math.max(1, parseInt(limit, 10) || 20)),
+        search: String(req.query.search || '').trim().slice(0, 100),
+        userId: req.user?.id || null
+      });
+      // Preserve the existing empty-board preview without presenting sample
+      // scores as a real user's rank or as time-filtered activity.
+      if (type === 'goals' && timeframe === 'all' && Number(data.stats.participants) === 0) {
+        const search = String(req.query.search || '').trim().toLowerCase();
+        const entries = DEMO_LEADERBOARD.filter(entry => entry.name.toLowerCase().includes(search));
+        const { page: currentPage, limit: pageSize } = data.pagination;
+        data.leaderboard = entries.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+        data.topThree = DEMO_LEADERBOARD.slice(0, 3);
+        data.pagination.total = entries.length;
+        data.pagination.pages = Math.max(1, Math.ceil(entries.length / pageSize));
+        data.isDemo = true;
+      }
+      return res.status(200).json({ success: true, data });
+    }
+
     const parsedPage = parseInt(page);
     const parsedLimit = parseInt(limit);
 
@@ -67,7 +118,7 @@ const getGlobalLeaderboard = async (req, res, next) => {
       } catch {}
       fromCache = true;
       // Map to minimal field set
-      const minimal = leaderboard.map(u => ({
+      let minimal = leaderboard.map(u => ({
         avatar: u.avatar,
         completedGoals: u.completedGoals,
         totalGoals: u.totalGoals,
@@ -77,11 +128,21 @@ const getGlobalLeaderboard = async (req, res, next) => {
         rank: u.rank,
         username: u.username
       }));
+      let responsePagination = cachedData.pagination;
+      if (minimal.length === 0) {
+        minimal = demoLeaderboardPage(parsedPage, parsedLimit);
+        responsePagination = {
+          page: parsedPage,
+          limit: parsedLimit,
+          total: DEMO_LEADERBOARD.length,
+          pages: Math.ceil(DEMO_LEADERBOARD.length / parsedLimit)
+        };
+      }
       return res.status(200).json({
         success: true,
         data: { 
           leaderboard: minimal,
-          pagination: cachedData.pagination
+          pagination: responsePagination
         },
         fromCache
       });
@@ -255,7 +316,7 @@ const getGlobalLeaderboard = async (req, res, next) => {
     }
 
     // Map to minimal field set for response
-    const minimal = leaderboard.map(u => ({
+    let minimal = leaderboard.map(u => ({
       avatar: u.avatar,
       completedGoals: u.completedGoals,
       totalGoals: u.totalGoals,
@@ -265,6 +326,11 @@ const getGlobalLeaderboard = async (req, res, next) => {
       rank: u.rank,
       username: u.username
     }));
+    if (minimal.length === 0) {
+      minimal = demoLeaderboardPage(parsedPage, parsedLimit);
+      pagination.total = DEMO_LEADERBOARD.length;
+      pagination.pages = Math.ceil(DEMO_LEADERBOARD.length / parsedLimit);
+    }
     res.status(200).json({
       success: true,
       data: { 
@@ -662,4 +728,4 @@ module.exports = {
   getFriendsLeaderboard,
   getLeaderboardStats,
   getUserRank
-}; 
+};

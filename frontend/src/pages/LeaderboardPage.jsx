@@ -1,409 +1,121 @@
-import { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
-import { Trophy, TrendingUp, Award, ChevronDown, Target } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { ArrowRight, BarChart3, CalendarDays, ChevronDown, Crown, Search, Sparkles, Target, TrendingUp, Trophy, Users } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import useApiStore from '../store/apiStore'
+import { leaderboardAPI } from '../services/api'
+import './LeaderboardPage.css'
 
-const LeaderboardPageNew = () => {
-  const [currentPage, setCurrentPage] = useState(1)
-  const [leaderboardData, setLeaderboardData] = useState([])
-  const [totalPages, setTotalPages] = useState(1)
-  const [loading, setLoading] = useState(true)
-  const navigate = useNavigate()
+const labels = { goals: 'Goals Completed', activeDays: 'Active Days' }
+const displayName = person => person?.name || person?.displayName || person?.username || 'Achiever'
+const score = (person, type) => Number(person?.[type === 'goals' ? 'completedGoals' : 'activeDays'] || 0)
 
-  const { getGlobalLeaderboard, user, isAuthenticated } = useApiStore()
-
-  const ITEMS_PER_PAGE = 20
-
-  // Fetch leaderboard data
-  useEffect(() => {
-    (async () => {
-      setLoading(true)
-      const response = await getGlobalLeaderboard({ page: currentPage, limit: ITEMS_PER_PAGE })
-      const data = response?.leaderboard || response || []
-      setLeaderboardData(Array.isArray(data) ? data : [])
-      // Set total pages from pagination data if available
-      if (response?.pagination) {
-        setTotalPages(response.pagination.pages || 1)
-      } else {
-        setTotalPages(data.length < ITEMS_PER_PAGE ? currentPage : currentPage + 1)
-      }
-      setLoading(false)
-    })()
-  }, [getGlobalLeaderboard, currentPage])
-
-  const handleUserClick = (username) => {
-    if (username) {
-      navigate(`/profile/@${username}`)
-    }
-  }
-
-  // Get top 3 from leaderboard
-  const topThree = leaderboardData.slice(0, 3).map((item, index) => ({
-    rank: index + 1,
-    name: item.name || item.displayName || item.username || 'Anonymous',
-    badge: index === 0 ? 'CHAMPION' : index === 1 ? 'SILVER ACHIEVER' : 'BRONZE EXPLORER',
-    goalsCompleted: item.completedGoals || 0,
-    avatar: item.avatar || null,
-    username: item.username
-  }))
-
-  // Reorder for podium display (2nd, 1st, 3rd)
-  const podiumOrder = topThree.length >= 3 ? [topThree[1], topThree[0], topThree[2]] : topThree
-
-  // Get remaining rankings (4+)
-  const allRankings = leaderboardData.slice(3).map((item, index) => ({
-    rank: (currentPage - 1) * ITEMS_PER_PAGE + index + 4,
-    name: item.name || item.displayName || item.username || 'Anonymous',
-    isYou: isAuthenticated && user && (item.username === user.username),
-    goalsCompleted: item.completedGoals || 0, 
-    avatar: item.avatar || null,
-    username: item.username
-  }))
-
-  const getAvatarColor = (rank) => {
-    const colors = [
-      'from-yellow-400 to-orange-500',
-      'from-gray-300 to-gray-400',
-      'from-orange-400 to-amber-600',
-      'from-orange-300 to-orange-500',
-      'from-gray-400 to-gray-500',
-      'from-yellow-300 to-yellow-500',
-      'from-orange-400 to-yellow-500'
-    ]
-    return colors[rank % colors.length]
-  }
-
-  if (loading && leaderboardData.length === 0) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4c99e6] mx-auto mb-4"></div>
-          <p className="text-gray-500 dark:text-gray-400 font-manrope">Loading leaderboard...</p>
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-6 sm:py-8">
-        {/* Header with Trophy Icon */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-8 sm:mb-12"
-        >
-          <div className="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 bg-[#4c99e6] rounded-full mb-3 sm:mb-4">
-            <Trophy className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
-          </div>
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-2 font-manrope">
-            Leaderboard
-          </h1>
-          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 font-manrope">
-            Celebrate the journey of achievers worldwide.
-          </p>
-        </motion.div>
-
-        {/* Top 3 Podium */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="flex items-end justify-center gap-2 sm:gap-4 md:gap-8 mb-8 sm:mb-12 md:mb-16 max-w-4xl mx-auto"
-        >
-          {/* 2nd Place */}
-          {podiumOrder[0] && (
-            <div className="flex-1 max-w-[200px] sm:max-w-[240px]">
-              <div 
-                onClick={() => handleUserClick(podiumOrder[0].username)}
-                className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-6 shadow-lg border border-gray-100 dark:border-gray-700 text-center relative cursor-pointer hover:shadow-xl transition-all">
-                <div className="absolute -top-3 sm:-top-4 left-1/2 transform -translate-x-1/2 w-6 h-6 sm:w-8 sm:h-8 bg-gray-300 rounded-full flex items-center justify-center text-gray-700 font-bold font-manrope text-xs sm:text-sm">
-                  2
-                </div>
-                <div className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full bg-gray-300 mx-auto mb-2 sm:mb-3 md:mb-4 flex items-center justify-center">
-                  {podiumOrder[0].avatar ? (
-                    <img src={podiumOrder[0].avatar} alt={podiumOrder[0].name} width="56" height="56" className="w-full h-full rounded-full object-cover" />
-                  ) : (
-                    <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-400 font-bold text-base sm:text-lg md:text-xl">
-                      {podiumOrder[0].name.charAt(0)}
-                    </div>
-                  )}
-                </div>
-                <h3 className="font-bold text-gray-900 dark:text-white font-manrope text-xs sm:text-sm md:text-lg mb-1 truncate">
-                  {podiumOrder[0].name}
-                </h3>
-                <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 font-manrope uppercase tracking-wide mb-2 sm:mb-3 md:mb-4">
-                  {podiumOrder[0].badge}
-                </p>
-                <div className="pt-2 sm:pt-3 md:pt-4 border-t border-gray-100 dark:border-gray-700">
-                  <div className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-white font-manrope mb-1">
-                    {podiumOrder[0].goalsCompleted}
-                  </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400 font-manrope uppercase tracking-wide">
-                    Goals Completed
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* 1st Place - Larger */}
-          {podiumOrder[1] && (
-            <div className="flex-1 max-w-[220px] sm:max-w-[260px] md:max-w-[280px]">
-              <div 
-                onClick={() => handleUserClick(podiumOrder[1].username)}
-                className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8 shadow-xl border-2 border-[#4c99e6] text-center relative transform scale-105 cursor-pointer hover:shadow-2xl transition-all">
-                <div className="absolute -top-4 sm:-top-5 left-1/2 transform -translate-x-1/2 w-8 h-8 sm:w-10 sm:h-10 bg-[#4c99e6] rounded-full flex items-center justify-center">
-                  <Award className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-                </div>
-                <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-full bg-[#4c99e6] mx-auto mb-2 sm:mb-3 md:mb-4 flex items-center justify-center">
-                  {podiumOrder[1].avatar ? (
-                    <img src={podiumOrder[1].avatar} alt={podiumOrder[1].name} width="64" height="64" className="w-full h-full rounded-full object-cover" />
-                  ) : (
-                    <div className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-400 font-bold text-lg sm:text-xl md:text-2xl">
-                      {podiumOrder[1].name.charAt(0)}
-                    </div>
-                  )}
-                </div>
-                <h3 className="font-bold text-gray-900 dark:text-white font-manrope text-sm sm:text-lg md:text-xl mb-1 truncate">
-                  {podiumOrder[1].name}
-                </h3>
-                <p className="text-[10px] sm:text-xs text-[#4c99e6] font-manrope uppercase tracking-wide font-semibold mb-3 sm:mb-4 md:mb-6 flex items-center justify-center gap-1">
-                  <Award className="w-3 h-3" />
-                  {podiumOrder[1].badge}
-                </p>
-                <div className="pt-2 sm:pt-3 md:pt-4 border-t border-gray-100 dark:border-gray-700">
-                  <div className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-white font-manrope mb-1">
-                    {podiumOrder[1].goalsCompleted}
-                  </div>
-                  <div className="text-xs text-[#4c99e6] font-manrope uppercase tracking-wide font-semibold">
-                    Goals Completed
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* 3rd Place */}
-          {podiumOrder[2] && (
-            <div className="flex-1 max-w-[200px] sm:max-w-[240px]">
-              <div 
-                onClick={() => handleUserClick(podiumOrder[2].username)}
-                className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-6 shadow-lg border border-gray-100 dark:border-gray-700 text-center relative cursor-pointer hover:shadow-xl transition-all">
-                <div className="absolute -top-3 sm:-top-4 left-1/2 transform -translate-x-1/2 w-6 h-6 sm:w-8 sm:h-8 bg-orange-400 rounded-full flex items-center justify-center text-white font-bold font-manrope text-xs sm:text-sm">
-                  3
-                </div>
-                <div className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full bg-orange-400 mx-auto mb-2 sm:mb-3 md:mb-4 flex items-center justify-center">
-                  {podiumOrder[2].avatar ? (
-                    <img src={podiumOrder[2].avatar} alt={podiumOrder[2].name} width="56" height="56" className="w-full h-full rounded-full object-cover" />
-                  ) : (
-                    <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-400 font-bold text-base sm:text-lg md:text-xl">
-                      {podiumOrder[2].name.charAt(0)}
-                    </div>
-                  )}
-                </div>
-                <h3 className="font-bold text-gray-900 dark:text-white font-manrope text-xs sm:text-sm md:text-lg mb-1 truncate">
-                  {podiumOrder[2].name}
-                </h3>
-                <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 font-manrope uppercase tracking-wide mb-2 sm:mb-3 md:mb-4">
-                  {podiumOrder[2].badge}
-                </p>
-                <div className="pt-2 sm:pt-3 md:pt-4 border-t border-gray-100 dark:border-gray-700">
-                  <div className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-white font-manrope mb-1">
-                    {podiumOrder[2].goalsCompleted}
-                  </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400 font-manrope uppercase tracking-wide">
-                    Goals Completed
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </motion.div>
-
-        {/* All Rankings Section */}
-        { allRankings && allRankings.length > 0 && <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-4 sm:p-6 mb-6 sm:mb-8"
-        >
-          {/* Section Header */}
-          <div className="flex items-center justify-between mb-4 sm:mb-6">
-            <div className="flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-[#4c99e6]" />
-              <h2 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-white font-manrope">
-                All Time Rankings
-              </h2>
-            </div>
-          </div>
-
-          {/* Table Header */}
-          <div className="hidden sm:grid grid-cols-12 gap-4 px-4 py-3 border-b border-gray-100 dark:border-gray-700 mb-2">
-            <div className="col-span-1 text-xs text-gray-500 dark:text-gray-400 font-manrope uppercase tracking-wide">
-              Rank
-            </div>
-            <div className="col-span-8 text-xs text-gray-500 dark:text-gray-400 font-manrope uppercase tracking-wide">
-              User
-            </div>
-            <div className="col-span-3 text-xs text-gray-500 dark:text-gray-400 font-manrope uppercase tracking-wide text-right">
-              Goals Completed
-            </div>
-          </div>
-
-          {/* Rankings List */}
-          <div className="space-y-2">
-            {allRankings.map((user, index) => (
-              <motion.div
-                key={user.rank}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 + index * 0.05 }}
-                onClick={() => handleUserClick(user.username)}
-                className="grid grid-cols-12 gap-2 sm:gap-4 px-3 sm:px-4 py-3 sm:py-4 rounded-lg sm:rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors items-center cursor-pointer"
-              >
-                {/* Rank */}
-                <div className="col-span-2 sm:col-span-1">
-                  <span className="font-semibold text-gray-900 dark:text-white font-manrope text-sm sm:text-base">
-                    {user.rank}
-                  </span>
-                </div>
-
-                {/* User */}
-                <div className="col-span-7 sm:col-span-8 flex items-center gap-2 sm:gap-3">
-                  <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br ${getAvatarColor(user.rank)} flex items-center justify-center text-white font-bold font-manrope text-xs sm:text-sm flex-shrink-0`}>
-                    {user.avatar ? (
-                      <img src={user.avatar} alt={user.name} width="32" height="32" className="w-full h-full rounded-full object-cover" />
-                    ) : (
-                      user.name.charAt(0)
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1 sm:gap-2">
-                      <span className="font-semibold text-gray-900 dark:text-white font-manrope text-xs sm:text-sm md:text-base truncate">
-                        {user.name}
-                      </span>
-                      {user.isYou && (
-                        <span className="px-1.5 sm:px-2 py-0.5 bg-[#4c99e6] text-white text-[10px] sm:text-xs font-medium rounded font-manrope flex-shrink-0">
-                          YOU
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Goals Completed */}
-                <div className="col-span-3 text-right">
-                  <span className="text-sm sm:text-base md:text-lg font-bold text-gray-900 dark:text-white font-manrope">
-                    {user.goalsCompleted}
-                  </span>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="mt-6 sm:mt-8 flex items-center justify-center gap-1 sm:gap-2">
-              <button
-                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                disabled={currentPage === 1 || loading}
-                className="px-3 sm:px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed font-manrope font-medium text-xs sm:text-sm transition-colors"
-              >
-                Previous
-              </button>
-              <div className="flex items-center gap-1">
-                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                  let pageNum;
-                  if (totalPages <= 5) {
-                    pageNum = i + 1;
-                  } else if (currentPage <= 3) {
-                    pageNum = i + 1;
-                  } else if (currentPage >= totalPages - 2) {
-                    pageNum = totalPages - 4 + i;
-                  } else {
-                    pageNum = currentPage - 2 + i;
-                  }
-                  return (
-                    <button
-                      key={pageNum}
-                      onClick={() => setCurrentPage(pageNum)}
-                      disabled={loading}
-                      className={`w-10 h-10 rounded-lg font-manrope font-medium text-sm transition-colors ${
-                        currentPage === pageNum
-                          ? 'bg-[#4c99e6] text-white'
-                          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
-                      } disabled:opacity-50`}
-                    >
-                      {pageNum}
-                    </button>
-                  );
-                })}
-              </div>
-              <button
-                onClick={() => setCurrentPage(p => p + 1)}
-                disabled={currentPage >= totalPages || loading}
-                className="px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed font-manrope font-medium text-sm transition-colors"
-              >
-                Next
-              </button>
-            </div>
-          )}
-        </motion.div>}
-
-        {/* CTA Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="bg-blue-100 dark:bg-gray-800 rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-12 text-center mb-6 sm:mb-8"
-        >
-          <div className="inline-flex items-center gap-2 text-[#4c99e6] text-xs sm:text-sm font-medium font-manrope mb-3 sm:mb-4">
-            <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4" />
-            ACHIEVE MORE
-          </div>
-          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-white font-manrope mb-3 sm:mb-4">
-            {user && user.completedGoals < 5 ? "Almost There!" : "Ready to Climb Higher?"}
-          </h2>
-          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 font-manrope mb-6 sm:mb-8 max-w-2xl mx-auto">
-            {user && user.completedGoals < 5 
-              ? `Complete at least 5 goals to join the leaderboard! You currently have ${user.completedGoals || 0} completed goal${user.completedGoals === 1 ? '' : 's'}. Keep going!`
-              : "Complete more goals and compete with achievers worldwide to reach the top!"
-            }
-          </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
-            <button
-              onClick={() => navigate('/dashboard')}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-gray-900 rounded-lg transition-colors font-manrope font-medium text-sm sm:text-base"
-            >
-              <Target className="w-4 h-4" />
-              Go to Dashboard
-            </button>
-            <button
-              onClick={() => navigate('/discover')}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-white rounded-lg transition-colors font-manrope font-medium border border-gray-200 dark:border-gray-700 text-sm sm:text-base"
-            >
-              <Target className="w-4 h-4" />
-              Discover Goals
-            </button>
-          </div>
-        </motion.div>
-
-        {/* Inspirational Quote */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.6 }}
-          className="text-center"
-        >
-          <p className="text-gray-500 dark:text-gray-400 font-manrope italic text-sm">
-            "Success is a journey, not a destination."
-          </p>
-        </motion.div>
-      </div>
-    </div>
-  )
+function Avatar({ person }) {
+  const [failed, setFailed] = useState(false)
+  useEffect(() => setFailed(false), [person?.avatar])
+  return <span className={`lb-avatar lb-color-${(person?.rank || 0) % 5}`}>
+    {person?.avatar && !failed ? <img src={person.avatar} alt="" onError={() => setFailed(true)} /> : displayName(person).charAt(0).toUpperCase()}
+  </span>
 }
 
-export default LeaderboardPageNew
+function Mountain() {
+  return <svg className="lb-mountain" viewBox="0 0 360 150" fill="none" aria-hidden="true">
+    <defs><linearGradient id="lb-peak" x1="120" y1="35" x2="260" y2="150" gradientUnits="userSpaceOnUse"><stop stopColor="#a9dcff"/><stop offset="1" stopColor="#258fff"/></linearGradient></defs>
+    <g fill="#deefff"><path d="M17 70c0-9 12-15 20-7 3-20 28-19 31 0 13-3 19 6 18 12H17z"/><path d="M278 46c0-9 10-14 17-8 6-18 27-11 28 1 14-2 20 7 18 12h-63z"/><path d="M107 36l14-10 15 10z"/></g>
+    <path d="M43 144l67-63 39 30 48-64 56 61 28-21 65 57H43z" fill="#b9e1ff"/>
+    <path d="M91 144l106-111 123 111H91z" fill="url(#lb-peak)"/>
+    <path d="M197 33l-28 30 23-5 17 8z" fill="#e7f6ff"/>
+    <path d="M197 34v-29" stroke="#334b70" strokeWidth="2"/><path d="M199 7c12-5 16 6 28 1l-7 10 7 7c-12 5-17-6-28-1V7z" fill="#ffba14"/>
+    <path d="M197 59c-36 15 38 18-2 33-59 17-38 32-9 52h-35c-24-26-2-42 35-53 39-12-31-14 11-32z" fill="#eff9ff"/>
+  </svg>
+}
+
+export default function LeaderboardPage() {
+  const navigate = useNavigate()
+  const user = useApiStore(state => state.user)
+  const [type, setType] = useState('goals')
+  const [timeframe, setTimeframe] = useState('all')
+  const [search, setSearch] = useState('')
+  const [query, setQuery] = useState('')
+  const [page, setPage] = useState(1)
+  const [data, setData] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [retry, setRetry] = useState(0)
+  useEffect(() => {
+    const timer = setTimeout(() => { setQuery(search.trim()); setPage(1) }, 300)
+    return () => clearTimeout(timer)
+  }, [search])
+  useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    setError('')
+    leaderboardAPI.getGlobalLeaderboard({ type, timeframe, search: query, page, limit: 20 })
+      .then(response => { if (!cancelled) setData(response.data.data) })
+      .catch(() => { if (!cancelled) setError('Could not load the leaderboard. Please try again.') })
+      .finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
+  }, [type, timeframe, query, page, retry])
+
+  const visit = person => { if (person?.username) navigate(`/profile/@${person.username}`) }
+  const top = data?.topThree || []
+  const podium = [top[1], top[0], top[2]].filter(Boolean)
+  const rows = (data?.leaderboard || []).filter(person => query || person.rank > 3)
+  const me = data?.yourRank
+  const stats = data?.stats
+  const personalProfile = me || user
+  const personalScore = score(me, type)
+  const unrankedReason = (() => {
+    if (!me) return 'Your account is not eligible for this leaderboard.'
+    if (type === 'goals' && timeframe === 'all') {
+      const remaining = Math.max(0, Number(data?.eligibilityMinimum || 5) - personalScore)
+      return `Complete ${remaining} more goal${remaining === 1 ? '' : 's'} to qualify.`
+    }
+    if (type === 'goals') return `No goals completed in ${timeframe === 'week' ? 'the last 7 days' : timeframe === 'month' ? 'the last 30 days' : 'this year'}.`
+    return `No active days recorded in ${timeframe === 'all' ? 'your activity history' : timeframe === 'week' ? 'the last 7 days' : timeframe === 'month' ? 'the last 30 days' : 'this year'}.`
+  })()
+  const selectType = value => { setType(value); setPage(1); setData(null) }
+  const periodControl = <label className="lb-period"><CalendarDays /><select aria-label="Leaderboard time period" value={timeframe} onChange={event => { setTimeframe(event.target.value); setPage(1); setData(null) }}><option value="all">All Time</option><option value="week">Last 7 Days</option><option value="month">Last 30 Days</option><option value="year">This Year</option></select><ChevronDown /></label>
+  const rankCard = <section className="lb-your-rank">
+    <div className="lb-card-heading"><h2><BarChart3 />Your Rank</h2><button onClick={() => visit(personalProfile)}>View Profile <ArrowRight /></button></div>
+    <button className={`lb-rank-person ${me?.rank ? '' : 'is-unranked'}`} onClick={() => visit(personalProfile)}>
+      <Avatar person={personalProfile} />
+      <div><strong className="lb-rank-number">{me?.rank ? `#${me.rank}` : 'Unranked'}</strong><b>{displayName(personalProfile)}</b><small>{me?.rank ? `${personalScore.toLocaleString()} ${labels[type].toLowerCase()}` : unrankedReason}</small></div>
+    </button>
+  </section>
+  return <div className="lb-page">
+    <div className="lb-shell">
+      <header className="lb-hero"><div><h1>Global <span>Leaderboard</span></h1><p>Celebrate the journey of achievers worldwide.</p></div><Mountain /><blockquote>“Small steps create<br />big achievers.”<span>—</span><Sparkles /></blockquote></header>
+      <div className="lb-controls">
+        <div className="lb-tabs" title="Active days count distinct days with a completed goal or a habit daily target reached." role="group" aria-label="Rank by">
+          {Object.entries(labels).map(([key, label]) => <button key={key} aria-pressed={type === key} className={type === key ? 'active' : ''} onClick={() => selectType(key)}>{key === 'goals' ? <Trophy /> : <CalendarDays />}{label}</button>)}
+        </div>
+        <div className="lb-desktop-period">{periodControl}</div>
+      </div>
+      {error ? <div className="lb-message" role="alert">{error}<button onClick={() => setRetry(value => value + 1)}>Try again</button></div> : <div aria-busy={loading}>
+        {loading ? <div className="lb-loading" role="status"><span />Loading rankings…</div> : <>
+          {data?.isDemo && <p className="lb-preview-note">Sample rankings — complete goals to start the real leaderboard.</p>}
+          {podium.length > 0 && <section className="lb-podium" aria-label="Top three achievers">
+            {podium.map(person => <button key={person.rank} className={`lb-winner lb-place-${person.rank}`} onClick={() => visit(person)} disabled={!person.username}>
+              <span className="lb-medal">{person.rank}</span>
+              <div className="lb-confetti" aria-hidden="true">{Array.from({ length: 9 }, (_, index) => <i key={index} />)}</div>
+              {person.rank === 1 && <Crown className="lb-crown" fill="currentColor" />}
+              <Avatar person={person} /><h2>{displayName(person)}</h2><p className="lb-badge">{person.rank === 1 ? 'Champion' : person.rank === 2 ? 'Silver Achiever' : 'Bronze Explorer'}</p><strong className="lb-score">{score(person, type).toLocaleString()}</strong><span className="lb-score-label">{labels[type]}</span>
+            </button>)}
+          </section>}
+        </>}
+        <div className="lb-content">
+          <section className="lb-table-card" aria-label="Global rankings">
+            <div className="lb-table-toolbar"><label className="lb-search"><Search /><input aria-label="Search users" placeholder="Search users…" value={search} onChange={event => setSearch(event.target.value)} /></label><div className="lb-mobile-period">{periodControl}</div></div>
+            {!loading && <><table><thead><tr><th scope="col">#</th><th scope="col">User</th><th scope="col">{type === 'goals' ? 'Goals' : 'Active Days'}</th></tr></thead><tbody>
+              {rows.map(person => <tr key={person.rank} className={person.username === user?.username ? 'is-you' : ''}><td>{person.rank}</td><td><button onClick={() => visit(person)} disabled={!person.username}><Avatar person={person} /><span>{displayName(person)}</span>{person.username === user?.username && <small>You</small>}</button></td><td>{score(person, type).toLocaleString()}</td></tr>)}
+            </tbody></table>
+            {!rows.length && <p className="lb-empty">{query ? 'No achievers match your search.' : top.length ? 'More achievers will appear here as they climb the ranks.' : 'A new journey begins. Be the first to join the leaderboard!'}</p>}
+            {data?.pagination?.pages > 1 && <nav className="lb-pagination" aria-label="Leaderboard pages"><button disabled={page === 1} onClick={() => setPage(value => value - 1)}>Previous</button><span>{page} / {data.pagination.pages}</span><button disabled={page >= data.pagination.pages} onClick={() => setPage(value => value + 1)}>Next</button></nav>}
+            <div className="lb-mobile-rank">{rankCard}</div></>}
+          </section>
+          {!loading && <aside className="lb-rail">{rankCard}<section className="lb-stats"><h2><TrendingUp />Leaderboard Stats</h2><p><Users /><strong>{Number(stats?.participants || 0).toLocaleString()}</strong><span>Total participants</span></p><p><Target /><strong>{Number(stats?.completedGoals || 0).toLocaleString()}</strong><span>Goals completed</span></p><p><TrendingUp /><strong>{Number(stats?.averageGoals || 0).toLocaleString()}</strong><span>Average goals per user</span></p></section></aside>}
+        </div>
+      </div>}
+    </div>
+  </div>
+}
