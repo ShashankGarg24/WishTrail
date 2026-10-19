@@ -35,3 +35,11 @@ test('mobile bottom navigation remains independent of the web sidebar', async ()
   assert.match(bottomTabs, /md:hidden/)
   assert.doesNotMatch(bottomTabs, /ContextualSidebar/)
 })
+
+test('header marks mobile discovery and notifications as selected pages', async () => {
+  const header = await read('src/components/Header.jsx')
+  assert.match(header, /isDiscoverActive/)
+  assert.match(header, /isNotificationsActive/)
+  assert.match(header, /aria-current=\{isDiscoverActive \? 'page'/)
+  assert.match(header, /aria-current=\{isNotificationsActive \? 'page'/)
+})
