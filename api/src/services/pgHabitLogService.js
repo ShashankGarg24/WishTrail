@@ -39,7 +39,10 @@ class PgHabitLogService {
           UPDATE habit_logs
           SET status = $1,
               completion_count = completion_count + $2,
-              completion_times_mood = array_append(completion_times_mood, jsonb_build_object('timestamp', CURRENT_TIMESTAMP, 'mood', $3::text))
+              completion_times_mood = completion_times_mood || ARRAY(
+                SELECT jsonb_build_object('timestamp', CURRENT_TIMESTAMP, 'mood', $3::text)
+                FROM generate_series(1, $2)
+              )
           WHERE id = $4
           RETURNING *
         `;
@@ -53,7 +56,10 @@ class PgHabitLogService {
           INSERT INTO habit_logs (
             user_id, habit_id, date_key, status,
             completion_count, completion_times_mood
-          ) VALUES ($1, $2, $3::date, $4, $5, ARRAY[jsonb_build_object('timestamp', CURRENT_TIMESTAMP, 'mood', $6::text)])
+          ) VALUES ($1, $2, $3::date, $4, $5, ARRAY(
+            SELECT jsonb_build_object('timestamp', CURRENT_TIMESTAMP, 'mood', $6::text)
+            FROM generate_series(1, $5)
+          ))
           RETURNING *
         `;
         const insertResult = await client.query(insertSql, [
@@ -352,8 +358,7 @@ class PgHabitLogService {
         UPDATE habit_logs
         SET status = $1,
             completion_count = $2,
-            completion_times_mood = ARRAY(SELECT jsonb_array_elements($3::jsonb)),
-            updated_at = CURRENT_TIMESTAMP
+            completion_times_mood = ARRAY(SELECT jsonb_array_elements($3::jsonb))
         WHERE id = $4 AND habit_id = $5 AND user_id = $6
         RETURNING *
       `, [normalizedStatus, normalizedEntries.length, JSON.stringify(normalizedEntries), logId, habitId, userId]);
@@ -363,6 +368,13 @@ class PgHabitLogService {
         ? currentDateKey
         : new Date().toISOString().slice(0, 10);
       const streakInfo = await pgHabitService.calculateStreak(habitId, todayKey, client);
+      const rawEditedDate = result.rows[0].date_key;
+      const editedDateKey = rawEditedDate instanceof Date
+        ? rawEditedDate.toISOString().slice(0, 10)
+        : String(rawEditedDate || '').slice(0, 10);
+      const currentStreak = normalizedStatus !== 'done' && editedDateKey === todayKey
+        ? 0
+        : (streakInfo.currentStreak || 0);
       await client.query(`
         UPDATE habits
         SET current_streak = $1,
@@ -372,7 +384,7 @@ class PgHabitLogService {
             total_days = (SELECT COUNT(DISTINCT date_key) FROM habit_logs WHERE habit_id = $3 AND user_id = $4 AND status = 'done' AND completion_count >= COALESCE((SELECT daily_target_count FROM habits WHERE id = $3), 1)),
             updated_at = CURRENT_TIMESTAMP
         WHERE id = $3 AND user_id = $4
-      `, [streakInfo.currentStreak || 0, streakInfo.longestStreak || 0, habitId, userId]);
+      `, [currentStreak, streakInfo.longestStreak || 0, habitId, userId]);
       return this._formatHabitLog(result.rows[0]);
     });
   }
@@ -459,40 +471,14 @@ class PgHabitLogService {
       return { deleted: true, log: null };
     }
 
-    const updateSql = `
-      WITH payload AS (
-        SELECT value AS entry
-        FROM jsonb_array_elements($1::jsonb)
-      )
-      UPDATE habit_logs
-      SET completion_times_mood = COALESCE((SELECT array_agg(entry) FROM payload), ARRAY[]::jsonb[]),
-          completion_count = $2
-      WHERE id = $3 AND habit_id = $4 AND user_id = $5
-      RETURNING *
-    `;
-
-    const updateResult = await query(updateSql, [JSON.stringify(entries), entries.length, logId, habitId, userId]);
-    const updatedRow = updateResult.rows[0];
-    if (!updatedRow) return null;
-
-    await query(`
-      UPDATE habits
-      SET total_completions = (
-            SELECT COALESCE(SUM(completion_count), 0)
-            FROM habit_logs
-            WHERE habit_id = $1 AND status = 'done'
-          ),
-          total_days = (
-            SELECT COUNT(DISTINCT date_key)
-            FROM habit_logs
-            WHERE habit_id = $1 AND status = 'done'
-              AND completion_count >= COALESCE((SELECT daily_target_count FROM habits WHERE id = $1), 1)
-          ),
-          updated_at = CURRENT_TIMESTAMP
-      WHERE id = $1
-    `, [habitId]);
-
-    return { deleted: false, log: this._formatHabitLog(updatedRow) };
+    const userResult = await query('SELECT timezone FROM users WHERE id = $1', [userId]);
+    const currentDateKey = getCurrentDateInTimezone(userResult.rows[0]?.timezone || 'UTC');
+    const updatedLog = await this.replaceHabitLog(habitId, logId, userId, {
+      status: 'done',
+      entries,
+      currentDateKey
+    });
+    return updatedLog ? { deleted: false, log: updatedLog } : null;
   }
 
   /**

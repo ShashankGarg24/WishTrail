@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   BarChart3, CheckCircle2, ChevronDown, ChevronLeft,
-  Compass, Copy, Edit3, Flame, MoreVertical,
+  Compass, Copy, Edit3, MoreVertical,
   PauseCircle, Plus, Search, SlidersHorizontal, Sparkles, Trash2, TrendingDown, TrendingUp
 } from 'lucide-react'
 import HabitCategoryIcon from './HabitCategoryIcon'
@@ -83,7 +83,10 @@ export default function HabitsWorkspace({ habits = [], stats = {}, selectedYear,
         <select aria-label="Habit year" value={selectedYear} onChange={event => onYearChange?.(Number(event.target.value))} className="h-9 rounded-lg border border-[#dce5f4] bg-white px-3 text-sm font-bold text-[#0b1746] outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white">
           {availableYears.map(year => <option key={year} value={year}>{year}</option>)}
         </select>
-        <div className="flex items-center gap-2"><button className="grid h-9 w-9 place-items-center rounded-lg border border-[#dce5f4] bg-white text-[#526392]" aria-label="Discover habit ideas" onClick={onDiscover}><Compass size={16}/></button><button className="mobile-add" aria-label="Create Habit" onClick={onCreate}><Plus size={20}/></button></div>
+        <div className="flex items-center gap-2">
+          <button className="grid h-9 w-9 place-items-center rounded-lg border border-[#dce5f4] bg-white text-[#526392]" aria-label="Discover habit ideas" onClick={onDiscover}><Compass size={16}/></button>
+          <button type="button" onClick={onCreate} aria-label="Create Habit" className="grid h-9 w-9 place-items-center rounded-lg bg-[#1683ed] text-white shadow-sm"><Plus className="h-4 w-4" /></button>
+        </div>
       </div>
       <div className="habit-consistency-card">
         <div className="habit-consistency-heading">
@@ -118,8 +121,9 @@ export default function HabitsWorkspace({ habits = [], stats = {}, selectedYear,
             : Math.max(1, new Set(Array.isArray(habit.daysOfWeek) ? habit.daysOfWeek : []).size)
           const weekly = Math.max(0, Number(habit.weeklyCompletions ?? habit.todayCompletionCount) || 0)
           const target = dailyTarget * scheduledDays
-          const progress = Math.min(100, Math.max(0, Math.round((weekly / target) * 100)))
-          const schedule = habit.frequency === 'daily' ? `${dailyTarget} daily` : `${dailyTarget} on ${scheduledDays} days/week`
+          const fallbackProgress = Math.min(100, Math.max(0, Math.round((weekly / target) * 100)))
+          const progress = Math.min(100, Math.max(0, Math.round(Number(habit.last7CompletionRate ?? fallbackProgress))))
+          const trend = habit.last7TrendPoints != null && Number.isFinite(Number(habit.last7TrendPoints)) ? Number(habit.last7TrendPoints) : null
           const isPaused = habit.isArchived || habit.isActive === false
           const status = habit.completedAt ? 'Completed' : isPaused ? 'Paused' : progress >= 60 ? 'Strong' : 'Active'
           const statusClass = habit.completedAt || progress >= 60
@@ -135,11 +139,10 @@ export default function HabitsWorkspace({ habits = [], stats = {}, selectedYear,
                 <button type="button" className="-mr-1 rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700" aria-label={`Actions for ${habit.name}`} onClick={e => { e.stopPropagation(); setMenuHabit(habit) }}><MoreVertical className="h-5 w-5"/></button>
               </div>
               <p className="mt-2 line-clamp-1 text-xs text-gray-500">{habit.description || 'Build consistency one day at a time'}</p>
-              <div className="mt-2 flex items-center justify-between"><span className={`inline-flex rounded-full px-2 py-1 text-[10px] font-semibold ${statusClass}`}>{status}</span><span className="text-xs font-bold text-[#0b1746] dark:text-white">{progress}%</span></div>
+              <div className="mt-2 flex items-center justify-between"><span className={`inline-flex rounded-full px-2 py-1 text-[10px] font-semibold ${statusClass}`}>{status}</span><span className="text-xs font-bold text-[#0b1746] dark:text-white">{progress}% completion</span></div>
               <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-[#e9eef5] dark:bg-gray-700"><div className="h-full rounded-full" style={{ width: `${progress}%`, background: visual.accent }}/></div>
               <div className="mt-3 flex items-center justify-between text-[11px] text-gray-500">
-                <span className="flex items-center gap-1"><Flame className="h-3.5 w-3.5 text-orange-500"/><b className="font-semibold text-gray-700 dark:text-gray-300">{habit.currentStreak || 0}</b> day streak</span>
-                <span>{weekly}/{target} this week · {schedule}</span>
+                <span>Last 7 days</span>
               </div>
             </div>
           </article>

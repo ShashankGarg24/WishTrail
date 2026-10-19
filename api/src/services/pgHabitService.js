@@ -4,6 +4,8 @@
  */
 
 const { query, getClient, transaction } = require('../config/supabase');
+const { isScheduledOccurrence } = require('../utility/metrics');
+const { shiftDateKey } = require('../utility/timezone');
 
 class PgHabitService {
   /**
@@ -373,80 +375,49 @@ class PgHabitService {
     const habit = await this.getHabitById(habitId, null, client);
     if (!habit) return { currentStreak: 0, longestStreak: 0 };
 
-    // Get all logs for this habit, ordered by date descending
+    // Get target-qualified daily logs. Streaks are based on consecutive
+    // scheduled occurrences, not the number of calendar days between logs.
     const q = client && client.query ? async (text, params) => (await client.query(text, params)) : query;
     const logSql = `
-      SELECT date_key, status
+      SELECT date_key, status, completion_count
       FROM habit_logs
       WHERE habit_id = $1
-        AND status = 'done'
-        AND completion_count >= COALESCE($2, 1)
-      ORDER BY date_key DESC
+      ORDER BY date_key ASC
     `;
 
-    const logResult = await q(logSql, [habitId, habit.dailyTargetCount]);
-    const logs = logResult.rows;
+    const logResult = await q(logSql, [habitId]);
+    const completedDateKeys = logResult.rows
+      .filter(row => row.status === 'done' && Number(row.completion_count || 0) >= Math.max(1, Number(habit.dailyTargetCount || 1)))
+      .map(row => String(row.date_key).slice(0, 10))
+      .filter(dateKey => isScheduledOccurrence(habit, dateKey));
+    const explicitlySkipped = new Set(logResult.rows
+      .filter(row => row.status === 'skipped' || row.status === 'missed')
+      .map(row => String(row.date_key).slice(0, 10))
+      .filter(dateKey => isScheduledOccurrence(habit, dateKey)));
 
-    if (logs.length === 0) {
-      return { currentStreak: 0, longestStreak: 0 };
+    if (completedDateKeys.length === 0) {
+      return { currentStreak: 0, longestStreak: 0, totalScheduledDays: 0 };
     }
 
-    // Calculate current streak (consecutive days back from current/last logged date)
-    let currentStreak = 0;
+    const completed = new Set(completedDateKeys);
+    const lastDateKey = completedDateKeys[completedDateKeys.length - 1] > currentDateKey
+      ? completedDateKeys[completedDateKeys.length - 1]
+      : currentDateKey;
+    let runningStreak = 0;
     let longestStreak = 0;
-    let tempStreak = 0;
 
-    const isExpectedDay = (dateKey, frequency, daysOfWeek) => {
-      if (frequency === 'daily') return true;
-      const date = new Date(dateKey + 'T00:00:00Z');
-      const dayOfWeek = date.getUTCDay();
-      return daysOfWeek && daysOfWeek.includes(dayOfWeek);
-    };
-
-    const daysOfWeek = habit.daysOfWeek;
-    const frequency = habit.frequency;
-    let currentStreakFinalized = false;
-
-    // Calculate streaks
-    for (let i = 0; i < logs.length; i++) {
-      const log = logs[i];
-      
-      if (i === 0) {
-        tempStreak = 1;
-        currentStreak = 1;
-      } else {
-        const prevDate = new Date(logs[i - 1].date_key + 'T00:00:00Z');
-        const currDate = new Date(log.date_key + 'T00:00:00Z');
-        const diffDays = Math.floor((prevDate - currDate) / (1000 * 60 * 60 * 24));
-
-        // Check if consecutive expected day
-        if (diffDays === 1 || (frequency !== 'daily' && diffDays <= 7)) {
-          // Check if this day should be logged based on frequency
-          if (isExpectedDay(log.date_key, frequency, daysOfWeek)) {
-            tempStreak++;
-            if (!currentStreakFinalized) currentStreak = tempStreak;
-          }
-        } else {
-          // Streak broken
-          currentStreakFinalized = true;
-          if (tempStreak > longestStreak) longestStreak = tempStreak;
-          tempStreak = 1;
-        }
+    for (let dateKey = completedDateKeys[0]; dateKey <= lastDateKey; dateKey = shiftDateKey(dateKey, 1)) {
+      if (!isScheduledOccurrence(habit, dateKey)) continue;
+      if (completed.has(dateKey)) {
+        runningStreak += 1;
+        longestStreak = Math.max(longestStreak, runningStreak);
+      } else if (dateKey !== currentDateKey || explicitlySkipped.has(dateKey)) {
+        // Today remains open until it is explicitly skipped or the day ends.
+        runningStreak = 0;
       }
     }
 
-    if (tempStreak > longestStreak) longestStreak = tempStreak;
-
-    // Check if current streak should be reset (no log today or yesterday)
-    const lastLogDate = new Date(logs[0].date_key + 'T00:00:00Z');
-    const today = new Date(currentDateKey + 'T00:00:00Z');
-    const daysSinceLastLog = Math.floor((today - lastLogDate) / (1000 * 60 * 60 * 24));
-
-    if (daysSinceLastLog > 1) {
-      currentStreak = 0;
-    }
-
-    return { currentStreak, longestStreak };
+    return { currentStreak: runningStreak, longestStreak, totalScheduledDays: completed.size };
   }
 
   /**

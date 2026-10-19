@@ -1552,8 +1552,9 @@ const ProfilePage = () => {
                       const target = habit.frequency === 'custom'
                         ? Math.max(1, habit.daysOfWeek?.length || 1)
                         : habit.frequency === 'weekly' ? 1 : 7;
-                      const percent = Math.min(100, Math.round((completed / Math.max(1, target)) * 100));
-                      return <button type="button" key={habit.id || habit._id} onClick={() => { setOpenHabitId(habit.id || habit._id); setHabitModalOpen(true); }} className="rounded-xl border border-slate-100 p-3 text-left hover:border-blue-200 dark:border-gray-700"><div className="flex items-center gap-2"><HabitCategoryIcon category={habit.category} size="sm"/><span className="min-w-0 flex-1"><strong className="block truncate text-sm text-slate-950 dark:text-white">{habit.name}</strong><small className="text-[9px] font-semibold uppercase text-slate-400">{getHabitCategoryLabel(habit.category)}</small></span><span className="text-xs font-bold text-orange-500">🔥 {habit.currentStreak || 0}</span></div><p className="mt-1 text-[10px] text-slate-500">{completed}/{target} this week</p><div className="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-100 dark:bg-gray-700"><span className="block h-full rounded-full bg-emerald-500" style={{ width: `${percent}%` }} /></div></button>;
+                      const percent = Math.min(100, Math.round(Number(habit.last7CompletionRate ?? ((completed / Math.max(1, target)) * 100))));
+                      const trend = habit.last7TrendPoints;
+                      return <button type="button" key={habit.id || habit._id} onClick={() => { setOpenHabitId(habit.id || habit._id); setHabitModalOpen(true); }} className="rounded-xl border border-slate-100 p-3 text-left hover:border-blue-200 dark:border-gray-700"><div className="flex items-center gap-2"><HabitCategoryIcon category={habit.category} size="sm"/><span className="min-w-0 flex-1"><strong className="block truncate text-sm text-slate-950 dark:text-white">{habit.name}</strong><small className="text-[9px] font-semibold uppercase text-slate-400">{getHabitCategoryLabel(habit.category)}</small></span><span className="text-xs font-bold text-[#1683ed]">{percent}%</span></div><p className="mt-1 text-[10px] text-slate-500">{trend == null ? 'Last 7 days' : `${trend > 0 ? '↑ ' : trend < 0 ? '↓ ' : '→ '}${Math.abs(trend)} pts vs previous 7 days`}</p><div className="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-100 dark:bg-gray-700"><span className="block h-full rounded-full bg-emerald-500" style={{ width: `${percent}%` }} /></div></button>;
                     })}</div> : <p className="py-5 text-center text-sm text-slate-500">Your recent habits will appear here.</p>}
                   </section>
                 </div>
@@ -1727,7 +1728,8 @@ const ProfilePage = () => {
                             ? Math.max(1, habit.daysOfWeek?.length || 1)
                             : habit.frequency === 'weekly' ? 1 : 7;
                           const weeklyCompleted = Number(habit.weeklyCompletedDays || 0);
-                          const weeklyPercent = Math.min(100, Math.round((weeklyCompleted / weeklyTarget) * 100));
+                          const weeklyPercent = Math.min(100, Math.round(Number(habit.last7CompletionRate ?? ((weeklyCompleted / weeklyTarget) * 100))));
+                          const trend = habit.last7TrendPoints;
                           const scheduleLabel = habit.frequency === 'custom'
                             ? `${habit.daysOfWeek?.length || 0} days / week`
                             : habit.frequency === 'weekly' ? 'Weekly' : 'Daily';
@@ -1753,11 +1755,11 @@ const ProfilePage = () => {
                                   </div>
                                 </div>
                                 <div className="flex-shrink-0 text-right">
-                                  <span className="text-xl sm:text-2xl font-bold block leading-tight" style={{ color: THEME_COLOR }}>{habit.currentStreak ?? 0}</span>
-                                  <span className="text-xs sm:text-sm" style={{ color: THEME_COLOR }}>DAY STREAK</span>
+                                  <span className="text-xl sm:text-2xl font-bold block leading-tight" style={{ color: THEME_COLOR }}>{weeklyPercent}%</span>
+                                  <span className="text-xs sm:text-sm" style={{ color: THEME_COLOR }}>COMPLETION</span>
                                 </div>
                               </div>
-                              <div className="mt-3"><div className="mb-1.5 flex items-center justify-between text-xs text-slate-500 dark:text-gray-400"><span>{weeklyCompleted}/{weeklyTarget} scheduled days this week</span><span className="font-bold">{weeklyPercent}%</span></div><div className="flex items-center gap-3"><div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100 dark:bg-gray-700"><div className="h-full rounded-full bg-gradient-to-r from-blue-500 to-emerald-400" style={{ width: `${weeklyPercent}%` }} /></div><ChevronRight className="h-4 w-4 text-slate-400" /></div></div>
+                              <div className="mt-3"><div className="mb-1.5 flex items-center justify-between text-xs text-slate-500 dark:text-gray-400"><span>{habit.last7CompletedDays ?? weeklyCompleted}/{habit.last7ExpectedDays ?? weeklyTarget} scheduled days · last 7 days</span><span className="font-bold">{trend == null ? 'No prior comparison' : `${trend > 0 ? '+' : ''}${trend} pts`}</span></div><div className="flex items-center gap-3"><div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100 dark:bg-gray-700"><div className="h-full rounded-full bg-gradient-to-r from-blue-500 to-emerald-400" style={{ width: `${weeklyPercent}%` }} /></div><ChevronRight className="h-4 w-4 text-slate-400" /></div></div>
                             </motion.div>
                           );
                         })}
@@ -2102,9 +2104,9 @@ const ProfilePage = () => {
             setHabitModalOpen(false);
             setOpenHabitId(null);
           }}
-          onLog={isOwnProfile ? async (status, mood = 'neutral') => {
+          onLog={isOwnProfile ? async (status, mood = 'neutral', count = 1) => {
             try {
-              const response = await habitsAPI.log(openHabitId, { status, mood });
+              const response = await habitsAPI.log(openHabitId, { status, mood, count });
               const log = response?.data?.data?.log || response?.data?.log;
               toast.success(`Habit ${status === 'done' ? 'completed' : status}!`);
               await fetchUserHabits();

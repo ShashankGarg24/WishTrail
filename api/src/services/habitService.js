@@ -211,12 +211,14 @@ async function deleteHabit(userId, habitId) {
   return { ok: true };
 }
 
-async function toggleLog(userId, habitId, { status = 'done', note = '', mood = 'neutral', dailyLogsEntryId = null, date = new Date() } = {}) {
+async function toggleLog(userId, habitId, { status = 'done', mood = 'neutral', completionCount = 1, dailyLogsEntryId = null, dateKey: requestedDateKey = null, date = new Date() } = {}) {
   const habit = await pgHabitService.getHabitById(habitId, userId);
   if (!habit) throw Object.assign(new Error('Habit not found'), { statusCode: 404 });
   if (habit.isArchived) throw Object.assign(new Error('Habit is archived'), { statusCode: 400 });
 
-  const dateKey = toDateKeyUTC(date);
+  const dateKey = /^\d{4}-\d{2}-\d{2}$/.test(requestedDateKey || '')
+    ? requestedDateKey
+    : toDateKeyUTC(date);
   // date_key represents the user's calendar day, so do not compare it with
   // the server's UTC day when deciding whether a skip breaks today's streak.
   const user = await pgUserService.getUserById(userId);
@@ -262,8 +264,8 @@ async function toggleLog(userId, habitId, { status = 'done', note = '', mood = '
       habitId,
       dateKey,
       status,
-      note,
       mood,
+      completionCount,
       dailyLogsEntryId
     });
   }
@@ -540,11 +542,13 @@ async function analytics(userId, { days = 7, userTimezone = 'UTC', endDateKey } 
 
   // Count only this local-calendar range; future client date keys are excluded.
   const countResult = await pgQuery(
-    `SELECT status, COUNT(*)::int AS cnt
-     FROM habit_logs
-     WHERE user_id = $1 AND date_key >= $2 AND date_key <= $3
-       AND status IN ('done', 'skipped', 'missed')
-     GROUP BY status`,
+    `SELECT hl.status, COUNT(*)::int AS cnt
+     FROM habit_logs hl
+     INNER JOIN habits h ON h.id = hl.habit_id
+     WHERE hl.user_id = $1 AND hl.date_key >= $2 AND hl.date_key <= $3
+       AND hl.status IN ('done', 'skipped', 'missed')
+       AND (hl.status <> 'done' OR hl.completion_count >= COALESCE(h.daily_target_count, 1))
+     GROUP BY hl.status`,
     [userId, fromKey, endKey]
   );
 
@@ -555,10 +559,12 @@ async function analytics(userId, { days = 7, userTimezone = 'UTC', endDateKey } 
 
   // Per-habit breakdown (still useful for future)
   const byHabitResult = await pgQuery(
-    `SELECT habit_id, status, COUNT(*)::int AS cnt
-     FROM habit_logs
-     WHERE user_id = $1 AND date_key >= $2 AND date_key <= $3
-     GROUP BY habit_id, status`,
+    `SELECT hl.habit_id, hl.status, COUNT(*)::int AS cnt
+     FROM habit_logs hl
+     INNER JOIN habits h ON h.id = hl.habit_id
+     WHERE hl.user_id = $1 AND hl.date_key >= $2 AND hl.date_key <= $3
+       AND (hl.status <> 'done' OR hl.completion_count >= COALESCE(h.daily_target_count, 1))
+     GROUP BY hl.habit_id, hl.status`,
     [userId, fromKey, endKey]
   );
   const byHabit = {};
@@ -567,8 +573,12 @@ async function analytics(userId, { days = 7, userTimezone = 'UTC', endDateKey } 
     byHabit[row.habit_id][row.status] = row.cnt;
   }
   const activeDatesResult = await pgQuery(
-    `SELECT DISTINCT date_key::text AS date_key FROM habit_logs
-     WHERE user_id = $1 AND status = 'done' AND date_key >= $2 AND date_key <= $3`,
+    `SELECT DISTINCT hl.date_key::text AS date_key
+     FROM habit_logs hl
+     INNER JOIN habits h ON h.id = hl.habit_id
+     WHERE hl.user_id = $1 AND hl.status = 'done'
+       AND hl.completion_count >= COALESCE(h.daily_target_count, 1)
+       AND hl.date_key >= $2 AND hl.date_key <= $3`,
     [userId, fromKey, endKey]
   );
   // top streaks snapshot from PostgreSQL
@@ -626,9 +636,11 @@ async function getHabitAnalytics(userId, habitId, { days = 90, userTimezone = 'U
     if (log.completionTimesMood && log.completionTimesMood.length > 0) {
       log.completionTimesMood.forEach(completionTime => {
         // Convert UTC timestamp to user's local date
-        let localDate;
+        const rawTimestamp = completionTime?.timestamp || completionTime;
+        let localDate = log.dateKey;
         try {
-          const timestamp = new Date(completionTime);
+          const timestamp = new Date(rawTimestamp);
+          if (Number.isNaN(timestamp.getTime())) throw new Error('Invalid completion timestamp');
           const formatter = new Intl.DateTimeFormat('en-CA', {
             timeZone: userTimezone,
             year: 'numeric',
@@ -637,8 +649,8 @@ async function getHabitAnalytics(userId, habitId, { days = 90, userTimezone = 'U
           });
           localDate = formatter.format(timestamp);
         } catch (err) {
-          // Fallback to UTC if timezone conversion fails
-          localDate = new Date(completionTime).toISOString().split('T')[0];
+          // A daily log always has a valid storage date to fall back to.
+          localDate = log.dateKey;
         }
         
         // Initialize or update timeline entry for this date
@@ -647,7 +659,6 @@ async function getHabitAnalytics(userId, habitId, { days = 90, userTimezone = 'U
             date: localDate,
             status: log.status,
             mood: log.mood,
-            note: log.note,
             completionCount: 0,
             completionTimesMood: []
           };
@@ -662,9 +673,8 @@ async function getHabitAnalytics(userId, habitId, { days = 90, userTimezone = 'U
         date: log.dateKey,
         status: log.status,
         mood: log.mood,
-        note: log.note,
         completionCount: log.completionCount || 0,
-        completionTimesMoodMood: []
+        completionTimesMood: []
       };
     }
     

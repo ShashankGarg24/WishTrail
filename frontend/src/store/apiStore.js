@@ -679,7 +679,7 @@ const useApiStore = create(
         }));
       },
 
-      logHabit: async (id, status, mood = 'neutral', note = '') => {
+      logHabit: async (id, status, mood = 'neutral', count = 1) => {
         try {
           // Get current date key in user's timezone
           const dateKey = getCurrentDateKey();
@@ -687,7 +687,7 @@ const useApiStore = create(
           const response = await habitsAPI.log(id, { 
             status, 
             mood,
-            note,
+            count,
             date: dateKey  // Send date_key calculated in user's timezone
           });
           const data = response?.data?.data || response?.data;

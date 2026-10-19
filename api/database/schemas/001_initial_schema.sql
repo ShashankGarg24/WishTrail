@@ -226,7 +226,6 @@ CREATE TABLE IF NOT EXISTS habit_logs (
   legacy_date_key DATE,
   status VARCHAR(20) DEFAULT 'done' CHECK (status IN ('done', 'missed', 'skipped')),
   value NUMERIC DEFAULT 1, -- Actual value (reps, minutes, etc.)
-  note VARCHAR(400) DEFAULT '',
   completion_count INTEGER DEFAULT 0 CHECK (completion_count >= 0),
   completion_times_mood JSONB[] DEFAULT ARRAY[]::JSONB[], -- Array of {timestamp, mood} objects
   

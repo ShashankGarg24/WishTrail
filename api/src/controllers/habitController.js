@@ -5,8 +5,8 @@ const pgGoalService = require('../services/pgGoalService');
 const pgUserService = require('../services/pgUserService');
 const pgFollowService = require('../services/pgFollowService');
 const { sanitizeHabit, sanitizeHabitForProfile } = require('../utility/sanitizer');
-const { getCurrentDateInTimezone, getDateRangeInTimezone } = require('../utility/timezone');
-const { habitCompletion, scheduledOccurrences, percentagePointTrend } = require('../utility/metrics');
+const { getCurrentDateInTimezone, getDateKeyInTimezone, getDateRangeInTimezone, shiftDateKey } = require('../utility/timezone');
+const { habitCompletion, isScheduledOccurrence, scheduledOccurrences, percentagePointTrend } = require('../utility/metrics');
 const { validateHabitCreation, handleValidationResponse } = require('../utility/premiumEnforcement');
 const UserPreferences = require('../models/extended/UserPreferences');
 const { HABIT_CATEGORIES, normalizeHabitCategory } = require('../constants/habitCategories');
@@ -73,13 +73,14 @@ exports.listHabits = async (req, res, next) => {
     // Support viewing other users' habits via username query param
     const targetUsername = req.query.username;
     let targetUserId = req.user.id;
+    let targetUser = null;
     const requestingUsername = req.user.username;
     const requestingUserId = req.user.id;
 
     // Check privacy if viewing another user's habits
     if (targetUsername && targetUsername !== requestingUsername) {
       // Get user from PostgreSQL
-      const targetUser = await pgUserService.getUserByUsername(targetUsername);
+      targetUser = await pgUserService.getUserByUsername(targetUsername);
       if (!targetUser || !targetUser.is_active) {
         return res.status(404).json({
           success: false,
@@ -153,12 +154,24 @@ exports.listHabits = async (req, res, next) => {
     let todayCompletionCountMap = {};
     let weeklyCompletedDaysMap = {};
     let weeklyCompletionsMap = {};
+    let recentDoneDaysMap = {};
+    let previousDoneDaysMap = {};
     if (habits.length > 0) {
       const todayDate = new Date(`${today}T12:00:00.000Z`);
       const mondayOffset = (todayDate.getUTCDay() + 6) % 7;
-      todayDate.setUTCDate(todayDate.getUTCDate() - mondayOffset);
-      const weekStart = todayDate.toISOString().slice(0, 10);
-      const [todayLogsResult, weeklyLogsResult] = await Promise.all([
+      const weekStartDate = new Date(todayDate);
+      weekStartDate.setUTCDate(weekStartDate.getUTCDate() - mondayOffset);
+      const weekStart = weekStartDate.toISOString().slice(0, 10);
+      const recentStartDate = new Date(todayDate);
+      recentStartDate.setUTCDate(recentStartDate.getUTCDate() - 6);
+      const recentStart = recentStartDate.toISOString().slice(0, 10);
+      const previousEndDate = new Date(recentStartDate);
+      previousEndDate.setUTCDate(previousEndDate.getUTCDate() - 1);
+      const previousEnd = previousEndDate.toISOString().slice(0, 10);
+      const previousStartDate = new Date(previousEndDate);
+      previousStartDate.setUTCDate(previousStartDate.getUTCDate() - 6);
+      const previousStart = previousStartDate.toISOString().slice(0, 10);
+      const [todayLogsResult, weeklyLogsResult, recentLogsResult] = await Promise.all([
         query(
           `SELECT habit_id, status, completion_count FROM habit_logs WHERE user_id = $1 AND date_key = $2`,
           [targetUserId, today]
@@ -174,6 +187,24 @@ exports.listHabits = async (req, res, next) => {
            WHERE hl.user_id = $1 AND hl.date_key >= $2 AND hl.date_key <= $3
            GROUP BY hl.habit_id`,
           [targetUserId, weekStart, today]
+        ),
+        query(
+          `SELECT hl.habit_id,
+                  COUNT(DISTINCT hl.date_key) FILTER (
+                    WHERE hl.status = 'done'
+                      AND hl.completion_count >= COALESCE(h.daily_target_count, 1)
+                      AND hl.date_key >= $2 AND hl.date_key <= $3
+                  )::int AS recent_done_days,
+                  COUNT(DISTINCT hl.date_key) FILTER (
+                    WHERE hl.status = 'done'
+                      AND hl.completion_count >= COALESCE(h.daily_target_count, 1)
+                      AND hl.date_key >= $4 AND hl.date_key <= $5
+                  )::int AS previous_done_days
+           FROM habit_logs hl
+           INNER JOIN habits h ON h.id = hl.habit_id
+           WHERE hl.user_id = $1 AND hl.date_key >= $4 AND hl.date_key <= $3
+           GROUP BY hl.habit_id`,
+          [targetUserId, recentStart, today, previousStart, previousEnd]
         )
       ]);
       for (const row of todayLogsResult.rows) {
@@ -184,23 +215,52 @@ exports.listHabits = async (req, res, next) => {
         weeklyCompletedDaysMap[row.habit_id] = Number(row.completed_days) || 0;
         weeklyCompletionsMap[row.habit_id] = Number(row.weekly_completions) || 0;
       }
+      for (const row of recentLogsResult.rows) {
+        recentDoneDaysMap[row.habit_id] = Number(row.recent_done_days) || 0;
+        previousDoneDaysMap[row.habit_id] = Number(row.previous_done_days) || 0;
+      }
     }
+
+    const todayDate = new Date(`${today}T12:00:00.000Z`);
+    const recentStartDate = new Date(todayDate);
+    recentStartDate.setUTCDate(recentStartDate.getUTCDate() - 6);
+    const recentStart = recentStartDate.toISOString().slice(0, 10);
+    const previousEndDate = new Date(recentStartDate);
+    previousEndDate.setUTCDate(previousEndDate.getUTCDate() - 1);
+    const previousEnd = previousEndDate.toISOString().slice(0, 10);
+    const previousStartDate = new Date(previousEndDate);
+    previousStartDate.setUTCDate(previousStartDate.getUTCDate() - 6);
+    const previousStart = previousStartDate.toISOString().slice(0, 10);
+    const userTimezone = targetUser?.timezone || req.user.timezone || 'UTC';
 
     const result = {
       habits: habits.map(h => {
         const sh = sanitizeHabitForProfile(h);
+        // Expire a stored streak only when a scheduled occurrence has actually
+        // passed. Calendar gaps must not break custom/weekly habits.
         try {
           const lastKey = sh.lastLoggedDateKey;
-          const todayKey = today;
           if (!lastKey) {
             sh.currentStreak = 0;
           } else {
-            const lastDate = new Date(lastKey + 'T00:00:00Z');
-            const tDate = new Date(todayKey + 'T00:00:00Z');
-            const daysSince = Math.floor((tDate - lastDate) / (1000 * 60 * 60 * 24));
-            if (daysSince > 1) sh.currentStreak = 0;
+            for (let dateKey = shiftDateKey(lastKey, 1); dateKey < today; dateKey = shiftDateKey(dateKey, 1)) {
+              if (isScheduledOccurrence(sh, dateKey)) {
+                sh.currentStreak = 0;
+                break;
+              }
+            }
+            if (todayStatusMap[h.id] === 'skipped') sh.currentStreak = 0;
           }
         } catch (err) { /* ignore parsing errors and keep existing streak */ }
+
+        const todayIsPending = isScheduledOccurrence(sh, today) && !todayStatusMap[h.id];
+        const recentExpected = Math.max(
+          0,
+          scheduledOccurrences(sh, recentStart, today, userTimezone) - (todayIsPending ? 1 : 0)
+        );
+        const previousExpected = scheduledOccurrences(sh, previousStart, previousEnd, userTimezone);
+        const recentCompletion = habitCompletion({ expected: recentExpected, done: recentDoneDaysMap[h.id] || 0 });
+        const previousCompletion = habitCompletion({ expected: previousExpected, done: previousDoneDaysMap[h.id] || 0 });
 
         return {
           ...sh,
@@ -210,7 +270,13 @@ exports.listHabits = async (req, res, next) => {
             : (todayStatusMap[h.id] || null),
           todayCompletionCount: todayCompletionCountMap[h.id] || 0,
           weeklyCompletedDays: weeklyCompletedDaysMap[h.id] || 0,
-          weeklyCompletions: weeklyCompletionsMap[h.id] || 0
+          weeklyCompletions: weeklyCompletionsMap[h.id] || 0,
+          last7ExpectedDays: recentExpected,
+          last7CompletedDays: recentCompletion.done,
+          last7CompletionRate: recentCompletion.percentage,
+          last7TrendPoints: previousExpected > 0
+            ? percentagePointTrend(recentCompletion.percentage, previousCompletion.percentage)
+            : null
         };
       }),
       pagination: {
@@ -492,8 +558,13 @@ exports.toggleLog = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Invalid habit ID' });
     }
 
-    const { status, mood, note, date } = req.body || {};
+    const { status, mood, date } = req.body || {};
+    const completionCount = status === 'skipped' || status === 'missed'
+      ? 0
+      : Math.min(100, Math.max(1, parseInt(req.body?.count, 10) || 1));
     const userId = req.user.id;
+    const pgUser = await pgUserService.getUserById(userId);
+    const userTimezone = pgUser?.timezone || 'UTC';
 
     // Verify habit exists and belongs to user
     const habit = await pgHabitService.getHabitById(habitId, userId);
@@ -501,29 +572,25 @@ exports.toggleLog = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Habit not found' });
     }
 
-    // Determine date key - always use UTC for storage
-    // date_key is for indexing/querying only
-    // Analytics will convert completion_times_mood to user's timezone for display
+    // date_key is the user's local calendar day. Completion timestamps remain UTC.
     let dateKey;
     if (date) {
       // If date is already in YYYY-MM-DD format, use it directly
       if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
         dateKey = date;
       } else {
-        // If it's a full date string, extract the date part
-        dateKey = new Date(date).toISOString().split('T')[0];
+        dateKey = getDateKeyInTimezone(date, userTimezone);
       }
     } else {
-      // Use UTC date for storage (consistent indexing)
-      dateKey = new Date().toISOString().split('T')[0];
+      dateKey = getCurrentDateInTimezone(userTimezone);
     }
 
     // Log the habit using habitService which handles target achievements
     const result = await habitService.toggleLog(userId, habitId, {
       status: status || 'done',
       mood: mood || 'neutral',
-      note: typeof note === 'string' ? note.slice(0, 400) : '',
-      date: new Date(dateKey)
+      completionCount,
+      dateKey
     });
 
     const log = result.log;
@@ -828,91 +895,55 @@ exports.getHabitAnalytics = async (req, res, next) => {
     const result = await query(sql, [habitId, userId, startDateKey, endDateKey]);
     // Calculate analytics matching previous MongoDB implementation
     const logs = result.rows;
+    const sanitizedHabit = sanitizeHabit(habit);
     const dailyTargetCount = Math.max(1, Number(habit.daily_target_count || habit.dailyTargetCount || 1));
-    const doneLogs = logs.filter(l => l.status === 'done' && Number(l.completion_count || 0) >= dailyTargetCount);
-    const skippedLogs = logs.filter(l => l.status === 'skipped');
+    const scheduledLogs = logs.filter(log => isScheduledOccurrence(sanitizedHabit, String(log.date_key).slice(0, 10)));
+    const doneLogs = scheduledLogs.filter(log => log.status === 'done' && Number(log.completion_count || 0) >= dailyTargetCount);
+    const partialLogs = scheduledLogs.filter(log => log.status === 'done' && Number(log.completion_count || 0) < dailyTargetCount);
+    const skippedLogs = scheduledLogs.filter(log => log.status === 'skipped');
 
     const completions = doneLogs.length;
     const skips = skippedLogs.length;
+    const totalPeriodCompletions = scheduledLogs
+      .filter(log => log.status === 'done')
+      .reduce((sum, log) => sum + Number(log.completion_count || 0), 0);
 
-    // Use sanitizer to ensure proper field mapping
-    const sanitizedHabit = sanitizeHabit(habit);
-
-    // Build timeline with completion times converted to user's timezone
+    // Keep every completion attached to its one canonical daily log. Individual
+    // timestamps are used for time-of-day insights, not for changing the day.
     const timelineMap = {};
 
     logs.forEach(l => {
-      // Only process completion_times_mood if status is 'done'
-      // Skipped and missed days should show 0 completions
-      if (l.status === 'done' && l.completion_times_mood && l.completion_times_mood.length > 0) {
-        l.completion_times_mood.forEach(completion => {
-          const completionTime = completion.timestamp || completion;
-          const mood = completion.mood || 'neutral';
-
-          // Convert UTC timestamp to user's local date
-          let localDate;
-          try {
-            const timestamp = new Date(completionTime);
-            const formatter = new Intl.DateTimeFormat('en-CA', {
-              timeZone: userTimezone,
-              year: 'numeric',
-              month: '2-digit',
-              day: '2-digit'
-            });
-            localDate = formatter.format(timestamp);
-          } catch (err) {
-            // Fallback to UTC if timezone conversion fails
-            localDate = new Date(completionTime).toISOString().split('T')[0];
-          }
-
-          // Initialize or update timeline entry for this date
-          if (!timelineMap[localDate]) {
-            timelineMap[localDate] = {
-              date: localDate,
-              status: Number(l.completion_count || 0) >= dailyTargetCount ? 'done' : 'partial',
-              completionCount: 0,
-              completionTimesMood: []
-            };
-          }
-
-          timelineMap[localDate].completionCount++;
-          timelineMap[localDate].completionTimesMood.push({
-            timestamp: completionTime,
-            mood: mood
-          });
-        });
-      } else if (l.status === 'skipped' || l.status === 'missed') {
-        // For skipped/missed days, show the status but with 0 completions
-        // Convert date_key to user timezone if needed
-        let localDate;
-        try {
-          // If there are completion_times_mood (before it was skipped), use first one for date
-          if (l.completion_times_mood && l.completion_times_mood.length > 0) {
-            const firstCompletion = l.completion_times_mood[0];
-            const timestamp = new Date(firstCompletion.timestamp || firstCompletion);
-            const formatter = new Intl.DateTimeFormat('en-CA', {
-              timeZone: userTimezone,
-              year: 'numeric',
-              month: '2-digit',
-              day: '2-digit'
-            });
-            localDate = formatter.format(timestamp);
-          } else {
-            // Otherwise use the date_key as-is
-            localDate = l.date_key;
-          }
-        } catch (err) {
-          localDate = l.date_key;
-        }
-
-        timelineMap[localDate] = {
-          date: localDate,
-          status: l.status,
-          completionCount: 0,
-          completionTimesMood: []
-        };
-      }
+      const dateKey = String(l.date_key).slice(0, 10);
+      const entries = Array.isArray(l.completion_times_mood)
+        ? l.completion_times_mood.map(completion => ({
+          timestamp: completion?.timestamp || completion,
+          mood: completion?.mood || 'neutral'
+        }))
+        : [];
+      timelineMap[dateKey] = {
+        date: dateKey,
+        status: l.status === 'done'
+          ? (Number(l.completion_count || 0) >= dailyTargetCount ? 'done' : 'partial')
+          : l.status,
+        scheduled: isScheduledOccurrence(sanitizedHabit, dateKey),
+        completionCount: l.status === 'done' ? Number(l.completion_count || entries.length || 0) : 0,
+        completionTimesMood: l.status === 'done' ? entries : []
+      };
     });
+
+    const pendingDateKeys = new Set();
+    for (let dateKey = startDateKey; dateKey <= endDateKey; dateKey = shiftDateKey(dateKey, 1)) {
+      if (!isScheduledOccurrence(sanitizedHabit, dateKey) || timelineMap[dateKey]) continue;
+      const isToday = dateKey === endDateKey;
+      if (isToday) pendingDateKeys.add(dateKey);
+      timelineMap[dateKey] = {
+        date: dateKey,
+        status: isToday ? 'pending' : 'missed',
+        scheduled: true,
+        completionCount: 0,
+        completionTimesMood: []
+      };
+    }
 
     const timeline = Object.values(timelineMap)
       .filter(t => t.date >= startDateKey && t.date <= endDateKey)
@@ -957,68 +988,45 @@ exports.getHabitAnalytics = async (req, res, next) => {
         continue;
       }
 
-      // Get timeline entries for this week (timeline dates are in user's timezone)
-      const weekTimelineEntries = timeline.filter(t => t.date >= effectiveWeekStart && t.date <= effectiveWeekEnd);
-
-      // Total completions from timeline
-      const weekCompletions = weekTimelineEntries.reduce((sum, t) => sum + (t.completionCount || 0), 0);
-
-      // Active days (only count entries with 'done' status)
-      const activeDays = weekTimelineEntries.filter(t => t.status === 'done').length;
-
-      // Skipped days from original logs
-      const weekSkippedLogs = logs.filter(l =>
-        l.date_key >= effectiveWeekStart &&
-        l.date_key <= effectiveWeekEnd &&
-        l.status === 'skipped'
-      );
+      const weekLogs = scheduledLogs.filter(log => {
+        const dateKey = String(log.date_key).slice(0, 10);
+        return dateKey >= effectiveWeekStart && dateKey <= effectiveWeekEnd;
+      });
+      const weekCompletions = weekLogs
+        .filter(log => log.status === 'done')
+        .reduce((sum, log) => sum + Number(log.completion_count || 0), 0);
+      const activeDays = weekLogs.filter(log => log.status === 'done' && Number(log.completion_count || 0) >= dailyTargetCount).length;
+      const partialDays = weekLogs.filter(log => log.status === 'done' && Number(log.completion_count || 0) < dailyTargetCount).length;
+      const weekSkippedLogs = weekLogs.filter(log => log.status === 'skipped');
       const skippedDays = new Set(weekSkippedLogs.map(l => l.date_key)).size;
 
-      // Calculate expected days based on frequency, only counting days within the filter range
-      let expectedDays = 0;
-
-      if (sanitizedHabit.frequency === 'daily') {
-        // Count all days in the effective week range
-        const startDay = new Date(effectiveWeekStart);
-        const endDay = new Date(effectiveWeekEnd);
-        expectedDays = Math.ceil((endDay - startDay) / (24 * 60 * 60 * 1000)) + 1;
-      } else if (sanitizedHabit.frequency !== 'daily' && Array.isArray(sanitizedHabit.daysOfWeek) && sanitizedHabit.daysOfWeek.length > 0) {
-        // Count only matching days of week within the effective range
-        const startDay = new Date(effectiveWeekStart);
-        const endDay = new Date(effectiveWeekEnd);
-        const daysInRange = Math.ceil((endDay - startDay) / (24 * 60 * 60 * 1000)) + 1;
-
-        for (let d = 0; d < daysInRange; d++) {
-          const dayDate = new Date(startDay);
-          dayDate.setUTCDate(dayDate.getUTCDate() + d);
-          const dayOfWeek = dayDate.getUTCDay();
-          if (sanitizedHabit.daysOfWeek.includes(dayOfWeek)) {
-            expectedDays++;
-          }
-        }
-      } else {
-        expectedDays = 1;
-      }
-
-      const missedDays = Math.max(0, expectedDays - activeDays - skippedDays);
+      const pendingDays = [...pendingDateKeys].filter(dateKey => dateKey >= effectiveWeekStart && dateKey <= effectiveWeekEnd).length;
+      const expectedDays = Math.max(0, scheduledOccurrences(sanitizedHabit, effectiveWeekStart, effectiveWeekEnd, userTimezone) - pendingDays);
+      const missedDays = Math.max(0, expectedDays - activeDays - partialDays - skippedDays);
 
       weeklyData.push({
         weekStart: effectiveWeekStart,
         weekEnd: effectiveWeekEnd,
         completions: weekCompletions,
         activeDays,
+        partialDays,
         skippedDays,
         missedDays,
-        expectedDays
+        expectedDays,
+        completionRate: expectedDays > 0 ? Math.round((activeDays / expectedDays) * 100) : 0
       });
     }
+
+    // Recalculate schedule-aware streaks for the detail response so habits
+    // created before this analytics fix do not keep displaying stale values.
+    const streakInfo = await pgHabitService.calculateStreak(habitId, endDateKey);
 
     // Build stats object
     const stats = {
       totalCompletions: sanitizedHabit.totalCompletions,
-      totalDays: sanitizedHabit.totalDays,
-      currentStreak: sanitizedHabit.currentStreak,
-      longestStreak: sanitizedHabit.longestStreak,
+      totalDays: streakInfo.totalScheduledDays ?? sanitizedHabit.totalDays,
+      currentStreak: streakInfo.currentStreak,
+      longestStreak: streakInfo.longestStreak,
       dailyTargetCount: sanitizedHabit.dailyTargetCount,
       targetDays: sanitizedHabit.targetDays
     };
@@ -1028,14 +1036,16 @@ exports.getHabitAnalytics = async (req, res, next) => {
       stats.daysPercentage = Math.min(100, Math.round((stats.totalDays / stats.targetDays) * 100));
     }
 
-    // Calculate total expected days and missed days for the entire filter period
-    let totalExpectedDays = 0;
-    weeklyData.forEach(w => {
-      totalExpectedDays += w.expectedDays;
-    });
+    const totalExpectedDays = Math.max(0, scheduledOccurrences(sanitizedHabit, startDateKey, endDateKey, userTimezone) - pendingDateKeys.size);
 
     const periodCompletion = habitCompletion({ expected: totalExpectedDays, done: completions, skipped: skips });
     const consistency = periodCompletion.percentage;
+    const attemptedDays = completions + partialLogs.length;
+    const targetHitRate = attemptedDays > 0 ? Math.round((completions / attemptedDays) * 100) : 0;
+    const averageCompletionsPerScheduledDay = totalExpectedDays > 0
+      ? Math.round((totalPeriodCompletions / totalExpectedDays) * 10) / 10
+      : 0;
+    const missedDays = Math.max(0, totalExpectedDays - completions - partialLogs.length - skips);
     const periodLength = Math.max(1, Math.round((new Date(`${endDateKey}T12:00:00Z`) - new Date(`${startDateKey}T12:00:00Z`)) / 86400000) + 1);
     const previousEnd = new Date(`${startDateKey}T12:00:00Z`);
     previousEnd.setUTCDate(previousEnd.getUTCDate() - 1);
@@ -1044,10 +1054,21 @@ exports.getHabitAnalytics = async (req, res, next) => {
     const previousStartKey = previousStart.toISOString().slice(0, 10);
     const previousEndKey = previousEnd.toISOString().slice(0, 10);
     const previousResult = await query(
-      `SELECT status, COUNT(*) AS count FROM habit_logs WHERE habit_id = $1 AND user_id = $2 AND date_key >= $3 AND date_key <= $4 GROUP BY status`,
+      `SELECT date_key, status, completion_count
+       FROM habit_logs
+       WHERE habit_id = $1
+         AND user_id = $2
+         AND date_key >= $3
+         AND date_key <= $4`,
       [habitId, userId, previousStartKey, previousEndKey]
     );
-    const previousCounts = previousResult.rows.reduce((counts, row) => ({ ...counts, [row.status]: parseInt(row.count, 10) || 0 }), {});
+    const previousCounts = previousResult.rows.reduce((counts, row) => {
+      const dateKey = String(row.date_key).slice(0, 10);
+      if (!isScheduledOccurrence(sanitizedHabit, dateKey)) return counts;
+      if (row.status === 'done' && Number(row.completion_count || 0) < dailyTargetCount) return counts;
+      counts[row.status] = (counts[row.status] || 0) + 1;
+      return counts;
+    }, {});
     const previousExpected = scheduledOccurrences(sanitizedHabit, previousStartKey, previousEndKey, userTimezone);
     const previousCompletion = habitCompletion({ expected: previousExpected, done: previousCounts.done, skipped: previousCounts.skipped });
     const trendPoints = previousExpected > 0 ? percentagePointTrend(consistency, previousCompletion.percentage) : null;
@@ -1070,9 +1091,13 @@ exports.getHabitAnalytics = async (req, res, next) => {
       consistency,
       trendPoints,
       followThroughRate: periodCompletion.followThroughRate,
+      targetHitRate,
+      averageCompletionsPerScheduledDay,
       statusCounts: {
         done: periodCompletion.done,
-        missed: periodCompletion.missed,
+        partial: partialLogs.length,
+        missed: missedDays,
+        pending: pendingDateKeys.size,
         skipped: periodCompletion.skipped,
         expected: periodCompletion.expected,
         activeDays: new Set(doneLogs.map(log => log.date_key)).size
@@ -1171,6 +1196,24 @@ exports.getHabitLogs = async (req, res, next) => {
 
     const result = await query(sql, [habitId, userId, limit, offset, startDateKey]);
 
+    let targetCompletedDate = null;
+    const targetDays = Number(habit.targetDays || habit.target_days || 0);
+    if (targetDays > 0) {
+      const dailyTargetCount = Math.max(1, Number(habit.dailyTargetCount || habit.daily_target_count || 1));
+      const targetResult = await query(
+        `SELECT date_key
+         FROM habit_logs
+         WHERE habit_id = $1
+           AND user_id = $2
+           AND status = 'done'
+           AND completion_count >= $3
+         ORDER BY date_key ASC
+         OFFSET $4 LIMIT 1`,
+        [habitId, userId, dailyTargetCount, targetDays - 1]
+      );
+      targetCompletedDate = targetResult.rows[0]?.date_key || null;
+    }
+
     // Map mood values to numeric scores for averaging
     const moodScores = {
       'challenging': 1,
@@ -1234,6 +1277,7 @@ exports.getHabitLogs = async (req, res, next) => {
       success: true,
       data: {
         logs,
+        targetCompletedDate,
         pagination: {
           page,
           limit,
@@ -1319,7 +1363,9 @@ exports.replaceHabitLog = async (req, res, next) => {
       timestamp: !Number.isNaN(new Date(sourceEntries[index]?.timestamp).getTime())
         ? sourceEntries[index].timestamp
         : `${dateKey}T12:00:00.000Z`,
-      mood
+      mood: ['great', 'good', 'okay', 'challenging', 'neutral'].includes(sourceEntries[index]?.mood)
+        ? sourceEntries[index].mood
+        : mood
     }));
     const user = await pgUserService.getUserById(req.user.id);
     const currentDateKey = getCurrentDateInTimezone(user?.timezone || 'UTC');

@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, lazy, Suspense, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import CategoryBadge from '../components/CategoryBadge'
 import CategoryIcon from '../components/CategoryIcon'
-import { Plus, Target, CheckCircle, TrendingUp, Calendar, ChevronDown, Search, Flag, Clock, Eye, Edit, Trash2, Share2, Filter, ArrowUpDown, MinusCircle, Compass, Home, Settings, Users, ChevronRight, Play, MoreVertical, SlidersHorizontal, BarChart3, LayoutGrid, List, Map } from 'lucide-react'
+import { Plus, Target, CheckCircle, TrendingUp, Calendar, ChevronDown, Search, Flag, Clock, Eye, Edit, Trash2, Share2, Filter, ArrowUpDown, MinusCircle, Compass, Home, Settings, Users, ChevronRight, Play, MoreVertical, SlidersHorizontal, BarChart3, LayoutGrid, List, Map, Copy } from 'lucide-react'
 import useApiStore from '../store/apiStore'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import MetricInfoModal from '../components/MetricInfoModal'
@@ -248,16 +248,16 @@ const DashboardPageNew = () => {
     getDashboardYears()
   }
 
-  const handleHabitLog = async (status, mood = 'neutral', note = '') => {
+  const handleHabitLog = async (status, mood = 'neutral', count = 1) => {
     if (!selectedHabit) return { success: false }
     const habitId = selectedHabit.id || selectedHabit._id
     if (!habitId) return { success: false }
 
     try {
-      const res = await useApiStore.getState().logHabit(habitId, status, mood, note)
+      const res = await useApiStore.getState().logHabit(habitId, status, mood, count)
       if (res?.success) {
         const nextTodayCount = status === 'done'
-          ? (res?.log?.completionCount ?? ((selectedHabit?.todayCompletionCount || 0) + 1))
+          ? (res?.log?.completionCount ?? ((selectedHabit?.todayCompletionCount || 0) + count))
           : 0
 
         setSelectedHabit((prev) =>
@@ -857,7 +857,7 @@ const DashboardPageNew = () => {
 
               <div className="flex items-center gap-2 sm:hidden">
                 <div className="relative flex-1"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#526392]"/><input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search goals..." className="w-full rounded-lg border border-[#dce5f4] bg-white py-2.5 pl-9 pr-3 text-sm outline-none focus:border-[#1683ed] dark:border-gray-700 dark:bg-gray-800"/></div>
-                <button type="button" aria-label="Filter goals" onClick={() => setIsGoalFilterSheetOpen(true)} className="rounded-lg border border-[#dce5f4] bg-white p-2.5 text-[#526392] dark:border-gray-700 dark:bg-gray-800"><Filter className="h-5 w-5"/></button>
+                <button type="button" aria-label="Filter goals" onClick={() => setIsGoalFilterSheetOpen(true)} className="rounded-lg border border-[#dce5f4] bg-white p-2.5 text-[#526392] dark:border-gray-700 dark:bg-gray-800"><SlidersHorizontal className="h-5 w-5"/></button>
               </div>
 
               <div className={goalView === 'list' ? 'space-y-3' : goalView === 'timeline' ? 'relative space-y-4 border-l-2 border-blue-100 pl-5 dark:border-blue-950' : 'grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4'}>
@@ -1269,6 +1269,19 @@ const DashboardPageNew = () => {
               <div className="space-y-1">
                 {!goalActionMenu.completedAt && <button type="button" onClick={() => { setSelectedGoal(goalActionMenu); setGoalActionMenu(null) }} className="flex w-full items-center gap-3 rounded-xl p-3 text-left text-sm font-semibold text-gray-800 hover:bg-blue-50 dark:text-gray-200 dark:hover:bg-gray-800"><Target className="h-4 w-4 text-[#1683ed]" /> Log Progress</button>}
                 <button type="button" onClick={() => { setGoalToEdit(goalActionMenu); setGoalActionMenu(null); goalActionMenu.completedAt ? setIsEditCompletionModalOpen(true) : setIsEditGoalWizardOpen(true) }} className="flex w-full items-center gap-3 rounded-xl p-3 text-left text-sm font-semibold text-gray-800 hover:bg-blue-50 dark:text-gray-200 dark:hover:bg-gray-800"><Edit className="h-4 w-4 text-[#1683ed]" /> Edit Goal</button>
+                <button type="button" onClick={() => {
+                  const copiedTargetDate = goalActionMenu.targetDate || goalActionMenu.target_date || ''
+                  setInitialGoalData({
+                    title: `${goalActionMenu.title} copy`,
+                    description: goalActionMenu.description || '',
+                    category: goalActionMenu.category,
+                    targetDate: copiedTargetDate && new Date(copiedTargetDate) > new Date() ? copiedTargetDate : '',
+                    isPublic: goalActionMenu.isPublic,
+                    subGoals: (goalActionMenu.subGoals || []).map(({ id, _id, completed, completedAt, ...subGoal }) => ({ ...subGoal, completed: false }))
+                  })
+                  setIsCreateModalOpen(true)
+                  setGoalActionMenu(null)
+                }} className="flex w-full items-center gap-3 rounded-xl p-3 text-left text-sm font-semibold text-gray-800 hover:bg-blue-50 dark:text-gray-200 dark:hover:bg-gray-800"><Copy className="h-4 w-4 text-[#1683ed]" /> Duplicate Goal</button>
                 <button type="button" onClick={() => { setSelectedGoal({ ...goalActionMenu, _openAnalytics: true }); setGoalActionMenu(null) }} className="flex w-full items-center gap-3 rounded-xl p-3 text-left text-sm font-semibold text-gray-800 hover:bg-blue-50 dark:text-gray-200 dark:hover:bg-gray-800"><BarChart3 className="h-4 w-4 text-[#1683ed]" /> View Analytics</button>
                 {(!goalActionMenu.completedAt || isRecentlyCompleted(goalActionMenu)) && <button type="button" onClick={() => { setGoalToShare(goalActionMenu); setIsShareGoalModalOpen(true); setGoalActionMenu(null) }} className="flex w-full items-center gap-3 rounded-xl p-3 text-left text-sm font-semibold text-gray-800 hover:bg-blue-50 dark:text-gray-200 dark:hover:bg-gray-800"><Share2 className="h-4 w-4 text-[#4c99e6]" /> Share Goal</button>}
                 <button type="button" onClick={() => { setGoalToDelete(goalActionMenu); setGoalActionMenu(null); setIsGoalDeleteModalOpen(true) }} className="flex w-full items-center gap-3 rounded-xl p-3 text-left text-sm font-semibold text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"><Trash2 className="h-4 w-4" /> Delete Goal</button>

@@ -14,6 +14,12 @@ const ShareModal = lazy(() => import('./ShareModal'));
 
 const THEME_COLOR = '#4c99e6'
 
+const journeyEventTime = event => {
+  const value = event?.timestamp || event?.dateKey || event?.createdAt
+  const time = new Date(value || 0).getTime()
+  return Number.isNaN(time) ? 0 : time
+}
+
 const EMOTIONS = [
   { id: 'great', label: 'GREAT', icon: Heart },
   { id: 'good', label: 'GOOD', icon: Smile },
@@ -288,6 +294,8 @@ export default function GoalDetailsModal({ goal, isOpen, onClose, onViewPost, in
 
   const goalId = goal?.id || goal?._id || ''
   const isCompleted = !!goal?.completedAt
+  const displayedTimelineEvents = [...(timelineEvents.length ? timelineEvents : [{ type: 'goal_created', title: 'Goal Started', timestamp: goal.createdAt }])]
+    .sort((a, b) => journeyEventTime(b) - journeyEventTime(a))
   const goalMetrics = analyticsData?.metrics
   const targetDateDetail = goal.targetDate
     ? isCompleted
@@ -492,11 +500,6 @@ export default function GoalDetailsModal({ goal, isOpen, onClose, onViewPost, in
                   <Share2 className="h-4 w-4" />
                   {isCompleted ? 'Share Achievement' : 'Share Goal'}
                 </button>
-                {!isCompleted && (
-                  <button type="button" onClick={() => { setShareMoment({ shareType: 'PROGRESS' }); setIsMoreMenuOpen(false); setIsShareModalOpen(true) }} className="min-h-[44px] w-full rounded-lg px-3 text-left text-sm text-[#2369aa] hover:bg-blue-50 dark:text-blue-300 dark:hover:bg-gray-700">
-                    Share Progress
-                  </button>
-                )}
                 <button type="button" onClick={handleViewPost} className="min-h-[44px] w-full rounded-lg px-3 text-left text-sm text-slate-600 hover:bg-blue-50 dark:text-gray-200 dark:hover:bg-gray-700">
                   View Post
                 </button>
@@ -541,8 +544,8 @@ export default function GoalDetailsModal({ goal, isOpen, onClose, onViewPost, in
             )}
             {activeView === 'journey' && (
               <>
-              <div className="mb-3"><ActivityCalendar title="Calendar view" subtitle="Start, goal logs, and completion" marks={goalCalendarMarks} initialDate={goal.completedAt ? getDateKeyInTimezone(goal.completedAt) : undefined} legend={[{label:'Started',type:'start'},{label:'Goal log',type:'log'},{label:'Completed',type:'end'}]} defaultOpen /></div>
-              <div className="space-y-3"><div className="mb-4"><p className="text-sm font-semibold text-gray-700 dark:text-gray-200">Your goal journey</p><p className="mt-1 text-xs text-gray-500">From the first step to completion, with every saved check-in in between.</p></div>{isLoadingView && <p className="py-8 text-center text-sm text-gray-500">Loading journey...</p>}{!isLoadingView && (timelineEvents.length ? timelineEvents : [{ type: 'goal_created', title: 'Goal Started', timestamp: goal.createdAt }]).map((event, index, events) => <JourneyEvent key={event.id || `${event.type}-${event.timestamp || event.dateKey}-${index}`} event={event} isLast={index === events.length - 1} openMenuId={openJourneyLogMenu} onToggleMenu={setOpenJourneyLogMenu} onEditLog={beginEditGoalLog} onDeleteLog={requestDeleteGoalLog} onShareMilestone={eventId => { setShareMoment({ shareType: 'MILESTONE', eventId }); setIsShareModalOpen(true) }} />)}<div ref={journeyLoaderRef} className="flex min-h-10 items-center justify-center">{journeyLoadingMore&&<span className="h-5 w-5 animate-spin rounded-full border-2 border-blue-100 border-t-[#1683ed]"/>}{!journeyHasMore&&timelineEvents.length>0&&<span className="text-[10px] text-slate-400">You’ve reached the beginning.</span>}</div></div>
+              <div className="mb-3"><ActivityCalendar title="Calendar view" subtitle="Start, goal logs, and completion" marks={goalCalendarMarks} initialDate={goal.completedAt ? getDateKeyInTimezone(goal.completedAt) : undefined} legend={[{label:'Started',type:'start'},{label:'Goal log',type:'log'},{label:'Completed',type:'end'}]} /></div>
+              <div className="space-y-3"><div className="mb-4"><p className="text-sm font-semibold text-gray-700 dark:text-gray-200">Your goal journey</p><p className="mt-1 text-xs text-gray-500">Latest activity first, back to where the journey began.</p></div>{isLoadingView && <p className="py-8 text-center text-sm text-gray-500">Loading journey...</p>}{!isLoadingView && displayedTimelineEvents.map((event, index, events) => <JourneyEvent key={event.id || `${event.type}-${event.timestamp || event.dateKey}-${index}`} event={event} isLast={index === events.length - 1} openMenuId={openJourneyLogMenu} onToggleMenu={setOpenJourneyLogMenu} onEditLog={beginEditGoalLog} onDeleteLog={requestDeleteGoalLog} onShareMilestone={eventId => { setShareMoment({ shareType: 'MILESTONE', eventId }); setIsShareModalOpen(true) }} />)}<div ref={journeyLoaderRef} className="flex min-h-10 items-center justify-center">{journeyLoadingMore&&<span className="h-5 w-5 animate-spin rounded-full border-2 border-blue-100 border-t-[#1683ed]"/>}{!journeyHasMore&&timelineEvents.length>0&&<span className="text-[10px] text-slate-400">You’ve reached the beginning.</span>}</div></div>
               </>
             )}
             {activeView === 'analytics' && (
