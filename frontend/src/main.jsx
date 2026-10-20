@@ -4,7 +4,6 @@ import { BrowserRouter } from 'react-router-dom'
 import App from './App.jsx'
 import './index.css'
 import GlobalErrorBoundary from './components/GlobalErrorBoundary.jsx'
-import { initializeDatadog } from './lib/observability/datadog.js'
 import { preloadHomeBanner } from './utils/homeBanner.js'
 
 const applyPersistedThemeBeforeMount = () => {
@@ -26,8 +25,6 @@ const applyPersistedThemeBeforeMount = () => {
 
 applyPersistedThemeBeforeMount()
 preloadHomeBanner()
-
-initializeDatadog()
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <BrowserRouter>

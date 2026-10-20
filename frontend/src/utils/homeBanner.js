@@ -4,7 +4,8 @@ export function getHomeBanner(hour = new Date().getHours()) {
     : hour < 12
       ? 'photo-1470252649378-9c29740c9fa8'
       : 'photo-1464822759023-fed622ff2c3b'
-  return `https://images.unsplash.com/${photo}?auto=format&fit=crop&w=1600&q=75`
+  // Match the shallow banner instead of downloading the full landscape photo.
+  return `https://images.unsplash.com/${photo}?auto=format&fit=crop&w=1600&h=320&q=60`
 }
 
 export function preloadHomeBanner() {

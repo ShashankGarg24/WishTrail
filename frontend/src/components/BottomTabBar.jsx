@@ -28,7 +28,8 @@ const TabButton = ({ active, label, Icon, onClick }) => (
 const BottomTabBar = () => {
   const location = useLocation()
   const navigate = useNavigate()
-  const { isAuthenticated, user: currentUser } = useApiStore()
+  const isAuthenticated = useApiStore(state => state.isAuthenticated)
+  const currentUser = useApiStore(state => state.user)
   const [quickActionsOpen, setQuickActionsOpen] = useState(false)
   const [accountMenuOpen, setAccountMenuOpen] = useState(false)
   const [openAction, setOpenAction] = useState(null)

@@ -1,6 +1,23 @@
 let datadogRum
 let datadogLogs
 let initialization
+let scheduled = false
+
+// Called after the route commits, so SDK downloads and DOM recording cannot
+// compete with the route's first render. Keep telemetry enabled on every route.
+export const scheduleDatadogInitialization = () => {
+  if (scheduled) return
+  scheduled = true
+  const schedule = () => {
+    if ('requestIdleCallback' in window) {
+      window.requestIdleCallback(() => initializeDatadog(), { timeout: 5000 })
+    } else {
+      window.setTimeout(() => initializeDatadog(), 200)
+    }
+  }
+  if (document.readyState === 'complete') schedule()
+  else window.addEventListener('load', schedule, { once: true })
+}
 
 export const trackAction = (event, data) => {
   try { datadogRum?.addAction(event, data) } catch { /* Telemetry must not block the UI. */ }

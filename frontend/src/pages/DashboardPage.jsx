@@ -7,12 +7,13 @@ import CategoryBadge from '../components/CategoryBadge'
 import CategoryIcon from '../components/CategoryIcon'
 import { Plus, Target, CheckCircle, TrendingUp, Calendar, ChevronDown, Search, Flag, Clock, Eye, Edit, Trash2, Share2, Filter, ArrowUpDown, MinusCircle, Compass, Lightbulb, Home, Settings, Users, ChevronRight, Play, MoreVertical, SlidersHorizontal, BarChart3, LayoutGrid, List, Map, Copy } from 'lucide-react'
 import useApiStore from '../store/apiStore'
+import { shallow } from 'zustand/shallow'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import MetricInfoModal from '../components/MetricInfoModal'
 import HomeOverview from '../components/HomeOverview'
-import HabitsWorkspace from '../components/HabitsWorkspace'
 import { habitsAPI } from '../services/api'
 
+const HabitsWorkspace = lazy(() => import('../components/HabitsWorkspace'))
 const CreateGoalWizard = lazy(() => import('../components/CreateGoalWizard'))
 const CompletionModal = lazy(() => import('../components/CompletionModal'))
 const GoalPostModal = lazy(() => import('../components/GoalPostModal'))
@@ -137,7 +138,22 @@ const DashboardPageNew = () => {
     latestProductUpdate,
     recentActivities,
     getRecentActivities,
-  } = useApiStore()
+  } = useApiStore(state => ({
+    isAuthenticated: state.isAuthenticated,
+    user: state.user,
+    goals: state.goals,
+    habits: state.habits,
+    dashboardYears: state.dashboardYears,
+    dashboardStats: state.dashboardStats,
+    getDashboardStats: state.getDashboardStats,
+    getGoals: state.getGoals,
+    loadHabits: state.loadHabits,
+    getDashboardYears: state.getDashboardYears,
+    getLatestProductUpdate: state.getLatestProductUpdate,
+    latestProductUpdate: state.latestProductUpdate,
+    recentActivities: state.recentActivities,
+    getRecentActivities: state.getRecentActivities,
+  }), shallow)
 
   
   // Load initial data
@@ -881,6 +897,7 @@ const DashboardPageNew = () => {
             </div>
           ) : (
             <>
+            <Suspense fallback={<StartupSkeleton />}>
             <HabitsWorkspace
               habits={habits || []}
               stats={dashboardStats || {}}
@@ -909,6 +926,7 @@ const DashboardPageNew = () => {
                 setIsHabitDeleteModalOpen(true)
               }}
             />
+            </Suspense>
             <div className="hidden">
                 {/* New Habit Card */}
                  <motion.div

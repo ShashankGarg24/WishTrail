@@ -1,6 +1,7 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Bell, Search, Menu, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { shallow } from 'zustand/shallow'
 import useApiStore from '../store/apiStore'
 import { scrollToSection } from '../utils/sectionScroll'
 
@@ -10,7 +11,12 @@ const Header = () => {
     unreadNotifications,
     getNotifications,
     user: currentUser,
-  } = useApiStore()
+  } = useApiStore(state => ({
+    isAuthenticated: state.isAuthenticated,
+    unreadNotifications: state.unreadNotifications,
+    getNotifications: state.getNotifications,
+    user: state.user,
+  }), shallow)
   const location = useLocation()
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
@@ -168,7 +174,7 @@ const Header = () => {
             <button
               type="button"
               onClick={() => navigate('/discover')}
-              className="mx-4 hidden max-w-xs flex-1 items-center gap-2 rounded-xl border border-slate-100 bg-slate-50 px-4 py-2.5 text-left text-sm text-slate-400 transition hover:border-blue-200 md:flex dark:border-gray-700 dark:bg-gray-800"
+              className="mx-4 hidden max-w-xs flex-1 items-center gap-2 rounded-xl border border-slate-100 bg-slate-50 px-4 py-2.5 text-left text-sm text-slate-600 transition hover:border-blue-200 md:flex dark:border-gray-700 dark:bg-gray-800 dark:text-slate-400"
             >
               <Search className="h-4 w-4" />
               Search goals and people...

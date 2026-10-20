@@ -272,7 +272,7 @@ function GoalPreview({ creative = false }) {
               tone={creative ? 'lavender' : 'blue'}
             />
             <div>
-              <h3>{creative ? 'Learn Photography' : 'Run My First 10K'}</h3>
+              <p className="landing-preview-title">{creative ? 'Learn Photography' : 'Run My First 10K'}</p>
               <p>
                 {creative
                   ? 'Creativity · Target: Dec 31, 2026'
@@ -286,7 +286,7 @@ function GoalPreview({ creative = false }) {
           </div>
           <Progress value={creative ? 62 : 68} />
         </div>
-        <h3 className="landing-habits-heading">Your habits</h3>
+        <p className="landing-habits-heading">Your habits</p>
         <Habits creative={creative} />
       </div>
     </div>
@@ -300,7 +300,7 @@ function WeeklyPreview({ compact = false }) {
       </div>
       <div className="landing-week-content">
         <Sample>Sample recap</Sample>
-        <h3>Your Weekly Trail</h3>
+        <p className="landing-preview-title">Your Weekly Trail</p>
         <p>Oct 12 – Oct 18, 2026</p>
         <TrailStats recap={sampleRecap} />
         <WeekDots recap={sampleRecap} />
@@ -352,7 +352,7 @@ export default function HomePage() {
             />
           </svg>
           <div className="landing-shell landing-hero-grid">
-            <Reveal className="landing-hero-copy">
+            <div className="landing-hero-copy">
               <Eyebrow>A brighter you, one trail at a time</Eyebrow>
               <h1>
                 Turn your goals into <span>journeys</span> worth completing.
@@ -386,8 +386,8 @@ export default function HomePage() {
                   Shared journeys
                 </span>
               </div>
-            </Reveal>
-            <Reveal className="landing-hero-product">
+            </div>
+            <div className="landing-hero-product">
               <GoalPreview />
               <div className="landing-hero-week">
                 <WeeklyPreview compact />
@@ -397,7 +397,7 @@ export default function HomePage() {
                 <br />
                 Bigger tomorrows.
               </p>
-            </Reveal>
+            </div>
           </div>
         </section>
 

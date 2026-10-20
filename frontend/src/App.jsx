@@ -50,7 +50,9 @@ const AdminPage = lazy(() => import('./pages/AdminPage'))
 const RouteLoadingScreen = StartupSkeleton
 
 function App() {
-  const { isDarkMode, initializeAuth, isAuthenticated} = useApiStore()
+  const isDarkMode = useApiStore(state => state.isDarkMode)
+  const initializeAuth = useApiStore(state => state.initializeAuth)
+  const isAuthenticated = useApiStore(state => state.isAuthenticated)
   const [authReady, setAuthReady] = useState(false)
   const location = useLocation()
   const isAdminRoute = location.pathname === ADMIN_BASE || location.pathname.startsWith(`${ADMIN_BASE}/`)

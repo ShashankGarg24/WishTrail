@@ -33,6 +33,12 @@
 .wt-landing h3 {
   font-weight: 800;
 }
+.wt-landing .landing-preview-title,
+.wt-landing .landing-habits-heading {
+  color: var(--ink);
+  font-weight: 800;
+  line-height: 1.5;
+}
 .wt-landing a:focus-visible {
   outline: 3px solid #2369aa;
   outline-offset: 5px;
@@ -291,10 +297,10 @@
   align-items: center;
   gap: 10px;
 }
-.landing-goal-title h3 {
+.landing-goal-title .landing-preview-title {
   font-size: 12px;
 }
-.landing-goal-title p {
+.landing-goal-title p:not(.landing-preview-title) {
   font-size: 9px;
   margin-top: 4px;
 }
@@ -342,7 +348,7 @@
   font-size: 11px;
   color: #367c76;
 }
-.landing-habits-heading {
+.wt-landing .landing-habits-heading {
   margin-top: 20px !important;
   padding-top: 16px;
   border-top: 1px solid var(--line);
@@ -430,7 +436,7 @@
   position: relative;
   padding: 27px;
 }
-.landing-week h3 {
+.landing-week .landing-preview-title {
   font-size: 22px;
   margin-top: 8px;
 }
@@ -457,7 +463,7 @@
 .landing-week.compact .landing-week-content {
   padding: 16px;
 }
-.landing-week.compact h3 {
+.landing-week.compact .landing-preview-title {
   font-size: 14px;
 }
 .landing-week.compact p {
@@ -542,20 +548,31 @@
   margin-top: 9px;
 }
 .landing-pillar-dots button {
-  width: 6px;
-  height: 6px;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
   padding: 0;
   border: 0;
   border-radius: 999px;
-  background: #4c99e6;
+  background: transparent;
   cursor: pointer;
   transition:
-    width 0.2s ease,
     opacity 0.2s ease,
     transform 0.2s ease;
 }
-.landing-pillar-dots button.active {
+.landing-pillar-dots button::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: #4c99e6;
+  transition: width 0.2s ease;
+}
+.landing-pillar-dots button.active::before {
   width: 20px;
+}
+.landing-pillar-dots button.active {
   opacity: 1 !important;
 }
 .landing-pillar-dots button:hover {
@@ -1136,7 +1153,7 @@
   .landing-hero-week .landing-week-content {
     padding: 13px 17px;
   }
-  .landing-hero-week .landing-week h3 {
+  .landing-hero-week .landing-week .landing-preview-title {
     display: inline-block;
     margin: 0 0 0 10px;
   }
@@ -1225,7 +1242,7 @@
     bottom: 0;
     width: 175px;
   }
-  .landing-hero-week .landing-week h3,
+  .landing-hero-week .landing-week .landing-preview-title,
   .landing-hero-week .landing-week p {
     display: block;
     margin: 6px 0;
@@ -1337,7 +1354,7 @@
     width: 100%;
     margin-top: 12px;
   }
-  .landing-hero-week .landing-week h3 {
+  .landing-hero-week .landing-week .landing-preview-title {
     display: inline-block;
     margin-left: 9px;
   }
