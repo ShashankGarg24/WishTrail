@@ -1,3 +1,4 @@
+import PillTabs from '../components/PillTabs'
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { Newspaper, BarChart3, Target, Users, Settings, ThumbsUp, MessageSquare } from 'lucide-react'
@@ -8,12 +9,6 @@ const CommunityMembers = lazy(() => import('../components/community/CommunityMem
 const CommunitySettings = lazy(() => import('../components/community/CommunitySettings'));
 const DeleteCommunityModal = lazy(() => import('../components/community/DeleteCommunityModal'));
 import io from 'socket.io-client'
-
-const Tab = ({ active, label, Icon, onClick }) => (
-  <button onClick={onClick} className={`px-5 py-2.5 rounded-xl text-sm font-semibold inline-flex items-center gap-2 transition-all duration-300 ${active ? 'bg-[#4c99e6] hover:bg-[#3d88d5] text-white shadow-lg shadow-blue-500/30' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
-    <Icon className="h-4 w-4" /> {label}
-  </button>
-)
 
 export default function CommunityDetailPage() {
   const { id } = useParams()
@@ -366,19 +361,13 @@ export default function CommunityDetailPage() {
         </div>
       </div>
 
-      <div className="mb-8 -mx-4 px-4 overflow-x-auto">
-        <div className="flex gap-3 w-max">
-          {isMember && (
-            <Tab active={tab==='feed'} label="Feed" Icon={Newspaper} onClick={() => { switchTab('feed'); setTimeout(scrollToMessageBox, 0) }} />
-          )}
-          <Tab active={tab==='dashboard'} label="Dashboard" Icon={BarChart3} onClick={() => switchTab('dashboard')} />
-          <Tab active={tab==='items'} label="Goals & Habits" Icon={Target} onClick={() => switchTab('items')} />
-          <Tab active={tab==='members'} label="Members" Icon={Users} onClick={() => switchTab('members')} />
-          {role === 'admin' && (
-            <Tab active={tab==='settings'} label="Settings" Icon={Settings} onClick={() => switchTab('settings')} />
-          )}
-        </div>
-      </div>
+      <PillTabs className="mb-8" label="Community views" value={tab} onChange={value => { switchTab(value); if (value === 'feed') setTimeout(scrollToMessageBox, 0) }} items={[
+        ...(isMember ? [{ value: 'feed', label: 'Feed', icon: Newspaper }] : []),
+        { value: 'dashboard', label: 'Dashboard', icon: BarChart3 },
+        { value: 'items', label: 'Goals & Habits', icon: Target },
+        { value: 'members', label: 'Members', icon: Users },
+        ...(role === 'admin' ? [{ value: 'settings', label: 'Settings', icon: Settings }] : []),
+      ]} />
 
       {tab === 'feed' && isMember && (
         <div className="relative min-h-[60vh] flex flex-col">

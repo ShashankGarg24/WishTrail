@@ -1,3 +1,4 @@
+import PillTabs from './PillTabs'
 import { motion } from 'framer-motion'
 import { useState, useEffect, useCallback } from 'react'
 import { Youtube, Instagram, Play, ChevronLeft, ChevronRight, Maximize2, ExternalLink } from 'lucide-react'
@@ -339,29 +340,7 @@ const VideoEmbedGrid = () => {
   return (
     <div className="w-full">
       {/* Tab Navigation */}
-      <div className="flex justify-center mb-12">
-        <div className="glass-card-hover p-1 rounded-2xl">
-          <div className="flex space-x-1">
-            {tabs.map((tab) => (
-              <motion.button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`relative flex items-center space-x-3 px-8 py-4 rounded-xl font-medium transition-all ${
-                  activeTab === tab.id
-                    ? 'bg-white/20 text-gray-900 dark:text-white shadow-lg'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-white hover:bg-white/10'
-                }`}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <tab.icon className={`h-6 w-6 ${tab.color}`} />
-                <span className="text-lg">{tab.label}</span>
-                {/* Removed animated highlight to eliminate shimmer during tab switch */}
-              </motion.button>
-            ))}
-          </div>
-        </div>
-      </div>
+      <PillTabs className="mb-12" value={activeTab} onChange={setActiveTab} items={tabs.map(tab => ({ value: tab.id, label: tab.label, icon: tab.icon }))} />
 
       {/* Carousel Header */}
       <div className="text-center mb-12">

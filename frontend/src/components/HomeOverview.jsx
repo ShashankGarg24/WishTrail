@@ -1,3 +1,5 @@
+import PillTabs, { homeTabs } from './PillTabs'
+import MomentumLandscape from './MomentumLandscape'
 import ActivePromotion from './ActivePromotion'
 import { WeeklyTrailTeaser } from './WeeklyTrail'
 import { useEffect, useMemo, useState } from 'react'
@@ -395,15 +397,10 @@ export default function HomeOverview({ user, goals = [], habits = [], stats = {}
         </div>
         <ActivePromotion userId={user?.id} />
         <div className="md:hidden">
-          <div className="mb-4 flex rounded-xl bg-slate-100 p-1 dark:bg-gray-800">
-            {['overview', 'goals', 'habits'].map((tab) => (
-              <button key={tab} type="button" onClick={() => onTab(tab)} className={`flex-1 rounded-lg py-2 text-sm font-semibold capitalize ${tab === 'overview' ? 'bg-white text-blue-600 shadow-sm dark:bg-gray-700' : 'text-slate-500'}`}>
-                {tab}
-              </button>
-            ))}
-          </div>
+          <PillTabs items={homeTabs} value="overview" onChange={onTab} className="mb-4" label="Home views" />
           <div className="overflow-hidden rounded-2xl border border-blue-100 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
-            <div className="relative min-h-[220px] overflow-hidden bg-gradient-to-br from-blue-50 via-white to-sky-100 px-5 py-5 text-center dark:from-blue-950/50 dark:via-gray-800 dark:to-gray-800">
+            <div className="wt-momentum-card relative min-h-[220px] overflow-hidden px-5 py-5 text-center">
+              <MomentumLandscape period={isEvening ? 'night' : isMorning ? 'morning' : 'afternoon'} />
               <div className="relative z-10">
                 <p className="text-sm font-bold text-slate-900 dark:text-white">Your Momentum</p>
                 <div className="mt-1 flex items-center justify-center gap-2">

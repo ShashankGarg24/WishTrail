@@ -950,3 +950,39 @@ body {
   .habit-title h2{padding-right:0}
   .habit-actions-sheet>div{padding-bottom:calc(20px + env(safe-area-inset-bottom))}
 }
+/* Reference-style pill navigation, shared across content views. */
+.wt-pill-tabs{display:flex;align-items:stretch;gap:4px;padding:4px;min-width:0;border:1px solid #ffffffeb;border-radius:999px;background:#ffffffdb;overflow-x:auto;box-shadow:0 8px 28px #6382a50f;scrollbar-width:none}
+.wt-pill-tabs::-webkit-scrollbar{display:none}
+.wt-pill-tabs>button{display:flex;flex:1 0 auto;align-items:center;justify-content:center;gap:10px;min-height:44px;padding:9px 18px;border:0;border-radius:999px;background:transparent;color:#70829f;font-size:14px;font-weight:600;white-space:nowrap;text-transform:capitalize;transition:background .18s,color .18s}
+.wt-pill-tabs>button>svg{width:22px;height:22px;flex-shrink:0}
+.wt-pill-tabs>button[aria-pressed="true"]{background:linear-gradient(110deg,#e6f2ff,#eff7ff);color:#0784ff}
+.wt-pill-tabs>button:hover{background:#f0f6fc}
+.wt-pill-tabs>button:focus-visible,.wt-bottom-tab:focus-visible,.wt-bottom-create:focus-visible{outline:2px solid #0784ff;outline-offset:3px}
+.dark .wt-pill-tabs{background:#172132;border-color:#29374c}
+.dark .wt-pill-tabs>button{color:#a0b1ca}
+.dark .wt-pill-tabs>button[aria-pressed="true"],.dark .wt-pill-tabs>button:hover{background:#203954;color:#64b5ff}
+.lb-controls>.wt-pill-tabs{flex:1;max-width:540px}
+@media(max-width:640px){.wt-pill-tabs>button{gap:7px;padding:9px 12px;font-size:12px}.wt-pill-tabs>button>svg{width:20px;height:20px}}
+.wt-bottom-nav{left:8px;right:8px;bottom:max(8px,env(safe-area-inset-bottom))}
+.wt-bottom-shell{border:1px solid #e0edff;border-radius:999px;background:#fffffff7;box-shadow:0 4px 28px #438ad51a}
+.wt-bottom-tab{position:relative;display:flex;flex:1;min-width:0;height:66px;flex-direction:column;align-items:center;justify-content:center;color:#70829f}
+.wt-bottom-tab-icon{display:grid;place-items:center;width:100%;max-width:64px;height:38px;border-radius:999px}
+.wt-bottom-tab.is-active{color:#0784ff}
+.wt-bottom-tab.is-active .wt-bottom-tab-icon{background:linear-gradient(110deg,#e0efff,#e8f3ff)}
+.wt-bottom-tab.is-active .wt-bottom-tab-icon svg.lucide-home{fill:#0784ff;stroke:white}
+.wt-bottom-tab-dot{height:5px;width:5px;margin-top:4px;border-radius:50%;background:transparent}
+.wt-bottom-tab.is-active .wt-bottom-tab-dot{background:#0784ff}
+.wt-bottom-create{position:absolute;left:50%;top:-10px;z-index:1;display:flex;width:56px;height:56px;transform:translateX(-50%);align-items:center;justify-content:center;border-radius:50%;border:1px solid #91d9ff;background:linear-gradient(145deg,#35c6fb,#0784ff 85%);box-shadow:0 0 0 5px #e8f5ff,0 10px 22px #1683ed40;transition:filter .18s}
+.wt-bottom-create:hover{filter:brightness(1.06)}
+.wt-bottom-create:active{transform:translateX(-50%) scale(.96)}
+.dark .wt-bottom-shell{background:#172132;border-color:#29374c}
+.dark .wt-bottom-tab.is-active .wt-bottom-tab-icon{background:#203954}
+.dark .wt-bottom-create{box-shadow:0 0 0 5px #172132,0 10px 22px #1683ed40}
+.wt-momentum-card{background:#f0f7ff;isolation:isolate}
+.wt-momentum-landscape{--landscape-sky:#e8f4ff;--landscape-far:#b6d8ef;--landscape-near:#8dbfdd;--landscape-tree:#499db0;position:absolute;inset:0;z-index:-1;background:linear-gradient(110deg,#f5f9ff,var(--landscape-sky))}
+.wt-momentum-landscape svg{width:100%;height:100%;opacity:.6;mask-image:linear-gradient(110deg,transparent 10%,#000 95%)}
+.landscape-glow{fill:#ffe8b4;opacity:.4}.landscape-sun{fill:#ffdb92}
+.wt-momentum-landscape--morning{--landscape-sky:#fff0dd;--landscape-far:#c1d6df;--landscape-near:#a1c5c7;--landscape-tree:#6b9e98}
+.wt-momentum-landscape--night{--landscape-sky:#dce3f5;--landscape-far:#b7c2e3;--landscape-near:#8b9cc7;--landscape-tree:#6a81aa}
+.wt-momentum-landscape--night .landscape-sun{fill:#fff7d6}
+.dark .wt-momentum-card{background:#18263a}.dark .wt-momentum-landscape{background:linear-gradient(110deg,#18263a,#263953)}.dark .wt-momentum-landscape svg{opacity:.25}

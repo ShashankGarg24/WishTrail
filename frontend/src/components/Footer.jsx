@@ -25,7 +25,7 @@ const Footer = () => {
           <nav aria-label="Footer navigation">
             <Link to="/privacy-policy">Privacy Policy</Link>
             <Link to="/terms-of-service">Terms</Link>
-            <a href="mailto:support@wishtrail.in">Support</a>
+            <Link to="/support">Support</Link>
             <Link to="/whats-new">What's New</Link>
           </nav>
         </div>
@@ -45,6 +45,11 @@ const Footer = () => {
     { name: 'Inspiration', href: '/inspiration' },
   ]
 
+  const supportLinks = [
+    { name: 'Support', href: '/support' },
+    { name: "What's New", href: '/whats-new' },
+  ]
+
   const quickLinks = isAuthenticated ? allQuickLinks : publicQuickLinks
 
   const legalLinks = [
@@ -59,7 +64,7 @@ const Footer = () => {
     >
       <div className="max-w-[1400px] mx-auto px-6 py-12">
         {/* Main Footer Content */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12 mb-8">
           {/* Brand Section */}
           <div className="space-y-4">
             <Link to="/" className="flex items-center gap-1">
@@ -88,6 +93,25 @@ const Footer = () => {
             </h3>
             <ul className="space-y-2">
               {quickLinks.map((link) => (
+                <li key={link.name}>
+                  <Link
+                    to={link.href}
+                    className="text-gray-600 hover:text-[#4c99e6] dark:text-gray-400 dark:hover:text-[#4c99e6] transition-colors text-sm font-manrope"
+                  >
+                    {link.name}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Help */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white font-manrope uppercase tracking-wider">
+              Help
+            </h3>
+            <ul className="space-y-2">
+              {supportLinks.map((link) => (
                 <li key={link.name}>
                   <Link
                     to={link.href}

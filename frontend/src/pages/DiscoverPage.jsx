@@ -1,3 +1,4 @@
+import PillTabs from '../components/PillTabs'
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -627,23 +628,7 @@ export default function DiscoverPage() {
           </div>
           <div className="mx-auto grid max-w-[1340px] grid-cols-1 gap-4 md:px-5 md:pb-8">
             <section className="min-h-[720px] min-w-0">
-              <div className="border-b border-slate-200 bg-white px-4 dark:border-gray-700 dark:bg-gray-900 md:hidden">
-                <div className="grid grid-cols-2">
-                  {[
-                    ["goals", Target, "Goals"],
-                    ["people", Users, "People"],
-                  ].map(([key, Icon, label]) => (
-                    <button
-                      key={key}
-                      onClick={() => changeTab(key)}
-                      className={`flex items-center justify-center gap-2 border-b-2 py-3 text-xs font-bold ${tab === key ? "border-[#0784f8] text-[#0784f8]" : "border-transparent text-slate-500"}`}
-                    >
-                      <Icon className="h-4 w-4" />
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <PillTabs className="mb-4 md:hidden" label="Discover views" value={tab} onChange={changeTab} items={[{ value: "goals", label: "Goals", icon: Target }, { value: "people", label: "People", icon: Users }]} />
               {tab === "goals" && (
                 <>
                   <div className="border-b border-slate-100 bg-white px-4 py-3 md:hidden dark:border-gray-700 dark:bg-gray-900">

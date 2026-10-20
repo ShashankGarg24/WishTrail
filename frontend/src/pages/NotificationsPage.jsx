@@ -1,3 +1,4 @@
+import PillTabs from '../components/PillTabs'
 import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { motion } from 'framer-motion';
 import { CheckCheck, RefreshCw, Trophy, Heart, MessageCircle, UserPlus, Check, X } from 'lucide-react';
@@ -197,9 +198,7 @@ const NotificationsPageNew = () => {
           </div>
         </div>
 
-        <div className="flex overflow-x-auto border-b border-slate-100 bg-white px-3 dark:border-gray-800 dark:bg-gray-900 sm:mb-6 sm:rounded-xl sm:border">
-          {['all', 'social', 'goals', 'habits', 'system'].map(filter => <button key={filter} onClick={() => setNotificationFilter(filter)} className={`relative flex-1 px-4 py-3 text-xs font-bold capitalize ${notificationFilter === filter ? 'text-blue-600' : 'text-slate-500'}`}>{filter}{notificationFilter === filter && <span className="absolute bottom-0 left-2 right-2 h-0.5 rounded bg-blue-500" />}</button>)}
-        </div>
+        <PillTabs className="mb-6" label="Notification categories" value={notificationFilter} onChange={setNotificationFilter} items={['all', 'social', 'goals', 'habits', 'system'].map(value => ({ value, label: value }))} />
 
         {loadError && (
           <div role="alert" className="mb-6 rounded-lg bg-red-50 dark:bg-red-900/20 p-4 text-red-700 dark:text-red-300">

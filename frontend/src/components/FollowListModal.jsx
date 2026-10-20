@@ -1,3 +1,4 @@
+import PillTabs from './PillTabs'
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -134,30 +135,7 @@ const FollowListModal = ({ isOpen, onClose, activeTab = 'followers', onTabChange
               </button>
             </div>
 
-            <div className="px-5 pt-3 border-b border-gray-100 dark:border-gray-800">
-              <div className="flex gap-0">
-                <button
-                  type="button"
-                  onClick={() => onTabChange?.('followers')}
-                  className={`relative px-4 py-3 text-sm font-medium transition-colors ${activeTab === 'followers' ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
-                >
-                  Followers ({followersCount})
-                  {activeTab === 'followers' && (
-                    <span className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full" style={{ backgroundColor: THEME_COLOR }} />
-                  )}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onTabChange?.('following')}
-                  className={`relative px-4 py-3 text-sm font-medium transition-colors ${activeTab === 'following' ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
-                >
-                  Following ({followingCount})
-                  {activeTab === 'following' && (
-                    <span className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full" style={{ backgroundColor: THEME_COLOR }} />
-                  )}
-                </button>
-              </div>
-            </div>
+            <PillTabs className="mx-4 mt-3" label="Connections" value={activeTab} onChange={onTabChange} items={[{ value: 'followers', label: `Followers (${followersCount})` }, { value: 'following', label: `Following (${followingCount})` }]} />
 
             <div className="px-4 py-3 sm:px-5">
               <label className="flex items-center gap-2 rounded-lg bg-slate-100 px-3 py-2.5 dark:bg-gray-800"><Search className="h-4 w-4 text-slate-400" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={`Search ${activeTab}...`} className="w-full bg-transparent text-sm outline-none placeholder:text-slate-400 dark:text-white" /></label>

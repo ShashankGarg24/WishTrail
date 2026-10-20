@@ -1,7 +1,7 @@
 import { lazy, Suspense, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { BarChart3, BookOpen, CalendarCheck, Home, LayoutGrid, Plus, Trophy, Target, User, Zap } from 'lucide-react'
+import { BarChart3, BookOpen, Compass, Home, Plus, Trophy, Target, User, Zap } from 'lucide-react'
 import useApiStore from '../store/apiStore'
 import AccountMenuSheet from './account/AccountMenuSheet'
 
@@ -16,12 +16,12 @@ const TabButton = ({ active, label, Icon, onClick }) => (
     aria-label={label}
     aria-current={active ? 'page' : undefined}
     title={label}
-    className={`flex flex-1 flex-col items-center justify-center py-2 transition-colors duration-200 ${active ? 'text-[#1683ed]' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'}`}
+    className={`wt-bottom-tab ${active ? 'is-active' : ''}`}
   >
-    <span className={`grid h-10 w-10 place-items-center rounded-xl transition-colors ${active ? 'bg-blue-50 dark:bg-blue-950/50' : ''}`}>
-      <Icon className="h-[22px] w-[22px]" strokeWidth={active ? 2.5 : 2} />
+    <span className="wt-bottom-tab-icon">
+      <Icon className="h-6 w-6" strokeWidth={active ? 2.5 : 2} />
     </span>
-    <span className="text-[10px] font-medium">{label}</span>
+    <span className="wt-bottom-tab-dot" aria-hidden="true" />
   </button>
 )
 
@@ -54,20 +54,20 @@ const BottomTabBar = () => {
 
   return (
     <>
-      <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden">
-        <div className="relative w-full pb-safe">
+      <div className="wt-bottom-nav fixed z-50 md:hidden">
+        <div className="relative w-full">
           <button
             type="button"
             onClick={() => setQuickActionsOpen(true)}
             aria-label="Open quick actions"
-            className="absolute left-1/2 top-[-28px] z-10 flex h-14 w-14 -translate-x-1/2 items-center justify-center rounded-full bg-[#4c99e6] shadow-lg transition-transform hover:bg-[#3d88d5] active:scale-95"
+            className="wt-bottom-create"
           >
             <Plus className="h-7 w-7 text-white" strokeWidth={2.5} />
           </button>
-          <div className="border-t border-gray-200 bg-white shadow-lg dark:border-gray-800 dark:bg-gray-900">
+          <div className="wt-bottom-shell">
             <div className="flex w-full items-stretch px-2">
               <TabButton active={path.startsWith('/home') || path.startsWith('/dashboard')} label="Home" Icon={Home} onClick={() => navigate('/home')} />
-              <TabButton active={path.startsWith('/feed')} label="Feed" Icon={LayoutGrid} onClick={() => navigate('/feed')} />
+              <TabButton active={path.startsWith('/feed')} label="Feed" Icon={Compass} onClick={() => navigate('/feed')} />
               <div className="flex-1" />
               <TabButton active={path.startsWith('/leaderboard')} label="Leaderboard" Icon={Trophy} onClick={() => navigate('/leaderboard')} />
               <TabButton

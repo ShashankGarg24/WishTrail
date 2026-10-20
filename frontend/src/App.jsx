@@ -43,6 +43,7 @@ const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'))
 const TermsOfService = lazy(() => import('./pages/TermsOfService'))
 const CommunityGuidelines = lazy(() => import('./pages/CommunityGuidelines'))
 const CopyrightPolicy = lazy(() => import('./pages/CopyrightPolicy'))
+const SupportPage = lazy(() => import('./pages/SupportPage'))
 const LeaderboardPageNew = lazy(() => import('./pages/LeaderboardPage'))
 const WhatsNewPage = lazy(() => import('./pages/WhatsNewPage'))
 const AdminPage = lazy(() => import('./pages/AdminPage'))
@@ -301,6 +302,7 @@ function App() {
               <Route path="/terms-of-service" element={<TermsOfService />} />
               <Route path="/community-guidelines" element={<CommunityGuidelines />} />
               <Route path="/copyright-policy" element={<CopyrightPolicy />} />
+              <Route path="/support" element={<SupportPage />} />
               
               {/* What's New page - Public */}
               <Route path="/whats-new" element={<WhatsNewPage />} />

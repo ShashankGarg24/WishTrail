@@ -1,3 +1,4 @@
+import PillTabs from '../components/PillTabs'
 import { useEffect, useState } from 'react'
 import { ArrowRight, BarChart3, CalendarDays, ChevronDown, Crown, Search, Sparkles, Target, TrendingUp, Trophy, Users } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
@@ -86,9 +87,7 @@ export default function LeaderboardPage() {
     <div className="lb-shell">
       <header className="lb-hero"><div><h1>Global <span>Leaderboard</span></h1><p>Celebrate the journey of achievers worldwide.</p></div><Mountain /><blockquote>“Small steps create<br />big achievers.”<span>—</span><Sparkles /></blockquote></header>
       <div className="lb-controls">
-        <div className="lb-tabs" title="Active days count distinct days with a completed goal or a habit daily target reached." role="group" aria-label="Rank by">
-          {Object.entries(labels).map(([key, label]) => <button key={key} aria-pressed={type === key} className={type === key ? 'active' : ''} onClick={() => selectType(key)}>{key === 'goals' ? <Trophy /> : <CalendarDays />}{label}</button>)}
-        </div>
+        <PillTabs label="Rank by" value={type} onChange={selectType} items={Object.entries(labels).map(([value, label]) => ({ value, label, icon: value === 'goals' ? Trophy : CalendarDays }))} />
         <div className="lb-desktop-period">{periodControl}</div>
       </div>
       {error ? <div className="lb-message" role="alert">{error}<button onClick={() => setRetry(value => value + 1)}>Try again</button></div> : <div aria-busy={loading}>

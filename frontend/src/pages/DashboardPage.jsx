@@ -1,3 +1,4 @@
+import PillTabs, { homeTabs } from '../components/PillTabs'
 import { isRecentlyCompleted } from '../utils/goalShare'
 import StartupSkeleton from '../components/StartupSkeleton'
 import { useState, useEffect, useMemo, lazy, Suspense, useRef } from 'react'
@@ -796,6 +797,7 @@ const DashboardPageNew = () => {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
         >
+          <PillTabs className="mb-4 md:hidden" label="Home views" items={homeTabs} value={activeTab} onChange={handleTabChange} />
           {activeTab === 'goals' ? (
             <div className="goals-workspace space-y-4">
               <div className="grid h-[58px] grid-cols-[40px_1fr_40px] items-center gap-2 sm:flex sm:h-auto sm:justify-between">

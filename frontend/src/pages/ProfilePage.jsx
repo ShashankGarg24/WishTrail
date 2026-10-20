@@ -1,3 +1,4 @@
+import PillTabs from '../components/PillTabs'
 ﻿import { GOAL_CATEGORIES } from '../constants/goalCategories'
 import { useState, useEffect, useRef, useMemo, lazy, Suspense } from "react";
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
@@ -1244,30 +1245,7 @@ const ProfilePage = () => {
           /* Full Profile Content */
           <>
             {/* Tabs - theme underline #4c99e6 */}
-            <div className={`wt-profile-tabs sticky top-0 z-20 mb-3 border-b border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900 sm:static sm:mb-5 sm:rounded-xl sm:border sm:px-2 md:mb-6 ${!isOwnProfile ? 'is-other-profile-tabs md:hidden' : ''}`}>
-              <div className="flex overflow-x-auto scrollbar-hide sm:justify-around">
-                {profileTabs.map((tab) => (
-                  <button
-                    key={tab}
-                    onClick={() => handleTabChange(tab)}
-                    className={`relative inline-flex min-w-[78px] items-center justify-center gap-1.5 px-3 py-3 text-xs font-semibold transition-colors whitespace-nowrap sm:min-w-0 sm:px-7 sm:py-4 sm:text-lg ${
-                      activeTab === tab
-                        ? "text-gray-900 dark:text-white"
-                        : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
-                    }`}
-                  >
-                    {(() => { const TabIcon = tabMeta[tab]?.icon; return TabIcon ? <TabIcon className="h-4 w-4 sm:h-6 sm:w-6" /> : null })()}
-                    {tabMeta[tab]?.label || tab}
-                    {activeTab === tab && (
-                      <span
-                        className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full"
-                        style={{ backgroundColor: THEME_COLOR }}
-                      />
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <PillTabs className={`sticky top-0 z-20 mb-4 ${!isOwnProfile ? 'md:hidden' : ''}`} label="Profile views" value={activeTab} onChange={handleTabChange} items={profileTabs.map(value => ({ value, label: tabMeta[value]?.label || value, icon: tabMeta[value]?.icon }))} />
             {/* Tab Content */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
