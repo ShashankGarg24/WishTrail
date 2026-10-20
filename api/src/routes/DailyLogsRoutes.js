@@ -8,7 +8,7 @@ const router = express.Router();
 router.get('/prompt', protect, dailyLogsController.getPrompt);
 
 // Create a daily log entry
-router.post('/', protect, dailyLogsController.createEntry);
+router.post('', protect, dailyLogsController.createEntry);
 
 // Update a daily log entry (e.g., mood or visibility)
 router.patch('/:entryId', protect, dailyLogsController.updateEntry);

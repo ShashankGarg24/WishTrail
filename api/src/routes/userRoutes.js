@@ -8,7 +8,7 @@ const router = express.Router();
 router.use(protect);
 
 // User routes
-router.get('/', userController.getUsers);
+router.get('', userController.getUsers);
 router.get('/dashboard', userController.getDashboardStats);
 router.get('/profile', userController.getProfileSummary);
 router.get('/analytics', userController.getAnalytics);

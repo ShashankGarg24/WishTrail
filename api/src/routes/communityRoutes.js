@@ -10,7 +10,7 @@ router.get('/discover', protect, controller.discoverCommunities);
 router.get('/joined/items', protect, controller.myJoinedItems);
 
 // Create
-router.post('/', protect, controller.createCommunity);
+router.post('', protect, controller.createCommunity);
 router.patch('/:id', protect, controller.updateCommunity);
 
 // Detail

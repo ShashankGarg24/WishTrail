@@ -21,7 +21,7 @@ const upload = multer({ storage, fileFilter, limits: { fileSize: 1 * 1024 * 1024
 const MAX_MESSAGE_CHARS = 500
 
 // POST /api/v1/feedback
-router.post('/', protect, upload.single('screenshot'), async (req, res, next) => {
+router.post('', protect, upload.single('screenshot'), async (req, res, next) => {
   try {
     const { emotion, message } = req.body;
 
@@ -70,4 +70,4 @@ router.post('/', protect, upload.single('screenshot'), async (req, res, next) =>
   }
 });
 
-module.exports = router; 
+module.exports = router;

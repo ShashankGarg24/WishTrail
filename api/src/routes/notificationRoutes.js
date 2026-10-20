@@ -10,7 +10,7 @@ router.post('/devices/register', protect, notificationController.registerDevice)
 // Protected routes
 router.use(protect);
 
-router.get('/', notificationController.getNotifications);
+router.get('', notificationController.getNotifications);
 router.get('/follow-requests', notificationController.getFollowRequests);
 router.post('/follow-requests/:notificationId/accept', notificationController.acceptFollowRequest);
 router.post('/follow-requests/:notificationId/reject', notificationController.rejectFollowRequest);

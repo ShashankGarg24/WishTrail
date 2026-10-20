@@ -94,7 +94,7 @@ router.post('/:id/shares', async (req, res, next) => {
 });
 
 // Goal routes
-router.get('/', goalController.getGoals);
+router.get('', goalController.getGoals);
 router.get('/trending', goalController.getTrendingGoals);
 router.get('/search', goalController.searchGoals);
 router.get('/:id/analytics', goalController.getGoalAnalytics);
@@ -107,7 +107,7 @@ router.put('/:id/updates/today', goalController.upsertTodayGoalUpdate);
 router.delete('/:id/updates/today', goalController.deleteTodayGoalUpdate);
 router.patch('/:id/updates/:updateId', goalController.updateGoalUpdate);
 router.delete('/:id/updates/:updateId', goalController.deleteGoalUpdate);
-router.post('/', createGoalValidation, goalController.createGoal);
+router.post('', createGoalValidation, goalController.createGoal);
 router.get('/yearly/:year', goalController.getYearlyGoalsSummary);
 router.get('/:id', goalController.getGoal);
 router.put('/:id', updateGoalValidation, goalController.updateGoal);

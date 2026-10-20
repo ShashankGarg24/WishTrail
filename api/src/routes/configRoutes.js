@@ -12,7 +12,7 @@ router.get('/maintenance', configController.getMaintenanceStatus);
 router.get('/active-promotion', require('../middleware/auth').protect, configController.getActivePromotion);
 
 // Protected routes - Admin only (add admin check middleware if available)
-router.get('/', protect, configController.getAllConfigs);
+router.get('', protect, configController.getAllConfigs);
 router.get('/:key', protect, configController.getConfigByKey);
 
 router.post(

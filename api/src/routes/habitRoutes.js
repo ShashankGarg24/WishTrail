@@ -10,8 +10,8 @@ router.get('/:id/og-image', habitController.generateStreakOGImage);
 router.use(protect);
 
 // CRUD
-router.get('/', habitController.listHabits);
-router.post('/', habitController.createHabit);
+router.get('', habitController.listHabits);
+router.post('', habitController.createHabit);
 router.get('/stats', habitController.getStats);
 router.get('/analytics', habitController.getAnalytics);
 router.get('/:id', habitController.getHabit);
